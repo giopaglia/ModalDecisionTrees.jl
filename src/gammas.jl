@@ -323,7 +323,8 @@ function computeGammas(
 				@logmsg DTDetail "World" w
 
 				i_to = 1
-				for (mode,test_operator) in actual_test_operators
+				@simd for j in 1:length(actual_test_operators)
+					mode, test_operator = actual_test_operators[j]
 					if mode == 0
 						threshold = ModalLogic.WExtreme(test_operator, w, channel)
 						setGamma(gammas, w, i, relationId_id, feature, i_to, threshold)
@@ -395,7 +396,8 @@ function computeGammas(
 
 					# TODO use gammasId, TODO gammasId[v]
 					i_to = 1
-					for (mode,test_operator) in actual_test_operators
+					@simd for j in 1:length(actual_test_operators)
+						mode, test_operator = actual_test_operators[j]
 						if mode == 0
 							threshold = WExtremeModal(test_operator, gammasId, w, relation, channel)
 							setGammasSlice(cur_gammas, w, i_to, threshold)
