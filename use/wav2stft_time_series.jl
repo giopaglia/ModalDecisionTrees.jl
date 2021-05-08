@@ -89,6 +89,10 @@ function wav2stft_time_series(filepath, kwargs; preprocess_sample::AbstractVecto
 	for pps in preprocess_sample
 		pps(samps)
 	end
+
+	@assert maximum(abs, samps) > 0.0 "ERROR: File $(filepath) has max peak 0!"
+	@assert !any(isnan.(samps)) "ERROR: File $(filepath) has a NaN value!"
+
 	# wintime = 0.025 # ms
 	# steptime = 0.010 # ms
 	# fbtype=:mel # [:mel, :htkmel, :fcmel]
@@ -109,14 +113,14 @@ end
 
 # DSP.Periodograms.stft(samps, div(length(samps), 8), div(n, 2); onesided=true, nfft=nextfastfft(n), fs=1, window=nothing)
 
-function noise_gate!(sample::AbstractVector; level::Float64 = 0.001)
+function noise_gate!(sample::AbstractVector; level::Float64 = 0.03)
 	# TODO: maybe use moving average instead of the stright value?
 	apply_ng!(val) = abs(val) <= level ? 0.0 : val
 	sample .= apply_ng!.(sample)
 end
 
 function normalize!(sample::AbstractVector; level::Float64 = 1.0)
-	max_peak = level - maximum(abs, sample)
+	max_peak = maximum(abs, sample)
 	apply_padd!(val::Float64) = clamp((val/max_peak) * level, -1.0, 1.0)
 	sample .= apply_padd!.(sample)
 end
