@@ -235,23 +235,27 @@ iteration_whitelist = [
 	(
 		n_version = 1,
 		nbands = 40,
-		dataset_kwargs = (max_points = 30, ma_size = 75, ma_step = 50)
+		dataset_kwargs = (max_points = 30, ma_size = 75, ma_step = 50),
+		preprocess_wavs = []
 	),
 	(
 		n_version = 1,
 		nbands = 60,
-		dataset_kwargs = (max_points = 30, ma_size = 75, ma_step = 50)
+		dataset_kwargs = (max_points = 30, ma_size = 75, ma_step = 50),
+		preprocess_wavs = []
 	),
 	# TASK 2
 	(
 		n_version = 2,
 		nbands = 20,
-		dataset_kwargs = (max_points = 30, ma_size = 45, ma_step = 30)
+		dataset_kwargs = (max_points = 30, ma_size = 45, ma_step = 30),
+		preprocess_wavs = []
 	),
 	(
 		n_version = 2,
 		nbands = 40,
-		dataset_kwargs = (max_points = 30, ma_size = 45, ma_step = 30)
+		dataset_kwargs = (max_points = 30, ma_size = 45, ma_step = 30),
+		preprocess_wavs = []
 	)
 ]
 
