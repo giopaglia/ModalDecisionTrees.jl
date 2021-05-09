@@ -5,7 +5,7 @@
 ☐	dataset-loading functions should tell about how they balanced, and how they randomized
 ☐	Add comments
 ☐	Custom pretty printing, instead of display_... See https://docs.julialang.org/en/v1/manual/types/#man-custom-pretty-printing
-☐	Improve type stability for better time performance: e.g. type-stable slicing with JuliennedArrays ( from https://discourse.julialang.org/t/way-to-slice-an-array-of-unknown-number-of-dimensions/27246 ), EllipsisNotation https://github.com/ChrisRackauckas/EllipsisNotation.jl. Use \@code_warntype as in https://discourse.julialang.org/t/why-selectdim-is-type-instable/25271/2 to double check each function
+☐	Improve type stability for better time performance: https://docs.julialang.org/en/v1/devdocs/reflection/#Intermediate-and-compiled-representations  @code_warntype https://www.johnmyleswhite.com/notebook/2013/12/06/writing-type-stable-code-in-julia/ e.g. type-stable slicing with JuliennedArrays ( from https://discourse.julialang.org/t/way-to-slice-an-array-of-unknown-number-of-dimensions/27246 ), EllipsisNotation https://github.com/ChrisRackauckas/EllipsisNotation.jl. Use \@code_warntype as in https://discourse.julialang.org/t/why-selectdim-is-type-instable/25271/2 to double check each function https://nextjournal.com/jbieler/adding-static-type-checking-to-julia-in-100-lines-of-code/
 
 ☐	Check whether \@inbounds improves performances. @propagate_inbounds, @inbounds (and @boundscheck): "In general, bounds-check removal should be the last optimization you make after ensuring everything else works, is well-tested, and follows the usual performance tips." https://stackoverflow.com/questions/38901275/inbounds-propagation-rules-in-julia?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
 - gammas contain a lot of redundance: perhaps use PooledArrays.jl, IndirectArrays.jl, CategoricalArrays.jl for saving space, both for saving to file AND for learing (might be beneficial for caching)?
@@ -24,6 +24,7 @@
 ☐	Add the use of an unbalanced test set, and allow ConfusionMatrix to compute the overall accuracy in a balanced way.
 ☐	Add IA7 relations: Complete by writing enumAccBare, enumAcc, enumAccRepr.
 ☐	Find out whether it's faster to use gammasId or recalculate them. (If gammasId is better, use it in WExtrema?)
+☐	Test whether zipping is better than writing custom iterators with https://schlichtanders.github.io/Continuables.jl/dev/
 ☐	Add IA7^2 relations.
 
 - cache-efficient parallelization of gamma calculation? https://github.com/JuliaArrays/TiledIteration.jl
