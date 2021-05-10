@@ -1,16 +1,14 @@
-✔	check that missing is not in X or Y @done (21-05-06 10:18)
 ☐	Write optimized ArrayOfOnes struct for W. Someone did this already and it looks ok: https://github.com/emmt/StructuredArrays.jl . Also try: https://github.com/JuliaArrays/FillArrays.jl
 ☐	Support for dataframes, as opposed to MatricialDatasets (this allows instances of different size)
 ☐	Maybe there is an implementation of multi-dimensional array where one can specify that along one axis subArrays have non-uniform size?! https://juliaarrays.github.io/ArraysOfArrays.jl/stable/ https://github.com/JuliaArrays/BlockArrays.jl
-✔	clean ModalLogic.jl @done (21-05-06 12:55)
 ☐	Fix naming style (e.g. variables/features/attributes, etc. Order of struct's members)
-✔	timeit -> symbol @done (21-05-06 10:51)
 ☐	dataset-loading functions should tell about how they balanced, and how they randomized
-☐	Check whether \@propagate_inbounds, \@inbounds improves performances https://github.com/JuliaLang/julia/issues/39340
 ☐	Add comments
-✔	Clean initCondition and worldType code @done (21-05-06 10:36)
 ☐	Custom pretty printing, instead of display_... See https://docs.julialang.org/en/v1/manual/types/#man-custom-pretty-printing
-☐	Improve type stability for better time performance: e.g. type-stable slicing with JuliennedArrays ( from https://discourse.julialang.org/t/way-to-slice-an-array-of-unknown-number-of-dimensions/27246 ), EllipsisNotation https://github.com/ChrisRackauckas/EllipsisNotation.jl. Use \@code_warntype as in https://discourse.julialang.org/t/why-selectdim-is-type-instable/25271/2 to double check each function
+☐	Improve type stability for better time performance: https://docs.julialang.org/en/v1/devdocs/reflection/#Intermediate-and-compiled-representations  @code_warntype https://www.johnmyleswhite.com/notebook/2013/12/06/writing-type-stable-code-in-julia/ e.g. type-stable slicing with JuliennedArrays ( from https://discourse.julialang.org/t/way-to-slice-an-array-of-unknown-number-of-dimensions/27246 ), EllipsisNotation https://github.com/ChrisRackauckas/EllipsisNotation.jl. Use \@code_warntype as in https://discourse.julialang.org/t/why-selectdim-is-type-instable/25271/2 to double check each function https://nextjournal.com/jbieler/adding-static-type-checking-to-julia-in-100-lines-of-code/
+
+☐	Check whether \@inbounds improves performances. @propagate_inbounds, @inbounds (and @boundscheck): "In general, bounds-check removal should be the last optimization you make after ensuring everything else works, is well-tested, and follows the usual performance tips." https://stackoverflow.com/questions/38901275/inbounds-propagation-rules-in-julia?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+- gammas contain a lot of redundance: perhaps use PooledArrays.jl, IndirectArrays.jl, CategoricalArrays.jl for saving space, both for saving to file AND for learing (might be beneficial for caching)?
 
 ☐	Maybe make gammas be an array-like structure with different indexing style (e.g. relations taken from a list, IndexStyle...). This makes the indexing safer
 
@@ -26,7 +24,11 @@
 ☐	Add the use of an unbalanced test set, and allow ConfusionMatrix to compute the overall accuracy in a balanced way.
 ☐	Add IA7 relations: Complete by writing enumAccBare, enumAcc, enumAccRepr.
 ☐	Find out whether it's faster to use gammasId or recalculate them. (If gammasId is better, use it in WExtrema?)
+☐	Test whether zipping is better than writing custom iterators with https://schlichtanders.github.io/Continuables.jl/dev/
 ☐	Add IA7^2 relations.
+
+- cache-efficient parallelization of gamma calculation? https://github.com/JuliaArrays/TiledIteration.jl
+- For temporal series, one may want to have timepoints that are scattered along the time axis. See if https://github.com/JuliaArrays/AxisArrays.jl can be of any help here; but note that one may need to know how to handle missing's
 
 ☐	Parallelize tree construction? Does this require manual copy of dynamic structures used in _split! ?
 ☐	Optimize RCC5
@@ -52,6 +54,18 @@
 
 ＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿
 Archive:
+	✔	clean ModalLogic.jl @done (21-05-06 12:55)
+	✔	timeit -> symbol @done (21-05-06 10:51)
+	✔	Clean initCondition and worldType code @done (21-05-06 10:36)
+	✔	check that missing is not in X or Y @done (21-05-06 10:18)
+	✔	Play with parameters: @done (21-04-03 20:04)
+	✔	Preliminary scan on logic-agnostic parameters @done (21-03-19 15:05)
+	✔	Fix purity=-entropy and losses @done (21-03-15 14:55)
+	✔	Add name of the labels to a dataset and confusion matrix. @done (21-03-15 12:14)
+	✔	Create RCC5 ontology by joining n/tpp(i) into pp(i) (proper part) and dc/ec into dr (disjointness). @done (21-03-15 11:58)
+	✔	Add Error catching+repeat with different log level, and keep going @done (21-03-15 11:58)
+	✔	Extend to >=alpha and <alpha; these operators are ordered, closed/not closed; maybe others are categorical, in general some are. Fix </>= thing. Fix is_closed/polarity @done (21-03-15 10:55)
+	✔	Fix 3 pre-pruning stop conditions: a) purity>purity_threshold; b) min_sample_{leaf,split}>=threshold{absolute,relative}; c) purity gain < min_purity_gain. What if purity is just card(max_class)/card(all classes)? Why (best_purity / nt)? If ... maybe min_purity_increase needs to become min_info_gain @done (21-03-14 23:03)
 	✔	Calculate per-class accuracy. @done (21-03-12 17:10)
 	✔	Create a dataset with many but tiny worlds. Even a completely random one. @done (21-03-12 14:07)
 	✔	> doubles the time but doesn't seem to improve performances. Is this a bug? Try to come up with a dataset that shows if it works. If it's not a bug, maybe we should consider parametrizing on whether this is to be used or not. @done (21-03-12 14:07)
@@ -80,13 +94,6 @@ Archive:
 	✔	Use view instead of slicing @done (21-01-18 20:47)
 	✔ perhaps the domain should not be 20x3x3 but 3x3x20, because Julia is column-first @done (21-01-15 14:55)
 	✔	TODO const MatricialDomain{T,N} = AbstractArray{T,N} end @done (21-01-15 14:55)
-	✔	Extend to >=alpha and <alpha; these operators are ordered, closed/not closed; maybe others are categorical, in general some are. Fix </>= thing. Fix is_closed/polarity @done (21-03-15 10:55)
-	✔	Fix 3 pre-pruning stop conditions: a) purity>purity_threshold; b) min_sample_{leaf,split}>=threshold{absolute,relative}; c) purity gain < min_purity_gain. What if purity is just card(max_class)/card(all classes)? Why (best_purity / nt)? If ... maybe min_purity_increase needs to become min_info_gain @done (21-03-14 23:03)
-	✔	Create RCC5 ontology by joining n/tpp(i) into pp(i) (proper part) and dc/ec into dr (disjointness). @done (21-03-15 11:58)
-	✔	Add Error catching+repeat with different log level, and keep going @done (21-03-15 11:58)
-	✔	Add name of the labels to a dataset and confusion matrix. @done (21-03-15 12:14)
-	✔	Fix purity=-entropy and losses @done (21-03-15 14:55)
-	✔	Play with parameters: @done (21-04-03 20:04)
 		- relation set: [RCC8, RCC5]
 		- Two datasets: [PaviaU, Indian Pines]
 		- useRelationAll: 0 # [0, 1]
@@ -98,4 +105,3 @@ Archive:
 		- min_samples_leaf = [2, 4, 6]
 		- min_purity_increase = [0.001, 0.005, 0.01, 0.05, 0.15, 0.25, 0.5]
 		- max_purity_leaf = [0.15, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0]
-	✔	Preliminary scan on logic-agnostic parameters @done (21-03-19 15:05)
