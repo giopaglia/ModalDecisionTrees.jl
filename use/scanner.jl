@@ -92,6 +92,7 @@ function testDataset(
 		tree_args                       = [],
 		modal_args                      = (),
 		test_flattened                  = false,
+		# TODO add test_averaged          = false,
 		precompute_gammas               = true,
 		optimize_forest_computation     = false,
 		forest_runs                     = 1,
