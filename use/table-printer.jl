@@ -175,11 +175,11 @@ end
 function extract_model(
 		file_name::String,
 		type::String;
-		n_trees::Number = 100,
+		n_trees::Union{Nothing,Number} = nothing,
 		keep_header = true,
 		column_separator = ";",
 		exclude_variance = true,
-		exclude_parameters = [ "K", "oob_error" ],
+		exclude_parameters = [ "K", "oob_error", "t" ],
 		secondary_file_name::Union{Nothing,String} = nothing,
 		remove_duplicated_rows = true
 	)
@@ -219,7 +219,7 @@ function extract_model(
 
 		function is_excluded_column(header, index)::Bool
 			for excluded in exclude_parameters
-				if contains(split(header[index], ")")[2], excluded)
+				if strip(split(header[index], ")")[2]) == excluded
 					return true
 				end
 			end
@@ -238,7 +238,7 @@ function extract_model(
 			end
 		elseif type == "RF"
 			for i in 1:length(header)
-				if startswith(header[i], "RF") && get_tree_number_from_header(header, i) == n_trees
+				if startswith(header[i], "RF") && (isnothing(n_trees) || get_tree_number_from_header(header, i) == n_trees)
 					if exclude_variance && is_variance_column(header, i)
 						continue
 					end

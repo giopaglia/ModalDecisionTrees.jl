@@ -1,30 +1,33 @@
 
+using Pkg
+Pkg.activate("..")
+using Revise
+using DecisionTree
+
 include("table-printer.jl")
 
 import Statistics
 tables_path = "./tables"
 destination = "./tables"
-primary_file_name = tables_path * "/" * "encase.csv"
-secondary_file_name = tables_path * "/" * "titan.csv"
-tree_file_name = tables_path * "/" * "tree.csv"
+primary_file_name = tables_path * "/full_columns.csv"
 mkpath(tables_path)
 
 seeds = [
-    "7933197233428195239",
-    "1735640862149943821",
-    "3245434972983169324",
-    "1708661255722239460",
-    "1107158645723204584"
+    "1",
+    "2",
+    "3",
+    "4",
+    "5"
 ]
 
 convert_col_name = Dict{String,String}(
     "sensitivity" => "sens",
     "specificity" => "spec",
     "precision" => "prec",
-    "accuracy" => "accu"
+    "accuracy" => "acc"
 )
 
-seed_dictionary = Dict{String,String}(zip(seeds, "s" * string(i) for i in 1:length(seeds)))
+#seed_dictionary = Dict{String,String}(zip(seeds, "s" * string(i) for i in 1:length(seeds)))
 
 function write_to_file(file_name, string::String)
     file = open(file_name, "w")
@@ -32,50 +35,31 @@ function write_to_file(file_name, string::String)
     close(file)
 end
 
-function fix_table(table)
-    function NPV(sensitivity, specificity, n)
-        # i) calcolare TP = [sensitivity * 141]
-        TP = round(Int,( parse(Float64, sensitivity)/100) * n)
-        # ii) calcolare TN = [specificity * 141]
-        TN = round(Int, (parse(Float64, specificity)/100) * n)
-        # iii) calcolare FN = 141 - TP
-        FN = n - TP
-        # iv) calcolare NPV = TN/(TN+FN)
-        return string(round((TN / (TN + FN)) * 100, digits=2))
-    end
-    # FIX: Calculate NPV which is ours real PPV
-    for i in 2:length(table)
-        @assert (length(table[i])-1) % 4 == 0 "(length(table[i])-1) % 4 != 0 ($(table[i]))"
-        model_per_row = round(Int, (length(table[i])-1) / 4)
-        for j in 1:model_per_row
-            idx = (j-1)*4
-            table[i][1+idx+3] = NPV(table[i][1+idx+1], table[i][1+idx+2], 28)
-            sensitivity = table[i][1+idx+2]
-            specificity = table[i][1+idx+1]
-            table[i][1+idx+2] = specificity
-            table[i][1+idx+1] = sensitivity
-        end
-    end
+T = extract_model(primary_file_name, "T")
+RF = extract_model(primary_file_name, "RF")
+
+# ROW
+function get_task(row_label)
+    return split(row_label, ",", limit = 4)[3]
 end
 
-T = extract_model(primary_file_name, "T", secondary_file_name = secondary_file_name)
-RF50 = extract_model(primary_file_name, "RF", n_trees = 50, secondary_file_name = secondary_file_name)
-RF100 = extract_model(primary_file_name, "RF", n_trees = 100, secondary_file_name = secondary_file_name)
-newT = extract_model(tree_file_name, "T")
-
-fix_table(T)
-fix_table(RF50)
-fix_table(RF100)
-fix_table(newT)
-
-function get_task(row_label)
+function get_row_ref_no_seed(row_label)
     return split(row_label, ",", limit = 2)[2]
+end
+
+function get_nbands(row_label)
+    return split(row_label, ",", limit = 5)[4]
 end
 
 function get_seed(row_label)
     return split(row_label, ",", limit = 2)[1]
 end
 
+function is_normalized(row_label)::Bool
+    return contains(row_label, "Normalize")
+end
+
+# HEADER
 function get_model_type(h)
     return split(h, "(", limit = 2)[1]
 end
@@ -101,7 +85,7 @@ function table_to_dict(model)
         if !(seed in seed_order)
             push!(seed_order, seed)
         end
-        task = get_task(row[1])
+        task = get_row_ref_no_seed(row[1])
         if !(task in task_order)
             push!(task_order, task)
         end
@@ -112,7 +96,7 @@ function table_to_dict(model)
         if i == 1
             continue
         end
-        task = get_task(row[1])
+        task = get_row_ref_no_seed(row[1])
         seed = get_seed(row[1])
 
         if !haskey(dict, task)
@@ -128,7 +112,7 @@ end
 function dict_to_desired_format_table(dict, header, seed_order, task_order; average_row_decorate = "", use_only_seeds = [], beautify_latex = false)
     average_string = "avg"
     std_dev_string = "std"
-    function avg_std_row(dict)::Vector{Any}
+    function avg_std_row(dict; exclude_conditions::Union{Nothing,AbstractVector} = nothing)::Vector{Any}
         avg_row::Vector{Any} = [average_row_decorate * average_string]
         std_row::Vector{Any} = [average_row_decorate * std_dev_string]
         rows = collect(values(dict))
@@ -138,7 +122,10 @@ function dict_to_desired_format_table(dict, header, seed_order, task_order; aver
             for r in rows
                 if length(use_only_seeds) != 0 && !(get_seed(r[1]) in use_only_seeds)
                     continue
-                end    
+                end
+                if !isempty(findall([ exclude_conditions[i](r[1]) for i in 1:length(exclude_conditions) ]))
+                    continue
+                end
                 push!(vals, parse(Float64, r[i]))
             end
             push!(avg_row, string(round(Statistics.mean(vals), digits=2)))
@@ -152,14 +139,26 @@ function dict_to_desired_format_table(dict, header, seed_order, task_order; aver
 
         models::Vector{String} = []
         for i in 2:length(header)
-            mod = get_model(header[i])
+            mod = ""
+            if type == "RF"
+                mod = string(get_n_trees(header[i]), ",", get_model(header[i]))
+            else
+                mod = get_model(header[i])
+            end
             if !(mod in models)
                 push!(models, mod)
             end
         end
+
         vars::Vector{String} = []
         for i in 2:length(header)
-            if get_model(header[i]) == models[1]
+            mod = ""
+            if type == "RF"
+                mod = string(get_n_trees(header[i]), ",", get_model(header[i]))
+            else
+                mod = get_model(header[i])
+            end
+            if mod == models[1]
                 push!(vars, get_column_var(header[i]))
             end
         end
@@ -168,14 +167,14 @@ function dict_to_desired_format_table(dict, header, seed_order, task_order; aver
         nh::Vector{Vector{Any}} = []
         if type == "RF"
             # first row
-            new_row_1::Vector{Any} = [ "\\multirow{2}{*}{\\textit{$(type)$(get_n_trees(header[2]))}}" ]
+            new_row_1::Vector{Any} = [ "\\multirow{2}{*}{\\textit{$(type)}}" ]
             for (j, m) in enumerate(models)
                 res = "\\multicolumn{$(length(vars))}{c"
                 if j != length(models)
                     res *= "|"
                 end
                 res *= "}{$(m)}"
-                push!(new_row_1,  res)
+                push!(new_row_1, res)
             end
             push!(nh, new_row_1)
             # second row
@@ -218,11 +217,13 @@ function dict_to_desired_format_table(dict, header, seed_order, task_order; aver
                 table[i][1] = average_row_decorate * "\\multicolumn{2}{r|}{$(replace(table[i][1], average_row_decorate => ""))}"
             else
                 seed = get_seed(table[i][1])
-                task = replace(replace(get_task(table[i][1]), "1," => "", count = 1), ", " => ",")
-                task = replace(task, "(30," => "(")
-                task = replace(task, "1," => "C,", count = 1)
-                task = replace(task, "2," => "B,", count = 1)
-                table[i][1] = seed_dictionary[seed]
+                task = (get_task(table[i][1]) == 1 ? "C" : "B") * # task id
+                       "," * get_nbands(table[i][1]) * ",(" *     # nbands
+                       split(table[i][1], "(30,")[2]              # dataset kwargs
+                if is_normalized(table[i][1])
+                    task *= ",N"
+                end
+                table[i][1] = get_seed(table[i][1])
                 if !(task in task_already_inserted)
                     k = i
                     row_count = 1
@@ -230,7 +231,7 @@ function dict_to_desired_format_table(dict, header, seed_order, task_order; aver
                         k += 1
                         row_count += 1
                     end
-                    splice!(table[i], 1:0, ["\\multirow{$(row_count)}{*}{\\begin{sideways}$(task)\\end{sideways}}"])
+                    splice!(table[i], 1:0, ["\\multirow{$(row_count-1)}{*}{\\begin{sideways}$(task)\\end{sideways}}"])
                     push!(task_already_inserted, task)
                 else
                     splice!(table[i], 1:0, [""])
@@ -255,16 +256,42 @@ function dict_to_desired_format_table(dict, header, seed_order, task_order; aver
         if !haskey(dict, task)
             continue
         end
+        # Not Normalized
+        n_row_added = 0
         for seed in seed_order
+            if is_normalized(dict[task][seed][1])
+                continue
+            end
             if length(use_only_seeds) != 0 && !(seed in use_only_seeds)
                 continue
             end
             if !haskey(dict[task], seed)
                 continue
             end
+            n_row_added += 1
             push!(table, dict[task][seed])
         end
-        append!(table, avg_std_row(dict[task]))
+        if n_row_added > 2
+            append!(table, avg_std_row(dict[task]; exclude_conditions = [ is_normalized ]))
+        end
+        # Normalized
+        n_row_added = 0
+        for seed in seed_order
+            if !is_normalized(dict[task][seed][1])
+                continue
+            end
+            if length(use_only_seeds) != 0 && !(seed in use_only_seeds)
+                continue
+            end
+            if !haskey(dict[task], seed)
+                continue
+            end
+            n_row_added += 1
+            push!(table, dict[task][seed])
+        end
+        if n_row_added > 2
+            append!(table, avg_std_row(dict[task]; exclude_conditions = [ !is_normalized ]))
+        end
     end
 
     row_size = length(table[header_size+1])
@@ -283,42 +310,24 @@ end
 
 # Create dicts
 Ttuple = table_to_dict(T)
-RF50tuple = table_to_dict(RF50)
-RF100tuple = table_to_dict(RF100)
-newTtuple = table_to_dict(newT)
+RFtuple = table_to_dict(RF)
 
 # Arrange table in proper way (CSV)
 Ttable_csv = dict_to_desired_format_table(Ttuple..., use_only_seeds = seeds, beautify_latex = false)
-RF50table_csv = dict_to_desired_format_table(RF50tuple..., use_only_seeds = seeds, beautify_latex = false)
-RF100table_csv = dict_to_desired_format_table(RF100tuple..., use_only_seeds = seeds, beautify_latex = false)
-newTtable_csv = dict_to_desired_format_table(newTtuple..., use_only_seeds = seeds, beautify_latex = false)
+RFtable_csv = dict_to_desired_format_table(RFtuple..., use_only_seeds = seeds, beautify_latex = false)
 
 write_to_file(destination * "/results.csv", string(
     string_table_csv(Ttable_csv[1]), "\n",
-    string_table_csv(RF50table_csv[1]), "\n",
-    string_table_csv(RF100table_csv[1]), "\n",
-    string_table_csv(newTtable_csv[1]),
+    string_table_csv(RFtable_csv[1]),
 ))
 
 color_row = "\\rowcolor{lightgray!50}"
 # Arrange table in proper way (LaTeX)
 Ttable_latex = dict_to_desired_format_table(Ttuple...; average_row_decorate = color_row, beautify_latex = true, use_only_seeds = seeds)
-RF50table_latex = dict_to_desired_format_table(RF50tuple...; average_row_decorate = color_row, beautify_latex = true, use_only_seeds = seeds)
-RF100table_latex = dict_to_desired_format_table(RF100tuple...; average_row_decorate = color_row, beautify_latex = true, use_only_seeds = seeds)
-newTtable_latex = dict_to_desired_format_table(newTtuple...; average_row_decorate = color_row, beautify_latex = true, use_only_seeds = seeds)
-
-seed_item = "Seeds: "
-for (i, (k, v)) in enumerate(seed_dictionary)
-    global seed_item *= k * " = " * v
-    seed_item *= i == length(seed_dictionary) ? "." : ", "
-end
+RFtable_latex = dict_to_desired_format_table(RFtuple...; average_row_decorate = color_row, beautify_latex = true, use_only_seeds = seeds)
 
 latex_t = string_table_latex(Ttable_latex[1], header_size = Ttable_latex[2], first_column_size = Ttable_latex[3], v_lin_every_cloumn = 4, scale = 1.0) * "\n"
-latex_rf50 = string_table_latex(RF50table_latex[1], header_size = RF50table_latex[2], first_column_size = RF50table_latex[3], v_lin_every_cloumn = 4, scale = 1.0) * "\n"
-latex_rf100 = string_table_latex(RF100table_latex[1], header_size = RF100table_latex[2], first_column_size = RF100table_latex[3], v_lin_every_cloumn = 4, scale = 1.0) * "\n"
-latex_newt = string_table_latex(newTtable_latex[1], header_size = newTtable_latex[2], first_column_size = newTtable_latex[3], v_lin_every_cloumn = 4, scale = 1.0) * "\n"
+latex_rf = string_table_latex(RFtable_latex[1], header_size = RFtable_latex[2], first_column_size = RFtable_latex[3], v_lin_every_cloumn = 4, scale = 1.0) * "\n"
 
 write_to_file(destination * "/tree.tex", latex_t)
-write_to_file(destination * "/rf50.tex", latex_rf50)
-write_to_file(destination * "/rf100.tex", latex_rf100)
-write_to_file(destination * "/newtree.tex", latex_newt)
+write_to_file(destination * "/rf.tex", latex_rf)
