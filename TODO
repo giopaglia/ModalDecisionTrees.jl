@@ -36,6 +36,7 @@
 ☐	Parametrize worldTypes forcing things such as minimum size?
 
 ☐	Generalize sampling of the feature subset (e.g. providing a function vars_sampling_distr(n_vars, rng) = 1:n_vars vars_sampling_distr(n_vars, rng) = round(Int, Statistics.gaussrand_(rng, mean=sqrt(n_vars), var=1)))
+☐	Restyle package and add to Julia Registries https://juliahub.com/lp/ https://github.com/JuliaRegistries/Registrator.jl#via-the-github-app
 ☐ Half-an-idea: variables are just another dimension without order
 ☐	An ontology interpreted over an N-dimensional domain gives rise to a Kripke model/frame, but one can *generalize for a Kripke model/frame in graph form*.
 	abstract type AbstractKripkeFrame end
