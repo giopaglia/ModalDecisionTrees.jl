@@ -113,10 +113,14 @@ end
 
 # DSP.Periodograms.stft(samps, div(length(samps), 8), div(n, 2); onesided=true, nfft=nextfastfft(n), fs=1, window=nothing)
 
-function noise_gate!(sample::AbstractVector; level::Float64 = 0.03)
-	# TODO: maybe use moving average instead of the stright value?
-	apply_ng!(val) = abs(val) <= level ? 0.0 : val
-	sample .= apply_ng!.(sample)
+function noise_gate!(sample::AbstractVector; level::Float64 = 0.005, release::Int = 30)
+	for i in 1:(length(sample) - (release - 1))
+		v_sample = @view sample[(max(1, i - floor(Int, release/2))):(min(i + (floor(Int, release/2)), length(sample)))]
+		sample[i] = (
+			sum(abs, v_sample) / length(v_sample) <= level
+		) ? 0.0 : sample[i]
+	end
+	sample
 end
 
 function normalize!(sample::AbstractVector; level::Float64 = 1.0)
