@@ -2,6 +2,10 @@
 #  and they don't necessarily produce balanced cuts. To produce balanced cuts,
 #  one must manually stratify the dataset beforehand
 traintestsplit((X,Y)::Tuple{MatricialDataset{D,N},AbstractVector{String}}, split_threshold::AbstractFloat; gammas = nothing, worldType = nothing, is_balanced = true) where {D,N} = begin
+	if split_threshold == 1.0
+		# Full train
+		return (X,Y), (X,Y), gammas
+	end
 	num_instances = length(Y)
 	spl = ceil(Int, num_instances*split_threshold)
 	# In the binary case, make it even

@@ -182,13 +182,6 @@ function testDataset(
 
 					if !isnothing(gammas_jld_path)
 						checkpoint_stdout("Saving gammas to file \"$(gammas_jld_path)\"...")
-
-#						global gammas_saving_task
-#						if isa(gammas_saving_task, Task)
-							# make sure there is no previous saving in progress
-#							wait(gammas_saving_task)
-#						end
-#						gammas_saving_task = @async Serialization.serialize(gammas_jld_path, gammas)
 						mkpath(dirname(gammas_jld_path))
 						Serialization.serialize(gammas_jld_path, gammas)
 						# Add record line to the index file of the folder
@@ -347,8 +340,10 @@ function testDataset(
 			JLD2.@save total_save_path T
 		end
 
-		println("Test tree:")
-		print_apply_tree(T, X_test, Y_test)
+		if X_train != X_test
+			println("Test tree:")
+			print_apply_tree(T, X_test, Y_test)
+		end
 
 		println(" test size = $(size(X_test))")
 		cm = nothing

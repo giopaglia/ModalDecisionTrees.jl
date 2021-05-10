@@ -112,21 +112,21 @@ round_dataset_to_datatype = false
 # - RF with:
 forest_args = []
 
-for n_trees in [50,100]
-	for n_subfeatures in [id_f, half_f]
-		for n_subrelations in [id_f]
-			push!(forest_args, (
-				n_subfeatures       = n_subfeatures,
-				n_trees             = n_trees,
-				partial_sampling    = 1.0,
-				n_subrelations      = n_subrelations,
-				forest_tree_args...
-			))
-		end
-	end
-end
+#for n_trees in [50,100]
+#	for n_subfeatures in [id_f, half_f]
+#		for n_subrelations in [id_f]
+#			push!(forest_args, (
+#				n_subfeatures       = n_subfeatures,
+#				n_trees             = n_trees,
+#				partial_sampling    = 1.0,
+#				n_subrelations      = n_subrelations,
+#				forest_tree_args...
+#			))
+#		end
+#	end
+#end
 
-split_threshold = 0.8
+split_threshold = 1.0
 
 precompute_gammas = true
 
@@ -161,7 +161,6 @@ exec_use_full_mfcc = [false]
 exec_preprocess_wavs = [
 	["Normalize"],
 	[],
-	# TODO: Make NoiseGate worke properly (currently there is a problem)
 #	["NG", "Normalize"]
 ]
 
@@ -215,22 +214,6 @@ exec_dicts = load_or_create_execution_progress_dictionary(
 
 just_test_filters = false
 iteration_whitelist = [
-	# FOR TESTING
-#	(
-#		n_version = 1,
-#		nbands = 20,
-#		dataset_kwargs = (max_points = 2, ma_size = 75, ma_step = 50),
-#	),
-#	(
-#		n_version = 1,
-#		nbands = 20,
-#		dataset_kwargs = (max_points = 5, ma_size = 75, ma_step = 50),
-#	),
-#	(
-#		n_version = 1,
-#		nbands = 20,
-#		dataset_kwargs = (max_points = 10, ma_size = 75, ma_step = 50),
-#	),
 	# TASK 1
 	(
 		n_version = 1,
