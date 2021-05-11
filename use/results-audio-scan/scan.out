@@ -1,0 +1,2018 @@
+DATA SEED: 1
+● [ 10/05/2021 20:31:03 ] Computing iteration 1,TestOp_80,1,40,false,Any["Normalize"],1,(30,75,50)...
+(1, 1, 40, (max_points = 30, ma_size = 75, ma_step = 50), false, "TestOp_80", Any["Normalize"])
+● [ 10/05/2021 20:31:04 ] Loading dataset ./results-audio-scan/datasets/1,TestOp_80,1,40,false,Any["Normalize"],1,(30,75,50).jld...
+Benchmarking dataset '(1,1)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:31:23 ] Loading gammas from file "./results-audio-scan/gammas/gammas_1f9fa6a89312c9371c38dd8e299a46506e20cdf3cfec5a536d90ef38ab2b0264.jld"...
+● [ 10/05/2021 20:31:53 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:31:53 ] ├ Size: 3488.63525390625 MBytes
+● [ 10/05/2021 20:31:53 ] └ Dimensions: (2, 30, 31, 439, 14, 40)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 40)
+● [ 10/05/2021 20:31:54 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 7
+Tot nodes: 13
+Height: 6
+Modal height:  3
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V36 ⫺₈₀ 0.04458811779644085)
+✔ V13 ⫺₈₀ 0.601930027347899
+│✔ ⟨E⟩ (V27 ⫺₈₀ 3.2825505140603335)
+││✔ YES : 11/11 (conf: 1.0)
+││✘ V19 ⫹₈₀ 0.586315954326753
+││ ✔ ⟨L̅⟩ (V4 ⫺₈₀ 0.19782774437939943)
+││ │✔ V29 ⫹₈₀ 0.04536133169947515
+││ ││✔ YES : 4/4 (conf: 1.0)
+││ ││✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 12/15 (conf: 0.8)
+││ │✘ YES : 12/12 (conf: 1.0)
+││ ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 32/33 (conf: 0.9696969696969697)
+│✘ YES : 82/99 (conf: 0.8282828282828283)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 80/108 (conf: 0.7407407407407407)
+● [ 10/05/2021 20:32:06 ] Saving tree to file ./results-audio-scan/trees/tree_2f981971c882e90d2fee25632c77ff13cd86e5ce7ad0de26883446b553a92596.jld...
+ test size = (30, 282, 40)
+ Purity threshold 1.0
+RESULT:	(1,1)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	82.62%	77.3%	87.94%	86.51%	79.49%	||	65.25%	[81.65, 83.5]%	
+  accuracy: 82.62% kappa: 65.25% 
+ 109  32	77.3%		YES
+  17 124	87.94%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.8262411347517731
+κ =		0.6524822695035462
+sensitivities:	[0.7730496453900709, 0.8794326241134752]
+specificities:	[0.8794326241134752, 0.7730496453900709]
+PPVs:		[0.8650793650793651, 0.7948717948717948]
+NPVs:		[0.7948717948717948, 0.8650793650793651]
+F1s:		[0.8164794007490637, 0.835016835016835]
+accuracies:	[0.8262411347517731, 0.8262411347517731]
+mean_accuracy:	0.8262411347517731
+● [ 10/05/2021 20:32:16 ] Computing iteration 1,TestOp_80,1,60,false,Any["Normalize"],1,(30,75,50)...
+(1, 1, 60, (max_points = 30, ma_size = 75, ma_step = 50), false, "TestOp_80", Any["Normalize"])
+● [ 10/05/2021 20:32:16 ] Loading dataset ./results-audio-scan/datasets/1,TestOp_80,1,60,false,Any["Normalize"],1,(30,75,50).jld...
+Benchmarking dataset '(1,1)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:32:16 ] Loading gammas from file "./results-audio-scan/gammas/gammas_130e7158da7a0c6be14020aa7be1d466606a5e05113c9c540d633f643b27727b.jld"...
+● [ 10/05/2021 20:33:44 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:33:44 ] ├ Size: 5232.952880859375 MBytes
+● [ 10/05/2021 20:33:44 ] └ Dimensions: (2, 30, 31, 439, 14, 60)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 60)
+● [ 10/05/2021 20:33:44 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 7
+Tot nodes: 13
+Height: 6
+Modal height:  4
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V48 ⫺₈₀ 0.05543164795735502)
+✔ ⟨⟩ (V18 ⫺₈₀ 0.7371941887914306)
+│✔ ⟨L̅⟩ (V44 ⫺₈₀ 3.5667212283747243)
+││✔ YES : 12/12 (conf: 1.0)
+││✘ V58 ⫹₈₀ 0.14202118410295675
+││ ✔ V44 ⫹₈₀ 0.31584392317879634
+││ │✔ ⟨A̅⟩ (V13 ⫹₈₀ 0.002668534423945333)
+││ ││✔ YES : 6/6 (conf: 1.0)
+││ ││✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 8/8 (conf: 1.0)
+││ │✘ YES : 10/10 (conf: 1.0)
+││ ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 41/47 (conf: 0.8723404255319149)
+│✘ YES : 80/94 (conf: 0.851063829787234)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 78/105 (conf: 0.7428571428571429)
+● [ 10/05/2021 20:33:51 ] Saving tree to file ./results-audio-scan/trees/tree_371229bd9356e765de06396ca843e880b70baa605a0cbf97c921b63b826557e0.jld...
+ test size = (30, 282, 60)
+ Purity threshold 1.0
+RESULT:	(1,1)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	83.33%	76.6%	90.07%	88.52%	79.38%	||	66.67%	[82.13, 84.39]%	
+  accuracy: 83.33% kappa: 66.67% 
+ 108  33	76.6%		YES
+  14 127	90.07%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.8333333333333334
+κ =		0.6666666666666667
+sensitivities:	[0.7659574468085106, 0.900709219858156]
+specificities:	[0.900709219858156, 0.7659574468085106]
+PPVs:		[0.8852459016393442, 0.79375]
+NPVs:		[0.79375, 0.8852459016393442]
+F1s:		[0.8212927756653993, 0.8438538205980066]
+accuracies:	[0.8333333333333334, 0.8333333333333334]
+mean_accuracy:	0.8333333333333334
+● [ 10/05/2021 20:33:52 ] Computing iteration 1,TestOp_80,2,20,false,Any["Normalize"],1,(30,45,30)...
+(1, 2, 20, (max_points = 30, ma_size = 45, ma_step = 30), false, "TestOp_80", Any["Normalize"])
+● [ 10/05/2021 20:33:52 ] Loading dataset ./results-audio-scan/datasets/1,TestOp_80,2,20,false,Any["Normalize"],1,(30,45,30).jld...
+Benchmarking dataset '(1,2)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:33:52 ] Loading gammas from file "./results-audio-scan/gammas/gammas_a17b3742a0c936e133041d9a42f1d6e002c0556b638bfbfa2e549f411bc4488d.jld"...
+● [ 10/05/2021 20:34:04 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:34:04 ] ├ Size: 1744.317626953125 MBytes
+● [ 10/05/2021 20:34:04 ] └ Dimensions: (2, 30, 31, 439, 14, 20)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 20)
+● [ 10/05/2021 20:34:04 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 5
+Tot nodes: 9
+Height: 4
+Modal height:  4
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V17 ⫺₈₀ 0.008631255761140459)
+✔ ⟨B⟩ (V2 ⫹₈₀ 0.00011649244668970944)
+│✔ ⟨B̅⟩ (V2 ⫺₈₀ 0.0005787885861561465)
+││✔ ⟨L⟩ (V14 ⫺₈₀ 0.02831709057437241)
+│││✔ YES : 16/20 (conf: 0.8)
+│││✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 6/6 (conf: 1.0)
+││✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 21/22 (conf: 0.9545454545454546)
+│✘ YES : 96/130 (conf: 0.7384615384615385)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 76/104 (conf: 0.7307692307692307)
+● [ 10/05/2021 20:34:10 ] Saving tree to file ./results-audio-scan/trees/tree_462a527b8cfb1e29a48b16642b1b6329ae83779c5e4f7769a41b518aac29f399.jld...
+ test size = (30, 282, 20)
+ Purity threshold 1.0
+RESULT:	(1,2)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	76.24%	79.43%	73.05%	74.67%	78.03%	||	52.48%	[76.98, 75.46]%	
+  accuracy: 76.24% kappa: 52.48% 
+ 112  29	79.43%		YES
+  38 103	73.05%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.7624113475177305
+κ =		0.5248226950354611
+sensitivities:	[0.7943262411347518, 0.7304964539007093]
+specificities:	[0.7304964539007093, 0.7943262411347518]
+PPVs:		[0.7466666666666667, 0.7803030303030303]
+NPVs:		[0.7803030303030303, 0.7466666666666667]
+F1s:		[0.7697594501718213, 0.7545787545787546]
+accuracies:	[0.7624113475177305, 0.7624113475177305]
+mean_accuracy:	0.7624113475177305
+● [ 10/05/2021 20:34:11 ] Computing iteration 1,TestOp_80,2,40,false,Any["Normalize"],1,(30,45,30)...
+(1, 2, 40, (max_points = 30, ma_size = 45, ma_step = 30), false, "TestOp_80", Any["Normalize"])
+● [ 10/05/2021 20:34:11 ] Loading dataset ./results-audio-scan/datasets/1,TestOp_80,2,40,false,Any["Normalize"],1,(30,45,30).jld...
+Benchmarking dataset '(1,2)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:34:11 ] Loading gammas from file "./results-audio-scan/gammas/gammas_0c42d8ab98b122cdf242812d328fa4cab290c42342de504a12fe461b1ea6d8f0.jld"...
+● [ 10/05/2021 20:35:13 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:35:13 ] ├ Size: 3488.63525390625 MBytes
+● [ 10/05/2021 20:35:13 ] └ Dimensions: (2, 30, 31, 439, 14, 40)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 40)
+● [ 10/05/2021 20:35:13 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 5
+Modal height:  5
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V34 ⫺₈₀ 0.005254704669981703)
+✔ ⟨L̅⟩ (V1 ⫺₈₀ 0.43160994051851537)
+│✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 17/18 (conf: 0.9444444444444444)
+│✘ ⟨B̅⟩ (V21 ⫹₈₀ 0.0072623793627431465)
+│ ✔ YES : 92/113 (conf: 0.8141592920353983)
+│ ✘ ⟨E⟩ (V20 ⫹₈₀ 5.691736462074356e-5)
+│  ✔ YES : 8/8 (conf: 1.0)
+│  ✘ ⟨L̅⟩ (V25 ⫹₈₀ 0.0003304196132390591)
+│   ✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 24/26 (conf: 0.9230769230769231)
+│   ✘ YES : 11/15 (conf: 0.7333333333333333)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 75/102 (conf: 0.7352941176470589)
+● [ 10/05/2021 20:35:37 ] Saving tree to file ./results-audio-scan/trees/tree_d89d7cf8c1250841ae30c0eb98f9e7bc34ae5ab9726e92dda40e603f5968c9dc.jld...
+ test size = (30, 282, 40)
+ Purity threshold 1.0
+RESULT:	(1,2)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	80.5%	78.72%	82.27%	81.62%	79.45%	||	60.99%	[80.14, 80.84]%	
+  accuracy: 80.5% kappa: 60.99% 
+ 111  30	78.72%		YES
+  25 116	82.27%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.8049645390070922
+κ =		0.6099290780141844
+sensitivities:	[0.7872340425531915, 0.8226950354609929]
+specificities:	[0.8226950354609929, 0.7872340425531915]
+PPVs:		[0.8161764705882353, 0.7945205479452054]
+NPVs:		[0.7945205479452054, 0.8161764705882353]
+F1s:		[0.8014440433212996, 0.8083623693379791]
+accuracies:	[0.8049645390070922, 0.8049645390070922]
+mean_accuracy:	0.8049645390070922
+● [ 10/05/2021 20:35:38 ] Computing iteration 1,TestOp_80,1,40,false,Any[],1,(30,75,50)...
+(1, 1, 40, (max_points = 30, ma_size = 75, ma_step = 50), false, "TestOp_80", Any[])
+● [ 10/05/2021 20:35:38 ] Loading dataset ./results-audio-scan/datasets/1,TestOp_80,1,40,false,Any[],1,(30,75,50).jld...
+Benchmarking dataset '(1,1)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:35:38 ] Loading gammas from file "./results-audio-scan/gammas/gammas_406a3e1e0d38263de8c62a5129987fb66212f23b5465a02906f13d64711d4f07.jld"...
+● [ 10/05/2021 20:36:14 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:36:14 ] ├ Size: 3488.63525390625 MBytes
+● [ 10/05/2021 20:36:14 ] └ Dimensions: (2, 30, 31, 439, 14, 40)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 40)
+● [ 10/05/2021 20:36:14 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 3
+Tot nodes: 5
+Height: 2
+Modal height:  1
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V37 ⫺₈₀ 0.023027655130685647)
+✔ V40 ⫹₈₀ 0.12002602828363325
+│✔ YES : 105/142 (conf: 0.7394366197183099)
+│✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 22/27 (conf: 0.8148148148148148)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 82/113 (conf: 0.7256637168141593)
+● [ 10/05/2021 20:36:17 ] Saving tree to file ./results-audio-scan/trees/tree_196e6a89aaa1e0582ba303b4aabd9163d7b964db207a6590d266c9735f619759.jld...
+ test size = (30, 282, 40)
+ Purity threshold 1.0
+RESULT:	(1,1)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	74.11%	74.47%	73.76%	73.94%	74.29%	||	48.23%	[74.2, 74.02]%	
+  accuracy: 74.11% kappa: 48.23% 
+ 105  36	74.47%		YES
+  37 104	73.76%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.7411347517730497
+κ =		0.4822695035460993
+sensitivities:	[0.7446808510638298, 0.7375886524822695]
+specificities:	[0.7375886524822695, 0.7446808510638298]
+PPVs:		[0.7394366197183099, 0.7428571428571429]
+NPVs:		[0.7428571428571429, 0.7394366197183099]
+F1s:		[0.7420494699646644, 0.7402135231316725]
+accuracies:	[0.7411347517730497, 0.7411347517730497]
+mean_accuracy:	0.7411347517730497
+● [ 10/05/2021 20:36:17 ] Computing iteration 1,TestOp_80,1,60,false,Any[],1,(30,75,50)...
+(1, 1, 60, (max_points = 30, ma_size = 75, ma_step = 50), false, "TestOp_80", Any[])
+● [ 10/05/2021 20:36:17 ] Loading dataset ./results-audio-scan/datasets/1,TestOp_80,1,60,false,Any[],1,(30,75,50).jld...
+Benchmarking dataset '(1,1)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:36:17 ] Loading gammas from file "./results-audio-scan/gammas/gammas_251e658b50ed1cbe58fdad9ae3373359c2c2d1c308c3892782dc0c36ce7d29bc.jld"...
+● [ 10/05/2021 20:37:00 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:37:00 ] ├ Size: 5232.952880859375 MBytes
+● [ 10/05/2021 20:37:00 ] └ Dimensions: (2, 30, 31, 439, 14, 60)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 60)
+● [ 10/05/2021 20:37:00 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 5
+Tot nodes: 9
+Height: 4
+Modal height:  4
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V54 ⫺₈₀ 0.022629931693576178)
+✔ ⟨O̅⟩ (V37 ⫹₈₀ 0.022173568532659463)
+│✔ YES : 45/46 (conf: 0.9782608695652174)
+│✘ ⟨L⟩ (V59 ⫺₈₀ 0.5588873749559617)
+│ ✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 32/44 (conf: 0.7272727272727273)
+│ ✘ ⟨⟩ (V12 ⫺₈₀ 0.10681836064490344)
+│  ✔ YES : 54/73 (conf: 0.7397260273972602)
+│  ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 7/7 (conf: 1.0)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 82/112 (conf: 0.7321428571428571)
+● [ 10/05/2021 20:37:07 ] Saving tree to file ./results-audio-scan/trees/tree_32371320e6212a559d767651d6dc7bff5372510a357fb1c0ce3cd75d26c12985.jld...
+ test size = (30, 282, 60)
+ Purity threshold 1.0
+RESULT:	(1,1)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	78.01%	70.21%	85.82%	83.19%	74.23%	||	56.03%	[76.15, 79.61]%	
+  accuracy: 78.01% kappa: 56.03% 
+  99  42	70.21%		YES
+  20 121	85.82%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.7801418439716312
+κ =		0.5602836879432624
+sensitivities:	[0.7021276595744681, 0.8581560283687943]
+specificities:	[0.8581560283687943, 0.7021276595744681]
+PPVs:		[0.8319327731092437, 0.7423312883435583]
+NPVs:		[0.7423312883435583, 0.8319327731092437]
+F1s:		[0.7615384615384615, 0.7960526315789473]
+accuracies:	[0.7801418439716312, 0.7801418439716312]
+mean_accuracy:	0.7801418439716312
+● [ 10/05/2021 20:37:08 ] Computing iteration 1,TestOp_80,2,20,false,Any[],1,(30,45,30)...
+(1, 2, 20, (max_points = 30, ma_size = 45, ma_step = 30), false, "TestOp_80", Any[])
+● [ 10/05/2021 20:37:08 ] Loading dataset ./results-audio-scan/datasets/1,TestOp_80,2,20,false,Any[],1,(30,45,30).jld...
+Benchmarking dataset '(1,2)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:37:08 ] Loading gammas from file "./results-audio-scan/gammas/gammas_4f77fe23c59e778afb3a58d518449e827afb87939c71fc86cddea83731c495f5.jld"...
+● [ 10/05/2021 20:37:20 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:37:20 ] ├ Size: 1744.317626953125 MBytes
+● [ 10/05/2021 20:37:20 ] └ Dimensions: (2, 30, 31, 439, 14, 20)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 20)
+● [ 10/05/2021 20:37:20 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 5
+Tot nodes: 9
+Height: 4
+Modal height:  3
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V18 ⫺₈₀ 5.1379744437984155e-5)
+✔ V20 ⫹₈₀ 5.017063713814018e-5
+│✔ YES : 94/119 (conf: 0.7899159663865546)
+│✘ ⟨D⟩ (V7 ⫹₈₀ 1.4091976081894248e-5)
+│ ✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 29/33 (conf: 0.8787878787878788)
+│ ✘ ⟨D̅⟩ (V3 ⫹₈₀ 0.0006114919464211758)
+│  ✔ YES : 16/21 (conf: 0.7619047619047619)
+│  ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 10/12 (conf: 0.8333333333333334)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 72/97 (conf: 0.7422680412371134)
+● [ 10/05/2021 20:37:35 ] Saving tree to file ./results-audio-scan/trees/tree_57264515535c0689e395dedd1bb025768a5a94154f98c4582815fcd17895c293.jld...
+ test size = (30, 282, 20)
+ Purity threshold 1.0
+RESULT:	(1,2)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	78.37%	78.01%	78.72%	78.57%	78.17%	||	56.74%	[78.29, 78.45]%	
+  accuracy: 78.37% kappa: 56.74% 
+ 110  31	78.01%		YES
+  30 111	78.72%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.7836879432624113
+κ =		0.5673758865248226
+sensitivities:	[0.7801418439716312, 0.7872340425531915]
+specificities:	[0.7872340425531915, 0.7801418439716312]
+PPVs:		[0.7857142857142857, 0.7816901408450704]
+NPVs:		[0.7816901408450704, 0.7857142857142857]
+F1s:		[0.7829181494661922, 0.784452296819788]
+accuracies:	[0.7836879432624113, 0.7836879432624113]
+mean_accuracy:	0.7836879432624113
+● [ 10/05/2021 20:37:37 ] Computing iteration 1,TestOp_80,2,40,false,Any[],1,(30,45,30)...
+(1, 2, 40, (max_points = 30, ma_size = 45, ma_step = 30), false, "TestOp_80", Any[])
+● [ 10/05/2021 20:37:37 ] Loading dataset ./results-audio-scan/datasets/1,TestOp_80,2,40,false,Any[],1,(30,45,30).jld...
+Benchmarking dataset '(1,2)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:37:37 ] Loading gammas from file "./results-audio-scan/gammas/gammas_18ad0665f839222e9ddfd073eab63d05fa256066b04e5f2f28618bca8c9555f3.jld"...
+● [ 10/05/2021 20:38:03 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:38:03 ] ├ Size: 3488.63525390625 MBytes
+● [ 10/05/2021 20:38:03 ] └ Dimensions: (2, 30, 31, 439, 14, 40)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 40)
+● [ 10/05/2021 20:38:03 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 8
+Tot nodes: 15
+Height: 7
+Modal height:  6
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V31 ⫺₈₀ 0.0002722375727059197)
+✔ V38 ⫹₈₀ 0.000173257513001086
+│✔ YES : 88/110 (conf: 0.8)
+│✘ ⟨O⟩ (V32 ⫹₈₀ 4.909905252966422e-5)
+│ ✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 29/31 (conf: 0.9354838709677419)
+│ ✘ ⟨D̅⟩ (V24 ⫹₈₀ 0.00039240785979958906)
+│  ✔ YES : 13/13 (conf: 1.0)
+│  ✘ ⟨A⟩ (V40 ⫹₈₀ 1.5116753400686893e-6)
+│   ✔ YES : 5/5 (conf: 1.0)
+│   ✘ ⟨A⟩ (V34 ⫹₈₀ 0.0001362935811926584)
+│    ✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 10/10 (conf: 1.0)
+│    ✘ ⟨B⟩ (V36 ⫹₈₀ 0.0004579131214097481)
+│     ✔ YES : 6/6 (conf: 1.0)
+│     ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 7/9 (conf: 0.7777777777777778)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 73/98 (conf: 0.7448979591836735)
+● [ 10/05/2021 20:38:33 ] Saving tree to file ./results-audio-scan/trees/tree_d4f7d84cae215338439777c4c60d8cdee88e1079215a65ad269a1f7564a867f5.jld...
+ test size = (30, 282, 40)
+ Purity threshold 1.0
+RESULT:	(1,2)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	81.91%	79.43%	84.4%	83.58%	80.41%	||	63.83%	[81.45, 82.35]%	
+  accuracy: 81.91% kappa: 63.83% 
+ 112  29	79.43%		YES
+  22 119	84.4%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.8191489361702128
+κ =		0.6382978723404256
+sensitivities:	[0.7943262411347518, 0.8439716312056738]
+specificities:	[0.8439716312056738, 0.7943262411347518]
+PPVs:		[0.835820895522388, 0.8040540540540541]
+NPVs:		[0.8040540540540541, 0.835820895522388]
+F1s:		[0.8145454545454546, 0.8235294117647058]
+accuracies:	[0.8191489361702128, 0.8191489361702128]
+mean_accuracy:	0.8191489361702128
+DATA SEED: 2
+● [ 10/05/2021 20:38:34 ] Computing iteration 2,TestOp_80,1,40,false,Any["Normalize"],1,(30,75,50)...
+(1, 1, 40, (max_points = 30, ma_size = 75, ma_step = 50), false, "TestOp_80", Any["Normalize"])
+● [ 10/05/2021 20:38:34 ] Loading dataset ./results-audio-scan/datasets/2,TestOp_80,1,40,false,Any["Normalize"],1,(30,75,50).jld...
+Benchmarking dataset '(1,1)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:38:35 ] Loading gammas from file "./results-audio-scan/gammas/gammas_1f9fa6a89312c9371c38dd8e299a46506e20cdf3cfec5a536d90ef38ab2b0264.jld"...
+● [ 10/05/2021 20:39:01 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:39:01 ] ├ Size: 3488.63525390625 MBytes
+● [ 10/05/2021 20:39:01 ] └ Dimensions: (2, 30, 31, 439, 14, 40)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 40)
+● [ 10/05/2021 20:39:01 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 5
+Tot nodes: 9
+Height: 4
+Modal height:  2
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V36 ⫺₈₀ 0.04458811779644085)
+✔ ⟨E̅⟩ (V25 ⫹₈₀ 0.04941126771140244)
+│✔ YES : 54/60 (conf: 0.9)
+│✘ V39 ⫹₈₀ 0.3649506241118163
+│ ✔ V19 ⫹₈₀ 0.24826960462005293
+│ │✔ YES : 49/68 (conf: 0.7205882352941176)
+│ │✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 18/24 (conf: 0.75)
+│ ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 27/31 (conf: 0.8709677419354839)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 71/99 (conf: 0.7171717171717171)
+● [ 10/05/2021 20:39:06 ] Saving tree to file ./results-audio-scan/trees/tree_6061980afd80a69bfae07fd374601c181d8ccffbbaab4e8382001043f4ab0026.jld...
+ test size = (30, 282, 40)
+ Purity threshold 1.0
+RESULT:	(1,1)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	77.66%	73.05%	82.27%	80.47%	75.32%	||	55.32%	[76.58, 78.64]%	
+  accuracy: 77.66% kappa: 55.32% 
+ 103  38	73.05%		YES
+  25 116	82.27%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.776595744680851
+κ =		0.553191489361702
+sensitivities:	[0.7304964539007093, 0.8226950354609929]
+specificities:	[0.8226950354609929, 0.7304964539007093]
+PPVs:		[0.8046875, 0.7532467532467533]
+NPVs:		[0.7532467532467533, 0.8046875]
+F1s:		[0.7657992565055762, 0.7864406779661017]
+accuracies:	[0.776595744680851, 0.776595744680851]
+mean_accuracy:	0.776595744680851
+● [ 10/05/2021 20:39:07 ] Computing iteration 2,TestOp_80,1,60,false,Any["Normalize"],1,(30,75,50)...
+(1, 1, 60, (max_points = 30, ma_size = 75, ma_step = 50), false, "TestOp_80", Any["Normalize"])
+● [ 10/05/2021 20:39:07 ] Loading dataset ./results-audio-scan/datasets/2,TestOp_80,1,60,false,Any["Normalize"],1,(30,75,50).jld...
+Benchmarking dataset '(1,1)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:39:07 ] Loading gammas from file "./results-audio-scan/gammas/gammas_130e7158da7a0c6be14020aa7be1d466606a5e05113c9c540d633f643b27727b.jld"...
+● [ 10/05/2021 20:40:49 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:40:49 ] ├ Size: 5232.952880859375 MBytes
+● [ 10/05/2021 20:40:49 ] └ Dimensions: (2, 30, 31, 439, 14, 60)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 60)
+● [ 10/05/2021 20:40:49 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 5
+Modal height:  5
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V58 ⫺₈₀ 6.191568364462263e-6)
+✔ ⟨L̅⟩ (V18 ⫹₈₀ 0.041599990766970345)
+│✔ ⟨E⟩ (V9 ⫹₈₀ 1.5147759676470199e-5)
+││✔ YES : 49/54 (conf: 0.9074074074074074)
+││✘ ⟨B̅⟩ (V1 ⫺₈₀ 1.1314873348326464e-6)
+││ ✔ ⟨L⟩ (V3 ⫺₈₀ 0.1413195396894271)
+││ │✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 20/28 (conf: 0.7142857142857143)
+││ │✘ YES : 65/89 (conf: 0.7303370786516854)
+││ ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 14/15 (conf: 0.9333333333333333)
+│✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 24/26 (conf: 0.9230769230769231)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 54/70 (conf: 0.7714285714285715)
+● [ 10/05/2021 20:41:08 ] Saving tree to file ./results-audio-scan/trees/tree_64d51bec7bb86bac2ad2bfe1294fa72f4c1d7150480cc111fa0657969cc7dd1e.jld...
+ test size = (30, 282, 60)
+ Purity threshold 1.0
+RESULT:	(1,1)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	80.14%	80.85%	79.43%	79.72%	80.58%	||	60.28%	[80.28, 80.0]%	
+  accuracy: 80.14% kappa: 60.28% 
+ 114  27	80.85%		YES
+  29 112	79.43%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.8014184397163121
+κ =		0.6028368794326242
+sensitivities:	[0.8085106382978723, 0.7943262411347518]
+specificities:	[0.7943262411347518, 0.8085106382978723]
+PPVs:		[0.7972027972027972, 0.8057553956834532]
+NPVs:		[0.8057553956834532, 0.7972027972027972]
+F1s:		[0.8028169014084507, 0.8]
+accuracies:	[0.8014184397163121, 0.8014184397163121]
+mean_accuracy:	0.8014184397163121
+● [ 10/05/2021 20:41:08 ] Computing iteration 2,TestOp_80,2,20,false,Any["Normalize"],1,(30,45,30)...
+(1, 2, 20, (max_points = 30, ma_size = 45, ma_step = 30), false, "TestOp_80", Any["Normalize"])
+● [ 10/05/2021 20:41:08 ] Loading dataset ./results-audio-scan/datasets/2,TestOp_80,2,20,false,Any["Normalize"],1,(30,45,30).jld...
+Benchmarking dataset '(1,2)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:41:08 ] Loading gammas from file "./results-audio-scan/gammas/gammas_a17b3742a0c936e133041d9a42f1d6e002c0556b638bfbfa2e549f411bc4488d.jld"...
+● [ 10/05/2021 20:41:18 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:41:18 ] ├ Size: 1744.317626953125 MBytes
+● [ 10/05/2021 20:41:18 ] └ Dimensions: (2, 30, 31, 439, 14, 20)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 20)
+● [ 10/05/2021 20:41:18 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 7
+Tot nodes: 13
+Height: 5
+Modal height:  5
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V19 ⫺₈₀ 1.4222859578683853e-5)
+✔ ⟨D̅⟩ (V19 ⫺₈₀ 0.16354214099720552)
+│✔ ⟨B̅⟩ (V14 ⫹₈₀ 0.3678372319103562)
+││✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 33/41 (conf: 0.8048780487804879)
+││✘ YES : 12/16 (conf: 0.75)
+│✘ ⟨B⟩ (V3 ⫺₈₀ 0.9717887505714435)
+│ ✔ ⟨A̅⟩ (V19 ⫺₈₀ 0.048202328351087884)
+│ │✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 12/12 (conf: 1.0)
+│ │✘ ⟨L⟩ (V14 ⫺₈₀ 0.04900835126269385)
+│ │ ✔ YES : 11/12 (conf: 0.9166666666666666)
+│ │ ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 9/9 (conf: 1.0)
+│ ✘ YES : 90/117 (conf: 0.7692307692307693)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 55/75 (conf: 0.7333333333333333)
+● [ 10/05/2021 20:41:47 ] Saving tree to file ./results-audio-scan/trees/tree_fd39af7eb6e85304f58ea1b974988ddac35658cac58b872eda3d7232b3144cf1.jld...
+ test size = (30, 282, 20)
+ Purity threshold 1.0
+RESULT:	(1,2)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	78.72%	80.14%	77.3%	77.93%	79.56%	||	57.45%	[79.02, 78.42]%	
+  accuracy: 78.72% kappa: 57.45% 
+ 113  28	80.14%		YES
+  32 109	77.3%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.7872340425531915
+κ =		0.574468085106383
+sensitivities:	[0.8014184397163121, 0.7730496453900709]
+specificities:	[0.7730496453900709, 0.8014184397163121]
+PPVs:		[0.7793103448275862, 0.7956204379562044]
+NPVs:		[0.7956204379562044, 0.7793103448275862]
+F1s:		[0.7902097902097902, 0.7841726618705036]
+accuracies:	[0.7872340425531915, 0.7872340425531915]
+mean_accuracy:	0.7872340425531915
+● [ 10/05/2021 20:41:50 ] Computing iteration 2,TestOp_80,2,40,false,Any["Normalize"],1,(30,45,30)...
+(1, 2, 40, (max_points = 30, ma_size = 45, ma_step = 30), false, "TestOp_80", Any["Normalize"])
+● [ 10/05/2021 20:41:50 ] Loading dataset ./results-audio-scan/datasets/2,TestOp_80,2,40,false,Any["Normalize"],1,(30,45,30).jld...
+Benchmarking dataset '(1,2)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:41:50 ] Loading gammas from file "./results-audio-scan/gammas/gammas_0c42d8ab98b122cdf242812d328fa4cab290c42342de504a12fe461b1ea6d8f0.jld"...
+● [ 10/05/2021 20:42:16 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:42:16 ] ├ Size: 3488.63525390625 MBytes
+● [ 10/05/2021 20:42:16 ] └ Dimensions: (2, 30, 31, 439, 14, 40)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 40)
+● [ 10/05/2021 20:42:16 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 5
+Tot nodes: 9
+Height: 4
+Modal height:  4
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V37 ⫺₈₀ 1.8262714579671973e-5)
+✔ ⟨A⟩ (V38 ⫺₈₀ 0.1615165529037105)
+│✔ ⟨A⟩ (V4 ⫺₈₀ 0.3337768910374888)
+││✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 42/53 (conf: 0.7924528301886793)
+││✘ ⟨D̅⟩ (V9 ⫺₈₀ 0.009843067134650722)
+││ ✔ YES : 45/62 (conf: 0.7258064516129032)
+││ ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 8/8 (conf: 1.0)
+│✘ YES : 65/83 (conf: 0.7831325301204819)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 56/76 (conf: 0.7368421052631579)
+● [ 10/05/2021 20:42:48 ] Saving tree to file ./results-audio-scan/trees/tree_8e0088db88f14f3853a19714c055e952c3df087bee8a5f9caac65c82f6576257.jld...
+ test size = (30, 282, 40)
+ Purity threshold 1.0
+RESULT:	(1,2)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	76.6%	78.01%	75.18%	75.86%	77.37%	||	53.19%	[76.92, 76.26]%	
+  accuracy: 76.6% kappa: 53.19% 
+ 110  31	78.01%		YES
+  35 106	75.18%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.7659574468085106
+κ =		0.5319148936170213
+sensitivities:	[0.7801418439716312, 0.75177304964539]
+specificities:	[0.75177304964539, 0.7801418439716312]
+PPVs:		[0.7586206896551724, 0.7737226277372263]
+NPVs:		[0.7737226277372263, 0.7586206896551724]
+F1s:		[0.7692307692307693, 0.762589928057554]
+accuracies:	[0.7659574468085106, 0.7659574468085106]
+mean_accuracy:	0.7659574468085106
+● [ 10/05/2021 20:42:48 ] Computing iteration 2,TestOp_80,1,40,false,Any[],1,(30,75,50)...
+(1, 1, 40, (max_points = 30, ma_size = 75, ma_step = 50), false, "TestOp_80", Any[])
+● [ 10/05/2021 20:42:48 ] Loading dataset ./results-audio-scan/datasets/2,TestOp_80,1,40,false,Any[],1,(30,75,50).jld...
+Benchmarking dataset '(1,1)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:42:48 ] Loading gammas from file "./results-audio-scan/gammas/gammas_406a3e1e0d38263de8c62a5129987fb66212f23b5465a02906f13d64711d4f07.jld"...
+● [ 10/05/2021 20:43:08 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:43:08 ] ├ Size: 3488.63525390625 MBytes
+● [ 10/05/2021 20:43:08 ] └ Dimensions: (2, 30, 31, 439, 14, 40)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 40)
+● [ 10/05/2021 20:43:08 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 8
+Tot nodes: 15
+Height: 7
+Modal height:  7
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V38 ⫺₈₀ 3.004327731539876e-5)
+✔ ⟨L̅⟩ (V40 ⫹₈₀ 8.125574515977368e-6)
+│✔ YES : 65/81 (conf: 0.8024691358024691)
+│✘ ⟨D⟩ (V27 ⫹₈₀ 0.01277307434789061)
+│ ✔ ⟨B̅⟩ (V33 ⫺₈₀ 0.001643229943030788)
+│ │✔ YES : 33/42 (conf: 0.7857142857142857)
+│ │✘ ⟨B⟩ (V4 ⫺₈₀ 0.012261368584097715)
+│ │ ✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 14/14 (conf: 1.0)
+│ │ ✘ ⟨A⟩ (V3 ⫺₈₀ 0.18595175274565967)
+│ │  ✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 10/10 (conf: 1.0)
+│ │  ✘ ⟨⟩ (V8 ⫺₈₀ 0.25591174456920535)
+│ │   ✔ YES : 22/28 (conf: 0.7857142857142857)
+│ │   ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 5/5 (conf: 1.0)
+│ ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 21/23 (conf: 0.9130434782608695)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 60/79 (conf: 0.759493670886076)
+● [ 10/05/2021 20:43:19 ] Saving tree to file ./results-audio-scan/trees/tree_448e3a2c2651c90613647356e7046bb6b92ea2d434ae2ec78dc8501e5b2e40b3.jld...
+ test size = (30, 282, 40)
+ Purity threshold 1.0
+RESULT:	(1,1)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	81.56%	85.11%	78.01%	79.47%	83.97%	||	63.12%	[82.19, 80.88]%	
+  accuracy: 81.56% kappa: 63.12% 
+ 120  21	85.11%		YES
+  31 110	78.01%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.8156028368794326
+κ =		0.6312056737588652
+sensitivities:	[0.851063829787234, 0.7801418439716312]
+specificities:	[0.7801418439716312, 0.851063829787234]
+PPVs:		[0.7947019867549668, 0.8396946564885496]
+NPVs:		[0.8396946564885496, 0.7947019867549668]
+F1s:		[0.821917808219178, 0.8088235294117647]
+accuracies:	[0.8156028368794326, 0.8156028368794326]
+mean_accuracy:	0.8156028368794326
+● [ 10/05/2021 20:43:20 ] Computing iteration 2,TestOp_80,1,60,false,Any[],1,(30,75,50)...
+(1, 1, 60, (max_points = 30, ma_size = 75, ma_step = 50), false, "TestOp_80", Any[])
+● [ 10/05/2021 20:43:20 ] Loading dataset ./results-audio-scan/datasets/2,TestOp_80,1,60,false,Any[],1,(30,75,50).jld...
+Benchmarking dataset '(1,1)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:43:20 ] Loading gammas from file "./results-audio-scan/gammas/gammas_251e658b50ed1cbe58fdad9ae3373359c2c2d1c308c3892782dc0c36ce7d29bc.jld"...
+● [ 10/05/2021 20:43:33 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:43:33 ] ├ Size: 5232.952880859375 MBytes
+● [ 10/05/2021 20:43:33 ] └ Dimensions: (2, 30, 31, 439, 14, 60)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 60)
+● [ 10/05/2021 20:43:33 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 5
+Tot nodes: 9
+Height: 4
+Modal height:  4
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V54 ⫺₈₀ 0.022629931693576178)
+✔ ⟨O̅⟩ (V37 ⫹₈₀ 0.054329186686891975)
+│✔ YES : 64/74 (conf: 0.8648648648648649)
+│✘ ⟨E⟩ (V13 ⫹₈₀ 0.7746771539124421)
+│ ✔ ⟨A⟩ (V44 ⫺₈₀ 2.017744418869116)
+│ │✔ YES : 7/7 (conf: 1.0)
+│ │✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 48/65 (conf: 0.7384615384615385)
+│ ✘ YES : 23/30 (conf: 0.7666666666666667)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 76/106 (conf: 0.7169811320754716)
+● [ 10/05/2021 20:43:41 ] Saving tree to file ./results-audio-scan/trees/tree_01f7c5244f67a80d9e37413d4307ece1606373b58cbb3636df097cdab0b87f90.jld...
+ test size = (30, 282, 60)
+ Purity threshold 1.0
+RESULT:	(1,1)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	77.3%	66.67%	87.94%	84.68%	72.51%	||	54.61%	[74.6, 79.49]%	
+  accuracy: 77.3% kappa: 54.61% 
+  94  47	66.67%		YES
+  17 124	87.94%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.7730496453900709
+κ =		0.5460992907801419
+sensitivities:	[0.6666666666666666, 0.8794326241134752]
+specificities:	[0.8794326241134752, 0.6666666666666666]
+PPVs:		[0.8468468468468469, 0.7251461988304093]
+NPVs:		[0.7251461988304093, 0.8468468468468469]
+F1s:		[0.746031746031746, 0.7948717948717948]
+accuracies:	[0.7730496453900709, 0.7730496453900709]
+mean_accuracy:	0.7730496453900709
+● [ 10/05/2021 20:43:41 ] Computing iteration 2,TestOp_80,2,20,false,Any[],1,(30,45,30)...
+(1, 2, 20, (max_points = 30, ma_size = 45, ma_step = 30), false, "TestOp_80", Any[])
+● [ 10/05/2021 20:43:41 ] Loading dataset ./results-audio-scan/datasets/2,TestOp_80,2,20,false,Any[],1,(30,45,30).jld...
+Benchmarking dataset '(1,2)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:43:41 ] Loading gammas from file "./results-audio-scan/gammas/gammas_4f77fe23c59e778afb3a58d518449e827afb87939c71fc86cddea83731c495f5.jld"...
+● [ 10/05/2021 20:43:45 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:43:45 ] ├ Size: 1744.317626953125 MBytes
+● [ 10/05/2021 20:43:45 ] └ Dimensions: (2, 30, 31, 439, 14, 20)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 20)
+● [ 10/05/2021 20:43:45 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 8
+Tot nodes: 15
+Height: 7
+Modal height:  6
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V18 ⫺₈₀ 1.0647069074427218e-5)
+✔ ⟨E̅⟩ (V2 ⫺₈₀ 0.14259425112427987)
+│✔ ⟨O̅⟩ (V4 ⫹₈₀ 0.013588409496319148)
+││✔ ⟨E̅⟩ (V4 ⫹₈₀ 0.012042986511473787)
+│││✔ V1 ⫹₈₀ 0.0018036263905898348
+││││✔ ⟨E̅⟩ (V1 ⫺₈₀ 5.482459546818849e-6)
+│││││✔ ⟨O⟩ (V8 ⫹₈₀ 0.019363401520917853)
+││││││✔ YES : 6/8 (conf: 0.75)
+││││││✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 5/5 (conf: 1.0)
+│││││✘ YES : 7/7 (conf: 1.0)
+││││✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 11/11 (conf: 1.0)
+│││✘ YES : 9/9 (conf: 1.0)
+││✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 25/25 (conf: 1.0)
+│✘ YES : 98/137 (conf: 0.7153284671532847)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 59/80 (conf: 0.7375)
+● [ 10/05/2021 20:44:00 ] Saving tree to file ./results-audio-scan/trees/tree_215c59d924552323c1ac32fe293f0d11e4bea8a27397208b74f4e3c04efcda52.jld...
+ test size = (30, 282, 20)
+ Purity threshold 1.0
+RESULT:	(1,2)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	78.01%	85.11%	70.92%	74.53%	82.64%	||	56.03%	[79.47, 76.34]%	
+  accuracy: 78.01% kappa: 56.03% 
+ 120  21	85.11%		YES
+  41 100	70.92%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.7801418439716312
+κ =		0.5602836879432624
+sensitivities:	[0.851063829787234, 0.7092198581560284]
+specificities:	[0.7092198581560284, 0.851063829787234]
+PPVs:		[0.7453416149068323, 0.8264462809917356]
+NPVs:		[0.8264462809917356, 0.7453416149068323]
+F1s:		[0.7947019867549668, 0.7633587786259542]
+accuracies:	[0.7801418439716312, 0.7801418439716312]
+mean_accuracy:	0.7801418439716312
+● [ 10/05/2021 20:44:01 ] Computing iteration 2,TestOp_80,2,40,false,Any[],1,(30,45,30)...
+(1, 2, 40, (max_points = 30, ma_size = 45, ma_step = 30), false, "TestOp_80", Any[])
+● [ 10/05/2021 20:44:01 ] Loading dataset ./results-audio-scan/datasets/2,TestOp_80,2,40,false,Any[],1,(30,45,30).jld...
+Benchmarking dataset '(1,2)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:44:01 ] Loading gammas from file "./results-audio-scan/gammas/gammas_18ad0665f839222e9ddfd073eab63d05fa256066b04e5f2f28618bca8c9555f3.jld"...
+● [ 10/05/2021 20:44:03 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:44:03 ] ├ Size: 3488.63525390625 MBytes
+● [ 10/05/2021 20:44:03 ] └ Dimensions: (2, 30, 31, 439, 14, 40)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 40)
+● [ 10/05/2021 20:44:03 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 10
+Tot nodes: 19
+Height: 7
+Modal height:  6
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V37 ⫺₈₀ 6.061435539192513e-6)
+✔ ⟨B̅⟩ (V4 ⫺₈₀ 0.16917468591347165)
+│✔ ⟨B⟩ (V38 ⫹₈₀ 0.0035196600266981584)
+││✔ ⟨O̅⟩ (V36 ⫹₈₀ 0.0005405143950892434)
+│││✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 4/4 (conf: 1.0)
+│││✘ YES : 17/20 (conf: 0.85)
+││✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 34/37 (conf: 0.918918918918919)
+│✘ V31 ⫹₈₀ 1.829215357636296e-5
+│ ✔ ⟨L̅⟩ (V4 ⫺₈₀ 0.1448742810389693)
+│ │✔ YES : 7/7 (conf: 1.0)
+│ │✘ ⟨E̅⟩ (V38 ⫹₈₀ 4.611536105490723e-6)
+│ │ ✔ YES : 6/6 (conf: 1.0)
+│ │ ✘ ⟨L⟩ (V17 ⫺₈₀ 0.004094291679062348)
+│ │  ✔ ⟨D̅⟩ (V28 ⫺₈₀ 0.0043786548202474)
+│ │  │✔ YES : 9/10 (conf: 0.9)
+│ │  │✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 16/20 (conf: 0.8)
+│ │  ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 14/14 (conf: 1.0)
+│ ✘ YES : 75/85 (conf: 0.8823529411764706)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 59/79 (conf: 0.7468354430379747)
+● [ 10/05/2021 20:44:49 ] Saving tree to file ./results-audio-scan/trees/tree_995a5dffe4289dd709239cca0ea77a9d996a5ed3f0df7a4da2ac44c4f475a439.jld...
+ test size = (30, 282, 40)
+ Purity threshold 1.0
+RESULT:	(1,2)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	85.46%	80.85%	90.07%	89.06%	82.47%	||	70.92%	[84.76, 86.1]%	
+  accuracy: 85.46% kappa: 70.92% 
+ 114  27	80.85%		YES
+  14 127	90.07%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.8546099290780141
+κ =		0.7092198581560283
+sensitivities:	[0.8085106382978723, 0.900709219858156]
+specificities:	[0.900709219858156, 0.8085106382978723]
+PPVs:		[0.890625, 0.8246753246753247]
+NPVs:		[0.8246753246753247, 0.890625]
+F1s:		[0.8475836431226765, 0.8610169491525423]
+accuracies:	[0.8546099290780141, 0.8546099290780141]
+mean_accuracy:	0.8546099290780141
+DATA SEED: 3
+● [ 10/05/2021 20:44:50 ] Computing iteration 3,TestOp_80,1,40,false,Any["Normalize"],1,(30,75,50)...
+(1, 1, 40, (max_points = 30, ma_size = 75, ma_step = 50), false, "TestOp_80", Any["Normalize"])
+● [ 10/05/2021 20:44:50 ] Loading dataset ./results-audio-scan/datasets/3,TestOp_80,1,40,false,Any["Normalize"],1,(30,75,50).jld...
+Benchmarking dataset '(1,1)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:44:51 ] Loading gammas from file "./results-audio-scan/gammas/gammas_1f9fa6a89312c9371c38dd8e299a46506e20cdf3cfec5a536d90ef38ab2b0264.jld"...
+● [ 10/05/2021 20:44:52 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:44:52 ] ├ Size: 3488.63525390625 MBytes
+● [ 10/05/2021 20:44:52 ] └ Dimensions: (2, 30, 31, 439, 14, 40)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 40)
+● [ 10/05/2021 20:44:52 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 4
+Tot nodes: 7
+Height: 3
+Modal height:  2
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V36 ⫺₈₀ 0.04458811779644085)
+✔ V13 ⫺₈₀ 0.5730317074967006
+│✔ ⟨B⟩ (V27 ⫺₈₀ 4.321560770567164)
+││✔ YES : 13/13 (conf: 1.0)
+││✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 50/68 (conf: 0.7352941176470589)
+│✘ YES : 82/94 (conf: 0.8723404255319149)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 79/107 (conf: 0.7383177570093458)
+● [ 10/05/2021 20:44:56 ] Saving tree to file ./results-audio-scan/trees/tree_8b024c3cb400668cc2bc7fd05d793e3e1aaefceaaaf6aff6f11aee11ca19b270.jld...
+ test size = (30, 282, 40)
+ Purity threshold 1.0
+RESULT:	(1,1)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	79.43%	67.38%	91.49%	88.79%	73.71%	||	58.87%	[76.61, 81.65]%	
+  accuracy: 79.43% kappa: 58.87% 
+  95  46	67.38%		YES
+  12 129	91.49%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.7943262411347518
+κ =		0.5886524822695036
+sensitivities:	[0.6737588652482269, 0.9148936170212766]
+specificities:	[0.9148936170212766, 0.6737588652482269]
+PPVs:		[0.8878504672897196, 0.7371428571428571]
+NPVs:		[0.7371428571428571, 0.8878504672897196]
+F1s:		[0.7661290322580645, 0.8164556962025317]
+accuracies:	[0.7943262411347518, 0.7943262411347518]
+mean_accuracy:	0.7943262411347518
+● [ 10/05/2021 20:44:56 ] Computing iteration 3,TestOp_80,1,60,false,Any["Normalize"],1,(30,75,50)...
+(1, 1, 60, (max_points = 30, ma_size = 75, ma_step = 50), false, "TestOp_80", Any["Normalize"])
+● [ 10/05/2021 20:44:56 ] Loading dataset ./results-audio-scan/datasets/3,TestOp_80,1,60,false,Any["Normalize"],1,(30,75,50).jld...
+Benchmarking dataset '(1,1)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:44:56 ] Loading gammas from file "./results-audio-scan/gammas/gammas_130e7158da7a0c6be14020aa7be1d466606a5e05113c9c540d633f643b27727b.jld"...
+● [ 10/05/2021 20:44:59 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:44:59 ] ├ Size: 5232.952880859375 MBytes
+● [ 10/05/2021 20:44:59 ] └ Dimensions: (2, 30, 31, 439, 14, 60)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 60)
+● [ 10/05/2021 20:44:59 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 7
+Tot nodes: 13
+Height: 6
+Modal height:  3
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V54 ⫺₈₀ 0.037572913260747604)
+✔ ⟨⟩ (V20 ⫺₈₀ 0.5878576239325317)
+│✔ V1 ⫺₈₀ 0.019950181573512693
+││✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 18/18 (conf: 1.0)
+││✘ ⟨L⟩ (V44 ⫺₈₀ 3.8762404517023366)
+││ ✔ YES : 14/14 (conf: 1.0)
+││ ✘ V16 ⫹₈₀ 0.8933338712505493
+││  ✔ V58 ⫹₈₀ 0.9854330626014536
+││  │✔ YES : 20/26 (conf: 0.7692307692307693)
+││  │✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 8/8 (conf: 1.0)
+││  ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 18/18 (conf: 1.0)
+│✘ YES : 78/89 (conf: 0.8764044943820225)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 80/109 (conf: 0.7339449541284404)
+● [ 10/05/2021 20:45:05 ] Saving tree to file ./results-audio-scan/trees/tree_e12e340a24eef595aff2604bf8f458d8576d04720a1f886aefbb91ef0d36a2c3.jld...
+ test size = (30, 282, 60)
+ Purity threshold 1.0
+RESULT:	(1,1)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	83.69%	79.43%	87.94%	86.82%	81.05%	||	67.38%	[82.96, 84.35]%	
+  accuracy: 83.69% kappa: 67.38% 
+ 112  29	79.43%		YES
+  17 124	87.94%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.8368794326241135
+κ =		0.6737588652482269
+sensitivities:	[0.7943262411347518, 0.8794326241134752]
+specificities:	[0.8794326241134752, 0.7943262411347518]
+PPVs:		[0.8682170542635659, 0.8104575163398693]
+NPVs:		[0.8104575163398693, 0.8682170542635659]
+F1s:		[0.8296296296296296, 0.8435374149659864]
+accuracies:	[0.8368794326241135, 0.8368794326241135]
+mean_accuracy:	0.8368794326241135
+● [ 10/05/2021 20:45:05 ] Computing iteration 3,TestOp_80,2,20,false,Any["Normalize"],1,(30,45,30)...
+(1, 2, 20, (max_points = 30, ma_size = 45, ma_step = 30), false, "TestOp_80", Any["Normalize"])
+● [ 10/05/2021 20:45:05 ] Loading dataset ./results-audio-scan/datasets/3,TestOp_80,2,20,false,Any["Normalize"],1,(30,45,30).jld...
+Benchmarking dataset '(1,2)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:45:05 ] Loading gammas from file "./results-audio-scan/gammas/gammas_a17b3742a0c936e133041d9a42f1d6e002c0556b638bfbfa2e549f411bc4488d.jld"...
+● [ 10/05/2021 20:45:06 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:45:06 ] ├ Size: 1744.317626953125 MBytes
+● [ 10/05/2021 20:45:06 ] └ Dimensions: (2, 30, 31, 439, 14, 20)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 20)
+● [ 10/05/2021 20:45:06 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 15
+Tot nodes: 29
+Height: 11
+Modal height:  9
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V16 ⫹₈₀ 5.495545171660594e-7)
+✔ ⟨B⟩ (V1 ⫺₈₀ 0.03590471390163625)
+│✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 39/42 (conf: 0.9285714285714286)
+│✘ V12 ⫺₈₀ 0.020255073198861915
+│ ✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 9/9 (conf: 1.0)
+│ ✘ ⟨A̅⟩ (V3 ⫺₈₀ 0.00041841722160223605)
+│  ✔ ⟨O⟩ (V9 ⫺₈₀ 0.15163306217906594)
+│  │✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 11/12 (conf: 0.9166666666666666)
+│  │✘ ⟨L̅⟩ (V2 ⫹₈₀ 0.0002150808207679178)
+│  │ ✔ ⟨⟩ (V2 ⫺₈₀ 0.37514524533040416)
+│  │ │✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 8/8 (conf: 1.0)
+│  │ │✘ ⟨⟩ (V19 ⫺₈₀ 1.4222859578683853e-5)
+│  │ │ ✔ YES : 11/11 (conf: 1.0)
+│  │ │ ✘ ⟨O̅⟩ (V3 ⫺₈₀ 0.000330449381107574)
+│  │ │  ✔ V15 ⫹₈₀ 0.00020079693356316538
+│  │ │  │✔ YES : 10/10 (conf: 1.0)
+│  │ │  │✘ ⟨A⟩ (V17 ⫹₈₀ 3.2091700138020655e-8)
+│  │ │  │ ✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 7/7 (conf: 1.0)
+│  │ │  │ ✘ YES : 6/7 (conf: 0.8571428571428571)
+│  │ │  ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 7/7 (conf: 1.0)
+│  │ ✘ YES : 12/12 (conf: 1.0)
+│  ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 8/8 (conf: 1.0)
+✘ ⟨⟩ (V12 ⫺₈₀ 0.29189945174473925)
+ ✔ ⟨A⟩ (V7 ⫹₈₀ 0.0467381522278193)
+ │✔ V11 ⫹₈₀ 0.000846578096656787
+ ││✔ YES : 14/18 (conf: 0.7777777777777778)
+ ││✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 32/40 (conf: 0.8)
+ │✘ YES : 17/20 (conf: 0.85)
+ ✘ YES : 59/71 (conf: 0.8309859154929577)
+● [ 10/05/2021 20:45:18 ] Saving tree to file ./results-audio-scan/trees/tree_1f776e47f23b471b2569d37fa31d066044876f289be48773cc3e76c5d0a0af31.jld...
+ test size = (30, 282, 20)
+ Purity threshold 1.0
+RESULT:	(1,2)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	88.65%	91.49%	85.82%	86.58%	90.98%	||	77.3%	[88.97, 88.32]%	
+  accuracy: 88.65% kappa: 77.3% 
+ 129  12	91.49%		YES
+  20 121	85.82%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.8865248226950354
+κ =		0.7730496453900708
+sensitivities:	[0.9148936170212766, 0.8581560283687943]
+specificities:	[0.8581560283687943, 0.9148936170212766]
+PPVs:		[0.8657718120805369, 0.9097744360902256]
+NPVs:		[0.9097744360902256, 0.8657718120805369]
+F1s:		[0.8896551724137931, 0.8832116788321168]
+accuracies:	[0.8865248226950354, 0.8865248226950354]
+mean_accuracy:	0.8865248226950354
+● [ 10/05/2021 20:45:19 ] Computing iteration 3,TestOp_80,2,40,false,Any["Normalize"],1,(30,45,30)...
+(1, 2, 40, (max_points = 30, ma_size = 45, ma_step = 30), false, "TestOp_80", Any["Normalize"])
+● [ 10/05/2021 20:45:19 ] Loading dataset ./results-audio-scan/datasets/3,TestOp_80,2,40,false,Any["Normalize"],1,(30,45,30).jld...
+Benchmarking dataset '(1,2)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:45:20 ] Loading gammas from file "./results-audio-scan/gammas/gammas_0c42d8ab98b122cdf242812d328fa4cab290c42342de504a12fe461b1ea6d8f0.jld"...
+● [ 10/05/2021 20:45:22 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:45:22 ] ├ Size: 3488.63525390625 MBytes
+● [ 10/05/2021 20:45:22 ] └ Dimensions: (2, 30, 31, 439, 14, 40)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 40)
+● [ 10/05/2021 20:45:22 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 5
+Tot nodes: 9
+Height: 4
+Modal height:  4
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V34 ⫺₈₀ 0.005254704669981703)
+✔ ⟨B⟩ (V4 ⫺₈₀ 0.5229257584899949)
+│✔ ⟨D̅⟩ (V20 ⫹₈₀ 0.005437994888792555)
+││✔ YES : 10/10 (conf: 1.0)
+││✘ ⟨O⟩ (V40 ⫹₈₀ 0.0015803632292228352)
+││ ✔ YES : 7/7 (conf: 1.0)
+││ ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 48/61 (conf: 0.7868852459016393)
+│✘ YES : 84/104 (conf: 0.8076923076923077)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 73/100 (conf: 0.73)
+● [ 10/05/2021 20:45:33 ] Saving tree to file ./results-audio-scan/trees/tree_339337c742e5546cc9bde0c9a2c8e31ff1825271a37a9ce95a377e68def98c9a.jld...
+ test size = (30, 282, 40)
+ Purity threshold 1.0
+RESULT:	(1,2)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	78.72%	71.63%	85.82%	83.47%	75.16%	||	57.45%	[77.1, 80.13]%	
+  accuracy: 78.72% kappa: 57.45% 
+ 101  40	71.63%		YES
+  20 121	85.82%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.7872340425531915
+κ =		0.574468085106383
+sensitivities:	[0.7163120567375887, 0.8581560283687943]
+specificities:	[0.8581560283687943, 0.7163120567375887]
+PPVs:		[0.8347107438016529, 0.7515527950310559]
+NPVs:		[0.7515527950310559, 0.8347107438016529]
+F1s:		[0.7709923664122137, 0.8013245033112583]
+accuracies:	[0.7872340425531915, 0.7872340425531915]
+mean_accuracy:	0.7872340425531915
+● [ 10/05/2021 20:45:34 ] Computing iteration 3,TestOp_80,1,40,false,Any[],1,(30,75,50)...
+(1, 1, 40, (max_points = 30, ma_size = 75, ma_step = 50), false, "TestOp_80", Any[])
+● [ 10/05/2021 20:45:34 ] Loading dataset ./results-audio-scan/datasets/3,TestOp_80,1,40,false,Any[],1,(30,75,50).jld...
+Benchmarking dataset '(1,1)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:45:34 ] Loading gammas from file "./results-audio-scan/gammas/gammas_406a3e1e0d38263de8c62a5129987fb66212f23b5465a02906f13d64711d4f07.jld"...
+● [ 10/05/2021 20:45:36 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:45:36 ] ├ Size: 3488.63525390625 MBytes
+● [ 10/05/2021 20:45:36 ] └ Dimensions: (2, 30, 31, 439, 14, 40)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 40)
+● [ 10/05/2021 20:45:36 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 4
+Tot nodes: 7
+Height: 3
+Modal height:  3
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V37 ⫺₈₀ 0.023027655130685647)
+✔ ⟨B⟩ (V12 ⫺₈₀ 0.5608189970253608)
+│✔ ⟨B̅⟩ (V27 ⫺₈₀ 2.896073721570697)
+││✔ YES : 11/11 (conf: 1.0)
+││✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 40/48 (conf: 0.8333333333333334)
+│✘ YES : 91/109 (conf: 0.8348623853211009)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 83/114 (conf: 0.7280701754385965)
+● [ 10/05/2021 20:45:39 ] Saving tree to file ./results-audio-scan/trees/tree_1d8e181569b6151d8601d8c42696a2aabf43538582eb772e1e3e7c4aef1a9851.jld...
+ test size = (30, 282, 40)
+ Purity threshold 1.0
+RESULT:	(1,1)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	79.79%	72.34%	87.23%	85.0%	75.93%	||	59.57%	[78.16, 81.19]%	
+  accuracy: 79.79% kappa: 59.57% 
+ 102  39	72.34%		YES
+  18 123	87.23%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.7978723404255319
+κ =		0.5957446808510638
+sensitivities:	[0.723404255319149, 0.8723404255319149]
+specificities:	[0.8723404255319149, 0.723404255319149]
+PPVs:		[0.85, 0.7592592592592593]
+NPVs:		[0.7592592592592593, 0.85]
+F1s:		[0.7816091954022989, 0.8118811881188119]
+accuracies:	[0.7978723404255319, 0.7978723404255319]
+mean_accuracy:	0.7978723404255319
+● [ 10/05/2021 20:45:40 ] Computing iteration 3,TestOp_80,1,60,false,Any[],1,(30,75,50)...
+(1, 1, 60, (max_points = 30, ma_size = 75, ma_step = 50), false, "TestOp_80", Any[])
+● [ 10/05/2021 20:45:40 ] Loading dataset ./results-audio-scan/datasets/3,TestOp_80,1,60,false,Any[],1,(30,75,50).jld...
+Benchmarking dataset '(1,1)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:45:40 ] Loading gammas from file "./results-audio-scan/gammas/gammas_251e658b50ed1cbe58fdad9ae3373359c2c2d1c308c3892782dc0c36ce7d29bc.jld"...
+● [ 10/05/2021 20:45:42 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:45:42 ] ├ Size: 5232.952880859375 MBytes
+● [ 10/05/2021 20:45:42 ] └ Dimensions: (2, 30, 31, 439, 14, 60)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 60)
+● [ 10/05/2021 20:45:42 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 4
+Tot nodes: 7
+Height: 3
+Modal height:  2
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V55 ⫺₈₀ 0.016836957217684512)
+✔ ⟨B⟩ (V18 ⫺₈₀ 0.524588641535122)
+│✔ V46 ⫺₈₀ 6.056837337055989
+││✔ YES : 10/10 (conf: 1.0)
+││✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 43/56 (conf: 0.7678571428571429)
+│✘ YES : 89/106 (conf: 0.839622641509434)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 81/110 (conf: 0.7363636363636363)
+● [ 10/05/2021 20:45:47 ] Saving tree to file ./results-audio-scan/trees/tree_88706d256f383a6b024dba7c119c85a27d2d0d2aeee466e8dd12a6d42c453432.jld...
+ test size = (30, 282, 60)
+ Purity threshold 1.0
+RESULT:	(1,1)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	79.08%	70.21%	87.94%	85.34%	74.7%	||	58.16%	[77.04, 80.78]%	
+  accuracy: 79.08% kappa: 58.16% 
+  99  42	70.21%		YES
+  17 124	87.94%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.7907801418439716
+κ =		0.5815602836879432
+sensitivities:	[0.7021276595744681, 0.8794326241134752]
+specificities:	[0.8794326241134752, 0.7021276595744681]
+PPVs:		[0.853448275862069, 0.7469879518072289]
+NPVs:		[0.7469879518072289, 0.853448275862069]
+F1s:		[0.7704280155642024, 0.8078175895765473]
+accuracies:	[0.7907801418439716, 0.7907801418439716]
+mean_accuracy:	0.7907801418439716
+● [ 10/05/2021 20:45:48 ] Computing iteration 3,TestOp_80,2,20,false,Any[],1,(30,45,30)...
+(1, 2, 20, (max_points = 30, ma_size = 45, ma_step = 30), false, "TestOp_80", Any[])
+● [ 10/05/2021 20:45:48 ] Loading dataset ./results-audio-scan/datasets/3,TestOp_80,2,20,false,Any[],1,(30,45,30).jld...
+Benchmarking dataset '(1,2)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:45:48 ] Loading gammas from file "./results-audio-scan/gammas/gammas_4f77fe23c59e778afb3a58d518449e827afb87939c71fc86cddea83731c495f5.jld"...
+● [ 10/05/2021 20:45:48 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:45:48 ] ├ Size: 1744.317626953125 MBytes
+● [ 10/05/2021 20:45:48 ] └ Dimensions: (2, 30, 31, 439, 14, 20)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 20)
+● [ 10/05/2021 20:45:48 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 10
+Tot nodes: 19
+Height: 6
+Modal height:  6
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V15 ⫹₈₀ 1.072793679867276e-6)
+✔ ⟨A̅⟩ (V1 ⫺₈₀ 0.04619840864334242)
+│✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 36/38 (conf: 0.9473684210526315)
+│✘ ⟨A̅⟩ (V16 ⫺₈₀ 2.2376721658113113e-7)
+│ ✔ ⟨E̅⟩ (V9 ⫺₈₀ 0.19354028272236193)
+│ │✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 9/9 (conf: 1.0)
+│ │✘ ⟨O̅⟩ (V2 ⫹₈₀ 1.957292109923769e-5)
+│ │ ✔ ⟨E⟩ (V7 ⫺₈₀ 0.0003092853034968636)
+│ │ │✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 26/34 (conf: 0.7647058823529411)
+│ │ │✘ YES : 11/14 (conf: 0.7857142857142857)
+│ │ ✘ YES : 25/29 (conf: 0.8620689655172413)
+│ ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 23/25 (conf: 0.92)
+✘ ⟨⟩ (V13 ⫺₈₀ 0.07122052319195825)
+ ✔ V2 ⫹₈₀ 0.02853747893309599
+ │✔ ⟨L⟩ (V18 ⫹₈₀ 4.419357173580543e-5)
+ ││✔ YES : 18/21 (conf: 0.8571428571428571)
+ ││✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 7/8 (conf: 0.875)
+ │✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 15/16 (conf: 0.9375)
+ ✘ YES : 73/88 (conf: 0.8295454545454546)
+● [ 10/05/2021 20:45:56 ] Saving tree to file ./results-audio-scan/trees/tree_bf946a3b8f916abe1e7951f0cfdb5303a455432551c681f3204ac2688b2d763d.jld...
+ test size = (30, 282, 20)
+ Purity threshold 1.0
+RESULT:	(1,2)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	86.17%	90.07%	82.27%	83.55%	89.23%	||	72.34%	[86.69, 85.61]%	
+  accuracy: 86.17% kappa: 72.34% 
+ 127  14	90.07%		YES
+  25 116	82.27%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.8617021276595744
+κ =		0.7234042553191489
+sensitivities:	[0.900709219858156, 0.8226950354609929]
+specificities:	[0.8226950354609929, 0.900709219858156]
+PPVs:		[0.8355263157894737, 0.8923076923076924]
+NPVs:		[0.8923076923076924, 0.8355263157894737]
+F1s:		[0.8668941979522184, 0.8560885608856088]
+accuracies:	[0.8617021276595744, 0.8617021276595744]
+mean_accuracy:	0.8617021276595744
+● [ 10/05/2021 20:45:57 ] Computing iteration 3,TestOp_80,2,40,false,Any[],1,(30,45,30)...
+(1, 2, 40, (max_points = 30, ma_size = 45, ma_step = 30), false, "TestOp_80", Any[])
+● [ 10/05/2021 20:45:57 ] Loading dataset ./results-audio-scan/datasets/3,TestOp_80,2,40,false,Any[],1,(30,45,30).jld...
+Benchmarking dataset '(1,2)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:45:57 ] Loading gammas from file "./results-audio-scan/gammas/gammas_18ad0665f839222e9ddfd073eab63d05fa256066b04e5f2f28618bca8c9555f3.jld"...
+● [ 10/05/2021 20:45:58 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:45:58 ] ├ Size: 3488.63525390625 MBytes
+● [ 10/05/2021 20:45:58 ] └ Dimensions: (2, 30, 31, 439, 14, 40)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 40)
+● [ 10/05/2021 20:45:58 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 10
+Tot nodes: 19
+Height: 7
+Modal height:  6
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V40 ⫹₈₀ 4.2500895684145746e-8)
+✔ ⟨A̅⟩ (V3 ⫺₈₀ 0.050430532019472195)
+│✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 45/48 (conf: 0.9375)
+│✘ ⟨E̅⟩ (V17 ⫺₈₀ 6.495858279254642e-5)
+│ ✔ ⟨E⟩ (V13 ⫺₈₀ 0.0006945507339157192)
+│ │✔ V5 ⫺₈₀ 0.00111758594458257
+│ ││✔ ⟨O⟩ (V12 ⫺₈₀ 0.0030930102379362477)
+│ │││✔ YES : 12/13 (conf: 0.9230769230769231)
+│ │││✘ ⟨E⟩ (V7 ⫺₈₀ 0.0004075919424637126)
+│ │││ ✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 11/11 (conf: 1.0)
+│ │││ ✘ YES : 7/9 (conf: 0.7777777777777778)
+│ ││✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 23/25 (conf: 0.92)
+│ │✘ YES : 22/24 (conf: 0.9166666666666666)
+│ ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 17/18 (conf: 0.9444444444444444)
+✘ ⟨⟩ (V16 ⫺₈₀ 0.4957522385016284)
+ ✔ ⟨O̅⟩ (V1 ⫺₈₀ 0.0001883690340463308)
+ │✔ YES : 9/12 (conf: 0.75)
+ │✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 16/16 (conf: 1.0)
+ ✘ YES : 85/106 (conf: 0.8018867924528302)
+● [ 10/05/2021 20:46:19 ] Saving tree to file ./results-audio-scan/trees/tree_d25be4463e55c55cb8096dfb8022db566481415503e1f39089ba8cf044c6054c.jld...
+ test size = (30, 282, 40)
+ Purity threshold 1.0
+RESULT:	(1,2)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	87.59%	95.74%	79.43%	82.32%	94.92%	||	75.18%	[88.52, 86.49]%	
+  accuracy: 87.59% kappa: 75.18% 
+ 135   6	95.74%		YES
+  29 112	79.43%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.875886524822695
+κ =		0.75177304964539
+sensitivities:	[0.9574468085106383, 0.7943262411347518]
+specificities:	[0.7943262411347518, 0.9574468085106383]
+PPVs:		[0.823170731707317, 0.9491525423728814]
+NPVs:		[0.9491525423728814, 0.823170731707317]
+F1s:		[0.8852459016393442, 0.8648648648648649]
+accuracies:	[0.875886524822695, 0.875886524822695]
+mean_accuracy:	0.875886524822695
+DATA SEED: 4
+● [ 10/05/2021 20:46:20 ] Computing iteration 4,TestOp_80,1,40,false,Any["Normalize"],1,(30,75,50)...
+(1, 1, 40, (max_points = 30, ma_size = 75, ma_step = 50), false, "TestOp_80", Any["Normalize"])
+● [ 10/05/2021 20:46:20 ] Loading dataset ./results-audio-scan/datasets/4,TestOp_80,1,40,false,Any["Normalize"],1,(30,75,50).jld...
+Benchmarking dataset '(1,1)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:46:20 ] Loading gammas from file "./results-audio-scan/gammas/gammas_1f9fa6a89312c9371c38dd8e299a46506e20cdf3cfec5a536d90ef38ab2b0264.jld"...
+● [ 10/05/2021 20:46:22 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:46:22 ] ├ Size: 3488.63525390625 MBytes
+● [ 10/05/2021 20:46:22 ] └ Dimensions: (2, 30, 31, 439, 14, 40)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 40)
+● [ 10/05/2021 20:46:22 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 5
+Tot nodes: 9
+Height: 4
+Modal height:  3
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V36 ⫺₈₀ 0.04692005660476795)
+✔ ⟨E̅⟩ (V19 ⫹₈₀ 0.22635613842206473)
+│✔ YES : 84/101 (conf: 0.8316831683168316)
+│✘ V36 ⫹₈₀ 0.05078594653529455
+│ ✔ YES : 7/7 (conf: 1.0)
+│ ✘ ⟨E̅⟩ (V30 ⫹₈₀ 2.4118527774840257)
+│  ✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 42/52 (conf: 0.8076923076923077)
+│  ✘ YES : 11/15 (conf: 0.7333333333333333)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 78/107 (conf: 0.7289719626168224)
+● [ 10/05/2021 20:46:26 ] Saving tree to file ./results-audio-scan/trees/tree_d46ab7687dfd92ac6174b75f7a77078004323508f4acdbc362e73cf5fe15496f.jld...
+ test size = (30, 282, 40)
+ Purity threshold 1.0
+RESULT:	(1,1)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	78.72%	72.34%	85.11%	82.93%	75.47%	||	57.45%	[77.27, 80.0]%	
+  accuracy: 78.72% kappa: 57.45% 
+ 102  39	72.34%		YES
+  21 120	85.11%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.7872340425531915
+κ =		0.574468085106383
+sensitivities:	[0.723404255319149, 0.851063829787234]
+specificities:	[0.851063829787234, 0.723404255319149]
+PPVs:		[0.8292682926829268, 0.7547169811320755]
+NPVs:		[0.7547169811320755, 0.8292682926829268]
+F1s:		[0.7727272727272727, 0.8]
+accuracies:	[0.7872340425531915, 0.7872340425531915]
+mean_accuracy:	0.7872340425531915
+● [ 10/05/2021 20:46:26 ] Computing iteration 4,TestOp_80,1,60,false,Any["Normalize"],1,(30,75,50)...
+(1, 1, 60, (max_points = 30, ma_size = 75, ma_step = 50), false, "TestOp_80", Any["Normalize"])
+● [ 10/05/2021 20:46:26 ] Loading dataset ./results-audio-scan/datasets/4,TestOp_80,1,60,false,Any["Normalize"],1,(30,75,50).jld...
+Benchmarking dataset '(1,1)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:46:27 ] Loading gammas from file "./results-audio-scan/gammas/gammas_130e7158da7a0c6be14020aa7be1d466606a5e05113c9c540d633f643b27727b.jld"...
+● [ 10/05/2021 20:46:29 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:46:29 ] ├ Size: 5232.952880859375 MBytes
+● [ 10/05/2021 20:46:29 ] └ Dimensions: (2, 30, 31, 439, 14, 60)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 60)
+● [ 10/05/2021 20:46:29 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 4
+Tot nodes: 7
+Height: 3
+Modal height:  3
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V54 ⫺₈₀ 0.04682820360494703)
+✔ ⟨E̅⟩ (V27 ⫹₈₀ 0.33454016137735265)
+│✔ YES : 89/110 (conf: 0.8090909090909091)
+│✘ ⟨E⟩ (V44 ⫹₈₀ 1.0193466623240628)
+│ ✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 36/44 (conf: 0.8181818181818182)
+│ ✘ YES : 14/19 (conf: 0.7368421052631579)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 79/109 (conf: 0.7247706422018348)
+● [ 10/05/2021 20:46:34 ] Saving tree to file ./results-audio-scan/trees/tree_78f95d757801b1f5d240fd299d0dc5b513c8adaabb08656394023d7f1ff01e18.jld...
+ test size = (30, 282, 60)
+ Purity threshold 1.0
+RESULT:	(1,1)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	77.3%	73.05%	81.56%	79.84%	75.16%	||	54.61%	[76.3, 78.23]%	
+  accuracy: 77.3% kappa: 54.61% 
+ 103  38	73.05%		YES
+  26 115	81.56%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.7730496453900709
+κ =		0.5460992907801419
+sensitivities:	[0.7304964539007093, 0.8156028368794326]
+specificities:	[0.8156028368794326, 0.7304964539007093]
+PPVs:		[0.7984496124031008, 0.7516339869281046]
+NPVs:		[0.7516339869281046, 0.7984496124031008]
+F1s:		[0.762962962962963, 0.782312925170068]
+accuracies:	[0.7730496453900709, 0.7730496453900709]
+mean_accuracy:	0.7730496453900709
+● [ 10/05/2021 20:46:34 ] Computing iteration 4,TestOp_80,2,20,false,Any["Normalize"],1,(30,45,30)...
+(1, 2, 20, (max_points = 30, ma_size = 45, ma_step = 30), false, "TestOp_80", Any["Normalize"])
+● [ 10/05/2021 20:46:34 ] Loading dataset ./results-audio-scan/datasets/4,TestOp_80,2,20,false,Any["Normalize"],1,(30,45,30).jld...
+Benchmarking dataset '(1,2)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:46:34 ] Loading gammas from file "./results-audio-scan/gammas/gammas_a17b3742a0c936e133041d9a42f1d6e002c0556b638bfbfa2e549f411bc4488d.jld"...
+● [ 10/05/2021 20:46:35 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:46:35 ] ├ Size: 1744.317626953125 MBytes
+● [ 10/05/2021 20:46:35 ] └ Dimensions: (2, 30, 31, 439, 14, 20)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 20)
+● [ 10/05/2021 20:46:35 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 7
+Tot nodes: 13
+Height: 4
+Modal height:  2
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V16 ⫺₈₀ 0.013912713085668948)
+✔ ⟨E⟩ (V2 ⫺₈₀ 0.3675747748034677)
+│✔ V20 ⫺₈₀ 0.06832594408297922
+││✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 43/56 (conf: 0.7678571428571429)
+││✘ YES : 22/30 (conf: 0.7333333333333333)
+│✘ YES : 76/93 (conf: 0.8172043010752689)
+✘ ⟨⟩ (V1 ⫹₈₀ 3.851957362372863e-6)
+ ✔ V1 ⫺₈₀ 2.6164679444859873e-6
+ │✔ V11 ⫺₈₀ 0.0005051480138675094
+ ││✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 9/12 (conf: 0.75)
+ ││✘ YES : 18/23 (conf: 0.782608695652174)
+ │✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 47/56 (conf: 0.8392857142857143)
+ ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 12/12 (conf: 1.0)
+● [ 10/05/2021 20:46:41 ] Saving tree to file ./results-audio-scan/trees/tree_922ff1d5a3ac86e080dab5cdf0dbbf2d020a9fd7e12c2eed354cf6d6f32e9e96.jld...
+ test size = (30, 282, 20)
+ Purity threshold 1.0
+RESULT:	(1,2)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	80.5%	82.27%	78.72%	79.45%	81.62%	||	60.99%	[80.84, 80.14]%	
+  accuracy: 80.5% kappa: 60.99% 
+ 116  25	82.27%		YES
+  30 111	78.72%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.8049645390070922
+κ =		0.6099290780141844
+sensitivities:	[0.8226950354609929, 0.7872340425531915]
+specificities:	[0.7872340425531915, 0.8226950354609929]
+PPVs:		[0.7945205479452054, 0.8161764705882353]
+NPVs:		[0.8161764705882353, 0.7945205479452054]
+F1s:		[0.8083623693379791, 0.8014440433212996]
+accuracies:	[0.8049645390070922, 0.8049645390070922]
+mean_accuracy:	0.8049645390070922
+● [ 10/05/2021 20:46:42 ] Computing iteration 4,TestOp_80,2,40,false,Any["Normalize"],1,(30,45,30)...
+(1, 2, 40, (max_points = 30, ma_size = 45, ma_step = 30), false, "TestOp_80", Any["Normalize"])
+● [ 10/05/2021 20:46:42 ] Loading dataset ./results-audio-scan/datasets/4,TestOp_80,2,40,false,Any["Normalize"],1,(30,45,30).jld...
+Benchmarking dataset '(1,2)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:46:42 ] Loading gammas from file "./results-audio-scan/gammas/gammas_0c42d8ab98b122cdf242812d328fa4cab290c42342de504a12fe461b1ea6d8f0.jld"...
+● [ 10/05/2021 20:46:43 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:46:43 ] ├ Size: 3488.63525390625 MBytes
+● [ 10/05/2021 20:46:43 ] └ Dimensions: (2, 30, 31, 439, 14, 40)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 40)
+● [ 10/05/2021 20:46:43 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 4
+Tot nodes: 7
+Height: 3
+Modal height:  3
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V34 ⫺₈₀ 0.005254704669981703)
+✔ ⟨O⟩ (V4 ⫺₈₀ 0.244649286792256)
+│✔ ⟨B⟩ (V38 ⫺₈₀ 0.11167723422706935)
+││✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 43/52 (conf: 0.8269230769230769)
+││✘ YES : 23/32 (conf: 0.71875)
+│✘ YES : 82/101 (conf: 0.8118811881188119)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 70/97 (conf: 0.7216494845360825)
+● [ 10/05/2021 20:46:55 ] Saving tree to file ./results-audio-scan/trees/tree_9323fdfd3c8b98f3c2263d03ebbf714c185c0db3d705010b359aa442025d224e.jld...
+ test size = (30, 282, 40)
+ Purity threshold 1.0
+RESULT:	(1,2)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	77.3%	74.47%	80.14%	78.95%	75.84%	||	54.61%	[76.64, 77.93]%	
+  accuracy: 77.3% kappa: 54.61% 
+ 105  36	74.47%		YES
+  28 113	80.14%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.7730496453900709
+κ =		0.5460992907801419
+sensitivities:	[0.7446808510638298, 0.8014184397163121]
+specificities:	[0.8014184397163121, 0.7446808510638298]
+PPVs:		[0.7894736842105263, 0.7583892617449665]
+NPVs:		[0.7583892617449665, 0.7894736842105263]
+F1s:		[0.7664233576642335, 0.7793103448275862]
+accuracies:	[0.7730496453900709, 0.7730496453900709]
+mean_accuracy:	0.7730496453900709
+● [ 10/05/2021 20:46:57 ] Computing iteration 4,TestOp_80,1,40,false,Any[],1,(30,75,50)...
+(1, 1, 40, (max_points = 30, ma_size = 75, ma_step = 50), false, "TestOp_80", Any[])
+● [ 10/05/2021 20:46:57 ] Loading dataset ./results-audio-scan/datasets/4,TestOp_80,1,40,false,Any[],1,(30,75,50).jld...
+Benchmarking dataset '(1,1)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:46:57 ] Loading gammas from file "./results-audio-scan/gammas/gammas_406a3e1e0d38263de8c62a5129987fb66212f23b5465a02906f13d64711d4f07.jld"...
+● [ 10/05/2021 20:46:59 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:46:59 ] ├ Size: 3488.63525390625 MBytes
+● [ 10/05/2021 20:46:59 ] └ Dimensions: (2, 30, 31, 439, 14, 40)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 40)
+● [ 10/05/2021 20:46:59 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 4
+Tot nodes: 7
+Height: 3
+Modal height:  3
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V37 ⫺₈₀ 0.023027655130685647)
+✔ ⟨B⟩ (V12 ⫺₈₀ 0.5608189970253608)
+│✔ ⟨L̅⟩ (V26 ⫺₈₀ 2.6488370885352057)
+││✔ YES : 12/13 (conf: 0.9230769230769231)
+││✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 36/43 (conf: 0.8372093023255814)
+│✘ YES : 91/112 (conf: 0.8125)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 83/114 (conf: 0.7280701754385965)
+● [ 10/05/2021 20:47:02 ] Saving tree to file ./results-audio-scan/trees/tree_c4ca53475386c41045f5440e11c408e5ab24cdb6dc10fa048a7cc9648d1d8400.jld...
+ test size = (30, 282, 40)
+ Purity threshold 1.0
+RESULT:	(1,1)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	78.72%	73.05%	84.4%	82.4%	75.8%	||	57.45%	[77.44, 79.87]%	
+  accuracy: 78.72% kappa: 57.45% 
+ 103  38	73.05%		YES
+  22 119	84.4%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.7872340425531915
+κ =		0.574468085106383
+sensitivities:	[0.7304964539007093, 0.8439716312056738]
+specificities:	[0.8439716312056738, 0.7304964539007093]
+PPVs:		[0.824, 0.7579617834394905]
+NPVs:		[0.7579617834394905, 0.824]
+F1s:		[0.7744360902255639, 0.7986577181208053]
+accuracies:	[0.7872340425531915, 0.7872340425531915]
+mean_accuracy:	0.7872340425531915
+● [ 10/05/2021 20:47:02 ] Computing iteration 4,TestOp_80,1,60,false,Any[],1,(30,75,50)...
+(1, 1, 60, (max_points = 30, ma_size = 75, ma_step = 50), false, "TestOp_80", Any[])
+● [ 10/05/2021 20:47:02 ] Loading dataset ./results-audio-scan/datasets/4,TestOp_80,1,60,false,Any[],1,(30,75,50).jld...
+Benchmarking dataset '(1,1)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:47:02 ] Loading gammas from file "./results-audio-scan/gammas/gammas_251e658b50ed1cbe58fdad9ae3373359c2c2d1c308c3892782dc0c36ce7d29bc.jld"...
+● [ 10/05/2021 20:47:05 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:47:05 ] ├ Size: 5232.952880859375 MBytes
+● [ 10/05/2021 20:47:05 ] └ Dimensions: (2, 30, 31, 439, 14, 60)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 60)
+● [ 10/05/2021 20:47:05 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 5
+Modal height:  5
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V54 ⫺₈₀ 0.022629931693576178)
+✔ ⟨O̅⟩ (V37 ⫹₈₀ 0.05899651447278562)
+│✔ YES : 66/73 (conf: 0.9041095890410958)
+│✘ ⟨B̅⟩ (V43 ⫺₈₀ 0.013045397962355099)
+│ ✔ ⟨E⟩ (V57 ⫹₈₀ 0.0049537991050325695)
+│ │✔ ⟨A̅⟩ (V2 ⫺₈₀ 0.0986855736128506)
+│ ││✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 6/6 (conf: 1.0)
+│ ││✘ YES : 25/35 (conf: 0.7142857142857143)
+│ │✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 35/42 (conf: 0.8333333333333334)
+│ ✘ YES : 13/13 (conf: 1.0)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 83/113 (conf: 0.7345132743362832)
+● [ 10/05/2021 20:47:11 ] Saving tree to file ./results-audio-scan/trees/tree_8298aa3006fd9fa094507e23b8ac7e68692b7bdd893b15723685762cbd60b61d.jld...
+ test size = (30, 282, 60)
+ Purity threshold 1.0
+RESULT:	(1,1)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	80.85%	73.76%	87.94%	85.95%	77.02%	||	61.7%	[79.39, 82.12]%	
+  accuracy: 80.85% kappa: 61.7% 
+ 104  37	73.76%		YES
+  17 124	87.94%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.8085106382978723
+κ =		0.6170212765957446
+sensitivities:	[0.7375886524822695, 0.8794326241134752]
+specificities:	[0.8794326241134752, 0.7375886524822695]
+PPVs:		[0.859504132231405, 0.7701863354037267]
+NPVs:		[0.7701863354037267, 0.859504132231405]
+F1s:		[0.7938931297709924, 0.8211920529801324]
+accuracies:	[0.8085106382978723, 0.8085106382978723]
+mean_accuracy:	0.8085106382978723
+● [ 10/05/2021 20:47:12 ] Computing iteration 4,TestOp_80,2,20,false,Any[],1,(30,45,30)...
+(1, 2, 20, (max_points = 30, ma_size = 45, ma_step = 30), false, "TestOp_80", Any[])
+● [ 10/05/2021 20:47:12 ] Loading dataset ./results-audio-scan/datasets/4,TestOp_80,2,20,false,Any[],1,(30,45,30).jld...
+Benchmarking dataset '(1,2)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:47:12 ] Loading gammas from file "./results-audio-scan/gammas/gammas_4f77fe23c59e778afb3a58d518449e827afb87939c71fc86cddea83731c495f5.jld"...
+● [ 10/05/2021 20:47:12 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:47:12 ] ├ Size: 1744.317626953125 MBytes
+● [ 10/05/2021 20:47:12 ] └ Dimensions: (2, 30, 31, 439, 14, 20)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 20)
+● [ 10/05/2021 20:47:12 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 5
+Tot nodes: 9
+Height: 4
+Modal height:  4
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V18 ⫺₈₀ 1.0647069074427218e-5)
+✔ ⟨B⟩ (V20 ⫺₈₀ 0.06810185340152632)
+│✔ ⟨A⟩ (V2 ⫺₈₀ 0.1393649102880827)
+││✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 30/34 (conf: 0.8823529411764706)
+││✘ ⟨D̅⟩ (V5 ⫺₈₀ 0.012210832724427563)
+││ ✔ YES : 12/12 (conf: 1.0)
+││ ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 12/16 (conf: 0.75)
+│✘ YES : 100/133 (conf: 0.7518796992481203)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 66/87 (conf: 0.7586206896551724)
+● [ 10/05/2021 20:47:26 ] Saving tree to file ./results-audio-scan/trees/tree_3ce7590323086c123b25838992c5278805f21b91e67b2c62947132e0cecdf59e.jld...
+ test size = (30, 282, 20)
+ Purity threshold 1.0
+RESULT:	(1,2)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	78.01%	79.43%	76.6%	77.24%	78.83%	||	56.03%	[78.32, 77.7]%	
+  accuracy: 78.01% kappa: 56.03% 
+ 112  29	79.43%		YES
+  33 108	76.6%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.7801418439716312
+κ =		0.5602836879432624
+sensitivities:	[0.7943262411347518, 0.7659574468085106]
+specificities:	[0.7659574468085106, 0.7943262411347518]
+PPVs:		[0.7724137931034483, 0.7883211678832117]
+NPVs:		[0.7883211678832117, 0.7724137931034483]
+F1s:		[0.7832167832167832, 0.7769784172661871]
+accuracies:	[0.7801418439716312, 0.7801418439716312]
+mean_accuracy:	0.7801418439716312
+● [ 10/05/2021 20:47:27 ] Computing iteration 4,TestOp_80,2,40,false,Any[],1,(30,45,30)...
+(1, 2, 40, (max_points = 30, ma_size = 45, ma_step = 30), false, "TestOp_80", Any[])
+● [ 10/05/2021 20:47:27 ] Loading dataset ./results-audio-scan/datasets/4,TestOp_80,2,40,false,Any[],1,(30,45,30).jld...
+Benchmarking dataset '(1,2)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:47:27 ] Loading gammas from file "./results-audio-scan/gammas/gammas_18ad0665f839222e9ddfd073eab63d05fa256066b04e5f2f28618bca8c9555f3.jld"...
+● [ 10/05/2021 20:47:29 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:47:29 ] ├ Size: 3488.63525390625 MBytes
+● [ 10/05/2021 20:47:29 ] └ Dimensions: (2, 30, 31, 439, 14, 40)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 40)
+● [ 10/05/2021 20:47:29 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 5
+Modal height:  5
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V31 ⫺₈₀ 0.0002722375727059197)
+✔ ⟨D̅⟩ (V40 ⫹₈₀ 0.0001148092320970911)
+│✔ YES : 95/118 (conf: 0.8050847457627118)
+│✘ ⟨L⟩ (V26 ⫺₈₀ 0.10788278453803615)
+│ ✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 30/33 (conf: 0.9090909090909091)
+│ ✘ ⟨D̅⟩ (V11 ⫺₈₀ 0.016462252809796334)
+│  ✔ YES : 11/11 (conf: 1.0)
+│  ✘ ⟨L̅⟩ (V25 ⫹₈₀ 6.205628283497684e-5)
+│   ✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 15/15 (conf: 1.0)
+│   ✘ YES : 7/8 (conf: 0.875)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 72/97 (conf: 0.7422680412371134)
+● [ 10/05/2021 20:47:53 ] Saving tree to file ./results-audio-scan/trees/tree_b0ce607813eec4eab17d342e355bc2b5db13fa2eaf1963045841b25e65de6d5b.jld...
+ test size = (30, 282, 40)
+ Purity threshold 1.0
+RESULT:	(1,2)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	81.56%	80.14%	82.98%	82.48%	80.69%	||	63.12%	[81.29, 81.82]%	
+  accuracy: 81.56% kappa: 63.12% 
+ 113  28	80.14%		YES
+  24 117	82.98%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.8156028368794326
+κ =		0.6312056737588652
+sensitivities:	[0.8014184397163121, 0.8297872340425532]
+specificities:	[0.8297872340425532, 0.8014184397163121]
+PPVs:		[0.8248175182481752, 0.8068965517241379]
+NPVs:		[0.8068965517241379, 0.8248175182481752]
+F1s:		[0.8129496402877698, 0.8181818181818182]
+accuracies:	[0.8156028368794326, 0.8156028368794326]
+mean_accuracy:	0.8156028368794326
+DATA SEED: 5
+● [ 10/05/2021 20:47:54 ] Computing iteration 5,TestOp_80,1,40,false,Any["Normalize"],1,(30,75,50)...
+(1, 1, 40, (max_points = 30, ma_size = 75, ma_step = 50), false, "TestOp_80", Any["Normalize"])
+● [ 10/05/2021 20:47:54 ] Loading dataset ./results-audio-scan/datasets/5,TestOp_80,1,40,false,Any["Normalize"],1,(30,75,50).jld...
+Benchmarking dataset '(1,1)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:47:54 ] Loading gammas from file "./results-audio-scan/gammas/gammas_1f9fa6a89312c9371c38dd8e299a46506e20cdf3cfec5a536d90ef38ab2b0264.jld"...
+● [ 10/05/2021 20:47:56 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:47:56 ] ├ Size: 3488.63525390625 MBytes
+● [ 10/05/2021 20:47:56 ] └ Dimensions: (2, 30, 31, 439, 14, 40)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 40)
+● [ 10/05/2021 20:47:56 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 9
+Tot nodes: 17
+Height: 8
+Modal height:  8
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V38 ⫺₈₀ 3.004327731539876e-5)
+✔ ⟨A̅⟩ (V12 ⫺₈₀ 0.6157161036525435)
+│✔ ⟨A̅⟩ (V27 ⫺₈₀ 3.9279002030463492)
+││✔ YES : 11/11 (conf: 1.0)
+││✘ ⟨L̅⟩ (V33 ⫺₈₀ 1.1614365066140857)
+││ ✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 22/23 (conf: 0.9565217391304348)
+││ ✘ ⟨L⟩ (V4 ⫺₈₀ 0.6768002927903849)
+││  ✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 10/10 (conf: 1.0)
+││  ✘ ⟨A⟩ (V23 ⫺₈₀ 1.2989099984212542)
+││   ✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 5/5 (conf: 1.0)
+││   ✘ ⟨L̅⟩ (V1 ⫺₈₀ 0.0042425945390726465)
+││    ✔ YES : 14/14 (conf: 1.0)
+││    ✘ ⟨B̅⟩ (V2 ⫹₈₀ 0.0)
+││     ✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 11/15 (conf: 0.7333333333333333)
+││     ✘ YES : 7/7 (conf: 1.0)
+│✘ YES : 85/105 (conf: 0.8095238095238095)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 73/92 (conf: 0.7934782608695652)
+● [ 10/05/2021 20:48:03 ] Saving tree to file ./results-audio-scan/trees/tree_a9f147662d77aabff7249adc0d7451a464d5f5517c25aa80eb4bc9a215ccbef3.jld...
+ test size = (30, 282, 40)
+ Purity threshold 1.0
+RESULT:	(1,1)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	84.4%	82.98%	85.82%	85.4%	83.45%	||	68.79%	[84.17, 84.62]%	
+  accuracy: 84.4% kappa: 68.79% 
+ 117  24	82.98%		YES
+  20 121	85.82%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.8439716312056738
+κ =		0.6879432624113475
+sensitivities:	[0.8297872340425532, 0.8581560283687943]
+specificities:	[0.8581560283687943, 0.8297872340425532]
+PPVs:		[0.8540145985401459, 0.8344827586206897]
+NPVs:		[0.8344827586206897, 0.8540145985401459]
+F1s:		[0.841726618705036, 0.8461538461538461]
+accuracies:	[0.8439716312056738, 0.8439716312056738]
+mean_accuracy:	0.8439716312056738
+● [ 10/05/2021 20:48:03 ] Computing iteration 5,TestOp_80,1,60,false,Any["Normalize"],1,(30,75,50)...
+(1, 1, 60, (max_points = 30, ma_size = 75, ma_step = 50), false, "TestOp_80", Any["Normalize"])
+● [ 10/05/2021 20:48:03 ] Loading dataset ./results-audio-scan/datasets/5,TestOp_80,1,60,false,Any["Normalize"],1,(30,75,50).jld...
+Benchmarking dataset '(1,1)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:48:03 ] Loading gammas from file "./results-audio-scan/gammas/gammas_130e7158da7a0c6be14020aa7be1d466606a5e05113c9c540d633f643b27727b.jld"...
+● [ 10/05/2021 20:48:06 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:48:06 ] ├ Size: 5232.952880859375 MBytes
+● [ 10/05/2021 20:48:06 ] └ Dimensions: (2, 30, 31, 439, 14, 60)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 60)
+● [ 10/05/2021 20:48:06 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 5
+Tot nodes: 9
+Height: 4
+Modal height:  4
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V48 ⫺₈₀ 9.466492676714648e-6)
+✔ ⟨E̅⟩ (V38 ⫹₈₀ 0.039430070892512374)
+│✔ YES : 102/138 (conf: 0.7391304347826086)
+│✘ ⟨L̅⟩ (V4 ⫹₈₀ 9.686221019438227e-9)
+│ ✔ YES : 8/8 (conf: 1.0)
+│ ✘ ⟨B⟩ (V45 ⫺₈₀ 3.800062241920406)
+│  ✔ YES : 7/7 (conf: 1.0)
+│  ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 49/65 (conf: 0.7538461538461538)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 56/64 (conf: 0.875)
+● [ 10/05/2021 20:48:18 ] Saving tree to file ./results-audio-scan/trees/tree_ab2d9023a25fb1a9d6807ffc85000680947d51a7775dce84fb4c0c962f4a75aa.jld...
+ test size = (30, 282, 60)
+ Purity threshold 1.0
+RESULT:	(1,1)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	78.72%	82.98%	74.47%	76.47%	81.4%	||	57.45%	[79.59, 77.78]%	
+  accuracy: 78.72% kappa: 57.45% 
+ 117  24	82.98%		YES
+  36 105	74.47%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.7872340425531915
+κ =		0.574468085106383
+sensitivities:	[0.8297872340425532, 0.7446808510638298]
+specificities:	[0.7446808510638298, 0.8297872340425532]
+PPVs:		[0.7647058823529411, 0.813953488372093]
+NPVs:		[0.813953488372093, 0.7647058823529411]
+F1s:		[0.7959183673469388, 0.7777777777777778]
+accuracies:	[0.7872340425531915, 0.7872340425531915]
+mean_accuracy:	0.7872340425531915
+● [ 10/05/2021 20:48:19 ] Computing iteration 5,TestOp_80,2,20,false,Any["Normalize"],1,(30,45,30)...
+(1, 2, 20, (max_points = 30, ma_size = 45, ma_step = 30), false, "TestOp_80", Any["Normalize"])
+● [ 10/05/2021 20:48:19 ] Loading dataset ./results-audio-scan/datasets/5,TestOp_80,2,20,false,Any["Normalize"],1,(30,45,30).jld...
+Benchmarking dataset '(1,2)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:48:19 ] Loading gammas from file "./results-audio-scan/gammas/gammas_a17b3742a0c936e133041d9a42f1d6e002c0556b638bfbfa2e549f411bc4488d.jld"...
+● [ 10/05/2021 20:48:19 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:48:19 ] ├ Size: 1744.317626953125 MBytes
+● [ 10/05/2021 20:48:19 ] └ Dimensions: (2, 30, 31, 439, 14, 20)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 20)
+● [ 10/05/2021 20:48:19 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 7
+Tot nodes: 13
+Height: 6
+Modal height:  6
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V17 ⫺₈₀ 0.0070387561297587595)
+✔ ⟨D̅⟩ (V16 ⫹₈₀ 0.0002365405319022372)
+│✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 13/14 (conf: 0.9285714285714286)
+│✘ ⟨B̅⟩ (V20 ⫹₈₀ 0.00101302023915712)
+│ ✔ YES : 70/80 (conf: 0.875)
+│ ✘ ⟨A⟩ (V3 ⫺₈₀ 0.47511522810730206)
+│  ✔ ⟨B̅⟩ (V6 ⫹₈₀ 0.048201477724726396)
+│  │✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 21/22 (conf: 0.9545454545454546)
+│  │✘ ⟨L̅⟩ (V2 ⫹₈₀ 0.0003252089228938433)
+│  │ ✔ YES : 12/13 (conf: 0.9230769230769231)
+│  │ ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 7/8 (conf: 0.875)
+│  ✘ YES : 29/39 (conf: 0.7435897435897436)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 79/106 (conf: 0.7452830188679245)
+● [ 10/05/2021 20:48:31 ] Saving tree to file ./results-audio-scan/trees/tree_3757c8c8cca329142b9f8b444fb6446509e715d6faac39884369fec33c861370.jld...
+ test size = (30, 282, 20)
+ Purity threshold 1.0
+RESULT:	(1,2)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	81.91%	78.72%	85.11%	84.09%	80.0%	||	63.83%	[81.32, 82.47]%	
+  accuracy: 81.91% kappa: 63.83% 
+ 111  30	78.72%		YES
+  21 120	85.11%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.8191489361702128
+κ =		0.6382978723404256
+sensitivities:	[0.7872340425531915, 0.851063829787234]
+specificities:	[0.851063829787234, 0.7872340425531915]
+PPVs:		[0.8409090909090909, 0.8]
+NPVs:		[0.8, 0.8409090909090909]
+F1s:		[0.8131868131868132, 0.8247422680412371]
+accuracies:	[0.8191489361702128, 0.8191489361702128]
+mean_accuracy:	0.8191489361702128
+● [ 10/05/2021 20:48:33 ] Computing iteration 5,TestOp_80,2,40,false,Any["Normalize"],1,(30,45,30)...
+(1, 2, 40, (max_points = 30, ma_size = 45, ma_step = 30), false, "TestOp_80", Any["Normalize"])
+● [ 10/05/2021 20:48:33 ] Loading dataset ./results-audio-scan/datasets/5,TestOp_80,2,40,false,Any["Normalize"],1,(30,45,30).jld...
+Benchmarking dataset '(1,2)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:48:33 ] Loading gammas from file "./results-audio-scan/gammas/gammas_0c42d8ab98b122cdf242812d328fa4cab290c42342de504a12fe461b1ea6d8f0.jld"...
+● [ 10/05/2021 20:48:34 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:48:34 ] ├ Size: 3488.63525390625 MBytes
+● [ 10/05/2021 20:48:34 ] └ Dimensions: (2, 30, 31, 439, 14, 40)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 40)
+● [ 10/05/2021 20:48:34 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 5
+Modal height:  5
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V32 ⫺₈₀ 2.47036134506307e-5)
+✔ ⟨D̅⟩ (V29 ⫹₈₀ 4.54657110519596e-5)
+│✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 24/32 (conf: 0.75)
+│✘ ⟨D̅⟩ (V21 ⫹₈₀ 0.00028934741701693777)
+│ ✔ YES : 46/49 (conf: 0.9387755102040817)
+│ ✘ ⟨⟩ (V4 ⫺₈₀ 0.3501982985729144)
+│  ✔ ⟨A̅⟩ (V1 ⫹₈₀ 0.0006830878072898323)
+│  │✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 31/42 (conf: 0.7380952380952381)
+│  │✘ YES : 7/7 (conf: 1.0)
+│  ✘ YES : 51/66 (conf: 0.7727272727272727)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 68/86 (conf: 0.7906976744186046)
+● [ 10/05/2021 20:49:42 ] Saving tree to file ./results-audio-scan/trees/tree_276cdacc98a5d0f7ac55ec3d2cc09f7bee2668f1208d65e3b623d803a553fef8.jld...
+ test size = (30, 282, 40)
+ Purity threshold 1.0
+RESULT:	(1,2)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	80.5%	73.76%	87.23%	85.25%	76.88%	||	60.99%	[79.09, 81.73]%	
+  accuracy: 80.5% kappa: 60.99% 
+ 104  37	73.76%		YES
+  18 123	87.23%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.8049645390070922
+κ =		0.6099290780141844
+sensitivities:	[0.7375886524822695, 0.8723404255319149]
+specificities:	[0.8723404255319149, 0.7375886524822695]
+PPVs:		[0.8524590163934426, 0.76875]
+NPVs:		[0.76875, 0.8524590163934426]
+F1s:		[0.7908745247148289, 0.8172757475083057]
+accuracies:	[0.8049645390070922, 0.8049645390070922]
+mean_accuracy:	0.8049645390070922
+● [ 10/05/2021 20:49:45 ] Computing iteration 5,TestOp_80,1,40,false,Any[],1,(30,75,50)...
+(1, 1, 40, (max_points = 30, ma_size = 75, ma_step = 50), false, "TestOp_80", Any[])
+● [ 10/05/2021 20:49:45 ] Loading dataset ./results-audio-scan/datasets/5,TestOp_80,1,40,false,Any[],1,(30,75,50).jld...
+Benchmarking dataset '(1,1)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:49:46 ] Loading gammas from file "./results-audio-scan/gammas/gammas_406a3e1e0d38263de8c62a5129987fb66212f23b5465a02906f13d64711d4f07.jld"...
+● [ 10/05/2021 20:49:47 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:49:47 ] ├ Size: 3488.63525390625 MBytes
+● [ 10/05/2021 20:49:47 ] └ Dimensions: (2, 30, 31, 439, 14, 40)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 40)
+● [ 10/05/2021 20:49:47 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 5
+Modal height:  3
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V38 ⫺₈₀ 3.004327731539876e-5)
+✔ ⟨O⟩ (V17 ⫺₈₀ 0.10215675010946527)
+│✔ ⟨E̅⟩ (V29 ⫹₈₀ 1.7081911839598154)
+││✔ V26 ⫹₈₀ 0.16568322612831132
+│││✔ V35 ⫹₈₀ 0.025884028947499794
+││││✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 6/6 (conf: 1.0)
+││││✘ YES : 23/30 (conf: 0.7666666666666667)
+│││✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 36/45 (conf: 0.8)
+││✘ YES : 13/13 (conf: 1.0)
+│✘ YES : 77/95 (conf: 0.8105263157894737)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 74/93 (conf: 0.7956989247311828)
+● [ 10/05/2021 20:49:54 ] Saving tree to file ./results-audio-scan/trees/tree_07e114597b14857f87c8c10bdc9f4c729f6d397b2f7d1c53507a25dad0aff02e.jld...
+ test size = (30, 282, 40)
+ Purity threshold 1.0
+RESULT:	(1,1)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	81.21%	80.14%	82.27%	81.88%	80.56%	||	62.41%	[81.0, 81.4]%	
+  accuracy: 81.21% kappa: 62.41% 
+ 113  28	80.14%		YES
+  25 116	82.27%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.8120567375886525
+κ =		0.624113475177305
+sensitivities:	[0.8014184397163121, 0.8226950354609929]
+specificities:	[0.8226950354609929, 0.8014184397163121]
+PPVs:		[0.8188405797101449, 0.8055555555555556]
+NPVs:		[0.8055555555555556, 0.8188405797101449]
+F1s:		[0.8100358422939068, 0.8140350877192982]
+accuracies:	[0.8120567375886525, 0.8120567375886525]
+mean_accuracy:	0.8120567375886525
+● [ 10/05/2021 20:49:55 ] Computing iteration 5,TestOp_80,1,60,false,Any[],1,(30,75,50)...
+(1, 1, 60, (max_points = 30, ma_size = 75, ma_step = 50), false, "TestOp_80", Any[])
+● [ 10/05/2021 20:49:55 ] Loading dataset ./results-audio-scan/datasets/5,TestOp_80,1,60,false,Any[],1,(30,75,50).jld...
+Benchmarking dataset '(1,1)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:49:55 ] Loading gammas from file "./results-audio-scan/gammas/gammas_251e658b50ed1cbe58fdad9ae3373359c2c2d1c308c3892782dc0c36ce7d29bc.jld"...
+● [ 10/05/2021 20:49:57 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:49:57 ] ├ Size: 5232.952880859375 MBytes
+● [ 10/05/2021 20:49:57 ] └ Dimensions: (2, 30, 31, 439, 14, 60)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 60)
+● [ 10/05/2021 20:49:57 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 4
+Tot nodes: 7
+Height: 3
+Modal height:  3
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V56 ⫺₈₀ 3.9863855552217465e-5)
+✔ ⟨A̅⟩ (V18 ⫺₈₀ 0.7457443932495686)
+│✔ ⟨L̅⟩ (V43 ⫺₈₀ 4.273541080925283)
+││✔ YES : 11/11 (conf: 1.0)
+││✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 36/48 (conf: 0.75)
+│✘ YES : 99/130 (conf: 0.7615384615384615)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 74/93 (conf: 0.7956989247311828)
+● [ 10/05/2021 20:50:05 ] Saving tree to file ./results-audio-scan/trees/tree_30ca8913d64db14faaf5230aca1db83406179d3c3fb67ed95c62d41f7ad24863.jld...
+ test size = (30, 282, 60)
+ Purity threshold 1.0
+RESULT:	(1,1)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	78.01%	78.01%	78.01%	78.01%	78.01%	||	56.03%	[78.01, 78.01]%	
+  accuracy: 78.01% kappa: 56.03% 
+ 110  31	78.01%		YES
+  31 110	78.01%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.7801418439716312
+κ =		0.5602836879432624
+sensitivities:	[0.7801418439716312, 0.7801418439716312]
+specificities:	[0.7801418439716312, 0.7801418439716312]
+PPVs:		[0.7801418439716312, 0.7801418439716312]
+NPVs:		[0.7801418439716312, 0.7801418439716312]
+F1s:		[0.7801418439716312, 0.7801418439716312]
+accuracies:	[0.7801418439716312, 0.7801418439716312]
+mean_accuracy:	0.7801418439716312
+● [ 10/05/2021 20:50:05 ] Computing iteration 5,TestOp_80,2,20,false,Any[],1,(30,45,30)...
+(1, 2, 20, (max_points = 30, ma_size = 45, ma_step = 30), false, "TestOp_80", Any[])
+● [ 10/05/2021 20:50:05 ] Loading dataset ./results-audio-scan/datasets/5,TestOp_80,2,20,false,Any[],1,(30,45,30).jld...
+Benchmarking dataset '(1,2)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:50:05 ] Loading gammas from file "./results-audio-scan/gammas/gammas_4f77fe23c59e778afb3a58d518449e827afb87939c71fc86cddea83731c495f5.jld"...
+● [ 10/05/2021 20:50:06 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:50:06 ] ├ Size: 1744.317626953125 MBytes
+● [ 10/05/2021 20:50:06 ] └ Dimensions: (2, 30, 31, 439, 14, 20)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 20)
+● [ 10/05/2021 20:50:06 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 5
+Modal height:  5
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V18 ⫺₈₀ 1.0647069074427218e-5)
+✔ ⟨B̅⟩ (V15 ⫹₈₀ 1.848253121057119e-5)
+│✔ ⟨O̅⟩ (V19 ⫺₈₀ 0.001446382971815166)
+││✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 19/19 (conf: 1.0)
+││✘ ⟨E⟩ (V4 ⫺₈₀ 2.1952603912426e-6)
+││ ✔ ⟨E⟩ (V5 ⫹₈₀ 2.6697117501531513e-6)
+││ │✔ YES : 7/7 (conf: 1.0)
+││ │✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 21/28 (conf: 0.75)
+││ ✘ YES : 18/20 (conf: 0.9)
+│✘ YES : 88/112 (conf: 0.7857142857142857)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 75/96 (conf: 0.78125)
+● [ 10/05/2021 20:50:19 ] Saving tree to file ./results-audio-scan/trees/tree_2a0707925b2cae3d3693dedb770b1047a0bf1d1d7056999392b0def7eab0204f.jld...
+ test size = (30, 282, 20)
+ Purity threshold 1.0
+RESULT:	(1,2)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	80.85%	80.14%	81.56%	81.29%	80.42%	||	61.7%	[80.71, 80.99]%	
+  accuracy: 80.85% kappa: 61.7% 
+ 113  28	80.14%		YES
+  26 115	81.56%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.8085106382978723
+κ =		0.6170212765957446
+sensitivities:	[0.8014184397163121, 0.8156028368794326]
+specificities:	[0.8156028368794326, 0.8014184397163121]
+PPVs:		[0.8129496402877698, 0.8041958041958042]
+NPVs:		[0.8041958041958042, 0.8129496402877698]
+F1s:		[0.8071428571428572, 0.8098591549295775]
+accuracies:	[0.8085106382978723, 0.8085106382978723]
+mean_accuracy:	0.8085106382978723
+● [ 10/05/2021 20:50:20 ] Computing iteration 5,TestOp_80,2,40,false,Any[],1,(30,45,30)...
+(1, 2, 40, (max_points = 30, ma_size = 45, ma_step = 30), false, "TestOp_80", Any[])
+● [ 10/05/2021 20:50:20 ] Loading dataset ./results-audio-scan/datasets/5,TestOp_80,2,40,false,Any[],1,(30,45,30).jld...
+Benchmarking dataset '(1,2)' (train_seed = 1)...
+forest_args = Any[]
+tree_args   = Any[(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)]
+modal_args  = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+● [ 10/05/2021 20:50:20 ] Loading gammas from file "./results-audio-scan/gammas/gammas_18ad0665f839222e9ddfd073eab63d05fa256066b04e5f2f28618bca8c9555f3.jld"...
+● [ 10/05/2021 20:50:21 ] ├ Type: Array{Float64,6}
+● [ 10/05/2021 20:50:21 ] ├ Size: 3488.63525390625 MBytes
+● [ 10/05/2021 20:50:21 ] └ Dimensions: (2, 30, 31, 439, 14, 40)
+(optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])
+ train size = (30, 282, 40)
+● [ 10/05/2021 20:50:21 ] Computing Tree 1 / 1...
+Train tree:
+Decision Tree
+Leaves: 3
+Tot nodes: 5
+Height: 2
+Modal height:  1
+worldType: DecisionTree.ModalLogic.Interval
+initCondition: DecisionTree._startWithRelationAll()
+⟨⟩ (V32 ⫺₈₀ 7.781613442411969e-5)
+✔ V38 ⫹₈₀ 0.00016212943898189937
+│✔ YES : 109/141 (conf: 0.7730496453900709)
+│✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 31/40 (conf: 0.775)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 78/101 (conf: 0.7722772277227723)
+● [ 10/05/2021 20:50:37 ] Saving tree to file ./results-audio-scan/trees/tree_d66e50308f2cf643cfb3822e18babd979226ed21118cc421008195e95bfa0da0.jld...
+ test size = (30, 282, 40)
+ Purity threshold 1.0
+RESULT:	(1,2)	(loss = DecisionTree.util.entropy, min_samples_leaf = 1, min_purity_increase = 0.01, min_loss_at_leaf = 0.6)	(initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = TestOperator[⫺₈₀, ⫹₈₀])	1.0	|	77.3%	77.3%	77.3%	77.3%	77.3%	||	54.61%	[77.3, 77.3]%	
+  accuracy: 77.3% kappa: 54.61% 
+ 109  32	77.3%		YES
+  32 109	77.3%		NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+overall_acc:	0.7730496453900709
+κ =		0.5460992907801419
+sensitivities:	[0.7730496453900709, 0.7730496453900709]
+specificities:	[0.7730496453900709, 0.7730496453900709]
+PPVs:		[0.7730496453900709, 0.7730496453900709]
+NPVs:		[0.7730496453900709, 0.7730496453900709]
+F1s:		[0.7730496453900709, 0.7730496453900709]
+accuracies:	[0.7730496453900709, 0.7730496453900709]
+mean_accuracy:	0.7730496453900709
+● [ 10/05/2021 20:50:37 ] Finished!
