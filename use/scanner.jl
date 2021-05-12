@@ -127,7 +127,6 @@ function testDataset(
 			allAvailableRelation_ids = nothing
 			test_operators = deepcopy(modal_args.test_operators)
 			(
-				# X_all,
 				test_operators, relationSet,
 				relationId_id, relationAll_id,
 				availableModalRelation_ids, allAvailableRelation_ids
