@@ -1,0 +1,365 @@
+ Activating environment at `~/.julia/dev/DecisionTree/Project.toml`
+┌ LogLevel(-500):  Branch (93+133=226 samples) on condition: ⟨⟩ (V34 ⫺₈₀ 0.09586299138512316), purity -0.6233263755201138
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (104+29=133 samples) on condition: ⟨L⟩ (V40 ⫺₈₀ 0.9444595881253127), purity -0.5429210891787903
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (86+140=226 samples) on condition: ⟨⟩ (V54 ⫺₈₀ 0.02688776791596272), purity -0.6247165102342301
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (109+31=140 samples) on condition: ⟨O̅⟩ (V35 ⫹₈₀ 0.027403191233879978), purity -0.5370075692937992
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (44+65=109 samples) on condition: V27 ⫹₈₀ 0.15845428930992958, purity -0.588380356202467
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (85+141=226 samples) on condition: ⟨⟩ (V17 ⫺₈₀ 0.008631255761140459), purity -0.634560147918944
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (131+10=141 samples) on condition: ⟨D̅⟩ (V10 ⫹₈₀ 0.0001525946833130699), purity -0.5828375068460206
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (26+105=131 samples) on condition: ⟨L⟩ (V12 ⫺₈₀ 0.04289851608920806), purity -0.5394368323356629
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (58+47=105 samples) on condition: ⟨L̅⟩ (V2 ⫺₈₀ 0.4463676405774506), purity -0.5918114999396379
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (39+8=47 samples) on condition: ⟨B̅⟩ (V20 ⫹₈₀ 0.0004430439631512535), purity -0.47237179147889347
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (73+153=226 samples) on condition: ⟨⟩ (V32 ⫺₈₀ 9.675247131254816e-5), purity -0.6365780678514342
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (135+18=153 samples) on condition: ⟨L̅⟩ (V1 ⫺₈₀ 0.43160994051851537), purity -0.5722894317072479
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (82+53=135 samples) on condition: ⟨D̅⟩ (V1 ⫺₈₀ 0.015949937937413616), purity -0.5551464412983097
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (19+63=82 samples) on condition: ⟨D̅⟩ (V38 ⫹₈₀ 0.0035966311956886414), purity -0.5811990426717696
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (23+40=63 samples) on condition: ⟨B̅⟩ (V30 ⫺₈₀ 0.0006231873548349324), purity -0.47509346137549335
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (11+12=23 samples) on condition: ⟨O̅⟩ (V9 ⫹₈₀ 2.465659580470591e-5), purity -0.46314483954735886
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (4+7=11 samples) on condition: ⟨A⟩ (V15 ⫹₈₀ 3.418712366641428e-5), purity -0.0
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (88+138=226 samples) on condition: ⟨⟩ (V35 ⫺₈₀ 0.02496683555027015), purity -0.625384988711618
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (103+35=138 samples) on condition: ⟨O̅⟩ (V25 ⫹₈₀ 0.022244778822267185), purity -0.5164692222156593
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (15+88=103 samples) on condition: ⟨L̅⟩ (V32 ⫹₈₀ 0.1234800935530941), purity -0.6098731699573765
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (79+9=88 samples) on condition: V2 ⫺₈₀ 0.0883316601890546, purity -0.5687545333872008
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (46+33=79 samples) on condition: ⟨L⟩ (V40 ⫺₈₀ 0.1764551154519436), purity -0.533048548173074
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (15+18=33 samples) on condition: ⟨D̅⟩ (V30 ⫺₈₀ 0.016230624939007357), purity -0.28893065403144785
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (91+135=226 samples) on condition: ⟨⟩ (V54 ⫺₈₀ 0.022629931693576178), purity -0.622781524921758
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (101+34=135 samples) on condition: ⟨O̅⟩ (V37 ⫹₈₀ 0.022173568532659463), purity -0.5167784918972121
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (36+65=101 samples) on condition: ⟨E⟩ (V12 ⫹₈₀ 0.30321947479776024), purity -0.5844121722690694
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (20+45=65 samples) on condition: ⟨E̅⟩ (V18 ⫹₈₀ 0.3203520276982867), purity -0.4783315218326428
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (18+27=45 samples) on condition: ⟨L̅⟩ (V45 ⫹₈₀ 0.04423705659623826), purity -0.42703221269417774
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (115+111=226 samples) on condition: ⟨⟩ (V15 ⫹₈₀ 5.244534647773571e-7), purity -0.6323250675020501
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (81+34=115 samples) on condition: ⟨⟩ (V13 ⫺₈₀ 0.1013360646837142), purity -0.573400103260227
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (26+8=34 samples) on condition: ⟨A̅⟩ (V4 ⫹₈₀ 5.842683998415309e-5), purity -0.41309728535618767
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (79+32=111 samples) on condition: ⟨B⟩ (V7 ⫺₈₀ 0.005194113215935427), purity -0.5287819806388598
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (60+19=79 samples) on condition: ⟨E̅⟩ (V16 ⫺₈₀ 1.1973299939469829e-5), purity -0.5448769305997516
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (18+42=60 samples) on condition: ⟨D̅⟩ (V18 ⫹₈₀ 2.361141909693394e-8), purity -0.4780356732903302
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (37+5=42 samples) on condition: ⟨D̅⟩ (V4 ⫺₈₀ 9.857186016265241e-5), purity -0.5711030760115623
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (29+8=37 samples) on condition: ⟨B⟩ (V4 ⫺₈₀ 0.002082004117942045), purity -0.539076158561386
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (23+6=29 samples) on condition: ⟨D⟩ (V16 ⫺₈₀ 2.1054617894295842e-7), purity -0.4873647023154051
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (8+15=23 samples) on condition: ⟨A⟩ (V6 ⫺₈₀ 0.0001834849183489041), purity -0.35533180690739113
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (103+123=226 samples) on condition: ⟨⟩ (V1 ⫹₈₀ 1.7003083162584852e-7), purity -0.6251980733615884
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (89+14=103 samples) on condition: ⟨⟩ (V1 ⫺₈₀ 0.09030266703578872), purity -0.5310170909290957
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (100+23=123 samples) on condition: ⟨B⟩ (V11 ⫺₈₀ 0.0035564170158879035), purity -0.5502915014105296
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (17+83=100 samples) on condition: ⟨A⟩ (V25 ⫺₈₀ 3.497995339074826e-5), purity -0.5458938750683948
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (64+19=83 samples) on condition: ⟨O̅⟩ (V10 ⫺₈₀ 0.005183960269580555), purity -0.4857415222090683
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (61+165=226 samples) on condition: ⟨⟩ (V39 ⫺₈₀ 6.3076455813498615e-6), purity -0.62933684776798
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (15+150=165 samples) on condition: ⟨E̅⟩ (V2 ⫹₈₀ 0.06565601409366563), purity -0.5786492439043753
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (45+105=150 samples) on condition: ⟨E̅⟩ (V25 ⫹₈₀ 0.20908753341275543), purity -0.5455271192381991
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (31+14=45 samples) on condition: ⟨E⟩ (V40 ⫺₈₀ 1.0691403607131214), purity -0.4771429059259974
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (22+9=31 samples) on condition: ⟨B⟩ (V21 ⫹₈₀ 0.000551533162326218), purity -0.44389709399879385
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (5+17=22 samples) on condition: V38 ⫹₈₀ 0.20554024565534476, purity -0.2798899759683015
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (61+165=226 samples) on condition: ⟨⟩ (V58 ⫺₈₀ 8.515660738395213e-6), purity -0.62933684776798
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (25+140=165 samples) on condition: ⟨E̅⟩ (V6 ⫹₈₀ 0.2179673954788186), purity -0.5789363276210242
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (44+96=140 samples) on condition: ⟨O̅⟩ (V38 ⫹₈₀ 0.06255065209285732), purity -0.5328111532055418
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (18+26=44 samples) on condition: ⟨L̅⟩ (V7 ⫺₈₀ 0.2536716245761124), purity -0.4689301531080039
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (20+6=26 samples) on condition: ⟨D̅⟩ (V35 ⫺₈₀ 0.7039018984081576), purity -0.32516083677383895
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (64+162=226 samples) on condition: ⟨⟩ (V19 ⫺₈₀ 1.4222859578683853e-5), purity -0.648420000702125
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (115+47=162 samples) on condition: ⟨D̅⟩ (V14 ⫺₈₀ 0.1822120270199183), purity -0.6222826927236454
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (109+6=115 samples) on condition: V10 ⫹₈₀ 5.15361888938697e-6, purity -0.5490713853865951
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (41+6=47 samples) on condition: ⟨B⟩ (V4 ⫹₈₀ 0.00018674013688204402), purity -0.48461703118929
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (63+163=226 samples) on condition: ⟨⟩ (V37 ⫺₈₀ 1.2039874778181092e-5), purity -0.6447621051742802
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (111+52=163 samples) on condition: ⟨O̅⟩ (V29 ⫺₈₀ 0.29871080484911916), purity -0.614783110419245
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (100+11=111 samples) on condition: V14 ⫹₈₀ 9.724600978256442e-6, purity -0.5048810199457633
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (16+36=52 samples) on condition: ⟨O̅⟩ (V36 ⫹₈₀ 0.1497141759176124), purity -0.47987112500303913
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (21+15=36 samples) on condition: ⟨A⟩ (V19 ⫹₈₀ 0.04174101400052599), purity -0.48379108562772694
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (61+165=226 samples) on condition: ⟨⟩ (V38 ⫺₈₀ 9.345224450626563e-6), purity -0.62933684776798
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (47+118=165 samples) on condition: ⟨L̅⟩ (V25 ⫹₈₀ 0.0014643131218589202), purity -0.5798152352811117
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (61+165=226 samples) on condition: ⟨⟩ (V58 ⫺₈₀ 6.9252814180352244e-6), purity -0.62933684776798
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (43+122=165 samples) on condition: ⟨L̅⟩ (V37 ⫹₈₀ 0.002108826616159596), purity -0.5798084188324418
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (113+113=226 samples) on condition: ⟨⟩ (V13 ⫹₈₀ 8.510706069057731e-7), purity -0.6323462556185584
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (78+35=113 samples) on condition: ⟨⟩ (V13 ⫺₈₀ 0.1058568489749151), purity -0.5587163309599998
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (18+17=35 samples) on condition: ⟨L⟩ (V4 ⫹₈₀ 2.4793175122333648e-5), purity -0.37534778716146894
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (95+18=113 samples) on condition: ⟨L̅⟩ (V3 ⫺₈₀ 0.3159603449108769), purity -0.562023427632945
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (81+14=95 samples) on condition: ⟨O̅⟩ (V18 ⫺₈₀ 8.173983197044102e-5), purity -0.5873728387540198
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (75+6=81 samples) on condition: ⟨B̅⟩ (V4 ⫺₈₀ 0.004477897245006473), purity -0.5240441139492908
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (111+115=226 samples) on condition: ⟨⟩ (V40 ⫹₈₀ 4.140475642814077e-8), purity -0.6323250675020501
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (83+28=111 samples) on condition: ⟨⟩ (V26 ⫺₈₀ 0.17064632858260917), purity -0.5375161721543722
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (16+12=28 samples) on condition: ⟨O⟩ (V34 ⫹₈₀ 0.013693617466793394), purity -0.24100077626520355
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (94+21=115 samples) on condition: ⟨L̅⟩ (V6 ⫺₈₀ 0.2987331418407634), purity -0.5514933981096461
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (49+45=94 samples) on condition: ⟨E̅⟩ (V39 ⫺₈₀ 6.259637247168253e-8), purity -0.5997829526856648
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (8+37=45 samples) on condition: ⟨E̅⟩ (V23 ⫺₈₀ 4.959362505104448e-5), purity -0.4797892545728655
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (89+137=226 samples) on condition: ⟨⟩ (V36 ⫺₈₀ 0.04692005660476795), purity -0.5989387941250897
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (83+54=137 samples) on condition: ⟨L⟩ (V39 ⫺₈₀ 0.7013093702684453), purity -0.49679705900453336
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (45+9=54 samples) on condition: ⟨E̅⟩ (V3 ⫹₈₀ 0.024269188729378877), purity -0.46345752225801506
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (89+137=226 samples) on condition: ⟨⟩ (V54 ⫺₈₀ 0.037572913260747604), purity -0.5989387941250897
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (66+71=137 samples) on condition: V18 ⫺₈₀ 0.5571594635129199, purity -0.5034583985863913
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (56+15=71 samples) on condition: V1 ⫺₈₀ 0.0174561443865907, purity -0.5386317445524851
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (41+15=56 samples) on condition: ⟨E̅⟩ (V44 ⫺₈₀ 1.1259752246681831), purity -0.49675957067089715
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (28+13=41 samples) on condition: ⟨L̅⟩ (V35 ⫺₈₀ 0.9320741930821218), purity -0.4575671081748281
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (11+17=28 samples) on condition: ⟨A⟩ (V21 ⫺₈₀ 0.26481497447523167), purity -0.39418650117161697
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (9+8=17 samples) on condition: ⟨E̅⟩ (V59 ⫹₈₀ 0.19553581311719134), purity -0.26462830335002735
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (127+99=226 samples) on condition: ⟨⟩ (V18 ⫹₈₀ 8.452814714983579e-8), purity -0.6175625965449026
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (121+6=127 samples) on condition: ⟨⟩ (V1 ⫺₈₀ 1.7504133199482015), purity -0.579989113630778
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (75+46=121 samples) on condition: ⟨⟩ (V13 ⫺₈₀ 0.37493561934432196), purity -0.5615105663000194
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (35+11=46 samples) on condition: ⟨O⟩ (V10 ⫺₈₀ 1.5672828655927886), purity -0.5019544898097071
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (25+10=35 samples) on condition: ⟨L̅⟩ (V10 ⫺₈₀ 1.7908877718807565), purity -0.4945335479214008
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (18+7=25 samples) on condition: V18 ⫺₈₀ 0.380674238337365, purity -0.4582902011722652
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (10+8=18 samples) on condition: ⟨B̅⟩ (V15 ⫹₈₀ 0.008893251467718157), purity -0.37389537056069805
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (4+6=10 samples) on condition: ⟨D̅⟩ (V15 ⫹₈₀ 0.06190942406737017), purity 1.3322676295501878e-16
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (129+97=226 samples) on condition: ⟨⟩ (V31 ⫹₈₀ 5.645099812968837e-8), purity -0.6171461517667565
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (84+45=129 samples) on condition: ⟨⟩ (V25 ⫺₈₀ 0.3731381998332721), purity -0.5891523013533435
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (10+35=45 samples) on condition: V25 ⫹₈₀ 0.5296631532266146, purity -0.48415649384437087
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (30+5=35 samples) on condition: ⟨L̅⟩ (V10 ⫺₈₀ 4.094154267188013), purity -0.42891636303273245
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (97+129=226 samples) on condition: ⟨⟩ (V36 ⫺₈₀ 0.04034530670518468), purity -0.6018089136179824
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (68+61=129 samples) on condition: V13 ⫺₈₀ 0.30370792729404084, purity -0.4585005808960095
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (48+13=61 samples) on condition: ⟨L⟩ (V30 ⫺₈₀ 2.977757494921488), purity -0.5174030585900542
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (91+135=226 samples) on condition: ⟨⟩ (V54 ⫺₈₀ 0.022629931693576178), purity -0.5997852584322597
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (42+93=135 samples) on condition: ⟨L̅⟩ (V24 ⫺₈₀ 0.12103853507135938), purity -0.5105530877781275
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (46+47=93 samples) on condition: V58 ⫹₈₀ 0.10918163400596206, purity -0.5307097700950214
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (107+119=226 samples) on condition: ⟨⟩ (V15 ⫹₈₀ 1.072793679867276e-6), purity -0.595609381244833
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (94+25=119 samples) on condition: ⟨B⟩ (V1 ⫺₈₀ 0.00910069159151002), purity -0.5214942705110375
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (23+71=94 samples) on condition: ⟨L̅⟩ (V1 ⫺₈₀ 0.00021902449414492797), purity -0.5666328048684582
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (9+62=71 samples) on condition: ⟨A⟩ (V12 ⫹₈₀ 0.0002934712602818483), purity -0.5888235701866811
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (42+20=62 samples) on condition: ⟨E⟩ (V18 ⫺₈₀ 6.851675009103625e-8), purity -0.5532165651733213
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (99+127=226 samples) on condition: ⟨⟩ (V1 ⫹₈₀ 1.6461033451484162e-7), purity -0.5855168748859665
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (105+22=127 samples) on condition: ⟨B⟩ (V7 ⫺₈₀ 0.004164265100593228), purity -0.541127222029469
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (73+32=105 samples) on condition: ⟨B⟩ (V9 ⫺₈₀ 0.0001377284631238088), purity -0.5899385332854387
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (8+24=32 samples) on condition: ⟨E̅⟩ (V29 ⫺₈₀ 1.8603427403882805e-5), purity -0.519860385419959
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (6+18=24 samples) on condition: ⟨L̅⟩ (V13 ⫹₈₀ 7.02983791582605e-6), purity -0.4773856262211095
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (10+8=18 samples) on condition: ⟨A̅⟩ (V29 ⫺₈₀ 5.6252604123773816e-5), purity -0.2499267309416925
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (42+184=226 samples) on condition: ⟨⟩ (V32 ⫺₈₀ 1.087499185160413e-5), purity -0.6197931179060673
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (131+53=184 samples) on condition: ⟨E⟩ (V18 ⫺₈₀ 1.3769289470948318), purity -0.5900920741452542
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (42+184=226 samples) on condition: ⟨⟩ (V47 ⫺₈₀ 1.3661516581266602e-5), purity -0.6197931179060673
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (136+48=184 samples) on condition: ⟨E⟩ (V27 ⫺₈₀ 1.8360424399299051), purity -0.594459493784436
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (14+122=136 samples) on condition: V11 ⫹₈₀ 0.09430664121696386, purity -0.5254467654059485
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (63+163=226 samples) on condition: ⟨⟩ (V18 ⫺₈₀ 1.571947957014873e-5), purity -0.6380459446952409
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (74+89=163 samples) on condition: ⟨A̅⟩ (V2 ⫺₈₀ 0.3675747748034677), purity -0.6031529885020545
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (70+19=89 samples) on condition: ⟨D̅⟩ (V11 ⫹₈₀ 0.0030927576567402145), purity -0.4705491146176183
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (59+167=226 samples) on condition: ⟨⟩ (V32 ⫺₈₀ 2.47036134506307e-5), purity -0.6353380791174049
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (105+62=167 samples) on condition: ⟨L⟩ (V5 ⫺₈₀ 0.8534786436133995), purity -0.5998752852514383
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (37+25=62 samples) on condition: V38 ⫹₈₀ 0.012330468274485461, purity -0.4435140117927378
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (45+181=226 samples) on condition: ⟨⟩ (V32 ⫺₈₀ 9.691886877639778e-6), purity -0.619932794246999
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (16+165=181 samples) on condition: ⟨L̅⟩ (V22 ⫹₈₀ 0.051585571661137), purity -0.6150409755059814
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (147+18=165 samples) on condition: ⟨A̅⟩ (V39 ⫺₈₀ 2.42342834441806), purity -0.5765109666431691
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (101+46=147 samples) on condition: ⟨B̅⟩ (V37 ⫺₈₀ 0.015475484517839033), purity -0.5199789776716975
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (33+68=101 samples) on condition: ⟨L⟩ (V14 ⫺₈₀ 0.09429436588683343), purity -0.5847222857366932
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (33+35=68 samples) on condition: ⟨E̅⟩ (V4 ⫹₈₀ 0.072511299176151), purity -0.4998159507185675
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (62+164=226 samples) on condition: ⟨⟩ (V56 ⫺₈₀ 1.379100445347604e-5), purity -0.6181227256790581
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (92+72=164 samples) on condition: ⟨D⟩ (V27 ⫺₈₀ 0.5837267065710754), purity -0.5677414249795539
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (53+19=72 samples) on condition: ⟨A̅⟩ (V23 ⫹₈₀ 0.00022029653534308053), purity -0.5101023062164868
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (7+46=53 samples) on condition: V59 ⫺₈₀ 0.04844197566999176, purity -0.5884069481550777
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (14+32=46 samples) on condition: ⟨E̅⟩ (V59 ⫹₈₀ 0.8363801170201403), purity -0.49025892783775543
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (70+156=226 samples) on condition: ⟨⟩ (V18 ⫺₈₀ 1.0647069074427218e-5), purity -0.6242653623841147
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (103+53=156 samples) on condition: ⟨E⟩ (V13 ⫺₈₀ 0.06054622152386579), purity -0.5761475072974945
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (34+19=53 samples) on condition: ⟨B̅⟩ (V20 ⫹₈₀ 0.001043911880330681), purity -0.49145153484840204
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (7+12=19 samples) on condition: ⟨A⟩ (V14 ⫺₈₀ 0.0007985975239452702), purity -0.15109548568520328
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (69+157=226 samples) on condition: ⟨⟩ (V35 ⫺₈₀ 9.088113356237337e-6), purity -0.619719144361671
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (55+102=157 samples) on condition: V40 ⫹₈₀ 9.521418387223025e-6, purity -0.5469573153093235
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (28+27=55 samples) on condition: ⟨L⟩ (V27 ⫺₈₀ 0.0843942446605578), purity -0.42542749682130093
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (14+14=28 samples) on condition: ⟨B⟩ (V20 ⫹₈₀ 3.508482419267515e-5), purity -0.3884492398371733
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (54+172=226 samples) on condition: ⟨⟩ (V32 ⫺₈₀ 1.3551205634726289e-5), purity -0.6090305738438626
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (103+69=172 samples) on condition: V12 ⫺₈₀ 0.7717594367870964, purity -0.6003809950659992
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (58+11=69 samples) on condition: V32 ⫺₈₀ 5.1584052802856695, purity -0.49510363895585974
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (53+173=226 samples) on condition: ⟨⟩ (V48 ⫺₈₀ 1.1183021531223733e-5), purity -0.6025092588912344
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (99+74=173 samples) on condition: ⟨A̅⟩ (V18 ⫺₈₀ 0.7026303478889055), purity -0.5895395346505452
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (64+10=74 samples) on condition: ⟨L̅⟩ (V44 ⫺₈₀ 3.5667212283747243), purity -0.5260049282593545
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (39+25=64 samples) on condition: ⟨E̅⟩ (V59 ⫺₈₀ 0.18688642004461953), purity -0.4221862206845944
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (24+15=39 samples) on condition: ⟨L̅⟩ (V4 ⫹₈₀ 8.733024476422212e-6), purity -0.4970810379298638
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (64+162=226 samples) on condition: ⟨⟩ (V17 ⫺₈₀ 1.6238331028215343e-5), purity -0.6277735302241294
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (132+30=162 samples) on condition: ⟨D̅⟩ (V15 ⫹₈₀ 5.417304843056218e-5), purity -0.6227826453421139
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (100+32=132 samples) on condition: ⟨D̅⟩ (V11 ⫹₈₀ 0.00018539018321773605), purity -0.566534089238882
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (64+36=100 samples) on condition: ⟨L̅⟩ (V2 ⫺₈₀ 0.5508056439209335), purity -0.5489088531491899
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (19+11=30 samples) on condition: ⟨O̅⟩ (V4 ⫺₈₀ 0.034725735368211566), purity -0.43811561593986426
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (7+12=19 samples) on condition: ⟨E⟩ (V16 ⫹₈₀ 1.574477782488726e-5), purity -0.35515903870661575
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (64+162=226 samples) on condition: ⟨⟩ (V32 ⫺₈₀ 2.47036134506307e-5), purity -0.6198775409518569
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (132+30=162 samples) on condition: ⟨D̅⟩ (V29 ⫹₈₀ 6.222777286122487e-5), purity -0.6072072942646585
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (96+36=132 samples) on condition: ⟨D̅⟩ (V21 ⫹₈₀ 0.00028934741701693777), purity -0.5467241461058172
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (67+29=96 samples) on condition: ⟨O̅⟩ (V4 ⫺₈₀ 0.3412346996811503), purity -0.5251420250447535
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (51+175=226 samples) on condition: ⟨⟩ (V32 ⫺₈₀ 1.0150252119200331e-5), purity -0.6095444467994474
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (79+96=175 samples) on condition: ⟨D⟩ (V39 ⫹₈₀ 4.463538953933102e-6), purity -0.5999975410562935
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (51+28=79 samples) on condition: ⟨E⟩ (V19 ⫺₈₀ 0.27838159223538333), purity -0.5285713488874856
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (16+35=51 samples) on condition: ⟨L̅⟩ (V27 ⫹₈₀ 0.00566789292108429), purity -0.5202999113609036
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (50+176=226 samples) on condition: ⟨⟩ (V48 ⫺₈₀ 8.534474554320072e-6), purity -0.6026787548040501
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (115+61=176 samples) on condition: V18 ⫺₈₀ 0.6091331430296608, purity -0.6016328639310514
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (50+11=61 samples) on condition: ⟨A̅⟩ (V40 ⫺₈₀ 4.017611655348665), purity -0.43189177166506615
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (71+155=226 samples) on condition: ⟨⟩ (V18 ⫺₈₀ 1.0647069074427218e-5), purity -0.6210785846118306
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (91+64=155 samples) on condition: ⟨E⟩ (V5 ⫺₈₀ 0.13970503215974886), purity -0.5770427834449852
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (42+22=64 samples) on condition: ⟨B⟩ (V20 ⫹₈₀ 0.0053948656581538565), purity -0.50377267750422
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (69+157=226 samples) on condition: ⟨⟩ (V37 ⫺₈₀ 6.061435539192513e-6), purity -0.619719144361671
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (91+66=157 samples) on condition: ⟨B̅⟩ (V30 ⫹₈₀ 1.6604960113959652e-5), purity -0.5671773685619886
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (43+23=66 samples) on condition: ⟨O̅⟩ (V38 ⫺₈₀ 0.0013086815553679223), purity -0.44292451077253336
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (13+30=43 samples) on condition: ⟨L̅⟩ (V31 ⫹₈₀ 1.7873161386546765e-5), purity -0.4695430234948302
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (9+21=30 samples) on condition: ⟨B⟩ (V28 ⫺₈₀ 6.746140483549004e-6), purity -0.4780356732903302
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
+┌ LogLevel(-500):  Branch (9+12=21 samples) on condition: V38 ⫺₈₀ 1.8275887306519546e-5, purity -0.32133436835360474
+└ @ DecisionTree.treeclassifier ~/.julia/dev/DecisionTree/src/modal-classification/tree.jl:294
