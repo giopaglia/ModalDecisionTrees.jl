@@ -36,8 +36,8 @@ Union{
 # gammas = Vector{Dict{AbstractRelation,Vector{Dict{X.ontology.worldType,NTuple{NTO,T}}}}}(undef, n_variables(X))		
 # TODO maybe use offset-arrays? https://docs.julialang.org/en/v1/devdocs/offset-arrays/
 
-@inline function checkGammasConsistency(gammas, X::OntologicalDataset{T, N}, worldType::Type{WorldType}, test_operators::AbstractVector{<:TestOperator}, allAvailableRelation_ids::AbstractVector{Int}) where {T, N, WorldType<:AbstractWorld}
-	if !(gammasIsConsistent(gammas, X, worldType, length(test_operators), max(2, length(allAvailableRelation_ids)))) # Note: max(2, ...) because at least RelationId and RelationAll are always present.
+@inline function checkGammasConsistency(gammas, X::OntologicalDataset{T, N}, worldType::Type{WorldType}, test_operators::AbstractVector{<:TestOperator}, RelationSet::AbstractVector{<:AbstractRelation}) where {T, N, WorldType<:AbstractWorld}
+	if !(gammasIsConsistent(gammas, X, worldType, length(test_operators), length(RelationSet))) # Note: max(2, ...) because at least RelationId and RelationAll are always present.
 		throw("The provided gammas structure is not consistent with the expected dataset, test operators and/or relations!"
 			* "\n$(typeof(gammas))"
 			* "\n$(eltype(gammas))"
@@ -46,7 +46,7 @@ Union{
 			* "\n$(worldType)"
 			* "\n$(size(test_operators))"
 			* "\n$(X.ontology)"
-			* "\n$(size(allAvailableRelation_ids))"
+			* "\n$(size(RelationSet))"
 		)
 	end
 end
