@@ -129,17 +129,12 @@ function testDataset(
 			(
 				# X_all,
 				test_operators, relationSet,
-				useRelationId, useRelationAll, 
 				relationId_id, relationAll_id,
 				availableModalRelation_ids, allAvailableRelation_ids
 				) = DecisionTree.treeclassifier.optimize_tree_parameters!(X_all, initCondition, useRelationAll, useRelationId, test_operators)
 
 			# update values
-			modal_args = merge(modal_args,
-				(initCondition = initCondition, 
-					useRelationAll = useRelationAll, 
-					useRelationId = useRelationId, 
-					test_operators = test_operators))
+			modal_args = merge(modal_args, (test_operators = test_operators,))
 
 			# Generate path to gammas jld file
 

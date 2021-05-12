@@ -150,6 +150,7 @@ module treeclassifier
 		random_vars_inds = StatsBase.sample(rng, Vector(1:n_variables(X)), n_vars, replace = false)
 
 		# use a subset of relations
+		# TODO does this go inside the for on the features?
 		random_relations_ids = StatsBase.sample(rng, relation_ids, Int(max_relations(length(relation_ids))), replace = false)
 
 		#####################
@@ -457,40 +458,48 @@ module treeclassifier
 		#  propositional splits.
 		
 		if RelationId in ontology_relations
-			println("Warning! Found RelationId in ontology provided. Use useRelationId = true instead.")
-			ontology_relations = filter(e->e ≠ RelationId, ontology_relations)
-			useRelationId = true
+			throw("Found RelationId in ontology provided. Use useRelationId = true instead.")
+			# ontology_relations = filter(e->e ≠ RelationId, ontology_relations)
+			# useRelationId = true
 		end
 
 		if RelationAll in ontology_relations
-			println("Warning! Found RelationAll in ontology provided. Use useRelationAll = true instead.")
-			ontology_relations = filter(e->e ≠ RelationAll, ontology_relations)
-			useRelationAll = true
+			throw("Found RelationAll in ontology provided. Use useRelationAll = true instead.")
+			# ontology_relations = filter(e->e ≠ RelationAll, ontology_relations)
+			# useRelationAll = true
 		end
 
 		relationSet = [RelationId, RelationAll, ontology_relations...]
 		relationId_id = 1
 		relationAll_id = 2
 		ontology_relation_ids = map((x)->x+2, 1:length(ontology_relations))
-		
-		availableModalRelation_ids = if useRelationAll || (initCondition == startWithRelationAll)
+
+		needToComputeRelationAll = (useRelationAll || (initCondition == startWithRelationAll))
+
+		# Modal relations to compute gammas for
+		inUseRelation_ids = if needToComputeRelationAll
 			[relationAll_id, ontology_relation_ids...]
 		else
 			ontology_relation_ids
 		end
 
-		allAvailableRelation_ids = if useRelationId
-			[relationId_id, availableModalRelation_ids...]
-		else
-			availableModalRelation_ids
+		# Relations to use at each split
+		availableRelation_ids = []
+
+		if useRelationId
+			push!(availableRelation_ids, relationId_id)
 		end
+		if useRelationAll
+			push!(availableRelation_ids, relationAll_id)
+		end
+
+		availableRelation_ids = [availableRelation_ids..., ontology_relation_ids...]
 
 		(
 			# X,
 			test_operators, relationSet,
-			useRelationId, useRelationAll, 
 			relationId_id, relationAll_id,
-			availableModalRelation_ids, allAvailableRelation_ids
+			inUseRelation_ids, availableRelation_ids
 		)
 	end
 
@@ -545,12 +554,11 @@ module treeclassifier
 		(
 			# X,
 			test_operators, relationSet,
-			useRelationId, useRelationAll, 
 			relationId_id, relationAll_id,
-			availableModalRelation_ids, allAvailableRelation_ids
+			inUseRelation_ids, availableRelation_ids
 		) = optimize_tree_parameters!(X, initCondition, useRelationAll, useRelationId, test_operators)
 
-		if (length(allAvailableRelation_ids) == 0)
+		if (length(availableRelation_ids) == 0)
 			throw("No available relation! Allow propositional splits with useRelationId=true")
 		end
 
@@ -561,10 +569,10 @@ module treeclassifier
 			#  if polarity(⋈) == true:      ∀ a > γ:    w ⊭ <X> f ⋈ a
 			#  if polarity(⋈) == false:     ∀ a < γ:    w ⊭ <X> f ⋈ a
 			
-			gammas = DecisionTree.computeGammas(X, X.ontology.worldType, test_operators, relationSet, relationId_id, availableModalRelation_ids)
-			# using BenchmarkTools; gammas = @btime DecisionTree.computeGammas($X, $X.ontology.worldType, $test_operators, $relationSet, $relationId_id, $availableModalRelation_ids)
+			gammas = DecisionTree.computeGammas(X, X.ontology.worldType, test_operators, relationSet, relationId_id, inUseRelation_ids)
+			# using BenchmarkTools; gammas = @btime DecisionTree.computeGammas($X, $X.ontology.worldType, $test_operators, $relationSet, $relationId_id, $inUseRelation_ids)
 		else
-			DecisionTree.checkGammasConsistency(gammas, X, X.ontology.worldType, test_operators, allAvailableRelation_ids)
+			DecisionTree.checkGammasConsistency(gammas, X, X.ontology.worldType, test_operators, relationSet)
 		end
 
 		# Let the core algorithm begin!
@@ -592,7 +600,7 @@ module treeclassifier
 				indX,
 				nc, ncl, ncr, Xf, Yf, Wf, Sf, gammas,
 				relationSet,
-				(onlyUseRelationAll ? [relationAll_id] : allAvailableRelation_ids),
+				(onlyUseRelationAll ? [relationAll_id] : availableRelation_ids),
 				rng,
 				)
 			# After processing, if needed, perform the split and push the two children for a later processing step

@@ -405,7 +405,6 @@ function build_forest(
 		(
 			# X,
 			test_operators, relationSet,
-			useRelationId, useRelationAll, 
 			relationId_id, relationAll_id,
 			availableModalRelation_ids, allAvailableRelation_ids
 		) = treeclassifier.optimize_tree_parameters!(X, initCondition, useRelationAll, useRelationId, test_operators)

@@ -1,0 +1,57 @@
+acc 80.36
+
+⟨⟩ (V48 ⫺₈₀ 0.05543164795735502)
+✔ ⟨⟩ (V18 ⫺₈₀ 0.7371941887914306)
+│✔ ⟨L̅⟩ (V44 ⫺₈₀ 3.5667212283747243)
+││✔ YES : 12/12 (conf: 1.0)
+││✘ V58 ⫹₈₀ 0.14202118410295675
+││ ✔ V44 ⫹₈₀ 0.31584392317879634
+││ │✔ ⟨A̅⟩ (V13 ⫹₈₀ 0.002668534423945333)
+││ ││✔ YES : 6/6 (conf: 1.0)
+││ ││✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 8/8 (conf: 1.0)
+││ │✘ YES : 10/10 (conf: 1.0)
+││ ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 41/47 (conf: 0.8723404255319149)
+│✘ YES : 80/94 (conf: 0.851063829787234)                                                            <- BLU
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 78/105 (conf: 0.7428571428571429)
+
+acc 73.21
+
+⟨⟩ (V32 ⫺₈₀ 7.781613442411969e-5)
+✔ V38 ⫹₈₀ 0.00016212943898189937
+│✔ YES : 109/141 (conf: 0.7730496453900709)                                                            <- BLU
+│✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 31/40 (conf: 0.775)                                                            <- BLU
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 78/101 (conf: 0.7722772277227723)                                                            <- BLU
+
+acc 57.14
+
+⟨⟩ (V37 ⫺₈₀ 6.061435539192513e-6)
+✔ ⟨B̅⟩ (V4 ⫺₈₀ 0.16917468591347165)
+│✔ ⟨B⟩ (V38 ⫹₈₀ 0.0035196600266981584)
+││✔ ⟨O̅⟩ (V36 ⫹₈₀ 0.0005405143950892434)
+│││✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 4/4 (conf: 1.0)
+│││✘ YES : 17/20 (conf: 0.85)
+││✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 34/37 (conf: 0.918918918918919)
+│✘ V31 ⫹₈₀ 1.829215357636296e-5
+│ ✔ ⟨L̅⟩ (V4 ⫺₈₀ 0.1448742810389693)
+│ │✔ YES : 7/7 (conf: 1.0)
+│ │✘ ⟨E̅⟩ (V38 ⫹₈₀ 4.611536105490723e-6)
+│ │ ✔ YES : 6/6 (conf: 1.0)
+│ │ ✘ ⟨L⟩ (V17 ⫺₈₀ 0.004094291679062348)
+│ │  ✔ ⟨D̅⟩ (V28 ⫺₈₀ 0.0043786548202474)
+│ │  │✔ YES : 9/10 (conf: 0.9)
+│ │  │✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 16/20 (conf: 0.8)
+│ │  ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 14/14 (conf: 1.0)
+│ ✘ YES : 75/85 (conf: 0.8823529411764706)                                                            <- BLU
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 59/79 (conf: 0.7468354430379747)
+
+acc 71.43, seed 1
+
+⟨⟩ (V54 ⫺₈₀ 0.022629931693576178)
+✔ ⟨O̅⟩ (V37 ⫹₈₀ 0.022173568532659463)
+│✔ YES : 45/46 (conf: 0.9782608695652174)                                                            <- BLU
+│✘ ⟨L⟩ (V59 ⫺₈₀ 0.5588873749559617)
+│ ✔ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 32/44 (conf: 0.7272727272727273)
+│ ✘ ⟨⟩ (V12 ⫺₈₀ 0.10681836064490344)
+│  ✔ YES : 54/73 (conf: 0.7397260273972602)
+│  ✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 7/7 (conf: 1.0)
+✘ NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 82/112 (conf: 0.7321428571428571)
