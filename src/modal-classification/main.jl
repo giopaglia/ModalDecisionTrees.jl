@@ -403,7 +403,6 @@ function build_forest(
 	# precompute-gammas, since they are shared by all trees
 	if isnothing(gammas)
 		(
-			# X,
 			test_operators, relationSet,
 			relationId_id, relationAll_id,
 			availableModalRelation_ids, allAvailableRelation_ids

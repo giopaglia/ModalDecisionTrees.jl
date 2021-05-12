@@ -415,10 +415,12 @@ module treeclassifier
 
 		# Adimensional ontological datasets:
 		#  flatten to adimensional case + strip of all relations from the ontology
-		# TODO flattening X affects its ontology
-		# if prod(channel_size(X)) == 1
-		# 	X = OntologicalDataset{T, 0}(ModalLogic.strip_ontology(X.ontology), @views ModalLogic.strip_domain(X.domain))
-		# end
+		if prod(channel_size(X)) == 1
+			if (length(X.ontology.relationSet) > 0)
+				warn("The OntologicalDataset provided has degenerate channel_size $(channel_size(X)), and more than 0 relations: $(X.ontology.relationSet).")
+			end
+			# X = OntologicalDataset{T, 0}(ModalLogic.strip_ontology(X.ontology), @views ModalLogic.strip_domain(X.domain))
+		end
 
 		ontology_relations = deepcopy(X.ontology.relationSet)
 
@@ -496,7 +498,6 @@ module treeclassifier
 		availableRelation_ids = [availableRelation_ids..., ontology_relation_ids...]
 
 		(
-			# X,
 			test_operators, relationSet,
 			relationId_id, relationAll_id,
 			inUseRelation_ids, availableRelation_ids
