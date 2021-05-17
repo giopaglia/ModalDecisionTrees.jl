@@ -70,7 +70,7 @@ end
 
 # Build a tree on an OntologicalDataset
 function build_tree(
-	X                   :: OntologicalDataset{T, N},
+	X                   :: OntologicalDataset{T, N, WorldType},
 	Y                   :: AbstractVector{S},
 	W                   :: Union{Nothing,AbstractVector{U}} = nothing;
 	gammas              :: Union{GammaType{NTO, Ta},Nothing} = nothing,
@@ -85,7 +85,7 @@ function build_tree(
 	useRelationAll      :: Bool               = true,
 	useRelationId       :: Bool               = true,
 	test_operators      :: AbstractVector{<:TestOperator}     = [TestOpGeq, TestOpLeq],
-	rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {T, N, S, U, NTO, Ta}
+	rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {T, N, S, U, NTO, Ta, WorldType<:AbstractWorld}
 
 	if max_depth == -1
 		max_depth = typemax(Int)
@@ -111,7 +111,7 @@ function build_tree(
 		rng                 = rng)
 
 	root = _convert(t.root, t.list, Y[t.labels])
-	DTree{T, String}(root, X.ontology.worldType, initCondition)
+	DTree{T, String}(root, WorldType, initCondition)
 end
 
 # TODO fix this using specified purity
@@ -206,7 +206,7 @@ end
 
 # Apply tree to a dimensional dataset in matricial form
 function apply_tree(tree::DTNode{S, T}, d::MatricialDataset{S,D}) where {S, T, D}
-	apply_tree(DTree{S, T}(tree, ModalLogic.getIntervalOntologyOfDim(Val(D-2)).worldType, startWithRelationAll), d)
+	apply_tree(DTree{S, T}(tree, world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2))), startWithRelationAll), d)
 end
 
 ################################################################################
@@ -303,7 +303,7 @@ function print_apply_tree(tree::DTree{S, T}, X::MatricialDataset{S,D}, Y::Vector
 end
 
 function print_apply_tree(tree::DTNode{S, T}, X::MatricialDataset{S,D}, Y::Vector{CT}; reset_leaves = true, update_majority = false) where {S, T, D, CT}
-	return print_apply_tree(DTree{S, T}(tree, ModalLogic.getIntervalOntologyOfDim(Val(D-2)).worldType, startWithRelationAll), X, Y, reset_leaves = reset_leaves, update_majority = update_majority)
+	return print_apply_tree(DTree{S, T}(tree, world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2))), startWithRelationAll), X, Y, reset_leaves = reset_leaves, update_majority = update_majority)
 end
 
 
@@ -368,7 +368,7 @@ apply_tree_proba(tree::DTNode{S, T}, features::AbstractMatrix{S}, labels) where 
 =#
 
 function build_forest(
-	X                   :: OntologicalDataset{T, N},
+	X                   :: OntologicalDataset{T, N, WorldType},
 	Y                   :: AbstractVector{S}
 	;
 	# , W                   :: Union{Nothing,AbstractVector{U}} = nothing; TODO these must also be used for the calculation of the oob_error
@@ -388,7 +388,7 @@ function build_forest(
 	useRelationAll      :: Bool               = true,
 	useRelationId       :: Bool               = true,
 	test_operators      :: AbstractVector{<:TestOperator}     = [TestOpGeq, TestOpLeq],
-	rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {T, N, S, U, NTO, Ta}
+	rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {T, N, S, U, NTO, Ta, WorldType<:AbstractWorld}
 
 	rng = mk_rng(rng)
 	
@@ -407,7 +407,7 @@ function build_forest(
 			relationId_id, relationAll_id,
 			availableModalRelation_ids, allAvailableRelation_ids
 		) = treeclassifier.optimize_tree_parameters!(X, initCondition, useRelationAll, useRelationId, test_operators)
-		gammas = computeGammas(X,X.ontology.worldType,test_operators,relationSet,relationId_id,availableModalRelation_ids)
+		gammas = computeGammas(X,WorldType,test_operators,relationSet,relationId_id,availableModalRelation_ids)
 	end
 
 	t_samples = n_samples(X.domain)
@@ -424,7 +424,7 @@ function build_forest(
 		# v_weights = @views W[inds]
 		v_labels = @views Y[inds]
 		v_features = ModalLogic.sliceDomainByInstances(X.domain, inds; return_view = true)
-		v_gammas = sliceGammasByInstances(X.ontology.worldType, gammas, inds; return_view = true)
+		v_gammas = sliceGammasByInstances(WorldType, gammas, inds; return_view = true)
 
 		trees[i] = build_tree(
 			v_labels,
