@@ -17,7 +17,7 @@ function _convert(
 	else
 		left = _convert(node.l, list, labels)
 		right = _convert(node.r, list, labels)
-		return DTInternal{S, T}(node.modality, node.feature, node.test_operator, node.threshold, left, right)
+		return DTInternal{S, T}(node.modality, node.attribute, node.test_operator, node.threshold, left, right)
 	end
 end
 
@@ -28,30 +28,30 @@ end
 # Build models on (multi-dimensional) arrays
 function build_stump(
 	labels    :: AbstractVector{String},
-	features  :: MatricialDataset{T,D},
+	bare_dataset  :: MatricialDataset{T,D},
 	weights   :: Union{Nothing,AbstractVector{U}} = nothing;
 	ontology  :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
 	kwargs...) where {T, D, U}
-	build_stump(OntologicalDataset{T,D-2}(ontology,features), labels, weights; kwargs...)
+	build_stump(OntologicalDataset{T,D-2}(ontology,bare_dataset), labels, weights; kwargs...)
 end
 
 function build_tree(
 	labels    :: AbstractVector{String},
-	features  :: MatricialDataset{T,D},
+	bare_dataset  :: MatricialDataset{T,D},
 	weights   :: Union{Nothing,AbstractVector{U}} = nothing;
 	ontology  :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
 	kwargs...) where {T, D, U}
-	build_tree(OntologicalDataset{T,D-2}(ontology,features), labels, weights; kwargs...)
+	build_tree(OntologicalDataset{T,D-2}(ontology,bare_dataset), labels, weights; kwargs...)
 end
 
 function build_forest(
 	labels    :: AbstractVector{String},
-	features  :: MatricialDataset{T,D};
+	bare_dataset  :: MatricialDataset{T,D};
 	# weights   :: Union{Nothing,AbstractVector{U}} = nothing TODO
 	ontology  :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
 	kwargs...) where {T, D, U}
-	# build_forest(OntologicalDataset{T,D-2}(ontology,features), labels, weights; kwargs...)
-	build_forest(OntologicalDataset{T,D-2}(ontology,features), labels; kwargs...)
+	# build_forest(OntologicalDataset{T,D-2}(ontology,bare_dataset), labels, weights; kwargs...)
+	build_forest(OntologicalDataset{T,D-2}(ontology,bare_dataset), labels; kwargs...)
 end
 
 ################################################################################
@@ -136,7 +136,7 @@ function prune_tree(tree::DTNode{S, T}, max_purity_threshold::AbstractFloat = 1.
 			end
 		else
 			# TODO also associate an Internal node with values and majority (all_labels, majority)
-			return DTInternal{S, T}(tree.modality, tree.featid, tree.test_operator, tree.featval,
+			return DTInternal{S, T}(tree.modality, tree.i_attr, tree.test_operator, tree.threshold,
 						_prune_run(tree.left),
 						_prune_run(tree.right))
 		end
@@ -164,15 +164,15 @@ apply_tree(leaf::DTLeaf{T}, Xi::MatricialInstance{U,MN}, S::WorldSet{WorldType})
 
 function apply_tree(tree::DTInternal{U, T}, Xi::MatricialInstance{U,MN}, S::WorldSet{WorldType}) where {U, T, MN, WorldType<:AbstractWorld}
 	return (
-		if tree.featid == 0
-			@error " found featid == 0, TODO figure out where does this come from" tree
+		if tree.i_attr == 0
+			@error " found i_attr == 0, TODO figure out where does this come from" tree
 			# apply_tree(tree.left, X, S)
 		else
 			@logmsg DTDetail "applying branch..."
 			satisfied = true
-			channel = ModalLogic.getInstanceFeature(Xi, tree.featid)
+			channel = ModalLogic.getInstanceAttribute(Xi, tree.i_attr)
 			@logmsg DTDetail " S" S
-			(satisfied,S) = ModalLogic.modalStep(S, tree.modality, channel, tree.test_operator, tree.featval)
+			(satisfied,S) = ModalLogic.modalStep(S, tree.modality, channel, tree.test_operator, tree.threshold)
 			@logmsg DTDetail " ->(satisfied,S')" satisfied S
 			apply_tree((satisfied ? tree.left : tree.right), Xi, S)
 		end
@@ -220,9 +220,9 @@ end
 function _empty_tree_leaves(node::DTInternal{S, T}) where {S, T}
 	return DTInternal{S, T}(
 		node.modality,
-		node.featid,
+		node.i_attr,
 		node.test_operator,
-		node.featval,
+		node.threshold,
 		_empty_tree_leaves(node.left),
 		_empty_tree_leaves(node.right)
 	)
@@ -265,14 +265,14 @@ end
 
 function print_apply_tree(node::DTInternal{U, T}, Xi::MatricialInstance{U,MN}, S::WorldSet{WorldType}, class::T; update_majority = false) where {U, T, MN, WorldType<:AbstractWorld}
 	satisfied = true
-	channel = ModalLogic.getInstanceFeature(Xi, node.featid)
-	(satisfied,S) = ModalLogic.modalStep(S, node.modality, channel, node.test_operator, node.featval)
+	channel = ModalLogic.getInstanceAttribute(Xi, node.i_attr)
+	(satisfied,S) = ModalLogic.modalStep(S, node.modality, channel, node.test_operator, node.threshold)
 
 	return DTInternal{U, T}(
 		node.modality,
-		node.featid,
+		node.i_attr,
 		node.test_operator,
-		node.featval,
+		node.threshold,
 		satisfied ? print_apply_tree(node.left, Xi, S, class, update_majority = update_majority) : node.left,
 		(!satisfied) ? print_apply_tree(node.right, Xi, S, class, update_majority = update_majority) : node.right,
 	)
@@ -353,9 +353,9 @@ apply_tree_proba(leaf::DTLeaf{T}, features::AbstractVector{S}, labels) where {S,
 	compute_probabilities(labels, leaf.values)
 
 function apply_tree_proba(tree::DTInternal{S, T}, features::AbstractVector{S}, labels) where {S, T}
-	if tree.featval === nothing
+	if tree.threshold === nothing
 		return apply_tree_proba(tree.left, features, labels)
-	elseif eval(Expr(:call, tree.test_operator, features[tree.featid], tree.featval))
+	elseif eval(Expr(:call, tree.test_operator, features[tree.i_attr], tree.threshold))
 		return apply_tree_proba(tree.left, features, labels)
 	else
 		return apply_tree_proba(tree.right, features, labels)
@@ -489,14 +489,14 @@ function build_forest(
 end
 
 # use an array of trees to test features
-function apply_forest(trees::AbstractVector{Union{DTree{S,T},DTNode{S,T}}}, features::MatricialDataset{S, D}; tree_weights::Union{AbstractVector{N},Nothing} = nothing) where {S, T, D, N<:Real}
+function apply_forest(trees::AbstractVector{Union{DTree{S,T},DTNode{S,T}}}, bare_dataset::MatricialDataset{S, D}; tree_weights::Union{AbstractVector{N},Nothing} = nothing) where {S, T, D, N<:Real}
 	@logmsg DTDetail "apply_forest..."
 	n_trees = length(trees)
-	n_instances = n_samples(features)
+	n_instances = n_samples(bare_dataset)
 
 	votes = Matrix{T}(undef, n_trees, n_instances)
 	for i in 1:n_trees
-		votes[i,:] = apply_tree(trees[i], features)
+		votes[i,:] = apply_tree(trees[i], bare_dataset)
 	end
 
 	predictions = Array{T}(undef, n_instances)
