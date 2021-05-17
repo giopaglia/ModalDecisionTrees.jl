@@ -28,7 +28,7 @@ module treeclassifier
 		l                :: NodeMeta{S,U}                    # left child
 		r                :: NodeMeta{S,U}                    # right child
 		modality         :: R where R<:AbstractRelation      # modal operator (e.g. RelationId for the propositional case)
-		feature          :: Int                              # feature used for splitting
+		attribute          :: Int                              # attribute used for splitting
 		test_operator    :: TestOperator          # test_operator (e.g. <=)
 		threshold        :: S                                # threshold value
 		function NodeMeta{S,U}(
@@ -61,7 +61,7 @@ module treeclassifier
 							Y                   :: AbstractVector{Label},    # the label array
 							W                   :: AbstractVector{U},        # the weight vector
 							S                   :: AbstractVector{WorldSet{WorldType}}, # the vector of current worlds
-							
+
 							loss_function       :: Function,
 							node                :: NodeMeta{T,<:AbstractFloat}, # the node to split
 							max_features        :: Int,                      # number of features to use to split
@@ -87,8 +87,9 @@ module treeclassifier
 							gammas              :: GammaType{NTO, T},
 							# TODO Ef                  :: AbstractArray{T},
 							
-							relationSet         :: Vector{<:AbstractRelation},
+							relationSet         :: AbstractVector{<:AbstractRelation},
 							relation_ids        :: AbstractVector{Int},
+							featureSet          :: AbstractVector{<:FeatureType},
 							rng                 :: Random.AbstractRNG,
 							) where {WorldType<:AbstractWorld, T, U, N, M, NTO, L}
 
@@ -147,24 +148,25 @@ module treeclassifier
 		n_vars = max_features
 		# array of indices of features/variables
 		# using "sample" function instead of "randperm" allow to insert weights for variables which may be wanted in the future 
-		random_vars_inds = StatsBase.sample(rng, Vector(1:n_variables(X)), n_vars, replace = false)
+		features_inds = StatsBase.sample(rng, Vector(1:n_variables(X)), n_vars, replace = false)
 
 		# use a subset of relations
 		# TODO does this go inside the for on the features?
-		random_relations_ids = StatsBase.sample(rng, relation_ids, Int(max_relations(length(relation_ids))), replace = false)
+		relations_ids = StatsBase.sample(rng, relation_ids, Int(max_relations(length(relation_ids))), replace = false)
 
 		#####################
 		## Find best split ##
 		#####################
 		## Test all conditions
 		# For each relational operator
-		for relation_id in random_relations_ids
+		for relation_id in relations_ids
 			relation = relationSet[relation_id]
 			@logmsg DTDebug "Testing relation $(relation) (id: $(relation_id))..." # "/$(length(relation_ids))"
 
 			# For each variable
-			@inbounds for feature in random_vars_inds
+			@inbounds for feature in features_inds
 				@logmsg DTDebug "Testing feature $(feature)/$(n_vars)..."
+				relation_real = featureSet[feature]
 
 				thresholds = Array{T,2}(undef, length(test_operators), n_instances)
 				for (i_test_operator,test_operator) in enumerate(test_operators)
@@ -211,7 +213,7 @@ module treeclassifier
 					thresholdDomain = setdiff(Set(thresholdArr),Set([typemin(T), typemax(T)]))
 					# Look for thresholdArr 'a' for the propositions like "feature >= a"
 					for threshold in thresholdDomain
-						@logmsg DTDebug " Testing condition: $(display_modal_test(relation, test_operator, feature, threshold))"
+						@logmsg DTDebug " Testing condition: $(display_modal_test(relation, test_operator, relation_real, threshold))"
 						# Re-initialize right class counts
 						nr = zero(U)
 						ncr[:] .= zero(U)
@@ -274,7 +276,7 @@ module treeclassifier
 
 			node.purity         = best_purity
 			node.modality       = best_relation
-			node.feature        = best_feature
+			node.attribute      = best_feature
 			node.test_operator  = best_test_operator
 			# TODO the selected threshold should actually be the result of a loss interpolation around best_threshold
 			node.threshold      = best_threshold
@@ -284,13 +286,13 @@ module treeclassifier
 			# TODO instead of using memory, here, just use two opposite indices and perform substitutions. indj = n_instances
 			unsatisfied_flags = fill(1, n_instances)
 			for i in 1:n_instances
-				channel = ModalLogic.getFeature(X.domain, indX[i + r_start], best_feature)
+				channel = ModalLogic.getAttribute(X.domain, indX[i + r_start], best_feature)
 				@logmsg DTDetail " Instance $(i)/$(n_instances)" channel Sf[i]
 				(satisfied,S[indX[i + r_start]]) = ModalLogic.modalStep(Sf[i], best_relation, channel, best_test_operator, best_threshold)
 				unsatisfied_flags[i] = !satisfied # I'm using unsatisfied because then sorting puts YES instances first but TODO use the inverse sorting and use satisfied flag instead
 			end
 
-			@logmsg DTOverview " Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on condition: $(display_modal_test(best_relation, best_test_operator, best_feature, best_threshold)), purity $(best_purity)"
+			@logmsg DTOverview " Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on condition: $(display_modal_test(best_relation, best_test_operator, featureSet[best_feature], best_threshold)), purity $(best_purity)"
 
 			@logmsg DTDetail " unsatisfied_flags" unsatisfied_flags
 
@@ -298,7 +300,7 @@ module treeclassifier
 			# TODO bring back if best_unsatisfied != unsatisfied_flags || best_nl != n_instances-sum(unsatisfied_flags) || length(unique(unsatisfied_flags)) == 1
 			if best_nl != n_instances-sum(unsatisfied_flags) || length(unique(unsatisfied_flags)) == 1
 				errStr = "Something's wrong with the optimization steps.\n"
-				errStr *= "Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on condition: $(display_modal_test(best_relation, best_test_operator, best_feature, best_threshold)), purity $(best_purity)"
+				errStr *= "Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on condition: $(display_modal_test(best_relation, best_test_operator, featureSet[best_feature], best_threshold)), purity $(best_purity)"
 				if length(unique(unsatisfied_flags)) == 1
 					errStr *= "Uninformative split.\n$(unsatisfied_flags)\n"
 				end
@@ -310,7 +312,7 @@ module treeclassifier
 					errStr *= "Different unsatisfied:\ncomputed: $(best_nl)\nactual: $(unsatisfied_flags)\n$(n_instances-sum(unsatisfied_flags))\n"
 				end
 				for i in 1:n_instances
-					errStr *= "$(ModalLogic.getFeature(X.domain, indX[i + r_start], best_feature))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(S[indX[i + r_start]])\n";
+					errStr *= "$(ModalLogic.getAttribute(X.domain, indX[i + r_start], best_feature))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(S[indX[i + r_start]])\n";
 				end
 				# throw(Base.ErrorException(errStr))
 				println("ERROR! " * errStr)
@@ -551,6 +553,8 @@ module treeclassifier
 		Wf = Vector{U}(undef, n_instances)
 		Sf = Vector{WorldSet{WorldType}}(undef, n_instances)
 		
+		featureSet = 1:n_variables(X)
+
 		(
 			# X,
 			test_operators, relationSet,
@@ -601,6 +605,7 @@ module treeclassifier
 				nc, ncl, ncr, Xf, Yf, Wf, Sf, gammas,
 				relationSet,
 				(onlyUseRelationAll ? [relationAll_id] : availableRelation_ids),
+				featureSet,
 				rng,
 				)
 			# After processing, if needed, perform the split and push the two children for a later processing step

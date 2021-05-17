@@ -70,9 +70,9 @@ end
 struct DTInternal{S<:Real, T}
 	# Split label
 	modality      :: R where R<:AbstractRelation
-	featid        :: Int
+	i_attr        :: Int
 	test_operator :: TestOperator # Test operator (e.g. <=, ==)
-	featval       :: featType where featType<:S
+	threshold       :: AttrType where AttrType<:S
 	# Child nodes
 	left          :: Union{DTLeaf{T}, DTInternal{S, T}}
 	right         :: Union{DTLeaf{T}, DTInternal{S, T}}
@@ -173,7 +173,7 @@ function print_tree(tree::DTInternal, depth=-1, indent=0, indent_guides=[]; n_to
 				return
 		end
 
-		println(display_modal_test(tree.modality, tree.test_operator, tree.featid, tree.featval)) # TODO print purity?
+		println(display_modal_test(tree.modality, tree.test_operator, ModalLogic.SimpleFeatureType(tree.test_operator, tree.i_attr), tree.threshold)) # TODO print purity?
 		# indent_str = " " ^ indent
 		indent_str = reduce(*, [i == 1 ? "│" : " " for i in indent_guides])
 		# print(indent_str * "╭✔")
