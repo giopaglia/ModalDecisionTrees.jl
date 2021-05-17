@@ -17,7 +17,8 @@ export AbstractWorld, AbstractRelation,
 				WorldSet,
 				display_propositional_test,
 				display_modal_test,
-				RelationAll, RelationNone, RelationId
+				RelationAll, RelationNone, RelationId,
+				world_type
 				# enumAccessibles, enumAccRepr
 
 # Fix
@@ -28,20 +29,21 @@ abstract type AbstractWorld end
 abstract type AbstractRelation end
 
 # Concrete class for ontology models (world type + set of relations)
-struct Ontology
-	worldType   :: Type{<:AbstractWorld}
+struct Ontology{WorldType<:AbstractWorld}
 	relationSet :: AbstractVector{<:AbstractRelation}
-	Ontology(worldType, relationSet) = begin
+	Ontology{WorldType}(relationSet) where {WorldType<:AbstractWorld} = begin
 		relationSet = unique(relationSet)
 		for relation in relationSet
-			if !goesWith(worldType, relation)
-				error("Can't instantiate Ontology with worldType $(worldType) and relation $(relation)")
+			if !goesWith(WorldType, relation)
+				error("Can't instantiate Ontology with WorldType $(WorldType) and relation $(relation)")
 			end
 		end
-		return new(worldType, relationSet)
+		return new{WorldType}(relationSet)
 	end
 	# Ontology(worldType, relationSet) = new(worldType, relationSet)
 end
+
+world_type(::Ontology{WT}) where {WT} = WT
 
 # strip_ontology(ontology::Ontology) = Ontology(OneWorld,AbstractRelation[])
 
@@ -63,9 +65,9 @@ WorldSet{W}(S::WorldSet{W}) where {W<:AbstractWorld} = S
 
 # TODO improve, decouple from relationSets definitions
 # Actually, this will not work because relationSet does this collect(set(...)) thing... mh maybe better avoid that thing?
-show(io::IO, o::Ontology) = begin
+show(io::IO, o::Ontology{WorldType}) where {WorldType} = begin
 	print(io, "Ontology(")
-	show(io, o.worldType)
+	show(io, WorldType)
 	print(io, ",")
 	if issetequal(o.relationSet, IARelations)
 		print(io, "IARelations")
@@ -182,15 +184,22 @@ MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,3}) where T = Arra
 MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,4}) where T = Array{T, 3}(undef, size(d)[1:end-1])::MatricialUniDataset{T, 3}
 
 # TODO generalize as init_Xf(X::OntologicalDataset{T, N}) where T = Array{T, N+1}(undef, size(X)[3:end]..., n_samples(X))
-@computed struct OntologicalDataset{T,N}
-	ontology  :: Ontology
+@computed struct OntologicalDataset{T, N, WorldType<:AbstractWorld}
+	ontology  :: Ontology{WorldType}
 	domain    :: MatricialDataset{T,N+1+1}
 
-	# OntologicalDataset(ontology, domain) = begin
+	OntologicalDataset{T, N}(ontology::Ontology{WorldType}, domain) where {T, N, WorldType<:AbstractWorld} = begin
+		if prod(channel_size(domain)) == 1
+			ontology = ModalLogic.strip_relations(ontology)
+		end
+		new{T, N, WorldType}(ontology, domain)
+	end
+
+	# OntologicalDataset{T, N}(ontology::Ontology{WorldType} where {WorldType<:AbstractWorld}, domain) = begin
 	# 	if prod(channel_size(domain)) == 1
 	# 		ontology = ModalLogic.strip_relations(ontology)
 	# 	end
-	# 	new(ontology, domain)
+	# 	new{T, N, WorldType}(ontology, domain)
 	# end
 
 end
@@ -377,14 +386,14 @@ export genericIntervalOntology,
 
 abstract type OntologyType end
 struct _genericIntervalOntology  <: OntologyType end; const genericIntervalOntology  = _genericIntervalOntology();  # After
-const IntervalOntology   = Ontology(Interval,IARelations)
-const Interval2DOntology = Ontology(Interval2D,IA2DRelations)
+const IntervalOntology   = Ontology{Interval}(IARelations)
+const Interval2DOntology = Ontology{Interval2D}(IA2DRelations)
 
 struct _genericIntervalRCC8Ontology  <: OntologyType end; const genericIntervalRCC8Ontology  = _genericIntervalRCC8Ontology();  # After
-const IntervalRCC8Ontology   = Ontology(Interval,RCC8Relations)
-const Interval2DRCC8Ontology = Ontology(Interval2D,RCC8Relations)
-const IntervalRCC5Ontology   = Ontology(Interval,RCC5Relations)
-const Interval2DRCC5Ontology = Ontology(Interval2D,RCC5Relations)
+const IntervalRCC8Ontology   = Ontology{Interval}(RCC8Relations)
+const Interval2DRCC8Ontology = Ontology{Interval2D}(RCC8Relations)
+const IntervalRCC5Ontology   = Ontology{Interval}(RCC5Relations)
+const Interval2DRCC5Ontology = Ontology{Interval2D}(RCC5Relations)
  
 getIntervalOntologyOfDim(::MatricialDataset{T,D}) where {T,D} = getIntervalOntologyOfDim(Val(D-2))
 getIntervalOntologyOfDim(::Val{1}) = IntervalOntology
