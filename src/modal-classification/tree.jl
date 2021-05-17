@@ -57,10 +57,10 @@ module treeclassifier
 	#  (e.g. max_depth, min_samples_leaf, etc.)
 	# TODO move this function inside the caller function, and get rid of all parameters
 	function _split!(
-							X                   :: OntologicalDataset{T, N}, # the ontological dataset
+							X                   :: OntologicalDataset{T, N, WorldType}, # the ontological dataset
 							Y                   :: AbstractVector{Label},    # the label array
 							W                   :: AbstractVector{U},        # the weight vector
-							S                   :: AbstractVector{WorldSet{WorldType}}, # the vector of current worlds (TODO AbstractVector{<:AbstractSet{X.ontology.worldType}})
+							S                   :: AbstractVector{WorldSet{WorldType}}, # the vector of current worlds
 							
 							loss_function       :: Function,
 							node                :: NodeMeta{T,<:AbstractFloat}, # the node to split
@@ -90,7 +90,7 @@ module treeclassifier
 							relationSet         :: Vector{<:AbstractRelation},
 							relation_ids        :: AbstractVector{Int},
 							rng                 :: Random.AbstractRNG,
-							) where {WorldType<:AbstractWorld, T, U, N, M, NTO, L}  # WT<:X.ontology.worldType
+							) where {WorldType<:AbstractWorld, T, U, N, M, NTO, L}
 
 		# Region of indX to use to perform the split
 		region = node.region
@@ -175,7 +175,7 @@ module treeclassifier
 				@logmsg DTDebug "thresholds: " thresholds
 
 				# TODO optimize this!!
-				firstWorld = X.ontology.worldType(ModalLogic.firstWorld)
+				firstWorld = WorldType(ModalLogic.firstWorld)
 				for i in 1:n_instances
 					@logmsg DTDetail " Instance $(i)/$(n_instances)" indX[i + r_start]
 					worlds = if (relation != RelationAll)
@@ -504,7 +504,7 @@ module treeclassifier
 	end
 
 	function _fit(
-			X                       :: OntologicalDataset{T, N},
+			X                       :: OntologicalDataset{T, N, WorldType},
 			Y                       :: AbstractVector{Label},
 			W                       :: AbstractVector{U},
 			loss                    :: Function,
@@ -520,10 +520,10 @@ module treeclassifier
 			useRelationId           :: Bool,
 			test_operators          :: AbstractVector{<:TestOperator},
 			rng = Random.GLOBAL_RNG :: Random.AbstractRNG;
-			gammas                  :: Union{GammaType{NTO, Ta},Nothing} = nothing) where {T, U, N, NTO, Ta}
+			gammas                  :: Union{GammaType{NTO, Ta},Nothing} = nothing) where {T, U, N, NTO, Ta, WorldType<:AbstractWorld}
 
-		if N != ModalLogic.worldTypeDimensionality(X.ontology.worldType)
-			error("ERROR! Dimensionality mismatch: can't interpret worldType $(X.ontology.worldType) (dimensionality = $(ModalLogic.worldTypeDimensionality(X.ontology.worldType)) on OntologicalDataset of dimensionality = $(N)")
+		if N != ModalLogic.worldTypeDimensionality(WorldType)
+			error("ERROR! Dimensionality mismatch: can't interpret worldType $(WorldType) (dimensionality = $(ModalLogic.worldTypeDimensionality(WorldType)) on OntologicalDataset of dimensionality = $(N)")
 		end
 		
 		# Dataset sizes
@@ -538,7 +538,7 @@ module treeclassifier
 			elseif typeof(initCondition) <: DecisionTree._startAtWorld
 				[initCondition.w]
 		end
-		S = WorldSet{X.ontology.worldType}[[X.ontology.worldType(w0params...)] for i in 1:n_instances]
+		S = WorldSet{WorldType}[[WorldType(w0params...)] for i in 1:n_instances]
 
 		# Array memory for class counts
 		nc  = Vector{U}(undef, n_classes)
@@ -549,7 +549,7 @@ module treeclassifier
 		Xf = Array{T, N+1}(undef, channel_size(X)..., n_instances)
 		Yf = Vector{Label}(undef, n_instances)
 		Wf = Vector{U}(undef, n_instances)
-		Sf = Vector{WorldSet{X.ontology.worldType}}(undef, n_instances)
+		Sf = Vector{WorldSet{WorldType}}(undef, n_instances)
 		
 		(
 			# X,
@@ -569,10 +569,10 @@ module treeclassifier
 			#  if polarity(⋈) == true:      ∀ a > γ:    w ⊭ <X> f ⋈ a
 			#  if polarity(⋈) == false:     ∀ a < γ:    w ⊭ <X> f ⋈ a
 			
-			gammas = DecisionTree.computeGammas(X, X.ontology.worldType, test_operators, relationSet, relationId_id, inUseRelation_ids)
-			# using BenchmarkTools; gammas = @btime DecisionTree.computeGammas($X, $X.ontology.worldType, $test_operators, $relationSet, $relationId_id, $inUseRelation_ids)
+			gammas = DecisionTree.computeGammas(X, test_operators, relationSet, relationId_id, inUseRelation_ids)
+			# using BenchmarkTools; gammas = @btime DecisionTree.computeGammas($X, $$test_operators, $relationSet, $relationId_id, $inUseRelation_ids)
 		else
-			DecisionTree.checkGammasConsistency(gammas, X, X.ontology.worldType, test_operators, relationSet)
+			DecisionTree.checkGammasConsistency(gammas, X, test_operators, relationSet)
 		end
 
 		# Let the core algorithm begin!

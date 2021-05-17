@@ -108,13 +108,13 @@ function testDataset(
 
 	calculateGammas(modal_args, X_all_d) = begin
 		if !precompute_gammas
-			(modal_args, nothing, modal_args.ontology.worldType)
+			(modal_args, nothing, world_type(modal_args.ontology))
 		else
 			haskey(modal_args, :ontology) || error("testDataset: precompute_gammas=true requires `ontology` field in modal_args: $(modal_args)")
 
-			X_all = OntologicalDataset{eltype(X_all_d),ndims(X_all_d)-2}(modal_args.ontology,X_all_d)
-
-			worldType = modal_args.ontology.worldType
+			WorldType = world_type(modal_args.ontology)
+			# X_all = OntologicalDataset{eltype(X_all_d), ndims(X_all_d)-2, WorldType}(modal_args.ontology,X_all_d)
+			X_all = OntologicalDataset{eltype(X_all_d), ndims(X_all_d)-2}(modal_args.ontology,X_all_d)
 
 			old_logger = global_logger(ConsoleLogger(stderr, log_level))
 			relationSet = nothing
@@ -165,11 +165,11 @@ function testDataset(
 					started = Dates.now()
 					gammas = 
 						if timing_mode == :none
-							DecisionTree.computeGammas(X_all,worldType,test_operators,relationSet,relationId_id,availableModalRelation_ids);
+							DecisionTree.computeGammas(X_all,test_operators,relationSet,relationId_id,availableModalRelation_ids);
 						elseif timing_mode == :time
-							@time DecisionTree.computeGammas(X_all,worldType,test_operators,relationSet,relationId_id,availableModalRelation_ids);
+							@time DecisionTree.computeGammas(X_all,test_operators,relationSet,relationId_id,availableModalRelation_ids);
 						elseif timing_mode == :btime
-							@btime DecisionTree.computeGammas($X_all,$worldType,$test_operators,$relationSet,$relationId_id,$availableModalRelation_ids);
+							@btime DecisionTree.computeGammas($X_all,$test_operators,$relationSet,$relationId_id,$availableModalRelation_ids);
 					end
 					gammas_computation_time = (Dates.now() - started)
 					checkpoint_stdout("Computed gammas in $(human_readable_time(gammas_computation_time))...")
@@ -193,7 +193,7 @@ function testDataset(
 
 			println("(optimized) modal_args = ", modal_args)
 			global_logger(old_logger);
-			(modal_args, gammas, modal_args.ontology.worldType)
+			(modal_args, gammas, world_type(modal_args.ontology))
 		end
 	end
 
@@ -218,7 +218,7 @@ function testDataset(
 			end
 			
 			# Calculate gammas for the full set of instances
-			modal_args, gammas, worldType = calculateGammas(modal_args, X)
+			modal_args, gammas, WorldType = calculateGammas(modal_args, X)
 
 			# Slice instances
 			X, Y, gammas_train =
@@ -229,7 +229,7 @@ function testDataset(
 						(@views ModalLogic.sliceDomainByInstances(X, dataset_slice)),
 						(@views Y[dataset_slice]),
 						if !isnothing(gammas)
-							DecisionTree.sliceGammasByInstances(worldType, gammas, dataset_slice; return_view = true)
+							DecisionTree.sliceGammasByInstances(WorldType, gammas, dataset_slice; return_view = true)
 						else
 							gammas
 						end
@@ -239,7 +239,7 @@ function testDataset(
 
 			# Split in train/test
 			((X_train, Y_train), (X_test, Y_test), gammas_train) =
-				traintestsplit((X, Y), split_threshold, gammas = gammas_train, worldType = worldType)
+				traintestsplit((X, Y), split_threshold, gammas = gammas_train, worldType = WorldType)
 
 			modal_args, (X_train, Y_train), (X_test, Y_test), gammas_train
 		else
@@ -254,7 +254,7 @@ function testDataset(
 			end
 			
 			# Calculate gammas for the training instances
-			modal_args, gammas, worldType = calculateGammas(modal_args, X_train)
+			modal_args, gammas, WorldType = calculateGammas(modal_args, X_train)
 
 			# Slice training instances
 			X_train, Y_train, gammas_train =
@@ -265,7 +265,7 @@ function testDataset(
 					@views ModalLogic.sliceDomainByInstances(X_train, dataset_slice),
 					@views Y_train[dataset_slice],
 					if !isnothing(gammas)
-						DecisionTree.sliceGammasByInstances(worldType, gammas, dataset_slice; return_view = true)
+						DecisionTree.sliceGammasByInstances(WorldType, gammas, dataset_slice; return_view = true)
 					else
 						gammas
 					end

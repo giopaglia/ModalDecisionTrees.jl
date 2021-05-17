@@ -31,19 +31,19 @@ Union{
 	AbstractArray{T, 5}
 } where {WorldType<:AbstractWorld}
 
-# TODO test with array-only gammas = Array{T, 4}(undef, 2, n_worlds(X.ontology.worldType, channel_size(X)), n_instances, n_variables(X))
-# TODO try something like gammas = fill(No: Dict{X.ontology.worldType,NTuple{NTO,T}}(), n_instances, n_variables(X))
-# gammas = Vector{Dict{AbstractRelation,Vector{Dict{X.ontology.worldType,NTuple{NTO,T}}}}}(undef, n_variables(X))		
+# TODO test with array-only gammas = Array{T, 4}(undef, 2, n_worlds(world_type(X.ontology), channel_size(X)), n_instances, n_variables(X))
+# TODO try something like gammas = fill(No: Dict{world_type(X.ontology),NTuple{NTO,T}}(), n_instances, n_variables(X))
+# gammas = Vector{Dict{AbstractRelation,Vector{Dict{world_type(X.ontology),NTuple{NTO,T}}}}}(undef, n_variables(X))		
 # TODO maybe use offset-arrays? https://docs.julialang.org/en/v1/devdocs/offset-arrays/
 
-@inline function checkGammasConsistency(gammas, X::OntologicalDataset{T, N}, worldType::Type{WorldType}, test_operators::AbstractVector{<:TestOperator}, RelationSet::AbstractVector{<:AbstractRelation}) where {T, N, WorldType<:AbstractWorld}
-	if !(gammasIsConsistent(gammas, X, worldType, length(test_operators), length(RelationSet))) # Note: max(2, ...) because at least RelationId and RelationAll are always present.
+@inline function checkGammasConsistency(gammas, X::OntologicalDataset{T, N, WorldType}, test_operators::AbstractVector{<:TestOperator}, RelationSet::AbstractVector{<:AbstractRelation}) where {T, N, WorldType<:AbstractWorld}
+	if !(gammasIsConsistent(gammas, X, length(test_operators), length(RelationSet))) # Note: max(2, ...) because at least RelationId and RelationAll are always present.
 		throw("The provided gammas structure is not consistent with the expected dataset, test operators and/or relations!"
 			* "\n$(typeof(gammas))"
 			* "\n$(eltype(gammas))"
 			* "\n$(size(gammas))"
 			* "\n$(size(X.domain))"
-			* "\n$(worldType)"
+			* "\n$(WorldType)"
 			* "\n$(size(test_operators))"
 			* "\n$(X.ontology)"
 			* "\n$(size(RelationSet))"
@@ -54,7 +54,7 @@ end
 # worldType-agnostic gammas
 @inline initGammas(worldType::Type{WorldType}, T::Type, channel_size::Tuple, n_test_operators::Integer, n_instances::Integer, n_relations::Integer, n_vars::Integer) where {WorldType<:AbstractWorld} =
 	Array{Dict{worldType,NTuple{n_test_operators,T}}, 3}(undef, n_instances, n_relations, n_vars)
-@inline gammasIsConsistent(gammas, X::OntologicalDataset{T, N}, worldType::Type{WorldType}, n_test_operators::Integer, n_relations::Integer) where {T, N, WorldType<:AbstractWorld} =
+@inline gammasIsConsistent(gammas, X::OntologicalDataset{T, N, WorldType}, n_test_operators::Integer, n_relations::Integer) where {T, N, WorldType<:AbstractWorld} =
 	(typeof(gammas)<:AbstractArray{Dict{WorldType,NTuple{n_test_operators,T}}, 3} && size(gammas) == (n_samples(X), n_relations, n_variables(X)))
 @inline setGamma(gammas::AbstractArray{Dict{WorldType,NTuple{NTO,T}}, 3}, w::WorldType, i_instances::Integer, i_relations::Integer, i_vars::Integer, i_test_operator::Integer, threshold::T) where {WorldType<:AbstractWorld,NTO,T} =
 	gammas[i_instances, i_relations, i_vars][w][i_test_operator] = threshold
@@ -79,7 +79,7 @@ end
 # Adimensional case (worldType = ModalLogic.OneWorld)
 @inline initGammas(worldType::Type{ModalLogic.OneWorld}, T::Type, channel_size::Tuple, n_test_operators::Integer, n_instances::Integer, n_relations::Integer, n_vars::Integer) =
 	Array{T, 4}(undef, n_test_operators, n_instances, n_relations, n_vars)
-@inline gammasIsConsistent(gammas, X::OntologicalDataset{T, N}, worldType::Type{ModalLogic.OneWorld}, n_test_operators::Integer, n_relations::Integer) where {T, N}  =
+@inline gammasIsConsistent(gammas, X::OntologicalDataset{T, N, ModalLogic.OneWorld}, n_test_operators::Integer, n_relations::Integer) where {T, N}  =
 	(typeof(gammas)<:AbstractArray{T, 4} && size(gammas) == (n_test_operators, n_samples(X), n_relations, n_variables(X)))
 @inline setGamma(gammas::AbstractArray{T, 4}, w::ModalLogic.OneWorld, i_instances::Integer, i_relations::Integer, i_vars::Integer, i_test_operator::Integer, threshold::T) where {T} =
 	gammas[i_test_operator, i_instances, i_relations, i_vars] = threshold
@@ -105,7 +105,7 @@ end
 # 1D Interval case (worldType = ModalLogic.Interval)
 @inline initGammas(worldType::Type{ModalLogic.Interval}, T::Type, (X,)::NTuple{1,Integer}, n_test_operators::Integer, n_instances::Integer, n_relations::Integer, n_vars::Integer) =
 	Array{T, 6}(undef, X, X+1, n_test_operators, n_instances, n_vars, n_relations)
-@inline gammasIsConsistent(gammas, X::OntologicalDataset{T, N}, worldType::Type{ModalLogic.Interval}, n_test_operators::Integer, n_relations::Integer) where {T, N, WorldType<:AbstractWorld} =
+@inline gammasIsConsistent(gammas, X::OntologicalDataset{T, N, ModalLogic.Interval}, n_test_operators::Integer, n_relations::Integer) where {T, N, WorldType<:AbstractWorld} =
 	(typeof(gammas)<:AbstractArray{T, 6} && size(gammas) == (channel_size(X)[1], channel_size(X)[1]+1, n_test_operators, n_samples(X), n_variables(X), n_relations))
 @inline setGamma(gammas::AbstractArray{T, 6}, w::ModalLogic.Interval, i_instances::Integer, i_relations::Integer, i_vars::Integer, i_test_operators::Integer, threshold::T) where {T} =
 	gammas[w.x, w.y, i_test_operators, i_instances, i_vars, i_relations] = threshold
@@ -136,7 +136,7 @@ end
 # 2D Interval case (worldType = ModalLogic.Interval2D)
 @inline initGammas(worldType::Type{ModalLogic.Interval2D}, T::Type, (X,Y)::NTuple{2,Integer}, n_test_operators::Integer, n_instances::Integer, n_relations::Integer, n_vars::Integer) =
 	Array{T, 8}(undef, n_test_operators, X, X+1, Y, Y+1, n_instances, n_relations, n_vars)
-@inline gammasIsConsistent(gammas, X::OntologicalDataset{T, N}, worldType::Type{ModalLogic.Interval2D}, n_test_operators::Integer, n_relations::Integer) where {T, N, WorldType<:AbstractWorld} =
+@inline gammasIsConsistent(gammas, X::OntologicalDataset{T, N, ModalLogic.Interval2D}, n_test_operators::Integer, n_relations::Integer) where {T, N, WorldType<:AbstractWorld} =
 	(typeof(gammas)<:AbstractArray{T, 8} && size(gammas) == (n_test_operators, channel_size(X)[1], channel_size(X)[1]+1, channel_size(X)[2], channel_size(X)[2]+1, n_samples(X), n_relations, n_variables(X)))
 @inline setGamma(gammas::AbstractArray{T, 8}, w::ModalLogic.Interval2D, i_instances::Integer, i_relations::Integer, i_vars::Integer, i_test_operators::Integer, threshold::T) where {T} =
 	gammas[i_test_operators, w.x.x, w.x.y, w.y.x, w.y.y, i_instances, i_relations, i_vars] = threshold
@@ -222,8 +222,7 @@ end
 # end
 
 function computeGammas(
-		X                  :: OntologicalDataset{T, N},
-		worldType          :: Type{WorldType},
+		X                  :: OntologicalDataset{T, N, WorldType},
 		test_operators     :: AbstractVector{<:TestOperator},
 		relationSet        :: Vector{<:AbstractRelation},
 		relationId_id      :: Int,
@@ -234,7 +233,7 @@ function computeGammas(
 	n_vars = n_variables(X)
 	n_relations = length(relationSet)
 
-	firstWorld = worldType(ModalLogic.firstWorld)
+	firstWorld = WorldType(ModalLogic.firstWorld)
 
 	# With sorted test_operators
 	# TODO fix
@@ -275,11 +274,11 @@ function computeGammas(
 	n_actual_operators = length(test_operators)
 	
 	# Prepare gammas array
-	gammas = initGammas(worldType, T, channel_size(X), n_actual_operators, n_instances, n_relations, n_vars)
+	gammas = initGammas(WorldType, T, channel_size(X), n_actual_operators, n_instances, n_relations, n_vars)
 
 	@logmsg DTOverview "Computing gammas... $(typeof(gammas)) $(size(gammas)) $(test_operators)"
-	# size(X) worldType channel_size(X) test_operators n_instances n_relations n_vars relationSet relationId_id relation_ids size(gammas)
-	# @logmsg DTDebug "Computing gammas..." size(X) worldType channel_size(X) test_operators n_instances n_relations n_vars relationSet relationId_id relation_ids size(gammas)
+	# size(X) WorldType channel_size(X) test_operators n_instances n_relations n_vars relationSet relationId_id relation_ids size(gammas)
+	# @logmsg DTDebug "Computing gammas..." size(X) WorldType channel_size(X) test_operators n_instances n_relations n_vars relationSet relationId_id relation_ids size(gammas)
 
 	# print(actual_test_operators)
 	# readline()
@@ -337,9 +336,9 @@ function computeGammas(
 
 			# Propositional, local
 			channel = ModalLogic.getFeature(X.domain, i, feature) # TODO check that @views actually avoids copying
-			initGammaSlice(worldType, gammas, i, relationId_id, feature)
+			initGammaSlice(WorldType, gammas, i, relationId_id, feature)
 			# println(channel)
-			for w in ModalLogic.enumAccessibles(worldType[], RelationAll, channel)
+			for w in ModalLogic.enumAccessibles(WorldType[], RelationAll, channel)
 				@logmsg DTDetail "World" w
 
 				i_to = 1
@@ -397,17 +396,17 @@ function computeGammas(
 				# # end
 			end # world
 
-			@views gammasId = sliceGammas(worldType, gammas, i, relationId_id, feature)
+			@views gammasId = sliceGammas(WorldType, gammas, i, relationId_id, feature)
 			# Modal
 			for relation_id in relation_ids
 				relation = relationSet[relation_id]
-				initGammaSlice(worldType, gammas, i, relation_id, feature)
+				initGammaSlice(WorldType, gammas, i, relation_id, feature)
 				@logmsg DTDebug "Relation $(relation) (id: $(relation_id))" # "/$(length(relation_ids))"
 				# TODO Check if cur_gammas improves performances
-				@views cur_gammas = sliceGammas(worldType, gammas, i, relation_id, feature)
+				@views cur_gammas = sliceGammas(WorldType, gammas, i, relation_id, feature)
 				# For each world w and each relation, compute the thresholds of all v worlds, with w<R>v
 				worlds = if relation != RelationAll
-						ModalLogic.enumAccessibles(worldType[], RelationAll, channel)
+						ModalLogic.enumAccessibles(WorldType[], RelationAll, channel)
 					else
 						[firstWorld]
 					end
