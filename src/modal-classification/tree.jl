@@ -156,15 +156,15 @@ module treeclassifier
 		#####################
 		## Find best split ##
 		#####################
-		# For each variable
-		@inbounds for feature in random_vars_inds
-			@logmsg DTDebug "Testing feature $(feature)/$(n_vars)..."
+		## Test all conditions
+		# For each relational operator
+		for relation_id in random_relations_ids
+			relation = relationSet[relation_id]
+			@logmsg DTDebug "Testing relation $(relation) (id: $(relation_id))..." # "/$(length(relation_ids))"
 
-			## Test all conditions
-			# For each relational operator
-			for relation_id in random_relations_ids
-				relation = relationSet[relation_id]
-				@logmsg DTDebug "Testing relation $(relation) (id: $(relation_id))..." # "/$(length(relation_ids))"
+			# For each variable
+			@inbounds for feature in random_vars_inds
+				@logmsg DTDebug "Testing feature $(feature)/$(n_vars)..."
 
 				thresholds = Array{T,2}(undef, length(test_operators), n_instances)
 				for (i_test_operator,test_operator) in enumerate(test_operators)
@@ -183,13 +183,12 @@ module treeclassifier
 						else
 							[firstWorld]
 						end
-					for w in worlds
-						# TODO maybe read the specific value of gammas referred to the test_operator?
-						# cur_gammas = DecisionTree.readGamma(gammas, w, indX[i + r_start], relation_id, feature)
-						# @logmsg DTDetail " cur_gammas" w cur_gammas
-						# TODO try using reduce for each operator instead.
-						for (i_test_operator,test_operator) in enumerate(test_operators) # TODO use correct indexing for test_operators
-
+					# TODO maybe read the specific value of gammas referred to the test_operator?
+					# cur_gammas = DecisionTree.readGamma(gammas, w, indX[i + r_start], relation_id, feature)
+					# @logmsg DTDetail " cur_gammas" w cur_gammas
+					# TODO try using reduce for each operator instead.
+					for (i_test_operator,test_operator) in enumerate(test_operators) # TODO use correct indexing for test_operators
+						for w in worlds
 							# thresholds[i_test_operator,i] = ModalLogic.opt(test_operator)(thresholds[i_test_operator,i], cur_gammas[i_test_operator])
 							gamma = DecisionTree.readGamma(gammas, i_test_operator, w, indX[i + r_start], relation_id, feature)
 							thresholds[i_test_operator,i] = ModalLogic.opt(test_operator)(thresholds[i_test_operator,i], gamma)

@@ -98,8 +98,8 @@ test_operators_dict = Dict(
 log_level = DecisionTree.DTOverview
 # log_level = DecisionTree.DTDebug
 
-timing_mode = :none
-# timing_mode = :time
+# timing_mode = :none
+timing_mode = :time
 # timing_mode = :btime
 
 #round_dataset_to_datatype = Float32
@@ -144,10 +144,10 @@ exec_dataset_kwargs =   [(
 							max_points = 5,
 							ma_size = 75,
 							ma_step = 50,
-						),(
-							max_points = 5,
-							ma_size = 45,
-							ma_step = 30,
+						# ),(
+						# 	max_points = 5,
+						# 	ma_size = 45,
+						# 	ma_step = 30,
 						)
 						]
 
