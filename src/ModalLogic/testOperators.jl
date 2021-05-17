@@ -89,24 +89,24 @@ end
 	maximum(readWorld(w,channel))
 end
 
-@inline testCondition(test_operator::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}, featval::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(readWorld(w,channel)  .<= featval)
+@inline testCondition(test_operator::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(readWorld(w,channel)  .<= threshold)
 	# Source: https://stackoverflow.com/questions/47564825/check-if-all-the-elements-of-a-julia-array-are-equal
 	# @inbounds
 	# TODO try:
-	# all(readWorld(w,channel) .>= featval)
+	# all(readWorld(w,channel) .>= threshold)
 	for x in readWorld(w,channel)
-		x >= featval || return false
+		x >= threshold || return false
 	end
 	return true
 end
-@inline testCondition(test_operator::_TestOpLeq, w::AbstractWorld, channel::MatricialChannel{T,N}, featval::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(readWorld(w,channel)  .<= featval)
+@inline testCondition(test_operator::_TestOpLeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(readWorld(w,channel)  .<= threshold)
 	# Source: https://stackoverflow.com/questions/47564825/check-if-all-the-elements-of-a-julia-array-are-equal
-	# @info "WLes" w featval #n readWorld(w,channel)
+	# @info "WLes" w threshold #n readWorld(w,channel)
 	# @inbounds
 	# TODO try:
-	# all(readWorld(w,channel) .<= featval)
+	# all(readWorld(w,channel) .<= threshold)
 	for x in readWorld(w,channel)
-		x <= featval || return false
+		x <= threshold || return false
 	end
 	return true
 end
@@ -195,24 +195,24 @@ end
 	(test_op_partialsort!(test_op,vals) for test_op in test_ops)
 end
 
-@inline testCondition(test_operator::_TestOpGeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}, featval::Number) where {T,N} = begin 
+@inline testCondition(test_operator::_TestOpGeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin 
 	ys = 0
 	# TODO write with reduce, and optimize it (e.g. by stopping early if the condition is reached already)
 	vals = readWorld(w,channel)
 	for x in vals
-		if x >= featval
+		if x >= threshold
 			ys+=1
 		end
 	end
 	(ys/length(vals)) >= test_operator.alpha
 end
 
-@inline testCondition(test_operator::_TestOpLeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}, featval::Number) where {T,N} = begin 
+@inline testCondition(test_operator::_TestOpLeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin 
 	ys = 0
 	# TODO write with reduce, and optimize it (e.g. by stopping early if the condition is reached already)
 	vals = readWorld(w,channel)
 	for x in vals
-		if x <= featval
+		if x <= threshold
 			ys+=1
 		end
 	end

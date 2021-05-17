@@ -160,15 +160,15 @@ channel_size(d::MatricialDataset{T,D}) where {T,D} = size(d)[1:end-2]
 @inline getInstance(d::MatricialDataset{T,2},     idx::Integer) where T = @views d[idx, :]         # N=0
 @inline getInstance(d::MatricialDataset{T,3},     idx::Integer) where T = @views d[:, idx, :]      # N=1
 @inline getInstance(d::MatricialDataset{T,4},     idx::Integer) where T = @views d[:, :, idx, :]   # N=2
-@inline getFeature(d::MatricialDataset{T,2},      idx_i::Integer, idx_f::Integer) where T = @views d[      idx_i, idx_f]::T                     # N=0
-@inline getFeature(d::MatricialDataset{T,3},      idx_i::Integer, idx_f::Integer) where T = @views d[:,    idx_i, idx_f]::MatricialChannel{T,1} # N=1
-@inline getFeature(d::MatricialDataset{T,4},      idx_i::Integer, idx_f::Integer) where T = @views d[:, :, idx_i, idx_f]::MatricialChannel{T,2} # N=2
+@inline getAttribute(d::MatricialDataset{T,2},      idx_i::Integer, idx_f::Integer) where T = @views d[      idx_i, idx_f]::T                     # N=0
+@inline getAttribute(d::MatricialDataset{T,3},      idx_i::Integer, idx_f::Integer) where T = @views d[:,    idx_i, idx_f]::MatricialChannel{T,1} # N=1
+@inline getAttribute(d::MatricialDataset{T,4},      idx_i::Integer, idx_f::Integer) where T = @views d[:, :, idx_i, idx_f]::MatricialChannel{T,2} # N=2
 @inline getChannel(ud::MatricialUniDataset{T,1},  idx::Integer) where T = @views ud[idx]           # N=0
 @inline getChannel(ud::MatricialUniDataset{T,2},  idx::Integer) where T = @views ud[:, idx]        # N=1
 @inline getChannel(ud::MatricialUniDataset{T,3},  idx::Integer) where T = @views ud[:, :, idx]     # N=2
-@inline getInstanceFeature(inst::MatricialInstance{T,1},      idx::Integer) where T = @views inst[      idx]::T                     # N=0
-@inline getInstanceFeature(inst::MatricialInstance{T,2},      idx::Integer) where T = @views inst[:,    idx]::MatricialChannel{T,1} # N=1
-@inline getInstanceFeature(inst::MatricialInstance{T,3},      idx::Integer) where T = @views inst[:, :, idx]::MatricialChannel{T,2} # N=2
+@inline getInstanceAttribute(inst::MatricialInstance{T,1},      idx::Integer) where T = @views inst[      idx]::T                     # N=0
+@inline getInstanceAttribute(inst::MatricialInstance{T,2},      idx::Integer) where T = @views inst[:,    idx]::MatricialChannel{T,1} # N=1
+@inline getInstanceAttribute(inst::MatricialInstance{T,3},      idx::Integer) where T = @views inst[:, :, idx]::MatricialChannel{T,2} # N=2
 
 @inline sliceDomainByInstances(d::MatricialDataset{T,2}, inds::AbstractVector{<:Integer}; return_view = false) where T = if return_view @views d[inds, :]       else d[inds, :]    end # N=0
 @inline sliceDomainByInstances(d::MatricialDataset{T,3}, inds::AbstractVector{<:Integer}; return_view = false) where T = if return_view @views d[:, inds, :]    else d[:, inds, :] end # N=1
@@ -178,7 +178,7 @@ channel_size(d::MatricialDataset{T,D}) where {T,D} = size(d)[1:end-2]
 @inline strip_domain(d::MatricialDataset{T,3}) where T = dropdims(d; dims=1)      # N=1
 @inline strip_domain(d::MatricialDataset{T,4}) where T = dropdims(d; dims=(1,2))  # N=2
 
-# Initialize MatricialUniDataset by slicing across the features dimension
+# Initialize MatricialUniDataset by slicing across the attribute dimension
 MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,2}) where T = Array{T, 1}(undef, n_samples(d))::MatricialUniDataset{T, 1}
 MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,3}) where T = Array{T, 2}(undef, size(d)[1:end-1])::MatricialUniDataset{T, 2}
 MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,4}) where T = Array{T, 3}(undef, size(d)[1:end-1])::MatricialUniDataset{T, 3}
@@ -195,13 +195,6 @@ MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,4}) where T = Arra
 		new{T, N, WorldType}(ontology, domain)
 	end
 
-	# OntologicalDataset{T, N}(ontology::Ontology{WorldType} where {WorldType<:AbstractWorld}, domain) = begin
-	# 	if prod(channel_size(domain)) == 1
-	# 		ontology = ModalLogic.strip_relations(ontology)
-	# 	end
-	# 	new{T, N, WorldType}(ontology, domain)
-	# end
-
 end
 
 size(X::OntologicalDataset{T,N})             where {T,N} = size(X.domain)
@@ -212,24 +205,25 @@ channel_size(X::OntologicalDataset{T,N})     where {T,N} = channel_size(X.domain
 
 
 # TODO use Xf[i,[(:) for i in 1:N]...]
-# @computed @inline getFeature(X::OntologicalDataset{T,N}, idxs::AbstractVector{Integer}, feature::Integer) where T = X[idxs, feature, fill(:, N)...]::AbstractArray{T,N-1}
+# @computed @inline getAttribute(X::OntologicalDataset{T,N}, idxs::AbstractVector{Integer}, attribute::Integer) where T = X[idxs, attribute, fill(:, N)...]::AbstractArray{T,N-1}
 
 # TODO maybe using views can improve performances
-# featureview(X::OntologicalDataset{T,0}, idxs::AbstractVector{Integer}, feature::Integer) = X.domain[idxs, feature]
-# featureview(X::OntologicalDataset{T,1}, idxs::AbstractVector{Integer}, feature::Integer) = view(X.domain, idxs, feature, :)
-# featureview(X::OntologicalDataset{T,2}, idxs::AbstractVector{Integer}, feature::Integer) = view(X.domain, idxs, feature, :, :)
+# attributeview(X::OntologicalDataset{T,0}, idxs::AbstractVector{Integer}, attribute::Integer) = X.domain[idxs, attribute]
+# attributeview(X::OntologicalDataset{T,1}, idxs::AbstractVector{Integer}, attribute::Integer) = view(X.domain, idxs, attribute, :)
+# attributeview(X::OntologicalDataset{T,2}, idxs::AbstractVector{Integer}, attribute::Integer) = view(X.domain, idxs, attribute, :, :)
 
 ################################################################################
 # END Matricial dataset & Ontological dataset
 ################################################################################
 
 include("testOperators.jl")
+include("featureTypes.jl")
 
-display_propositional_test(test_operator::TestOperator, lhs::String, featval::Number) =
-	"$(lhs) $(test_operator) $(featval)"
+display_propositional_test(test_operator::TestOperator, lhs::String, threshold::Number) =
+	"$(lhs) $(test_operator) $(threshold)"
 
-display_modal_test(modality::AbstractRelation, test_operator::TestOperator, featid::Integer, featval::Number) = begin
-	test = display_propositional_test(test_operator, "V$(featid)", featval)
+display_modal_test(modality::AbstractRelation, test_operator::TestOperator, feature::FeatureType, threshold::Number) = begin
+	test = display_propositional_test(test_operator, display_feature(feature), threshold)
 	if modality != RelationId
 		"$(display_existential_modality(modality)) ($test)"
 	else

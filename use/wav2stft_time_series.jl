@@ -11,8 +11,8 @@
 # 	fbanks = hcat(fbanks, energies)
 # 	# fbank_deltas = deltas(fbanks)
 # 	# fbank_deltadeltas = deltas(fbank_deltas)
-# 	# features = hcat(fbanks, fbank_deltas, fbank_deltadeltas)
-# 	features = hcat(fbanks)
+# 	# attributes = hcat(fbanks, fbank_deltas, fbank_deltadeltas)
+# 	attributes = hcat(fbanks)
 # end
 # mel(filepath,FRAME_LENGTH,FRAME_INTERVAL)
 
