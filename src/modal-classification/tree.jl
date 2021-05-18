@@ -284,7 +284,7 @@ module treeclassifier
 			# TODO instead of using memory, here, just use two opposite indices and perform substitutions. indj = n_instances
 			unsatisfied_flags = fill(1, n_instances)
 			for i in 1:n_instances
-				channel = ModalLogic.getAttribute(X.domain, indX[i + r_start], best_feature)
+				channel = ModalLogic.getChannel(X, indX[i + r_start], best_feature)
 				@logmsg DTDetail " Instance $(i)/$(n_instances)" channel Sf[i]
 				(satisfied,S[indX[i + r_start]]) = ModalLogic.modalStep(Sf[i], best_relation, channel, best_test_operator, best_threshold)
 				unsatisfied_flags[i] = !satisfied # I'm using unsatisfied because then sorting puts YES instances first but TODO use the inverse sorting and use satisfied flag instead
@@ -310,7 +310,7 @@ module treeclassifier
 					errStr *= "Different unsatisfied:\ncomputed: $(best_nl)\nactual: $(unsatisfied_flags)\n$(n_instances-sum(unsatisfied_flags))\n"
 				end
 				for i in 1:n_instances
-					errStr *= "$(ModalLogic.getAttribute(X.domain, indX[i + r_start], best_feature))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(S[indX[i + r_start]])\n";
+					errStr *= "$(ModalLogic.getChannel(X, indX[i + r_start], best_feature))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(S[indX[i + r_start]])\n";
 				end
 				# throw(Base.ErrorException(errStr))
 				println("ERROR! " * errStr)
@@ -358,9 +358,9 @@ module treeclassifier
 		n_instances, n_attrs = n_samples(X), n_attributes(X)
 
 		if length(Y) != n_instances
-			throw("dimension mismatch between X and Y ($(size(X.domain)) vs $(size(Y))")
+			throw("dimension mismatch between X and Y ($(size(X)) vs $(size(Y))")
 		elseif length(W) != n_instances
-			throw("dimension mismatch between X and W ($(size(X.domain)) vs $(size(W))")
+			throw("dimension mismatch between X and W ($(size(X)) vs $(size(W))")
 		elseif max_depth < -1
 			throw("unexpected value for max_depth: $(max_depth) (expected:"
 				* " max_depth >= 0, or max_depth = -1 for infinite depth)")
@@ -378,6 +378,7 @@ module treeclassifier
 		end
 
 		# TODO make sure how missing, nothing, NaN & infinite can be handled
+		# TODO make these checks part of the dataset interface!
 		if nothing in X.domain
 			throw("Warning! This algorithm doesn't allow nothing values in X.domain")
 		elseif any(isnan.(X.domain)) # TODO make sure that this does its job.

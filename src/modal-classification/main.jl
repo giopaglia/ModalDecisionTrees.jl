@@ -27,28 +27,28 @@ end
 
 # Build models on (multi-dimensional) arrays
 function build_stump(
-	labels    :: AbstractVector{String},
+	labels        :: AbstractVector{String},
 	bare_dataset  :: MatricialDataset{T,D},
-	weights   :: Union{Nothing,AbstractVector{U}} = nothing;
-	ontology  :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
+	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
+	ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
 	kwargs...) where {T, D, U}
 	build_stump(OntologicalDataset{T,D-2}(ontology,bare_dataset), labels, weights; kwargs...)
 end
 
 function build_tree(
-	labels    :: AbstractVector{String},
+	labels        :: AbstractVector{String},
 	bare_dataset  :: MatricialDataset{T,D},
-	weights   :: Union{Nothing,AbstractVector{U}} = nothing;
-	ontology  :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
+	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
+	ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
 	kwargs...) where {T, D, U}
 	build_tree(OntologicalDataset{T,D-2}(ontology,bare_dataset), labels, weights; kwargs...)
 end
 
 function build_forest(
-	labels    :: AbstractVector{String},
+	labels        :: AbstractVector{String},
 	bare_dataset  :: MatricialDataset{T,D};
-	# weights   :: Union{Nothing,AbstractVector{U}} = nothing TODO
-	ontology  :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
+	# weights       :: Union{Nothing,AbstractVector{U}} = nothing TODO
+	ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
 	kwargs...) where {T, D, U}
 	# build_forest(OntologicalDataset{T,D-2}(ontology,bare_dataset), labels, weights; kwargs...)
 	build_forest(OntologicalDataset{T,D-2}(ontology,bare_dataset), labels; kwargs...)
@@ -60,9 +60,9 @@ end
 
 # Build a stump (tree with depth 1)
 function build_stump(
-		X	  		     :: OntologicalDataset{T, N},
-		Y     		     :: AbstractVector{String},
-		W     		     :: Union{Nothing,AbstractVector{U}} = nothing;
+		X	                :: OntologicalDataset{T, N},
+		Y                 :: AbstractVector{String},
+		W                 :: Union{Nothing,AbstractVector{U}} = nothing;
 		kwargs...) where {T, N, U}
 	@assert !haskey(kwargs, :max_depth) || kwargs.max_depth == 1 "build_stump doesn't allow max_depth != 1"
 	build_tree(X, Y, W; max_depth = 1, kwargs...)
@@ -72,18 +72,18 @@ end
 function build_tree(
 	X                   :: OntologicalDataset{T, N, WorldType},
 	Y                   :: AbstractVector{S},
-	W                   :: Union{Nothing,AbstractVector{U}} = nothing;
-	gammas              :: Union{GammaType{NTO, Ta},Nothing} = nothing,
-	loss                :: Function           = util.entropy,
-	n_subfeatures       :: Function           = x -> x,
-	max_depth           :: Int                = -1,
-	min_samples_leaf    :: Int                = 1,
-	min_purity_increase :: AbstractFloat      = 0.0,
-	min_loss_at_leaf    :: AbstractFloat      = -Inf,
-	n_subrelations      :: Function           = x -> x,
-	initCondition       :: _initCondition     = startWithRelationAll,
-	useRelationAll      :: Bool               = true,
-	useRelationId       :: Bool               = true,
+	W                   :: Union{Nothing,AbstractVector{U}}   = nothing;
+	gammas              :: Union{GammaType{NTO, Ta},Nothing}  = nothing,
+	loss                :: Function                           = util.entropy,
+	n_subfeatures       :: Function                           = x -> x,
+	max_depth           :: Int                                = -1,
+	min_samples_leaf    :: Int                                = 1,
+	min_purity_increase :: AbstractFloat                      = 0.0,
+	min_loss_at_leaf    :: AbstractFloat                      = -Inf,
+	n_subrelations      :: Function                           = x -> x,
+	initCondition       :: _initCondition                     = startWithRelationAll,
+	useRelationAll      :: Bool                               = true,
+	useRelationId       :: Bool                               = true,
 	test_operators      :: AbstractVector{<:TestOperator}     = [TestOpGeq, TestOpLeq],
 	rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {T, N, S, U, NTO, Ta, WorldType<:AbstractWorld}
 
@@ -410,7 +410,7 @@ function build_forest(
 		gammas = computeGammas(X,WorldType,test_operators,relationSet,relationId_id,availableModalRelation_ids)
 	end
 
-	t_samples = n_samples(X.domain)
+	t_samples = n_samples(X)
 	num_samples = floor(Int, partial_sampling * t_samples)
 
 	trees = Vector{Union{DTree{T,S},DTNode{T,S}}}(undef, n_trees)
@@ -423,7 +423,7 @@ function build_forest(
 
 		# v_weights = @views W[inds]
 		v_labels = @views Y[inds]
-		v_features = ModalLogic.sliceDomainByInstances(X.domain, inds; return_view = true)
+		v_features = ModalLogic.getInstances(X, inds; return_view = true)
 		v_gammas = sliceGammasByInstances(WorldType, gammas, inds; return_view = true)
 
 		trees[i] = build_tree(
@@ -449,7 +449,7 @@ function build_forest(
 		# grab out-of-bag indices
 		oob_samples[i] = setdiff(1:t_samples, inds)
 
-		tree_preds = apply_tree(trees[i], ModalLogic.sliceDomainByInstances(X.domain, oob_samples[i]; return_view = true))
+		tree_preds = apply_tree(trees[i], ModalLogic.getInstances(X, oob_samples[i]; return_view = true))
 		cms[i] = confusion_matrix(Y[oob_samples[i]], tree_preds)
 	end
 
@@ -473,7 +473,7 @@ function build_forest(
 			continue
 		end
 
-		v_features = ModalLogic.sliceDomainByInstances(X.domain, [i]; return_view = true)
+		v_features = ModalLogic.getInstances(X, [i]; return_view = true)
 		v_labels = @views Y[[i]]
 
 		# TODO: optimization - no need to pass through ConfusionMatrix
