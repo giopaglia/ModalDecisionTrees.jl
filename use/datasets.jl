@@ -54,9 +54,9 @@ SplatEduardDataset(N) = begin
 	insts,classes = readDataset(data_dir * "test-Eduard/Train-$N.txt", Val(N))
 
 	n_samples = length(insts)
-	n_vars = 2
+	n_attributes = 2
 	
-	X_train = Array{Float64,3}(undef, N, n_samples, n_vars)
+	X_train = Array{Float64,3}(undef, N, n_samples, n_attributes)
 
 	for i in 1:length(insts)
 		X_train[:, i, :] .= hcat(insts[i]...)
@@ -67,9 +67,9 @@ SplatEduardDataset(N) = begin
 	insts,classes = readDataset(data_dir * "test-Eduard/Test-$N.txt", Val(N))
 
 	n_samples = length(insts)
-	n_vars = 2
+	n_attributes = 2
 	
-	X_test = Array{Float64,3}(undef, N, n_samples, n_vars)
+	X_test = Array{Float64,3}(undef, N, n_samples, n_attributes)
 
 	for i in 1:length(insts)
 		X_test[:, i, :] .= hcat(insts[i]...)
@@ -176,9 +176,9 @@ SplatSiemensDataset(rseed::Int, nmeans::Int, hour::Int, distance::Int; subdir = 
 	println(fileWithPath)
 	insts,classes = readDataset(fileWithPath)
 
-	n_vars = 10
+	n_attributes = 10
 
-	X_train = Array{Float64,3}(undef, nmeans*hour, length(insts), n_vars)
+	X_train = Array{Float64,3}(undef, nmeans*hour, length(insts), n_attributes)
 
 	for i in 1:length(insts)
 		# println()
@@ -195,7 +195,7 @@ SplatSiemensDataset(rseed::Int, nmeans::Int, hour::Int, distance::Int; subdir = 
 	fileWithPath = data_dir * subdir * "/TEST_seed" * string(rseed) * "_nMeans" * string(nmeans) * "_hour" * string(hour) * "_distanceFromEvent" * string(distance) * ".arff"
 	insts,classes = readDataset(fileWithPath)
 
-	X_test = Array{Float64,3}(undef, nmeans*hour, length(insts), n_vars)
+	X_test = Array{Float64,3}(undef, nmeans*hour, length(insts), n_attributes)
 
 	for i in 1:length(insts)
 		X_test[:, i, :] .= hcat(insts[i]...)
@@ -284,9 +284,9 @@ SiemensDataset_not_stratified(nmeans::Int, hour::Int, distance::Int; subdir = "S
 	println(fileWithPath)
 	insts,classes = readDataset(fileWithPath)
 
-	n_vars = 10
+	n_attributes = 10
 
-	X = Array{Float64,3}(undef, nmeans*hour, length(insts), n_vars)
+	X = Array{Float64,3}(undef, nmeans*hour, length(insts), n_attributes)
 	Y = Vector{String}(undef, length(insts))
 
 	pos_idx = []
@@ -535,7 +535,7 @@ PaviaDataset() = begin
 	(X, Y) = map(((x)->round.(Int,x)), (X, Y))
 end
 
-SampleLandCoverDataset(dataset::String, n_samples_per_label::Int, sample_size::Union{Int,NTuple{2,Int}}; n_variables::Int = -1, flattened::Bool = false, rng = Random.GLOBAL_RNG :: Random.AbstractRNG) = begin
+SampleLandCoverDataset(dataset::String, n_samples_per_label::Int, sample_size::Union{Int,NTuple{2,Int}}; n_attributes::Int = -1, flattened::Bool = false, rng = Random.GLOBAL_RNG :: Random.AbstractRNG) = begin
 	if typeof(sample_size) <: Int
 		sample_size = (sample_size, sample_size)
 	end
@@ -599,8 +599,8 @@ SampleLandCoverDataset(dataset::String, n_samples_per_label::Int, sample_size::U
 	# cols = sort!([1:size(M,2);], by=i->(v1[i],v2[i]));
 
 	X,Y = size(Xmap)[1], size(Xmap)[2]
-	tot_variables = size(Xmap)[3]
-	inputs = Array{eltype(Xmap),4}(undef, sample_size[1], sample_size[2], n_samples, tot_variables)
+	tot_attributes = size(Xmap)[3]
+	inputs = Array{eltype(Xmap),4}(undef, sample_size[1], sample_size[2], n_samples, tot_attributes)
 	labels = Vector{eltype(Ymap)}(undef, n_samples)
 	sampled_class_counts = Dict(y=>0 for y in existingLabels)
 
@@ -630,10 +630,10 @@ SampleLandCoverDataset(dataset::String, n_samples_per_label::Int, sample_size::U
 		sampled_class_counts[exLabel] += 1
 		# readline()
 	end
-	if n_variables != -1
-		# new_inputs = Array{eltype(Xmap),4}(undef, sample_size[1], sample_size[2], n_samples, n_variables)
-		n_variables
-		inputs = inputs[:,:,:,1:floor(Int, tot_variables/n_variables):tot_variables]
+	if n_attributes != -1
+		# new_inputs = Array{eltype(Xmap),4}(undef, sample_size[1], sample_size[2], n_samples, n_attributes)
+		n_attributes
+		inputs = inputs[:,:,:,1:floor(Int, tot_attributes/n_attributes):tot_attributes]
 		# new_inputs[:,:,:,:] = inputs[:,:,:,:]
 		# inputs = new_inputs
 	end
