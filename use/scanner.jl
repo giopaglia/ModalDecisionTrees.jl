@@ -226,7 +226,7 @@ function testDataset(
 					(X, Y, gammas)
 				else
 					(
-						(@views ModalLogic.sliceDomainByInstances(X, dataset_slice)),
+						(@views ModalLogic.getInstances(X, dataset_slice)),
 						(@views Y[dataset_slice]),
 						if !isnothing(gammas)
 							DecisionTree.sliceGammasByInstances(WorldType, gammas, dataset_slice; return_view = true)
@@ -262,7 +262,7 @@ function testDataset(
 					(X_train, Y_train, gammas)
 				else
 					(
-					@views ModalLogic.sliceDomainByInstances(X_train, dataset_slice),
+					@views ModalLogic.getInstances(X_train, dataset_slice),
 					@views Y_train[dataset_slice],
 					if !isnothing(gammas)
 						DecisionTree.sliceGammasByInstances(WorldType, gammas, dataset_slice; return_view = true)

@@ -12,7 +12,7 @@ traintestsplit((X,Y)::Tuple{MatricialDataset{D,N},AbstractVector{String}}, split
 	if length(unique(Y)) == 2 && is_balanced
 		spl = isodd(spl) ? (spl-1) : spl
 	end
-	X_train = ModalLogic.sliceDomainByInstances(X, 1:spl)
+	X_train = ModalLogic.getInstances(X, 1:spl)
 	Y_train = Y[1:spl]
 	gammas_train = 
 		if isnothing(gammas) # || isnothing(worldType)
@@ -20,7 +20,7 @@ traintestsplit((X,Y)::Tuple{MatricialDataset{D,N},AbstractVector{String}}, split
 		else
 			DecisionTree.sliceGammasByInstances(worldType, gammas, 1:spl; return_view = true)
 		end
-	X_test  = ModalLogic.sliceDomainByInstances(X, spl+1:num_instances)
+	X_test  = ModalLogic.getInstances(X, spl+1:num_instances)
 	Y_test  = Y[spl+1:end]
 	(X_train,Y_train), (X_test,Y_test), gammas_train
 	# end

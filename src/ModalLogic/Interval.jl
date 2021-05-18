@@ -19,7 +19,6 @@ show(io::IO, w::Interval) = begin
 	print(io, ")")
 end
 
-# worldTypeFitsMatricialDataset(::Type{Interval}, ::Type{MatricialDataset{T,3}}) = true
 worldTypeDimensionality(::Type{Interval}) = 1
 
 # Convenience function: enumerate intervals in a given range

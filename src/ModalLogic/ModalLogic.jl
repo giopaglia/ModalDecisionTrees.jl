@@ -9,11 +9,6 @@ using ComputedFieldTypes
 
 export AbstractWorld, AbstractRelation,
 				Ontology, OntologicalDataset,
-				n_samples, n_attributes, channel_size,
-				MatricialInstance,
-				MatricialDataset,
-				MatricialUniDataset,
-				MatricialChannel,
 				WorldSet,
 				display_propositional_test,
 				display_modal_test,
@@ -137,6 +132,12 @@ subscriptnumber(i::AbstractFloat) = subscriptnumber(string(i))
 # BEGIN Matricial dataset & Ontological dataset
 ################################################################################
 
+export n_samples, n_attributes, channel_size,
+				MatricialInstance,
+				MatricialDataset,
+				MatricialUniDataset,
+				MatricialChannel
+
 # A dataset, given by a set of N-dimensional (multi-variate) matrices/instances,
 #  and an Ontology to be interpreted on each of them.
 # - The size of the domain array is {X×Y×...} × n_samples × n_attributes
@@ -154,25 +155,26 @@ const MatricialUniDataset{T,UD} = AbstractArray{T,UD}
 const MatricialDataset{T,D}     = AbstractArray{T,D}
 
 n_samples(d::MatricialDataset{T,D})    where {T,D} = size(d, D-1)
-n_attributes(d::MatricialDataset{T,D})  where {T,D} = size(d, D)
+n_attributes(d::MatricialDataset{T,D}) where {T,D} = size(d, D)
 channel_size(d::MatricialDataset{T,D}) where {T,D} = size(d)[1:end-2]
 
 @inline getInstance(d::MatricialDataset{T,2},     idx::Integer) where T = @views d[idx, :]         # N=0
 @inline getInstance(d::MatricialDataset{T,3},     idx::Integer) where T = @views d[:, idx, :]      # N=1
 @inline getInstance(d::MatricialDataset{T,4},     idx::Integer) where T = @views d[:, :, idx, :]   # N=2
-@inline getAttribute(d::MatricialDataset{T,2},      idx_i::Integer, idx_f::Integer) where T = @views d[      idx_i, idx_f]::T                     # N=0
-@inline getAttribute(d::MatricialDataset{T,3},      idx_i::Integer, idx_f::Integer) where T = @views d[:,    idx_i, idx_f]::MatricialChannel{T,1} # N=1
-@inline getAttribute(d::MatricialDataset{T,4},      idx_i::Integer, idx_f::Integer) where T = @views d[:, :, idx_i, idx_f]::MatricialChannel{T,2} # N=2
-@inline getChannel(ud::MatricialUniDataset{T,1},  idx::Integer) where T = @views ud[idx]           # N=0
-@inline getChannel(ud::MatricialUniDataset{T,2},  idx::Integer) where T = @views ud[:, idx]        # N=1
-@inline getChannel(ud::MatricialUniDataset{T,3},  idx::Integer) where T = @views ud[:, :, idx]     # N=2
+
+@inline getInstances(d::MatricialDataset{T,2}, inds::AbstractVector{<:Integer}; return_view = false) where T = if return_view @views d[inds, :]       else d[inds, :]    end # N=0
+@inline getInstances(d::MatricialDataset{T,3}, inds::AbstractVector{<:Integer}; return_view = false) where T = if return_view @views d[:, inds, :]    else d[:, inds, :] end # N=1
+@inline getInstances(d::MatricialDataset{T,4}, inds::AbstractVector{<:Integer}; return_view = false) where T = if return_view @views d[:, :, inds, :] else d[:, inds, :] end # N=2
+
+@inline getChannel(d::MatricialDataset{T,2},      idx_i::Integer, idx_f::Integer) where T = @views d[      idx_i, idx_f]::T                     # N=0
+@inline getChannel(d::MatricialDataset{T,3},      idx_i::Integer, idx_f::Integer) where T = @views d[:,    idx_i, idx_f]::MatricialChannel{T,1} # N=1
+@inline getChannel(d::MatricialDataset{T,4},      idx_i::Integer, idx_f::Integer) where T = @views d[:, :, idx_i, idx_f]::MatricialChannel{T,2} # N=2
+# @inline getUniChannel(ud::MatricialUniDataset{T,1},  idx::Integer) where T = @views ud[idx]           # N=0
+# @inline getUniChannel(ud::MatricialUniDataset{T,2},  idx::Integer) where T = @views ud[:, idx]        # N=1
+# @inline getUniChannel(ud::MatricialUniDataset{T,3},  idx::Integer) where T = @views ud[:, :, idx]     # N=2
 @inline getInstanceAttribute(inst::MatricialInstance{T,1},      idx::Integer) where T = @views inst[      idx]::T                     # N=0
 @inline getInstanceAttribute(inst::MatricialInstance{T,2},      idx::Integer) where T = @views inst[:,    idx]::MatricialChannel{T,1} # N=1
 @inline getInstanceAttribute(inst::MatricialInstance{T,3},      idx::Integer) where T = @views inst[:, :, idx]::MatricialChannel{T,2} # N=2
-
-@inline sliceDomainByInstances(d::MatricialDataset{T,2}, inds::AbstractVector{<:Integer}; return_view = false) where T = if return_view @views d[inds, :]       else d[inds, :]    end # N=0
-@inline sliceDomainByInstances(d::MatricialDataset{T,3}, inds::AbstractVector{<:Integer}; return_view = false) where T = if return_view @views d[:, inds, :]    else d[:, inds, :] end # N=1
-@inline sliceDomainByInstances(d::MatricialDataset{T,4}, inds::AbstractVector{<:Integer}; return_view = false) where T = if return_view @views d[:, :, inds, :] else d[:, inds, :] end # N=2
 
 @inline strip_domain(d::MatricialDataset{T,2}) where T = d  # N=0
 @inline strip_domain(d::MatricialDataset{T,3}) where T = dropdims(d; dims=1)      # N=1
@@ -200,12 +202,15 @@ end
 size(X::OntologicalDataset{T,N})             where {T,N} = size(X.domain)
 size(X::OntologicalDataset{T,N}, i::Integer) where {T,N} = size(X.domain, i)
 n_samples(X::OntologicalDataset{T,N})        where {T,N} = n_samples(X.domain)
-n_attributes(X::OntologicalDataset{T,N})      where {T,N} = n_attributes(X.domain)
+n_attributes(X::OntologicalDataset{T,N})     where {T,N} = n_attributes(X.domain)
 channel_size(X::OntologicalDataset{T,N})     where {T,N} = channel_size(X.domain)
 
+@inline getInstance(d::OntologicalDataset{T,N,WT}, args::Vararg) where {T,N,WT}  = getInstance(d.domain, args...)
+@inline getInstances(d::OntologicalDataset{T,N,WT}, args::Vararg) where {T,N,WT} = getInstances(d.domain, args...)
+@inline getChannel(d::OntologicalDataset{T,N,WT},   args::Vararg) where {T,N,WT} = getChannel(d.domain, args...)
 
 # TODO use Xf[i,[(:) for i in 1:N]...]
-# @computed @inline getAttribute(X::OntologicalDataset{T,N}, idxs::AbstractVector{Integer}, attribute::Integer) where T = X[idxs, attribute, fill(:, N)...]::AbstractArray{T,N-1}
+# @computed @inline getChannel(X::OntologicalDataset{T,N}, idxs::AbstractVector{Integer}, attribute::Integer) where T = X[idxs, attribute, fill(:, N)...]::AbstractArray{T,N-1}
 
 # TODO maybe using views can improve performances
 # attributeview(X::OntologicalDataset{T,0}, idxs::AbstractVector{Integer}, attribute::Integer) = X.domain[idxs, attribute]
