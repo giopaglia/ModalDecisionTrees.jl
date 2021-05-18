@@ -64,12 +64,12 @@ module treeclassifier
 
 							loss_function       :: Function,
 							node                :: NodeMeta{T,<:AbstractFloat}, # the node to split
-							max_features        :: Int,                      # number of features to use to split
+							n_subfeatures       :: Int,                      # number of features to use to split
 							max_depth           :: Int,                      # the maximum depth of the resultant tree
 							min_samples_leaf    :: Int,                      # the minimum number of samples each leaf needs to have
 							min_loss_at_leaf    :: AbstractFloat,            # maximum purity allowed on a leaf
 							min_purity_increase :: AbstractFloat,            # minimum purity increase needed for a split
-							max_relations       :: Function,
+							n_subrelations      :: Function,
 							test_operators      :: AbstractVector{<:TestOperator},
 							
 							indX                :: AbstractVector{Int},      # an array of sample indices (we split using samples in indX[node.region])
@@ -144,15 +144,13 @@ module treeclassifier
 		best_nl = -1
 		# TODO bring back best_unsatisfied = []
 		
-		# at this point max_features can be = n_variables(X) or the selected number of features
-		n_vars = max_features
-		# array of indices of features/variables
-		# using "sample" function instead of "randperm" allow to insert weights for variables which may be wanted in the future 
-		features_inds = StatsBase.sample(rng, Vector(1:n_variables(X)), n_vars, replace = false)
+		# array of indices of features
+		# Note: using "sample" function instead of "randperm" allows to insert weights for features which may be wanted in the future 
+		features_inds = StatsBase.sample(rng, Vector(1:n_attributes(X)), n_subfeatures, replace = false)
 
 		# use a subset of relations
 		# TODO does this go inside the for on the features?
-		relations_ids = StatsBase.sample(rng, relation_ids, Int(max_relations(length(relation_ids))), replace = false)
+		relations_ids = StatsBase.sample(rng, relation_ids, Int(n_subrelations(length(relation_ids))), replace = false)
 
 		#####################
 		## Find best split ##
@@ -163,9 +161,9 @@ module treeclassifier
 			relation = relationSet[relation_id]
 			@logmsg DTDebug "Testing relation $(relation) (id: $(relation_id))..." # "/$(length(relation_ids))"
 
-			# For each variable
+			# For each feature
 			@inbounds for feature in features_inds
-				@logmsg DTDebug "Testing feature $(feature)/$(n_vars)..."
+				@logmsg DTDebug "Testing feature $(feature)/$(n_subfeatures)..."
 				relation_real = featureSet[feature]
 
 				thresholds = Array{T,2}(undef, length(test_operators), n_instances)
@@ -352,12 +350,12 @@ module treeclassifier
 			Y                   :: AbstractVector{S},
 			W                   :: AbstractVector{U},
 			loss_function       :: Function,
-			max_features        :: Int,
+			n_subfeatures       :: Int,
 			max_depth           :: Int,
 			min_samples_leaf    :: Int,
 			min_loss_at_leaf    :: AbstractFloat,
 			min_purity_increase :: AbstractFloat) where {T, S, U, N}
-			n_instances, n_vars = n_samples(X), n_variables(X)
+		n_instances, n_attrs = n_samples(X), n_attributes(X)
 
 		if length(Y) != n_instances
 			throw("dimension mismatch between X and Y ($(size(X.domain)) vs $(size(Y))")
@@ -366,11 +364,11 @@ module treeclassifier
 		elseif max_depth < -1
 			throw("unexpected value for max_depth: $(max_depth) (expected:"
 				* " max_depth >= 0, or max_depth = -1 for infinite depth)")
-		elseif n_vars < max_features
-			throw("total number of features $(n_vars) is less than the number "
-				* "of features required at each split $(max_features)")
-		elseif max_features < 0
-			throw("total number of features $(max_features) must be >= zero ")
+		elseif n_attrs < n_subfeatures
+			throw("total number of features $(n_attrs) is less than the number "
+				* "of features required at each split $(n_subfeatures)")
+		elseif n_subfeatures < 0
+			throw("total number of features $(n_subfeatures) must be >= zero ")
 		elseif min_samples_leaf < 1
 			throw("min_samples_leaf must be a positive integer "
 				* "(given $(min_samples_leaf))")
@@ -511,12 +509,12 @@ module treeclassifier
 			W                       :: AbstractVector{U},
 			loss                    :: Function,
 			n_classes               :: Int,
-			max_features            :: Int,
+			n_subfeatures           :: Int,
 			max_depth               :: Int,
 			min_samples_leaf        :: Int, # TODO generalize to min_samples_leaf_relative and min_weight_leaf
 			min_purity_increase     :: AbstractFloat,
 			min_loss_at_leaf        :: AbstractFloat,
-			max_relations           :: Function,
+			n_subrelations           :: Function,
 			initCondition           :: DecisionTree._initCondition,
 			useRelationAll          :: Bool,
 			useRelationId           :: Bool,
@@ -553,7 +551,7 @@ module treeclassifier
 		Wf = Vector{U}(undef, n_instances)
 		Sf = Vector{WorldSet{WorldType}}(undef, n_instances)
 		
-		featureSet = 1:n_variables(X)
+		featureSet = 1:n_attributes(X)
 
 		(
 			# X,
@@ -594,12 +592,12 @@ module treeclassifier
 			_split!(
 				X, Y, W, S,
 				loss, node,
-				max_features,
+				n_subfeatures,
 				max_depth,
 				min_samples_leaf,
 				min_loss_at_leaf,
 				min_purity_increase,
-				max_relations,
+				n_subrelations,
 				test_operators,
 				indX,
 				nc, ncl, ncr, Xf, Yf, Wf, Sf, gammas,
@@ -630,12 +628,12 @@ module treeclassifier
 			W                       :: Union{Nothing, AbstractVector{U}},
 			gammas                  :: Union{GammaType{NTO, Ta},Nothing} = nothing,
 			loss = util.entropy     :: Function,
-			max_features            :: Int,
+			n_subfeatures           :: Int,
 			max_depth               :: Int,
 			min_samples_leaf        :: Int,
 			min_purity_increase     :: AbstractFloat,
 			min_loss_at_leaf        :: AbstractFloat, # TODO add this to scikit's interface.
-			max_relations           :: Function,
+			n_subrelations           :: Function,
 			initCondition           :: DecisionTree._initCondition,
 			useRelationAll          :: Bool,
 			useRelationId           :: Bool,
@@ -657,7 +655,7 @@ module treeclassifier
 		check_input(
 			X, Y, W,
 			loss,
-			max_features,
+			n_subfeatures,
 			max_depth,
 			min_samples_leaf,
 			min_loss_at_leaf,
@@ -673,12 +671,12 @@ module treeclassifier
 			X, Y_, W,
 			loss,
 			length(labels),
-			max_features,
+			n_subfeatures,
 			max_depth,
 			min_samples_leaf,
 			min_purity_increase,
 			min_loss_at_leaf,
-			max_relations,
+			n_subrelations,
 			initCondition,
 			useRelationAll,
 			useRelationId,

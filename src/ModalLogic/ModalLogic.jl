@@ -9,7 +9,7 @@ using ComputedFieldTypes
 
 export AbstractWorld, AbstractRelation,
 				Ontology, OntologicalDataset,
-				n_samples, n_variables, channel_size,
+				n_samples, n_attributes, channel_size,
 				MatricialInstance,
 				MatricialDataset,
 				MatricialUniDataset,
@@ -139,7 +139,7 @@ subscriptnumber(i::AbstractFloat) = subscriptnumber(string(i))
 
 # A dataset, given by a set of N-dimensional (multi-variate) matrices/instances,
 #  and an Ontology to be interpreted on each of them.
-# - The size of the domain array is {X×Y×...} × n_samples × n_variables
+# - The size of the domain array is {X×Y×...} × n_samples × n_attributes
 # - N is the dimensionality of the domain itself (e.g. 1 for the temporal case, 2 for the spatialCase)
 #    and its dimensions are denoted as X,Y,Z,...
 # - A uni-variate dataset is of dimensionality S=N+1
@@ -154,7 +154,7 @@ const MatricialUniDataset{T,UD} = AbstractArray{T,UD}
 const MatricialDataset{T,D}     = AbstractArray{T,D}
 
 n_samples(d::MatricialDataset{T,D})    where {T,D} = size(d, D-1)
-n_variables(d::MatricialDataset{T,D})  where {T,D} = size(d, D)
+n_attributes(d::MatricialDataset{T,D})  where {T,D} = size(d, D)
 channel_size(d::MatricialDataset{T,D}) where {T,D} = size(d)[1:end-2]
 
 @inline getInstance(d::MatricialDataset{T,2},     idx::Integer) where T = @views d[idx, :]         # N=0
@@ -200,7 +200,7 @@ end
 size(X::OntologicalDataset{T,N})             where {T,N} = size(X.domain)
 size(X::OntologicalDataset{T,N}, i::Integer) where {T,N} = size(X.domain, i)
 n_samples(X::OntologicalDataset{T,N})        where {T,N} = n_samples(X.domain)
-n_variables(X::OntologicalDataset{T,N})      where {T,N} = n_variables(X.domain)
+n_attributes(X::OntologicalDataset{T,N})      where {T,N} = n_attributes(X.domain)
 channel_size(X::OntologicalDataset{T,N})     where {T,N} = channel_size(X.domain)
 
 
