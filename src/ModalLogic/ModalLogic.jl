@@ -151,7 +151,7 @@ const MatricialChannel{T,N}     = AbstractArray{T,N}
 const MatricialInstance{T,MN}   = AbstractArray{T,MN}
 # TODO: It'd be nice to define these as a function of N, https://github.com/JuliaLang/julia/issues/8322
 #   e.g. const MatricialUniDataset{T,N}       = AbstractArray{T,N+1}
-const MatricialUniDataset{T,UD} = AbstractArray{T,UD}
+# const MatricialUniDataset{T,UD} = AbstractArray{T,UD}
 const MatricialDataset{T,D}     = AbstractArray{T,D}
 
 n_samples(d::MatricialDataset{T,D})    where {T,D} = size(d, D-1)
@@ -181,9 +181,9 @@ channel_size(d::MatricialDataset{T,D}) where {T,D} = size(d)[1:end-2]
 @inline strip_domain(d::MatricialDataset{T,4}) where T = dropdims(d; dims=(1,2))  # N=2
 
 # Initialize MatricialUniDataset by slicing across the attribute dimension
-MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,2}) where T = Array{T, 1}(undef, n_samples(d))::MatricialUniDataset{T, 1}
-MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,3}) where T = Array{T, 2}(undef, size(d)[1:end-1])::MatricialUniDataset{T, 2}
-MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,4}) where T = Array{T, 3}(undef, size(d)[1:end-1])::MatricialUniDataset{T, 3}
+# MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,2}) where T = Array{T, 1}(undef, n_samples(d))::MatricialUniDataset{T, 1}
+# MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,3}) where T = Array{T, 2}(undef, size(d)[1:end-1])::MatricialUniDataset{T, 2}
+# MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,4}) where T = Array{T, 3}(undef, size(d)[1:end-1])::MatricialUniDataset{T, 3}
 
 # TODO generalize as init_Xf(X::OntologicalDataset{T, N}) where T = Array{T, N+1}(undef, size(X)[3:end]..., n_samples(X))
 @computed struct OntologicalDataset{T, N, WorldType<:AbstractWorld}
