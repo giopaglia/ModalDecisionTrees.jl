@@ -135,24 +135,25 @@ subscriptnumber(i::AbstractFloat) = subscriptnumber(string(i))
 export n_samples, n_attributes, channel_size,
 				MatricialInstance,
 				MatricialDataset,
-				MatricialUniDataset,
+				# MatricialUniDataset,
 				MatricialChannel
 
-# A dataset, given by a set of N-dimensional (multi-variate) matrices/instances,
+# A dataset, given by a set of N-dimensional (multi-attribute) matrices/instances,
 #  and an Ontology to be interpreted on each of them.
 # - The size of the domain array is {X×Y×...} × n_samples × n_attributes
-# - N is the dimensionality of the domain itself (e.g. 1 for the temporal case, 2 for the spatialCase)
+# - N is the dimensionality of the domain itself (e.g. 1 for the temporal case, 2 for the spatial case)
 #    and its dimensions are denoted as X,Y,Z,...
-# - A uni-variate dataset is of dimensionality S=N+1
-# - A multi-variate dataset is of dimensionality D=N+1+1
+# - A uni-attribute dataset is of dimensionality S=N+1
+# - A multi-attribute dataset is of dimensionality D=N+1+1
 #  https://discourse.julialang.org/t/addition-to-parameter-of-parametric-type/20059/5
 
-const MatricialChannel{T,N}     = AbstractArray{T,N}
-const MatricialInstance{T,MN}   = AbstractArray{T,MN}
 # TODO: It'd be nice to define these as a function of N, https://github.com/JuliaLang/julia/issues/8322
 #   e.g. const MatricialUniDataset{T,N}       = AbstractArray{T,N+1}
-# const MatricialUniDataset{T,UD} = AbstractArray{T,UD}
+
 const MatricialDataset{T,D}     = AbstractArray{T,D}
+# const MatricialUniDataset{T,UD} = AbstractArray{T,UD}
+const MatricialChannel{T,N}     = AbstractArray{T,N}
+const MatricialInstance{T,MN}   = AbstractArray{T,MN}
 
 n_samples(d::MatricialDataset{T,D})    where {T,D} = size(d, D-1)
 n_attributes(d::MatricialDataset{T,D}) where {T,D} = size(d, D)
@@ -176,9 +177,9 @@ channel_size(d::MatricialDataset{T,D}) where {T,D} = size(d)[1:end-2]
 @inline getInstanceAttribute(inst::MatricialInstance{T,2},      idx::Integer) where T = @views inst[:,    idx]::MatricialChannel{T,1} # N=1
 @inline getInstanceAttribute(inst::MatricialInstance{T,3},      idx::Integer) where T = @views inst[:, :, idx]::MatricialChannel{T,2} # N=2
 
-@inline strip_domain(d::MatricialDataset{T,2}) where T = d  # N=0
-@inline strip_domain(d::MatricialDataset{T,3}) where T = dropdims(d; dims=1)      # N=1
-@inline strip_domain(d::MatricialDataset{T,4}) where T = dropdims(d; dims=(1,2))  # N=2
+# @inline strip_domain(d::MatricialDataset{T,2}) where T = d  # N=0
+# @inline strip_domain(d::MatricialDataset{T,3}) where T = dropdims(d; dims=1)      # N=1
+# @inline strip_domain(d::MatricialDataset{T,4}) where T = dropdims(d; dims=(1,2))  # N=2
 
 # Initialize MatricialUniDataset by slicing across the attribute dimension
 # MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,2}) where T = Array{T, 1}(undef, n_samples(d))::MatricialUniDataset{T, 1}
