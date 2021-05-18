@@ -80,7 +80,7 @@ module treeclassifier
 							ncl                 :: AbstractVector{U},   # ncl maintains the counts of labels on the left
 							ncr                 :: AbstractVector{U},   # ncr maintains the counts of labels on the right
 							
-							Xf                  :: MatricialUniDataset{T, M}, # Note that X and Xf are not used when using Gammas
+							# Xf                  :: MatricialUniDataset{T, M}, # Note that X and Xf are not used when using Gammas
 							Yf                  :: AbstractVector{Label},
 							Wf                  :: AbstractVector{U},
 							Sf                  :: AbstractVector{WorldSet{WorldType}},
@@ -547,7 +547,7 @@ module treeclassifier
 		ncr = Vector{U}(undef, n_classes)
 
 		# Array memory for dataset
-		Xf = Array{T, N+1}(undef, channel_size(X)..., n_instances)
+		# Xf = Array{T, N+1}(undef, channel_size(X)..., n_instances)
 		Yf = Vector{Label}(undef, n_instances)
 		Wf = Vector{U}(undef, n_instances)
 		Sf = Vector{WorldSet{WorldType}}(undef, n_instances)
@@ -601,7 +601,9 @@ module treeclassifier
 				n_subrelations,
 				test_operators,
 				indX,
-				nc, ncl, ncr, Xf, Yf, Wf, Sf, gammas,
+				nc, ncl, ncr, 
+				# Xf, 
+				Yf, Wf, Sf, gammas,
 				relationSet,
 				(onlyUseRelationAll ? [relationAll_id] : availableRelation_ids),
 				featureSet,
