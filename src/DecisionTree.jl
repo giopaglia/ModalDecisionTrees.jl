@@ -146,73 +146,73 @@ modal_height(tree::DTInternal) = (is_modal_node(tree) ? 1 : 0) + max(modal_heigh
 modal_height(t::DTree) = modal_height(t.root)
 
 function print_tree(leaf::DTLeaf, depth=-1, indent=0, indent_guides=[]; n_tot_inst = false)
-		matches = findall(leaf.values .== leaf.majority)
+	matches = findall(leaf.values .== leaf.majority)
 
-		n_correct =length(matches)
-		n_inst = length(leaf.values)
+	n_correct =length(matches)
+	n_inst = length(leaf.values)
 
-		confidence = n_correct/n_inst
-		
-		metrics = "conf: $(confidence)"
-		
-		if n_tot_inst != false
-			support = n_inst/n_tot_inst
-			metrics *= ", supp = $(support)"
-			# lift = ...
-			# metrics *= ", lift = $(lift)"
-			# conv = ...
-			# metrics *= ", conv = $(conv)"
-		end
+	confidence = n_correct/n_inst
+	
+	metrics = "conf: $(confidence)"
+	
+	if n_tot_inst != false
+		support = n_inst/n_tot_inst
+		metrics *= ", supp = $(support)"
+		# lift = ...
+		# metrics *= ", lift = $(lift)"
+		# conv = ...
+		# metrics *= ", conv = $(conv)"
+	end
 
-		println("$(leaf.majority) : $(n_correct)/$(n_inst) ($(metrics))") # TODO print purity?
+	println("$(leaf.majority) : $(n_correct)/$(n_inst) ($(metrics))") # TODO print purity?
 end
 
 function print_tree(tree::DTInternal, depth=-1, indent=0, indent_guides=[]; n_tot_inst = false)
-		if depth == indent
-				println()
-				return
-		end
+	if depth == indent
+		println()
+		return
+	end
 
-		println(display_modal_test(tree.modality, tree.test_operator, ModalLogic.SimpleFeatureType(tree.test_operator, tree.i_attr), tree.threshold)) # TODO print purity?
-		# indent_str = " " ^ indent
-		indent_str = reduce(*, [i == 1 ? "│" : " " for i in indent_guides])
-		# print(indent_str * "╭✔")
-		print(indent_str * "✔ ")
-		print_tree(tree.left, depth, indent + 1, [indent_guides..., 1], n_tot_inst = n_tot_inst)
-		# print(indent_str * "╰✘")
-		print(indent_str * "✘ ")
-		print_tree(tree.right, depth, indent + 1, [indent_guides..., 0], n_tot_inst = n_tot_inst)
+	println(display_modal_test(tree.modality, tree.test_operator, ModalLogic.SimpleFeatureType(tree.test_operator, tree.i_attr), tree.threshold)) # TODO print purity?
+	# indent_str = " " ^ indent
+	indent_str = reduce(*, [i == 1 ? "│" : " " for i in indent_guides])
+	# print(indent_str * "╭✔")
+	print(indent_str * "✔ ")
+	print_tree(tree.left, depth, indent + 1, [indent_guides..., 1], n_tot_inst = n_tot_inst)
+	# print(indent_str * "╰✘")
+	print(indent_str * "✘ ")
+	print_tree(tree.right, depth, indent + 1, [indent_guides..., 0], n_tot_inst = n_tot_inst)
 end
 
 function print_tree(tree::DTree; n_tot_inst = false)
-		println("worldType: $(tree.worldType)")
-		println("initCondition: $(tree.initCondition)")
-		print_tree(tree.root, n_tot_inst = n_tot_inst)
+	println("worldType: $(tree.worldType)")
+	println("initCondition: $(tree.initCondition)")
+	print_tree(tree.root, n_tot_inst = n_tot_inst)
 end
 
 function show(io::IO, leaf::DTLeaf)
-		println(io, "Decision Leaf")
-		println(io, "Majority: $(leaf.majority)")
-		println(io, "Samples:  $(length(leaf.values))")
-		print_tree(leaf)
+	println(io, "Decision Leaf")
+	println(io, "Majority: $(leaf.majority)")
+	println(io, "Samples:  $(length(leaf.values))")
+	print_tree(leaf)
 end
 
 function show(io::IO, tree::DTInternal)
-		println(io, "Decision Node")
-		println(io, "Leaves: $(length(tree))")
-		println(io, "Tot nodes: $(num_nodes(tree))")
-		println(io, "Height: $(height(tree))")
-		println(io, "Modal height:  $(modal_height(tree))")
-		print_tree(tree)
+	println(io, "Decision Node")
+	println(io, "Leaves: $(length(tree))")
+	println(io, "Tot nodes: $(num_nodes(tree))")
+	println(io, "Height: $(height(tree))")
+	println(io, "Modal height:  $(modal_height(tree))")
+	print_tree(tree)
 end
 
 function show(io::IO, tree::DTree)
-		println(io, "Decision Tree")
-		println(io, "Leaves: $(length(tree))")
-		println(io, "Tot nodes: $(num_nodes(tree))")
-		println(io, "Height: $(height(tree))")
-		println(io, "Modal height:  $(modal_height(tree))")
-		print_tree(tree)
+	println(io, "Decision Tree")
+	println(io, "Leaves: $(length(tree))")
+	println(io, "Tot nodes: $(num_nodes(tree))")
+	println(io, "Height: $(height(tree))")
+	println(io, "Modal height:  $(modal_height(tree))")
+	print_tree(tree)
 end
 
 
@@ -225,12 +225,12 @@ function print_forest(forest::Forest)
 end
 
 function show(io::IO, forest::Forest)
-		println(io, "Forest")
-		println(io, "Num trees: $(length(forest))")
-		println(io, "Out-Of-Bag Error: $(forest.oob_error)")
-		println(io, "ConfusionMatrix: $(forest.cm)")
-		println(io, "Trees:")
-		print_forest(forest)
+	println(io, "Forest")
+	println(io, "Num trees: $(length(forest))")
+	println(io, "Out-Of-Bag Error: $(forest.oob_error)")
+	println(io, "ConfusionMatrix: $(forest.cm)")
+	println(io, "Trees:")
+	print_forest(forest)
 end
 
 end # module
