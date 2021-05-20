@@ -78,8 +78,6 @@ modal_args = (
 	useRelationId = true,
 	useRelationAll = false,
 	ontology = getIntervalOntologyOfDim(Val(1)),
-#	test_operators = [TestOpGeq_70, TestOpLeq_70],
-#	test_operators = [TestOpGeq_80, TestOpLeq_80],
 #	test_operators = [TestOpGeq, TestOpLeq],
 )
 
@@ -89,14 +87,16 @@ modal_args = (
 exec_test_operators = [ "TestOp_80" ]
 
 test_operators_dict = Dict(
-	"TestOp_70" => [TestOpGeq_70, TestOpLeq_70],
+	# "TestOp_70" => [TestOpGeq_70, TestOpLeq_70],
 	"TestOp_80" => [TestOpGeq_80, TestOpLeq_80],
-	"TestOp" => [TestOpGeq, TestOpLeq],
+	# "TestOp_80" => [(ModalLogic.get_aggr_softmin_f(.8), ≥), (ModalLogic.get_aggr_softmax_f(.8), ≤)],
+	# "TestOp" => [TestOpGeq, TestOpLeq],
 )
 
 # log_level = Logging.Warn
 log_level = DecisionTree.DTOverview
 # log_level = DecisionTree.DTDebug
+# log_level = DecisionTree.DTDetail
 
 # timing_mode = :none
 timing_mode = :time
@@ -266,8 +266,10 @@ for i in exec_runs
 
 	println("DATA SEED: $(dataset_seed)")
 
+	# TODO actually,no need to recreate the dataset when changing, say, testoperators. Make a distinction between dataset params and run params
 	for params_combination in IterTools.product(exec_ranges...)
 		# Unpack params combination
+		# TODO actually,no need to recreate the dataset when changing, say, testoperators. Make a distinction between dataset params and run params
 		params_namedtuple = (zip(map(Symbol, exec_ranges_names), params_combination) |> Dict |> namedtuple)
 
 		# FILTER ITERATIONS
@@ -346,9 +348,6 @@ for i in exec_runs
 					JLD2.@save (dataset_file_name * "-balanced-test.jld")  balanced_test
 				end
 
-				dataset
-				# Y = 1 .- Y
-				# Y = [ (y == 0 ? "yes" : "no") for y in Y]
 				dataset = (X,Y)
 			else
 				checkpoint_stdout("Creating dataset...")
@@ -360,6 +359,13 @@ for i in exec_runs
 					preprocess_wavs = cur_preprocess_wavs,
 					use_full_mfcc = use_full_mfcc
 				)
+				
+				# TODO move this change in the creation of datasets in the dataset-loading functions
+				(X,Y) = dataset
+				D = ndims(X)
+				X = permutedims(X, ((1:D-2)..., D, D-1))
+				dataset = (X,Y)
+
 				n_per_class = min(n_pos, n_neg)
 				# using Random
 				# n_pos = 10

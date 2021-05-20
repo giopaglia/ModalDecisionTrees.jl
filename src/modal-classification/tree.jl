@@ -626,6 +626,7 @@ module treeclassifier
 			# In this implementation, we don't accept a generic Kripke model in the explicit form of
 			#  a graph; instead, an instance is a dimensional domain (e.g. a matrix or a 3D matrix) onto which
 			#  worlds and relations are determined by a given Ontology.
+			# TODO Add default values for this function?
 			X                       :: OntologicalDataset{T, N},
 			Y                       :: AbstractVector{S},
 			W                       :: Union{Nothing, AbstractVector{U}},
