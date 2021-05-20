@@ -140,7 +140,7 @@ export n_samples, n_attributes, channel_size,
 
 # A dataset, given by a set of N-dimensional (multi-attribute) matrices/instances,
 #  and an Ontology to be interpreted on each of them.
-# - The size of the domain array is {X×Y×...} × n_samples × n_attributes
+# - The size of the domain array is {X×Y×...} × n_attributes × n_samples
 # - N is the dimensionality of the domain itself (e.g. 1 for the temporal case, 2 for the spatial case)
 #    and its dimensions are denoted as X,Y,Z,...
 # - A uni-attribute dataset is of dimensionality S=N+1
@@ -155,21 +155,21 @@ const MatricialDataset{T,D}     = AbstractArray{T,D}
 const MatricialChannel{T,N}     = AbstractArray{T,N}
 const MatricialInstance{T,MN}   = AbstractArray{T,MN}
 
-n_samples(d::MatricialDataset{T,D})    where {T,D} = size(d, D-1)
-n_attributes(d::MatricialDataset{T,D}) where {T,D} = size(d, D)
+n_samples(d::MatricialDataset{T,D})    where {T,D} = size(d, D)
+n_attributes(d::MatricialDataset{T,D}) where {T,D} = size(d, D-1)
 channel_size(d::MatricialDataset{T,D}) where {T,D} = size(d)[1:end-2]
 
-@inline getInstance(d::MatricialDataset{T,2},     idx::Integer) where T = @views d[idx, :]         # N=0
-@inline getInstance(d::MatricialDataset{T,3},     idx::Integer) where T = @views d[:, idx, :]      # N=1
-@inline getInstance(d::MatricialDataset{T,4},     idx::Integer) where T = @views d[:, :, idx, :]   # N=2
+@inline getInstance(d::MatricialDataset{T,2},     idx::Integer) where T = @views d[:, idx]         # N=0
+@inline getInstance(d::MatricialDataset{T,3},     idx::Integer) where T = @views d[:, :, idx]      # N=1
+@inline getInstance(d::MatricialDataset{T,4},     idx::Integer) where T = @views d[:, :, :, idx]   # N=2
 
-@inline getInstances(d::MatricialDataset{T,2}, inds::AbstractVector{<:Integer}; return_view = false) where T = if return_view @views d[inds, :]       else d[inds, :]    end # N=0
-@inline getInstances(d::MatricialDataset{T,3}, inds::AbstractVector{<:Integer}; return_view = false) where T = if return_view @views d[:, inds, :]    else d[:, inds, :] end # N=1
-@inline getInstances(d::MatricialDataset{T,4}, inds::AbstractVector{<:Integer}; return_view = false) where T = if return_view @views d[:, :, inds, :] else d[:, inds, :] end # N=2
+@inline getInstances(d::MatricialDataset{T,2}, inds::AbstractVector{<:Integer}; return_view = false) where T = if return_view @views d[:, inds]       else d[:, inds]    end # N=0
+@inline getInstances(d::MatricialDataset{T,3}, inds::AbstractVector{<:Integer}; return_view = false) where T = if return_view @views d[:, :, inds]    else d[:, :, inds] end # N=1
+@inline getInstances(d::MatricialDataset{T,4}, inds::AbstractVector{<:Integer}; return_view = false) where T = if return_view @views d[:, :, :, inds] else d[:, :, :, inds] end # N=2
 
-@inline getChannel(d::MatricialDataset{T,2},      idx_i::Integer, idx_f::Integer) where T = @views d[      idx_i, idx_f]::T                     # N=0
-@inline getChannel(d::MatricialDataset{T,3},      idx_i::Integer, idx_f::Integer) where T = @views d[:,    idx_i, idx_f]::MatricialChannel{T,1} # N=1
-@inline getChannel(d::MatricialDataset{T,4},      idx_i::Integer, idx_f::Integer) where T = @views d[:, :, idx_i, idx_f]::MatricialChannel{T,2} # N=2
+@inline getChannel(d::MatricialDataset{T,2},      idx_i::Integer, idx_a::Integer) where T = @views d[      idx_a, idx_i]::T                     # N=0
+@inline getChannel(d::MatricialDataset{T,3},      idx_i::Integer, idx_a::Integer) where T = @views d[:,    idx_a, idx_i]::MatricialChannel{T,1} # N=1
+@inline getChannel(d::MatricialDataset{T,4},      idx_i::Integer, idx_a::Integer) where T = @views d[:, :, idx_f, idx_i]::MatricialChannel{T,2} # N=2
 # @inline getUniChannel(ud::MatricialUniDataset{T,1},  idx::Integer) where T = @views ud[idx]           # N=0
 # @inline getUniChannel(ud::MatricialUniDataset{T,2},  idx::Integer) where T = @views ud[:, idx]        # N=1
 # @inline getUniChannel(ud::MatricialUniDataset{T,3},  idx::Integer) where T = @views ud[:, :, idx]     # N=2
