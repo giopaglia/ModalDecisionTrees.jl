@@ -1,7 +1,7 @@
 module ModalLogic
 
 using IterTools
-import Base: argmax, argmin, size, show, convert
+import Base: argmax, argmin, size, show, convert, getindex
 using Logging: @logmsg
 using ..DecisionTree
 
@@ -186,8 +186,10 @@ channel_size(d::MatricialDataset{T,D}) where {T,D} = size(d)[1:end-2]
 # MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,3}) where T = Array{T, 2}(undef, size(d)[1:end-1])::MatricialUniDataset{T, 2}
 # MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,4}) where T = Array{T, 3}(undef, size(d)[1:end-1])::MatricialUniDataset{T, 3}
 
+abstract type ModalDataset end
+
 # TODO generalize as init_Xf(X::OntologicalDataset{T, N}) where T = Array{T, N+1}(undef, size(X)[3:end]..., n_samples(X))
-@computed struct OntologicalDataset{T, N, WorldType<:AbstractWorld}
+@computed struct OntologicalDataset{T, N, WorldType<:AbstractWorld} <: ModalDataset
 	ontology  :: Ontology{WorldType}
 	domain    :: MatricialDataset{T,N+1+1}
 
@@ -217,6 +219,28 @@ channel_size(X::OntologicalDataset{T,N})     where {T,N} = channel_size(X.domain
 # attributeview(X::OntologicalDataset{T,0}, idxs::AbstractVector{Integer}, attribute::Integer) = X.domain[idxs, attribute]
 # attributeview(X::OntologicalDataset{T,1}, idxs::AbstractVector{Integer}, attribute::Integer) = view(X.domain, idxs, attribute, :)
 # attributeview(X::OntologicalDataset{T,2}, idxs::AbstractVector{Integer}, attribute::Integer) = view(X.domain, idxs, attribute, :, :)
+
+struct MultiFrameModalDataset
+	frames  :: AbstractVector{ModalDataset}
+	MultiFrameModalDataset(Xs::AbstractVector{ModalDataset}) = begin
+		@assert length(unique(n_samples.(Xs))) == 1 "Can't create an empty Multi-Frame Modal Dataset or with mismatching number of samples (n_frames: $(length(Xs)), frame_sizes: $(n_samples.(Xs)))."
+		new(Xs)
+	end
+end
+
+# TODO: test all these methods
+getindex(X::MultiFrameModalDataset, i::Integer) = X.frames[i]
+n_frames(X::MultiFrameModalDataset)             = length(X.frames)
+n_samples(X::MultiFrameModalDataset)            = n_frames(X) > 0 ? n_samples(X.frames[1]) : 0
+# get total number of attributes (TODO: figure if this is useless or not)
+n_attributes(X::MultiFrameModalDataset) = sum(length.(X.frames))
+# get number of attributes in a single frame
+n_attributes(X::MultiFrameModalDataset, i_frame::Integer) = n_attributes(X.frames[i_frame])
+channel_size(X::MultiFrameModalDataset, i_frame::Integer) = channel_size(X.frame[i_frame].domain)
+
+@inline getInstance(X::MultiFrameModalDataset, i_frame::Integer, args::Vararg)  = getInstance(X.frames[i].domain, args...)
+@inline getInstances(X::MultiFrameModalDataset, i_frame::Integer, args::Vararg) = getInstances(X.frames[i].domain, args...)
+@inline getChannel(X::MultiFrameModalDataset, i_frame::Integer, args::Vararg)   = getChannel(X.frames[i].domain, args...)
 
 ################################################################################
 # END Matricial dataset & Ontological dataset
