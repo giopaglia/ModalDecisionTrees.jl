@@ -359,6 +359,13 @@ for i in exec_runs
 					preprocess_wavs = cur_preprocess_wavs,
 					use_full_mfcc = use_full_mfcc
 				)
+				
+				# TODO move this change in the creation of datasets in the dataset-loading functions
+				(X,Y) = dataset
+				D = ndims(X)
+				X = permutedims(X, ((1:D-2)..., D, D-1))
+				dataset = (X,Y)
+
 				n_per_class = min(n_pos, n_neg)
 				# using Random
 				# n_pos = 10
