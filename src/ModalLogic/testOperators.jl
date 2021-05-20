@@ -80,7 +80,6 @@ Base.show(io::IO, test_operator::_TestOpLeq) = print(io, "⫹")
 	# readline()
 	minimum(readWorld(w,channel))
 end
-@inline computePropositionalThresholdDual(::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = extrema(readWorld(w,channel))
 @inline computePropositionalThreshold(::_TestOpLeq, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
 	# println(_TestOpLeq)
 	# println(w)
@@ -88,6 +87,7 @@ end
 	# readline()
 	maximum(readWorld(w,channel))
 end
+@inline computePropositionalThresholdDual(::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = extrema(readWorld(w,channel))
 
 @inline testCondition(test_operator::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(readWorld(w,channel)  .<= threshold)
 	# Source: https://stackoverflow.com/questions/47564825/check-if-all-the-elements-of-a-julia-array-are-equal

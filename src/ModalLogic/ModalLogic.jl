@@ -40,7 +40,7 @@ end
 
 world_type(::Ontology{WT}) where {WT} = WT
 
-# strip_ontology(ontology::Ontology) = Ontology(OneWorld,AbstractRelation[])
+# strip_ontology(ontology::Ontology) = Ontology{OneWorld}(AbstractRelation[])
 
 
 # This constant is used to create the default world for each WorldType
@@ -190,15 +190,36 @@ channel_size(d::MatricialDataset{T,D}) where {T,D} = size(d)[1:end-2]
 @computed struct OntologicalDataset{T, N, WorldType<:AbstractWorld}
 	ontology  :: Ontology{WorldType}
 	domain    :: MatricialDataset{T,N+1+1}
+	
+	OntologicalDataset{T, N}(ontology::Ontology{WorldType}, domain::MatricialDataset{T,D}) where {T, N, D, WorldType<:AbstractWorld} = begin
+		_check_dims(T, N, D, WorldType)
 
-	OntologicalDataset{T, N}(ontology::Ontology{WorldType}, domain) where {T, N, WorldType<:AbstractWorld} = begin
-		if prod(channel_size(domain)) == 1
-			ontology = ModalLogic.strip_relations(ontology)
-		end
+		# Type unstable?
+		# if prod(channel_size(domain)) == 1
+		# 	ontology = ModalLogic.strip_ontology(ontology)
+		# 	WorldType = world_type(strip_ontology)
+		# end
+		
 		new{T, N, WorldType}(ontology, domain)
 	end
-
+	
+	OntologicalDataset{T, N, WorldType}(ontology::Ontology{WorldType}, domain::MatricialDataset{T,D}) where {T, N, D, WorldType<:AbstractWorld} = begin
+		_check_dims(T, N, D, WorldType)
+		
+		new{T, N, WorldType}(ontology, domain)
+	end
+	
+	_check_dims(T, N, D, WorldType) = begin
+		if N != ModalLogic.worldTypeDimensionality(WorldType)
+			error("ERROR! Dimensionality mismatch: can't interpret worldType $(WorldType) (dimensionality = $(ModalLogic.worldTypeDimensionality(WorldType)) on MatricialDataset of dimensionality = $(N)")
+		end
+		
+		if D != (N+1+1)
+			error("ERROR! Dimensionality mismatch: can't instantiate OntologicalDataset{$(T), $(N)} with MatricialDataset{$(T),$(D)}")
+		end
+	end
 end
+
 
 size(X::OntologicalDataset{T,N})             where {T,N} = size(X.domain)
 size(X::OntologicalDataset{T,N}, i::Integer) where {T,N} = size(X.domain, i)
@@ -222,6 +243,7 @@ channel_size(X::OntologicalDataset{T,N})     where {T,N} = channel_size(X.domain
 # END Matricial dataset & Ontological dataset
 ################################################################################
 
+include("operators.jl")
 include("testOperators.jl")
 include("featureTypes.jl")
 

@@ -6,153 +6,64 @@ const FeatureType = Integer
 SimpleFeatureType(a, feature) = feature
 
 display_feature(feature) = "V$(feature)"
+
 ################################################################################
 ################################################################################
+
+const FeatureFun = Function
 
 # struct _FeatureTypeNone  <: FeatureType end; const FeatureTypeNone  = _FeatureTypeNone();
 
-# crisp operators
-
-eq(x::S,  y::S) where {S} = ==(x,y)  # =
-gt(x::S,  y::S) where {S} =  >(x,y)  # >
-lt(x::S,  y::S) where {S} =  <(x,y)  # <
-geq(x::S, y::S) where {S} =  ≥(x,y)  # ≥
-leq(x::S, y::S) where {S} =  ≤(x,y)  # ≤
-
-# fuzzy operators
-
-# =ₕ
-function get_fuzzy_linear_eq(h::T, fuzzy_type::Type{<:Real} = Float64) where {T}
-	function f(x::S, y::S) where {S}
-		Δ = y-x
-		if abs(Δ) ≥ h
-			zero(fuzzy_type)
-		else
-			fuzzy_type(1-(abs(Δ)/h))
-		end
-	end
-end
-
-
-# >ₕ
-function get_fuzzy_linear_gt(h::T, fuzzy_type::Type{<:Real} = Float64) where {T}
-	function f(x::S, y::S) where {S}
-		Δ = y-x
-		if Δ ≥ 0
-			zero(fuzzy_type)
-		elseif Δ ≤ -h
-			one(fuzzy_type)
-		else
-			fuzzy_type(Δ/h)
-		end
-	end
-end
-
-# <ₕ
-function get_fuzzy_linear_lt(h::T, fuzzy_type::Type{<:Real} = Float64) where {T}
-	function f(x::S, y::S) where {S}
-		Δ = y-x
-		if Δ ≥ h
-			one(fuzzy_type)
-		elseif Δ ≤ 0
-			zero(fuzzy_type)
-		else
-			fuzzy_type(Δ/h)
-		end
-	end
-end
-
-
-# ≧ₕ
-function get_fuzzy_linear_geq(h::T, fuzzy_type::Type{<:Real} = Float64) where {T}
-	function f(x::S, y::S) where {S}
-		Δ = y-x
-		if Δ ≤ 0
-			one(fuzzy_type)
-		elseif Δ ≥ h
-			zero(fuzzy_type)
-		else
-			fuzzy_type(1-Δ/h)
-		end
-	end
-end
-
-
-# ≦ₕ
-function get_fuzzy_linear_leq(h::T, fuzzy_type::Type{<:Real} = Float64) where {T}
-	function f(x::S, y::S) where {S}
-		Δ = x-y
-		if Δ ≤ 0
-			one(fuzzy_type)
-		elseif Δ ≥ h
-			zero(fuzzy_type)
-		else
-			fuzzy_type(1-Δ/h)
-		end
-	end
-end
-
-# ≥ₕ
-function get_fuzzy_linear_geqt(h::T, fuzzy_type::Type{<:Real} = Float64) where {T}
-	h_2 = h/2
-	function f(x::S, y::S) where {S}
-		Δ = y-x
-		if Δ ≥ h_2
-			zero(fuzzy_type)
-		elseif Δ ≤ -h_2
-			one(fuzzy_type)
-		else
-			fuzzy_type((h_2-Δ)/h)
-		end
-	end
-end
-
-# ≤ₕ
-function get_fuzzy_linear_leqt(h::T, fuzzy_type::Type{<:Real} = Float64) where {T}
-	h_2 = h/2
-	function f(x::S, y::S) where {S}
-		Δ = y-x
-		if Δ ≥ h_2
-			one(fuzzy_type)
-		elseif Δ ≤ -h_2
-			zero(fuzzy_type)
-		else
-			fuzzy_type((Δ+h_2)/h)
-		end
-	end
-end
-
-# h = 4
-# v1 = 0
-# v2 = -4:4
-
-# op_fuzzy_eq = get_fuzzy_linear_eq(h)
-# op_fuzzy_gt = get_fuzzy_linear_gt(h)
-# op_fuzzy_lt = get_fuzzy_linear_lt(h)
-# op_fuzzy_geqt = get_fuzzy_linear_geqt(h)
-# op_fuzzy_leqt = get_fuzzy_linear_leqt(h)
-# op_fuzzy_geq = get_fuzzy_linear_geq(h)
-# op_fuzzy_leq = get_fuzzy_linear_leq(h)
-
-# zip(v2, eq.(v1, v2)) |> collect
-# zip(v2, gt.(v1, v2)) |> collect
-# zip(v2, lt.(v1, v2)) |> collect
-# zip(v2, geq.(v1, v2)) |> collect
-# zip(v2, leq.(v1, v2)) |> collect
-# zip(v2, op_fuzzy_eq.(v1, v2)) |> collect
-# zip(v2, op_fuzzy_gt.(v1, v2)) |> collect
-# zip(v2, op_fuzzy_lt.(v1, v2)) |> collect
-# zip(v2, op_fuzzy_geqt.(v1, v2)) |> collect
-# zip(v2, op_fuzzy_leqt.(v1, v2)) |> collect
-# zip(v2, op_fuzzy_geq.(v1, v2)) |> collect
-# zip(v2, op_fuzzy_leq.(v1, v2)) |> collect
-
-################################################################################
-################################################################################
-
 # struct AggregateFeatureType{worldType<:AbstractWorld} <: FeatureType
-# 	aggregator_function::Function
+# struct AggregateFeatureType <: FeatureType
+# 	aggregate_function::Function
 # end
+
+aggr_union = ∪
+aggr_min = minimum
+aggr_max = maximum
+
+# aggr_min
+get_aggr_softmin_f(alpha::AbstractFloat) = begin
+	@inline f(vals::AbstractVector{T}) where {T} = begin
+		partialsort!(vals,ceil(Int, alpha*length(vals)); rev=true)
+	end
+end
+
+get_aggr_softmax_f(alpha::AbstractFloat) = begin
+	@inline f(vals::AbstractVector{T}) where {T} = begin
+		partialsort!(vals,ceil(Int, alpha*length(vals)))
+	end
+end
+
+
+# @inline computePropositionalThreshold(::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
+# 	minimum(readWorld(w,channel))
+# end
+# @inline computePropositionalThreshold(::_TestOpLeq, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
+# 	maximum(readWorld(w,channel))
+# end
+
+# @inline test_op_partialsort!(test_op::_TestOpGeqSoft, vals::Vector{T}) where {T} = 
+# 	partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)); rev=true)
+	
+# @inline test_op_partialsort!(test_op::_TestOpLeqSoft, vals::Vector{T}) where {T} = 
+# 	partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)))
+
+
+# @inline computePropositionalThreshold(test_op::Union{_TestOpGeqSoft,_TestOpLeqSoft}, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
+# 	vals = vec(readWorld(w,channel))
+# 	test_op_partialsort!(test_op,vals)
+# end
+
+
+# @inline computePropositionalThresholdMany(test_ops::Vector{<:TestOperator}, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
+# 	vals = vec(readWorld(w,channel))
+# 	(test_op_partialsort!(test_op,vals) for test_op in test_ops)
+# end
+
+
+
 
 # AggregateFeatureType{Interval}(minimum)
 # AggregateFeatureType{Interval}(maximum)
