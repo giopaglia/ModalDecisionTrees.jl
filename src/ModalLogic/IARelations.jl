@@ -80,9 +80,9 @@ enumAccBare(w::Interval, ::_IA_Oi, X::Integer) = Iterators.product(1:w.x-1, w.x+
 
 # More efficient implementations for edge cases
 enumAccessibles(S::AbstractWorldSet{Interval}, ::_IA_L, X::Integer) =
-	IterTools.imap(Interval, enumAccBare(nth(S, argmin(map((w)->w.y, S))), IA_L, X))
+	enumAccessibles(nth(S, argmin(map((w)->w.y, S))), IA_L, X)
 enumAccessibles(S::AbstractWorldSet{Interval}, ::_IA_Li, X::Integer) =
-	IterTools.imap(Interval, enumAccBare(nth(S, argmax(map((w)->w.x, S))), IA_Li, X))
+	enumAccessibles(nth(S, argmax(map((w)->w.x, S))), IA_Li, X)
 enumAccessibles(S::AbstractWorldSet{Interval}, ::_IA_A, X::Integer) =
 	IterTools.imap(Interval,
 		Iterators.flatten(
@@ -99,6 +99,8 @@ enumAccessibles(S::AbstractWorldSet{Interval}, ::_IA_Ai, X::Integer) =
 			)
 		)
 	)
+
+# TODO optimize other relations as well!!
 
 # Other options:
 # enumAccessibles2_1_2(S::AbstractWorldSet{Interval}, ::_IA_L, X::Integer) =
