@@ -38,10 +38,10 @@ end
 
 
 # @inline computePropositionalThreshold(::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
-# 	minimum(readWorld(w,channel))
+# 	minimum(ch_readWorld(w,channel))
 # end
 # @inline computePropositionalThreshold(::_TestOpLeq, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
-# 	maximum(readWorld(w,channel))
+# 	maximum(ch_readWorld(w,channel))
 # end
 
 # @inline test_op_partialsort!(test_op::_TestOpGeqSoft, vals::Vector{T}) where {T} = 
@@ -52,13 +52,13 @@ end
 
 
 # @inline computePropositionalThreshold(test_op::Union{_TestOpGeqSoft,_TestOpLeqSoft}, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
-# 	vals = vec(readWorld(w,channel))
+# 	vals = vec(ch_readWorld(w,channel))
 # 	test_op_partialsort!(test_op,vals)
 # end
 
 
 # @inline computePropositionalThresholdMany(test_ops::Vector{<:TestOperator}, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
-# 	vals = vec(readWorld(w,channel))
+# 	vals = vec(ch_readWorld(w,channel))
 # 	(test_op_partialsort!(test_op,vals) for test_op in test_ops)
 # end
 

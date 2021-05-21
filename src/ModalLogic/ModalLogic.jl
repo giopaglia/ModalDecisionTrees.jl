@@ -158,6 +158,7 @@ const MatricialInstance{T,MN}   = AbstractArray{T,MN}
 n_samples(d::MatricialDataset{T,D})    where {T,D} = size(d, D)
 n_attributes(d::MatricialDataset{T,D}) where {T,D} = size(d, D-1)
 channel_size(d::MatricialDataset{T,D}) where {T,D} = size(d)[1:end-2]
+inst_channel_size(inst::MatricialInstance{T,MN}) where {T,MN} = size(inst)[1:end-1]
 
 @inline getInstance(d::MatricialDataset{T,2},     idx::Integer) where T = @views d[:, idx]         # N=0
 @inline getInstance(d::MatricialDataset{T,3},     idx::Integer) where T = @views d[:, :, idx]      # N=1
@@ -368,7 +369,7 @@ modalStep(S::WorldSetType,
 		new_worlds = WorldSetType()
 		for w in worlds
 			if testCondition(test_operator, w, channel, threshold)
-				@logmsg DTDetail " Found world " w readWorld(w,channel)
+				@logmsg DTDetail " Found world " w ch_readWorld(w,channel)
 				satisfied = true
 				push!(new_worlds, w)
 			end

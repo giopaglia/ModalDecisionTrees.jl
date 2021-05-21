@@ -24,18 +24,18 @@ end
 worldTypeDimensionality(::Type{Interval2D}) = 2
 
 yieldReprs(test_operator::_TestOpGeq, repr::_ReprMax{Interval2D},  channel::MatricialChannel{T,2}) where {T} =
-	reverse(extrema(readWorld(repr.w, channel)))::NTuple{2,T}
+	reverse(extrema(ch_readWorld(repr.w, channel)))::NTuple{2,T}
 yieldReprs(test_operator::_TestOpGeq, repr::_ReprMin{Interval2D},  channel::MatricialChannel{T,2}) where {T} =
-	extrema(readWorld(repr.w, channel))::NTuple{2,T}
+	extrema(ch_readWorld(repr.w, channel))::NTuple{2,T}
 yieldReprs(test_operator::_TestOpGeq, repr::_ReprVal{Interval2D},  channel::MatricialChannel{T,2}) where {T} =
 	(channel[repr.w.x.x, repr.w.y.x],channel[repr.w.x.x, repr.w.y.x])::NTuple{2,T}
 yieldReprs(test_operator::_TestOpGeq, repr::_ReprNone{Interval2D}, channel::MatricialChannel{T,2}) where {T} =
 	(typemin(T),typemax(T))::NTuple{2,T}
 
 yieldRepr(test_operator::Union{_TestOpGeq,_TestOpLeq}, repr::_ReprMax{Interval2D},  channel::MatricialChannel{T,2}) where {T} =
-	maximum(readWorld(repr.w, channel))::T
+	maximum(ch_readWorld(repr.w, channel))::T
 yieldRepr(test_operator::Union{_TestOpGeq,_TestOpLeq}, repr::_ReprMin{Interval2D},  channel::MatricialChannel{T,2}) where {T} =
-	minimum(readWorld(repr.w, channel))::T
+	minimum(ch_readWorld(repr.w, channel))::T
 yieldRepr(test_operator::Union{_TestOpGeq,_TestOpLeq}, repr::_ReprVal{Interval2D},  channel::MatricialChannel{T,2}) where {T} =
 	channel[repr.w.x.x, repr.w.y.x]::T
 yieldRepr(test_operator::_TestOpGeq, repr::_ReprNone{Interval2D}, channel::MatricialChannel{T,2}) where {T} =
@@ -119,4 +119,4 @@ n_worlds(::Type{Interval2D}, channel_size::Tuple{Integer,Integer}) = n_worlds(In
 
 print_world(w::Interval2D) = println("Interval2D [$(w.x.x),$(w.x.y)) × [$(w.y.x),$(w.y.y)), length $(w.x.y-w.x.x)×$(w.y.y-w.y.x) = $((w.x.y-w.x.x)*(w.y.y-w.y.x))")
 
-@inline readWorld(w::Interval2D, channel::MatricialChannel{T,2}) where {T} = channel[w.x.x:w.x.y-1,w.y.x:w.y.y-1]
+@inline ch_readWorld(w::Interval2D, channel::MatricialChannel{T,2}) where {T} = channel[w.x.x:w.x.y-1,w.y.x:w.y.y-1]

@@ -27,18 +27,18 @@ enumPairsIn(a::Integer, b::Integer) =
 
 
 yieldReprs(test_operator::_TestOpGeq, repr::_ReprMax{Interval},  channel::MatricialChannel{T,1}) where {T} =
-	reverse(extrema(readWorld(repr.w, channel)))::NTuple{2,T}
+	reverse(extrema(ch_readWorld(repr.w, channel)))::NTuple{2,T}
 yieldReprs(test_operator::_TestOpGeq, repr::_ReprMin{Interval},  channel::MatricialChannel{T,1}) where {T} =
-	extrema(readWorld(repr.w, channel))::NTuple{2,T}
+	extrema(ch_readWorld(repr.w, channel))::NTuple{2,T}
 yieldReprs(test_operator::_TestOpGeq, repr::_ReprVal{Interval},  channel::MatricialChannel{T,1}) where {T} =
 	(channel[repr.w.x],channel[repr.w.x])::NTuple{2,T}
 yieldReprs(test_operator::_TestOpGeq, repr::_ReprNone{Interval}, channel::MatricialChannel{T,1}) where {T} =
 	(typemin(T),typemax(T))::NTuple{2,T}
 
 yieldRepr(test_operator::Union{_TestOpGeq,_TestOpLeq}, repr::_ReprMax{Interval},  channel::MatricialChannel{T,1}) where {T} =
-	maximum(readWorld(repr.w, channel))::T
+	maximum(ch_readWorld(repr.w, channel))::T
 yieldRepr(test_operator::Union{_TestOpGeq,_TestOpLeq}, repr::_ReprMin{Interval},  channel::MatricialChannel{T,1}) where {T} =
-	minimum(readWorld(repr.w, channel))::T
+	minimum(ch_readWorld(repr.w, channel))::T
 yieldRepr(test_operator::Union{_TestOpGeq,_TestOpLeq}, repr::_ReprVal{Interval},  channel::MatricialChannel{T,1}) where {T} =
 	channel[repr.w.x]::T
 yieldRepr(test_operator::_TestOpGeq, repr::_ReprNone{Interval}, channel::MatricialChannel{T,1}) where {T} =
@@ -71,13 +71,13 @@ computeModalThreshold(test_operator::Union{_TestOpGeq,_TestOpLeq}, w::Interval, 
 # computeModalThreshold(test_operator::_TestOpGeq, w::Interval, ::_RelationAll, channel::MatricialChannel{T,1}) where {T} = begin
 # 	# TODO optimize this by replacing readworld with channel[1:X]...
 # 	# X = length(channel)
-# 	# maximum(readWorld(Interval(1,X+1),channel))
+# 	# maximum(ch_readWorld(Interval(1,X+1),channel))
 # 	maximum(channel)
 # end
 # computeModalThreshold(test_operator::_TestOpLeq, w::Interval, ::_RelationAll, channel::MatricialChannel{T,1}) where {T} = begin
 # 	# TODO optimize this by replacing readworld with channel[1:X]...
 # 	# X = length(channel)
-# 	# minimum(readWorld(Interval(1,X+1),channel))
+# 	# minimum(ch_readWorld(Interval(1,X+1),channel))
 # 	minimum(channel)
 # end
 enumAccBare(w::Interval, ::_RelationId, XYZ::Vararg{Integer,N}) where N = [(w.x, w.y)]
@@ -89,4 +89,4 @@ n_worlds(::Type{Interval}, channel_size::Tuple{Integer}) = div(channel_size[1]*(
 
 print_world(w::Interval) = println("Interval [$(w.x),$(w.y)), length $(w.y-w.x)")
 
-@inline readWorld(w::Interval, channel::MatricialChannel{T,1}) where {T} = channel[w.x:w.y-1]
+@inline ch_readWorld(w::Interval, channel::MatricialChannel{T,1}) where {T} = channel[w.x:w.y-1]
