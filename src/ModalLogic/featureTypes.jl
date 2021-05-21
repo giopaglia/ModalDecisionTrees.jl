@@ -1,7 +1,6 @@
-export FeatureType
+export FeatureType, FeatureTypeFun
 
 const FeatureType = Integer
-# abstract type FeatureType end
 
 SimpleFeatureType(a, feature) = feature
 
@@ -10,14 +9,34 @@ display_feature(feature) = "V$(feature)"
 ################################################################################
 ################################################################################
 
-const FeatureFun = Function
+abstract type FeatureTypeFun end
 
-# struct _FeatureTypeNone  <: FeatureType end; const FeatureTypeNone  = _FeatureTypeNone();
+# struct _FeatureTypeNone  <: FeatureTypeFun end; const FeatureTypeNone  = _FeatureTypeNone();
 
-# struct AggregateFeatureType{worldType<:AbstractWorld} <: FeatureType
-# struct AggregateFeatureType <: FeatureType
-# 	aggregate_function::Function
+# struct AggregateFeatureType{worldType<:AbstractWorld} <: FeatureTypeFun
+# struct SingleAttributeAggregateFeatureType <: FeatureTypeFun
+# 	i_attribute::Integer
+# 	aggregator::Function
 # end
+
+# yieldFunction(f::SingleAttributeAggregateFeatureType) = f.aggregator ∘ (x)->ModalLogic.getInstanceAttribute(x,f.i_attr)
+
+
+
+# TODO
+# AttributeSoftMinimumFeatureType
+# AttributeSoftMaximumFeatureType
+
+struct AttributeMinimumFeatureType <: FeatureTypeFun
+	i_attribute::Integer
+end
+struct AttributeMaximumFeatureType <: FeatureTypeFun
+	i_attribute::Integer
+end
+
+yieldFunction(f::AttributeMinimumFeatureType) = minimum ∘ (x)->ModalLogic.getInstanceAttribute(x,f.i_attribute)
+yieldFunction(f::AttributeMaximumFeatureType) = maximum ∘ (x)->ModalLogic.getInstanceAttribute(x,f.i_attribute)
+
 
 aggr_union = ∪
 aggr_min = minimum

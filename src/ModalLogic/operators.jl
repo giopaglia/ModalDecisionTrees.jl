@@ -1,4 +1,5 @@
-export EQ, GT, LT, GEQ, LEQ
+export EQ, GT, LT, GEQ, LEQ,
+				existential_aggregator, aggregator_bottom
 
 const TestOperatorFun = Function
 ################################################################################
@@ -100,6 +101,14 @@ existential_aggregator(::typeof(greater_than_operator))    = maximum
 existential_aggregator(::typeof(lesser_than_operator))     = minimum
 existential_aggregator(::typeof(greater_eq_than_operator)) = maximum
 existential_aggregator(::typeof(lesser_eq_than_operator))  = minimum
+
+# bottom_aggregator(::typeof(∪))          = TODO
+aggregator_bottom(::typeof(maximum), T::Type) = typemin(T)
+aggregator_bottom(::typeof(minimum), T::Type) = typemax(T)
+
+aggregator_to_binary(::typeof(maximum)) = max
+aggregator_to_binary(::typeof(minimum)) = min
+
 
 const EQ  = equality_operator
 const GT  = greater_than_operator

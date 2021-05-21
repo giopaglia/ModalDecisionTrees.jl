@@ -282,7 +282,7 @@ function computeGammas(
 	# print(actual_test_operators)
 	n_actual_operators = length(test_operators)
 	
-	# Prepare gammas array
+	# Prepare gammas structure
 	gammas = initGammas(WorldType, T, channel_size(X), n_actual_operators, n_instances, n_relations, n_features)
 
 	@logmsg DTOverview "Computing gammas... $(typeof(gammas)) $(size(gammas)) $(test_operators)"
