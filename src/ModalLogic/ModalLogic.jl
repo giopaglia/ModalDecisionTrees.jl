@@ -132,7 +132,7 @@ subscriptnumber(i::AbstractFloat) = subscriptnumber(string(i))
 # BEGIN Matricial dataset & Ontological dataset
 ################################################################################
 
-export n_samples, n_attributes, channel_size,
+export n_samples, n_attributes, channel_size, max_channel_size,
 				MatricialInstance,
 				MatricialDataset,
 				# MatricialUniDataset,
@@ -158,6 +158,7 @@ const MatricialInstance{T,MN}   = AbstractArray{T,MN}
 n_samples(d::MatricialDataset{T,D})    where {T,D} = size(d, D)
 n_attributes(d::MatricialDataset{T,D}) where {T,D} = size(d, D-1)
 channel_size(d::MatricialDataset{T,D}) where {T,D} = size(d)[1:end-2]
+max_channel_size = channel_size # TODO rename channel_size into max_channel_size
 inst_channel_size(inst::MatricialInstance{T,MN}) where {T,MN} = size(inst)[1:end-1]
 
 @inline getInstance(d::MatricialDataset{T,2},     idx::Integer) where T = @views d[:, idx]         # N=0
@@ -277,7 +278,7 @@ struct _ReprNone{worldType<:AbstractWorld} <: _ReprTreatment end
 ## Enumerate accessible worlds
 
 # Fallback: enumAccessibles works with domains AND their dimensions
-enumAccessibles(S::Any, r::AbstractRelation, channel::MatricialChannel{T,N}) where {T,N} = enumAccessibles(S, r, size(channel)...)
+enumAccessibles(S::AbstractWorldSet{WorldType}, r::AbstractRelation, channel::MatricialChannel{T,N}) where {T,N,WorldType<:AbstractWorld} = enumAccessibles(S, r, size(channel)...)
 enumAccRepr(S::Any, r::AbstractRelation, channel::MatricialChannel{T,N}) where {T,N} = enumAccRepr(S, r, size(channel)...)
 # Fallback: enumAccessibles for world sets maps to enumAcc-ing their elements
 #  (note: one may overload this function to provide improved implementations for special cases (e.g. <L> of a world set in interval algebra))
@@ -286,7 +287,9 @@ enumAccessibles(S::AbstractWorldSet{WorldType}, r::AbstractRelation, XYZ::Vararg
 		IterTools.distinct(Iterators.flatten((enumAccBare(w, r, XYZ...) for w in S)))
 	)
 end
-
+enumAccessibles(w::WorldType, r::AbstractRelation, XYZ::Vararg{Integer,N}) where {T,N,WorldType<:AbstractWorld} = begin
+	IterTools.imap(WorldType, enumAccBare(w, r, XYZ...))
+end
 ## Basic, ontology-agnostic relations:
 
 # None relation      (RelationNone)  =  Used as the "nothing" constant
@@ -314,6 +317,10 @@ display_rel_short(::_RelationId)  = "Id"
 struct _RelationAll   <: AbstractRelation end; const RelationAll  = _RelationAll();
 
 display_rel_short(::_RelationAll) = ""
+
+# Shortcut for enumerating all worlds
+enumAll(::Type{WorldType}, args::Vararg) where {WorldType<:AbstractWorld} = enumAccessibles(WorldType[], RelationAll, args...)
+
 
 ################################################################################
 ################################################################################
