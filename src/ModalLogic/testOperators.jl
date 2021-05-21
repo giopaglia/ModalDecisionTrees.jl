@@ -76,36 +76,36 @@ Base.show(io::IO, test_operator::_TestOpLeq) = print(io, "⫹")
 	# println(_TestOpGeq)
 	# println(w)
 	# println(channel)
-	# println(maximum(readWorld(w,channel)))
+	# println(maximum(ch_readWorld(w,channel)))
 	# readline()
-	minimum(readWorld(w,channel))
+	minimum(ch_readWorld(w,channel))
 end
 @inline computePropositionalThreshold(::_TestOpLeq, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
 	# println(_TestOpLeq)
 	# println(w)
 	# println(channel)
 	# readline()
-	maximum(readWorld(w,channel))
+	maximum(ch_readWorld(w,channel))
 end
-@inline computePropositionalThresholdDual(::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = extrema(readWorld(w,channel))
+@inline computePropositionalThresholdDual(::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = extrema(ch_readWorld(w,channel))
 
-@inline testCondition(test_operator::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(readWorld(w,channel)  .<= threshold)
+@inline testCondition(test_operator::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
 	# Source: https://stackoverflow.com/questions/47564825/check-if-all-the-elements-of-a-julia-array-are-equal
 	# @inbounds
 	# TODO try:
-	# all(readWorld(w,channel) .>= threshold)
-	for x in readWorld(w,channel)
+	# all(ch_readWorld(w,channel) .>= threshold)
+	for x in ch_readWorld(w,channel)
 		x >= threshold || return false
 	end
 	return true
 end
-@inline testCondition(test_operator::_TestOpLeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(readWorld(w,channel)  .<= threshold)
+@inline testCondition(test_operator::_TestOpLeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
 	# Source: https://stackoverflow.com/questions/47564825/check-if-all-the-elements-of-a-julia-array-are-equal
-	# @info "WLes" w threshold #n readWorld(w,channel)
+	# @info "WLes" w threshold #n ch_readWorld(w,channel)
 	# @inbounds
 	# TODO try:
-	# all(readWorld(w,channel) .<= threshold)
-	for x in readWorld(w,channel)
+	# all(ch_readWorld(w,channel) .<= threshold)
+	for x in ch_readWorld(w,channel)
 		x <= threshold || return false
 	end
 	return true
@@ -180,25 +180,25 @@ Base.show(io::IO, test_operator::_TestOpLeqSoft) = print(io, "⫹" * subscriptnu
 	partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)))
 
 @inline computePropositionalThreshold(test_op::Union{_TestOpGeqSoft,_TestOpLeqSoft}, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
-	vals = vec(readWorld(w,channel))
+	vals = vec(ch_readWorld(w,channel))
 	test_op_partialsort!(test_op,vals)
 end
 # @inline computePropositionalThresholdDual(test_op::_TestOpGeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
-# 	vals = vec(readWorld(w,channel))
-# 	xmin = test_op_partialsort!(test_op,vec(readWorld(w,channel)))
+# 	vals = vec(ch_readWorld(w,channel))
+# 	xmin = test_op_partialsort!(test_op,vec(ch_readWorld(w,channel)))
 # 	xmin = partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)); rev=true)
 # 	xmax = partialsort!(vals,ceil(Int, (alpha(test_op))*length(vals)))
 # 	xmin,xmax
 # end
 @inline computePropositionalThresholdMany(test_ops::Vector{<:TestOperator}, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
-	vals = vec(readWorld(w,channel))
+	vals = vec(ch_readWorld(w,channel))
 	(test_op_partialsort!(test_op,vals) for test_op in test_ops)
 end
 
 @inline testCondition(test_operator::_TestOpGeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin 
 	ys = 0
 	# TODO write with reduce, and optimize it (e.g. by stopping early if the condition is reached already)
-	vals = readWorld(w,channel)
+	vals = ch_readWorld(w,channel)
 	for x in vals
 		if x >= threshold
 			ys+=1
@@ -210,7 +210,7 @@ end
 @inline testCondition(test_operator::_TestOpLeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin 
 	ys = 0
 	# TODO write with reduce, and optimize it (e.g. by stopping early if the condition is reached already)
-	vals = readWorld(w,channel)
+	vals = ch_readWorld(w,channel)
 	for x in vals
 		if x <= threshold
 			ys+=1
