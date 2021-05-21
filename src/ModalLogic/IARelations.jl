@@ -100,8 +100,6 @@ enumAccessibles(S::AbstractWorldSet{Interval}, ::_IA_Ai, X::Integer) =
 		)
 	)
 
-# TODO optimize other relations as well!!
-
 # Other options:
 # enumAccessibles2_1_2(S::AbstractWorldSet{Interval}, ::_IA_L, X::Integer) =
 # 	IterTools.imap(Interval, enumAccBare(Base.argmin((w.y for w in S)), IA_L, X))
