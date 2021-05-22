@@ -4,6 +4,7 @@
 ☐	Fix naming style (e.g. variables/features/attributes, etc. Order of struct's members)
 ☐	dataset-loading functions should tell about how they balanced, and how they randomized
 ☐	Add comments
+☐	Add a symbol parameter to computeModalDataset for selecting a trade-off between time and space
 ☐	NamedArrays for gammas dimensions https://github.com/davidavdav/NamedArrays.jl
 ☐	multi-frame extension!
 ☐	rename n_instances -> n_samples
