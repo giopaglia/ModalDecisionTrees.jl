@@ -48,6 +48,7 @@ export print_apply_tree
 include("ModalLogic/ModalLogic.jl")
 using .ModalLogic
 include("gammas.jl")
+include("modalDataset.jl")
 include("measures.jl")
 
 ###########################
