@@ -393,11 +393,11 @@ function build_forest(
 	rng = mk_rng(rng)
 	
 	if n_trees < 1
-		throw("the number of trees must be >= 1")
+		error("the number of trees must be >= 1")
 	end
 	
 	if !(0.0 < partial_sampling <= 1.0)
-		throw("partial_sampling must be in the range (0,1]")
+		error("partial_sampling must be in the range (0,1]")
 	end
 	
 	# precompute-gammas, since they are shared by all trees

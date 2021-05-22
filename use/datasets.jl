@@ -297,7 +297,7 @@ SiemensDataset_not_stratified(nmeans::Int, hour::Int, distance::Int; subdir = "S
 		elseif class == 1
 			push!(pos_idx, i)
 		else
-			throw("Unknown class: $(class)")
+			error("Unknown class: $(class)")
 		end
 	end
 

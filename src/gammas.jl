@@ -38,7 +38,7 @@ Union{
 
 @inline function checkGammasConsistency(gammas, X::OntologicalDataset{T, N, WorldType}, test_operators::AbstractVector{<:TestOperator}, RelationSet::AbstractVector{<:AbstractRelation}) where {T, N, WorldType<:AbstractWorld}
 	if !(gammasIsConsistent(gammas, X, length(test_operators), length(RelationSet))) # Note: max(2, ...) because at least RelationId and RelationAll are always present.
-		throw("The provided gammas structure is not consistent with the expected dataset, test operators and/or relations!"
+		error("The provided gammas structure is not consistent with the expected dataset, test operators and/or relations!"
 			* "\n$(typeof(gammas))"
 			* "\n$(eltype(gammas))"
 			* "\n$(size(gammas))"

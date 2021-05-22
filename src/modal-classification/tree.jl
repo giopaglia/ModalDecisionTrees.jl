@@ -312,7 +312,7 @@ module treeclassifier
 				for i in 1:n_instances
 					errStr *= "$(ModalLogic.getChannel(X, indX[i + r_start], best_feature))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(S[indX[i + r_start]])\n";
 				end
-				# throw(Base.ErrorException(errStr))
+				# throw or error(Base.ErrorException(errStr))
 				println("ERROR! " * errStr)
                                 # TODO bring this error back
 			end
@@ -358,39 +358,39 @@ module treeclassifier
 		n_instances, n_attrs = n_samples(X), n_attributes(X)
 
 		if length(Y) != n_instances
-			throw("dimension mismatch between X and Y ($(size(X)) vs $(size(Y))")
+			error("dimension mismatch between X and Y ($(size(X)) vs $(size(Y))")
 		elseif length(W) != n_instances
-			throw("dimension mismatch between X and W ($(size(X)) vs $(size(W))")
+			error("dimension mismatch between X and W ($(size(X)) vs $(size(W))")
 		elseif max_depth < -1
-			throw("unexpected value for max_depth: $(max_depth) (expected:"
+			error("unexpected value for max_depth: $(max_depth) (expected:"
 				* " max_depth >= 0, or max_depth = -1 for infinite depth)")
 		elseif n_attrs < n_subfeatures
-			throw("total number of features $(n_attrs) is less than the number "
+			error("total number of features $(n_attrs) is less than the number "
 				* "of features required at each split $(n_subfeatures)")
 		elseif n_subfeatures < 0
-			throw("total number of features $(n_subfeatures) must be >= zero ")
+			error("total number of features $(n_subfeatures) must be >= zero ")
 		elseif min_samples_leaf < 1
-			throw("min_samples_leaf must be a positive integer "
+			error("min_samples_leaf must be a positive integer "
 				* "(given $(min_samples_leaf))")
 		elseif loss_function in [util.gini, util.zero_one] && (min_loss_at_leaf > 1.0 || min_loss_at_leaf <= 0.0)
-			throw("min_loss_at_leaf for loss $(loss_function) must be in (0,1]"
+			error("min_loss_at_leaf for loss $(loss_function) must be in (0,1]"
 				* "(given $(min_loss_at_leaf))")
 		end
 
 		# TODO make sure how missing, nothing, NaN & infinite can be handled
 		# TODO make these checks part of the dataset interface!
 		if nothing in X.domain
-			throw("Warning! This algorithm doesn't allow nothing values in X.domain")
+			error("Warning! This algorithm doesn't allow nothing values in X.domain")
 		elseif any(isnan.(X.domain)) # TODO make sure that this does its job.
-			throw("Warning! This algorithm doesn't allow NaN values in X.domain")
+			error("Warning! This algorithm doesn't allow NaN values in X.domain")
 		elseif nothing in Y
-			throw("Warning! This algorithm doesn't allow nothing values in Y")
+			error("Warning! This algorithm doesn't allow nothing values in Y")
 		# elseif any(isnan.(Y))
-		# 	throw("Warning! This algorithm doesn't allow NaN values in Y")
+		# 	error("Warning! This algorithm doesn't allow NaN values in Y")
 		elseif nothing in W
-			throw("Warning! This algorithm doesn't allow nothing values in W")
+			error("Warning! This algorithm doesn't allow nothing values in W")
 		elseif any(isnan.(W))
-			throw("Warning! This algorithm doesn't allow NaN values in W")
+			error("Warning! This algorithm doesn't allow NaN values in W")
 		end
 
 		# if loss_function in [util.entropy]
@@ -460,13 +460,13 @@ module treeclassifier
 		#  propositional splits.
 		
 		if RelationId in ontology_relations
-			throw("Found RelationId in ontology provided. Use useRelationId = true instead.")
+			error("Found RelationId in ontology provided. Use useRelationId = true instead.")
 			# ontology_relations = filter(e->e ≠ RelationId, ontology_relations)
 			# useRelationId = true
 		end
 
 		if RelationAll in ontology_relations
-			throw("Found RelationAll in ontology provided. Use useRelationAll = true instead.")
+			error("Found RelationAll in ontology provided. Use useRelationAll = true instead.")
 			# ontology_relations = filter(e->e ≠ RelationAll, ontology_relations)
 			# useRelationAll = true
 		end
@@ -562,7 +562,7 @@ module treeclassifier
 		) = optimize_tree_parameters!(X, initCondition, useRelationAll, useRelationId, test_operators)
 
 		if (length(availableRelation_ids) == 0)
-			throw("No available relation! Allow propositional splits with useRelationId=true")
+			error("No available relation! Allow propositional splits with useRelationId=true")
 		end
 
 		if isnothing(gammas)
