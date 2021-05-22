@@ -135,13 +135,13 @@ test_flattened = false
 exec_runs = 1
 exec_n_tasks = 1
 exec_n_versions = 1
-exec_nbands = 20
+exec_nbands = 40
 # exec_runs = 1:5
 # exec_n_tasks = 1:1
 # exec_n_versions = 1:2
 # exec_nbands = [20,40,60]
 exec_dataset_kwargs =   [(
-							max_points = 5,
+							max_points = 10,
 							ma_size = 75,
 							ma_step = 50,
 						# ),(
@@ -421,7 +421,7 @@ for i in exec_runs
 					gammas_save_path            =   (gammas_save_path, dataset_name_str),
 					save_tree_path              =   save_tree_path,
 					train_seed                  =   train_seed,
-					timing_mode                      =   timing_mode
+					timing_mode                 =   timing_mode
 				);
 		#####################################################
 		# PRINT RESULT IN FILES

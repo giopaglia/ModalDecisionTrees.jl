@@ -15,12 +15,12 @@ X = OntologicalDataset{Int64,1}(Ontology{ModalLogic.Interval}(ModalLogic.IARelat
 features_n_operators = Tuple{<:FeatureTypeFun,<:TestOperatorFun}[]
 
 for i_attr in 1:n_attributes(X)
-	push!(features_n_operators, (ModalLogic.AttributeMinimumFeatureType(i_attr), ≥))
+	# push!(features_n_operators, (ModalLogic.AttributeMinimumFeatureType(i_attr), ≥))
 	# push!(features_n_operators, (ModalLogic.AttributeMinimumFeatureType(i_attr), ≤)) # "Anormal" feature
-	push!(features_n_operators, (ModalLogic.AttributeMaximumFeatureType(i_attr), ≤))
+	# push!(features_n_operators, (ModalLogic.AttributeMaximumFeatureType(i_attr), ≤))
 	# TODO
-	# push!(features_n_operators, (AttributeSoftMinimumFeatureType{Val{.8}}(i_attr), ≤))
-	# push!(features_n_operators, (AttributeSoftMaximumFeatureType{Val{.8}}(i_attr), ≤))
+	push!(features_n_operators, (AttributeSoftMinimumFeatureType(i_attr, .8), ≤))
+	push!(features_n_operators, (AttributeSoftMaximumFeatureType(i_attr, .8), ≤))
 end
 
 ################################################################################

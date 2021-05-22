@@ -1,0 +1,103 @@
+Running test-scan-audio.jl with 20 features, and 5 points
+
+ gammas 10.490289 seconds (149.67 M allocations: 7.294 GiB, 18.01% gc time)
+ tree  7.015825 seconds (53.81 M allocations: 1.202 GiB, 6.23% gc time)
+
+gammas structural change: swapped relations/attributes and world/test_operator
+
+ 10.220771 seconds (149.67 M allocations: 7.294 GiB, 17.89% gc time)
+	7.538553 seconds (54.03 M allocations: 1.205 GiB, 5.53% gc time)
+
+
+ 11.763735 seconds (149.37 M allocations: 7.281 GiB, 17.74% gc time)
+	7.663703 seconds (52.49 M allocations: 1.125 GiB, 5.96% gc time)
+
+
+ 10.844075 seconds (149.28 M allocations: 7.276 GiB, 18.98% gc time)
+	6.708654 seconds (52.54 M allocations: 1.128 GiB, 6.02% gc time)
+
+
+# 20.245366 seconds (149.37 M allocations: 7.281 GiB, 17.31% gc time)
+# 17.107601 seconds (53.86 M allocations: 1.197 GiB, 4.84% gc time)
+
+
+ 22.187208 seconds (149.38 M allocations: 7.281 GiB, 21.18% gc time)
+ 26.348434 seconds (53.86 M allocations: 1.197 GiB, 4.23% gc time)
+
+ 11.933391 seconds (149.37 M allocations: 7.281 GiB, 16.56% gc time)
+	6.655370 seconds (53.86 M allocations: 1.197 GiB, 6.06% gc time)
+
+
+ 11.042916 seconds (149.37 M allocations: 7.281 GiB, 17.69% gc time)
+	7.019842 seconds (53.86 M allocations: 1.197 GiB, 5.91% gc time)
+
+
+ 11.711360 seconds (149.37 M allocations: 7.281 GiB, 18.27% gc time)
+	7.733448 seconds (53.85 M allocations: 1.196 GiB, 5.76% gc time)
+
+
+	9.933110 seconds (149.37 M allocations: 7.281 GiB, 18.31% gc time)
+	6.686505 seconds (53.85 M allocations: 1.196 GiB, 6.32% gc time)
+
+
+	9.053850 seconds (63.37 M allocations: 3.276 GiB, 13.49% gc time)
+	6.332688 seconds (8.06 M allocations: 395.944 MiB, 2.75% gc time)
+
+
+ 33.084584 seconds (149.37 M allocations: 7.281 GiB, 15.68% gc time)
+ 20.545029 seconds (53.85 M allocations: 1.196 GiB, 5.82% gc time)
+
+ 30.507620 seconds (149.59 M allocations: 7.291 GiB, 11.74% gc time)
+ 26.581757 seconds (53.85 M allocations: 1.196 GiB, 4.57% gc time)
+
+ 27.635431 seconds (149.34 M allocations: 7.278 GiB, 16.31% gc time)
+ 30.500006 seconds (53.80 M allocations: 1.194 GiB, 4.17% gc time)
+
+
+ 105  36        74.47%          YES
+	19 122        86.52%          NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+unplugged laptop
+ 13.384533 seconds (150.17 M allocations: 7.309 GiB, 15.19% gc time)
+ 10.884166 seconds (55.51 M allocations: 1.281 GiB, 5.63% gc time)
+
+ 13.837117 seconds (149.90 M allocations: 7.297 GiB, 15.46% gc time)
+ 10.351658 seconds (53.85 M allocations: 1.196 GiB, 4.20% gc time)
+
+Increase problem size: 40 features, 10 points 
+
+ 86.458237 seconds (2.09 G allocations: 95.822 GiB, 30.46% gc time)
+	8.079396 seconds (81.03 M allocations: 1.677 GiB, 4.34% gc time)
+
+ 104  37        73.76%          YES
+	36 105        74.47%          NO_CLEAN_HISTORY_AND_LOW_PROBABILITY
+
+/results-audio-scan/gammas/gammas_8803c3311523d245ebe3fc820409b4b2cd44824218bcb15837460cb8ca7dd9f4.jld
+
+modalDatasetP (usando operatori hard)
+	2.619390 seconds (25.04 M allocations: 3.348 GiB, 23.98% gc time)
+modalDatasetM
+	82.693879 seconds (1.76 G allocations: 57.587 GiB, 31.12% gc time)
+gammas (usando operatori soft)
+	109.931173 seconds (2.07 G allocations: 95.197 GiB, 28.09% gc time)
+tree
+ 10.037790 seconds (81.05 M allocations: 1.678 GiB, 10.01% gc time)
+
+
+quindi sembra che non perdiamo tanto. Anzi c'è un guadagno in termini di memoria. Questo 109 non è piu' un 86 ma forse solo perché è stata usata memoria per calcolare i modalDatasets.
+
+Rilancio facendo due run separati.
+
+modalDataset (hard minmax):
+	2.401561 seconds (25.03 M allocations: 3.347 GiB, 28.80% gc time)
+	70.950579 seconds (1.76 G allocations: 57.586 GiB, 26.18% gc time)
+gamma (soft minmax 80%):
+	83.973703 seconds (2.09 G allocations: 95.835 GiB, 31.40% gc time)
+
+Ora vediamo se sono gli operatori soft/hard che fan la differenza.
+
+modalDataset (soft minmax 80%):
+  2.529470 seconds (25.46 M allocations: 3.395 GiB, 28.28% gc time)
+ 76.203804 seconds (1.76 G allocations: 57.589 GiB, 27.26% gc time)
+
+No sembra che non facciano differenza... Dunque effettivamente questa nuova struttura salva sia spazio che tempo di calcolo. E in quanto a tempo di lettura?
