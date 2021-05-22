@@ -1,4 +1,6 @@
-export FeatureType, FeatureTypeFun
+export FeatureType, FeatureTypeFun,
+				AttributeMinimumFeatureType, AttributeMaximumFeatureType,
+				AttributeSoftMinimumFeatureType, AttributeSoftMaximumFeatureType
 
 const FeatureType = Integer
 
@@ -37,23 +39,40 @@ end
 yieldFunction(f::AttributeMinimumFeatureType) = minimum ∘ (x)->ModalLogic.getInstanceAttribute(x,f.i_attribute)
 yieldFunction(f::AttributeMaximumFeatureType) = maximum ∘ (x)->ModalLogic.getInstanceAttribute(x,f.i_attribute)
 
-
-aggr_union = ∪
-aggr_min = minimum
-aggr_max = maximum
-
-# aggr_min
-get_aggr_softmin_f(alpha::AbstractFloat) = begin
-	@inline f(vals::AbstractVector{T}) where {T} = begin
-		partialsort!(vals,ceil(Int, alpha*length(vals)); rev=true)
-	end
+struct AttributeSoftMinimumFeatureType{T<:AbstractFloat} <: FeatureTypeFun
+	i_attribute::Integer
+	alpha::T
 end
 
-get_aggr_softmax_f(alpha::AbstractFloat) = begin
-	@inline f(vals::AbstractVector{T}) where {T} = begin
-		partialsort!(vals,ceil(Int, alpha*length(vals)))
-	end
+struct AttributeSoftMaximumFeatureType{T<:AbstractFloat} <: FeatureTypeFun
+	i_attribute::Integer
+	alpha::T
 end
+
+yieldFunction(f::AttributeSoftMinimumFeatureType{T}) where T =
+	(x)->(vals = vec(ModalLogic.getInstanceAttribute(x,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals)); rev=true))
+yieldFunction(f::AttributeSoftMaximumFeatureType{T}) where T =
+	(x)->(vals = vec(ModalLogic.getInstanceAttribute(x,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals))))
+
+# yieldFunction(AttributeSoftMaximumFeatureType(1,0.8))
+
+# aggr_union = ∪
+# aggr_min = minimum
+# aggr_max = maximum
+
+# aggr_soft_min
+# get_aggr_softmin_f(alpha::AbstractFloat) = begin
+# 	@inline f(vals::AbstractVector{T}) where {T} = begin
+# 		partialsort!(vals,ceil(Int, alpha*length(vals)); rev=true)
+# 	end
+# end
+
+# aggr_soft_max
+# get_aggr_softmax_f(alpha::AbstractFloat) = begin
+# 	@inline f(vals::AbstractVector{T}) where {T} = begin
+# 		partialsort!(vals,ceil(Int, alpha*length(vals)))
+# 	end
+# end
 
 
 # @inline computePropositionalThreshold(::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin

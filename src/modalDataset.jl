@@ -1,3 +1,4 @@
+using DataStructures
 
 const Aggregator = Function
 
@@ -37,7 +38,7 @@ modalDatasetSliceType(::Type{OntologicalDataset{T, N, ModalLogic.Interval}}) whe
 	if return_view @view modalDataset[:,:,inds,:] else modalDataset[:,:,inds,:] end
 @inline function modalDatasetGet(
 	modalDataset    :: AbstractArray{T, 4},
-	w               :: ModalLogic.Interval
+	w               :: ModalLogic.Interval,
 	i_instance      :: Integer,
 	i_feature       :: Integer) where {T}
 	modalDataset[w.x, w.y, i_instance, i_feature]
@@ -57,7 +58,7 @@ modalDatasetType_m(::Type{<:OntologicalDataset{T, N, ModalLogic.Interval}}) wher
 	if return_view @view modalDataset[:,:,inds,:,:] else modalDataset[:,:,inds,:,:] end
 @inline function modalDatasetGet_m(
 	modalDataset    :: AbstractArray{T, 5},
-	w               :: ModalLogic.Interval
+	w               :: ModalLogic.Interval,
 	i_instance      :: Integer,
 	i_featnaggr     :: Integer,
 	i_relation      :: Integer) where {T}
@@ -186,7 +187,9 @@ function computeModalDataset_m(
 		X::OntologicalDataset{T, N, WorldType},
 		relations::AbstractVector{<:AbstractRelation},
 		grouped_grouped_feats_n_aggrs::AbstractDict{Integer, Vector{Tuple{<:Integer,<:Aggregator}}},
-		modalDatasetP::modalDatasetType(typeof(X)), # TODO make either this or X an optional argument
+		modalDatasetP::ModalDatasetType{T}, # TODO write stricter type
+		# modalDatasetP::modalDatasetType(OntologicalDataset{T, N, WorldType}),
+		# modalDatasetP::modalDatasetType(typeof(X)), # TODO make either this or X an optional argument
 		features::AbstractVector{<:FeatureTypeFun},
 	) where {T, N, WorldType<:AbstractWorld}
 
