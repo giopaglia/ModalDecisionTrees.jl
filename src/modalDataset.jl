@@ -1,6 +1,23 @@
 
 const Aggregator = Function
 
+
+@inline function checkModalDatasetConsistency(modalDataset, X::OntologicalDataset{T, N, WorldType}, features::AbstractVector{<:FeatureTypeFun}) where {T, N, WorldType<:AbstractWorld}
+	if !(modalDatasetIsConsistent(modalDataset, X, length(features)))
+		error("The provided modalDataset structure is not consistent with the expected dataset, test operators and/or relations!"
+			* "\n\tmodalDataset:"
+			* " $(typeof(modalDataset))"
+			* " $(eltype(modalDataset))"
+			* " $(size(modalDataset))"
+			* "\n\tX: $(n_samples(X))"
+			* " $(n_attributes(X))"
+			* " $(channel_size(X))"
+			* "\n\tfeatures: $(size(features))"
+		)
+	end
+end
+
+
 # OntologicalDataset with ModalLogic.Interval
 modalDatasetType(::Type{<:OntologicalDataset{T, N, ModalLogic.Interval}}) where {T, N} = AbstractArray{T, 4}
 @inline initModalDataset(X::OntologicalDataset{T, N, ModalLogic.Interval}, n_features::Integer) where {T, N} =
@@ -16,6 +33,16 @@ modalDatasetSliceType(::Type{OntologicalDataset{T, N, ModalLogic.Interval}}) whe
 	@views modalDataset[:, :, i_instance, i_feature]
 @inline modalDatasetChannelSliceGet(modalDataset::AbstractArray{T, 2}, w::ModalLogic.Interval) where {T} =
 	@views modalDataset[w.x, w.y]
+@inline sliceModalDatasetByInstances(::Type{<:OntologicalDataset{T, N, ModalLogic.Interval}}, modalDataset::AbstractArray{T, 4}, inds::AbstractVector{<:Integer}; return_view = false) where {T,N,WorldType<:AbstractWorld} =
+	if return_view @view modalDataset[:,:,inds,:] else modalDataset[:,:,inds,:] end
+@inline function modalDatasetGet(
+	modalDataset    :: AbstractArray{T, 4},
+	w               :: ModalLogic.Interval
+	i_instance      :: Integer,
+	i_feature       :: Integer) where {T}
+	modalDataset[w.x, w.y, i_instance, i_feature]
+end
+
 
 modalDatasetType_m(::Type{<:OntologicalDataset{T, N, ModalLogic.Interval}}) where {T, N} = AbstractArray{T, 5}
 @inline initModalDataset_m(X::OntologicalDataset{T, N, ModalLogic.Interval}, n_featnaggrs::Integer, n_relations::Integer) where {T, N} =
@@ -26,6 +53,16 @@ modalDatasetType_m(::Type{<:OntologicalDataset{T, N, ModalLogic.Interval}}) wher
 	nothing
 @inline modalDatasetSet_m(modalDataset::AbstractArray{T, 5}, w::ModalLogic.Interval, i_instance::Integer, i_featnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
 	modalDataset[w.x, w.y, i_instance, i_featnaggr, i_relation] = threshold
+@inline sliceModalDatasetByInstances_m(::Type{<:OntologicalDataset{T, N, ModalLogic.Interval}}, modalDataset::AbstractArray{T, 4}, inds::AbstractVector{<:Integer}; return_view = false) where {T,N,WorldType<:AbstractWorld} =
+	if return_view @view modalDataset[:,:,inds,:,:] else modalDataset[:,:,inds,:,:] end
+@inline function modalDatasetGet_m(
+	modalDataset    :: AbstractArray{T, 5},
+	w               :: ModalLogic.Interval
+	i_instance      :: Integer,
+	i_featnaggr     :: Integer,
+	i_relation      :: Integer) where {T}
+	modalDataset[w.x, w.y, i_instance, i_featnaggr, i_relation]
+end
 
 const ModalDatasetType{T} = Union{
 	# modalDatasetType(OntologicalDataset{T where T, 0, ModalLogic.OneWorld})
@@ -112,7 +149,7 @@ function computeModalDataset(
 	modalDataset = initModalDataset(X, n_features)
 
 	# Compute features
-	for i_instance in 1:n_instances
+	@inbounds Threads.@threads for i_instance in 1:n_instances
 		@logmsg DTDebug "Instance $(i_instance)/$(n_instances)"
 		
 		if i_instance == 1 || ((i_instance+1) % (floor(Int, ((n_instances)/5))+1)) == 0
@@ -164,7 +201,7 @@ function computeModalDataset_m(
 
 	# Compute features
 
-	for i_instance in 1:n_instances
+	@inbounds Threads.@threads for i_instance in 1:n_instances
 		@logmsg DTDebug "Instance $(i_instance)/$(n_instances)"
 		
 		if i_instance == 1 || ((i_instance+1) % (floor(Int, ((n_instances)/5))+1)) == 0
@@ -217,3 +254,208 @@ function computeModalDataset_m(
 	end
 	modalDataset
 end
+
+
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+
+
+# gammas is a structure holding threshold values for which propositional and modal split labels
+#  are on the verge of truth 
+
+# For generic worldTypes, gammas is an n-dim array of dictionaries indicized on the world itself.
+#  On the other hand, when the structure of a world is known, its attributes are unrolled as
+#  array dimensions; gammas then becomes an (n+k)-dim array,
+#  where k is the complexity of the worldType.
+
+
+# const GammaType{NTO, T} =
+# Union{
+# 	# worldType-agnostic
+# 	AbstractArray{Dict{WorldType,NTuple{NTO, T}}, 3},
+# 	# worldType=ModalLogic.OneWorld
+# 	AbstractArray{T, 4},
+# 	# worldType=ModalLogic.Interval
+# 	AbstractArray{T, 6},
+# 	# worldType=ModalLogic.Interval2D
+# 	AbstractArray{T, 8}
+# } where {WorldType<:AbstractWorld}
+
+# const GammaSliceType{NTO, T} =
+# Union{
+# 	# worldType-agnostic
+# 	AbstractArray{Dict{WorldType,NTuple{NTO, T}}, 3},
+# 	# worldType=ModalLogic.OneWorld
+# 	AbstractArray{T, 1},
+# 	# worldType=ModalLogic.Interval
+# 	AbstractArray{T, 3},
+# 	# worldType=ModalLogic.Interval2D
+# 	AbstractArray{T, 5}
+# } where {WorldType<:AbstractWorld}
+
+# TODO test with array-only gammas = Array{T, 4}(undef, 2, n_worlds(world_type(X.ontology), channel_size(X)), n_instances, n_attributes(X))
+# TODO try something like gammas = fill(No: Dict{world_type(X.ontology),NTuple{NTO,T}}(), n_instances, n_attributes(X))
+# gammas = Vector{Dict{AbstractRelation,Vector{Dict{world_type(X.ontology),NTuple{NTO,T}}}}}(undef, n_attributes(X))		
+# TODO maybe use offset-arrays? https://docs.julialang.org/en/v1/devdocs/offset-arrays/
+
+
+# worldType-agnostic gammas
+# @inline initGammas(worldType::Type{WorldType}, T::Type, channel_size::Tuple, n_test_operators::Integer, n_instances::Integer, n_relations::Integer, n_features::Integer) where {WorldType<:AbstractWorld} =
+# 	Array{Dict{worldType,NTuple{n_test_operators,T}}, 3}(undef, n_instances, n_relations, n_features)
+# @inline gammasIsConsistent(gammas, X::OntologicalDataset{T, N, WorldType}, n_test_operators::Integer, n_relations::Integer) where {T, N, WorldType<:AbstractWorld} =
+# 	(typeof(gammas)<:AbstractArray{Dict{WorldType,NTuple{n_test_operators,T}}, 3} && size(gammas) == (n_samples(X), n_relations, n_attributes(X)))
+# @inline setGamma(gammas::AbstractArray{Dict{WorldType,NTuple{NTO,T}}, 3}, w::WorldType, i_instance::Integer, i_relation::Integer, i_feature::Integer, i_test_operator::Integer, threshold::T) where {WorldType<:AbstractWorld,NTO,T} =
+# 	gammas[i_instance, i_relation, i_feature][w][i_test_operator] = threshold
+# @inline initGammaSlice(worldType::Type{WorldType}, gammas::AbstractArray{Dict{WorldType,NTuple{NTO,T}}, 3}, i_instance::Integer, i_relation::Integer, i_feature::Integer) where {WorldType<:AbstractWorld,NTO,T} =
+# 	gammas[i_instance, i_relation, i_feature] = Dict{WorldType,NTuple{NTO,T}}()
+# @inline sliceGammas(worldType::Type{WorldType}, gammas::AbstractArray{Dict{WorldType,NTuple{NTO,T}}, 3}, i_instance::Integer, i_relation::Integer, i_feature::Integer) where {WorldType<:AbstractWorld,NTO,T} =
+# 	gammas[i_instance, i_relation, i_feature]
+# @inline setGammaSlice(gammaSlice::Dict{WorldType,NTuple{NTO,T}}, w::WorldType, i_test_operator::Integer, threshold::T) where {WorldType<:AbstractWorld,NTO,T} =
+# 	gammaSlice[w][i_test_operator] = threshold
+# @inline readGammaSlice(gammaSlice::Dict{WorldType,NTuple{NTO,T}}, w::WorldType, i_test_operator::Integer) where {WorldType<:AbstractWorld,NTO,T} =
+# 	gammaSlice[w][i_test_operator]
+# @inline sliceGammasByInstances(worldType::Type{WorldType}, gammas::AbstractArray{Dict{WorldType,NTuple{NTO,T}}, 3}, inds::AbstractVector{<:Integer}; return_view = false) where {WorldType<:AbstractWorld,NTO, T} =
+# 	if return_view @view gammas[inds,:,:] else gammas[inds,:,:] end
+# @inline function readGamma(
+# 	gammas          :: AbstractArray{<:AbstractDict{WorldType,NTuple{NTO,T}},3},
+# 	i_test_operator :: Integer,
+# 	w               :: WorldType,
+# 	i_instance      :: Integer,
+# 	i_relation      :: Integer,
+# 	i_feature       :: Integer) where {NTO,T,WorldType<:AbstractWorld}
+# 	gammas[i_instance, i_relation, i_feature][w]
+# end
+
+
+# # Adimensional case (worldType = ModalLogic.OneWorld)
+# @inline initGammas(worldType::Type{ModalLogic.OneWorld}, T::Type, channel_size::Tuple, n_test_operators::Integer, n_instances::Integer, n_relations::Integer, n_features::Integer) =
+# 	Array{T, 4}(undef, n_test_operators, n_instances, n_relations, n_features)
+# @inline gammasIsConsistent(gammas, X::OntologicalDataset{T, N, ModalLogic.OneWorld}, n_test_operators::Integer, n_relations::Integer) where {T, N}  =
+# 	(typeof(gammas)<:AbstractArray{T, 4} && size(gammas) == (n_test_operators, n_samples(X), n_relations, n_attributes(X)))
+# @inline setGamma(gammas::AbstractArray{T, 4}, w::ModalLogic.OneWorld, i_instance::Integer, i_relation::Integer, i_feature::Integer, i_test_operator::Integer, threshold::T) where {T} =
+# 	gammas[i_test_operator, i_instance, i_relation, i_feature] = threshold
+# @inline initGammaSlice(worldType::Type{ModalLogic.OneWorld}, gammas::AbstractArray{T, 4}, i_instance::Integer, i_relation::Integer, i_feature::Integer) where {T} =
+# 	nothing
+# @inline sliceGammas(worldType::Type{ModalLogic.OneWorld}, gammas::AbstractArray{T, 4}, i_instance::Integer, i_relation::Integer, i_feature::Integer) where {T} =
+# 	@view gammas[:,i_instance, i_relation, i_feature]
+# @inline setGammaSlice(gammaSlice::AbstractArray{T,1}, w::ModalLogic.OneWorld, i_test_operator::Integer, threshold::T) where {T} =
+# 	gammaSlice[i_test_operator] = threshold
+# @inline readGammaSlice(gammaSlice::AbstractArray{T,1}, w::ModalLogic.OneWorld, i_test_operator::Integer) where {T} =
+# 	gammaSlice[i_test_operator]
+# @inline sliceGammasByInstances(worldType::Type{ModalLogic.OneWorld}, gammas::AbstractArray{T, 4}, inds::AbstractVector{<:Integer}; return_view = false) where {T} =
+# 	if return_view @view gammas[:,inds,:,:] else gammas[:,inds,:,:] end
+# @inline function readGamma(
+# 	gammas          :: AbstractArray{T, 4},
+# 	i_test_operator :: Integer,
+# 	w               :: ModalLogic.OneWorld,
+# 	i_instance      :: Integer,
+# 	i_relation      :: Integer,
+# 	i_feature       :: Integer) where {T}
+# 	gammas[i_test_operator, i_instance, i_relation, i_feature]
+# end
+
+
+# # 2D Interval case (worldType = ModalLogic.Interval2D)
+# @inline initGammas(worldType::Type{ModalLogic.Interval2D}, T::Type, (X,Y)::NTuple{2,Integer}, n_test_operators::Integer, n_instances::Integer, n_relations::Integer, n_features::Integer) =
+# 	Array{T, 8}(undef, n_test_operators, X, X+1, Y, Y+1, n_instances, n_relations, n_features)
+# @inline gammasIsConsistent(gammas, X::OntologicalDataset{T, N, ModalLogic.Interval2D}, n_test_operators::Integer, n_relations::Integer) where {T, N, WorldType<:AbstractWorld} =
+# 	(typeof(gammas)<:AbstractArray{T, 8} && size(gammas) == (n_test_operators, channel_size(X)[1], channel_size(X)[1]+1, channel_size(X)[2], channel_size(X)[2]+1, n_samples(X), n_relations, n_attributes(X)))
+# @inline setGamma(gammas::AbstractArray{T, 8}, w::ModalLogic.Interval2D, i_instance::Integer, i_relation::Integer, i_feature::Integer, i_test_operators::Integer, threshold::T) where {T} =
+# 	gammas[i_test_operators, w.x.x, w.x.y, w.y.x, w.y.y, i_instance, i_relation, i_feature] = threshold
+# @inline initGammaSlice(worldType::Type{ModalLogic.Interval2D}, gammas::AbstractArray{T, 8}, n_instances::Integer, n_relations::Integer, n_features::Integer) where {T} =
+# 	nothing
+# @inline sliceGammas(worldType::Type{ModalLogic.Interval2D}, gammas::AbstractArray{T, 8}, i_instance::Integer, i_relation::Integer, i_feature::Integer) where {T} =
+# 	@view gammas[:, :,:,:,:, i_instance, i_relation, i_feature]
+# @inline setGammaSlice(gammaSlice::AbstractArray{T, 6}, w::ModalLogic.Interval2D, i_test_operators::Integer, threshold::T) where {T} =
+# 	gammaSlice[i_test_operators, w.x.x, w.x.y, w.y.x, w.y.y] = threshold
+# @inline readGammaSlice(gammaSlice::AbstractArray{T, 6}, w::ModalLogic.Interval2D, i_test_operators::Integer) where {T} =
+# 	gammaSlice[i_test_operators, w.x.x, w.x.y, w.y.x, w.y.y]
+# @inline sliceGammasByInstances(worldType::Type{ModalLogic.Interval2D}, gammas::AbstractArray{T, 8}, inds::AbstractVector{<:Integer}; return_view = false) where {T} =
+# 	if return_view @view gammas[:, :,:,:,:, inds,:,:] else gammas[:, :,:,:,:, inds,:,:] end
+# @inline function readGamma(
+# 	gammas          :: AbstractArray{T, 8},
+# 	i_test_operator :: Integer,
+# 	w               :: ModalLogic.Interval2D,
+# 	i_instance      :: Integer,
+# 	i_relation      :: Integer,
+# 	i_feature       :: Integer) where {T}
+# 	gammas[i_test_operator, w.x.x, w.x.y, w.y.x, w.y.y, i_instance, i_relation, i_feature] # TODO try without view
+# end
+
+
+
+
+
+
+
+
+
+# TODO test which implementation is the best for the 2D case with different memory layout for gammas
+
+# 3x3 spatial window, 12 instances:
+# 	Array7 3x4: 90.547 s (1285579691 allocations: 65.67 GiB)
+# 	Array5: 105.759 s (1285408103 allocations: 65.70 GiB)
+# 	Array7 3x3 con [idx-1]:  113.278 s (1285408102 allocations: 65.69 GiB)
+# 	Generic Dict:  100.272 s (1284316309 allocations: 65.64 GiB)
+# 	Array8:   100.517 s (1281158366 allocations: 65.49 GiB)
+# ---
+# using array(undef, ...):	 101.921 s (1285848739 allocations: 65.70 GiB)
+# using T[]	100.443 s (1282663890 allocations: 65.69 GiB)
+
+# @inline initGammas(worldType::Type{ModalLogic.Interval2D}, T::Type, (X,Y)::NTuple{2,Integer}, n_test_operators::Integer, n_instances::Integer, n_relations::Integer, n_features::Integer) =
+# 	Array{NTuple{n_test_operators,T}, 5}(undef, div((X*(X+1)),2), div((Y*(Y+1)),2), n_instances, n_relations, n_features)
+# @inline setGamma(gammas::AbstractArray{NTuple{NTO,T}, 5}, w::ModalLogic.Interval2D, i_instance::Integer, i_relation::Integer, i_feature::Integer, thresholds::NTuple{NTO,T}) where {NTO,T} =
+# 	gammas[w.x.x+div((w.x.y-2)*(w.x.y-1),2), w.y.x+div((w.y.y-2)*(w.y.y-1),2), i_instance, i_relation, i_feature] = thresholds
+# @inline initGammaSlice(worldType::Type{ModalLogic.Interval2D}, gammas::AbstractArray{NTuple{NTO,T}, 5}, n_instances::Integer, n_relations::Integer, n_features::Integer) where {NTO,T} =
+# 	nothing
+# @inline sliceGammas(worldType::Type{ModalLogic.Interval2D}, gammas::AbstractArray{NTuple{NTO,T}, 5}, i_instance::Integer, i_relation::Integer, i_feature::Integer) where {NTO,T} =
+# 	@view gammas[:,:, i_instance, i_relation, i_feature]
+# @inline setGammaSlice(gammaSlice::AbstractArray{NTuple{NTO,T}, 2}, w::ModalLogic.Interval2D, thresholds::NTuple{NTO,T}) where {NTO,T} =
+# 	gammaSlice[w.x.x+div((w.x.y-2)*(w.x.y-1),2), w.y.x+div((w.y.y-2)*(w.y.y-1),2)] = thresholds
+# @inline function readGamma(
+# 	gammas     :: AbstractArray{NTuple{NTO,T},N},
+# 	w          :: ModalLogic.Interval2D,
+# 	i, i_relation, feature) where {N,NTO,T}
+# 	gammas[w.x.x+div((w.x.y-2)*(w.x.y-1),2), w.y.x+div((w.y.y-2)*(w.y.y-1),2), i, i_relation, feature]
+# end
+
+# @inline initGammas(worldType::Type{ModalLogic.Interval2D}, T::Type, (X,Y)::NTuple{2,Integer}, n_test_operators::Integer, n_instances::Integer, n_relations::Integer, n_features::Integer) =
+# 	Array{NTuple{n_test_operators,T}, 7}(undef, X, X, Y, Y, n_instances, n_relations, n_features)
+# @inline setGamma(gammas::AbstractArray{NTuple{NTO,T}, 7}, w::ModalLogic.Interval2D, i_instance::Integer, i_relation::Integer, i_feature::Integer, thresholds::NTuple{NTO,T}) where {NTO,T} =
+# 	gammas[w.x.x, w.x.y-1, w.y.x, w.y.y-1, i_instance, i_relation, i_feature] = thresholds
+# @inline initGammaSlice(worldType::Type{ModalLogic.Interval2D}, gammas::AbstractArray{NTuple{NTO,T}, 7}, n_instances::Integer, n_relations::Integer, n_features::Integer) where {NTO,T} =
+# 	nothing
+# @inline sliceGammas(worldType::Type{ModalLogic.Interval2D}, gammas::AbstractArray{NTuple{NTO,T}, 7}, i_instance::Integer, i_relation::Integer, i_feature::Integer) where {NTO,T} =
+# 	@view gammas[:,:,:,:, i_instance, i_relation, i_feature]
+# @inline setGammaSlice(gammaSlice::AbstractArray{NTuple{NTO,T}, 4}, w::ModalLogic.Interval2D, thresholds::NTuple{NTO,T}) where {NTO,T} =
+# 	gammaSlice[w.x.x, w.x.y-1, w.y.x, w.y.y-1] = thresholds
+# @inline function readGamma(
+# 	gammas     :: AbstractArray{NTuple{NTO,T},N},
+# 	w          :: ModalLogic.Interval2D,
+# 	i, i_relation, feature) where {N,NTO,T}
+# 	gammas[w.x.x, w.x.y-1, w.y.x, w.y.y-1, i, i_relation, feature]
+# end
+
+# @inline initGammas(worldType::Type{ModalLogic.Interval2D}, T::Type, (X,Y)::NTuple{2,Integer}, n_test_operators::Integer, n_instances::Integer, n_relations::Integer, n_features::Integer) =
+# 	Array{T, 8}(undef, n_test_operators, X, X+1, Y, Y+1, n_instances, n_relations, n_features)
+# @inline setGamma(gammas::AbstractArray{T, 8}, w::ModalLogic.Interval2D, i_instance::Integer, i_relation::Integer, i_feature::Integer, i_test_operator::Integer, threshold::T) where {NTO,T} =
+# 	gammas[i_test_operator, w.x.x, w.x.y, w.y.x, w.y.y, i_instance, i_relation, i_feature] = threshold
+# @inline initGammaSlice(worldType::Type{ModalLogic.Interval2D}, gammas::AbstractArray{T, 8}, n_instances::Integer, n_relations::Integer, n_features::Integer) where {NTO,T} =
+# 	nothing
+# @inline sliceGammas(worldType::Type{ModalLogic.Interval2D}, gammas::AbstractArray{T, 8}, i_instance::Integer, i_relation::Integer, i_feature::Integer) where {NTO,T} =
+# 	@view gammas[:,:,:,:,:, i_instance, i_relation, i_feature]
+# @inline setGammaSlice(gammaSlice::AbstractArray{T, 5}, w::ModalLogic.Interval2D, i_test_operator::Integer, threshold::T) where {NTO,T} =
+# 	gammaSlice[i_test_operator, w.x.x, w.x.y, w.y.x, w.y.y] = threshold
+# @inline function readGamma(
+# 	gammas     :: AbstractArray{T,N},
+# 	w          :: ModalLogic.Interval2D,
+# 	i, i_relation, feature) where {N,T}
+# 	@view gammas[:,w.x.x, w.x.y, w.y.x, w.y.y, i, i_relation, feature]
+# end
+
+################################################################################
+################################################################################
+################################################################################
+################################################################################
