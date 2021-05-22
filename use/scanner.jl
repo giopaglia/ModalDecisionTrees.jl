@@ -136,38 +136,6 @@ function testDataset(
 			# update values
 			modal_args = merge(modal_args, (test_operators = test_operators,))
 
-			#####################################################################################
-			#####################################################################################
-			#####################################################################################
-
-			# Compute modalDataset (equivalent to gammas)
-
-			features_n_operators = Tuple{<:FeatureTypeFun,<:TestOperatorFun}[]
-
-			for i_attr in 1:n_attributes(X_all)
-				# push!(features_n_operators, (ModalLogic.AttributeMinimumFeatureType(i_attr), ≥))
-				# push!(features_n_operators, (ModalLogic.AttributeMaximumFeatureType(i_attr), ≤))
-				push!(features_n_operators, (ModalLogic.AttributeSoftMinimumFeatureType(i_attr, 0.8), ≥))
-				push!(features_n_operators, (ModalLogic.AttributeSoftMaximumFeatureType(i_attr, 0.8), ≤))
-			end
-
-			(features, grouped_feats_n_aggrs, flattened_feats_n_aggrs) = DecisionTree.prepare_feats_n_aggrs(features_n_operators)
-
-			@time modalDatasetP = DecisionTree.computeModalDataset(X_all, features)
-			relations = [RelationAll, X_all.ontology.relationSet...]
-			@time modalDatasetM = DecisionTree.computeModalDataset_m(X_all, relations, grouped_feats_n_aggrs, modalDatasetP, features)
-
-			println(Base.size(X_all))
-			println(Base.size(modalDatasetP))
-			println(Base.size(modalDatasetM))
-			println(Base.summarysize(X_all) / 1024 / 1024)
-			println(Base.summarysize(modalDatasetP) / 1024 / 1024)
-			println(Base.summarysize(modalDatasetM) / 1024 / 1024)
-
-			#####################################################################################
-			#####################################################################################
-			#####################################################################################
-
 			# Generate path to gammas jld file
 
 			if isa(gammas_save_path,String) || isnothing(gammas_save_path)
@@ -228,6 +196,30 @@ function testDataset(
 			########################################################
 			########################################################
 			
+			# Compute modalDataset (equivalent to gammas)
+
+			features_n_operators = Tuple{<:FeatureTypeFun,<:TestOperatorFun}[]
+
+			for i_attr in 1:n_attributes(X_all)
+				# push!(features_n_operators, (ModalLogic.AttributeMinimumFeatureType(i_attr), ≥))
+				# push!(features_n_operators, (ModalLogic.AttributeMaximumFeatureType(i_attr), ≤))
+				push!(features_n_operators, (ModalLogic.AttributeSoftMinimumFeatureType(i_attr, 0.8), ≥))
+				push!(features_n_operators, (ModalLogic.AttributeSoftMaximumFeatureType(i_attr, 0.8), ≤))
+			end
+
+			(features, grouped_feats_n_aggrs, flattened_feats_n_aggrs) = DecisionTree.prepare_feats_n_aggrs(features_n_operators)
+
+			@time modalDatasetP = DecisionTree.computeModalDataset(X_all, features)
+			relations = [RelationAll, X_all.ontology.relationSet...]
+			@time modalDatasetM = DecisionTree.computeModalDataset_m(X_all, relations, grouped_feats_n_aggrs, modalDatasetP, features)
+
+			println(Base.size(X_all))
+			println(Base.size(modalDatasetP))
+			println(Base.size(modalDatasetM))
+			println(Base.summarysize(X_all) / 1024 / 1024)
+			println(Base.summarysize(modalDatasetP) / 1024 / 1024)
+			println(Base.summarysize(modalDatasetM) / 1024 / 1024)
+
 			# Check consistency between gammas and modalDataset
 
 			for i_instance in 1:n_samples(X_all)
