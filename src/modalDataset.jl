@@ -8,58 +8,6 @@ export computeModalDataset, computeModalDataset_m,
 const Aggregator = Function
 
 
-################################################################################
-################################################################################
-################################################################################
-
-
-# function modalDataset(X, features)
-# 	computeModalDataset(X, features)
-# end
-
-function stumpModalDataset(X, features, grouped_feats_n_aggrs; computeRelationAll = false, timing_mode = :none)
-	# Compute modal dataset propositions
-	modalDatasetP = 
-		if timing_mode == :none
-			computeModalDataset(X, features);
-		elseif timing_mode == :time
-			@time computeModalDataset(X, features);
-		elseif timing_mode == :btime
-			@btime computeModalDataset($X, $features);
-	end
-
-	relations = X.ontology.relationSet
-	# relations = relations[1:3]
-
-	# Compute modal dataset propositions and 1-modal decisions
-	modalDatasetM, modalDatasetG = 
-		if timing_mode == :none
-			computeModalDataset_m(X, relations, grouped_feats_n_aggrs, modalDatasetP, features, computeRelationAll = computeRelationAll);
-		elseif timing_mode == :time
-			@time computeModalDataset_m(X, relations, grouped_feats_n_aggrs, modalDatasetP, features, computeRelationAll = computeRelationAll);
-		elseif timing_mode == :btime
-			@btime computeModalDataset_m($X, $relations, $grouped_feats_n_aggrs, $modalDatasetP, $features, computeRelationAll = $computeRelationAll);
-	end
-
-	# println(Base.size(X))
-	# println(Base.size(modalDatasetP))
-	# if !isnothing(modalDatasetG)
-	# 	println(Base.size(modalDatasetM))
-	# end
-	println("Dataset size:\t\t\t$(Base.summarysize(X) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
-	println("modalDataset total size:\t$((Base.summarysize(modalDatasetP) + Base.summarysize(modalDatasetM) + Base.summarysize(modalDatasetG)) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
-	println("├ modalDatasetP size:\t\t$(Base.summarysize(modalDatasetP) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
-	println("├ modalDatasetM size:\t\t$(Base.summarysize(modalDatasetM) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
-	println("└ modalDatasetG size:\t\t$(Base.summarysize(modalDatasetG) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
-
-
-	modalDatasetP, modalDatasetM, modalDatasetG
-end
-
-################################################################################
-################################################################################
-################################################################################
-
 @inline function checkModalDatasetConsistency(modalDataset, X::OntologicalDataset{T, N, WorldType}, features::AbstractVector{<:FeatureTypeFun}) where {T, N, WorldType<:AbstractWorld}
 	if !(modalDatasetIsConsistent(modalDataset, X, length(features)))
 		error("The provided modalDataset structure is not consistent with the expected dataset, test operators and/or relations!"
@@ -101,7 +49,7 @@ modalDatasetSliceType(::Type{OntologicalDataset{T, 1, ModalLogic.Interval}}) whe
 	modalDataset[w.x, w.y, i_instance, i_feature]
 end
 
-const ModalDatasetType{T} = Union{
+const ModalDatasetPType{T} = Union{
 	# modalDatasetType(OntologicalDataset{T where T, 0, ModalLogic.OneWorld})
 	AbstractArray{T, 4} # modalDatasetType(OntologicalDataset{T where T, 1, ModalLogic.Interval})
 	# modalDatasetType(OntologicalDataset{T where T, 2, ModalLogic.Interval2D})
@@ -112,6 +60,7 @@ const ModalDatasetSliceType{T} = Union{
 	AbstractArray{T, 2} # modalDatasetSliceType(OntologicalDataset{T, 1, ModalLogic.Interval})
 	# modalDatasetSliceType(OntologicalDataset{T where T, 2, ModalLogic.Interval2D})
 }
+
 modalDatasetType_m(::Type{<:OntologicalDataset{T, 1, ModalLogic.Interval}}) where {T} = AbstractArray{T, 5}
 @inline initModalDataset_m(X::OntologicalDataset{T, 1, ModalLogic.Interval}, n_featnaggrs::Integer, n_relations::Integer) where {T} =
 	Array{T, 5}(undef, max_channel_size(X)[1], max_channel_size(X)[1]+1, n_samples(X), n_featnaggrs, n_relations)
@@ -132,6 +81,9 @@ modalDatasetType_m(::Type{<:OntologicalDataset{T, 1, ModalLogic.Interval}}) wher
 	modalDataset[w.x, w.y, i_instance, i_featnaggr, i_relation]
 end
 
+const ModalDatasetMType{T} = Union{
+	AbstractArray{T, 5}
+}
 
 modalDatasetType_g(::Type{<:OntologicalDataset{T, N, WorldType}}) where {T, N, WorldType<:AbstractWorld} = AbstractArray{T, 2}
 @inline initModalDataset_g(X::OntologicalDataset{T, N, WorldType}, n_featnaggrs::Integer) where {T, N, WorldType<:AbstractWorld} =
@@ -148,6 +100,10 @@ modalDatasetType_g(::Type{<:OntologicalDataset{T, N, WorldType}}) where {T, N, W
 	i_featnaggr     :: Integer) where {T}
 	modalDataset[i_instance, i_featnaggr]
 end
+
+const ModalDatasetGType{T} = Union{
+	AbstractArray{T, 2}
+}
 
 
 
@@ -178,37 +134,37 @@ computeModalThreshold(modalDatasetP_slice::ModalDatasetSliceType{T}, relation::A
 	# threshold
 end
 
-function prepare_feats_n_aggrs(features_n_operators::AbstractVector{Tuple{<:FeatureTypeFun,<:TestOperatorFun}})
+function prepare_featnaggrs(features_n_operators::AbstractVector{Tuple{<:FeatureTypeFun,<:TestOperatorFun}})
 	# Different features to compute
 	features = unique(first.(features_n_operators))
 
 	# Pairs of feature ids + set of aggregators
-	grouped_feats_n_aggrs_pre = DefaultOrderedDict{Integer, Vector{<:Aggregator}}(Vector{Aggregator})
+	grouped_featnaggrs_pre = DefaultOrderedDict{Integer, Vector{<:Aggregator}}(Vector{Aggregator})
 
 	for (i_feature, feature) in enumerate(features)
 		for (f,o) in features_n_operators
 			if f == feature
-				push!(grouped_feats_n_aggrs_pre[i_feature], ModalLogic.existential_aggregator(o))
+				push!(grouped_featnaggrs_pre[i_feature], ModalLogic.existential_aggregator(o))
 			end
 		end
 	end
 
-	grouped_feats_n_aggrs_pre
+	grouped_featnaggrs_pre
 
 	# Flatten dictionary, and enhance aggregators in dictionary with their relative indices
-	grouped_feats_n_aggrs = DefaultOrderedDict{Integer, Vector{Tuple{Integer,<:Aggregator}}}(Vector{Tuple{Integer,Aggregator}})
-	flattened_feats_n_aggrs = []
+	grouped_featnaggrs = DefaultOrderedDict{Integer, Vector{Tuple{Integer,<:Aggregator}}}(Vector{Tuple{Integer,Aggregator}})
+	flattened_featnaggrs = Tuple{<:FeatureTypeFun,<:Aggregator}[]
 	i_featnaggr = 1
-	for (i_feature, aggregators) in grouped_feats_n_aggrs_pre
-		grouped_feats_n_aggrs[i_feature] = []
+	for (i_feature, aggregators) in grouped_featnaggrs_pre
+		grouped_featnaggrs[i_feature] = []
 		for aggregator in aggregators
-			push!(flattened_feats_n_aggrs, (features[i_feature],aggregator))
-			push!(grouped_feats_n_aggrs[i_feature], (i_featnaggr,aggregator))
+			push!(flattened_featnaggrs, (features[i_feature],aggregator))
+			push!(grouped_featnaggrs[i_feature], (i_featnaggr,aggregator))
 			i_featnaggr+=1
 		end
 	end
 
-	(features, grouped_feats_n_aggrs, flattened_feats_n_aggrs)
+	(features, grouped_featnaggrs, flattened_featnaggrs)
 end
 
 
@@ -260,8 +216,8 @@ end
 function computeModalDataset_m(
 		X::OntologicalDataset{T, N, WorldType},
 		relations::AbstractVector{<:AbstractRelation},
-		grouped_feats_n_aggrs::AbstractDict{Integer, Vector{Tuple{<:Integer,<:Aggregator}}},
-		modalDatasetP::ModalDatasetType{T}, # TODO write stricter type
+		grouped_featnaggrs::AbstractDict{Integer, Vector{Tuple{<:Integer,<:Aggregator}}},
+		modalDatasetP::ModalDatasetPType{T}, # TODO write stricter type
 		# modalDatasetP::modalDatasetType(OntologicalDataset{T, N, WorldType}),
 		# modalDatasetP::modalDatasetType(typeof(X)), # TODO make either this or X an optional argument
 		features::AbstractVector{<:FeatureTypeFun};
@@ -280,7 +236,7 @@ function computeModalDataset_m(
 
 	n_instances = n_samples(X)
 	n_relations = length(relations)
-	n_featnaggrs = sum(length(aggregators) for (i_featnaggr,aggregators) in grouped_feats_n_aggrs)
+	n_featnaggrs = sum(length(aggregators) for (i_featnaggr,aggregators) in grouped_featnaggrs)
 
 	# Prepare modalDatasetM
 	modalDatasetM = initModalDataset_m(X, n_featnaggrs, n_relations)
@@ -310,7 +266,7 @@ function computeModalDataset_m(
 			initModalDatasetWorldSlice_m(typeof(X), modalDatasetM, w)
 		end
 
-		for (i_feature,aggregators) in grouped_feats_n_aggrs
+		for (i_feature,aggregators) in grouped_featnaggrs
 			
 			@logmsg DTDebug "Feature $(i_feature)"
 			
@@ -359,6 +315,79 @@ function computeModalDataset_m(
 	end
 	modalDatasetM, modalDatasetG
 end
+
+
+
+################################################################################
+################################################################################
+################################################################################
+
+struct stumpModalDataset{T}
+	# core data
+	modalDatasetP            :: ModalDatasetPType{T}
+	modalDatasetM            :: ModalDatasetMType{T}
+	modalDatasetG            :: Union{ModalDatasetGType{T},Nothing}
+	# info
+	n_instances              :: Integer
+	relations                :: AbstractVector{<:AbstractRelation}
+	features                 :: AbstractVector{<:FeatureTypeFun}
+	grouped_featnaggrs       :: AbstractDict{Integer, Vector{Tuple{Integer,<:Aggregator}}}
+	flattened_featnaggrs     :: AbstractVector{Tuple{<:FeatureTypeFun,<:Aggregator}}
+
+	function stumpModalDataset(X::OntologicalDataset{T, N, WorldType}, features, grouped_featnaggrs, flattened_featnaggrs; computeRelationAll = false, timing_mode = :none) where {T, N, WorldType<:AbstractWorld}
+		stumpModalDataset{T}(X, features, grouped_featnaggrs, flattened_featnaggrs, computeRelationAll = computeRelationAll, timing_mode = timing_mode)
+	end
+
+	function stumpModalDataset{T}(X::OntologicalDataset{T, N, WorldType}, features, grouped_featnaggrs, flattened_featnaggrs; computeRelationAll = false, timing_mode = :none) where {T, N, WorldType<:AbstractWorld}
+		
+		n_instances = n_samples(X)
+
+		# Compute modal dataset propositions
+		modalDatasetP = 
+			if timing_mode == :none
+				computeModalDataset(X, features);
+			elseif timing_mode == :time
+				@time computeModalDataset(X, features);
+			elseif timing_mode == :btime
+				@btime computeModalDataset($X, $features);
+		end
+
+		relations = X.ontology.relationSet
+		# relations = relations[1:3]
+
+		# Compute modal dataset propositions and 1-modal decisions
+		modalDatasetM, modalDatasetG = 
+			if timing_mode == :none
+				computeModalDataset_m(X, relations, grouped_featnaggrs, modalDatasetP, features, computeRelationAll = computeRelationAll);
+			elseif timing_mode == :time
+				@time computeModalDataset_m(X, relations, grouped_featnaggrs, modalDatasetP, features, computeRelationAll = computeRelationAll);
+			elseif timing_mode == :btime
+				@btime computeModalDataset_m($X, $relations, $grouped_featnaggrs, $modalDatasetP, $features, computeRelationAll = $computeRelationAll);
+		end
+
+		# println(Base.size(X))
+		# println(Base.size(modalDatasetP))
+		# if !isnothing(modalDatasetG)
+		# 	println(Base.size(modalDatasetM))
+		# end
+		println("Dataset size:\t\t\t$(Base.summarysize(X) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
+		println("modalDataset total size:\t$((Base.summarysize(modalDatasetP) + Base.summarysize(modalDatasetM) + Base.summarysize(modalDatasetG)) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
+		println("├ modalDatasetP size:\t\t$(Base.summarysize(modalDatasetP) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
+		println("├ modalDatasetM size:\t\t$(Base.summarysize(modalDatasetM) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
+		println("└ modalDatasetG size:\t\t$(Base.summarysize(modalDatasetG) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
+
+		new{T}(modalDatasetP, modalDatasetM, modalDatasetG, n_instances, relations, features, grouped_featnaggrs, flattened_featnaggrs)
+	end
+
+end
+
+# function modalDataset(X, features)
+# 	computeModalDataset(X, features)
+# end
+
+################################################################################
+################################################################################
+################################################################################
 
 
 ################################################################################
