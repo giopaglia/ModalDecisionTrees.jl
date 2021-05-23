@@ -207,11 +207,14 @@ function testDataset(
 				push!(features_n_operators, (ModalLogic.AttributeSoftMaximumFeatureType(i_attr, 0.8), ≤))
 			end
 
-			(features, grouped_feats_n_aggrs, flattened_feats_n_aggrs) = DecisionTree.prepare_feats_n_aggrs(features_n_operators)
+			(features, grouped_featnaggrs, flattened_featnaggrs) = DecisionTree.prepare_featnaggrs(features_n_operators)
 
 			timing_mode = timing_mode
 			computeRelationAll = true
-			modalDatasetP, modalDatasetM, modalDatasetG = stumpModalDataset(X_all, features, grouped_feats_n_aggrs, computeRelationAll = computeRelationAll, timing_mode = timing_mode);
+			stumpMD = DecisionTree.stumpModalDataset(X_all, features, grouped_featnaggrs, flattened_featnaggrs, computeRelationAll = computeRelationAll, timing_mode = timing_mode);
+			modalDatasetP = stumpMD.modalDatasetP
+			modalDatasetM = stumpMD.modalDatasetM
+			modalDatasetG = stumpMD.modalDatasetG
 
 			# Check consistency between gammas and modalDataset
 
