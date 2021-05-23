@@ -194,19 +194,17 @@ inst_channel_size(inst::MatricialInstance{T,MN}) where {T,MN} = size(inst)[1:end
 	domain    :: MatricialDataset{T,N+1+1}
 	
 	OntologicalDataset{T, N}(ontology::Ontology{WorldType}, domain::MatricialDataset{T,D}) where {T, N, D, WorldType<:AbstractWorld} = begin
+		OntologicalDataset{T, N, WorldType}(ontology, domain)
+	end
+	
+	OntologicalDataset{T, N, WorldType}(ontology::Ontology{WorldType}, domain::MatricialDataset{T,D}) where {T, N, D, WorldType<:AbstractWorld} = begin
 		_check_dims(T, N, D, WorldType)
-
+		
 		# Type unstable?
 		# if prod(channel_size(domain)) == 1
 		# 	ontology = ModalLogic.strip_ontology(ontology)
 		# 	WorldType = world_type(strip_ontology)
 		# end
-		
-		new{T, N, WorldType}(ontology, domain)
-	end
-	
-	OntologicalDataset{T, N, WorldType}(ontology::Ontology{WorldType}, domain::MatricialDataset{T,D}) where {T, N, D, WorldType<:AbstractWorld} = begin
-		_check_dims(T, N, D, WorldType)
 		
 		new{T, N, WorldType}(ontology, domain)
 	end
