@@ -24,7 +24,8 @@ worldTypeDimensionality(::Type{Interval}) = 1
 # Convenience function: enumerate intervals in a given range
 enumPairsIn(a::Integer, b::Integer) =
 	Iterators.filter((a)->a[1]<a[2], Iterators.product(a:b-1, a+1:b)) # TODO try to avoid filter maybe
-
+enumShortPairsIn(a::Integer, b::Integer) =
+	IterTools.imap((x)->(x,x+1), a:b-1)
 
 yieldReprs(test_operator::_TestOpGeq, repr::_ReprMax{Interval},  channel::MatricialChannel{T,1}) where {T} =
 	reverse(extrema(ch_readWorld(repr.w, channel)))::NTuple{2,T}
