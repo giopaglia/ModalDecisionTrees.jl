@@ -1,12 +1,10 @@
 using DataStructures
 using BenchmarkTools
 
+
 export computeModalDataset, computeModalDataset_m,
 				stumpModalDataset
 				# , modalDataset
-
-const Aggregator = Function
-
 
 @inline function checkModalDatasetConsistency(modalDataset, X::OntologicalDataset{T, N, WorldType}, features::AbstractVector{<:FeatureTypeFun}) where {T, N, WorldType<:AbstractWorld}
 	if !(modalDatasetIsConsistent(modalDataset, X, length(features)))
@@ -111,10 +109,12 @@ const ModalDatasetGType{T} = Union{
 
 # computePropositionalThreshold(feature, w, channel) =  feature(ModalLogic.readWorld(w,channel))
 computePropositionalThreshold(feature::FeatureTypeFun, w::AbstractWorld, instance::MatricialInstance) = ModalLogic.yieldFunction(feature)(inst_readWorld(w,instance))
-computeModalThreshold(modalDatasetP_slice::ModalDatasetSliceType{T}, relation::AbstractRelation, w::AbstractWorld, aggregator::Agg, instance::MatricialInstance) where {T, Agg<:Aggregator} = begin
+computeModalThreshold(modalDatasetP_slice::ModalDatasetSliceType{T}, relation::AbstractRelation, w::AbstractWorld, aggregator::Agg, instance::MatricialInstance, feature::FeatureTypeFun) where {T, Agg<:Aggregator} = begin
 	
 	worlds = ModalLogic.enumAccessibles(w, relation, ModalLogic.inst_channel_size(instance)...) # TODO
-	# worlds = ModalLogic.enumAccessibles([w], relation, ModalLogic.inst_channel_size(instance)...)
+
+	# TODO reintroduce the improvements for some operators: e.g. later. Actually, these can be simplified by using a set of representatives, as in some enumAccRepr!
+	# worlds = ModalLogic.enumAccReprAggr(feature, aggregator, w, relation, ModalLogic.inst_channel_size(instance)...)
 
 	# TODO try reduce(aggregator, worlds; init=ModalLogic.bottom(aggregator, T))
 	# TODO remove this aggregator_to_binary...
@@ -281,7 +281,7 @@ function computeModalDataset_m(
 				# TODO optimize: all aggregators are likely reading the same raw values.
 				for (i_aggregator,aggregator) in aggregators
 					
-					threshold = computeModalThreshold(cur_modalDatasetP, RelationAll, firstWorld, aggregator, instance)
+					threshold = computeModalThreshold(cur_modalDatasetP, RelationAll, firstWorld, aggregator, instance, features[i_feature])
 					
 					# @logmsg DTDebug "Aggregator" aggregator threshold
 					
@@ -301,7 +301,7 @@ function computeModalDataset_m(
 					# TODO optimize: all aggregators are likely reading the same raw values.
 					for (i_aggregator,aggregator) in aggregators
 						
-						threshold = computeModalThreshold(cur_modalDatasetP, relation, w, aggregator, instance)
+						threshold = computeModalThreshold(cur_modalDatasetP, relation, w, aggregator, instance, features[i_feature])
 
 						# @logmsg DTDebug "Aggregator" aggregator threshold
 						

@@ -1,6 +1,8 @@
 export EQ, GT, LT, GEQ, LEQ,
 				existential_aggregator, aggregator_bottom,
-				TestOperatorFun
+				TestOperatorFun, Aggregator
+
+const Aggregator = Function
 
 const TestOperatorFun = Function
 ################################################################################
