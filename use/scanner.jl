@@ -189,7 +189,7 @@ function testDataset(
 					gammas
 				end
 			checkpoint_stdout("├ Type: $(typeof(gammas))")
-			checkpoint_stdout("├ Size: $(sizeof(gammas)/1024/1024) MBytes")
+			checkpoint_stdout("├ Size: $(sizeof(gammas)/1024/1024  |> x->round(x, digits=2)) MBs")
 			checkpoint_stdout("└ Dimensions: $(size(gammas))")
 
 			########################################################
@@ -209,16 +209,9 @@ function testDataset(
 
 			(features, grouped_feats_n_aggrs, flattened_feats_n_aggrs) = DecisionTree.prepare_feats_n_aggrs(features_n_operators)
 
-			@time modalDatasetP = DecisionTree.computeModalDataset(X_all, features)
-			relations = [RelationAll, X_all.ontology.relationSet...]
-			@time modalDatasetM = DecisionTree.computeModalDataset_m(X_all, relations, grouped_feats_n_aggrs, modalDatasetP, features)
-
-			println(Base.size(X_all))
-			println(Base.size(modalDatasetP))
-			println(Base.size(modalDatasetM))
-			println(Base.summarysize(X_all) / 1024 / 1024)
-			println(Base.summarysize(modalDatasetP) / 1024 / 1024)
-			println(Base.summarysize(modalDatasetM) / 1024 / 1024)
+			timing_mode = timing_mode
+			computeRelationAll = true
+			modalDatasetP, modalDatasetM, modalDatasetG = stumpModalDataset(X_all, features, grouped_feats_n_aggrs, computeRelationAll = computeRelationAll, timing_mode = timing_mode);
 
 			# Check consistency between gammas and modalDataset
 
@@ -232,7 +225,7 @@ function testDataset(
 							m = DecisionTree.modalDatasetGet(modalDatasetP, w, i_instance, (i_test_operator-1)+(i_attribute-1)*2+1)
 
 							if g != m
-								println("g != m\n$(g)\n$(m)\n$(i_test_operator)\n$(w)\n$(i_instance)\n$(i_attribute)")
+								println("modalDatasetP check: g != m\n$(g)\n$(m)\n$(i_test_operator)\n$(w)\n$(i_instance)\n$(i_attribute)")
 								println(instance)
 								println(ModalLogic.getInstanceAttribute(instance, i_attribute))
 								error("aoe")
@@ -241,6 +234,8 @@ function testDataset(
 					end
 				end
 			end
+
+			relations = X_all.ontology.relationSet
 
 			for i_instance in 1:n_samples(X_all)
 				instance = ModalLogic.getInstance(X_all, i_instance)
@@ -251,16 +246,38 @@ function testDataset(
 								
 								i_featnaggr = (i_test_operator-1)+(i_attribute-1)*2+1
 
-								g = DecisionTree.readGamma(gammas,i_test_operator,w,i_instance,1+i_relation,i_attribute)
+								g = DecisionTree.readGamma(gammas,i_test_operator,w,i_instance,2+i_relation,i_attribute)
 								m = DecisionTree.modalDatasetGet_m(modalDatasetM, w, i_instance, i_featnaggr, i_relation)
 
 								if g != m
-									println("g != m\n$(g)\n$(m)\n$(i_test_operator)\n$(w)\n$(i_instance)\n$(i_attribute)")
+									println("modalDatasetM check: g != m\n$(g)\n$(m)\n$(i_test_operator)\n$(w)\n$(i_instance)\n$(i_attribute)")
 									println(instance)
 									println(ModalLogic.getInstanceAttribute(instance, i_attribute))
 									error("aoe")
 								end
 							end
+						end
+					end
+				end
+			end
+
+			firstWorld = WorldType(ModalLogic.firstWorld)
+
+			for i_instance in 1:n_samples(X_all)
+				instance = ModalLogic.getInstance(X_all, i_instance)
+				for i_attribute in 1:n_attributes(X_all)
+					for i_test_operator in 1:2
+							
+						i_featnaggr = (i_test_operator-1)+(i_attribute-1)*2+1
+
+						g = DecisionTree.readGamma(gammas,i_test_operator,firstWorld,i_instance,2,i_attribute)
+						m = DecisionTree.modalDatasetGet_g(modalDatasetG, i_instance, i_featnaggr)
+
+						if g != m
+							println("modalDatasetG check: g != m\n$(g)\n$(m)\n$(i_test_operator)\n$(i_instance)\n$(i_attribute)")
+							println(instance)
+							println(ModalLogic.getInstanceAttribute(instance, i_attribute))
+							error("aoe")
 						end
 					end
 				end

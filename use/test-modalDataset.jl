@@ -1,12 +1,11 @@
 # scanner.jl
 
 include("scanner.jl")
-include("../src/modalDataset.jl") # this goes into DecisionTree.jl
 global_logger(ConsoleLogger(stderr, DecisionTree.DTOverview))
 # global_logger(ConsoleLogger(stderr, DecisionTree.DTDebug))
 # global_logger(ConsoleLogger(stderr, DecisionTree.DTDetail))
 X = OntologicalDataset{Int64,1}(Ontology{ModalLogic.Interval}(ModalLogic.IARelations),
-	reshape(1:(100*2*10) |> collect,100,2,10))
+	reshape(1:(15*2*10) |> collect,15,2,10))
 
 ################################################################################
 ################################################################################
@@ -19,31 +18,21 @@ for i_attr in 1:n_attributes(X)
 	# push!(features_n_operators, (ModalLogic.AttributeMinimumFeatureType(i_attr), ≤)) # "Anormal" feature
 	# push!(features_n_operators, (ModalLogic.AttributeMaximumFeatureType(i_attr), ≤))
 	# TODO
-	push!(features_n_operators, (AttributeSoftMinimumFeatureType(i_attr, .8), ≤))
+	push!(features_n_operators, (AttributeSoftMinimumFeatureType(i_attr, .8), ≥))
 	push!(features_n_operators, (AttributeSoftMaximumFeatureType(i_attr, .8), ≤))
 end
+
+features_n_operators
 
 ################################################################################
 ################################################################################
 
 # Group feats_n_operators by polarity
-(features, grouped_feats_n_aggrs, flattened_feats_n_aggrs) = prepare_feats_n_aggrs(features_n_operators)
+(features, grouped_feats_n_aggrs, flattened_feats_n_aggrs) = DecisionTree.prepare_feats_n_aggrs(features_n_operators)
 
 ################################################################################
 ################################################################################
 
-# Compute modal dataset propositions
-modalDatasetP = computeModalDataset(X, features)
-
-relations = X.ontology.relationSet
-# relations = relations[1:3]
-# Compute modal dataset propositions and 1-modal decisions
-modalDatasetM = computeModalDataset_m(X, relations, grouped_feats_n_aggrs, modalDatasetP, features)
-
-Base.size(X)
-Base.size(modalDatasetP)
-Base.size(modalDatasetM)
-
-Base.summarysize(X)
-Base.summarysize(modalDatasetP)
-Base.summarysize(modalDatasetM)
+computeRelationAll = true
+timing_mode = :none
+modalDatasetP, modalDatasetM, modalDatasetG = stumpModalDataset(X, features, grouped_feats_n_aggrs, computeRelationAll = computeRelationAll, timing_mode = timing_mode);

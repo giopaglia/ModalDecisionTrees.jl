@@ -100,4 +100,4 @@ modalDataset (soft minmax 80%):
   2.529470 seconds (25.46 M allocations: 3.395 GiB, 28.28% gc time)
  76.203804 seconds (1.76 G allocations: 57.589 GiB, 27.26% gc time)
 
-No sembra che non facciano differenza... Dunque effettivamente questa nuova struttura salva sia spazio che tempo di calcolo. E in quanto a tempo di lettura?
+No sembra che non facciano differenza... Dunque effettivamente questa nuova struttura salva sia spazio che tempo di calcolo. E in quanto a tempo di lettura? Va be', per quello guarderemo meglio dopo...
