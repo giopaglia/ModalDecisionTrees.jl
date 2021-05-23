@@ -298,7 +298,7 @@ function computeGammas(
 		extr = (typemin(T),typemax(T))
 		for w in worlds
 			e = (readGammaSlice(gammasId, w, i_test_operator), readGammaSlice(gammasId, w, i_test_operator+1))
-			extr = (min(extr[1],e[1]), max(extr[2],e[2]))
+			extr = (max(extr[1],e[1]), min(extr[2],e[2]))
 		end
 		extr
 	end
@@ -418,7 +418,7 @@ function computeGammas(
 						ModalLogic.enumAccessibles(WorldType[], RelationAll, channel)
 					else
 						[firstWorld]
-					end
+				end
 				for w in worlds
 
 					# TODO use gammasId, TODO gammasId[v]

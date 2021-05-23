@@ -201,10 +201,10 @@ function testDataset(
 			features_n_operators = Tuple{<:FeatureTypeFun,<:TestOperatorFun}[]
 
 			for i_attr in 1:n_attributes(X_all)
-				# push!(features_n_operators, (ModalLogic.AttributeMinimumFeatureType(i_attr), ≥))
-				# push!(features_n_operators, (ModalLogic.AttributeMaximumFeatureType(i_attr), ≤))
-				push!(features_n_operators, (ModalLogic.AttributeSoftMinimumFeatureType(i_attr, 0.8), ≥))
-				push!(features_n_operators, (ModalLogic.AttributeSoftMaximumFeatureType(i_attr, 0.8), ≤))
+				push!(features_n_operators, (ModalLogic.AttributeMinimumFeatureType(i_attr), ≥))
+				push!(features_n_operators, (ModalLogic.AttributeMaximumFeatureType(i_attr), ≤))
+				# push!(features_n_operators, (ModalLogic.AttributeSoftMinimumFeatureType(i_attr, 0.8), ≥))
+				# push!(features_n_operators, (ModalLogic.AttributeSoftMaximumFeatureType(i_attr, 0.8), ≤))
 			end
 
 			(features, grouped_featnaggrs, flattened_featnaggrs) = DecisionTree.prepare_featnaggrs(features_n_operators)
@@ -228,11 +228,33 @@ function testDataset(
 							m = DecisionTree.modalDatasetGet(modalDatasetP, w, i_instance, (i_test_operator-1)+(i_attribute-1)*2+1)
 
 							if g != m
-								println("modalDatasetP check: g != m\n$(g)\n$(m)\n$(i_test_operator)\n$(w)\n$(i_instance)\n$(i_attribute)")
-								println(instance)
+								println("modalDatasetP check: g != m\n$(g)\n$(m)\ni_test_operator=$(i_test_operator)\nw=$(w)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
+								print("instance: ")
 								println(ModalLogic.getInstanceAttribute(instance, i_attribute))
 								error("aoe")
 							end
+						end
+					end
+				end
+			end
+
+			firstWorld = WorldType(ModalLogic.firstWorld)
+
+			for i_instance in 1:n_samples(X_all)
+				instance = ModalLogic.getInstance(X_all, i_instance)
+				for i_attribute in 1:n_attributes(X_all)
+					for i_test_operator in 1:2
+						
+						i_featnaggr = (i_test_operator-1)+(i_attribute-1)*2+1
+
+						g = DecisionTree.readGamma(gammas,i_test_operator,firstWorld,i_instance,2,i_attribute)
+						m = DecisionTree.modalDatasetGet_g(modalDatasetG, i_instance, i_featnaggr)
+
+						if g != m
+							println("modalDatasetG check: g != m\n$(g)\n$(m)\ni_test_operator=$(i_test_operator)\ntest_operator=$(modal_args.test_operators[i_test_operator])\ni_featnaggr=$(i_featnaggr)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
+							print("instance: ")
+							println(ModalLogic.getInstanceAttribute(instance, i_attribute))
+							error("aoe")
 						end
 					end
 				end
@@ -253,34 +275,13 @@ function testDataset(
 								m = DecisionTree.modalDatasetGet_m(modalDatasetM, w, i_instance, i_featnaggr, i_relation)
 
 								if g != m
-									println("modalDatasetM check: g != m\n$(g)\n$(m)\n$(i_test_operator)\n$(w)\n$(i_instance)\n$(i_attribute)")
-									println(instance)
+									println("modalDatasetM check: g != m\n$(g)\n$(m)\ni_relation=$(i_relation), relation=$(relations[i_relation])\ni_test_operator=$(i_test_operator)\ntest_operator=$(modal_args.test_operators[i_test_operator])\nw=$(w)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
+									print("channel: ")
 									println(ModalLogic.getInstanceAttribute(instance, i_attribute))
-									error("aoe")
+									# error("aoe")
+									readline()
 								end
 							end
-						end
-					end
-				end
-			end
-
-			firstWorld = WorldType(ModalLogic.firstWorld)
-
-			for i_instance in 1:n_samples(X_all)
-				instance = ModalLogic.getInstance(X_all, i_instance)
-				for i_attribute in 1:n_attributes(X_all)
-					for i_test_operator in 1:2
-							
-						i_featnaggr = (i_test_operator-1)+(i_attribute-1)*2+1
-
-						g = DecisionTree.readGamma(gammas,i_test_operator,firstWorld,i_instance,2,i_attribute)
-						m = DecisionTree.modalDatasetGet_g(modalDatasetG, i_instance, i_featnaggr)
-
-						if g != m
-							println("modalDatasetG check: g != m\n$(g)\n$(m)\n$(i_test_operator)\n$(i_instance)\n$(i_attribute)")
-							println(instance)
-							println(ModalLogic.getInstanceAttribute(instance, i_attribute))
-							error("aoe")
 						end
 					end
 				end
@@ -418,7 +419,7 @@ function testDataset(
 			elseif timing_mode == :time
 				@time build_tree(Y_train, X_train; tree_args..., modal_args..., gammas = gammas_train, rng = rng)
 			elseif timing_mode == :btime
-				@btime build_tree(Y_train, X_train; tree_args..., modal_args..., gammas = gammas_train, rng = rng)
+				@btime build_tree($Y_train, $X_train; $tree_args..., $modal_args..., gammas = $gammas_train, rng = $rng)
 			end
 		Tt = Dates.now() - started
 		println("Train tree:")

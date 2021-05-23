@@ -78,19 +78,21 @@ modal_args = (
 	useRelationId = true,
 	useRelationAll = false,
 	ontology = getIntervalOntologyOfDim(Val(1)),
+	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_L, ModalLogic.IA_Li, ModalLogic.IA_D]),
 #	test_operators = [TestOpGeq, TestOpLeq],
 )
 
 # https://github.com/JuliaIO/JSON.jl/issues/203
 # https://discourse.julialang.org/t/json-type-serialization/9794
 # TODO: make test operators types serializable
-exec_test_operators = [ "TestOp_80" ]
+exec_test_operators = [ "TestOp" ]
+# exec_test_operators = [ "TestOp_80" ]
 
 test_operators_dict = Dict(
 	# "TestOp_70" => [TestOpGeq_70, TestOpLeq_70],
 	"TestOp_80" => [TestOpGeq_80, TestOpLeq_80],
 	# "TestOp_80" => [(ModalLogic.get_aggr_softmin_f(.8), ≥), (ModalLogic.get_aggr_softmax_f(.8), ≤)],
-	# "TestOp" => [TestOpGeq, TestOpLeq],
+	"TestOp" => [TestOpGeq, TestOpLeq],
 )
 
 # log_level = Logging.Warn
@@ -99,8 +101,8 @@ log_level = DecisionTree.DTOverview
 # log_level = DecisionTree.DTDetail
 
 # timing_mode = :none
-timing_mode = :time
-# timing_mode = :btime
+# timing_mode = :time
+timing_mode = :btime
 
 #round_dataset_to_datatype = Float32
 # round_dataset_to_datatype = UInt16
@@ -135,13 +137,13 @@ test_flattened = false
 exec_runs = 1
 exec_n_tasks = 1
 exec_n_versions = 1
-exec_nbands = 40
+exec_nbands = 1
 # exec_runs = 1:5
 # exec_n_tasks = 1:1
 # exec_n_versions = 1:2
 # exec_nbands = [20,40,60]
 exec_dataset_kwargs =   [(
-							max_points = 10,
+							max_points = 30,
 							ma_size = 75,
 							ma_step = 50,
 						# ),(
