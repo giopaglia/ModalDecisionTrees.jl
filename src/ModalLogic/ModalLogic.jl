@@ -1,7 +1,7 @@
 module ModalLogic
 
 using IterTools
-import Base: argmax, argmin, size, show, convert
+import Base: argmax, argmin, size, show, convert, getindex
 using Logging: @logmsg
 using ..DecisionTree
 
@@ -132,15 +132,15 @@ subscriptnumber(i::AbstractFloat) = subscriptnumber(string(i))
 # BEGIN Dataset types
 ################################################################################
 
-abstract type AbstractModalDataset{T<:Real,WorldType<:AbstractWorld} end
-
-
-
-export n_samples, n_attributes, channel_size, max_channel_size,
+export AbstractModalDataset,
+				MultiFrameFeatModalDataset,
+				n_samples, n_attributes, n_features, channel_size, max_channel_size, n_frames,
 				MatricialInstance,
 				MatricialDataset,
 				# MatricialUniDataset,
 				MatricialChannel
+
+abstract type AbstractModalDataset{T<:Real,WorldType<:AbstractWorld} end
 
 # A dataset, given by a set of N-dimensional (multi-attribute) matrices/instances,
 #  and an Ontology to be interpreted on each of them.
@@ -193,7 +193,7 @@ inst_channel_size(inst::MatricialInstance{T,MN}) where {T,MN} = size(inst)[1:end
 # MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,4}) where T = Array{T, 3}(undef, size(d)[1:end-1])::MatricialUniDataset{T, 3}
 
 # TODO generalize as init_Xf(X::OntologicalDataset{T, N}) where T = Array{T, N+1}(undef, size(X)[3:end]..., n_samples(X))
-@computed struct OntologicalDataset{T, N, WorldType} <: AbstractModalDataset{T,WorldType}
+@computed struct OntologicalDataset{T, N, WorldType}
 	ontology  :: Ontology{WorldType}
 	domain    :: MatricialDataset{T,N+1+1}
 	
@@ -242,6 +242,43 @@ channel_size(X::OntologicalDataset{T,N})     where {T,N} = channel_size(X.domain
 # attributeview(X::OntologicalDataset{T,0}, idxs::AbstractVector{Integer}, attribute::Integer) = X.domain[idxs, attribute]
 # attributeview(X::OntologicalDataset{T,1}, idxs::AbstractVector{Integer}, attribute::Integer) = view(X.domain, idxs, attribute, :)
 # attributeview(X::OntologicalDataset{T,2}, idxs::AbstractVector{Integer}, attribute::Integer) = view(X.domain, idxs, attribute, :, :)
+
+@computed struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
+	# TODO
+	dummy::Integer
+	instance_lengths::Vector{Integer}
+end
+
+n_samples(X::FeatModalDataset)    = 10
+n_attributes(X::FeatModalDataset) = 10
+channel_size(X::FeatModalDataset) = 10 # TODO remember to change this according to the test for now (e.g. 5, 10, 30)
+
+
+struct MultiFrameFeatModalDataset
+	frames  :: AbstractVector{<:FeatModalDataset}
+	MultiFrameFeatModalDataset(Xs::AbstractVector{<:FeatModalDataset}) = begin
+		@assert length(Xs) > 0 && length(unique(n_samples.(Xs))) == 1 "Can't create an empty Multi-Frame Modal Dataset or with mismatching number of samples (n_frames: $(length(Xs)), frame_sizes: $(n_samples.(Xs)))."
+		new(Xs)
+	end
+	# TODO write MultiFrameFeatModalDataset(Xs::AbstractVector{<:Tuple{Union{FeatModalDataset,MatricialDataset,OntologicalDataset},NamedTuple}}) = begin
+end
+
+# TODO: test all these methods
+getindex(X::MultiFrameFeatModalDataset, i::Integer) = X.frames[i]
+n_frames(X::MultiFrameFeatModalDataset)             = length(X.frames)
+n_samples(X::MultiFrameFeatModalDataset)            = n_samples(X.frames[1]) # n_frames(X) > 0 ? n_samples(X.frames[1]) : 0
+# get total number of features (TODO: figure if this is useless or not)
+n_features(X::MultiFrameFeatModalDataset) = sum(length.(X.frames))
+# get number of features in a single frame
+n_features(X::MultiFrameFeatModalDataset, i_frame::Integer) = n_features(X.frames[i_frame])
+channel_size(X::MultiFrameFeatModalDataset, i_frame::Integer) = channel_size(X.frame[i_frame]) # TODO: should not rely on channel_size
+
+@inline getInstance(X::MultiFrameFeatModalDataset,  i_frame::Integer, args::Vararg)  = getInstance(X.frames[i], args...)
+@inline getInstances(X::MultiFrameFeatModalDataset, i_frame::Integer, args::Vararg)  = getInstances(X.frames[i], args...)
+@inline getChannel(X::MultiFrameFeatModalDataset,   i_frame::Integer, args::Vararg)  = getChannel(X.frames[i], args...)
+
+@inline getInstance(X::MultiFrameFeatModalDataset, args::Vararg)  = getInstance(X.frames[i], args...) # TODO should slice across the frames!
+@inline getInstances(X::MultiFrameFeatModalDataset, args::Vararg) = getInstances(X.frames[i], args...) # TODO should slice across the frames!
 
 ################################################################################
 # END Dataset types
