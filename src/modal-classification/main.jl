@@ -180,22 +180,16 @@ function apply_tree(tree::DTInternal{U, T}, Xi::MatricialInstance{U,MN}, S::Worl
 end
 
 # Apply tree with initialConditions to a dimensional dataset in matricial form
-function apply_tree(tree::DTree{S, T}, d::MatricialDataset{S,D}) where {S, T, D}
+function apply_tree(tree::DTree{S, T}, X::MatricialDataset{S,D}) where {S, T, D}
 	@logmsg DTDetail "apply_tree..."
-	n_instances = n_samples(d)
+	n_instances = n_samples(X)
 	predictions = Array{T,1}(undef, n_instances)
 	for i in 1:n_instances
 		@logmsg DTDetail " instance $i/$n_instances"
 		# TODO figure out: is it better to interpret the whole dataset at once, or instance-by-instance? The first one enables reusing training code
-		w0params =
-			if tree.initCondition == startWithRelationAll
-				[ModalLogic.emptyWorld]
-			elseif tree.initCondition == startAtCenter
-				[ModalLogic.centeredWorld, channel_size(d)...]
-			elseif typeof(tree.initCondition) <: _startAtWorld
-				[tree.initCondition.w]
-		end
-		predictions[i] = apply_tree(tree.root, ModalLogic.getInstance(d, i), WorldSet{tree.worldType}([tree.worldType(w0params...)]))
+
+		worlds = initWorldSet(tree.initCondition, tree.worldType, channel_size(X))
+		predictions[i] = apply_tree(tree.root, ModalLogic.getInstance(X, i), worlds)
 	end
 	return (if T <: Float64
 			Float64.(predictions)
@@ -284,16 +278,9 @@ function print_apply_tree(tree::DTree{S, T}, X::MatricialDataset{S,D}, Y::Vector
 
 	# Propagate instances down the tree
 	for i in 1:n_samples(X)
-		w0params =
-			if tree.initCondition == startWithRelationAll
-				[ModalLogic.emptyWorld]
-			elseif tree.initCondition == startAtCenter
-				[ModalLogic.centeredWorld, channel_size(X)...]
-			elseif typeof(tree.initCondition) <: _startAtWorld
-				[tree.initCondition.w]
-			end
+		worlds = initWorldSet(tree.initCondition, tree.worldType, channel_size(X))
 		tree = DTree{S, T}(
-			print_apply_tree(tree.root, ModalLogic.getInstance(X, i), WorldSet{tree.worldType}([tree.worldType(w0params...)]), Y[i], update_majority = update_majority),
+			print_apply_tree(tree.root, ModalLogic.getInstance(X, i), worlds, Y[i], update_majority = update_majority),
 			tree.worldType,
 			tree.initCondition
 		)
