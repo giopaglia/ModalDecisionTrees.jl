@@ -129,8 +129,12 @@ subscriptnumber(i::AbstractFloat) = subscriptnumber(string(i))
 ################################################################################
 
 ################################################################################
-# BEGIN Matricial dataset & Ontological dataset
+# BEGIN Dataset types
 ################################################################################
+
+abstract type AbstractModalDataset{T<:Real,WorldType<:AbstractWorld} end
+
+
 
 export n_samples, n_attributes, channel_size, max_channel_size,
 				MatricialInstance,
@@ -189,7 +193,7 @@ inst_channel_size(inst::MatricialInstance{T,MN}) where {T,MN} = size(inst)[1:end
 # MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,4}) where T = Array{T, 3}(undef, size(d)[1:end-1])::MatricialUniDataset{T, 3}
 
 # TODO generalize as init_Xf(X::OntologicalDataset{T, N}) where T = Array{T, N+1}(undef, size(X)[3:end]..., n_samples(X))
-@computed struct OntologicalDataset{T, N, WorldType<:AbstractWorld}
+@computed struct OntologicalDataset{T, N, WorldType} <: AbstractModalDataset{T,WorldType}
 	ontology  :: Ontology{WorldType}
 	domain    :: MatricialDataset{T,N+1+1}
 	
@@ -240,7 +244,7 @@ channel_size(X::OntologicalDataset{T,N})     where {T,N} = channel_size(X.domain
 # attributeview(X::OntologicalDataset{T,2}, idxs::AbstractVector{Integer}, attribute::Integer) = view(X.domain, idxs, attribute, :, :)
 
 ################################################################################
-# END Matricial dataset & Ontological dataset
+# END Dataset types
 ################################################################################
 
 include("operators.jl")
