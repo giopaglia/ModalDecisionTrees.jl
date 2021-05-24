@@ -446,13 +446,13 @@ module treeclassifier
 		# Softened operators:
 		#  when the biggest world only has a few values, softened operators fallback
 		#  to being hard operators
-		max_world_wratio = 1/prod(channel_size(X))
-		if TestOpGeq in test_operators
-			test_operators = filter((e)->(typeof(e) != _TestOpGeqSoft || e.alpha < 1-max_world_wratio), test_operators)
-		end
-		if TestOpLeq in test_operators
-			test_operators = filter((e)->(typeof(e) != _TestOpLeqSoft || e.alpha < 1-max_world_wratio), test_operators)
-		end
+		# max_world_wratio = 1/prod(max_channel_size(X))
+		# if TestOpGeq in test_operators
+		# 	test_operators = filter((e)->(typeof(e) != _TestOpGeqSoft || e.alpha < 1-max_world_wratio), test_operators)
+		# end
+		# if TestOpLeq in test_operators
+		# 	test_operators = filter((e)->(typeof(e) != _TestOpLeqSoft || e.alpha < 1-max_world_wratio), test_operators)
+		# end
 
 
 		# Binary relations (= unary modal operators)
@@ -531,15 +531,7 @@ module treeclassifier
 		n_instances = n_samples(X)
 
 		# Initialize world sets
-		w0params =
-			if initCondition == startWithRelationAll
-				[ModalLogic.emptyWorld]
-			elseif initCondition == startAtCenter
-				[ModalLogic.centeredWorld, channel_size(X)...]
-			elseif typeof(initCondition) <: DecisionTree._startAtWorld
-				[initCondition.w]
-		end
-		S = WorldSet{WorldType}[[WorldType(w0params...)] for i in 1:n_instances]
+		S = WorldSet{WorldType}[DecisionTree.initWorldSet(initCondition, WorldType, channel_size(X)) for i in 1:n_instances] # TODO should be channel_size(X, i)
 
 		# Array memory for class counts
 		nc  = Vector{U}(undef, n_classes)

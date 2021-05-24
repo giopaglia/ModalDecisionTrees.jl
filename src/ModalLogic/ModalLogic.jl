@@ -23,15 +23,15 @@ Base.keys(g::Base.Generator) = g.iter
 abstract type AbstractWorld end
 abstract type AbstractRelation end
 
+const accFunction = Function
+
 # Concrete class for ontology models (world type + set of relations)
 struct Ontology{WorldType<:AbstractWorld}
 	relationSet :: AbstractVector{<:AbstractRelation}
 	Ontology{WorldType}(relationSet) where {WorldType<:AbstractWorld} = begin
 		relationSet = unique(relationSet)
 		for relation in relationSet
-			if !goesWith(WorldType, relation)
-				error("Can't instantiate Ontology with WorldType $(WorldType) and relation $(relation)")
-			end
+			@assert goesWith(WorldType, relation) "Can't instantiate Ontology with WorldType $(WorldType) and relation $(relation)"
 		end
 		return new{WorldType}(relationSet)
 	end
@@ -44,7 +44,7 @@ world_type(::Ontology{WT}) where {WT} = WT
 
 
 # This constant is used to create the default world for each WorldType
-#  (e.g. Interval(ModalLogic.emptyWorld) = Interval(-1,0))
+#  (e.g. Interval(emptyWorld) = Interval(-1,0))
 struct _firstWorld end;    const firstWorld    = _firstWorld();
 struct _emptyWorld end;    const emptyWorld    = _emptyWorld();
 struct _centeredWorld end; const centeredWorld = _centeredWorld();
@@ -52,11 +52,8 @@ struct _centeredWorld end; const centeredWorld = _centeredWorld();
 # World generators/enumerators and array/set-like structures
 # TODO test the functions for WorldSets with Sets and Arrays, and find the performance optimum
 const AbstractWorldSet{W} = Union{AbstractVector{W},AbstractSet{W}} where {W<:AbstractWorld}
-# Concrete type for sets: vectors are faster than sets, so we
-# const WorldSet = AbstractSet{W} where W<:AbstractWorld
 const WorldSet{W} = Vector{W} where {W<:AbstractWorld}
 WorldSet{W}(S::WorldSet{W}) where {W<:AbstractWorld} = S
-
 
 # TODO improve, decouple from relationSets definitions
 # Actually, this will not work because relationSet does this collect(set(...)) thing... mh maybe better avoid that thing?
@@ -127,6 +124,9 @@ subscriptnumber(i::AbstractFloat) = subscriptnumber(string(i))
 ################################################################################
 # END Helpers
 ################################################################################
+
+include("operators.jl")
+include("featureTypes.jl")
 
 ################################################################################
 # BEGIN Dataset types
@@ -202,25 +202,18 @@ inst_channel_size(inst::MatricialInstance{T,MN}) where {T,MN} = size(inst)[1:end
 	end
 	
 	OntologicalDataset{T, N, WorldType}(ontology::Ontology{WorldType}, domain::MatricialDataset{T,D}) where {T, N, D, WorldType<:AbstractWorld} = begin
-		_check_dims(T, N, D, WorldType)
+
+		@assert n_samples(domain) > 0 "Can't instantiate OntologicalDataset{$(T), $(N), $(WorldType)} with no instance. (domain's type $(typeof(domain)))"
+		@assert N == worldTypeDimensionality(WorldType) "ERROR! Dimensionality mismatch: can't interpret worldType $(WorldType) (dimensionality = $(worldTypeDimensionality(WorldType)) on MatricialDataset of dimensionality = $(N)"
+		@assert D == (N+1+1) "ERROR! Dimensionality mismatch: can't instantiate OntologicalDataset{$(T), $(N)} with MatricialDataset{$(T),$(D)}"
 		
 		# Type unstable?
 		# if prod(channel_size(domain)) == 1
-		# 	ontology = ModalLogic.strip_ontology(ontology)
+		# 	ontology = strip_ontology(ontology)
 		# 	WorldType = world_type(strip_ontology)
 		# end
 		
 		new{T, N, WorldType}(ontology, domain)
-	end
-	
-	_check_dims(T, N, D, WorldType) = begin
-		if N != ModalLogic.worldTypeDimensionality(WorldType)
-			error("ERROR! Dimensionality mismatch: can't interpret worldType $(WorldType) (dimensionality = $(ModalLogic.worldTypeDimensionality(WorldType)) on MatricialDataset of dimensionality = $(N)")
-		end
-		
-		if D != (N+1+1)
-			error("ERROR! Dimensionality mismatch: can't instantiate OntologicalDataset{$(T), $(N)} with MatricialDataset{$(T),$(D)}")
-		end
 	end
 end
 
@@ -243,15 +236,51 @@ channel_size(X::OntologicalDataset{T,N})     where {T,N} = channel_size(X.domain
 # attributeview(X::OntologicalDataset{T,1}, idxs::AbstractVector{Integer}, attribute::Integer) = view(X.domain, idxs, attribute, :)
 # attributeview(X::OntologicalDataset{T,2}, idxs::AbstractVector{Integer}, attribute::Integer) = view(X.domain, idxs, attribute, :, :)
 
-@computed struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
-	# TODO
-	dummy::Integer
-	instance_lengths::Vector{Integer}
+
+abstract type AbstractFeaturedWorldDataset{T, WorldType} end
+
+struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
+	
+	# Core data
+	fwd                 :: AbstractFeaturedWorldDataset{T,WorldType}
+	
+	## Modal frame:
+	# Accessibility relations
+	relations          :: AbstractVector{<:AbstractRelation}
+	# Accessibility functions (one per instance) with signature (w::WorldType, r::AbstractRelation) -> vs::AbstractVector{WorldType}
+	acc_functions      :: AbstractVector{accFunction}
+	
+	# Test operators associated with each feature
+	test_operators     :: AbstractVector{<:AbstractVector{TestOperatorFun}}
+	
+	# Feature names
+	feature_names      :: AbstractVector{String}
+
+	FeatModalDataset(
+		fwd                :: AbstractFeaturedWorldDataset{T,WorldType},
+		relations          :: AbstractVector{<:AbstractRelation},
+		acc_functions      :: AbstractVector{accFunction},
+		test_operators     :: AbstractVector{<:AbstractVector{TestOperatorFun}},
+		feature_names      :: AbstractVector{String},
+	) where {T,WorldType} = begin FeatModalDataset{T, WorldType}(fwd, relations, acc_functions, test_operators, features) end
+
+	FeatModalDataset{T, WorldType}(
+		fwd                :: AbstractFeaturedWorldDataset{T,WorldType},
+		relations          :: AbstractVector{<:AbstractRelation},
+		acc_functions      :: AbstractVector{accFunction},
+		test_operators     :: AbstractVector{<:AbstractVector{TestOperatorFun}},
+		feature_names      :: AbstractVector{String},
+	) where {T,WorldType} = begin
+		@assert n_samples(fwd) > 0 "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with no instance. (fwd's type $(typeof(fwd)))"
+		@assert length(test_operators) > 0 "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with no test operator."
+		@assert n_samples(fwd) == length(acc_functions) "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with different numbers of instances $(n_samples(fwd)) and of acc_functions $(length(acc_functions))."
+		@assert n_features(fwd) == length(feature_names) "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with different numbers of instances $(n_samples(fwd)) and of feature_names $(length(feature_names))."
+		new(fwd, relations, acc_functions, test_operators, features)
+	end
 end
 
-n_samples(X::FeatModalDataset)    = 10
-n_attributes(X::FeatModalDataset) = 10
-channel_size(X::FeatModalDataset) = 10 # TODO remember to change this according to the test for now (e.g. 5, 10, 30)
+n_samples(X::FeatModalDataset{T, WorldType}) where {T, WorldType}  = n_samples(X.fwd)
+n_features(X::FeatModalDataset{T, WorldType}) where {T, WorldType} = length(X.feature_names)
 
 
 struct MultiFrameFeatModalDataset
@@ -271,7 +300,7 @@ n_samples(X::MultiFrameFeatModalDataset)            = n_samples(X.frames[1]) # n
 n_features(X::MultiFrameFeatModalDataset) = sum(length.(X.frames))
 # get number of features in a single frame
 n_features(X::MultiFrameFeatModalDataset, i_frame::Integer) = n_features(X.frames[i_frame])
-channel_size(X::MultiFrameFeatModalDataset, i_frame::Integer) = channel_size(X.frame[i_frame]) # TODO: should not rely on channel_size
+# TODO: channel_size doesn't make sense at this point. Only the acc_functions[i] functions.
 
 @inline getInstance(X::MultiFrameFeatModalDataset,  i_frame::Integer, args::Vararg)  = getInstance(X.frames[i], args...)
 @inline getInstances(X::MultiFrameFeatModalDataset, i_frame::Integer, args::Vararg)  = getInstances(X.frames[i], args...)
@@ -284,9 +313,7 @@ channel_size(X::MultiFrameFeatModalDataset, i_frame::Integer) = channel_size(X.f
 # END Dataset types
 ################################################################################
 
-include("operators.jl")
 include("testOperators.jl")
-include("featureTypes.jl")
 
 display_propositional_test(test_operator::TestOperator, lhs::String, threshold::Number) =
 	"$(lhs) $(test_operator) $(threshold)"
@@ -385,6 +412,8 @@ include("Topo2DRelations.jl")
 
 ################################################################################
 ################################################################################
+
+include("FeaturedWorldDataset.jl")
 
 # TODO
 # A relation can be defined as a union of other relations.
