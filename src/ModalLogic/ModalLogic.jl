@@ -8,6 +8,7 @@ using ..DecisionTree
 using ComputedFieldTypes
 
 export AbstractWorld, AbstractRelation,
+				ModalDataset, MultiFrameModalDataset,
 				Ontology, OntologicalDataset,
 				WorldSet,
 				display_propositional_test,
@@ -132,7 +133,7 @@ subscriptnumber(i::AbstractFloat) = subscriptnumber(string(i))
 # BEGIN Matricial dataset & Ontological dataset
 ################################################################################
 
-export n_samples, n_attributes, channel_size,
+export n_samples, n_attributes, channel_size, n_frames,
 				MatricialInstance,
 				MatricialDataset,
 				# MatricialUniDataset,
@@ -257,11 +258,14 @@ n_samples(X::MultiFrameModalDataset)            = n_frames(X) > 0 ? n_samples(X.
 n_attributes(X::MultiFrameModalDataset) = sum(length.(X.frames))
 # get number of attributes in a single frame
 n_attributes(X::MultiFrameModalDataset, i_frame::Integer) = n_attributes(X.frames[i_frame])
-channel_size(X::MultiFrameModalDataset, i_frame::Integer) = channel_size(X.frame[i_frame].domain)
+channel_size(X::MultiFrameModalDataset, i_frame::Integer) = channel_size(X.frame[i_frame].domain) # TODO: MFMD shoud not access frame domains directly
 
-@inline getInstance(X::MultiFrameModalDataset, i_frame::Integer, args::Vararg)  = getInstance(X.frames[i].domain, args...)
-@inline getInstances(X::MultiFrameModalDataset, i_frame::Integer, args::Vararg) = getInstances(X.frames[i].domain, args...)
-@inline getChannel(X::MultiFrameModalDataset, i_frame::Integer, args::Vararg)   = getChannel(X.frames[i].domain, args...)
+@inline getInstance(X::MultiFrameModalDataset, i_frame::Integer, args::Vararg)  = getInstance(X.frames[i].domain, args...) # TODO: MFMD shoud not access frame domains directly
+@inline getInstances(X::MultiFrameModalDataset, i_frame::Integer, args::Vararg) = getInstances(X.frames[i].domain, args...) # TODO: MFMD shoud not access frame domains directly
+@inline getChannel(X::MultiFrameModalDataset, i_frame::Integer, args::Vararg)   = getChannel(X.frames[i].domain, args...) # TODO: MFMD shoud not access frame domains directly
+
+#@inline getInstance(X::MultiFrameModalDataset, args::Vararg)  = getInstance(X.frames[i].domain, args...) # TODO: MFMD shoud not access frame domains directly
+#@inline getInstances(X::MultiFrameModalDataset, args::Vararg) = getInstances(X.frames[i].domain, args...) # TODO: MFMD shoud not access frame domains directly
 
 ################################################################################
 # END Matricial dataset & Ontological dataset
