@@ -57,7 +57,7 @@ module treeclassifier
 	#  (e.g. max_depth, min_samples_leaf, etc.)
 	# TODO move this function inside the caller function, and get rid of all parameters
 	function _split!(
-							X                   :: OntologicalDataset{T, N, WorldType}, # the ontological dataset
+							Xs                  :: MultiFrameModalDataset{OntologicalDataset{T, N, WorldType}}, # the ontological dataset
 							Y                   :: AbstractVector{Label},    # the label array
 							W                   :: AbstractVector{U},        # the weight vector
 							S                   :: AbstractVector{WorldSet{WorldType}}, # the vector of current worlds
@@ -84,14 +84,16 @@ module treeclassifier
 							Yf                  :: AbstractVector{Label},
 							Wf                  :: AbstractVector{U},
 							Sf                  :: AbstractVector{WorldSet{WorldType}},
-							gammas              :: GammaType{NTO, T},
+							gammas              :: AbstractVector{Union{GammaType,Nothing}},
 							# TODO Ef                  :: AbstractArray{T},
-							
+
 							relationSet         :: AbstractVector{<:AbstractRelation},
 							relation_ids        :: AbstractVector{Int},
 							featureSet          :: AbstractVector{<:FeatureType},
 							rng                 :: Random.AbstractRNG,
 							) where {WorldType<:AbstractWorld, T, U, N, M, NTO, L}
+
+		X = Xs[1]
 
 		# Region of indX to use to perform the split
 		region = node.region
@@ -156,107 +158,110 @@ module treeclassifier
 		## Find best split ##
 		#####################
 		## Test all conditions
-		# For each relational operator
-		for relation_id in relations_ids
-			relation = relationSet[relation_id]
-			@logmsg DTDebug "Testing relation $(relation) (id: $(relation_id))..." # "/$(length(relation_ids))"
+		# For each frame (modal dataset)
+		for frame in X
+			# For each relational operator
+			for relation_id in relations_ids
+				relation = relationSet[relation_id]
+				@logmsg DTDebug "Testing relation $(relation) (id: $(relation_id))..." # "/$(length(relation_ids))"
 
-			# For each feature
-			@inbounds for feature in features_inds
-				@logmsg DTDebug "Testing feature $(feature)/$(n_subfeatures)..."
-				relation_real = featureSet[feature]
+				# For each feature
+				@inbounds for feature in features_inds
+					@logmsg DTDebug "Testing feature $(feature)/$(n_subfeatures)..."
+					relation_real = featureSet[feature]
 
-				thresholds = Array{T,2}(undef, length(test_operators), n_instances)
-				for (i_test_operator,test_operator) in enumerate(test_operators)
-					@views cur_thr = thresholds[i_test_operator,:]
-					fill!(cur_thr, ModalLogic.bottom(test_operator, T))
-				end
+					thresholds = Array{T,2}(undef, length(test_operators), n_instances)
+					for (i_test_operator,test_operator) in enumerate(test_operators)
+						@views cur_thr = thresholds[i_test_operator,:]
+						fill!(cur_thr, ModalLogic.bottom(test_operator, T))
+					end
 
-				@logmsg DTDebug "thresholds: " thresholds
+					@logmsg DTDebug "thresholds: " thresholds
 
-				# TODO optimize this!!
-				firstWorld = WorldType(ModalLogic.firstWorld)
-				for i in 1:n_instances
-					@logmsg DTDetail " Instance $(i)/$(n_instances)" indX[i + r_start]
-					worlds = if (relation != RelationAll)
-							Sf[i]
-						else
-							[firstWorld]
-						end
-					# TODO maybe read the specific value of gammas referred to the test_operator?
-					# cur_gammas = DecisionTree.readGamma(gammas, w, indX[i + r_start], relation_id, feature)
-					# @logmsg DTDetail " cur_gammas" w cur_gammas
-					# TODO try using reduce for each operator instead.
-					for (i_test_operator,test_operator) in enumerate(test_operators) # TODO use correct indexing for test_operators
-						for w in worlds
-							# thresholds[i_test_operator,i] = ModalLogic.opt(test_operator)(thresholds[i_test_operator,i], cur_gammas[i_test_operator])
-							gamma = DecisionTree.readGamma(gammas, i_test_operator, w, indX[i + r_start], relation_id, feature)
-							thresholds[i_test_operator,i] = ModalLogic.opt(test_operator)(thresholds[i_test_operator,i], gamma)
+					# TODO optimize this!!
+					firstWorld = WorldType(ModalLogic.firstWorld)
+					for i in 1:n_instances
+						@logmsg DTDetail " Instance $(i)/$(n_instances)" indX[i + r_start]
+						worlds = if (relation != RelationAll)
+								Sf[i]
+							else
+								[firstWorld]
+							end
+						# TODO maybe read the specific value of gammas referred to the test_operator?
+						# cur_gammas = DecisionTree.readGamma(gammas, w, indX[i + r_start], relation_id, feature)
+						# @logmsg DTDetail " cur_gammas" w cur_gammas
+						# TODO try using reduce for each operator instead.
+						for (i_test_operator,test_operator) in enumerate(test_operators) # TODO use correct indexing for test_operators
+							for w in worlds
+								# thresholds[i_test_operator,i] = ModalLogic.opt(test_operator)(thresholds[i_test_operator,i], cur_gammas[i_test_operator])
+								gamma = DecisionTree.readGamma(gammas, i_test_operator, w, indX[i + r_start], relation_id, feature)
+								thresholds[i_test_operator,i] = ModalLogic.opt(test_operator)(thresholds[i_test_operator,i], gamma)
+							end
 						end
 					end
-				end
 
-				# TODO sort this and optimize?
-				# TODO no need to do union!! Just use opGeqMaxThresh for one and opLesMinThresh for the other...
-				# Obtain the list of reasonable thresholds
-				
-				# thresholdDomain = setdiff(union(Set(opGeqMaxThresh),Set(opLesMinThresh)),Set([typemin(T), typemax(T)]))
+					# TODO sort this and optimize?
+					# TODO no need to do union!! Just use opGeqMaxThresh for one and opLesMinThresh for the other...
+					# Obtain the list of reasonable thresholds
+					
+					# thresholdDomain = setdiff(union(Set(opGeqMaxThresh),Set(opLesMinThresh)),Set([typemin(T), typemax(T)]))
 
-				# @logmsg DTDebug "Thresholds computed: " thresholds
-				# readline()
+					# @logmsg DTDebug "Thresholds computed: " thresholds
+					# readline()
 
-				# Look for the correct test operator
-				for (i_test_operator,test_operator) in enumerate(test_operators)
-					thresholdArr = @views thresholds[i_test_operator,:]
-					thresholdDomain = setdiff(Set(thresholdArr),Set([typemin(T), typemax(T)]))
-					# Look for thresholdArr 'a' for the propositions like "feature >= a"
-					for threshold in thresholdDomain
-						@logmsg DTDebug " Testing condition: $(display_modal_test(relation, test_operator, relation_real, threshold))"
-						# Re-initialize right class counts
-						nr = zero(U)
-						ncr[:] .= zero(U)
-						# unsatisfied = fill(1, n_instances)
-						for i in 1:n_instances
-							# @logmsg DTDetail " instance $i/$n_instances ExtremeThresh ($(opGeqMaxThresh[i])/$(opLesMinThresh[i]))"
-							satisfied = ModalLogic.evaluateThreshCondition(test_operator, threshold, thresholdArr[i])
-							
-							if !satisfied
-								@logmsg DTDetail "NO"
-								nr += Wf[i]
-								ncr[Yf[i]] += Wf[i]
-							else
-								# unsatisfied[i] = 0
-								@logmsg DTDetail "YES"
+					# Look for the correct test operator
+					for (i_test_operator,test_operator) in enumerate(test_operators)
+						thresholdArr = @views thresholds[i_test_operator,:]
+						thresholdDomain = setdiff(Set(thresholdArr),Set([typemin(T), typemax(T)]))
+						# Look for thresholdArr 'a' for the propositions like "feature >= a"
+						for threshold in thresholdDomain
+							@logmsg DTDebug " Testing condition: $(display_modal_test(relation, test_operator, relation_real, threshold))"
+							# Re-initialize right class counts
+							nr = zero(U)
+							ncr[:] .= zero(U)
+							# unsatisfied = fill(1, n_instances)
+							for i in 1:n_instances
+								# @logmsg DTDetail " instance $i/$n_instances ExtremeThresh ($(opGeqMaxThresh[i])/$(opLesMinThresh[i]))"
+								satisfied = ModalLogic.evaluateThreshCondition(test_operator, threshold, thresholdArr[i])
+								
+								if !satisfied
+									@logmsg DTDetail "NO"
+									nr += Wf[i]
+									ncr[Yf[i]] += Wf[i]
+								else
+									# unsatisfied[i] = 0
+									@logmsg DTDetail "YES"
+								end
 							end
-						end
 
-						# Calculate left class counts
-						@simd for lab in 1:length(nc) # TODO something like @simd ncl .= nc - ncr instead
-							ncl[lab] = nc[lab] - ncr[lab]
-						end
-						nl = nt - nr
-						@logmsg DTDebug "  (n_left,n_right) = ($nl,$nr)"
-
-						# Honor min_samples_leaf
-						if nl >= min_samples_leaf && (n_instances - nl) >= min_samples_leaf
-							purity__nt = -(nl * loss_function(ncl, nl) +
-								      	 nr * loss_function(ncr, nr))
-							if purity__nt > best_purity__nt && !isapprox(purity__nt, best_purity__nt)
-								best_purity__nt     = purity__nt
-								best_relation       = relation
-								best_feature        = feature
-								best_test_operator  = test_operator
-								best_threshold      = threshold
-								# TODO just for checking the consistency of optimizations
-								best_nl             = nl
-								# TODO bring back best_unsatisfied    = unsatisfied
-								@logmsg DTDetail "  Found new optimum: " (best_purity__nt/nt) best_relation best_feature best_test_operator best_threshold
+							# Calculate left class counts
+							@simd for lab in 1:length(nc) # TODO something like @simd ncl .= nc - ncr instead
+								ncl[lab] = nc[lab] - ncr[lab]
 							end
-						end
-					end # for threshold
-				end # for test_operator
-			end # for relation
-		end # for feature
+							nl = nt - nr
+							@logmsg DTDebug "  (n_left,n_right) = ($nl,$nr)"
+
+							# Honor min_samples_leaf
+							if nl >= min_samples_leaf && (n_instances - nl) >= min_samples_leaf
+								purity__nt = -(nl * loss_function(ncl, nl) +
+											nr * loss_function(ncr, nr))
+								if purity__nt > best_purity__nt && !isapprox(purity__nt, best_purity__nt)
+									best_purity__nt     = purity__nt
+									best_relation       = relation
+									best_feature        = feature
+									best_test_operator  = test_operator
+									best_threshold      = threshold
+									# TODO just for checking the consistency of optimizations
+									best_nl             = nl
+									# TODO bring back best_unsatisfied    = unsatisfied
+									@logmsg DTDetail "  Found new optimum: " (best_purity__nt/nt) best_relation best_feature best_test_operator best_threshold
+								end
+							end
+						end # for threshold
+					end # for test_operator
+				end # for relation
+			end # for feature
+		end
 
 		# @logmsg DTOverview "purity increase" best_purity__nt/nt node.purity (best_purity__nt/nt + node.purity) (best_purity__nt/nt - node.purity)
 		# If the best split is good, partition and split accordingly
@@ -346,7 +351,7 @@ module treeclassifier
 	end
 
 	function check_input(
-			X                   :: OntologicalDataset{T, N},
+			X                   :: MultiFrameModalDataset{OntologicalDataset{T, N}},
 			Y                   :: AbstractVector{S},
 			W                   :: AbstractVector{U},
 			loss_function       :: Function,
@@ -505,7 +510,7 @@ module treeclassifier
 	end
 
 	function _fit(
-			X                       :: OntologicalDataset{T, N, WorldType},
+			Xs                      :: MultiFrameModalDataset{OntologicalDataset{T, N, WorldType}},
 			Y                       :: AbstractVector{Label},
 			W                       :: AbstractVector{U},
 			loss                    :: Function,
@@ -515,20 +520,20 @@ module treeclassifier
 			min_samples_leaf        :: Int, # TODO generalize to min_samples_leaf_relative and min_weight_leaf
 			min_purity_increase     :: AbstractFloat,
 			min_loss_at_leaf        :: AbstractFloat,
-			n_subrelations           :: Function,
+			n_subrelations          :: Function,
 			initCondition           :: DecisionTree._initCondition,
 			useRelationAll          :: Bool,
 			useRelationId           :: Bool,
 			test_operators          :: AbstractVector{<:TestOperator},
 			rng = Random.GLOBAL_RNG :: Random.AbstractRNG;
-			gammas                  :: Union{GammaType{NTO, Ta},Nothing} = nothing) where {T, U, N, NTO, Ta, WorldType<:AbstractWorld}
+			gammas                  :: AbstractVector{Union{GammaType,Nothing}} = nothing) where {T, U, N, WorldType<:AbstractWorld}
 
 		if N != ModalLogic.worldTypeDimensionality(WorldType)
 			error("ERROR! Dimensionality mismatch: can't interpret worldType $(WorldType) (dimensionality = $(ModalLogic.worldTypeDimensionality(WorldType)) on OntologicalDataset of dimensionality = $(N)")
 		end
 		
 		# Dataset sizes
-		n_instances = n_samples(X)
+		n_instances = n_samples(Xs)
 
 		# Initialize world sets
 		w0params =
@@ -627,17 +632,20 @@ module treeclassifier
 			#  a graph; instead, an instance is a dimensional domain (e.g. a matrix or a 3D matrix) onto which
 			#  worlds and relations are determined by a given Ontology.
 			# TODO Add default values for this function?
-			X                       :: OntologicalDataset{T, N},
-			Y                       :: AbstractVector{S},
-			W                       :: Union{Nothing, AbstractVector{U}},
-			gammas                  :: Union{GammaType{NTO, Ta},Nothing} = nothing,
+			Xs                     :: MultiFrameModalDataset{OntologicalDataset{T, N}},
+			Y                      :: AbstractVector{S},
+			W                      :: Union{AbstractVector{U},Nothing},
+			# this apparently redundant type for gammas allow one to choose to pass
+			# nothing: which means [ nothing, nothing, ..., nothing ]
+			# [ g1, nothing, g3, ... ] which means a mixed array to recycle previously calculated gammas for a frame
+			gammas                  :: Union{AbstractVector{Union{GammaType,Nothing}},Nothing} = nothing,
 			loss = util.entropy     :: Function,
 			n_subfeatures           :: Int,
 			max_depth               :: Int,
 			min_samples_leaf        :: Int,
 			min_purity_increase     :: AbstractFloat,
 			min_loss_at_leaf        :: AbstractFloat, # TODO add this to scikit's interface.
-			n_subrelations           :: Function,
+			n_subrelations          :: Function,
 			initCondition           :: DecisionTree._initCondition,
 			useRelationAll          :: Bool,
 			useRelationId           :: Bool,
@@ -645,7 +653,14 @@ module treeclassifier
 			rng = Random.GLOBAL_RNG :: Random.AbstractRNG) where {T, S, U, N, NTO, Ta}
 
 		# Obtain the dataset's "outer size": number of samples and number of features
-		n_instances = n_samples(X)
+		n_instances = n_samples(Xs)
+
+		# Format gammas the proper way
+		if isnothing(gammas)
+			gammas = fill(nothing, n_frames(Xs))
+		else
+			@assert n_frames(Xs) == length(gammas) "MultiFrameModalDataset and gammas sized mismatch: n_frames(Xs) = $(n_frames(Xs)); length(gammas) = $(length(gammas))"
+		end
 
 		# Use unary weights if no weight is supplied
 		if isnothing(W)
@@ -655,16 +670,18 @@ module treeclassifier
 			W = fill(1, n_instances)
 		end
 
-		# Check validity of the input
-		check_input(
-			X, Y, W,
-			loss,
-			n_subfeatures,
-			max_depth,
-			min_samples_leaf,
-			min_loss_at_leaf,
-			min_purity_increase,
-			)
+		for i in 1:n_frames(Xs)
+			# Check validity of the input
+			check_input(
+				Xs[i], Y, W,
+				loss,
+				n_subfeatures,
+				max_depth,
+				min_samples_leaf,
+				min_loss_at_leaf,
+				min_purity_increase,
+				)
+		end
 
 		# Translate labels to categorical form
 		labels, Y_ = util.assign(Y)
@@ -672,7 +689,7 @@ module treeclassifier
 
 		# Call core learning function
 		root, indX = _fit(
-			X, Y_, W,
+			Xs, Y_, W,
 			loss,
 			length(labels),
 			n_subfeatures,
