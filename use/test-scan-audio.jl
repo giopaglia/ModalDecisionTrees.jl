@@ -137,13 +137,13 @@ test_flattened = false
 exec_runs = 1
 exec_n_tasks = 1
 exec_n_versions = 1
-exec_nbands = 1
+exec_nbands = 40
 # exec_runs = 1:5
 # exec_n_tasks = 1:1
 # exec_n_versions = 1:2
 # exec_nbands = [20,40,60]
 exec_dataset_kwargs =   [(
-							max_points = 30,
+							max_points = 10,
 							ma_size = 75,
 							ma_step = 50,
 						# ),(
