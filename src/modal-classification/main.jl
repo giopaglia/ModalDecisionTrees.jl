@@ -22,7 +22,7 @@ function _convert(
 end
 
 ################################################################################
-################################################################################
+########################## Matricial Dataset ###################################
 ################################################################################
 
 # Build models on (multi-dimensional) arrays
@@ -32,7 +32,7 @@ function build_stump(
 	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
 	ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
 	kwargs...) where {T, D, U}
-	build_stump(OntologicalDataset{T,D-2}(ontology,bare_dataset), labels, weights; kwargs...)
+	build_stump(MultiFrameModalDataset(OntologicalDataset{T,D-2}(ontology,bare_dataset)), labels, weights; kwargs...)
 end
 
 function build_tree(
@@ -41,7 +41,7 @@ function build_tree(
 	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
 	ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
 	kwargs...) where {T, D, U}
-	build_tree(OntologicalDataset{T,D-2}(ontology,bare_dataset), labels, weights; kwargs...)
+	build_tree(MultiFrameModalDataset(OntologicalDataset{T,D-2}(ontology,bare_dataset)), labels, weights; kwargs...)
 end
 
 function build_forest(
@@ -51,16 +51,46 @@ function build_forest(
 	ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
 	kwargs...) where {T, D, U}
 	# build_forest(OntologicalDataset{T,D-2}(ontology,bare_dataset), labels, weights; kwargs...)
-	build_forest(OntologicalDataset{T,D-2}(ontology,bare_dataset), labels; kwargs...)
+	build_forest(MultiFrameModalDataset(OntologicalDataset{T,D-2}(ontology,bare_dataset)), labels; kwargs...)
 end
 
 ################################################################################
+########################## Modal Dataset #######################################
 ################################################################################
+
+# Build models on (multi-dimensional) arrays
+function build_stump(
+	labels        :: AbstractVector{String},
+	modal_dataset :: ModalDataset,
+	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
+	kwargs...) where U
+	build_stump(MultiFrameModalDataset(modal_dataset), labels, weights; kwargs...)
+end
+
+function build_tree(
+	labels        :: AbstractVector{String},
+	modal_dataset :: ModalDataset,
+	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
+	kwargs...) where U
+	build_tree(MultiFrameModalDataset(modal_dataset), labels, weights; kwargs...)
+end
+
+function build_forest(
+	labels        :: AbstractVector{String},
+	modal_dataset :: ModalDataset;
+	# weights       :: Union{Nothing,AbstractVector{U}} = nothing TODO
+	kwargs...) #where U
+	# build_forest(MultiFrameModalDataset(modal_dataset), labels, weights; kwargs...)
+	build_forest(MultiFrameModalDataset(modal_dataset), labels; kwargs...)
+end
+
+################################################################################
+########################## Actual Build Funcs ##################################
 ################################################################################
 
 # Build a stump (tree with depth 1)
 function build_stump(
-		X	                :: OntologicalDataset{T, N},
+		X	              :: MultiFrameModalDataset{OntologicalDataset{T, N}},
 		Y                 :: AbstractVector{String},
 		W                 :: Union{Nothing,AbstractVector{U}} = nothing;
 		kwargs...) where {T, N, U}
@@ -70,10 +100,10 @@ end
 
 # Build a tree on an OntologicalDataset
 function build_tree(
-	X                   :: OntologicalDataset{T, N, WorldType},
+	X                   :: MultiFrameModalDataset{OntologicalDataset{T, N, WorldType}},
 	Y                   :: AbstractVector{S},
 	W                   :: Union{Nothing,AbstractVector{U}}   = nothing;
-	gammas              :: Union{GammaType{NTO, Ta},Nothing}  = nothing,
+	gammas              :: Union{AbstractVector{Union{GammaType,Nothing}},Nothing}  = nothing,
 	loss                :: Function                           = util.entropy,
 	n_subfeatures       :: Function                           = x -> x,
 	max_depth           :: Int                                = -1,
@@ -368,7 +398,7 @@ apply_tree_proba(tree::DTNode{S, T}, features::AbstractMatrix{S}, labels) where 
 =#
 
 function build_forest(
-	X                   :: OntologicalDataset{T, N, WorldType},
+	Xs                  :: MultiFrameModalDataset{OntologicalDataset{T, N, WorldType}},
 	Y                   :: AbstractVector{S}
 	;
 	# , W                   :: Union{Nothing,AbstractVector{U}} = nothing; TODO these must also be used for the calculation of the oob_error
@@ -376,7 +406,7 @@ function build_forest(
 	n_trees             = 100,
 	partial_sampling    = 0.7,      # portion of instances sampled (without replacement) by each tree
 	# Tree parameters
-	gammas              :: Union{GammaType{NTO, Ta},Nothing} = nothing,
+	gammas              :: Union{AbstractVector{Union{GammaType,Nothing}},Nothing} = nothing,
 	loss                :: Function           = util.entropy,
 	n_subfeatures       :: Function           = x -> ceil(Int, sqrt(x)),
 	max_depth           :: Int                = -1,
@@ -402,12 +432,17 @@ function build_forest(
 	
 	# precompute-gammas, since they are shared by all trees
 	if isnothing(gammas)
-		(
-			test_operators, relationSet,
-			relationId_id, relationAll_id,
-			availableModalRelation_ids, allAvailableRelation_ids
-		) = treeclassifier.optimize_tree_parameters!(X, initCondition, useRelationAll, useRelationId, test_operators)
-		gammas = computeGammas(X,WorldType,test_operators,relationSet,relationId_id,availableModalRelation_ids)
+		gammas = fill(nothing, n_frames(Xs))
+	end
+	for i in 1:length(gammas)
+		if isnothing(gammas)
+			(
+				test_operators, relationSet,
+				relationId_id, relationAll_id,
+				availableModalRelation_ids, allAvailableRelation_ids
+			) = treeclassifier.optimize_tree_parameters!(X, initCondition, useRelationAll, useRelationId, test_operators)
+			gammas[i] = computeGammas(X[i],WorldType,test_operators,relationSet,relationId_id,availableModalRelation_ids)
+		end
 	end
 
 	t_samples = n_samples(X)
