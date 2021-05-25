@@ -23,6 +23,9 @@ Base.keys(g::Base.Generator) = g.iter
 abstract type AbstractWorld end
 abstract type AbstractRelation end
 
+show(io::IO, r::AbstractRelation) = print(io, display_existential_modality(r))
+display_existential_modality(r) = "⟨" * display_rel_short(r) * "⟩"
+
 const accFunction = Function
 
 # Concrete class for ontology models (world type + set of relations)
@@ -40,27 +43,11 @@ end
 
 world_type(::Ontology{WT}) where {WT} = WT
 
-# strip_ontology(ontology::Ontology) = Ontology{OneWorld}(AbstractRelation[])
-
-
-# This constant is used to create the default world for each WorldType
-#  (e.g. Interval(emptyWorld) = Interval(-1,0))
-struct _firstWorld end;    const firstWorld    = _firstWorld();
-struct _emptyWorld end;    const emptyWorld    = _emptyWorld();
-struct _centeredWorld end; const centeredWorld = _centeredWorld();
-
-# World generators/enumerators and array/set-like structures
-# TODO test the functions for WorldSets with Sets and Arrays, and find the performance optimum
-const AbstractWorldSet{W} = Union{AbstractVector{W},AbstractSet{W}} where {W<:AbstractWorld}
-const WorldSet{W} = Vector{W} where {W<:AbstractWorld}
-WorldSet{W}(S::WorldSet{W}) where {W<:AbstractWorld} = S
-
-# TODO improve, decouple from relationSets definitions
 # Actually, this will not work because relationSet does this collect(set(...)) thing... mh maybe better avoid that thing?
 show(io::IO, o::Ontology{WorldType}) where {WorldType} = begin
-	print(io, "Ontology(")
+	print(io, "Ontology{")
 	show(io, WorldType)
-	print(io, ",")
+	print(io, "}(")
 	if issetequal(o.relationSet, IARelations)
 		print(io, "IARelations")
 	elseif issetequal(o.relationSet, IARelations_extended)
@@ -80,6 +67,20 @@ show(io::IO, o::Ontology{WorldType}) where {WorldType} = begin
 	end
 	print(io, ")")
 end
+
+# strip_ontology(ontology::Ontology) = Ontology{OneWorld}(AbstractRelation[])
+
+
+# This constant is used to create the default world for each WorldType
+#  (e.g. Interval(emptyWorld) = Interval(-1,0))
+struct _firstWorld end;    const firstWorld    = _firstWorld();
+struct _emptyWorld end;    const emptyWorld    = _emptyWorld();
+struct _centeredWorld end; const centeredWorld = _centeredWorld();
+
+# World generators/enumerators and array/set-like structures
+const AbstractWorldSet{W} = Union{AbstractVector{W},AbstractSet{W}} where {W<:AbstractWorld}
+const WorldSet{W} = Vector{W} where {W<:AbstractWorld}
+WorldSet{W}(S::WorldSet{W}) where {W<:AbstractWorld} = S
 
 ################################################################################
 # BEGIN Helpers
@@ -159,40 +160,55 @@ const MatricialDataset{T,D}     = AbstractArray{T,D}
 const MatricialChannel{T,N}     = AbstractArray{T,N}
 const MatricialInstance{T,MN}   = AbstractArray{T,MN}
 
+# TODO use d[i,[(:) for i in 1:N]...] for accessing it, instead of writing blocks of functions
+
 n_samples(d::MatricialDataset{T,D})    where {T,D} = size(d, D)
 n_attributes(d::MatricialDataset{T,D}) where {T,D} = size(d, D-1)
 channel_size(d::MatricialDataset{T,D}) where {T,D} = size(d)[1:end-2]
-max_channel_size = channel_size # TODO rename channel_size into max_channel_size
+max_channel_size = channel_size
+# TODO rename channel_size into max_channel_size and define channel_size for single instance
+# channel_size(d::MatricialDataset{T,2}, idx_i::Integer) where T = size(d[      1, idx_i])
+# channel_size(d::MatricialDataset{T,3}, idx_i::Integer) where T = size(d[:,    1, idx_i])
+# channel_size(d::MatricialDataset{T,4}, idx_i::Integer) where T = size(d[:, :, 1, idx_i])
+
+# channel_size(d::MatricialDataset{T,D}, idx_i::Integer) where {T,D} = size(d[idx_i])[1:end-2]
 inst_channel_size(inst::MatricialInstance{T,MN}) where {T,MN} = size(inst)[1:end-1]
 
-@inline getInstance(d::MatricialDataset{T,2},     idx::Integer) where T = @views d[:, idx]         # N=0
-@inline getInstance(d::MatricialDataset{T,3},     idx::Integer) where T = @views d[:, :, idx]      # N=1
-@inline getInstance(d::MatricialDataset{T,4},     idx::Integer) where T = @views d[:, :, :, idx]   # N=2
+getInstance(d::MatricialDataset{T,2},     idx::Integer) where T = @views d[:, idx]         # N=0
+getInstance(d::MatricialDataset{T,3},     idx::Integer) where T = @views d[:, :, idx]      # N=1
+getInstance(d::MatricialDataset{T,4},     idx::Integer) where T = @views d[:, :, :, idx]   # N=2
 
-@inline getInstances(d::MatricialDataset{T,2}, inds::AbstractVector{<:Integer}; return_view = false) where T = if return_view @views d[:, inds]       else d[:, inds]    end # N=0
-@inline getInstances(d::MatricialDataset{T,3}, inds::AbstractVector{<:Integer}; return_view = false) where T = if return_view @views d[:, :, inds]    else d[:, :, inds] end # N=1
-@inline getInstances(d::MatricialDataset{T,4}, inds::AbstractVector{<:Integer}; return_view = false) where T = if return_view @views d[:, :, :, inds] else d[:, :, :, inds] end # N=2
+getInstances(d::MatricialDataset{T,2}, inds::AbstractVector{<:Integer}; return_view = false) where T = if return_view @views d[:, inds]       else d[:, inds]    end # N=0
+getInstances(d::MatricialDataset{T,3}, inds::AbstractVector{<:Integer}; return_view = false) where T = if return_view @views d[:, :, inds]    else d[:, :, inds] end # N=1
+getInstances(d::MatricialDataset{T,4}, inds::AbstractVector{<:Integer}; return_view = false) where T = if return_view @views d[:, :, :, inds] else d[:, :, :, inds] end # N=2
 
-@inline getChannel(d::MatricialDataset{T,2},      idx_i::Integer, idx_a::Integer) where T = @views d[      idx_a, idx_i]::T                     # N=0
-@inline getChannel(d::MatricialDataset{T,3},      idx_i::Integer, idx_a::Integer) where T = @views d[:,    idx_a, idx_i]::MatricialChannel{T,1} # N=1
-@inline getChannel(d::MatricialDataset{T,4},      idx_i::Integer, idx_a::Integer) where T = @views d[:, :, idx_f, idx_i]::MatricialChannel{T,2} # N=2
-# @inline getUniChannel(ud::MatricialUniDataset{T,1},  idx::Integer) where T = @views ud[idx]           # N=0
-# @inline getUniChannel(ud::MatricialUniDataset{T,2},  idx::Integer) where T = @views ud[:, idx]        # N=1
-# @inline getUniChannel(ud::MatricialUniDataset{T,3},  idx::Integer) where T = @views ud[:, :, idx]     # N=2
-@inline getInstanceAttribute(inst::MatricialInstance{T,1},      idx::Integer) where T = @views inst[      idx]::T                     # N=0
-@inline getInstanceAttribute(inst::MatricialInstance{T,2},      idx::Integer) where T = @views inst[:,    idx]::MatricialChannel{T,1} # N=1
-@inline getInstanceAttribute(inst::MatricialInstance{T,3},      idx::Integer) where T = @views inst[:, :, idx]::MatricialChannel{T,2} # N=2
+getChannel(d::MatricialDataset{T,2},      idx_i::Integer, idx_a::Integer) where T = @views d[      idx_a, idx_i]::T                     # N=0
+getChannel(d::MatricialDataset{T,3},      idx_i::Integer, idx_a::Integer) where T = @views d[:,    idx_a, idx_i]::MatricialChannel{T,1} # N=1
+getChannel(d::MatricialDataset{T,4},      idx_i::Integer, idx_a::Integer) where T = @views d[:, :, idx_f, idx_i]::MatricialChannel{T,2} # N=2
+# getUniChannel(ud::MatricialUniDataset{T,1},  idx::Integer) where T = @views ud[idx]           # N=0
+# getUniChannel(ud::MatricialUniDataset{T,2},  idx::Integer) where T = @views ud[:, idx]        # N=1
+# getUniChannel(ud::MatricialUniDataset{T,3},  idx::Integer) where T = @views ud[:, :, idx]     # N=2
+getInstanceAttribute(inst::MatricialInstance{T,1},      idx::Integer) where T = @views inst[      idx]::T                     # N=0
+getInstanceAttribute(inst::MatricialInstance{T,2},      idx::Integer) where T = @views inst[:,    idx]::MatricialChannel{T,1} # N=1
+getInstanceAttribute(inst::MatricialInstance{T,3},      idx::Integer) where T = @views inst[:, :, idx]::MatricialChannel{T,2} # N=2
 
-# @inline strip_domain(d::MatricialDataset{T,2}) where T = d  # N=0
-# @inline strip_domain(d::MatricialDataset{T,3}) where T = dropdims(d; dims=1)      # N=1
-# @inline strip_domain(d::MatricialDataset{T,4}) where T = dropdims(d; dims=(1,2))  # N=2
+
+# TODO maybe using views can improve performances
+# @computed getChannel(X::OntologicalDataset{T,N}, idxs::AbstractVector{Integer}, attribute::Integer) where T = X[idxs, attribute, fill(:, N)...]::AbstractArray{T,N-1}
+# attributeview(X::MatricialDataset{T,2}, idxs::AbstractVector{Integer}, attribute::Integer) = d[idxs, attribute]
+# attributeview(X::MatricialDataset{T,3}, idxs::AbstractVector{Integer}, attribute::Integer) = view(d, idxs, attribute, :)
+# attributeview(X::MatricialDataset{T,4}, idxs::AbstractVector{Integer}, attribute::Integer) = view(d, idxs, attribute, :, :)
+
+
+# strip_domain(d::MatricialDataset{T,2}) where T = d  # N=0
+# strip_domain(d::MatricialDataset{T,3}) where T = dropdims(d; dims=1)      # N=1
+# strip_domain(d::MatricialDataset{T,4}) where T = dropdims(d; dims=(1,2))  # N=2
 
 # Initialize MatricialUniDataset by slicing across the attribute dimension
 # MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,2}) where T = Array{T, 1}(undef, n_samples(d))::MatricialUniDataset{T, 1}
 # MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,3}) where T = Array{T, 2}(undef, size(d)[1:end-1])::MatricialUniDataset{T, 2}
 # MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,4}) where T = Array{T, 3}(undef, size(d)[1:end-1])::MatricialUniDataset{T, 3}
 
-# TODO generalize as init_Xf(X::OntologicalDataset{T, N}) where T = Array{T, N+1}(undef, size(X)[3:end]..., n_samples(X))
 @computed struct OntologicalDataset{T, N, WorldType}
 	ontology  :: Ontology{WorldType}
 	domain    :: MatricialDataset{T,N+1+1}
@@ -217,25 +233,16 @@ inst_channel_size(inst::MatricialInstance{T,MN}) where {T,MN} = size(inst)[1:end
 	end
 end
 
-
+# TODO define getindex?
 size(X::OntologicalDataset{T,N})             where {T,N} = size(X.domain)
 size(X::OntologicalDataset{T,N}, i::Integer) where {T,N} = size(X.domain, i)
 n_samples(X::OntologicalDataset{T,N})        where {T,N} = n_samples(X.domain)
 n_attributes(X::OntologicalDataset{T,N})     where {T,N} = n_attributes(X.domain)
 channel_size(X::OntologicalDataset{T,N})     where {T,N} = channel_size(X.domain)
 
-@inline getInstance(d::OntologicalDataset{T,N,WT}, args::Vararg) where {T,N,WT}  = getInstance(d.domain, args...)
-@inline getInstances(d::OntologicalDataset{T,N,WT}, args::Vararg) where {T,N,WT} = getInstances(d.domain, args...)
-@inline getChannel(d::OntologicalDataset{T,N,WT},   args::Vararg) where {T,N,WT} = getChannel(d.domain, args...)
-
-# TODO use Xf[i,[(:) for i in 1:N]...]
-# @computed @inline getChannel(X::OntologicalDataset{T,N}, idxs::AbstractVector{Integer}, attribute::Integer) where T = X[idxs, attribute, fill(:, N)...]::AbstractArray{T,N-1}
-
-# TODO maybe using views can improve performances
-# attributeview(X::OntologicalDataset{T,0}, idxs::AbstractVector{Integer}, attribute::Integer) = X.domain[idxs, attribute]
-# attributeview(X::OntologicalDataset{T,1}, idxs::AbstractVector{Integer}, attribute::Integer) = view(X.domain, idxs, attribute, :)
-# attributeview(X::OntologicalDataset{T,2}, idxs::AbstractVector{Integer}, attribute::Integer) = view(X.domain, idxs, attribute, :, :)
-
+getInstance(d::OntologicalDataset{T,N,WT}, args::Vararg) where {T,N,WT}  = getInstance(d.domain, args...)
+getInstances(d::OntologicalDataset{T,N,WT}, args::Vararg) where {T,N,WT} = getInstances(d.domain, args...)
+getChannel(d::OntologicalDataset{T,N,WT},   args::Vararg) where {T,N,WT} = getChannel(d.domain, args...)
 
 abstract type AbstractFeaturedWorldDataset{T, WorldType} end
 
@@ -300,14 +307,14 @@ n_samples(X::MultiFrameFeatModalDataset)            = n_samples(X.frames[1]) # n
 n_features(X::MultiFrameFeatModalDataset) = sum(length.(X.frames))
 # get number of features in a single frame
 n_features(X::MultiFrameFeatModalDataset, i_frame::Integer) = n_features(X.frames[i_frame])
-# TODO: channel_size doesn't make sense at this point. Only the acc_functions[i] functions.
+# TODO: Note: channel_size doesn't make sense at this point. Only the acc_functions[i] functions.
 
-@inline getInstance(X::MultiFrameFeatModalDataset,  i_frame::Integer, args::Vararg)  = getInstance(X.frames[i], args...)
-@inline getInstances(X::MultiFrameFeatModalDataset, i_frame::Integer, args::Vararg)  = getInstances(X.frames[i], args...)
-@inline getChannel(X::MultiFrameFeatModalDataset,   i_frame::Integer, args::Vararg)  = getChannel(X.frames[i], args...)
+getInstance(X::MultiFrameFeatModalDataset,  i_frame::Integer, args::Vararg)  = getInstance(X.frames[i], args...)
+getInstances(X::MultiFrameFeatModalDataset, i_frame::Integer, args::Vararg)  = getInstances(X.frames[i], args...)
+getChannel(X::MultiFrameFeatModalDataset,   i_frame::Integer, args::Vararg)  = getChannel(X.frames[i], args...)
 
-@inline getInstance(X::MultiFrameFeatModalDataset, args::Vararg)  = getInstance(X.frames[i], args...) # TODO should slice across the frames!
-@inline getInstances(X::MultiFrameFeatModalDataset, args::Vararg) = getInstances(X.frames[i], args...) # TODO should slice across the frames!
+getInstance(X::MultiFrameFeatModalDataset, args::Vararg)  = getInstance(X.frames[i], args...) # TODO should slice across the frames!
+getInstances(X::MultiFrameFeatModalDataset, args::Vararg) = getInstances(X.frames[i], args...) # TODO should slice across the frames!
 
 ################################################################################
 # END Dataset types
@@ -329,9 +336,7 @@ end
 
 ################################################################################
 ################################################################################
-
-show(io::IO, r::AbstractRelation) = print(io, display_existential_modality(r))
-display_existential_modality(r) = "⟨" * display_rel_short(r) * "⟩"
+# TODO remove or rebrand?
 
 # Utility type for enhanced computation of thresholds
 abstract type _ReprTreatment end
@@ -340,6 +345,9 @@ struct _ReprMax{worldType<:AbstractWorld}  <: _ReprTreatment w :: worldType end
 struct _ReprMin{worldType<:AbstractWorld}  <: _ReprTreatment w :: worldType end
 struct _ReprVal{worldType<:AbstractWorld}  <: _ReprTreatment w :: worldType end
 struct _ReprNone{worldType<:AbstractWorld} <: _ReprTreatment end
+
+################################################################################
+################################################################################
 
 ## Enumerate accessible worlds
 
@@ -356,6 +364,10 @@ end
 enumAccessibles(w::WorldType, r::AbstractRelation, XYZ::Vararg{Integer,N}) where {T,N,WorldType<:AbstractWorld} = begin
 	IterTools.imap(WorldType, enumAccBare(w, r, XYZ...))
 end
+
+################################################################################
+################################################################################
+
 ## Basic, ontology-agnostic relations:
 
 # None relation      (RelationNone)  =  Used as the "nothing" constant
@@ -382,10 +394,11 @@ enumAccReprAggr(::FeatureTypeFun, ::Aggregator, w::WorldType, r::_RelationId, XY
 
 display_rel_short(::_RelationId)  = "Id"
 
+# TODO rename into RelationGlobal (and then GlobalRelation?)
 # Global relation    (RelationAll)   =  S -> all-worlds
 struct _RelationAll   <: AbstractRelation end; const RelationAll  = _RelationAll();
 
-display_rel_short(::_RelationAll) = ""
+display_rel_short(::_RelationAll) = "G"
 
 # Shortcut for enumerating all worlds
 enumAll(::Type{WorldType}, args::Vararg) where {WorldType<:AbstractWorld} = enumAccessibles(WorldType[], RelationAll, args...)
@@ -393,6 +406,18 @@ enumAll(::Type{WorldType}, args::Vararg) where {WorldType<:AbstractWorld} = enum
 
 ################################################################################
 ################################################################################
+
+export genericIntervalOntology,
+				IntervalOntology,
+				Interval2DOntology,
+				getIntervalOntologyOfDim,
+				genericIntervalRCC8Ontology,
+				IntervalRCC8Ontology,
+				Interval2DRCC8Ontology,
+				getIntervalRCC8OntologyOfDim,
+				getIntervalRCC5OntologyOfDim,
+				IntervalRCC5Ontology,
+				Interval2DRCC5Ontology
 
 minExtrema(extr::Union{NTuple{N,NTuple{2,T}},AbstractVector{NTuple{2,T}}}) where {T<:Number,N} = reduce(((fst,snd),(f,s))->(min(fst,f),max(snd,s)), extr; init=(typemax(T),typemin(T)))
 maxExtrema(extr::Union{NTuple{N,NTuple{2,T}},AbstractVector{NTuple{2,T}}}) where {T<:Number,N} = reduce(((fst,snd),(f,s))->(max(fst,f),min(snd,s)), extr; init=(typemin(T),typemax(T)))
@@ -409,81 +434,6 @@ include("TopoRelations.jl")
 include("Interval2D.jl")
 include("IA2DRelations.jl")
 include("Topo2DRelations.jl")
-
-################################################################################
-################################################################################
-
-include("FeaturedWorldDataset.jl")
-
-# TODO
-# A relation can be defined as a union of other relations.
-# In this case, thresholds can be computed by maximization/minimization of the
-#  thresholds referred to the relations involved.
-# abstract type AbstractRelation end
-struct _UnionOfRelations{T<:NTuple{N,<:AbstractRelation} where N} <: AbstractRelation end;
-
-# computeModalThresholdDual(test_operator::TestOperator, w::WorldType, relation::R where R<:_UnionOfRelations{relsTuple}, channel::MatricialChannel{T,N}) where {WorldType<:AbstractWorld,T,N} =
-# 	computePropositionalThresholdDual(test_operator, w, channel)
-# 	fieldtypes(relsTuple)
-# computeModalThreshold(test_operator::TestOperator, w::WorldType, relation::R where R<:_UnionOfRelations{relsTuple}, channel::MatricialChannel{T,N}) where {WorldType<:AbstractWorld,T,N} =
-# 	computePropositionalThreshold(test_operator, w, channel)
-# 	fieldtypes(relsTuple)
-
-################################################################################
-################################################################################
-
-# Perform the modal step, that is, evaluate a modal formula
-#  on a domain, and eventually compute the new world set.
-# TODO write better
-modalStep(S::WorldSetType,
-					relation::R,
-					channel::AbstractArray{T,N},
-					test_operator::TestOperator,
-					threshold::T) where {W<:AbstractWorld, WorldSetType<:Union{AbstractSet{W},AbstractVector{W}}, R<:AbstractRelation, T, N} = begin
-	@logmsg DTDetail "modalStep" S relation display_modal_test(relation, test_operator, -1, threshold)
-	satisfied = false
-	worlds = enumAccessibles(S, relation, channel)
-	if length(collect(Iterators.take(worlds, 1))) > 0
-		new_worlds = WorldSetType()
-		for w in worlds
-			if testCondition(test_operator, w, channel, threshold)
-				@logmsg DTDetail " Found world " w ch_readWorld(w,channel)
-				satisfied = true
-				push!(new_worlds, w)
-			end
-		end
-		if satisfied == true
-			S = new_worlds
-		else 
-			# If none of the neighboring worlds satisfies the condition, then 
-			#  the new set is left unchanged
-		end
-	else
-		@logmsg DTDetail "   No world found"
-		# If there are no neighboring worlds, then the modal condition is not met
-	end
-	if satisfied
-		@logmsg DTDetail "   YES" S
-	else
-		@logmsg DTDetail "   NO" 
-	end
-	return (satisfied,S)
-end
-
-################################################################################
-################################################################################
-
-export genericIntervalOntology,
-				IntervalOntology,
-				Interval2DOntology,
-				getIntervalOntologyOfDim,
-				genericIntervalRCC8Ontology,
-				IntervalRCC8Ontology,
-				Interval2DRCC8Ontology,
-				getIntervalRCC8OntologyOfDim,
-				getIntervalRCC5OntologyOfDim,
-				IntervalRCC5Ontology,
-				Interval2DRCC5Ontology
 
 abstract type OntologyType end
 struct _genericIntervalOntology  <: OntologyType end; const genericIntervalOntology  = _genericIntervalOntology();  # After
@@ -507,5 +457,69 @@ getIntervalRCC8OntologyOfDim(::Val{2}) = Interval2DRCC8Ontology
 getIntervalRCC5OntologyOfDim(::MatricialDataset{T,D}) where {T,D} = getIntervalRCC5OntologyOfDim(Val(D-2))
 getIntervalRCC5OntologyOfDim(::Val{1}) = IntervalRCC5Ontology
 getIntervalRCC5OntologyOfDim(::Val{2}) = Interval2DRCC5Ontology
+
+
+################################################################################
+################################################################################
+
+include("FeaturedWorldDataset.jl")
+
+################################################################################
+################################################################################
+
+# TODO A relation can be defined as a union of other relations.
+# In this case, thresholds can be computed by maximization/minimization of the
+#  thresholds referred to the relations involved.
+# abstract type AbstractRelation end
+# struct _UnionOfRelations{T<:NTuple{N,<:AbstractRelation} where N} <: AbstractRelation end;
+
+# computeModalThresholdDual(test_operator::TestOperator, w::WorldType, relation::R where R<:_UnionOfRelations{relsTuple}, channel::MatricialChannel{T,N}) where {WorldType<:AbstractWorld,T,N} =
+# 	computePropositionalThresholdDual(test_operator, w, channel)
+# 	fieldtypes(relsTuple)
+# computeModalThreshold(test_operator::TestOperator, w::WorldType, relation::R where R<:_UnionOfRelations{relsTuple}, channel::MatricialChannel{T,N}) where {WorldType<:AbstractWorld,T,N} =
+# 	computePropositionalThreshold(test_operator, w, channel)
+# 	fieldtypes(relsTuple)
+
+################################################################################
+################################################################################
+
+# Perform the modal step, that is, evaluate a modal formula
+#  on a domain, and eventually compute the new world set.
+# TODO improve this function, and write it for different implementations of the dataset (MatricialChannel, or its generalization)
+function modalStep(
+		S::WorldSetType,
+		relation::R,
+		channel::AbstractArray{T,N},
+		test_operator::TestOperator,
+		threshold::T) where {W<:AbstractWorld, WorldSetType<:AbstractWorldSet{W}, R<:AbstractRelation, T, N}
+	@logmsg DTDetail "modalStep" S relation display_modal_test(relation, test_operator, -1, threshold)
+	satisfied = false
+	worlds = enumAccessibles(S, relation, channel)
+	if length(collect(Iterators.take(worlds, 1))) > 0
+		new_worlds = WorldSetType()
+		for w in worlds
+			if testCondition(test_operator, w, channel, threshold)
+				@logmsg DTDetail " Found world " w ch_readWorld(w, channel)
+				satisfied = true
+				push!(new_worlds, w)
+			end
+		end
+		if satisfied == true
+			S = new_worlds
+		else 
+			# If none of the neighboring worlds satisfies the condition, then 
+			#  the new set is left unchanged
+		end
+	else
+		@logmsg DTDetail "   No world found"
+		# If there are no neighboring worlds, then the modal condition is not met
+	end
+	if satisfied
+		@logmsg DTDetail "   YES" S
+	else
+		@logmsg DTDetail "   NO" 
+	end
+	return (satisfied,S)
+end
 
 end # module
