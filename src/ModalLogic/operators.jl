@@ -1,4 +1,8 @@
-export EQ, GT, LT, GEQ, LEQ
+export EQ, GT, LT, GEQ, LEQ,
+				existential_aggregator, aggregator_bottom,
+				TestOperatorFun, Aggregator
+
+const Aggregator = Function
 
 const TestOperatorFun = Function
 ################################################################################
@@ -17,23 +21,23 @@ const TestOperatorFun = Function
 # @inline opt(::TestOperatorPositive) = max
 
 
-# @inline testCondition(test_operator::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(readWorld(w,channel)  .<= threshold)
+# @inline testCondition(test_operator::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
 # 	# Source: https://stackoverflow.com/questions/47564825/check-if-all-the-elements-of-a-julia-array-are-equal
 # 	# @inbounds
 # 	# TODO try:
-# 	# all(readWorld(w,channel) .>= threshold)
-# 	for x in readWorld(w,channel)
+# 	# all(ch_readWorld(w,channel) .>= threshold)
+# 	for x in ch_readWorld(w,channel)
 # 		x >= threshold || return false
 # 	end
 # 	return true
 # end
-# @inline testCondition(test_operator::_TestOpLeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(readWorld(w,channel)  .<= threshold)
+# @inline testCondition(test_operator::_TestOpLeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
 # 	# Source: https://stackoverflow.com/questions/47564825/check-if-all-the-elements-of-a-julia-array-are-equal
-# 	# @info "WLes" w threshold #n readWorld(w,channel)
+# 	# @info "WLes" w threshold #n ch_readWorld(w,channel)
 # 	# @inbounds
 # 	# TODO try:
-# 	# all(readWorld(w,channel) .<= threshold)
-# 	for x in readWorld(w,channel)
+# 	# all(ch_readWorld(w,channel) .<= threshold)
+# 	for x in ch_readWorld(w,channel)
 # 		x <= threshold || return false
 # 	end
 # 	return true
@@ -60,7 +64,7 @@ const TestOperatorFun = Function
 # @inline testCondition(test_operator::_TestOpGeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin 
 # 	ys = 0
 # 	# TODO write with reduce, and optimize it (e.g. by stopping early if the condition is reached already)
-# 	vals = readWorld(w,channel)
+# 	vals = ch_readWorld(w,channel)
 # 	for x in vals
 # 		if x >= threshold
 # 			ys+=1
@@ -72,7 +76,7 @@ const TestOperatorFun = Function
 # @inline testCondition(test_operator::_TestOpLeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin 
 # 	ys = 0
 # 	# TODO write with reduce, and optimize it (e.g. by stopping early if the condition is reached already)
-# 	vals = readWorld(w,channel)
+# 	vals = ch_readWorld(w,channel)
 # 	for x in vals
 # 		if x <= threshold
 # 			ys+=1
@@ -100,6 +104,14 @@ existential_aggregator(::typeof(greater_than_operator))    = maximum
 existential_aggregator(::typeof(lesser_than_operator))     = minimum
 existential_aggregator(::typeof(greater_eq_than_operator)) = maximum
 existential_aggregator(::typeof(lesser_eq_than_operator))  = minimum
+
+# bottom_aggregator(::typeof(∪))          = TODO
+aggregator_bottom(::typeof(maximum), T::Type) = typemin(T)
+aggregator_bottom(::typeof(minimum), T::Type) = typemax(T)
+
+aggregator_to_binary(::typeof(maximum)) = max
+aggregator_to_binary(::typeof(minimum)) = min
+
 
 const EQ  = equality_operator
 const GT  = greater_than_operator

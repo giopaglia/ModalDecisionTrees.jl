@@ -1,7 +1,8 @@
-export FeatureType
+export FeatureType, FeatureTypeFun,
+				AttributeMinimumFeatureType, AttributeMaximumFeatureType,
+				AttributeSoftMinimumFeatureType, AttributeSoftMaximumFeatureType
 
 const FeatureType = Integer
-# abstract type FeatureType end
 
 SimpleFeatureType(a, feature) = feature
 
@@ -10,38 +11,75 @@ display_feature(feature) = "V$(feature)"
 ################################################################################
 ################################################################################
 
-const FeatureFun = Function
+abstract type FeatureTypeFun end
 
-# struct _FeatureTypeNone  <: FeatureType end; const FeatureTypeNone  = _FeatureTypeNone();
+# struct _FeatureTypeNone  <: FeatureTypeFun end; const FeatureTypeNone  = _FeatureTypeNone();
 
-# struct AggregateFeatureType{worldType<:AbstractWorld} <: FeatureType
-# struct AggregateFeatureType <: FeatureType
-# 	aggregate_function::Function
+# struct AggregateFeatureType{worldType<:AbstractWorld} <: FeatureTypeFun
+# struct SingleAttributeAggregateFeatureType <: FeatureTypeFun
+# 	i_attribute::Integer
+# 	aggregator::Function
 # end
 
-aggr_union = ∪
-aggr_min = minimum
-aggr_max = maximum
+# yieldFunction(f::SingleAttributeAggregateFeatureType) = f.aggregator ∘ (x)->ModalLogic.getInstanceAttribute(x,f.i_attr)
 
-# aggr_min
-get_aggr_softmin_f(alpha::AbstractFloat) = begin
-	@inline f(vals::AbstractVector{T}) where {T} = begin
-		partialsort!(vals,ceil(Int, alpha*length(vals)); rev=true)
-	end
+
+
+# TODO
+# AttributeSoftMinimumFeatureType
+# AttributeSoftMaximumFeatureType
+
+struct AttributeMinimumFeatureType <: FeatureTypeFun
+	i_attribute::Integer
+end
+struct AttributeMaximumFeatureType <: FeatureTypeFun
+	i_attribute::Integer
 end
 
-get_aggr_softmax_f(alpha::AbstractFloat) = begin
-	@inline f(vals::AbstractVector{T}) where {T} = begin
-		partialsort!(vals,ceil(Int, alpha*length(vals)))
-	end
+yieldFunction(f::AttributeMinimumFeatureType) = minimum ∘ (x)->ModalLogic.getInstanceAttribute(x,f.i_attribute)
+yieldFunction(f::AttributeMaximumFeatureType) = maximum ∘ (x)->ModalLogic.getInstanceAttribute(x,f.i_attribute)
+
+struct AttributeSoftMinimumFeatureType{T<:AbstractFloat} <: FeatureTypeFun
+	i_attribute::Integer
+	alpha::T
 end
+
+struct AttributeSoftMaximumFeatureType{T<:AbstractFloat} <: FeatureTypeFun
+	i_attribute::Integer
+	alpha::T
+end
+
+yieldFunction(f::AttributeSoftMinimumFeatureType{T}) where T =
+	(x)->(vals = vec(ModalLogic.getInstanceAttribute(x,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals)); rev=true))
+yieldFunction(f::AttributeSoftMaximumFeatureType{T}) where T =
+	(x)->(vals = vec(ModalLogic.getInstanceAttribute(x,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals))))
+
+# yieldFunction(AttributeSoftMaximumFeatureType(1,0.8))
+
+# aggr_union = ∪
+# aggr_min = minimum
+# aggr_max = maximum
+
+# aggr_soft_min
+# get_aggr_softmin_f(alpha::AbstractFloat) = begin
+# 	@inline f(vals::AbstractVector{T}) where {T} = begin
+# 		partialsort!(vals,ceil(Int, alpha*length(vals)); rev=true)
+# 	end
+# end
+
+# aggr_soft_max
+# get_aggr_softmax_f(alpha::AbstractFloat) = begin
+# 	@inline f(vals::AbstractVector{T}) where {T} = begin
+# 		partialsort!(vals,ceil(Int, alpha*length(vals)))
+# 	end
+# end
 
 
 # @inline computePropositionalThreshold(::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
-# 	minimum(readWorld(w,channel))
+# 	minimum(ch_readWorld(w,channel))
 # end
 # @inline computePropositionalThreshold(::_TestOpLeq, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
-# 	maximum(readWorld(w,channel))
+# 	maximum(ch_readWorld(w,channel))
 # end
 
 # @inline test_op_partialsort!(test_op::_TestOpGeqSoft, vals::Vector{T}) where {T} = 
@@ -52,13 +90,13 @@ end
 
 
 # @inline computePropositionalThreshold(test_op::Union{_TestOpGeqSoft,_TestOpLeqSoft}, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
-# 	vals = vec(readWorld(w,channel))
+# 	vals = vec(ch_readWorld(w,channel))
 # 	test_op_partialsort!(test_op,vals)
 # end
 
 
 # @inline computePropositionalThresholdMany(test_ops::Vector{<:TestOperator}, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
-# 	vals = vec(readWorld(w,channel))
+# 	vals = vec(ch_readWorld(w,channel))
 # 	(test_op_partialsort!(test_op,vals) for test_op in test_ops)
 # end
 

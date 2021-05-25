@@ -48,6 +48,7 @@ export print_apply_tree
 include("ModalLogic/ModalLogic.jl")
 using .ModalLogic
 include("gammas.jl")
+include("modalDataset.jl")
 include("measures.jl")
 
 ###########################
@@ -57,6 +58,18 @@ abstract type _initCondition end
 struct _startWithRelationAll  <: _initCondition end; const startWithRelationAll  = _startWithRelationAll();
 struct _startAtCenter         <: _initCondition end; const startAtCenter         = _startAtCenter();
 struct _startAtWorld{wT<:AbstractWorld} <: _initCondition w::wT end;
+
+initWorldSet(initCondition::_startWithRelationAll, ::Type{WorldType}, channel_size::NTuple{N,Integer} where N) where {WorldType<:AbstractWorld} = begin
+	WorldSet{WorldType}([WorldType(ModalLogic.emptyWorld)])
+end
+
+initWorldSet(initCondition::_startAtCenter, ::Type{WorldType}, channel_size::NTuple{N,Integer} where N) where {WorldType<:AbstractWorld} = begin
+	WorldSet{WorldType}([WorldType(ModalLogic.centeredWorld, channel_size...)])
+end
+
+initWorldSet(initCondition::_startAtWorld{WorldType}, ::Type{WorldType}, channel_size::NTuple{N,Integer} where N) where {WorldType<:AbstractWorld} = begin
+	WorldSet{WorldType}([WorldType(initCondition.w)])
+end
 
 # Leaf node, holding the output decision
 struct DTLeaf{T} # TODO specify output type: Number, Label, String, Union{Number,Label,String}?

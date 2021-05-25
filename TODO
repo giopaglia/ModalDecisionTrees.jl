@@ -4,8 +4,11 @@
 ☐	Fix naming style (e.g. variables/features/attributes, etc. Order of struct's members)
 ☐	dataset-loading functions should tell about how they balanced, and how they randomized
 ☐	Add comments
+☐	Add a symbol parameter to computeModalDataset for selecting a trade-off between time and space
 ☐	NamedArrays for gammas dimensions https://github.com/davidavdav/NamedArrays.jl
 ☐	multi-frame extension!
+☐	rename n_instances -> n_samples
+☐	Remove useRelationAll and make that choice equivalent to adding relationAll to the OntologicalDataset?
 ☐	Custom pretty printing, instead of display_... See https://docs.julialang.org/en/v1/manual/types/#man-custom-pretty-printing
 ☐	Improve type stability for better time performance: https://docs.julialang.org/en/v1/devdocs/reflection/#Intermediate-and-compiled-representations  @code_warntype https://www.johnmyleswhite.com/notebook/2013/12/06/writing-type-stable-code-in-julia/ e.g. type-stable slicing with JuliennedArrays ( from https://discourse.julialang.org/t/way-to-slice-an-array-of-unknown-number-of-dimensions/27246 ), EllipsisNotation https://github.com/ChrisRackauckas/EllipsisNotation.jl. Use \@code_warntype as in https://discourse.julialang.org/t/why-selectdim-is-type-instable/25271/2 to double check each function https://nextjournal.com/jbieler/adding-static-type-checking-to-julia-in-100-lines-of-code/
 

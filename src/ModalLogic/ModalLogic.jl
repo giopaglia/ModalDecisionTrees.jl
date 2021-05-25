@@ -8,7 +8,6 @@ using ..DecisionTree
 using ComputedFieldTypes
 
 export AbstractWorld, AbstractRelation,
-				ModalDataset, MultiFrameModalDataset,
 				Ontology, OntologicalDataset,
 				WorldSet,
 				display_propositional_test,
@@ -24,15 +23,15 @@ Base.keys(g::Base.Generator) = g.iter
 abstract type AbstractWorld end
 abstract type AbstractRelation end
 
+const accFunction = Function
+
 # Concrete class for ontology models (world type + set of relations)
 struct Ontology{WorldType<:AbstractWorld}
 	relationSet :: AbstractVector{<:AbstractRelation}
 	Ontology{WorldType}(relationSet) where {WorldType<:AbstractWorld} = begin
 		relationSet = unique(relationSet)
 		for relation in relationSet
-			if !goesWith(WorldType, relation)
-				error("Can't instantiate Ontology with WorldType $(WorldType) and relation $(relation)")
-			end
+			@assert goesWith(WorldType, relation) "Can't instantiate Ontology with WorldType $(WorldType) and relation $(relation)"
 		end
 		return new{WorldType}(relationSet)
 	end
@@ -45,7 +44,7 @@ world_type(::Ontology{WT}) where {WT} = WT
 
 
 # This constant is used to create the default world for each WorldType
-#  (e.g. Interval(ModalLogic.emptyWorld) = Interval(-1,0))
+#  (e.g. Interval(emptyWorld) = Interval(-1,0))
 struct _firstWorld end;    const firstWorld    = _firstWorld();
 struct _emptyWorld end;    const emptyWorld    = _emptyWorld();
 struct _centeredWorld end; const centeredWorld = _centeredWorld();
@@ -53,11 +52,8 @@ struct _centeredWorld end; const centeredWorld = _centeredWorld();
 # World generators/enumerators and array/set-like structures
 # TODO test the functions for WorldSets with Sets and Arrays, and find the performance optimum
 const AbstractWorldSet{W} = Union{AbstractVector{W},AbstractSet{W}} where {W<:AbstractWorld}
-# Concrete type for sets: vectors are faster than sets, so we
-# const WorldSet = AbstractSet{W} where W<:AbstractWorld
 const WorldSet{W} = Vector{W} where {W<:AbstractWorld}
 WorldSet{W}(S::WorldSet{W}) where {W<:AbstractWorld} = S
-
 
 # TODO improve, decouple from relationSets definitions
 # Actually, this will not work because relationSet does this collect(set(...)) thing... mh maybe better avoid that thing?
@@ -129,15 +125,22 @@ subscriptnumber(i::AbstractFloat) = subscriptnumber(string(i))
 # END Helpers
 ################################################################################
 
+include("operators.jl")
+include("featureTypes.jl")
+
 ################################################################################
-# BEGIN Matricial dataset & Ontological dataset
+# BEGIN Dataset types
 ################################################################################
 
-export n_samples, n_attributes, channel_size, n_frames,
+export AbstractModalDataset,
+				MultiFrameFeatModalDataset,
+				n_samples, n_attributes, n_features, channel_size, max_channel_size, n_frames,
 				MatricialInstance,
 				MatricialDataset,
 				# MatricialUniDataset,
 				MatricialChannel
+
+abstract type AbstractModalDataset{T<:Real,WorldType<:AbstractWorld} end
 
 # A dataset, given by a set of N-dimensional (multi-attribute) matrices/instances,
 #  and an Ontology to be interpreted on each of them.
@@ -159,6 +162,8 @@ const MatricialInstance{T,MN}   = AbstractArray{T,MN}
 n_samples(d::MatricialDataset{T,D})    where {T,D} = size(d, D)
 n_attributes(d::MatricialDataset{T,D}) where {T,D} = size(d, D-1)
 channel_size(d::MatricialDataset{T,D}) where {T,D} = size(d)[1:end-2]
+max_channel_size = channel_size # TODO rename channel_size into max_channel_size
+inst_channel_size(inst::MatricialInstance{T,MN}) where {T,MN} = size(inst)[1:end-1]
 
 @inline getInstance(d::MatricialDataset{T,2},     idx::Integer) where T = @views d[:, idx]         # N=0
 @inline getInstance(d::MatricialDataset{T,3},     idx::Integer) where T = @views d[:, :, idx]      # N=1
@@ -187,39 +192,28 @@ channel_size(d::MatricialDataset{T,D}) where {T,D} = size(d)[1:end-2]
 # MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,3}) where T = Array{T, 2}(undef, size(d)[1:end-1])::MatricialUniDataset{T, 2}
 # MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,4}) where T = Array{T, 3}(undef, size(d)[1:end-1])::MatricialUniDataset{T, 3}
 
-abstract type ModalDataset end
-
 # TODO generalize as init_Xf(X::OntologicalDataset{T, N}) where T = Array{T, N+1}(undef, size(X)[3:end]..., n_samples(X))
-@computed struct OntologicalDataset{T, N, WorldType<:AbstractWorld} <: ModalDataset
+@computed struct OntologicalDataset{T, N, WorldType}
 	ontology  :: Ontology{WorldType}
 	domain    :: MatricialDataset{T,N+1+1}
 	
 	OntologicalDataset{T, N}(ontology::Ontology{WorldType}, domain::MatricialDataset{T,D}) where {T, N, D, WorldType<:AbstractWorld} = begin
-		_check_dims(T, N, D, WorldType)
+		OntologicalDataset{T, N, WorldType}(ontology, domain)
+	end
+	
+	OntologicalDataset{T, N, WorldType}(ontology::Ontology{WorldType}, domain::MatricialDataset{T,D}) where {T, N, D, WorldType<:AbstractWorld} = begin
 
+		@assert n_samples(domain) > 0 "Can't instantiate OntologicalDataset{$(T), $(N), $(WorldType)} with no instance. (domain's type $(typeof(domain)))"
+		@assert N == worldTypeDimensionality(WorldType) "ERROR! Dimensionality mismatch: can't interpret worldType $(WorldType) (dimensionality = $(worldTypeDimensionality(WorldType)) on MatricialDataset of dimensionality = $(N)"
+		@assert D == (N+1+1) "ERROR! Dimensionality mismatch: can't instantiate OntologicalDataset{$(T), $(N)} with MatricialDataset{$(T),$(D)}"
+		
 		# Type unstable?
 		# if prod(channel_size(domain)) == 1
-		# 	ontology = ModalLogic.strip_ontology(ontology)
+		# 	ontology = strip_ontology(ontology)
 		# 	WorldType = world_type(strip_ontology)
 		# end
 		
 		new{T, N, WorldType}(ontology, domain)
-	end
-	
-	OntologicalDataset{T, N, WorldType}(ontology::Ontology{WorldType}, domain::MatricialDataset{T,D}) where {T, N, D, WorldType<:AbstractWorld} = begin
-		_check_dims(T, N, D, WorldType)
-		
-		new{T, N, WorldType}(ontology, domain)
-	end
-	
-	_check_dims(T, N, D, WorldType) = begin
-		if N != ModalLogic.worldTypeDimensionality(WorldType)
-			error("ERROR! Dimensionality mismatch: can't interpret worldType $(WorldType) (dimensionality = $(ModalLogic.worldTypeDimensionality(WorldType)) on MatricialDataset of dimensionality = $(N)")
-		end
-		
-		if D != (N+1+1)
-			error("ERROR! Dimensionality mismatch: can't instantiate OntologicalDataset{$(T), $(N)} with MatricialDataset{$(T),$(D)}")
-		end
 	end
 end
 
@@ -242,38 +236,84 @@ channel_size(X::OntologicalDataset{T,N})     where {T,N} = channel_size(X.domain
 # attributeview(X::OntologicalDataset{T,1}, idxs::AbstractVector{Integer}, attribute::Integer) = view(X.domain, idxs, attribute, :)
 # attributeview(X::OntologicalDataset{T,2}, idxs::AbstractVector{Integer}, attribute::Integer) = view(X.domain, idxs, attribute, :, :)
 
-struct MultiFrameModalDataset
-	frames  :: AbstractVector{ModalDataset}
-	MultiFrameModalDataset(Xs::AbstractVector{ModalDataset}) = begin
-		@assert length(unique(n_samples.(Xs))) == 1 "Can't create an empty Multi-Frame Modal Dataset or with mismatching number of samples (n_frames: $(length(Xs)), frame_sizes: $(n_samples.(Xs)))."
-		new(Xs)
+
+abstract type AbstractFeaturedWorldDataset{T, WorldType} end
+
+struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
+	
+	# Core data
+	fwd                 :: AbstractFeaturedWorldDataset{T,WorldType}
+	
+	## Modal frame:
+	# Accessibility relations
+	relations          :: AbstractVector{<:AbstractRelation}
+	# Accessibility functions (one per instance) with signature (w::WorldType, r::AbstractRelation) -> vs::AbstractVector{WorldType}
+	acc_functions      :: AbstractVector{accFunction}
+	
+	# Test operators associated with each feature
+	test_operators     :: AbstractVector{<:AbstractVector{TestOperatorFun}}
+	
+	# Feature names
+	feature_names      :: AbstractVector{String}
+
+	FeatModalDataset(
+		fwd                :: AbstractFeaturedWorldDataset{T,WorldType},
+		relations          :: AbstractVector{<:AbstractRelation},
+		acc_functions      :: AbstractVector{accFunction},
+		test_operators     :: AbstractVector{<:AbstractVector{TestOperatorFun}},
+		feature_names      :: AbstractVector{String},
+	) where {T,WorldType} = begin FeatModalDataset{T, WorldType}(fwd, relations, acc_functions, test_operators, features) end
+
+	FeatModalDataset{T, WorldType}(
+		fwd                :: AbstractFeaturedWorldDataset{T,WorldType},
+		relations          :: AbstractVector{<:AbstractRelation},
+		acc_functions      :: AbstractVector{accFunction},
+		test_operators     :: AbstractVector{<:AbstractVector{TestOperatorFun}},
+		feature_names      :: AbstractVector{String},
+	) where {T,WorldType} = begin
+		@assert n_samples(fwd) > 0 "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with no instance. (fwd's type $(typeof(fwd)))"
+		@assert length(test_operators) > 0 "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with no test operator."
+		@assert n_samples(fwd) == length(acc_functions) "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with different numbers of instances $(n_samples(fwd)) and of acc_functions $(length(acc_functions))."
+		@assert n_features(fwd) == length(feature_names) "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with different numbers of instances $(n_samples(fwd)) and of feature_names $(length(feature_names))."
+		new(fwd, relations, acc_functions, test_operators, features)
 	end
 end
 
+n_samples(X::FeatModalDataset{T, WorldType}) where {T, WorldType}  = n_samples(X.fwd)
+n_features(X::FeatModalDataset{T, WorldType}) where {T, WorldType} = length(X.feature_names)
+
+
+struct MultiFrameFeatModalDataset
+	frames  :: AbstractVector{<:FeatModalDataset}
+	MultiFrameFeatModalDataset(Xs::AbstractVector{<:FeatModalDataset}) = begin
+		@assert length(Xs) > 0 && length(unique(n_samples.(Xs))) == 1 "Can't create an empty Multi-Frame Modal Dataset or with mismatching number of samples (n_frames: $(length(Xs)), frame_sizes: $(n_samples.(Xs)))."
+		new(Xs)
+	end
+	# TODO write MultiFrameFeatModalDataset(Xs::AbstractVector{<:Tuple{Union{FeatModalDataset,MatricialDataset,OntologicalDataset},NamedTuple}}) = begin
+end
+
 # TODO: test all these methods
-getindex(X::MultiFrameModalDataset, i::Integer) = X.frames[i]
-n_frames(X::MultiFrameModalDataset)             = length(X.frames)
-n_samples(X::MultiFrameModalDataset)            = n_frames(X) > 0 ? n_samples(X.frames[1]) : 0
-# get total number of attributes (TODO: figure if this is useless or not)
-n_attributes(X::MultiFrameModalDataset) = sum(length.(X.frames))
-# get number of attributes in a single frame
-n_attributes(X::MultiFrameModalDataset, i_frame::Integer) = n_attributes(X.frames[i_frame])
-channel_size(X::MultiFrameModalDataset, i_frame::Integer) = channel_size(X.frame[i_frame].domain) # TODO: MFMD shoud not access frame domains directly
+getindex(X::MultiFrameFeatModalDataset, i::Integer) = X.frames[i]
+n_frames(X::MultiFrameFeatModalDataset)             = length(X.frames)
+n_samples(X::MultiFrameFeatModalDataset)            = n_samples(X.frames[1]) # n_frames(X) > 0 ? n_samples(X.frames[1]) : 0
+# get total number of features (TODO: figure if this is useless or not)
+n_features(X::MultiFrameFeatModalDataset) = sum(length.(X.frames))
+# get number of features in a single frame
+n_features(X::MultiFrameFeatModalDataset, i_frame::Integer) = n_features(X.frames[i_frame])
+# TODO: channel_size doesn't make sense at this point. Only the acc_functions[i] functions.
 
-@inline getInstance(X::MultiFrameModalDataset, i_frame::Integer, args::Vararg)  = getInstance(X.frames[i].domain, args...) # TODO: MFMD shoud not access frame domains directly
-@inline getInstances(X::MultiFrameModalDataset, i_frame::Integer, args::Vararg) = getInstances(X.frames[i].domain, args...) # TODO: MFMD shoud not access frame domains directly
-@inline getChannel(X::MultiFrameModalDataset, i_frame::Integer, args::Vararg)   = getChannel(X.frames[i].domain, args...) # TODO: MFMD shoud not access frame domains directly
+@inline getInstance(X::MultiFrameFeatModalDataset,  i_frame::Integer, args::Vararg)  = getInstance(X.frames[i], args...)
+@inline getInstances(X::MultiFrameFeatModalDataset, i_frame::Integer, args::Vararg)  = getInstances(X.frames[i], args...)
+@inline getChannel(X::MultiFrameFeatModalDataset,   i_frame::Integer, args::Vararg)  = getChannel(X.frames[i], args...)
 
-#@inline getInstance(X::MultiFrameModalDataset, args::Vararg)  = getInstance(X.frames[i].domain, args...) # TODO: MFMD shoud not access frame domains directly
-#@inline getInstances(X::MultiFrameModalDataset, args::Vararg) = getInstances(X.frames[i].domain, args...) # TODO: MFMD shoud not access frame domains directly
+@inline getInstance(X::MultiFrameFeatModalDataset, args::Vararg)  = getInstance(X.frames[i], args...) # TODO should slice across the frames!
+@inline getInstances(X::MultiFrameFeatModalDataset, args::Vararg) = getInstances(X.frames[i], args...) # TODO should slice across the frames!
 
 ################################################################################
-# END Matricial dataset & Ontological dataset
+# END Dataset types
 ################################################################################
 
-include("operators.jl")
 include("testOperators.jl")
-include("featureTypes.jl")
 
 display_propositional_test(test_operator::TestOperator, lhs::String, threshold::Number) =
 	"$(lhs) $(test_operator) $(threshold)"
@@ -304,7 +344,7 @@ struct _ReprNone{worldType<:AbstractWorld} <: _ReprTreatment end
 ## Enumerate accessible worlds
 
 # Fallback: enumAccessibles works with domains AND their dimensions
-enumAccessibles(S::Any, r::AbstractRelation, channel::MatricialChannel{T,N}) where {T,N} = enumAccessibles(S, r, size(channel)...)
+enumAccessibles(S::AbstractWorldSet{WorldType}, r::AbstractRelation, channel::MatricialChannel{T,N}) where {T,N,WorldType<:AbstractWorld} = enumAccessibles(S, r, size(channel)...)
 enumAccRepr(S::Any, r::AbstractRelation, channel::MatricialChannel{T,N}) where {T,N} = enumAccRepr(S, r, size(channel)...)
 # Fallback: enumAccessibles for world sets maps to enumAcc-ing their elements
 #  (note: one may overload this function to provide improved implementations for special cases (e.g. <L> of a world set in interval algebra))
@@ -313,7 +353,9 @@ enumAccessibles(S::AbstractWorldSet{WorldType}, r::AbstractRelation, XYZ::Vararg
 		IterTools.distinct(Iterators.flatten((enumAccBare(w, r, XYZ...) for w in S)))
 	)
 end
-
+enumAccessibles(w::WorldType, r::AbstractRelation, XYZ::Vararg{Integer,N}) where {T,N,WorldType<:AbstractWorld} = begin
+	IterTools.imap(WorldType, enumAccBare(w, r, XYZ...))
+end
 ## Basic, ontology-agnostic relations:
 
 # None relation      (RelationNone)  =  Used as the "nothing" constant
@@ -328,6 +370,9 @@ enumAccessibles(S::AbstractWorldSet{W}, ::_RelationId, XYZ::Vararg{Integer,N}) w
 enumAccRepr(::_TestOpGeq, w::WorldType, ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = _ReprMin(w)
 enumAccRepr(::_TestOpLeq, w::WorldType, ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = _ReprMax(w)
 
+enumAccReprAggr(f::FeatureTypeFun, a::Aggregator, w::WorldType, r::AbstractRelation, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = enumAccessibles(w, r, XYZ...)
+enumAccReprAggr(::FeatureTypeFun, ::Aggregator, w::WorldType, r::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = enumAccessibles(w, r, XYZ...)
+
 # computeModalThresholdDual(test_operator::TestOperator, w::WorldType, relation::_RelationId, channel::MatricialChannel{T,N}) where {WorldType<:AbstractWorld,T,N} =
 # 	computePropositionalThresholdDual(test_operator, w, channel)
 # computeModalThreshold(test_operator::TestOperator, w::WorldType, relation::_RelationId, channel::MatricialChannel{T,N}) where {WorldType<:AbstractWorld,T,N} =
@@ -341,6 +386,10 @@ display_rel_short(::_RelationId)  = "Id"
 struct _RelationAll   <: AbstractRelation end; const RelationAll  = _RelationAll();
 
 display_rel_short(::_RelationAll) = ""
+
+# Shortcut for enumerating all worlds
+enumAll(::Type{WorldType}, args::Vararg) where {WorldType<:AbstractWorld} = enumAccessibles(WorldType[], RelationAll, args...)
+
 
 ################################################################################
 ################################################################################
@@ -363,6 +412,8 @@ include("Topo2DRelations.jl")
 
 ################################################################################
 ################################################################################
+
+include("FeaturedWorldDataset.jl")
 
 # TODO
 # A relation can be defined as a union of other relations.
@@ -396,7 +447,7 @@ modalStep(S::WorldSetType,
 		new_worlds = WorldSetType()
 		for w in worlds
 			if testCondition(test_operator, w, channel, threshold)
-				@logmsg DTDetail " Found world " w readWorld(w,channel)
+				@logmsg DTDetail " Found world " w ch_readWorld(w,channel)
 				satisfied = true
 				push!(new_worlds, w)
 			end
