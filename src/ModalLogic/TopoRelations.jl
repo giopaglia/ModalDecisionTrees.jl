@@ -27,9 +27,9 @@ display_rel_short(::_Topo_DC)    = "DC"
 display_rel_short(::_Topo_EC)    = "EC"
 display_rel_short(::_Topo_PO)    = "PO"
 display_rel_short(::_Topo_TPP)   = "TPP"
-display_rel_short(::_Topo_TPPi)  = "T̅P̅P̅" # T̄P̄P̄
+display_rel_short(::_Topo_TPPi)  = "T̅P̅P̅"
 display_rel_short(::_Topo_NTPP)  = "NTPP"
-display_rel_short(::_Topo_NTPPi) = "N̅T̅P̅P̅" # N̄T̄P̄P̄
+display_rel_short(::_Topo_NTPPi) = "N̅T̅P̅P̅"
 
 display_rel_short(::_Topo_DR)   = "DR"
 display_rel_short(::_Topo_PP)   = "PP"
