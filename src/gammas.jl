@@ -38,7 +38,7 @@ Union{
 
 @inline function checkGammasConsistency(gammas, X::OntologicalDataset{T, N, WorldType}, test_operators::AbstractVector{<:TestOperator}, RelationSet::AbstractVector{<:AbstractRelation}) where {T, N, WorldType<:AbstractWorld}
 	if !(gammasIsConsistent(gammas, X, length(test_operators), length(RelationSet))) # Note: max(2, ...) because at least RelationId and RelationAll are always present.
-		throw("The provided gammas structure is not consistent with the expected dataset, test operators and/or relations!"
+		error("The provided gammas structure is not consistent with the expected dataset, test operators and/or relations!"
 			* "\n$(typeof(gammas))"
 			* "\n$(eltype(gammas))"
 			* "\n$(size(gammas))"
@@ -282,7 +282,7 @@ function computeGammas(
 	# print(actual_test_operators)
 	n_actual_operators = length(test_operators)
 	
-	# Prepare gammas array
+	# Prepare gammas structure
 	gammas = initGammas(WorldType, T, channel_size(X), n_actual_operators, n_instances, n_relations, n_features)
 
 	@logmsg DTOverview "Computing gammas... $(typeof(gammas)) $(size(gammas)) $(test_operators)"
@@ -298,7 +298,7 @@ function computeGammas(
 		extr = (typemin(T),typemax(T))
 		for w in worlds
 			e = (readGammaSlice(gammasId, w, i_test_operator), readGammaSlice(gammasId, w, i_test_operator+1))
-			extr = (min(extr[1],e[1]), max(extr[2],e[2]))
+			extr = (max(extr[1],e[1]), min(extr[2],e[2]))
 		end
 		extr
 	end
@@ -418,7 +418,7 @@ function computeGammas(
 						ModalLogic.enumAccessibles(WorldType[], RelationAll, channel)
 					else
 						[firstWorld]
-					end
+				end
 				for w in worlds
 
 					# TODO use gammasId, TODO gammasId[v]
