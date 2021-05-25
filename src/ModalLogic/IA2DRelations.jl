@@ -151,7 +151,7 @@ yieldMinMaxCombinations(test_operator::_TestOpGeq, productRepr::_ReprTreatment, 
 	if productRepr == _ReprNone{Interval2D}()
 		return typemin(T),typemax(T)
 	end
-	vals = readWorld(productRepr.w, channel)
+	vals = ch_readWorld(productRepr.w, channel)
 	# TODO try: maximum(mapslices(minimum, vals, dims=1)),minimum(mapslices(maximum, vals, dims=1))
 	extr = vec(mapslices(extrema, vals, dims=dims))
 	# println(extr)
@@ -162,7 +162,7 @@ yieldMinMaxCombination(test_operator::_TestOpGeq, productRepr::_ReprTreatment, c
 	if productRepr == _ReprNone{Interval2D}()
 		return typemin(T)
 	end
-	vals = readWorld(productRepr.w, channel)
+	vals = ch_readWorld(productRepr.w, channel)
 	maximum(mapslices(minimum, vals, dims=dims))
 end
 
@@ -170,7 +170,7 @@ yieldMinMaxCombination(test_operator::_TestOpLeq, productRepr::_ReprTreatment, c
 	if productRepr == _ReprNone{Interval2D}()
 		return typemax(T)
 	end
-	vals = readWorld(productRepr.w, channel)
+	vals = ch_readWorld(productRepr.w, channel)
 	minimum(mapslices(maximum, vals, dims=dims))
 end
 

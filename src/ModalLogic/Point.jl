@@ -24,7 +24,7 @@
 
 # worldTypeSize(::Type{Interval}) = 1
 
-# @inline readWorld(w::Point, channel::MatricialChannel{T,1}) where {T} = channel[w.x]
+# @inline ch_readWorld(w::Point, channel::MatricialChannel{T,1}) where {T} = channel[w.x]
 
 # ################################################################################
 # # END Point
