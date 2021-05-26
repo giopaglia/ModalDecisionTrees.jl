@@ -39,6 +39,9 @@ end
 yieldFunction(f::AttributeMinimumFeatureType) = minimum ∘ (x)->ModalLogic.getInstanceAttribute(x,f.i_attribute)
 yieldFunction(f::AttributeMaximumFeatureType) = maximum ∘ (x)->ModalLogic.getInstanceAttribute(x,f.i_attribute)
 
+Base.show(io::IO, f::AttributeMinimumFeatureType) = Base.print(io, "min(A$(f.i_attribute))")
+Base.show(io::IO, f::AttributeMaximumFeatureType) = Base.print(io, "max(A$(f.i_attribute))")
+
 struct AttributeSoftMinimumFeatureType{T<:AbstractFloat} <: FeatureTypeFun
 	i_attribute::Integer
 	alpha::T
@@ -53,6 +56,9 @@ yieldFunction(f::AttributeSoftMinimumFeatureType{T}) where T =
 	(x)->(vals = vec(ModalLogic.getInstanceAttribute(x,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals)); rev=true))
 yieldFunction(f::AttributeSoftMaximumFeatureType{T}) where T =
 	(x)->(vals = vec(ModalLogic.getInstanceAttribute(x,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals))))
+
+Base.show(io::IO, f::AttributeSoftMinimumFeatureType) = Base.print(io, "min" * subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
+Base.show(io::IO, f::AttributeSoftMaximumFeatureType) = Base.print(io, "max" * subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
 
 # yieldFunction(AttributeSoftMaximumFeatureType(1,0.8))
 
