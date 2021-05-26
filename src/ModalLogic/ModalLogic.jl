@@ -1,19 +1,23 @@
 module ModalLogic
 
 using IterTools
-import Base: argmax, argmin, size, show, convert, getindex
+import Base: argmax, argmin, size, show, convert, getindex, iterate, length
 using Logging: @logmsg
 using ..DecisionTree
 
 using ComputedFieldTypes
 
+using DataStructures
+
+using BenchmarkTools # TODO only need this when testing and using @btime
+
 export AbstractWorld, AbstractRelation,
-				Ontology, OntologicalDataset,
+				Ontology,
 				WorldSet,
 				display_propositional_test,
 				display_modal_test,
 				RelationAll, RelationNone, RelationId,
-				world_type
+				world_type # TODO maybe remove this function?
 				# enumAccessibles, enumAccRepr
 
 # Fix
@@ -133,13 +137,17 @@ include("featureTypes.jl")
 # BEGIN Dataset types
 ################################################################################
 
-export AbstractModalDataset,
+export n_samples, n_attributes, n_features, channel_size, max_channel_size, n_frames,
+				AbstractModalDataset,
 				MultiFrameFeatModalDataset,
-				n_samples, n_attributes, n_features, channel_size, max_channel_size, n_frames,
+				OntologicalDataset, 
+				AbstractFeaturedWorldDataset, FeatModalDataset,
 				MatricialInstance,
 				MatricialDataset,
 				# MatricialUniDataset,
-				MatricialChannel
+				MatricialChannel,
+				FeaturedWorldDataset,
+				AbstractFeaturedWorldDataset
 
 abstract type AbstractModalDataset{T<:Real,WorldType<:AbstractWorld} end
 
@@ -165,6 +173,8 @@ const MatricialInstance{T,MN}   = AbstractArray{T,MN}
 n_samples(d::MatricialDataset{T,D})    where {T,D} = size(d, D)
 n_attributes(d::MatricialDataset{T,D}) where {T,D} = size(d, D-1)
 channel_size(d::MatricialDataset{T,D}) where {T,D} = size(d)[1:end-2]
+# length(d::MatricialDataset{T,N})        where {T,N} = n_samples(d)
+# Base.iterate(d::MatricialDataset{T,D}, state=1) where {T, D} = state > length(d) ? nothing : (getInstance(d, state), state+1)
 max_channel_size = channel_size
 # TODO rename channel_size into max_channel_size and define channel_size for single instance
 # channel_size(d::MatricialDataset{T,2}, idx_i::Integer) where T = size(d[      1, idx_i])
@@ -234,10 +244,13 @@ getInstanceAttribute(inst::MatricialInstance{T,3},      idx::Integer) where T = 
 end
 
 # TODO define getindex?
+
 size(X::OntologicalDataset{T,N})             where {T,N} = size(X.domain)
 size(X::OntologicalDataset{T,N}, i::Integer) where {T,N} = size(X.domain, i)
 n_samples(X::OntologicalDataset{T,N})        where {T,N} = n_samples(X.domain)
 n_attributes(X::OntologicalDataset{T,N})     where {T,N} = n_attributes(X.domain)
+length(X::OntologicalDataset{T,N})        where {T,N} = n_samples(X)
+Base.iterate(X::OntologicalDataset{T,N}, state=1)  where {T,N} = state > length(X) ? nothing : (getInstance(X, state), state+1) # Base.iterate(X.domain, state=state)
 channel_size(X::OntologicalDataset{T,N})     where {T,N} = channel_size(X.domain)
 
 getInstance(d::OntologicalDataset{T,N,WT}, args::Vararg) where {T,N,WT}  = getInstance(d.domain, args...)
@@ -249,16 +262,16 @@ abstract type AbstractFeaturedWorldDataset{T, WorldType} end
 struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 	
 	# Core data
-	fwd                 :: AbstractFeaturedWorldDataset{T,WorldType}
+	fwd                :: AbstractFeaturedWorldDataset{T,WorldType}
 	
 	## Modal frame:
 	# Accessibility relations
 	relations          :: AbstractVector{<:AbstractRelation}
 	# Accessibility functions (one per instance) with signature (w::WorldType, r::AbstractRelation) -> vs::AbstractVector{WorldType}
-	acc_functions      :: AbstractVector{accFunction}
+	acc_functions      :: AbstractVector{<:accFunction}
 	
 	# Test operators associated with each feature
-	test_operators     :: AbstractVector{<:AbstractVector{TestOperatorFun}}
+	featsnops          :: AbstractVector{<:AbstractVector{<:TestOperatorFun}}
 	
 	# Feature names
 	feature_names      :: AbstractVector{String}
@@ -266,29 +279,57 @@ struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 	FeatModalDataset(
 		fwd                :: AbstractFeaturedWorldDataset{T,WorldType},
 		relations          :: AbstractVector{<:AbstractRelation},
-		acc_functions      :: AbstractVector{accFunction},
-		test_operators     :: AbstractVector{<:AbstractVector{TestOperatorFun}},
+		acc_functions      :: AbstractVector{<:accFunction},
+		featsnops          :: AbstractVector{<:AbstractVector{<:TestOperatorFun}},
 		feature_names      :: AbstractVector{String},
-	) where {T,WorldType} = begin FeatModalDataset{T, WorldType}(fwd, relations, acc_functions, test_operators, features) end
+	) where {T,WorldType} = begin FeatModalDataset{T, WorldType<:AbstractWorld}(fwd, relations, acc_functions, featsnops, feature_names) end
+
+	FeatModalDataset(
+		X                  :: OntologicalDataset{T, N, WorldType},
+		features           :: AbstractVector{<:FeatureTypeFun},
+		featsnops          :: AbstractVector{<:AbstractVector{<:TestOperatorFun}};
+		timing_mode        :: Symbol = :none
+	) where {T, N, WorldType<:AbstractWorld} = begin
+		fwd = 
+			if timing_mode == :none
+				FeaturedWorldDataset(X, features);
+			elseif timing_mode == :time
+				@time FeaturedWorldDataset(X, features);
+			elseif timing_mode == :btime
+				@btime FeaturedWorldDataset($X, $features);
+		end
+
+		relations = X.ontology.relationSet
+
+		# TODO optimize this! When the underlying MatricialDataset is an AbstractArray, this is going to be an array of a single function.
+		# How to achievi this? Think about it.
+		acc_functions = [(w,R)->enumAccessibles(w,R,inst_channel_size(instance)...) for instance in X]
+
+		feature_names = ["$(feature)" for feature in features]
+
+		FeatModalDataset{T, WorldType}(fwd, relations, acc_functions, featsnops, feature_names)
+	end
 
 	FeatModalDataset{T, WorldType}(
 		fwd                :: AbstractFeaturedWorldDataset{T,WorldType},
 		relations          :: AbstractVector{<:AbstractRelation},
-		acc_functions      :: AbstractVector{accFunction},
-		test_operators     :: AbstractVector{<:AbstractVector{TestOperatorFun}},
+		acc_functions      :: AbstractVector{<:accFunction},
+		featsnops          :: AbstractVector{<:AbstractVector{<:TestOperatorFun}},
 		feature_names      :: AbstractVector{String},
-	) where {T,WorldType} = begin
+	) where {T,WorldType<:AbstractWorld} = begin
 		@assert n_samples(fwd) > 0 "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with no instance. (fwd's type $(typeof(fwd)))"
-		@assert length(test_operators) > 0 "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with no test operator."
+		@assert length(featsnops) > 0 "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with no test operator."
 		@assert n_samples(fwd) == length(acc_functions) "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with different numbers of instances $(n_samples(fwd)) and of acc_functions $(length(acc_functions))."
 		@assert n_features(fwd) == length(feature_names) "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with different numbers of instances $(n_samples(fwd)) and of feature_names $(length(feature_names))."
-		new(fwd, relations, acc_functions, test_operators, features)
+		new(fwd, relations, acc_functions, featsnops, feature_names)
 	end
 end
 
 n_samples(X::FeatModalDataset{T, WorldType}) where {T, WorldType}  = n_samples(X.fwd)
 n_features(X::FeatModalDataset{T, WorldType}) where {T, WorldType} = length(X.feature_names)
-
+# length(X::FeatModalDataset{T,WorldType})        where {T,WorldType} = n_samples(X)
+# Base.iterate(X::FeatModalDataset{T,WorldType}, state=1) where {T, WorldType} = state > length(X) ? nothing : (getInstance(X, state), state+1)
+getindex(X::FeatModalDataset{T,WorldType}, args::Vararg) where {T,WorldType} = getindex(X.fwd, args...)
 
 struct MultiFrameFeatModalDataset
 	frames  :: AbstractVector{<:FeatModalDataset}
@@ -303,18 +344,20 @@ end
 getindex(X::MultiFrameFeatModalDataset, i::Integer) = X.frames[i]
 n_frames(X::MultiFrameFeatModalDataset)             = length(X.frames)
 n_samples(X::MultiFrameFeatModalDataset)            = n_samples(X.frames[1]) # n_frames(X) > 0 ? n_samples(X.frames[1]) : 0
+length(X::MultiFrameFeatModalDataset)               = n_samples(X)
+Base.iterate(X::MultiFrameFeatModalDataset, state=1) = state > length(X) ? nothing : (getInstance(X, state), state+1)
 # get total number of features (TODO: figure if this is useless or not)
 n_features(X::MultiFrameFeatModalDataset) = sum(length.(X.frames))
 # get number of features in a single frame
 n_features(X::MultiFrameFeatModalDataset, i_frame::Integer) = n_features(X.frames[i_frame])
 # TODO: Note: channel_size doesn't make sense at this point. Only the acc_functions[i] functions.
 
-getInstance(X::MultiFrameFeatModalDataset,  i_frame::Integer, args::Vararg)  = getInstance(X.frames[i], args...)
-getInstances(X::MultiFrameFeatModalDataset, i_frame::Integer, args::Vararg)  = getInstances(X.frames[i], args...)
-getChannel(X::MultiFrameFeatModalDataset,   i_frame::Integer, args::Vararg)  = getChannel(X.frames[i], args...)
+getInstance(X::MultiFrameFeatModalDataset,  i_frame::Integer, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...)
+getInstances(X::MultiFrameFeatModalDataset, i_frame::Integer, inds::AbstractVector{Integer}, args::Vararg)  = getInstances(X.frames[i], inds, args...)
+getChannel(X::MultiFrameFeatModalDataset,   i_frame::Integer, idx_i::Integer, idx_f::Integer, args::Vararg)  = getChannel(X.frames[i], idx_i, idx_f, args...)
 
-getInstance(X::MultiFrameFeatModalDataset, args::Vararg)  = getInstance(X.frames[i], args...) # TODO should slice across the frames!
-getInstances(X::MultiFrameFeatModalDataset, args::Vararg) = getInstances(X.frames[i], args...) # TODO should slice across the frames!
+getInstance(X::MultiFrameFeatModalDataset, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...) # TODO should slice across the frames!
+getInstances(X::MultiFrameFeatModalDataset, inds::AbstractVector{Integer}, args::Vararg) = getInstances(X.frames[i], inds, args...) # TODO should slice across the frames!
 
 ################################################################################
 # END Dataset types

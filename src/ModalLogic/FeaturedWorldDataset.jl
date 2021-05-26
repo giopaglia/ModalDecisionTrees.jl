@@ -4,10 +4,15 @@
 computePropositionalThreshold(feature::FeatureTypeFun, w::AbstractWorld, instance::MatricialInstance) = yieldFunction(feature)(inst_readWorld(w,instance))
 
 
-function FeaturedWorldDataset(
+# FeaturedWorldDataset(
+# 		X::OntologicalDataset{T, N, WorldType},
+# 		features::AbstractVector{<:FeatureTypeFun}
+# 	) where {T, N, WorldType<:AbstractWorld} = FeaturedWorldDataset{T, WorldType}(X, features)
+
+FeaturedWorldDataset(
 		X::OntologicalDataset{T, N, WorldType},
 		features::AbstractVector{<:FeatureTypeFun}
-	) where {T, N, WorldType<:AbstractWorld}
+	) where {T, N, WorldType<:AbstractWorld} = begin
 
 	n_instances = n_samples(X)
 	n_features = length(features)
@@ -26,7 +31,7 @@ function FeaturedWorldDataset(
 		instance = getInstance(X, i_instance)
 
 		for w in enumAll(WorldType, inst_channel_size(instance)...)
-			initModalDatasetWorldSlice(typeof(X), fwd, w)
+			initModalDatasetWorldSlice(fwd, w)
 		end
 
 		@logmsg DTDebug "instance" instance
@@ -89,10 +94,10 @@ modalDatasetSet(fwd::IntervalFeaturedWorldDataset{T}, w::Interval, i_instance::I
 	fwd.d[w.x, w.y, i_instance, i_feature] = threshold
 sliceModalDatasetByInstances(fwd::IntervalFeaturedWorldDataset{T}, inds::AbstractVector{<:Integer}; return_view = false) where {T} =
 	if return_view @view fwd.d[:,:,inds,:] else fwd.d[:,:,inds,:] end
-modalDatasetGet(
+getindex(
 	fwd         :: IntervalFeaturedWorldDataset{T},
-	w           :: Interval,
 	i_instance  :: Integer,
+	w           :: Interval,
 	i_feature   :: Integer) where {T} = fwd.d[w.x, w.y, i_instance, i_feature]
 modalDatasetChannelSlice(fwd::IntervalFeaturedWorldDataset{T}, i_instance::Integer, i_feature::Integer) where {T} =
 	@views fwd.d[:, :, i_instance, i_feature]
@@ -100,8 +105,8 @@ const IntervalFeaturedChannel{T} = AbstractArray{T, 2}
 modalDatasetChannelSliceGet(fwc::IntervalFeaturedChannel{T}, w::Interval) where {T} =
 	fwc[w.x, w.y]
 
-n_samples(fwd::IntervalFeaturedWorldDataset{T}) where {T}  = size(fwd, 3)
-n_features(fwd::IntervalFeaturedWorldDataset{T}) where {T} = size(fwd, 4)
+n_samples(fwd::IntervalFeaturedWorldDataset{T}) where {T}  = size(fwd.d, 3)
+n_features(fwd::IntervalFeaturedWorldDataset{T}) where {T} = size(fwd.d, 4)
 
 
 const ModalDatasetSliceType{T} = Union{
@@ -109,3 +114,33 @@ const ModalDatasetSliceType{T} = Union{
 	IntervalFeaturedChannel{T}
 	# modalDatasetSliceType(OntologicalDataset{T where T, 2, ModalLogic.Interval2D})
 }
+
+
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+
+
+function prepare_featnaggrs(grouped_featsops::AbstractVector{<:AbstractVector{<:TestOperatorFun}})
+		
+	# Pairs of feature ids + set of aggregators
+	grouped_featnaggrs = [
+		ModalLogic.existential_aggregator.(test_operators) for (i_feature, test_operators) in enumerate(grouped_featsops)
+	]
+
+
+	# grouped_featnaggrs = [grouped_featnaggrs[i_feature] for i_feature in 1:length(features)]
+
+	# # Flatten dictionary, and enhance aggregators in dictionary with their relative indices
+	# flattened_featnaggrs = Tuple{<:FeatureTypeFun,<:Aggregator}[]
+	# i_featnaggr = 1
+	# for (i_feature, aggregators) in enumerate(grouped_featnaggrs)
+	# 	for aggregator in aggregators
+	# 		push!(flattened_featnaggrs, (features[i_feature],aggregator))
+	# 		i_featnaggr+=1
+	# 	end
+	# end
+
+	grouped_featnaggrs
+end
