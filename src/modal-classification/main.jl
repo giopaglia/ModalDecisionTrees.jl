@@ -32,7 +32,7 @@ function build_stump(
 	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
 	ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
 	kwargs...) where {T, D, U}
-	build_stump(MultiFrameModalDataset(OntologicalDataset{T,D-2}(ontology,bare_dataset)), labels, weights; kwargs...)
+	build_stump(MultiFrameFeatModalDataset(OntologicalDataset{T,D-2}(ontology,bare_dataset)), labels, weights; kwargs...)
 end
 
 function build_tree(
@@ -41,7 +41,7 @@ function build_tree(
 	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
 	ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
 	kwargs...) where {T, D, U}
-	build_tree(MultiFrameModalDataset(OntologicalDataset{T,D-2}(ontology,bare_dataset)), labels, weights; kwargs...)
+	build_tree(MultiFrameFeatModalDataset(OntologicalDataset{T,D-2}(ontology,bare_dataset)), labels, weights; kwargs...)
 end
 
 function build_forest(
@@ -51,7 +51,7 @@ function build_forest(
 	ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
 	kwargs...) where {T, D, U}
 	# build_forest(OntologicalDataset{T,D-2}(ontology,bare_dataset), labels, weights; kwargs...)
-	build_forest(MultiFrameModalDataset(OntologicalDataset{T,D-2}(ontology,bare_dataset)), labels; kwargs...)
+	build_forest(MultiFrameFeatModalDataset(OntologicalDataset{T,D-2}(ontology,bare_dataset)), labels; kwargs...)
 end
 
 ################################################################################
@@ -61,27 +61,27 @@ end
 # Build models on (multi-dimensional) arrays
 function build_stump(
 	labels        :: AbstractVector{String},
-	modal_dataset :: ModalDataset,
+	modal_dataset :: AbstractFeaturedWorldDataset,
 	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
 	kwargs...) where U
-	build_stump(MultiFrameModalDataset(modal_dataset), labels, weights; kwargs...)
+	build_stump(MultiFrameFeatModalDataset(modal_dataset), labels, weights; kwargs...)
 end
 
 function build_tree(
 	labels        :: AbstractVector{String},
-	modal_dataset :: ModalDataset,
+	modal_dataset :: AbstractFeaturedWorldDataset,
 	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
 	kwargs...) where U
-	build_tree(MultiFrameModalDataset(modal_dataset), labels, weights; kwargs...)
+	build_tree(MultiFrameFeatModalDataset(modal_dataset), labels, weights; kwargs...)
 end
 
 function build_forest(
 	labels        :: AbstractVector{String},
-	modal_dataset :: ModalDataset;
+	modal_dataset :: AbstractFeaturedWorldDataset;
 	# weights       :: Union{Nothing,AbstractVector{U}} = nothing TODO
 	kwargs...) #where U
-	# build_forest(MultiFrameModalDataset(modal_dataset), labels, weights; kwargs...)
-	build_forest(MultiFrameModalDataset(modal_dataset), labels; kwargs...)
+	# build_forest(MultiFrameFeatModalDataset(modal_dataset), labels, weights; kwargs...)
+	build_forest(MultiFrameFeatModalDataset(modal_dataset), labels; kwargs...)
 end
 
 ################################################################################
@@ -90,7 +90,7 @@ end
 
 # Build a stump (tree with depth 1)
 function build_stump(
-		X	              :: MultiFrameModalDataset{OntologicalDataset{T, N}},
+		X	              :: MultiFrameFeatModalDataset{OntologicalDataset{T, N}},
 		Y                 :: AbstractVector{String},
 		W                 :: Union{Nothing,AbstractVector{U}} = nothing;
 		kwargs...) where {T, N, U}
@@ -100,21 +100,18 @@ end
 
 # Build a tree on an OntologicalDataset
 function build_tree(
-	X                   :: MultiFrameModalDataset{OntologicalDataset{T, N, WorldType}},
+	Xs                  :: MultiFrameFeatModalDataset{OntologicalDataset{T, N, WorldType}},
 	Y                   :: AbstractVector{S},
 	W                   :: Union{Nothing,AbstractVector{U}}   = nothing;
 	gammas              :: Union{AbstractVector{Union{GammaType,Nothing}},Nothing}  = nothing,
 	loss                :: Function                           = util.entropy,
-	n_subfeatures       :: Function                           = x -> x,
 	max_depth           :: Int                                = -1,
 	min_samples_leaf    :: Int                                = 1,
 	min_purity_increase :: AbstractFloat                      = 0.0,
 	min_loss_at_leaf    :: AbstractFloat                      = -Inf,
-	n_subrelations      :: Function                           = x -> x,
-	initCondition       :: _initCondition                     = startWithRelationAll,
-	useRelationAll      :: Bool                               = true,
-	useRelationId       :: Bool                               = true,
-	test_operators      :: AbstractVector{<:TestOperator}     = [TestOpGeq, TestOpLeq],
+	n_subrelations      :: Vector{Function}                   = fill(x -> x, n_frames(Xs)),
+	n_subfeatures       :: Vector{Function}                   = fill(x -> x, n_frames(Xs)),
+	initConditions      :: Vector{_initCondition}             = fill(startWithRelationAll, n_frames(Xs)),
 	rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {T, N, S, U, NTO, Ta, WorldType<:AbstractWorld}
 
 	if max_depth == -1
@@ -123,25 +120,22 @@ function build_tree(
 
 	rng = mk_rng(rng)
 	t = treeclassifier.fit(
-		X                   = X,
+		Xs                  = Xs,
 		Y                   = Y,
 		W                   = W,
 		gammas              = gammas,
 		loss                = loss,
-		n_subfeatures       = n_subfeatures(n_attributes(X)),
 		max_depth           = max_depth,
 		min_samples_leaf    = min_samples_leaf,
 		min_purity_increase = min_purity_increase,
 		min_loss_at_leaf    = min_loss_at_leaf,
 		n_subrelations      = n_subrelations,
-		initCondition       = initCondition,
-		useRelationAll      = useRelationAll,
-		useRelationId       = useRelationId,
-		test_operators      = test_operators,
+		n_subfeatures       = [ n_subfeatures(n_attributes(Xs[i])) for i in 1:n_frames(Xs) ],
+		initConditions      = initConditions,
 		rng                 = rng)
 
 	root = _convert(t.root, t.list, Y[t.labels])
-	DTree{T, String}(root, WorldType, initCondition)
+	DTree{T, String}(root, WorldType, initConditions)
 end
 
 # TODO fix this using specified purity
@@ -385,7 +379,7 @@ apply_tree_proba(tree::DTNode{S, T}, features::AbstractMatrix{S}, labels) where 
 =#
 
 function build_forest(
-	Xs                  :: MultiFrameModalDataset{OntologicalDataset{T, N, WorldType}},
+	Xs                  :: MultiFrameFeatModalDataset{OntologicalDataset{T, N, WorldType}},
 	Y                   :: AbstractVector{S}
 	;
 	# , W                   :: Union{Nothing,AbstractVector{U}} = nothing; TODO these must also be used for the calculation of the oob_error
@@ -395,16 +389,13 @@ function build_forest(
 	# Tree parameters
 	gammas              :: Union{AbstractVector{Union{GammaType,Nothing}},Nothing} = nothing,
 	loss                :: Function           = util.entropy,
-	n_subfeatures       :: Function           = x -> ceil(Int, sqrt(x)),
 	max_depth           :: Int                = -1,
 	min_samples_leaf    :: Int                = 1,
 	min_purity_increase :: AbstractFloat      = 0.0,
 	min_loss_at_leaf    :: AbstractFloat      = -Inf,
-	n_subrelations      :: Function           = x -> x,
-	initCondition       :: _initCondition     = startWithRelationAll,
-	useRelationAll      :: Bool               = true,
-	useRelationId       :: Bool               = true,
-	test_operators      :: AbstractVector{<:TestOperator}     = [TestOpGeq, TestOpLeq],
+	n_subrelations      :: Vector{Function}   = fill(x -> x, n_frames(Xs)),
+	n_subfeatures       :: Vector{Function}   = fill(x -> x -> ceil(Int, sqrt(x)), n_frames(Xs)),
+	initConditions      :: Vector{_initCondition} = fill(startWithRelationAll, n_frames(Xs)),
 	rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {T, N, S, U, NTO, Ta, WorldType<:AbstractWorld}
 
 	rng = mk_rng(rng)
@@ -427,8 +418,8 @@ function build_forest(
 				test_operators, relationSet,
 				relationId_id, relationAll_id,
 				availableModalRelation_ids, allAvailableRelation_ids
-			) = treeclassifier.optimize_tree_parameters!(X, initCondition, useRelationAll, useRelationId, test_operators)
-			gammas[i] = computeGammas(X[i],WorldType,test_operators,relationSet,relationId_id,availableModalRelation_ids)
+			) = treeclassifier.optimize_tree_parameters!(Xs[i], initConditions[i], useRelationAll, useRelationId, test_operators)
+			gammas[i] = computeGammas(Xs[i],WorldType,test_operators,relationSet,relationId_id,availableModalRelation_ids)
 		end
 	end
 
@@ -462,10 +453,7 @@ function build_forest(
 			min_purity_increase  = min_purity_increase,
 			min_loss_at_leaf     = min_loss_at_leaf,
 			n_subrelations       = n_subrelations,
-			initCondition        = initCondition,
-			useRelationAll       = useRelationAll,
-			useRelationId        = useRelationId,
-			test_operators       = test_operators,
+			initConditions       = initConditions,
 			rng                  = rngs[i])
 
 		# grab out-of-bag indices

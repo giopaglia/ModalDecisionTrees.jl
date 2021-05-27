@@ -97,9 +97,9 @@ const DTNode{S<:Real, T} = Union{DTLeaf{T}, DTInternal{S, T}}
 
 # TODO attach info about training (e.g. algorithm used + full namedtuple of training arguments) to these models
 struct DTree{S<:Real, T}
-	root          :: DTNode{S, T}
-	worldType     :: Type{<:AbstractWorld}
-	initCondition :: _initCondition
+	root           :: DTNode{S, T}
+	worldType      :: Type{<:AbstractWorld}
+	initConditions :: AbstractVector{_initCondition}
 end
 
 struct Forest{S<:Real, T}
