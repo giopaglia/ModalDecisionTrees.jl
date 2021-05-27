@@ -198,25 +198,32 @@ function testDataset(
 			
 			# Compute modalDataset (equivalent to gammas)
 
-			features_n_operators = Tuple{<:FeatureTypeFun,<:TestOperatorFun}[]
+			features = FeatureTypeFun[]
 
 			for i_attr in 1:n_attributes(X_all)
-				push!(features_n_operators, (ModalLogic.AttributeMinimumFeatureType(i_attr), ≥))
-				push!(features_n_operators, (ModalLogic.AttributeMaximumFeatureType(i_attr), ≤))
-				# push!(features_n_operators, (ModalLogic.AttributeSoftMinimumFeatureType(i_attr, 0.8), ≥))
-				# push!(features_n_operators, (ModalLogic.AttributeSoftMaximumFeatureType(i_attr, 0.8), ≤))
+				push!(features, ModalLogic.AttributeMinimumFeatureType(i_attr))
+				push!(features, ModalLogic.AttributeMaximumFeatureType(i_attr))
+				# push!(features, ModalLogic.AttributeSoftMinimumFeatureType(i_attr, 0.8))
+				# push!(features, ModalLogic.AttributeSoftMaximumFeatureType(i_attr, 0.8))
 			end
 
-			(features, grouped_featnaggrs, flattened_featnaggrs) = DecisionTree.prepare_featnaggrs(features_n_operators)
+			featnops = Vector{<:TestOperatorFun}[
+				if typeof(feature) in [AttributeMinimumFeatureType, AttributeSoftMinimumFeatureType]
+					[≥]
+				elseif typeof(feature) in [AttributeMaximumFeatureType, AttributeSoftMaximumFeatureType]
+					[≤]
+				else
+					error("Unknown feature type")
+					[≥, ≤]
+				end for feature in features
+			]
+			
+			fmd = FeatModalDataset(X_all, features, featnops, timing_mode = timing_mode)
 
-			timing_mode = timing_mode
-			computeRelationAll = true
-			stumpMD = DecisionTree.stumpModalDataset(X_all, features, grouped_featnaggrs, flattened_featnaggrs, computeRelationAll = computeRelationAll, timing_mode = timing_mode);
-			modalDatasetP = stumpMD.modalDatasetP
-			modalDatasetM = stumpMD.modalDatasetM
-			modalDatasetG = stumpMD.modalDatasetG
+			println("OntologicalDataset size:\t\t\t$(Base.summarysize(X_all) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
+			println("FeaturedWorldDataset size:\t\t\t$(Base.summarysize(fmd) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
 
-			# Check consistency between gammas and modalDataset
+			# Check consistency between FeaturedWorldDataset and modalDataset
 
 			for i_instance in 1:n_samples(X_all)
 				instance = ModalLogic.getInstance(X_all, i_instance)
@@ -225,10 +232,10 @@ function testDataset(
 						for w in ModalLogic.enumAll(WorldType, ModalLogic.inst_channel_size(instance)...)
 							
 							g = DecisionTree.readGamma(gammas,i_test_operator,w,i_instance,1,i_attribute)
-							m = DecisionTree.modalDatasetGet(modalDatasetP, w, i_instance, (i_test_operator-1)+(i_attribute-1)*2+1)
+							m = fmd[i_instance, w, (i_test_operator-1)+(i_attribute-1)*2+1]
 
 							if g != m
-								println("modalDatasetP check: g != m\n$(g)\n$(m)\ni_test_operator=$(i_test_operator)\nw=$(w)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
+								println("FeaturedWorldDataset check: g != m\n$(g)\n$(m)\ni_test_operator=$(i_test_operator)\nw=$(w)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
 								print("instance: ")
 								println(ModalLogic.getInstanceAttribute(instance, i_attribute))
 								error("aoe")
@@ -238,54 +245,99 @@ function testDataset(
 				end
 			end
 
-			firstWorld = WorldType(ModalLogic.firstWorld)
+			# features_n_operators = Tuple{<:FeatureTypeFun,<:TestOperatorFun}[]
+			
+			# for feature in features
+			# 	if typeof(feature) in [AttributeMinimumFeatureType, AttributeSoftMinimumFeatureType]
+			# 		push!(features_n_operators, (feature, ≥))
+			# 	elseif typeof(feature) in [AttributeMaximumFeatureType, AttributeSoftMaximumFeatureType]
+			# 		push!(features_n_operators, (feature, ≤))
+			# 	else
+			# 		error("Unknown feature type")
+			# 		push!(features_n_operators, (feature, ≥))
+			# 		push!(features_n_operators, (feature, ≤))
+			# 	end
+			# end
 
-			for i_instance in 1:n_samples(X_all)
-				instance = ModalLogic.getInstance(X_all, i_instance)
-				for i_attribute in 1:n_attributes(X_all)
-					for i_test_operator in 1:2
+			# grouped_featnaggrs = ModalLogic.prepare_featnaggrs(featnops)
+
+			# relations = X.ontology.relationSet
+			# # relations = relations[1:3]
+
+			# # Compute modal dataset propositions and 1-modal decisions
+			# modalDatasetM, modalDatasetG = 
+			# 	if timing_mode == :none
+			# 		computeModalDataset_m(X, relations, grouped_featnaggrs, fwd, features, computeRelationAll = computeRelationAll);
+			# 	elseif timing_mode == :time
+			# 		@time computeModalDataset_m(X, relations, grouped_featnaggrs, fwd, features, computeRelationAll = computeRelationAll);
+			# 	elseif timing_mode == :btime
+			# 		@btime computeModalDataset_m($X, $relations, $grouped_featnaggrs, $fwd, $features, computeRelationAll = $computeRelationAll);
+			# end
+
+			# println(Base.size(X))
+			# println(Base.size(fwd))
+			# if !isnothing(modalDatasetG)
+			# 	println(Base.size(modalDatasetM))
+			# end
+			# println("Dataset size:\t\t\t$(Base.summarysize(X) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
+			# println("modalDataset total size:\t$((Base.summarysize(fwd) + Base.summarysize(modalDatasetM) + Base.summarysize(modalDatasetG)) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
+			# println("├ fwd size:\t\t$(Base.summarysize(fwd) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
+			# println("├ modalDatasetM size:\t\t$(Base.summarysize(modalDatasetM) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
+			# println("└ modalDatasetG size:\t\t$(Base.summarysize(modalDatasetG) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
+
+			# computeRelationAll = true
+			# stumpMD = DecisionTree.stumpModalDataset(X_all, features, grouped_featnaggrs, flattened_featnaggrs, computeRelationAll = computeRelationAll, timing_mode = timing_mode);
+			# modalDatasetM = stumpMD.modalDatasetM
+			# modalDatasetG = stumpMD.modalDatasetG
+
+			# firstWorld = WorldType(ModalLogic.firstWorld)
+
+			# for i_instance in 1:n_samples(X_all)
+			# 	instance = ModalLogic.getInstance(X_all, i_instance)
+			# 	for i_attribute in 1:n_attributes(X_all)
+			# 		for i_test_operator in 1:2
 						
-						i_featnaggr = (i_test_operator-1)+(i_attribute-1)*2+1
+			# 			i_featnaggr = (i_test_operator-1)+(i_attribute-1)*2+1
 
-						g = DecisionTree.readGamma(gammas,i_test_operator,firstWorld,i_instance,2,i_attribute)
-						m = DecisionTree.modalDatasetGet_g(modalDatasetG, i_instance, i_featnaggr)
+			# 			g = DecisionTree.readGamma(gammas,i_test_operator,firstWorld,i_instance,2,i_attribute)
+			# 			m = DecisionTree.modalDatasetGet_g(modalDatasetG, i_instance, i_featnaggr)
 
-						if g != m
-							println("modalDatasetG check: g != m\n$(g)\n$(m)\ni_test_operator=$(i_test_operator)\ntest_operator=$(modal_args.test_operators[i_test_operator])\ni_featnaggr=$(i_featnaggr)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
-							print("instance: ")
-							println(ModalLogic.getInstanceAttribute(instance, i_attribute))
-							error("aoe")
-						end
-					end
-				end
-			end
+			# 			if g != m
+			# 				println("modalDatasetG check: g != m\n$(g)\n$(m)\ni_test_operator=$(i_test_operator)\ntest_operator=$(modal_args.test_operators[i_test_operator])\ni_featnaggr=$(i_featnaggr)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
+			# 				print("instance: ")
+			# 				println(ModalLogic.getInstanceAttribute(instance, i_attribute))
+			# 				error("aoe")
+			# 			end
+			# 		end
+			# 	end
+			# end
 
-			relations = X_all.ontology.relationSet
+			# relations = X_all.ontology.relationSet
 
-			for i_instance in 1:n_samples(X_all)
-				instance = ModalLogic.getInstance(X_all, i_instance)
-				for i_attribute in 1:n_attributes(X_all)
-					for i_relation in 1:length(relations)
-						for i_test_operator in 1:2
-							for w in ModalLogic.enumAll(WorldType, ModalLogic.inst_channel_size(instance)...)
+			# for i_instance in 1:n_samples(X_all)
+			# 	instance = ModalLogic.getInstance(X_all, i_instance)
+			# 	for i_attribute in 1:n_attributes(X_all)
+			# 		for i_relation in 1:length(relations)
+			# 			for i_test_operator in 1:2
+			# 				for w in ModalLogic.enumAll(WorldType, ModalLogic.inst_channel_size(instance)...)
 								
-								i_featnaggr = (i_test_operator-1)+(i_attribute-1)*2+1
+			# 					i_featnaggr = (i_test_operator-1)+(i_attribute-1)*2+1
 
-								g = DecisionTree.readGamma(gammas,i_test_operator,w,i_instance,2+i_relation,i_attribute)
-								m = DecisionTree.modalDatasetGet_m(modalDatasetM, w, i_instance, i_featnaggr, i_relation)
+			# 					g = DecisionTree.readGamma(gammas,i_test_operator,w,i_instance,2+i_relation,i_attribute)
+			# 					m = DecisionTree.modalDatasetGet_m(modalDatasetM, w, i_instance, i_featnaggr, i_relation)
 
-								if g != m
-									println("modalDatasetM check: g != m\n$(g)\n$(m)\ni_relation=$(i_relation), relation=$(relations[i_relation])\ni_test_operator=$(i_test_operator)\ntest_operator=$(modal_args.test_operators[i_test_operator])\nw=$(w)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
-									print("channel: ")
-									println(ModalLogic.getInstanceAttribute(instance, i_attribute))
-									# error("aoe")
-									readline()
-								end
-							end
-						end
-					end
-				end
-			end
+			# 					if g != m
+			# 						println("modalDatasetM check: g != m\n$(g)\n$(m)\ni_relation=$(i_relation), relation=$(relations[i_relation])\ni_test_operator=$(i_test_operator)\ntest_operator=$(modal_args.test_operators[i_test_operator])\nw=$(w)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
+			# 						print("channel: ")
+			# 						println(ModalLogic.getInstanceAttribute(instance, i_attribute))
+			# 						# error("aoe")
+			# 						readline()
+			# 					end
+			# 				end
+			# 			end
+			# 		end
+			# 	end
+			# end
 
 			########################################################
 			########################################################
