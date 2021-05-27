@@ -57,20 +57,20 @@ module treeclassifier
 	#  (e.g. max_depth, min_samples_leaf, etc.)
 	# TODO move this function inside the caller function, and get rid of all parameters
 	function _split!(
-							Xs                  :: MultiFrameModalDataset{OntologicalDataset{T, N, WorldType}}, # the ontological dataset
+							#Xs                  :: MultiFrameFeatModalDataset{OntologicalDataset{T, N, WorldType}}, # the ontological dataset
+							Xs                  :: MultiFrameFeatModalDataset{FeatModalDataset}, # the modal dataset
 							Y                   :: AbstractVector{Label},    # the label array
 							W                   :: AbstractVector{U},        # the weight vector
 							S                   :: AbstractVector{WorldSet{WorldType}}, # the vector of current worlds
 
 							loss_function       :: Function,
 							node                :: NodeMeta{T,<:AbstractFloat}, # the node to split
-							n_subfeatures       :: Int,                      # number of features to use to split
+							n_subfeatures       :: Vector{Int},                      # number of features to use to split
 							max_depth           :: Int,                      # the maximum depth of the resultant tree
 							min_samples_leaf    :: Int,                      # the minimum number of samples each leaf needs to have
 							min_loss_at_leaf    :: AbstractFloat,            # maximum purity allowed on a leaf
 							min_purity_increase :: AbstractFloat,            # minimum purity increase needed for a split
-							n_subrelations      :: Function,
-							test_operators      :: AbstractVector{<:TestOperator},
+							n_subrelations      :: Vector{Function},
 							
 							indX                :: AbstractVector{Int},      # an array of sample indices (we split using samples in indX[node.region])
 							
@@ -351,7 +351,7 @@ module treeclassifier
 	end
 
 	function check_input(
-			X                   :: MultiFrameModalDataset{OntologicalDataset{T, N}},
+			X                   :: MultiFrameFeatModalDataset{FeatModalDataset},
 			Y                   :: AbstractVector{S},
 			W                   :: AbstractVector{U},
 			loss_function       :: Function,
@@ -359,7 +359,7 @@ module treeclassifier
 			max_depth           :: Int,
 			min_samples_leaf    :: Int,
 			min_loss_at_leaf    :: AbstractFloat,
-			min_purity_increase :: AbstractFloat) where {T, S, U, N}
+			min_purity_increase :: AbstractFloat) where {S, U}
 		n_instances, n_attrs = n_samples(X), n_attributes(X)
 
 		if length(Y) != n_instances
@@ -510,21 +510,18 @@ module treeclassifier
 	end
 
 	function _fit(
-			Xs                      :: MultiFrameModalDataset{OntologicalDataset{T, N, WorldType}},
+			Xs                      :: MultiFrameFeatModalDataset{FeatModalDataset},
 			Y                       :: AbstractVector{Label},
 			W                       :: AbstractVector{U},
 			loss                    :: Function,
 			n_classes               :: Int,
-			n_subfeatures           :: Int,
+			n_subfeatures           :: Vector{Int},
 			max_depth               :: Int,
 			min_samples_leaf        :: Int, # TODO generalize to min_samples_leaf_relative and min_weight_leaf
 			min_purity_increase     :: AbstractFloat,
 			min_loss_at_leaf        :: AbstractFloat,
-			n_subrelations          :: Function,
-			initCondition           :: DecisionTree._initCondition,
-			useRelationAll          :: Bool,
-			useRelationId           :: Bool,
-			test_operators          :: AbstractVector{<:TestOperator},
+			n_subrelations          :: Vector{Function},
+			initConditions          :: Vector{DecisionTree._initCondition},
 			rng = Random.GLOBAL_RNG :: Random.AbstractRNG;
 			gammas                  :: AbstractVector{Union{GammaType,Nothing}} = nothing) where {T, U, N, WorldType<:AbstractWorld}
 
@@ -536,7 +533,11 @@ module treeclassifier
 		n_instances = n_samples(Xs)
 
 		# Initialize world sets
-		S = WorldSet{WorldType}[DecisionTree.initWorldSet(initCondition, WorldType, channel_size(X)) for i in 1:n_instances] # TODO should be channel_size(X, i)
+		Ss = Vector{AbstractVector}(undef, n_frames(Xs))
+		for j in 1:n_frames(Xs)
+			WT = world_type(Xs[j].ontology) # TODO: generalize function to get world type from a FeatModalDataset
+			Ss[j] = WorldSet{WT}[DecisionTree.initWorldSet(initConditions[j], WT, channel_size(Xs[j])) for i in 1:n_instances] # TODO should be channel_size(X, i)
+		end
 
 		# Array memory for class counts
 		nc  = Vector{U}(undef, n_classes)
@@ -547,9 +548,13 @@ module treeclassifier
 		# Xf = Array{T, N+1}(undef, channel_size(X)..., n_instances)
 		Yf = Vector{Label}(undef, n_instances)
 		Wf = Vector{U}(undef, n_instances)
-		Sf = Vector{WorldSet{WorldType}}(undef, n_instances)
+		Sf = Vector{AbstractVector}(undef, n_frames(Xs))
+		for i in 1:n_frames(Xs)
+			WT = world_type(Xs[j].ontology)
+			Sf[i] = Vector{WorldSet{WT}}(undef, n_instances)
+		end
 		
-		featureSet = 1:n_attributes(X)
+		featureSet = 1:n_attributes(Xs)
 
 		(
 			# X,
@@ -562,17 +567,19 @@ module treeclassifier
 			error("No available relation! Allow propositional splits with useRelationId=true")
 		end
 
-		if isnothing(gammas)
-			# Calculate gammas
-			#  A gamma, for a given feature f, world w, relation X and test_operator ⋈, is 
-			#  the unique value γ for which w ⊨ <X> f ⋈ γ and:
-			#  if polarity(⋈) == true:      ∀ a > γ:    w ⊭ <X> f ⋈ a
-			#  if polarity(⋈) == false:     ∀ a < γ:    w ⊭ <X> f ⋈ a
-			
-			gammas = DecisionTree.computeGammas(X, test_operators, relationSet, relationId_id, inUseRelation_ids)
-			# using BenchmarkTools; gammas = @btime DecisionTree.computeGammas($X, $$test_operators, $relationSet, $relationId_id, $inUseRelation_ids)
-		else
-			DecisionTree.checkGammasConsistency(gammas, X, test_operators, relationSet)
+		for j in 1:n_frames(Xs)
+			if isnothing(gammas[i])
+				# Calculate gammas
+				#  A gamma, for a given feature f, world w, relation X and test_operator ⋈, is 
+				#  the unique value γ for which w ⊨ <X> f ⋈ γ and:
+				#  if polarity(⋈) == true:      ∀ a > γ:    w ⊭ <X> f ⋈ a
+				#  if polarity(⋈) == false:     ∀ a < γ:    w ⊭ <X> f ⋈ a
+				
+				gammas[i] = DecisionTree.computeGammas(Xs[i], test_operators, relationSet, relationId_id, inUseRelation_ids)
+				# using BenchmarkTools; gammas = @btime DecisionTree.computeGammas($X, $$test_operators, $relationSet, $relationId_id, $inUseRelation_ids)
+			else
+				DecisionTree.checkGammasConsistency(gammas[i], Xs[i], test_operators, relationSet)
+			end
 		end
 
 		# Let the core algorithm begin!
@@ -588,7 +595,7 @@ module treeclassifier
 			# Pop node and process it
 			(node,onlyUseRelationAll) = pop!(stack)
 			_split!(
-				X, Y, W, S,
+				Xs, Y, W, S,
 				loss, node,
 				n_subfeatures,
 				max_depth,
@@ -624,24 +631,25 @@ module treeclassifier
 			#  a graph; instead, an instance is a dimensional domain (e.g. a matrix or a 3D matrix) onto which
 			#  worlds and relations are determined by a given Ontology.
 			# TODO Add default values for this function?
-			Xs                     :: MultiFrameModalDataset{OntologicalDataset{T, N}},
+#			Xs                     :: MultiFrameFeatModalDataset{OntologicalDataset{T, N}},
+			Xs                     :: MultiFrameFeatModalDataset{FeatModalDataset},
 			Y                      :: AbstractVector{S},
 			W                      :: Union{AbstractVector{U},Nothing},
 			# this apparently redundant type for gammas allow one to choose to pass
 			# nothing: which means [ nothing, nothing, ..., nothing ]
 			# [ g1, nothing, g3, ... ] which means a mixed array to recycle previously calculated gammas for a frame
 			gammas                  :: Union{AbstractVector{Union{GammaType,Nothing}},Nothing} = nothing,
+
 			loss = util.entropy     :: Function,
-			n_subfeatures           :: Int,
 			max_depth               :: Int,
 			min_samples_leaf        :: Int,
 			min_purity_increase     :: AbstractFloat,
 			min_loss_at_leaf        :: AbstractFloat, # TODO add this to scikit's interface.
-			n_subrelations          :: Function,
-			initCondition           :: DecisionTree._initCondition,
-			useRelationAll          :: Bool,
-			useRelationId           :: Bool,
-			test_operators          :: AbstractVector{<:TestOperator} = [TestOpGeq, TestOpLeq],
+
+			n_subfeatures           :: Vector{Int},
+			n_subrelations          :: Vector{Function},
+			initConditions          :: Vector{DecisionTree._initCondition},
+
 			rng = Random.GLOBAL_RNG :: Random.AbstractRNG) where {T, S, U, N, NTO, Ta}
 
 		# Obtain the dataset's "outer size": number of samples and number of features
@@ -651,7 +659,7 @@ module treeclassifier
 		if isnothing(gammas)
 			gammas = fill(nothing, n_frames(Xs))
 		else
-			@assert n_frames(Xs) == length(gammas) "MultiFrameModalDataset and gammas sized mismatch: n_frames(Xs) = $(n_frames(Xs)); length(gammas) = $(length(gammas))"
+			@assert n_frames(Xs) == length(gammas) "MultiFrameFeatModalDataset and gammas sizes mismatch: n_frames(Xs) = $(n_frames(Xs)); length(gammas) = $(length(gammas))"
 		end
 
 		# Use unary weights if no weight is supplied
@@ -667,7 +675,7 @@ module treeclassifier
 			check_input(
 				Xs[i], Y, W,
 				loss,
-				n_subfeatures,
+				n_subfeatures[i],
 				max_depth,
 				min_samples_leaf,
 				min_loss_at_leaf,
@@ -690,10 +698,7 @@ module treeclassifier
 			min_purity_increase,
 			min_loss_at_leaf,
 			n_subrelations,
-			initCondition,
-			useRelationAll,
-			useRelationId,
-			test_operators,
+			initConditions,
 			rng;
 			gammas = gammas)
 
