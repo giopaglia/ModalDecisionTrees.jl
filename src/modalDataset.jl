@@ -134,39 +134,6 @@ computeModalThreshold(modalDatasetP_slice::ModalDatasetSliceType{T}, relation::A
 	# threshold
 end
 
-function prepare_featnaggrs(features_n_operators::AbstractVector{Tuple{<:FeatureTypeFun,<:TestOperatorFun}})
-	# Different features to compute
-	features = unique(first.(features_n_operators))
-
-	# Pairs of feature ids + set of aggregators
-	grouped_featnaggrs_pre = DefaultOrderedDict{Integer, Vector{<:Aggregator}}(Vector{Aggregator})
-
-	for (i_feature, feature) in enumerate(features)
-		for (f,o) in features_n_operators
-			if f == feature
-				push!(grouped_featnaggrs_pre[i_feature], ModalLogic.existential_aggregator(o))
-			end
-		end
-	end
-
-	grouped_featnaggrs_pre
-
-	# Flatten dictionary, and enhance aggregators in dictionary with their relative indices
-	grouped_featnaggrs = DefaultOrderedDict{Integer, Vector{Tuple{Integer,<:Aggregator}}}(Vector{Tuple{Integer,Aggregator}})
-	flattened_featnaggrs = Tuple{<:FeatureTypeFun,<:Aggregator}[]
-	i_featnaggr = 1
-	for (i_feature, aggregators) in grouped_featnaggrs_pre
-		grouped_featnaggrs[i_feature] = []
-		for aggregator in aggregators
-			push!(flattened_featnaggrs, (features[i_feature],aggregator))
-			push!(grouped_featnaggrs[i_feature], (i_featnaggr,aggregator))
-			i_featnaggr+=1
-		end
-	end
-
-	(features, grouped_featnaggrs, flattened_featnaggrs)
-end
-
 
 function computeModalDataset(
 		X::OntologicalDataset{T, N, WorldType},
@@ -216,7 +183,7 @@ end
 function computeModalDataset_m(
 		X::OntologicalDataset{T, N, WorldType},
 		relations::AbstractVector{<:AbstractRelation},
-		grouped_featnaggrs::AbstractDict{Integer, Vector{Tuple{<:Integer,<:Aggregator}}},
+		grouped_featnaggrs::AbstractVector{AbstractVector{<:Aggregator}},
 		modalDatasetP::ModalDatasetPType{T}, # TODO write stricter type
 		# modalDatasetP::modalDatasetType(OntologicalDataset{T, N, WorldType}),
 		# modalDatasetP::modalDatasetType(typeof(X)), # TODO make either this or X an optional argument
@@ -236,7 +203,7 @@ function computeModalDataset_m(
 
 	n_instances = n_samples(X)
 	n_relations = length(relations)
-	n_featnaggrs = sum(length(aggregators) for (i_featnaggr,aggregators) in grouped_featnaggrs)
+	n_featnaggrs = sum(length.(grouped_featnaggrs))
 
 	# Prepare modalDatasetM
 	modalDatasetM = initModalDataset_m(X, n_featnaggrs, n_relations)
@@ -266,7 +233,7 @@ function computeModalDataset_m(
 			initModalDatasetWorldSlice_m(typeof(X), modalDatasetM, w)
 		end
 
-		for (i_feature,aggregators) in grouped_featnaggrs
+		for (i_feature,aggregators) in enumerate(grouped_featnaggrs)
 			
 			@logmsg DTDebug "Feature $(i_feature)"
 			
