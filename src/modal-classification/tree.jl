@@ -515,7 +515,7 @@ module treeclassifier
 			min_samples_leaf        :: Int, # TODO generalize to min_samples_leaf_relative and min_weight_leaf
 			min_purity_increase     :: AbstractFloat,
 			min_loss_at_leaf        :: AbstractFloat,
-			n_subrelations           :: Function,
+			n_subrelations          :: Function,
 			initCondition           :: DecisionTree._initCondition,
 			useRelationAll          :: Bool,
 			useRelationId           :: Bool,

@@ -111,10 +111,10 @@ const ModalDatasetGType{T} = Union{
 computePropositionalThreshold(feature::FeatureTypeFun, w::AbstractWorld, instance::MatricialInstance) = ModalLogic.yieldFunction(feature)(inst_readWorld(w,instance))
 computeModalThreshold(modalDatasetP_slice::ModalDatasetSliceType{T}, relation::AbstractRelation, w::AbstractWorld, aggregator::Agg, instance::MatricialInstance, feature::FeatureTypeFun) where {T, Agg<:Aggregator} = begin
 	
-	worlds = ModalLogic.enumAccessibles(w, relation, ModalLogic.inst_channel_size(instance)...) # TODO
+	# worlds = ModalLogic.enumAccessibles(w, relation, ModalLogic.inst_channel_size(instance)...) # TODO
 
 	# TODO reintroduce the improvements for some operators: e.g. later. Actually, these can be simplified by using a set of representatives, as in some enumAccRepr!
-	# worlds = ModalLogic.enumAccReprAggr(feature, aggregator, w, relation, ModalLogic.inst_channel_size(instance)...)
+	worlds = ModalLogic.enumAccReprAggr(feature, aggregator, w, relation, ModalLogic.inst_channel_size(instance)...)
 
 	# TODO try reduce(aggregator, worlds; init=ModalLogic.bottom(aggregator, T))
 	# TODO remove this aggregator_to_binary...

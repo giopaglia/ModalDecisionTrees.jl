@@ -9,8 +9,6 @@ using ComputedFieldTypes
 
 using DataStructures
 
-using BenchmarkTools # TODO only need this when testing and using @btime
-
 export AbstractWorld, AbstractRelation,
 				Ontology,
 				WorldSet,
@@ -138,18 +136,19 @@ include("featureTypes.jl")
 ################################################################################
 
 export n_samples, n_attributes, n_features, channel_size, max_channel_size, n_frames,
-				AbstractModalDataset,
+				AbstractFeatModalDataset,
 				MultiFrameFeatModalDataset,
 				OntologicalDataset, 
-				AbstractFeaturedWorldDataset, FeatModalDataset,
+				AbstractFeaturedWorldDataset,
+				FeatModalDataset,
+				FeatModalDatasetWithStumpSupport,
 				MatricialInstance,
 				MatricialDataset,
 				# MatricialUniDataset,
 				MatricialChannel,
-				FeaturedWorldDataset,
-				AbstractFeaturedWorldDataset
+				FeaturedWorldDataset
 
-abstract type AbstractModalDataset{T<:Real,WorldType<:AbstractWorld} end
+abstract type AbstractFeatModalDataset{T<:Real,WorldType<:AbstractWorld} end
 
 # A dataset, given by a set of N-dimensional (multi-attribute) matrices/instances,
 #  and an Ontology to be interpreted on each of them.
@@ -258,8 +257,10 @@ getInstances(d::OntologicalDataset{T,N,WT}, args::Vararg) where {T,N,WT} = getIn
 getChannel(d::OntologicalDataset{T,N,WT},   args::Vararg) where {T,N,WT} = getChannel(d.domain, args...)
 
 abstract type AbstractFeaturedWorldDataset{T, WorldType} end
+abstract type AbstractFeatModalDatasetStumpSupport{T, WorldType} end
+abstract type AbstractFeatModalDatasetStumpSupport_global{T, WorldType} end
 
-struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
+struct FeatModalDataset{T, WorldType} <: AbstractFeatModalDataset{T, WorldType}
 	
 	# Core data
 	fwd                :: AbstractFeaturedWorldDataset{T,WorldType}
@@ -267,22 +268,27 @@ struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 	## Modal frame:
 	# Accessibility relations
 	relations          :: AbstractVector{<:AbstractRelation}
+	
 	# Accessibility functions (one per instance) with signature (w::WorldType, r::AbstractRelation) -> vs::AbstractVector{WorldType}
+	enumAll_functions  :: AbstractVector{<:accFunction}
 	acc_functions      :: AbstractVector{<:accFunction}
+	accrepr_functions  :: AbstractVector{<:accFunction}
 	
 	# Test operators associated with each feature
 	featsnops          :: AbstractVector{<:AbstractVector{<:TestOperatorFun}}
 	
 	# Feature names
-	feature_names      :: AbstractVector{String}
+	features           :: AbstractVector{<:FeatureTypeFun}
 
 	FeatModalDataset(
 		fwd                :: AbstractFeaturedWorldDataset{T,WorldType},
 		relations          :: AbstractVector{<:AbstractRelation},
+		enumAll_functions  :: AbstractVector{<:accFunction},
 		acc_functions      :: AbstractVector{<:accFunction},
+		accrepr_functions  :: AbstractVector{<:accFunction},
 		featsnops          :: AbstractVector{<:AbstractVector{<:TestOperatorFun}},
-		feature_names      :: AbstractVector{String},
-	) where {T,WorldType} = begin FeatModalDataset{T, WorldType<:AbstractWorld}(fwd, relations, acc_functions, featsnops, feature_names) end
+		features           :: AbstractVector{<:FeatureTypeFun},
+	) where {T,WorldType<:AbstractWorld} = begin FeatModalDataset{T, WorldType}(fwd, relations, enumAll_functions, acc_functions, accrepr_functions, featsnops, features) end
 
 	FeatModalDataset(
 		X                  :: OntologicalDataset{T, N, WorldType},
@@ -290,46 +296,218 @@ struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 		featsnops          :: AbstractVector{<:AbstractVector{<:TestOperatorFun}};
 		timing_mode        :: Symbol = :none
 	) where {T, N, WorldType<:AbstractWorld} = begin
-		fwd = 
-			if timing_mode == :none
-				FeaturedWorldDataset(X, features);
-			elseif timing_mode == :time
-				@time FeaturedWorldDataset(X, features);
-			elseif timing_mode == :btime
-				@btime FeaturedWorldDataset($X, $features);
-		end
+		fwd = FeaturedWorldDataset(X, features);
 
 		relations = X.ontology.relationSet
 
 		# TODO optimize this! When the underlying MatricialDataset is an AbstractArray, this is going to be an array of a single function.
 		# How to achievi this? Think about it.
+		enumAll_functions = [()->enumAll(WorldType,inst_channel_size(instance)...) for instance in X]
 		acc_functions = [(w,R)->enumAccessibles(w,R,inst_channel_size(instance)...) for instance in X]
+		accrepr_functions = [(f,a,w,R)->enumAccReprAggr(f,a,w,R,inst_channel_size(instance)...) for instance in X]
 
-		feature_names = ["$(feature)" for feature in features]
-
-		FeatModalDataset{T, WorldType}(fwd, relations, acc_functions, featsnops, feature_names)
+		FeatModalDataset{T, WorldType}(fwd, relations, enumAll_functions, acc_functions, accrepr_functions, featsnops, features)
 	end
 
 	FeatModalDataset{T, WorldType}(
 		fwd                :: AbstractFeaturedWorldDataset{T,WorldType},
 		relations          :: AbstractVector{<:AbstractRelation},
+		enumAll_functions  :: AbstractVector{<:accFunction},
 		acc_functions      :: AbstractVector{<:accFunction},
+		accrepr_functions  :: AbstractVector{<:accFunction},
 		featsnops          :: AbstractVector{<:AbstractVector{<:TestOperatorFun}},
-		feature_names      :: AbstractVector{String},
+		features           :: AbstractVector{<:FeatureTypeFun},
 	) where {T,WorldType<:AbstractWorld} = begin
 		@assert n_samples(fwd) > 0 "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with no instance. (fwd's type $(typeof(fwd)))"
 		@assert length(featsnops) > 0 "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with no test operator."
+		@assert n_samples(fwd) == length(enumAll_functions) "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with different numbers of instances $(n_samples(fwd)) and of enumAll_functions $(length(enumAll_functions))."
 		@assert n_samples(fwd) == length(acc_functions) "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with different numbers of instances $(n_samples(fwd)) and of acc_functions $(length(acc_functions))."
-		@assert n_features(fwd) == length(feature_names) "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with different numbers of instances $(n_samples(fwd)) and of feature_names $(length(feature_names))."
-		new(fwd, relations, acc_functions, featsnops, feature_names)
+		@assert n_samples(fwd) == length(accrepr_functions) "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with different numbers of instances $(n_samples(fwd)) and of accrepr_functions $(length(accrepr_functions))."
+		@assert n_features(fwd) == length(features) "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with different numbers of instances $(n_samples(fwd)) and of features $(length(features))."
+		new{T, WorldType}(fwd, relations, enumAll_functions, acc_functions, accrepr_functions, featsnops, features)
 	end
 end
 
 n_samples(X::FeatModalDataset{T, WorldType}) where {T, WorldType}  = n_samples(X.fwd)
-n_features(X::FeatModalDataset{T, WorldType}) where {T, WorldType} = length(X.feature_names)
+n_features(X::FeatModalDataset{T, WorldType}) where {T, WorldType} = length(X.features)
 # length(X::FeatModalDataset{T,WorldType})        where {T,WorldType} = n_samples(X)
 # Base.iterate(X::FeatModalDataset{T,WorldType}, state=1) where {T, WorldType} = state > length(X) ? nothing : (getInstance(X, state), state+1)
 getindex(X::FeatModalDataset{T,WorldType}, args::Vararg) where {T,WorldType} = getindex(X.fwd, args...)
+
+# TODO move accordingly
+const ModalDatasetChannelSliceType{T} = Union{AbstractArray{T},AbstractDict{<:AbstractWorld,T}}
+
+struct FeatModalDatasetWithStumpSupport{T, WorldType} <: AbstractFeatModalDataset{T, WorldType}
+	
+	# FeaturedWorldDataset
+	fmd                      :: AbstractFeatModalDataset{T, WorldType}
+	
+	# Feature names
+	stump_support_relations  :: AbstractFeatModalDatasetStumpSupport{T, WorldType}
+	stump_support_global     :: Union{AbstractFeatModalDatasetStumpSupport_global{T, WorldType},Nothing}
+
+	# Features and their aggregators
+	grouped_featnaggrs       :: AbstractVector{<:AbstractVector{Tuple{Integer,<:Aggregator}}}
+
+	FeatModalDatasetWithStumpSupport(
+			fmd                :: FeatModalDataset{T, WorldType},
+			computeRelationAll :: Bool = false,
+		) where {T, WorldType<:AbstractWorld} =
+		FeatModalDatasetWithStumpSupport{T, WorldType}(fmd, computeRelationAll)
+ 
+	FeatModalDatasetWithStumpSupport{T, WorldType}(
+			fmd                :: FeatModalDataset{T, WorldType},
+			computeRelationAll :: Bool = false,
+		) where {T, WorldType<:AbstractWorld} = begin
+
+		featsnops = fmd.featsnops
+		relations = fmd.relations
+		features  = fmd.features
+		
+		# TODO actually take care with unique!
+		grouped_featnaggrs = Vector{Tuple{Integer,<:Aggregator}}[]
+
+		i_aggregator = 1
+		for (i_feature, test_operators) in enumerate(featsnops)
+			cur_feataggrs = Tuple{Integer,<:Aggregator}[]
+			for aggregator in unique(ModalLogic.existential_aggregator.(test_operators))
+				push!(cur_feataggrs, (i_aggregator,aggregator))
+				i_aggregator += 1
+			end
+			push!(grouped_featnaggrs, cur_feataggrs)
+		end
+		
+		computeModalThreshold(
+				cur_fwd      :: ModalDatasetChannelSliceType{T}, # IntervalFeaturedChannel{T} # AbstractFeaturedChannel{T}
+				relation     :: AbstractRelation,
+				w            :: WorldType,
+				aggregator   :: Agg,
+				accrepr_fun  :: Function,
+				feature      :: FeatureTypeFun,
+			) where {T, WorldType<:AbstractWorld, Agg<:Aggregator} = begin
+			
+			# TODO reintroduce the improvements for some operators: e.g. later. Actually, these can be simplified by using a set of representatives, as in some enumAccRepr!
+			# worlds = fmd.acc_functions[i_instance](w, relation)
+
+			worlds = accrepr_fun(feature, aggregator, w, relation)	
+		
+			# TODO try reduce(aggregator, worlds; init=ModalLogic.bottom(aggregator, T))
+			# TODO remove this aggregator_to_binary...
+			
+			if length(worlds |> collect) == 0
+				ModalLogic.aggregator_bottom(aggregator, T)
+			else
+				aggregator((w)->modalDatasetChannelSliceGet(cur_fwd, w), worlds)
+			end
+
+			# opt = aggregator_to_binary(aggregator)
+			# threshold = ModalLogic.bottom(aggregator, T)
+			# for w in worlds
+			# 	e = modalDatasetChannelSliceGet(cur_fwd, w)
+			# 	threshold = opt(threshold,e)
+			# end
+			# threshold
+		end
+
+		computeModalDatasetG =
+			if RelationAll in relations
+				relations = filter!(l->l≠RelationAll, relations)
+				true
+			elseif computeRelationAll
+				true
+			else
+				false
+		end
+
+		n_instances = n_samples(fmd)
+		n_relations = length(relations)
+
+		# Prepare modalDatasetM
+		stump_support_relations = initModalDataset_m(fmd.fwd, relations, grouped_featnaggrs)
+
+		# Prepare modalDatasetG
+		stump_support_global =
+			if computeModalDatasetG
+				initModalDataset_g(fmd.fwd, grouped_featnaggrs)
+			else
+				nothing
+		end
+
+		firstWorld = WorldType(ModalLogic.firstWorld)
+
+		# Compute features
+
+		@inbounds Threads.@threads for i_instance in 1:n_instances
+			@logmsg DTDebug "Instance $(i_instance)/$(n_instances)"
+			
+			if i_instance == 1 || ((i_instance+1) % (floor(Int, ((n_instances)/5))+1)) == 0
+				@logmsg DTOverview "Instance $(i_instance)/$(n_instances)"
+			end
+			
+			accrepr_fun = fmd.accrepr_functions[i_instance]
+
+			for w in fmd.enumAll_functions[i_instance]()
+				initModalDatasetWorldSlice_m(stump_support_relations, w)
+			end
+
+			for (i_feature,aggregators) in enumerate(grouped_featnaggrs)
+				
+				@logmsg DTDebug "Feature $(i_feature)"
+				
+				cur_fwd = modalDatasetChannelSlice(fmd.fwd, i_instance, i_feature)
+
+				# @logmsg DTDebug "instance" instance
+
+				# Global relation (independent of the current world)
+				if computeModalDatasetG
+					@logmsg DTDebug "RelationAll"
+
+					# TODO optimize: all aggregators are likely reading the same raw values.
+					for (i_aggregator,aggregator) in aggregators
+						
+						threshold = computeModalThreshold(cur_fwd, RelationAll, firstWorld, aggregator, accrepr_fun, features[i_feature])
+						
+						# @logmsg DTDebug "Aggregator" aggregator threshold
+						
+						modalDatasetSet_g(stump_support_global, i_instance, i_aggregator, threshold)
+					end
+				end
+
+				# Other relations
+				for (i_relation,relation) in enumerate(relations)
+
+					@logmsg DTDebug "Relation $(i_relation)/$(n_relations)"
+
+					for w in fmd.enumAll_functions[i_instance]()
+						
+						@logmsg DTDebug "World" w
+						
+						# TODO optimize: all aggregators are likely reading the same raw values.
+						for (i_aggregator,aggregator) in aggregators
+							
+							threshold = computeModalThreshold(cur_fwd, relation, w, aggregator, accrepr_fun, features[i_feature])
+
+							# @logmsg DTDebug "Aggregator" aggregator threshold
+							
+							modalDatasetSet_m(stump_support_relations, i_instance, w, i_relation, i_aggregator, threshold)
+
+						end
+					end
+
+				end
+			end
+		end
+		new{T, WorldType}(fmd, stump_support_relations, stump_support_global, grouped_featnaggrs)
+	end
+end
+
+n_samples(X::FeatModalDatasetWithStumpSupport{T, WorldType}) where {T, WorldType}  = n_samples(X.fmd)
+n_features(X::FeatModalDatasetWithStumpSupport{T, WorldType}) where {T, WorldType} = length(X.fmd.features)
+# length(X::FeatModalDatasetWithStumpSupport{T,WorldType})        where {T,WorldType} = n_samples(X)
+# Base.iterate(X::FeatModalDatasetWithStumpSupport{T,WorldType}, state=1) where {T, WorldType} = state > length(X) ? nothing : (getInstance(X, state), state+1)
+getindex(X::FeatModalDatasetWithStumpSupport{T,WorldType}, args::Vararg) where {T,WorldType} = getindex(X.fmd, args...)
+
+
 
 struct MultiFrameFeatModalDataset
 	frames  :: AbstractVector{<:FeatModalDataset}
@@ -337,6 +515,8 @@ struct MultiFrameFeatModalDataset
 		@assert length(Xs) > 0 && length(unique(n_samples.(Xs))) == 1 "Can't create an empty Multi-Frame Modal Dataset or with mismatching number of samples (n_frames: $(length(Xs)), frame_sizes: $(n_samples.(Xs)))."
 		new(Xs)
 	end
+	# Singleton
+	MultiFrameFeatModalDataset(X::FeatModalDataset) = MultiFrameFeatModalDataset([X])
 	# TODO write MultiFrameFeatModalDataset(Xs::AbstractVector{<:Tuple{Union{FeatModalDataset,MatricialDataset,OntologicalDataset},NamedTuple}}) = begin
 end
 
