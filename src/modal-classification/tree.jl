@@ -50,14 +50,13 @@ module treeclassifier
 		root           :: NodeMeta{S,Float64}
 		list           :: Vector{T}
 		labels         :: Vector{Label}
-		initCondition  :: DecisionTree._initCondition
+		initCondition  :: Vector{DecisionTree._initCondition}
 	end
 
 	# Find an optimal local split satisfying the given constraints
 	#  (e.g. max_depth, min_samples_leaf, etc.)
 	# TODO move this function inside the caller function, and get rid of all parameters
 	function _split!(
-							#Xs                  :: MultiFrameFeatModalDataset{OntologicalDataset{T, N, WorldType}}, # the ontological dataset
 							Xs                  :: MultiFrameFeatModalDataset{FeatModalDataset}, # the modal dataset
 							Y                   :: AbstractVector{Label},    # the label array
 							W                   :: AbstractVector{U},        # the weight vector
@@ -83,17 +82,13 @@ module treeclassifier
 							# Xf                  :: MatricialUniDataset{T, M}, # Note that X and Xf are not used when using Gammas
 							Yf                  :: AbstractVector{Label},
 							Wf                  :: AbstractVector{U},
-							Sf                  :: AbstractVector{WorldSet{WorldType}},
+							Sfs                 :: AvstractVector{AbstractVector{WorldSet{WorldType}}},
 							gammas              :: AbstractVector{Union{GammaType,Nothing}},
 							# TODO Ef                  :: AbstractArray{T},
 
-							relationSet         :: AbstractVector{<:AbstractRelation},
-							relation_ids        :: AbstractVector{Int},
-							featureSet          :: AbstractVector{<:FeatureType},
+							relation_ids        :: AbstractVector{AbstractVector{Int}},
 							rng                 :: Random.AbstractRNG,
 							) where {WorldType<:AbstractWorld, T, U, N, M, NTO, L}
-
-		X = Xs[1]
 
 		# Region of indX to use to perform the split
 		region = node.region
@@ -132,10 +127,13 @@ module treeclassifier
 		@simd for i in 1:n_instances
 			Yf[i] = Y[indX[i + r_start]]
 			Wf[i] = W[indX[i + r_start]]
-			Sf[i] = S[indX[i + r_start]]
+			for Sf in Sfs
+				Sf[i] = S[indX[i + r_start]]
+			end
 		end
 
 		# Optimization-tracking variables
+		best_frame = -1
 		best_purity__nt = typemin(U)
 		best_relation = RelationNone
 		best_feature = -1
@@ -145,33 +143,33 @@ module treeclassifier
 		# TODO these are just for checking the consistency of gamma-optimizations
 		best_nl = -1
 		# TODO bring back best_unsatisfied = []
-		
-		# array of indices of features
-		# Note: using "sample" function instead of "randperm" allows to insert weights for features which may be wanted in the future 
-		features_inds = StatsBase.sample(rng, Vector(1:n_attributes(X)), n_subfeatures, replace = false)
-
-		# use a subset of relations
-		# TODO does this go inside the for on the features?
-		relations_ids = StatsBase.sample(rng, relation_ids, Int(n_subrelations(length(relation_ids))), replace = false)
 
 		#####################
 		## Find best split ##
 		#####################
 		## Test all conditions
 		# For each frame (modal dataset)
-		for frame in X
+		for (Xi, X) in enumerate(Xs.frames)
+			# TODO: pick best_frame
+			# array of indices of features
+			# Note: using "sample" function instead of "randperm" allows to insert weights for features which may be wanted in the future 
+			features_inds = StatsBase.sample(rng, Vector(1:n_features(X)), n_subfeatures, replace = false)
+	
+			# use a subset of relations
+			# TODO does this go inside the for on the features?
+			relations_ids = StatsBase.sample(rng, relation_ids, Int(n_subrelations(length(relation_ids))), replace = false)
 			# For each relational operator
 			for relation_id in relations_ids
-				relation = relationSet[relation_id]
+				relation = X.relations[relation_id]
 				@logmsg DTDebug "Testing relation $(relation) (id: $(relation_id))..." # "/$(length(relation_ids))"
 
 				# For each feature
 				@inbounds for feature in features_inds
 					@logmsg DTDebug "Testing feature $(feature)/$(n_subfeatures)..."
-					relation_real = featureSet[feature]
+					relation_real = X.feature_names[feature]
 
-					thresholds = Array{T,2}(undef, length(test_operators), n_instances)
-					for (i_test_operator,test_operator) in enumerate(test_operators)
+					thresholds = Array{T,2}(undef, length(X.featsnops[feature]), n_instances)
+					for (i_test_operator,test_operator) in enumerate(X.featsnops[feature])
 						@views cur_thr = thresholds[i_test_operator,:]
 						fill!(cur_thr, ModalLogic.bottom(test_operator, T))
 					end
@@ -183,7 +181,7 @@ module treeclassifier
 					for i in 1:n_instances
 						@logmsg DTDetail " Instance $(i)/$(n_instances)" indX[i + r_start]
 						worlds = if (relation != RelationAll)
-								Sf[i]
+								Sfs[Xi][i]
 							else
 								[firstWorld]
 							end
@@ -191,7 +189,7 @@ module treeclassifier
 						# cur_gammas = DecisionTree.readGamma(gammas, w, indX[i + r_start], relation_id, feature)
 						# @logmsg DTDetail " cur_gammas" w cur_gammas
 						# TODO try using reduce for each operator instead.
-						for (i_test_operator,test_operator) in enumerate(test_operators) # TODO use correct indexing for test_operators
+						for (i_test_operator,test_operator) in enumerate(X.featsnops[feature]) # TODO use correct indexing for X.featsnops[feature]
 							for w in worlds
 								# thresholds[i_test_operator,i] = ModalLogic.opt(test_operator)(thresholds[i_test_operator,i], cur_gammas[i_test_operator])
 								gamma = DecisionTree.readGamma(gammas, i_test_operator, w, indX[i + r_start], relation_id, feature)
@@ -210,7 +208,7 @@ module treeclassifier
 					# readline()
 
 					# Look for the correct test operator
-					for (i_test_operator,test_operator) in enumerate(test_operators)
+					for (i_test_operator,test_operator) in enumerate(X.featsnops[feature])
 						thresholdArr = @views thresholds[i_test_operator,:]
 						thresholdDomain = setdiff(Set(thresholdArr),Set([typemin(T), typemax(T)]))
 						# Look for thresholdArr 'a' for the propositions like "feature >= a"
@@ -261,7 +259,7 @@ module treeclassifier
 					end # for test_operator
 				end # for relation
 			end # for feature
-		end
+		end # for frames
 
 		# @logmsg DTOverview "purity increase" best_purity__nt/nt node.purity (best_purity__nt/nt + node.purity) (best_purity__nt/nt - node.purity)
 		# If the best split is good, partition and split accordingly
@@ -290,8 +288,8 @@ module treeclassifier
 			unsatisfied_flags = fill(1, n_instances)
 			for i in 1:n_instances
 				channel = ModalLogic.getChannel(X, indX[i + r_start], best_feature)
-				@logmsg DTDetail " Instance $(i)/$(n_instances)" channel Sf[i]
-				(satisfied,S[indX[i + r_start]]) = ModalLogic.modalStep(Sf[i], best_relation, channel, best_test_operator, best_threshold)
+				@logmsg DTDetail " Instance $(i)/$(n_instances)" channel Sfs[i]
+				(satisfied,S[indX[i + r_start]]) = ModalLogic.modalStep(Sfs[i], best_relation, channel, best_test_operator, best_threshold)
 				unsatisfied_flags[i] = !satisfied # I'm using unsatisfied because then sorting puts YES instances first but TODO use the inverse sorting and use satisfied flag instead
 			end
 
@@ -315,7 +313,7 @@ module treeclassifier
 					errStr *= "Different unsatisfied:\ncomputed: $(best_nl)\nactual: $(unsatisfied_flags)\n$(n_instances-sum(unsatisfied_flags))\n"
 				end
 				for i in 1:n_instances
-					errStr *= "$(ModalLogic.getChannel(X, indX[i + r_start], best_feature))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(S[indX[i + r_start]])\n";
+					errStr *= "$(ModalLogic.getChannel(X, indX[i + r_start], best_feature))\t$(Sfs[i])\t$(!(unsatisfied_flags[i]==1))\t$(S[indX[i + r_start]])\n";
 				end
 				# throw or error(Base.ErrorException(errStr))
 				println("ERROR! " * errStr)
@@ -351,29 +349,40 @@ module treeclassifier
 	end
 
 	function check_input(
-			X                   :: MultiFrameFeatModalDataset{FeatModalDataset},
+			Xs                  :: MultiFrameFeatModalDataset{FeatModalDataset},
 			Y                   :: AbstractVector{S},
 			W                   :: AbstractVector{U},
 			loss_function       :: Function,
-			n_subfeatures       :: Int,
+			n_subfeatures       :: Vector{Int},
+			n_subrelations      :: Vector{Int},
 			max_depth           :: Int,
 			min_samples_leaf    :: Int,
 			min_loss_at_leaf    :: AbstractFloat,
-			min_purity_increase :: AbstractFloat) where {S, U}
-		n_instances, n_attrs = n_samples(X), n_attributes(X)
+			min_purity_increase :: AbstractFloat
+		) where {S, U, T, N}
+		n_instances = n_samples(Xs)
 
 		if length(Y) != n_instances
-			error("dimension mismatch between X and Y ($(size(X)) vs $(size(Y))")
+			error("dimension mismatch between Xs and Y ($(n_instances)) vs $(size(Y))")
 		elseif length(W) != n_instances
-			error("dimension mismatch between X and W ($(size(X)) vs $(size(W))")
+			error("dimension mismatch between Xs and W ($(n_instances)) vs $(size(W))")
 		elseif max_depth < -1
 			error("unexpected value for max_depth: $(max_depth) (expected:"
 				* " max_depth >= 0, or max_depth = -1 for infinite depth)")
-		elseif n_attrs < n_subfeatures
-			error("total number of features $(n_attrs) is less than the number "
-				* "of features required at each split $(n_subfeatures)")
-		elseif n_subfeatures < 0
+		elseif [n_relations(Xs, i) < n_subrelations[i] for i in n_frames(Xs)]
+			error("in at least one frame the total number of relations is less than the number "
+				* "of relations required at each split\n"
+				* "# relations:    " * string([ n_relations(Xs, i) for i in n_frames(Xs)]) * "\n\tvs\n"
+				* "# subrelations: " * string(n_subrelations))
+		elseif [n_features(Xs, i) < n_subfeatures[i] for i in n_frames(Xs)]
+			error("in at least one frame the total number of features is less than the number "
+				* "of features required at each split\n"
+				* "# features:    " * string([ n_features(Xs, i) for i in n_frames(Xs)]) * "\n\tvs\n"
+				* "# subfeatures: " * string(n_subfeatures))
+		elseif length(findall([n_subfeatures < 0 for i in n_frames(Xs)])) > 0
 			error("total number of features $(n_subfeatures) must be >= zero ")
+		elseif length(findall([n_subrelations < 0 for i in n_frames(Xs)])) > 0
+			error("total number of relations $(n_subrelations) must be >= zero ")
 		elseif min_samples_leaf < 1
 			error("min_samples_leaf must be a positive integer "
 				* "(given $(min_samples_leaf))")
@@ -384,10 +393,10 @@ module treeclassifier
 
 		# TODO make sure how missing, nothing, NaN & infinite can be handled
 		# TODO make these checks part of the dataset interface!
-		if nothing in X.domain
-			error("Warning! This algorithm doesn't allow nothing values in X.domain")
-		elseif any(isnan.(X.domain)) # TODO make sure that this does its job.
-			error("Warning! This algorithm doesn't allow NaN values in X.domain")
+		if nothing in Xs.fwd
+			error("Warning! This algorithm doesn't allow nothing values in Xs.fwd")
+		elseif any(isnan.(Xs.fwd)) # TODO make sure that this does its job.
+			error("Warning! This algorithm doesn't allow NaN values in Xs.fwd")
 		elseif nothing in Y
 			error("Warning! This algorithm doesn't allow nothing values in Y")
 		# elseif any(isnan.(Y))
@@ -414,7 +423,7 @@ module treeclassifier
 			X               :: OntologicalDataset{T, N},
 			initCondition   :: DecisionTree._initCondition,
 			useRelationAll  :: Bool,
-			useRelationId	  :: Bool,
+			useRelationId	:: Bool,
 			test_operators  :: AbstractVector{<:TestOperator}
 		) where {T, N}
 
@@ -523,20 +532,18 @@ module treeclassifier
 			n_subrelations          :: Vector{Function},
 			initConditions          :: Vector{DecisionTree._initCondition},
 			rng = Random.GLOBAL_RNG :: Random.AbstractRNG;
-			gammas                  :: AbstractVector{Union{GammaType,Nothing}} = nothing) where {T, U, N, WorldType<:AbstractWorld}
+			gammas                  :: AbstractVector{Union{GammaType,Nothing}},
+		) where {T, U, N}
 
-		if N != ModalLogic.worldTypeDimensionality(WorldType)
-			error("ERROR! Dimensionality mismatch: can't interpret worldType $(WorldType) (dimensionality = $(ModalLogic.worldTypeDimensionality(WorldType)) on OntologicalDataset of dimensionality = $(N)")
-		end
-		
 		# Dataset sizes
 		n_instances = n_samples(Xs)
 
 		# Initialize world sets
 		Ss = Vector{AbstractVector}(undef, n_frames(Xs))
-		for j in 1:n_frames(Xs)
-			WT = world_type(Xs[j].ontology) # TODO: generalize function to get world type from a FeatModalDataset
-			Ss[j] = WorldSet{WT}[DecisionTree.initWorldSet(initConditions[j], WT, channel_size(Xs[j])) for i in 1:n_instances] # TODO should be channel_size(X, i)
+		for i in 1:n_frames(Xs)
+			WT = world_type(Xs, i) # TODO: generalize function to get world type from a FeatModalDataset
+			# TODO: channel_size has to be called with proper argument
+			Ss[i] = WorldSet{WT}[DecisionTree.initWorldSet(initConditions[i], WT, channel_size(Xs[i])) for j in 1:n_instances] # TODO should be channel_size(X, j)
 		end
 
 		# Array memory for class counts
@@ -548,26 +555,25 @@ module treeclassifier
 		# Xf = Array{T, N+1}(undef, channel_size(X)..., n_instances)
 		Yf = Vector{Label}(undef, n_instances)
 		Wf = Vector{U}(undef, n_instances)
-		Sf = Vector{AbstractVector}(undef, n_frames(Xs))
+		Sfs = Vector{AbstractVector}(undef, n_frames(Xs))
 		for i in 1:n_frames(Xs)
-			WT = world_type(Xs[j].ontology)
-			Sf[i] = Vector{WorldSet{WT}}(undef, n_instances)
+			WT = world_type(Xs, j)
+			Sfs[i] = Vector{WorldSet{WT}}(undef, n_instances)
 		end
 		
-		featureSet = 1:n_attributes(Xs)
+		# TODO: get relations ids to pass to _split!
+		# (
+		# 	# X,
+		# 	test_operators, relationSet,
+		# 	relationId_id, relationAll_id,
+		# 	inUseRelation_ids, availableRelation_ids
+		# ) = optimize_tree_parameters!(X, initCondition, useRelationAll, useRelationId, test_operators)
 
-		(
-			# X,
-			test_operators, relationSet,
-			relationId_id, relationAll_id,
-			inUseRelation_ids, availableRelation_ids
-		) = optimize_tree_parameters!(X, initCondition, useRelationAll, useRelationId, test_operators)
+		# if (length(availableRelation_ids) == 0)
+			# error("No available relation! Allow propositional splits with useRelationId=true")
+		# end
 
-		if (length(availableRelation_ids) == 0)
-			error("No available relation! Allow propositional splits with useRelationId=true")
-		end
-
-		for j in 1:n_frames(Xs)
+		for i in 1:n_frames(Xs)
 			if isnothing(gammas[i])
 				# Calculate gammas
 				#  A gamma, for a given feature f, world w, relation X and test_operator ⋈, is 
@@ -589,13 +595,13 @@ module treeclassifier
 		# Create root node
 		root = NodeMeta{T,Float64}(1:n_instances, 0, 0)
 		# Stack of nodes to process
-		stack = Tuple{NodeMeta{T,Float64},Bool}[(root,(initCondition == startWithRelationAll))]
+		stack = Tuple{NodeMeta{T,Float64},Vector{Bool}}[(root,[(initCondition == startWithRelationAll) for initCondition in initConditions ])]
 		# The first iteration is treated sightly differently
 		@inbounds while length(stack) > 0
 			# Pop node and process it
 			(node,onlyUseRelationAll) = pop!(stack)
 			_split!(
-				Xs, Y, W, S,
+				Xs, Y, W, Ss,
 				loss, node,
 				n_subfeatures,
 				max_depth,
@@ -607,11 +613,9 @@ module treeclassifier
 				indX,
 				nc, ncl, ncr, 
 				# Xf, 
-				Yf, Wf, Sf, gammas,
-				relationSet,
-				(onlyUseRelationAll ? [relationAll_id] : availableRelation_ids),
-				featureSet,
-				rng,
+				Yf, Wf, Sfs, gammas,
+				[ oura ? [relationAll_id] : availableRelation_ids for oura in onlyUseRelationAll ],
+				rng
 				)
 			# After processing, if needed, perform the split and push the two children for a later processing step
 			if !node.is_leaf
@@ -631,7 +635,6 @@ module treeclassifier
 			#  a graph; instead, an instance is a dimensional domain (e.g. a matrix or a 3D matrix) onto which
 			#  worlds and relations are determined by a given Ontology.
 			# TODO Add default values for this function?
-#			Xs                     :: MultiFrameFeatModalDataset{OntologicalDataset{T, N}},
 			Xs                     :: MultiFrameFeatModalDataset{FeatModalDataset},
 			Y                      :: AbstractVector{S},
 			W                      :: Union{AbstractVector{U},Nothing},
@@ -650,7 +653,8 @@ module treeclassifier
 			n_subrelations          :: Vector{Function},
 			initConditions          :: Vector{DecisionTree._initCondition},
 
-			rng = Random.GLOBAL_RNG :: Random.AbstractRNG) where {T, S, U, N, NTO, Ta}
+			rng = Random.GLOBAL_RNG :: Random.AbstractRNG
+		) where {T, S, U, N}
 
 		# Obtain the dataset's "outer size": number of samples and number of features
 		n_instances = n_samples(Xs)
@@ -670,18 +674,17 @@ module treeclassifier
 			W = fill(1, n_instances)
 		end
 
-		for i in 1:n_frames(Xs)
-			# Check validity of the input
-			check_input(
-				Xs[i], Y, W,
-				loss,
-				n_subfeatures[i],
-				max_depth,
-				min_samples_leaf,
-				min_loss_at_leaf,
-				min_purity_increase,
-				)
-		end
+		# Check validity of the input
+		check_input(
+			Xs, Y, W,
+			loss,
+			n_subfeatures,
+			n_subrelations,
+			max_depth,
+			min_samples_leaf,
+			min_loss_at_leaf,
+			min_purity_increase
+		)
 
 		# Translate labels to categorical form
 		labels, Y_ = util.assign(Y)
@@ -700,8 +703,8 @@ module treeclassifier
 			n_subrelations,
 			initConditions,
 			rng;
-			gammas = gammas)
-
-		return Tree{T, S}(root, labels, indX, initCondition)
+			gammas = gammas
+		)
+		return Tree{T, S}(root, labels, indX, initConditions)
 	end
 end
