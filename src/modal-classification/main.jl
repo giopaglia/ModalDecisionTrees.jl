@@ -90,7 +90,7 @@ end
 
 # Build a stump (tree with depth 1)
 function build_stump(
-		X	              :: MultiFrameFeatModalDataset{OntologicalDataset{T, N}},
+		X	              :: MultiFrameFeatModalDataset{AbstractFeaturedWorldDataset},
 		Y                 :: AbstractVector{String},
 		W                 :: Union{Nothing,AbstractVector{U}} = nothing;
 		kwargs...) where {T, N, U}
@@ -100,7 +100,7 @@ end
 
 # Build a tree on an OntologicalDataset
 function build_tree(
-	Xs                  :: MultiFrameFeatModalDataset{OntologicalDataset{T, N, WorldType}},
+	Xs                  :: MultiFrameFeatModalDataset{AbstractFeaturedWorldDataset},
 	Y                   :: AbstractVector{S},
 	W                   :: Union{Nothing,AbstractVector{U}}   = nothing;
 	gammas              :: Union{AbstractVector{Union{GammaType,Nothing}},Nothing}  = nothing,
@@ -379,7 +379,7 @@ apply_tree_proba(tree::DTNode{S, T}, features::AbstractMatrix{S}, labels) where 
 =#
 
 function build_forest(
-	Xs                  :: MultiFrameFeatModalDataset{OntologicalDataset{T, N, WorldType}},
+	Xs                  :: MultiFrameFeatModalDataset{AbstractFeaturedWorldDataset},
 	Y                   :: AbstractVector{S}
 	;
 	# , W                   :: Union{Nothing,AbstractVector{U}} = nothing; TODO these must also be used for the calculation of the oob_error
