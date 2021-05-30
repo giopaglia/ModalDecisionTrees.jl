@@ -256,6 +256,7 @@ channel_size(X::OntologicalDataset{T,N})     where {T,N} = channel_size(X.domain
 getInstance(d::OntologicalDataset{T,N,WT}, args::Vararg) where {T,N,WT}  = getInstance(d.domain, args...)
 getInstances(d::OntologicalDataset{T,N,WT}, args::Vararg) where {T,N,WT} = getInstances(d.domain, args...)
 getChannel(d::OntologicalDataset{T,N,WT},   args::Vararg) where {T,N,WT} = getChannel(d.domain, args...)
+world_type(d::OntologicalDataset{T,N,WT}) where {T,N,WT} = WT
 
 abstract type AbstractFeaturedWorldDataset{T, WorldType} end
 
@@ -325,11 +326,13 @@ struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 	end
 end
 
-n_samples(X::FeatModalDataset{T, WorldType}) where {T, WorldType}  = n_samples(X.fwd)
-n_features(X::FeatModalDataset{T, WorldType}) where {T, WorldType} = length(X.feature_names)
+n_samples(X::FeatModalDataset{T, WorldType}) where {T, WorldType}   = n_samples(X.fwd)
+n_features(X::FeatModalDataset{T, WorldType}) where {T, WorldType}  = length(X.feature_names)
+n_relations(X::FeatModalDataset{T, WorldType}) where {T, WorldType} = length(X.relations)
 # length(X::FeatModalDataset{T,WorldType})        where {T,WorldType} = n_samples(X)
 # Base.iterate(X::FeatModalDataset{T,WorldType}, state=1) where {T, WorldType} = state > length(X) ? nothing : (getInstance(X, state), state+1)
 getindex(X::FeatModalDataset{T,WorldType}, args::Vararg) where {T,WorldType} = getindex(X.fwd, args...)
+world_type(X::FeatModalDataset{T,WorldType}) where {T,WorldType} = WorldType
 
 struct MultiFrameFeatModalDataset
 	frames  :: AbstractVector{<:FeatModalDataset}
@@ -347,10 +350,13 @@ n_samples(X::MultiFrameFeatModalDataset)            = n_samples(X.frames[1]) # n
 length(X::MultiFrameFeatModalDataset)               = n_samples(X)
 Base.iterate(X::MultiFrameFeatModalDataset, state=1) = state > length(X) ? nothing : (getInstance(X, state), state+1)
 # get total number of features (TODO: figure if this is useless or not)
-n_features(X::MultiFrameFeatModalDataset) = sum(length.(X.frames))
+n_features(X::MultiFrameFeatModalDataset) = sum(n_features.(X.frames))
 # get number of features in a single frame
 n_features(X::MultiFrameFeatModalDataset, i_frame::Integer) = n_features(X.frames[i_frame])
 # TODO: Note: channel_size doesn't make sense at this point. Only the acc_functions[i] functions.
+n_relations(X::MultiFrameFeatModalDataset) = sum(n_relations.(X.frames))
+n_relations(X::MultiFrameFeatModalDataset, i_frame::Integer) = n_relations(X.frames[i_frame])
+world_type(d::MultiFrameFeatModalDataset, i_frame::Integer) = world_type(X.frame)
 
 getInstance(X::MultiFrameFeatModalDataset,  i_frame::Integer, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...)
 getInstances(X::MultiFrameFeatModalDataset, i_frame::Integer, inds::AbstractVector{Integer}, args::Vararg)  = getInstances(X.frames[i], inds, args...)
