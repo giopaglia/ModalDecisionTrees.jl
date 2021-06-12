@@ -559,10 +559,9 @@ module treeclassifier
 
 		# Initialize world sets
 		Ss = Vector{<:Vector{<:WorldSet}}(undef, n_frames(Xs))
-		for i_frame in 1:n_frames(Xs)
-			WT = world_type(Xs, i_frame) # TODO: generalize function to get world type from a FeatModalDataset
-			# TODO: channel_size has to be called with proper argument
-			Ss[i_frame] = WorldSet{WT}[DecisionTree.initWorldSet(initConditions[i_frame], WT, channel_size(Xs[i_frame])) for i in 1:n_instances] # TODO should be channel_size(X, j) ?
+		for (i_frame,X) in enumerate(ModalLogic.frames(Xs))
+			WT = world_type(X)
+			Ss[i_frame] = WorldSet{WT}[X.initws_functions[i](initConditions[i_frame]) for i in 1:n_instances]
 		end
 
 		# Array memory for class counts
@@ -670,7 +669,7 @@ module treeclassifier
 
 			rng = Random.GLOBAL_RNG :: Random.AbstractRNG
 		) where {S, U}
-		
+
 		T = Float64
 		
 		# Obtain the dataset's "outer size": number of samples and number of features
