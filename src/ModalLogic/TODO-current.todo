@@ -8,7 +8,6 @@ consistency checks down the dataset pipeline, modalDatasetIsConsistent_m,_g etc.
 
 In tree.jl
 - rimuovi i gammas
-- channel_size
 _split!
 - modalDatasetGet,modalDatasetGet_m,modalDatasetGet_g -> unica interfaccia su FMD e FMD support (forse getindex(X::stumpFeatModalDataset{T,WorldType}, args::Vararg) ?)
 - Nota: tree.jl si aspetta relationAll nella ontologia, e valuta se usarlo a tempo di ... secondo onlyUseRelationAll.
@@ -24,7 +23,6 @@ Valuta quanto è meglio usare accrepr_functions anzichè acc_functions
 
 Create class for labeled datasets, and remove slice_mf_dataset.
 
-initWorldSet(tree.initConditions, tree.worldTypes, channel_size(X)) : da risolvere ancora una volta tramite funzioni che inizializzano mondi per ciascuna istanza?
 ModalLogic.getInstanceAttribute(Xi, che usa tree.feature)
 DecisionTree.checkGammasConsistency da qualche parte (gammas[i], Xs[i], test_operators, relationSet)
 
@@ -44,6 +42,8 @@ round_dataset_to_datatype != false, roundDataset
 Restore optimize_tree_parameters! optimizations
 
 DONE:
+
+initWorldSet(tree.initConditions, tree.worldTypes, channel_size(X)) : da risolvere ancora una volta tramite funzioni che inizializzano mondi per ciascuna istanza?
 
 Fix useRelationAll e useRelationId. Probabilmente è meglio tenere useRelationAll.
 DTree.initCondition->initConditions, DTree.worldType->worldTypes
