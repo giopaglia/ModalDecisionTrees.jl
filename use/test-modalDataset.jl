@@ -1,6 +1,6 @@
-# scanner.jl
+# runner.jl
 
-include("scanner.jl")
+include("runner.jl")
 global_logger(ConsoleLogger(stderr, DecisionTree.DTOverview))
 # global_logger(ConsoleLogger(stderr, DecisionTree.DTDebug))
 # global_logger(ConsoleLogger(stderr, DecisionTree.DTDetail))

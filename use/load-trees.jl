@@ -1,4 +1,4 @@
-include("scanner.jl")
+include("runner.jl")
 
 using FileIO
 

@@ -1,4 +1,4 @@
-include("scanner.jl")
+include("runner.jl")
 include("table-printer.jl")
 include("progressive-iterator-manager.jl")
 
@@ -128,7 +128,7 @@ forest_args = []
 
 split_threshold = 1.0
 
-precompute_gammas = true
+use_ontological_form = true
 
 test_flattened = false
 
@@ -182,8 +182,8 @@ results_dir = "./results-audio-scan"
 iteration_progress_json_file_path = results_dir * "/progress.json"
 concise_output_file_path = results_dir * "/grouped_in_models.csv"
 full_output_file_path = results_dir * "/full_columns.csv"
-gammas_save_path = results_dir * "/gammas"
-save_tree_path = results_dir * "/trees"
+data_savedir = results_dir * "/gammas"
+tree_savedir = results_dir * "/trees"
 
 column_separator = ";"
 
@@ -409,11 +409,11 @@ for i in exec_runs
 					tree_args                   =   tree_args,
 					modal_args                  =   cur_modal_args,
 					test_flattened              =   test_flattened,
-					precompute_gammas           =   precompute_gammas,
+					use_ontological_form           =   use_ontological_form,
 					optimize_forest_computation =   optimize_forest_computation,
 					forest_runs                 =   forest_runs,
-					gammas_save_path            =   (gammas_save_path, dataset_name_str),
-					save_tree_path              =   save_tree_path,
+					data_savedir            =   (data_savedir, dataset_name_str),
+					tree_savedir              =   tree_savedir,
 					train_seed                  =   train_seed,
 					timing_mode                      =   timing_mode
 				);

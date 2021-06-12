@@ -1,7 +1,7 @@
 # julia -i -t4 test-manzella.jl
 # julia -i test-manzella.jl
 
-include("scanner.jl")
+include("runner.jl")
 
 rng = my_rng()
 
@@ -104,7 +104,7 @@ n_instances = 100
 
 # rng_i = DecisionTree.mk_rng(124)
 rng_i = DecisionTree.mk_rng(1)
-gammas_save_path = "./results-audio-scan/gammas"
+data_savedir = "./results-audio-scan/gammas"
 
 dataset = SplatEduardDataset(dataset_number)
 
@@ -165,7 +165,7 @@ if log_results_best_values
 			forest_args                 =   forest_args,
 			tree_args                   =   tree_args,
 			modal_args                  =   modal_args,
-			precompute_gammas           =   precompute_gammas,
+			use_ontological_form           =   use_ontological_form,
 			optimize_forest_computation =   optimize_forest_computation,
 			rng                         =   rng
 		);
@@ -202,7 +202,7 @@ else
 		forest_args                 =   forest_args,
 		tree_args                   =   tree_args,
 		modal_args                  =   modal_args,
-		gammas_save_path            =   gammas_save_path,
+		data_savedir            =   data_savedir,
 		rng                         =   rng
 	);
 end

@@ -1,7 +1,7 @@
 # julia-1.5.4
 # julia
 
-include("scanner.jl")
+include("runner.jl")
 
 # execRuns(d, timing_mode::Bool = true) = map((x)->execRun(x, timing_mode), d);
 
@@ -213,7 +213,7 @@ for dataset_name in ["Salinas", "Salinas-A", "PaviaCentre", "Pavia", "IndianPine
 														log_level = log_level,
 														args = cur_args,
 														kwargs = cur_kwargs,
-														precompute_gammas = true,
+														use_ontological_form = true,
 														test_tree = true,
 														test_forest = true,
 														);

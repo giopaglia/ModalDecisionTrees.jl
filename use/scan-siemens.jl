@@ -1,4 +1,4 @@
-include("scanner.jl")
+include("runner.jl")
 include("table-printer.jl")
 include("progressive-iterator-manager.jl")
 
@@ -17,7 +17,7 @@ results_dir = "./results-siemens"
 iteration_progress_json_file_path = results_dir * "/progress.json"
 concise_output_file_path = results_dir * "/grouped_in_models.csv"
 full_output_file_path = results_dir * "/full_columns.csv"
-gammas_save_path = results_dir * "/gammas"
+data_savedir = results_dir * "/gammas"
 
 column_separator = ";"
 
@@ -91,8 +91,8 @@ split_threshold = 0.8
 
 error_catching = false
 
-# precompute_gammas = true
-precompute_gammas = false
+# use_ontological_form = true
+use_ontological_form = false
 
 # log_level = Logging.Warn
 log_level = DecisionTree.DTOverview
@@ -213,8 +213,8 @@ for i in exec_runs
 				tree_args                       = tree_args,
 				modal_args                      = modal_args,
 				test_flattened                  = test_flattened,
-				precompute_gammas               = precompute_gammas,
-				gammas_save_path                = (gammas_save_path, dataset_name_str),
+				use_ontological_form               = use_ontological_form,
+				data_savedir                = (data_savedir, dataset_name_str),
 				dataset_slice                   = dataset_slice,
 				error_catching                  = error_catching,
 				rng                             = train_rng,
