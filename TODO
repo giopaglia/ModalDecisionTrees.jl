@@ -32,6 +32,9 @@
 ☐	Test whether zipping is better than writing custom iterators with https://schlichtanders.github.io/Continuables.jl/dev/
 ☐	Add IA7^2 relations.
 
+☐	roc and pr curve, if the result is a numerical confidence:
+  - In Random Forest, one could aggregate tree answers in a continuous manner, and output confidence values. In this context, roc and pr curve can be computed.
+
 ☐	Add attribute filters: primarily, derivatives
 - cache-efficient parallelization of gamma calculation? https://github.com/JuliaArrays/TiledIteration.jl
 - For temporal series, one may want to have timepoints that are scattered along the time axis. See if https://github.com/JuliaArrays/AxisArrays.jl can be of any help here; but note that one may need to know how to handle missing's
@@ -58,6 +61,7 @@
 ☐	Generalize to beam-search and then beam-search-n?
 ☐	Extend to categorical variables
 
+☐	Try different optimization method: SAM https://arxiv.org/abs/2010.01412
 
 ＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿
 Archive:
