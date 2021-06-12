@@ -139,14 +139,15 @@ include("featureTypes.jl")
 # BEGIN Dataset types
 ################################################################################
 
-export n_samples, n_attributes, n_features, channel_size, max_channel_size, n_frames,
+export n_samples, n_attributes, n_features, channel_size, max_channel_size, n_frames, frames,
 				GenericDataset,
 				AbstractModalDataset,
 				OntologicalDataset, 
 				MultiFrameOntologicalDataset,
-				AbstractFeaturedWorldDataset, FeatModalDataset,
+				AbstractFeaturedWorldDataset,
+				FeatModalDataset,
 				MultiFrameFeatModalDataset,
-				stumpFeatModalDataset,
+				StumpFeatModalDataset,
 				MatricialInstance,
 				MatricialDataset,
 				# MatricialUniDataset,
@@ -416,7 +417,7 @@ slice_dataset(X::FeatModalDataset{T,WorldType}, inds::AbstractVector{<:Integer},
 const AbstractFMDStumpSupport = AbstractArray
 const AbstractFMDStumpGlobalSupport = AbstractArray
 
-struct stumpFeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
+struct StumpFeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 	
 	# Core data
 	fmd                :: FeatModalDataset{T, WorldType}
@@ -429,35 +430,35 @@ struct stumpFeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 	featnaggrs         :: AbstractVector{<:Tuple{FeatureTypeFun,<:Aggregator}}
 	grouped_featnaggrs :: AbstractVector{<:AbstractVector{<:Aggregator}}
 
-	function stumpFeatModalDataset{T, WorldType}(
+	function StumpFeatModalDataset{T, WorldType}(
 		fmd                :: FeatModalDataset{T, WorldType},
 		fmd_m              :: AbstractFMDStumpSupport{T, WorldType},
 		fmd_g              :: Union{AbstractFMDStumpGlobalSupport{T, WorldType},Nothing},
 		featnaggrs         :: AbstractVector{<:Tuple{FeatureTypeFun,<:Aggregator}},
 		grouped_featnaggrs :: AbstractVector{<:AbstractVector{<:Aggregator}},
 	) where {T,WorldType<:AbstractWorld}
-		@assert n_samples(fmd) == n_samples(fmd_m) "Can't instantiate stumpFeatModalDataset{$(T), $(WorldType)} with unmatching n_samples for fmd and fmd_m support: $(n_samples(fmd)) and $(n_samples(fmd_m))"
-		# @assert somethinglike(fmd) == n_featnaggrs(fmd_m) "Can't instantiate stumpFeatModalDataset{$(T), $(WorldType)} with unmatching somethinglike for fmd and fmd_m support: $(somethinglike(fmd)) and $(n_featnaggrs(fmd_m))"
-		@assert n_relations(fmd) == n_relations(fmd_m) "Can't instantiate stumpFeatModalDataset{$(T), $(WorldType)} with unmatching n_relations for fmd and fmd_m support: $(n_relations(fmd)) and $(n_relations(fmd_m))"
-		@assert world_type(fmd) == world_type(fmd_m) "Can't instantiate stumpFeatModalDataset{$(T), $(WorldType)} with unmatching world_type for fmd and fmd_m support: $(world_type(fmd)) and $(world_type(fmd_m))"
+		@assert n_samples(fmd) == n_samples(fmd_m) "Can't instantiate StumpFeatModalDataset{$(T), $(WorldType)} with unmatching n_samples for fmd and fmd_m support: $(n_samples(fmd)) and $(n_samples(fmd_m))"
+		# @assert somethinglike(fmd) == n_featnaggrs(fmd_m) "Can't instantiate StumpFeatModalDataset{$(T), $(WorldType)} with unmatching somethinglike for fmd and fmd_m support: $(somethinglike(fmd)) and $(n_featnaggrs(fmd_m))"
+		@assert n_relations(fmd) == n_relations(fmd_m) "Can't instantiate StumpFeatModalDataset{$(T), $(WorldType)} with unmatching n_relations for fmd and fmd_m support: $(n_relations(fmd)) and $(n_relations(fmd_m))"
+		@assert world_type(fmd) == world_type(fmd_m) "Can't instantiate StumpFeatModalDataset{$(T), $(WorldType)} with unmatching world_type for fmd and fmd_m support: $(world_type(fmd)) and $(world_type(fmd_m))"
 
 		if fmd_g != nothing
-			@assert n_samples(fmd) == n_samples(fmd_g) "Can't instantiate stumpFeatModalDataset{$(T), $(WorldType)} with unmatching n_samples for fmd and fmd_g support: $(n_samples(fmd)) and $(n_samples(fmd_g))"
-			# @assert somethinglike(fmd) == n_featnaggrs(fmd_g) "Can't instantiate stumpFeatModalDataset{$(T), $(WorldType)} with unmatching somethinglike for fmd and fmd_g support: $(somethinglike(fmd)) and $(n_featnaggrs(fmd_g))"
-			@assert world_type(fmd) == world_type(fmd_g) "Can't instantiate stumpFeatModalDataset{$(T), $(WorldType)} with unmatching world_type for fmd and fmd_g support: $(world_type(fmd)) and $(world_type(fmd_g))"
+			@assert n_samples(fmd) == n_samples(fmd_g) "Can't instantiate StumpFeatModalDataset{$(T), $(WorldType)} with unmatching n_samples for fmd and fmd_g support: $(n_samples(fmd)) and $(n_samples(fmd_g))"
+			# @assert somethinglike(fmd) == n_featnaggrs(fmd_g) "Can't instantiate StumpFeatModalDataset{$(T), $(WorldType)} with unmatching somethinglike for fmd and fmd_g support: $(somethinglike(fmd)) and $(n_featnaggrs(fmd_g))"
+			@assert world_type(fmd) == world_type(fmd_g) "Can't instantiate StumpFeatModalDataset{$(T), $(WorldType)} with unmatching world_type for fmd and fmd_g support: $(world_type(fmd)) and $(world_type(fmd_g))"
 		end
 
 		new{T, WorldType}(fmd, fmd_m, fmd_g, featnaggrs, grouped_featnaggrs)
 	end
 
-	function stumpFeatModalDataset(
+	function StumpFeatModalDataset(
 		fmd                :: FeatModalDataset{T, WorldType};
 		computeRelationAll :: Bool = false,
 	) where {T,WorldType<:AbstractWorld}
-		stumpFeatModalDataset{T, WorldType}(fmd, computeRelationAll = computeRelationAll)
+		StumpFeatModalDataset{T, WorldType}(fmd, computeRelationAll = computeRelationAll)
 	end
 
-	function stumpFeatModalDataset{T, WorldType}(
+	function StumpFeatModalDataset{T, WorldType}(
 		fmd                :: FeatModalDataset{T, WorldType};
 		computeRelationAll :: Bool = false,
 	) where {T,WorldType<:AbstractWorld}
@@ -472,71 +473,50 @@ struct stumpFeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 			end
 		end
 
-		relations = fmd.relations
-		
 		# Compute modal dataset propositions and 1-modal decisions
 		fmd_m, fmd_g = computeModalDatasetStumpSupport(fmd, grouped_featnaggrs, computeRelationAll = computeRelationAll);
 
-		stumpFeatModalDataset{T, WorldType}(fmd, fmd_m, fmd_g, featnaggrs, grouped_featnaggrs)
+		StumpFeatModalDataset{T, WorldType}(fmd, fmd_m, fmd_g, featnaggrs, grouped_featnaggrs)
 	end
 
-	function stumpFeatModalDataset(
+	function StumpFeatModalDataset(
 		X                  :: OntologicalDataset{T, N, WorldType},
 		features           :: AbstractVector{<:FeatureTypeFun},
 		grouped_featsnops  :: AbstractVector{<:AbstractVector{<:TestOperatorFun}};
 		computeRelationAll :: Bool = false,
-		timing_mode        :: Symbol = :time,
 	) where {T, N, WorldType<:AbstractWorld}
-		stumpFeatModalDataset{T, WorldType}(X, features, grouped_featsnops, computeRelationAll = computeRelationAll, timing_mode = timing_mode)
+		StumpFeatModalDataset{T, WorldType}(X, features, grouped_featsnops, computeRelationAll = computeRelationAll)
 	end
 
-	# function stumpFeatModalDataset{T, WorldType}(
-	# 	X                  :: OntologicalDataset{T, N, WorldType},
-	# 	features           :: AbstractVector{<:FeatureTypeFun},
-	# 	grouped_featsnops  :: AbstractVector{<:AbstractVector{<:TestOperatorFun}};
-	# 	computeRelationAll :: Bool = false,
-	# 	timing_mode        :: Symbol = :time,
-	# ) where {T, N, WorldType<:AbstractWorld}
+	function StumpFeatModalDataset{T, WorldType}(
+		X                  :: OntologicalDataset{T, N, WorldType},
+		features           :: AbstractVector{<:FeatureTypeFun},
+		grouped_featsnops  :: AbstractVector{<:AbstractVector{<:TestOperatorFun}};
+		computeRelationAll :: Bool = false,
+	) where {T, N, WorldType<:AbstractWorld}
 
-	# 	# Compute modal dataset propositions
-	# 	fmd = 
-	# 		if timing_mode == :none
-	# 			FeatModalDataset(X, features, grouped_featsnops);
-	# 		elseif timing_mode == :time
-	# 			@time FeatModalDataset(X, features, grouped_featsnops);
-	# 		elseif timing_mode == :btime
-	# 			@btime FeatModalDataset($X, $features, $grouped_featsnops);
-	# 	end
+		# Compute modal dataset propositions
+		fmd = FeatModalDataset(X, features, grouped_featsnops);
 
-	# 	relations = X.ontology.relationSet
-		
-	# 	grouped_featnaggrs = ModalLogic.prepare_featnaggrs(grouped_featsnops)
+		StumpFeatModalDataset{T, WorldType}(fmd, computeRelationAll = computeRelationAll)
 
-	# 	featnaggrs = Aggregator[]
+		# TODO bring back ModalDatasetStumpSupport computation from X. 
 
-	# 	for (feat,aggrs) in zip(fmd.features,featnaggrs)
-	# 		for aggr in aggrs
-	# 			push!(featnaggrs, (feat,aggr))
-	# 		end
-	# 	end
-		
-	# # Compute modal dataset propositions and 1-modal decisions
-	# fmd_m, fmd_g = computeModalDatasetStumpSupport(X, relations, grouped_featnaggrs, fmd, features, computeRelationAll = computeRelationAll);
+		# fmd_m, fmd_g = computeModalDatasetStumpSupport(X, relations, grouped_featnaggrs, fmd, features, computeRelationAll = computeRelationAll);
 
-
-	# 	new{T, WorldType}(fmd, fmd_m, fmd_g, featnaggrs, grouped_featnaggrs)
-	# end
+		# new{T, WorldType}(fmd, fmd_m, fmd_g, featnaggrs, grouped_featnaggrs)
+	end
 end
 
-size(X::stumpFeatModalDataset)             where {T,N} =  (size(X.fmd), size(X.fmd_m), size(X.fmd_g))
-n_samples(X::stumpFeatModalDataset{T, WorldType}) where {T, WorldType}   = n_samples(X.fmd)
-n_features(X::stumpFeatModalDataset{T, WorldType}) where {T, WorldType}  = length(X.fmd)
-n_relations(X::stumpFeatModalDataset{T, WorldType}) where {T, WorldType} = length(X.fmd)
-# getindex(X::stumpFeatModalDataset{T,WorldType}, args::Vararg) where {T,WorldType} = getindex(X.fmd, args...)
-world_type(X::stumpFeatModalDataset{T,WorldType}) where {T,WorldType} = WorldType
+size(X::StumpFeatModalDataset)             where {T,N} =  (size(X.fmd), size(X.fmd_m), size(X.fmd_g))
+n_samples(X::StumpFeatModalDataset{T, WorldType}) where {T, WorldType}   = n_samples(X.fmd)
+n_features(X::StumpFeatModalDataset{T, WorldType}) where {T, WorldType}  = length(X.fmd)
+n_relations(X::StumpFeatModalDataset{T, WorldType}) where {T, WorldType} = length(X.fmd)
+# getindex(X::StumpFeatModalDataset{T,WorldType}, args::Vararg) where {T,WorldType} = getindex(X.fmd, args...)
+world_type(X::StumpFeatModalDataset{T,WorldType}) where {T,WorldType} = WorldType
 
-slice_dataset(X::stumpFeatModalDataset{T,WorldType}, inds::AbstractVector{<:Integer}, args::Vararg) where {T,WorldType} =
-	stumpFeatModalDataset{T,WorldType}(
+slice_dataset(X::StumpFeatModalDataset{T,WorldType}, inds::AbstractVector{<:Integer}, args::Vararg) where {T,WorldType} =
+	StumpFeatModalDataset{T,WorldType}(
 		slice_dataset(X.fmd, inds, args...),
 		slice_dataset(X.fmd_m, inds, args...),
 		slice_dataset(X.fmd_g, inds, args...),
