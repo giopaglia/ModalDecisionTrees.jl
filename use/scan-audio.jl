@@ -7,7 +7,7 @@ main_rng = DecisionTree.mk_rng(1)
 # Optimization arguments for single-tree
 tree_args = [
 #	(
-#		loss = DecisionTree.util.entropy,
+#		loss_function = DecisionTree.util.entropy,
 #		min_samples_leaf = 1,
 #		min_purity_increase = 0.01,
 #		min_loss_at_leaf = 0.6,
@@ -20,7 +20,7 @@ for loss in [DecisionTree.util.entropy]
 			for min_loss_at_leaf in [0.6] # [0.4, 0.6]
 				push!(tree_args, 
 					(
-						loss = loss,
+						loss_function = loss,
 						min_samples_leaf = min_samples_leaf,
 						min_purity_increase = min_purity_increase,
 						min_loss_at_leaf = min_loss_at_leaf,
@@ -33,7 +33,7 @@ end
 
 # Optimization arguments for trees in a forest (no pruning is performed)
 forest_tree_args = (
-	loss = DecisionTree.util.entropy,
+	loss_function = DecisionTree.util.entropy,
 	min_samples_leaf = 1,
 	min_purity_increase = 0.0,
 	min_loss_at_leaf = 0.0,
@@ -457,7 +457,7 @@ end
 
 checkpoint_stdout("Finished!")
 
-# selected_args = merge(args, (loss = loss,
+# selected_args = merge(args, (loss_function = loss,
 # 															min_samples_leaf = min_samples_leaf,
 # 															min_purity_increase = min_purity_increase,
 # 															min_loss_at_leaf = min_loss_at_leaf,

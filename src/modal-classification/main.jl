@@ -26,63 +26,63 @@ end
 ################################################################################
 
 # # Build models on (multi-dimensional) arrays
-# function build_stump(
-# 	labels        :: AbstractVector{String},
-# 	bare_dataset  :: MatricialDataset{T,D},
-# 	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
-# 	ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
-# 	kwargs...) where {T, D, U}
-# 	build_stump(OntologicalDataset{T,D-2}(ontology, bare_dataset), labels, weights; kwargs...)
-# end
+function build_stump(
+	bare_dataset  :: MatricialDataset{T,D},
+	labels        :: AbstractVector{String},
+	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
+	ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
+	kwargs...) where {T, D, U}
+	build_stump(OntologicalDataset{T,D-2}(ontology, bare_dataset), labels, weights; kwargs...)
+end
 
-# function build_tree(
-# 	labels        :: AbstractVector{String},
-# 	bare_dataset  :: MatricialDataset{T,D},
-# 	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
-# 	ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
-# 	kwargs...) where {T, D, U}
-# 	build_tree(OntologicalDataset{T,D-2}(ontology, bare_dataset), labels, weights; kwargs...)
-# end
+function build_tree(
+	bare_dataset  :: MatricialDataset{T,D},
+	labels        :: AbstractVector{String},
+	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
+	ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
+	kwargs...) where {T, D, U}
+	build_tree(OntologicalDataset{T,D-2}(ontology, bare_dataset), labels, weights; kwargs...)
+end
 
-# function build_forest(
-# 	labels        :: AbstractVector{String},
-# 	bare_dataset  :: MatricialDataset{T,D};
-# 	# weights       :: Union{Nothing,AbstractVector{U}} = nothing TODO
-# 	ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
-# 	kwargs...) where {T, D, U}
-# 	# build_forest(OntologicalDataset{T,D-2}(ontology,bare_dataset), labels, weights; kwargs...)
-# 	build_forest(OntologicalDataset{T,D-2}(ontology, bare_dataset), labels; kwargs...)
-# end
+function build_forest(
+	bare_dataset  :: MatricialDataset{T,D};
+	labels        :: AbstractVector{String},
+	# weights       :: Union{Nothing,AbstractVector{U}} = nothing TODO
+	ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
+	kwargs...) where {T, D, U}
+	# build_forest(OntologicalDataset{T,D-2}(ontology,bare_dataset), labels, weights; kwargs...)
+	build_forest(OntologicalDataset{T,D-2}(ontology, bare_dataset), labels; kwargs...)
+end
 
 ################################################################################
 ########################## Modal Dataset #######################################
 ################################################################################
 
 # # Build models on (multi-dimensional) arrays
-# function build_stump(
-# 	labels        :: AbstractVector{String},
-# 	ontol_dataset :: OntologicalDataset{T, N, WorldType},
-# 	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
-# 	kwargs...) where {T, N, U, WorldType}
-# 	build_stump(MultiFrameFeatModalDataset(ontol_dataset), labels, weights; kwargs...)
-# end
+function build_stump(
+	ontol_dataset :: OntologicalDataset{T, N, WorldType},
+	labels        :: AbstractVector{String},
+	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
+	kwargs...) where {T, N, U, WorldType}
+	build_stump(MultiFrameFeatModalDataset(ontol_dataset), labels, weights; kwargs...)
+end
 
-# function build_tree(
-# 	labels        :: AbstractVector{String},
-# 	ontol_dataset :: OntologicalDataset{T, N, WorldType},
-# 	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
-# 	kwargs...) where {T, N, U, WorldType}
-# 	build_tree(MultiFrameFeatModalDataset(ontol_dataset), labels, weights; kwargs...)
-# end
+function build_tree(
+	ontol_dataset :: OntologicalDataset{T, N, WorldType},
+	labels        :: AbstractVector{String},
+	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
+	kwargs...) where {T, N, U, WorldType}
+	build_tree(MultiFrameFeatModalDataset(ontol_dataset), labels, weights; kwargs...)
+end
 
-# function build_forest(
-# 	labels        :: AbstractVector{String},
-# 	ontol_dataset :: OntologicalDataset{T, N, WorldType};
-# 	# weights       :: Union{Nothing,AbstractVector{U}} = nothing TODO
-# 	kwargs...) where {T, N, U, WorldType}
-# 	# build_forest(MultiFrameFeatModalDataset(ontol_dataset), labels, weights; kwargs...)
-# 	build_forest(MultiFrameFeatModalDataset(ontol_dataset), labels; kwargs...)
-# end
+function build_forest(
+	ontol_dataset :: OntologicalDataset{T, N, WorldType};
+	labels        :: AbstractVector{String},
+	# weights       :: Union{Nothing,AbstractVector{U}} = nothing TODO
+	kwargs...) where {T, N, U, WorldType}
+	# build_forest(MultiFrameFeatModalDataset(ontol_dataset), labels, weights; kwargs...)
+	build_forest(MultiFrameFeatModalDataset(ontol_dataset), labels; kwargs...)
+end
 
 ################################################################################
 ########################## Actual Build Funcs ##################################
@@ -103,15 +103,18 @@ function build_tree(
 	Xs                  :: MultiFrameFeatModalDataset,
 	Y                   :: AbstractVector{S},
 	W                   :: Union{Nothing,AbstractVector{U}}   = nothing;
-	loss                :: Function                           = util.entropy,
+	##############################################################################
+	loss_function       :: Function                           = util.entropy,
 	max_depth           :: Int                                = -1,
 	min_samples_leaf    :: Int                                = 1,
 	min_purity_increase :: AbstractFloat                      = 0.0,
 	min_loss_at_leaf    :: AbstractFloat                      = -Inf,
-	useRelationAll      :: Union{Bool,Vector{Function}}                   = true,
+	##############################################################################
 	n_subrelations      :: Union{Function,Vector{Function}}               = identity,
 	n_subfeatures       :: Union{Function,Vector{Function}}               = identity,
 	initConditions      :: Union{_initCondition,Vector{_initCondition}}   = startWithRelationAll,
+	useRelationAll      :: Union{Bool,Vector{Bool}}                       = true,
+	##############################################################################
 	rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {S, U}
 
 	T = Float64
@@ -138,15 +141,18 @@ function build_tree(
 		Xs                  = Xs,
 		Y                   = Y,
 		W                   = W,
-		loss                = loss,
+		############################################################################
+		loss_function       = loss_function,
 		max_depth           = max_depth,
 		min_samples_leaf    = min_samples_leaf,
 		min_purity_increase = min_purity_increase,
 		min_loss_at_leaf    = min_loss_at_leaf,
-		useRelationAll      = useRelationAll,
+		############################################################################
 		n_subrelations      = n_subrelations,
-		n_subfeatures       = [ n_subfeatures[i](n_attributes(Xs[i])) for i in 1:n_frames(Xs) ],
+		n_subfeatures       = [ n_subfeatures[i](n_features(Xs[i])) for i in 1:n_frames(Xs) ],
 		initConditions      = initConditions,
+		useRelationAll      = useRelationAll,
+		############################################################################
 		rng                 = rng)
 
 	root = _convert(t.root, t.list, Y[t.labels])
@@ -398,24 +404,28 @@ function build_forest(
 	Y                   :: AbstractVector{S}
 	;
 	# , W                   :: Union{Nothing,AbstractVector{U}} = nothing; TODO these must also be used for the calculation of the oob_error
-	# Forest parameters
+	##############################################################################
+	# Forest logic-agnostic parameters
 	n_trees             = 100,
 	partial_sampling    = 0.7,      # portion of instances sampled (without replacement) by each tree
-	# Tree parameters
-	loss                :: Function           = util.entropy,
+	##############################################################################
+	# Tree logic-agnostic parameters
+	loss_function       :: Function           = util.entropy,
 	max_depth           :: Int                = -1,
 	min_samples_leaf    :: Int                = 1,
 	min_purity_increase :: AbstractFloat      = 0.0,
 	min_loss_at_leaf    :: AbstractFloat      = -Inf,
-	useRelationAll      :: Union{Bool,Vector{Function}}                   = true,
+	##############################################################################
+	# Modal parameters
 	n_subrelations      :: Union{Function,Vector{Function}}               = identity,
 	n_subfeatures       :: Union{Function,Vector{Function}}               = x -> ceil(Int, sqrt(x)),
 	initConditions      :: Union{_initCondition,Vector{_initCondition}}   = startWithRelationAll,
+	useRelationAll      :: Union{Bool,Vector{Bool}}                       = true,
+	##############################################################################
 	rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {S, U}
 
 	T = Float64
 	rng = mk_rng(rng)
-
 
 	if useRelationAll isa Bool
 		useRelationAll = fill(useRelationAll, n_frames(Xs))
@@ -465,25 +475,27 @@ function build_forest(
 	Threads.@threads for i in 1:n_trees
 		inds = rand(rngs[i], 1:t_samples, num_samples)
 
-		# v_weights = @views W[inds]
-		Y_slice = @view Y[inds]
 		X_slice = ModalLogic.slice_dataset(X, inds; return_view = true)
+		Y_slice = @view Y[inds]
+		# v_weights = @views W[inds]
 
 		trees[i] = build_tree(
-			Y_slice,
 			X_slice
+			, Y_slice
 			# , v_weights
 			;
-			ontology             = X.ontology,
-			loss                 = loss,
+			####
+			loss_function        = loss_function,
 			max_depth            = max_depth,
 			min_samples_leaf     = min_samples_leaf,
 			min_purity_increase  = min_purity_increase,
 			min_loss_at_leaf     = min_loss_at_leaf,
-			useRelationAll       = useRelationAll,
+			####
 			n_subrelations       = n_subrelations,
 			n_subfeatures        = n_subfeatures,
 			initConditions       = initConditions,
+			useRelationAll       = useRelationAll,
+			####
 			rng                  = rngs[i])
 
 		# grab out-of-bag indices

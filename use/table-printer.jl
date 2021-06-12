@@ -44,7 +44,7 @@ function backup_file_using_creation_date(file_name::String)
 end
 
 function string_tree_head(tree_args)::String
-	string("T($(print_function(tree_args.loss)),$(tree_args.min_samples_leaf),$(tree_args.min_purity_increase),$(tree_args.min_loss_at_leaf))")
+	string("T($(print_function(tree_args.loss_function)),$(tree_args.min_samples_leaf),$(tree_args.min_purity_increase),$(tree_args.min_loss_at_leaf))")
 end
 
 function string_forest_head(forest_args)::String

@@ -7,7 +7,7 @@ include("progressive-iterator-manager.jl")
 rng = my_rng()
 
 tree_args = [(
-	loss = DecisionTree.util.entropy,
+	loss_function = DecisionTree.util.entropy,
 	min_samples_leaf = 1,
 	min_purity_increase = 0.01,
 	min_loss_at_leaf = 0.4,
@@ -33,7 +33,7 @@ forest_args = [(
 	n_subrelations = sqrt_f,
 	n_trees = 5,               # [5,10,20,40,80]
 	partial_sampling = 1.0,
-	loss = DecisionTree.util.entropy,
+	loss_function = DecisionTree.util.entropy,
 	min_samples_leaf = 1,
 	min_purity_increase = 0.0,
 	min_loss_at_leaf = 0.0,
@@ -110,7 +110,7 @@ execRun("Test",
 # end
 
 
-# selected_args = merge(args, (loss = loss,
+# selected_args = merge(args, (loss_function = loss,
 # 															min_samples_leaf = min_samples_leaf,
 # 															min_purity_increase = min_purity_increase,
 # 															min_loss_at_leaf = min_loss_at_leaf,

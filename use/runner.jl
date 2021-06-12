@@ -379,9 +379,7 @@ function execRun(
 						end
 					end
 
-					println("Ontological form\t$(Base.summarysize(X_train_all) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t\t(shape $(Base.size(X_train_all.domain)))")
-					println("# relations\t\t$(length(X_train_all.ontology.relationSet))\nmax_channel_size\t$(max_channel_size(X_train_all))")
-
+					println("Ontological form\t$(Base.summarysize(X_train_all) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t\t(shape $(Base.size(X_train_all.domain)), # relations $(length(X_train_all.ontology.relationSet)), max_channel_size $(max_channel_size(X_train_all))")
 					println("Stump form\t\t$((Base.summarysize(stump_fmd.fmd) + Base.summarysize(stump_fmd.fmd_m) + Base.summarysize(stump_fmd.fmd_g)) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
 					println("├ fmd\t\t\t$(Base.summarysize(stump_fmd.fmd) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t(shape $(Base.size(stump_fmd.fmd.fwd)))")
 					println("├ fmd_m\t\t\t$(Base.summarysize(stump_fmd.fmd_m) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t(shape $(Base.size(stump_fmd.fmd_m)))")

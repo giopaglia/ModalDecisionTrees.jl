@@ -8,9 +8,9 @@ include("runner.jl")
 rng = my_rng()
 
 args = (
-	loss = DecisionTree.util.entropy,
-	# loss = DecisionTree.util.gini,
-	# loss = DecisionTree.util.zero_one,
+	loss_function = DecisionTree.util.entropy,
+	# loss_function = DecisionTree.util.gini,
+	# loss_function = DecisionTree.util.zero_one,
 	# max_depth = -1,
 	# min_samples_leaf = 4,
 	# min_purity_increase = 0.02, # TODO check this
@@ -73,10 +73,10 @@ rng_i = DecisionTree.mk_rng(1)
 # 		for min_samples_leaf in [1, 2, 4, 6]
 # 			for min_purity_increase in [0.01, 0.05]
 # 				for min_loss_at_leaf in [0.3, 0.5, 0.7]
-# 					cur_args = merge(args, (loss=loss,
-# 																	min_samples_leaf=min_samples_leaf,
-# 																	min_purity_increase=min_purity_increase,
-# 																	min_loss_at_leaf=min_loss_at_leaf,
+# 					cur_args = merge(args, (loss_function = loss,
+# 																	min_samples_leaf = min_samples_leaf,
+# 																	min_purity_increase = min_purity_increase,
+# 																	min_loss_at_leaf = min_loss_at_leaf,
 # 																	))
 # 					cur_kwargs = merge(kwargs, ())
 
@@ -104,12 +104,12 @@ rng_i = DecisionTree.mk_rng(1)
 # i_relation+=1
 # end
 
-loss = DecisionTree.util.entropy
+loss_function = DecisionTree.util.entropy
 min_samples_leaf = 4
 min_purity_increase = 0.01
 min_loss_at_leaf = 0.3
 
-selected_args = merge(args, (loss = loss,
+selected_args = merge(args, (loss_function = loss,
 															min_samples_leaf = min_samples_leaf,
 															min_purity_increase = min_purity_increase,
 															min_loss_at_leaf = min_loss_at_leaf,

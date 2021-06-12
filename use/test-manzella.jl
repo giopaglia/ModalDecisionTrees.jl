@@ -17,7 +17,7 @@ forest_args = [(
 
 tree_args = [
 	(
-		loss = DecisionTree.util.entropy,
+		loss_function = DecisionTree.util.entropy,
 		min_samples_leaf = 1,
 		min_purity_increase = 0.01,
 		min_loss_at_leaf = 0.6,
@@ -60,7 +60,7 @@ modal_args = (
 	# rng = DecisionTree.mk_rng(123),
 )
 
-loss = DecisionTree.util.entropy
+loss_function = DecisionTree.util.entropy
 # the minimum number of samples each leaf needs to have
 min_samples_leaf = 1
 # minimum purity needed for a split

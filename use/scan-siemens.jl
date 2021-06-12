@@ -39,13 +39,13 @@ modal_args = (
 
 # Optimization arguments for single-tree
 # tree_args = (
-# 	loss = DecisionTree.util.entropy,
+# 	loss_function = DecisionTree.util.entropy,
 # 	min_samples_leaf = 1,
 # 	min_purity_increase = 0.0,
 # 	min_loss_at_leaf = 0.0,
 # )
 tree_args = (
-	loss = DecisionTree.util.entropy,
+	loss_function = DecisionTree.util.entropy,
 	min_samples_leaf = 2,
 	min_purity_increase = 0.01,
 	min_loss_at_leaf = 0.4,
@@ -53,7 +53,7 @@ tree_args = (
 
 # Optimization arguments for trees in a forest (no pruning is performed)
 forest_tree_args = (
-	loss = DecisionTree.util.entropy,
+	loss_function = DecisionTree.util.entropy,
 	min_samples_leaf = 1,
 	min_purity_increase = 0.0,
 	min_loss_at_leaf = 0.0,
