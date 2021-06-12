@@ -366,9 +366,9 @@ KDDDataset_not_stratified((n_task,n_version),
 	breath = ("breath","breathe","breaths_")
 	dir_infos =
 		if n_version == 1
-			cough
+			(cough,)
 		elseif n_version == 2 
-			breath
+			(breath,)
 		else
 			(cough, breath)
 		end
@@ -471,30 +471,31 @@ KDDDataset_not_stratified((n_task,n_version),
 		n_unique_freqs = unique(size(ts, 2) for ts in timeseries)
 		@assert length(n_unique_freqs) == 1 "KDDDataset: length(n_unique_freqs) != 1: {$n_unique_freqs} != 1"
 		n_unique_freqs = n_unique_freqs[1]
-		X = zeros((max_timepoints, length(timeseries), n_unique_freqs))
+		X = zeros((max_timepoints, n_unique_freqs, length(timeseries)))
 		for (i,ts) in enumerate(timeseries)
 			# println(size(ts))
-			X[1:size(ts, 1),i,:] = ts
+			X[1:size(ts, 1),:,i] = ts
 		end
-
+		
 		((X,Y), length(pos), length(neg))
 	end
 
-	function getTimeSeries(folders::NTuple{N,AbstractVector{String}}, dir_infos::NTuple{2,NTuple{3,String}}) where N
-		datasets = Vector(undef, 2)
-		n_pos = Vector(undef, 2)
-		n_neg = Vector(undef, 2)
+	function getTimeSeries(folders::NTuple{N,AbstractVector{String}}, dir_infos::NTuple{M,NTuple{3,String}}) where {N,M}
+		datasets = Vector(undef, length(dir_infos))
+		n_pos = Vector(undef, length(dir_infos))
+		n_neg = Vector(undef, length(dir_infos))
 		for (i, dir_info) in enumerate(dir_infos)
 			datasets[i],n_pos[i],n_neg[i] = getTimeSeries(folders, dir_info)
+			@assert datasets[1][2] == datasets[i][2] "mismatching classes:\n\tY1 = $(datasets[1][2])\n\tY2 = $(datasets[i][2])"
 		end
 
-		@assert datasets[1][2] == datasets[2][2] "mismatching classes:\n\tY1 = $(datasets[1][2])\n\tY2 = $(datasets[2][2])"
 		#@assert length(unique(n_pos)) == 1 "n_pos mismatch across frames: $(length.(n_pos))"
 		#@assert length(unique(n_neg)) == 1 "n_neg mismatch across frames: $(length.(n_neg))"
 
 		((getindex.(datasets, 1),datasets[1][2]), n_pos[1], n_neg[1])
 	end
 
+	
 	getTimeSeries((folders_Y, folders_N), dir_infos)
 end
 ################################################################################
@@ -568,7 +569,7 @@ PaviaDataset() = begin
 end
 
 SampleLandCoverDataset(dataset::String, n_samples_per_label::Int, sample_size::Union{Int,NTuple{2,Int}}; n_attributes::Int = -1, flattened::Bool = false, rng = Random.GLOBAL_RNG :: Random.AbstractRNG) = begin
-	if typeof(sample_size) <: Int
+	if sample_size isa Int
 		sample_size = (sample_size, sample_size)
 	end
 	@assert isodd(sample_size[1]) && isodd(sample_size[2])

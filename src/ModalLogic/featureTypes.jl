@@ -13,7 +13,7 @@ display_feature(feature) = "V$(feature)"
 
 abstract type FeatureTypeFun end
 
-# struct _FeatureTypeNone  <: FeatureTypeFun end; const FeatureTypeNone  = _FeatureTypeNone();
+struct _FeatureTypeNone  <: FeatureTypeFun end; const FeatureTypeNone  = _FeatureTypeNone();
 
 # struct AggregateFeatureType{worldType<:AbstractWorld} <: FeatureTypeFun
 # struct SingleAttributeAggregateFeatureType <: FeatureTypeFun
@@ -45,11 +45,27 @@ Base.show(io::IO, f::AttributeMaximumFeatureType) = Base.print(io, "max(A$(f.i_a
 struct AttributeSoftMinimumFeatureType{T<:AbstractFloat} <: FeatureTypeFun
 	i_attribute::Integer
 	alpha::T
+	function AttributeSoftMinimumFeatureType(
+		i_attribute::Integer,
+		alpha::T,
+	) where {T}
+		@assert !iszero(alpha) "Can't instantiate AttributeSoftMinimumFeatureType with alpha = $(alpha)"
+		@assert !isone(alpha) "Can't instantiate AttributeSoftMinimumFeatureType with alpha = $(alpha). Use AttributeMinimumFeatureType instead!"
+		new{T}(i_attribute, alpha)
+	end
 end
 
 struct AttributeSoftMaximumFeatureType{T<:AbstractFloat} <: FeatureTypeFun
 	i_attribute::Integer
 	alpha::T
+	function AttributeSoftMaximumFeatureType(
+		i_attribute::Integer,
+		alpha::T,
+	) where {T}
+		@assert !iszero(alpha) "Can't instantiate AttributeSoftMaximumFeatureType with alpha = $(alpha)"
+		@assert !isone(alpha) "Can't instantiate AttributeSoftMaximumFeatureType with alpha = $(alpha). Use AttributeMaximumFeatureType instead!"
+		new{T}(i_attribute, alpha)
+	end
 end
 
 yieldFunction(f::AttributeSoftMinimumFeatureType{T}) where T =

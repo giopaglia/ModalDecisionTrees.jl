@@ -74,19 +74,25 @@ audio_kwargs_full_mfcc = (
 
 
 modal_args = (
-	initCondition = DecisionTree.startWithRelationAll,
-	useRelationId = true,
+	initConditions = DecisionTree.startWithRelationAll,
 	useRelationAll = false,
+)
+
+data_modal_args = (
 	ontology = getIntervalOntologyOfDim(Val(1)),
-	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_L, ModalLogic.IA_Li, ModalLogic.IA_D]),
-#	test_operators = [TestOpGeq, TestOpLeq],
+	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A]),
+	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A, ModalLogic.IA_L, ModalLogic.IA_Li, ModalLogic.IA_D]),
+	
+	# test_operators = [TestOpGeq, TestOpLeq],
+	# features,
+	# featsnops,
 )
 
 # https://github.com/JuliaIO/JSON.jl/issues/203
 # https://discourse.julialang.org/t/json-type-serialization/9794
 # TODO: make test operators types serializable
-exec_test_operators = [ "TestOp" ]
-# exec_test_operators = [ "TestOp_80" ]
+# exec_test_operators = [ "TestOp" ]
+exec_test_operators = [ "TestOp_80" ]
 
 test_operators_dict = Dict(
 	# "TestOp_70" => [TestOpGeq_70, TestOpLeq_70],
@@ -136,7 +142,7 @@ test_flattened = false
 
 exec_runs = 1
 exec_n_tasks = 1
-exec_n_versions = 1
+exec_n_versions = 3
 exec_nbands = 40
 # exec_runs = 1:5
 # exec_n_tasks = 1:1
@@ -320,10 +326,12 @@ for i in exec_runs
 			end
 			, (nbands=nbands,))
 
-		cur_modal_args = merge(modal_args, (test_operators = test_operators_dict[test_operators],))
+		cur_data_modal_args = merge(data_modal_args, (test_operators = test_operators_dict[test_operators],))
+		cur_modal_args = modal_args
 		
 		cur_preprocess_wavs = [ wav_preprocessors[k] for k in preprocess_wavs ]
 
+		# TODO reduce redundancy
 		dataset = 
 			if save_datasets && isfile(dataset_file_name * ".jld")
 				if just_produce_datasets_jld
@@ -341,8 +349,8 @@ for i in exec_runs
 					dataset_slice[2,:] .= n_pos .+ Random.randperm(dataset_rng, n_neg)[1:n_per_class]
 					dataset_slice = dataset_slice[:]
 
-					(X_train, Y_train), (X_test, Y_test), _ = traintestsplit(dataset, split_threshold)
-					balanced_dataset = (X[dataset_slice], Y[dataset_slice])
+					balanced_dataset = slice_mf_dataset((X,Y), dataset_slice)
+					(X_train, Y_train), (X_test, Y_test) = traintestsplit(dataset, split_threshold)
 					JLD2.@save (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
 					balanced_train = (X_train, Y_train)
 					JLD2.@save (dataset_file_name * "-balanced-train.jld") balanced_train
@@ -361,12 +369,6 @@ for i in exec_runs
 					preprocess_wavs = cur_preprocess_wavs,
 					use_full_mfcc = use_full_mfcc
 				)
-				
-				# TODO move this change in the creation of datasets in the dataset-loading functions
-				(X,Y) = dataset
-				D = ndims(X)
-				X = permutedims(X, ((1:D-2)..., D, D-1))
-				dataset = (X,Y)
 
 				n_per_class = min(n_pos, n_neg)
 				# using Random
@@ -383,8 +385,8 @@ for i in exec_runs
 					checkpoint_stdout("Saving dataset $(dataset_file_name)...")
 					(X, Y) = dataset
 					JLD2.@save (dataset_file_name * ".jld")                dataset n_pos n_neg
-					(X_train, Y_train), (X_test, Y_test), _ = traintestsplit(dataset, split_threshold)
-					balanced_dataset = (X[dataset_slice], Y[dataset_slice])
+					balanced_dataset = slice_mf_dataset((X,Y), dataset_slice)
+					(X_train, Y_train), (X_test, Y_test) = traintestsplit(dataset, split_threshold)
 					JLD2.@save (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
 					balanced_train = (X_train, Y_train)
 					JLD2.@save (dataset_file_name * "-balanced-train.jld") balanced_train
@@ -398,7 +400,11 @@ for i in exec_runs
 			end
 		# println(dataset_slice)
 
-		#####################################################
+
+		############################################################################
+		############################################################################
+		############################################################################
+		
 		dataset_name_str = string(
 			[string(value) * column_separator for value in values(params_namedtuple)]...,
 			string(cur_audio_kwargs), column_separator,
@@ -415,6 +421,7 @@ for i in exec_runs
 					dataset_slice               =   dataset_slice,
 					forest_args                 =   forest_args,
 					tree_args                   =   tree_args,
+					data_modal_args             =   cur_data_modal_args,
 					modal_args                  =   cur_modal_args,
 					test_flattened              =   test_flattened,
 					precompute_gammas           =   precompute_gammas,

@@ -6,7 +6,7 @@
 
 module treeclassifier
 	
-	export fit, optimize_tree_parameters!, computeGammas
+	export fit
 
 	using ..ModalLogic
 	using ..DecisionTree
@@ -27,14 +27,17 @@ module treeclassifier
 		split_at         :: Int                              # index of samples
 		l                :: NodeMeta{S,U}                    # left child
 		r                :: NodeMeta{S,U}                    # right child
+		i_frame          :: Integer          # Id of frame
 		modality         :: R where R<:AbstractRelation      # modal operator (e.g. RelationId for the propositional case)
-		attribute          :: Int                              # attribute used for splitting
-		test_operator    :: TestOperator          # test_operator (e.g. <=)
+		feature          :: Int                              # feature used for splitting
+		test_operator    :: TestOperator                     # test_operator (e.g. <=)
 		threshold        :: S                                # threshold value
+		onlyUseRelationAll :: Vector{Bool}
 		function NodeMeta{S,U}(
 				region      :: UnitRange{Int},
 				depth       :: Int,
-				modal_depth :: Int
+				modal_depth :: Int,
+				oura        :: Vector{Bool},
 				) where {S<:Real,U}
 			node = new{S,U}()
 			node.region = region
@@ -42,6 +45,7 @@ module treeclassifier
 			node.modal_depth = modal_depth
 			node.purity = U(NaN)
 			node.is_leaf = false
+			node.onlyUseRelationAll = oura
 			node
 		end
 	end
@@ -50,26 +54,27 @@ module treeclassifier
 		root           :: NodeMeta{S,Float64}
 		list           :: Vector{T}
 		labels         :: Vector{Label}
-		initCondition  :: Vector{DecisionTree._initCondition}
+		initConditions :: Vector{DecisionTree._initCondition}
 	end
 
 	# Find an optimal local split satisfying the given constraints
 	#  (e.g. max_depth, min_samples_leaf, etc.)
 	# TODO move this function inside the caller function, and get rid of all parameters
 	function _split!(
-							Xs                  :: MultiFrameFeatModalDataset{FeatModalDataset}, # the modal dataset
+							Xs                  :: MultiFrameFeatModalDataset, # the modal dataset
 							Y                   :: AbstractVector{Label},    # the label array
 							W                   :: AbstractVector{U},        # the weight vector
-							S                   :: AbstractVector{WorldSet{WorldType}}, # the vector of current worlds
+							Ss                  :: AbstractVector{<:AbstractVector{WorldSet{<:AbstractWorld}}}, # the vector of current worlds
 
 							loss_function       :: Function,
 							node                :: NodeMeta{T,<:AbstractFloat}, # the node to split
-							n_subfeatures       :: Vector{Int},                      # number of features to use to split
 							max_depth           :: Int,                      # the maximum depth of the resultant tree
 							min_samples_leaf    :: Int,                      # the minimum number of samples each leaf needs to have
 							min_loss_at_leaf    :: AbstractFloat,            # maximum purity allowed on a leaf
 							min_purity_increase :: AbstractFloat,            # minimum purity increase needed for a split
+							
 							n_subrelations      :: Vector{Function},
+							n_subfeatures       :: Vector{Int},                      # number of features to use to split
 							
 							indX                :: AbstractVector{Int},      # an array of sample indices (we split using samples in indX[node.region])
 							
@@ -79,16 +84,12 @@ module treeclassifier
 							ncl                 :: AbstractVector{U},   # ncl maintains the counts of labels on the left
 							ncr                 :: AbstractVector{U},   # ncr maintains the counts of labels on the right
 							
-							# Xf                  :: MatricialUniDataset{T, M}, # Note that X and Xf are not used when using Gammas
 							Yf                  :: AbstractVector{Label},
 							Wf                  :: AbstractVector{U},
-							Sfs                 :: AvstractVector{AbstractVector{WorldSet{WorldType}}},
-							gammas              :: AbstractVector{Union{GammaType,Nothing}},
-							# TODO Ef                  :: AbstractArray{T},
+							Sfs                 :: AbstractVector{<:AbstractVector{WorldSet{<:AbstractWorld}}},
 
-							relation_ids        :: AbstractVector{AbstractVector{Int}},
 							rng                 :: Random.AbstractRNG,
-							) where {WorldType<:AbstractWorld, T, U, N, M, NTO, L}
+							) where {T, U, N, M, NTO, L}
 
 		# Region of indX to use to perform the split
 		region = node.region
@@ -123,12 +124,15 @@ module treeclassifier
 		end
 
 		# Gather all values needed for the current set of instances
-		# TODO also slice gammas in gammasf?
+		# TODO also slice the dataset?
 		@simd for i in 1:n_instances
 			Yf[i] = Y[indX[i + r_start]]
 			Wf[i] = W[indX[i + r_start]]
-			for Sf in Sfs
-				Sf[i] = S[indX[i + r_start]]
+		end
+
+		for i_frame in 1:n_frames(Xs)
+			@simd for i in 1:n_instances
+				Sfs[i_frame][i] = Ss[i_frame][indX[i + r_start]]
 			end
 		end
 
@@ -136,7 +140,7 @@ module treeclassifier
 		best_frame = -1
 		best_purity__nt = typemin(U)
 		best_relation = RelationNone
-		best_feature = -1
+		best_feature = FeatureTypeNone
 		best_test_operator = TestOpNone
 		best_threshold = typemin(U)
 
@@ -149,27 +153,35 @@ module treeclassifier
 		#####################
 		## Test all conditions
 		# For each frame (modal dataset)
-		for (Xi, X) in enumerate(Xs.frames)
-			# TODO: pick best_frame
+		for (i_frame, X) in enumerate(Xs.frames)
 			# array of indices of features
 			# Note: using "sample" function instead of "randperm" allows to insert weights for features which may be wanted in the future 
-			features_inds = StatsBase.sample(rng, Vector(1:n_features(X)), n_subfeatures, replace = false)
-	
+			features_inds = StatsBase.sample(rng, Vector(1:n_features(X)), n_subfeatures[i_frame], replace = false)
+			
+			relations =
+				if node.onlyUseRelationAll[i_frame]
+					[relationAll]
+				else
+					X.relations
+			end
+
 			# use a subset of relations
 			# TODO does this go inside the for on the features?
-			relations_ids = StatsBase.sample(rng, relation_ids, Int(n_subrelations(length(relation_ids))), replace = false)
+
+			relations_inds = StatsBase.sample(rng, relation_ids[i_frame], Int(n_subrelations[i_frame](length(relation_ids[i_frame]))), replace = false)
+
 			# For each relational operator
-			for relation_id in relations_ids
+			for relation_id in relations_inds
 				relation = X.relations[relation_id]
 				@logmsg DTDebug "Testing relation $(relation) (id: $(relation_id))..." # "/$(length(relation_ids))"
 
 				# For each feature
-				@inbounds for feature in features_inds
-					@logmsg DTDebug "Testing feature $(feature)/$(n_subfeatures)..."
-					relation_real = X.feature_names[feature]
+				@inbounds for feature_id in features_inds
+					feature = X.features[feature_id]
+					@logmsg DTDebug "Testing feature $(feature) (id: $(feature_id))..."
 
-					thresholds = Array{T,2}(undef, length(X.featsnops[feature]), n_instances)
-					for (i_test_operator,test_operator) in enumerate(X.featsnops[feature])
+					thresholds = Array{T,2}(undef, length(X.grouped_featsnops[feature_id]), n_instances)
+					for (i_test_operator,test_operator) in enumerate(X.grouped_featsnops[feature_id])
 						@views cur_thr = thresholds[i_test_operator,:]
 						fill!(cur_thr, ModalLogic.bottom(test_operator, T))
 					end
@@ -177,22 +189,23 @@ module treeclassifier
 					@logmsg DTDebug "thresholds: " thresholds
 
 					# TODO optimize this!!
+					# TODO WorldType
 					firstWorld = WorldType(ModalLogic.firstWorld)
 					for i in 1:n_instances
 						@logmsg DTDetail " Instance $(i)/$(n_instances)" indX[i + r_start]
 						worlds = if (relation != RelationAll)
-								Sfs[Xi][i]
+								Sfs[i_frame][i]
 							else
 								[firstWorld]
 							end
 						# TODO maybe read the specific value of gammas referred to the test_operator?
-						# cur_gammas = DecisionTree.readGamma(gammas, w, indX[i + r_start], relation_id, feature)
+						# cur_gammas = DecisionTree.readGamma(gammas, w, indX[i + r_start], relation_id, feature_id)
 						# @logmsg DTDetail " cur_gammas" w cur_gammas
 						# TODO try using reduce for each operator instead.
-						for (i_test_operator,test_operator) in enumerate(X.featsnops[feature]) # TODO use correct indexing for X.featsnops[feature]
+						for (i_test_operator,test_operator) in enumerate(X.grouped_featsnops[feature_id]) # TODO use correct indexing for X.grouped_featsnops[feature_id]
 							for w in worlds
 								# thresholds[i_test_operator,i] = ModalLogic.opt(test_operator)(thresholds[i_test_operator,i], cur_gammas[i_test_operator])
-								gamma = DecisionTree.readGamma(gammas, i_test_operator, w, indX[i + r_start], relation_id, feature)
+								gamma = DecisionTree.readGamma(gammas, i_test_operator, w, indX[i + r_start], relation_id, feature_id)
 								thresholds[i_test_operator,i] = ModalLogic.opt(test_operator)(thresholds[i_test_operator,i], gamma)
 							end
 						end
@@ -208,12 +221,12 @@ module treeclassifier
 					# readline()
 
 					# Look for the correct test operator
-					for (i_test_operator,test_operator) in enumerate(X.featsnops[feature])
+					for (i_test_operator,test_operator) in enumerate(X.grouped_featsnops[feature_id])
 						thresholdArr = @views thresholds[i_test_operator,:]
 						thresholdDomain = setdiff(Set(thresholdArr),Set([typemin(T), typemax(T)]))
 						# Look for thresholdArr 'a' for the propositions like "feature >= a"
 						for threshold in thresholdDomain
-							@logmsg DTDebug " Testing condition: $(display_modal_test(relation, test_operator, relation_real, threshold))"
+							@logmsg DTDebug " Testing condition: $(display_modal_test(relation, test_operator, feature, threshold))"
 							# Re-initialize right class counts
 							nr = zero(U)
 							ncr[:] .= zero(U)
@@ -244,6 +257,7 @@ module treeclassifier
 								purity__nt = -(nl * loss_function(ncl, nl) +
 											nr * loss_function(ncr, nr))
 								if purity__nt > best_purity__nt && !isapprox(purity__nt, best_purity__nt)
+									best_frame          = i_frame
 									best_purity__nt     = purity__nt
 									best_relation       = relation
 									best_feature        = feature
@@ -252,7 +266,7 @@ module treeclassifier
 									# TODO just for checking the consistency of optimizations
 									best_nl             = nl
 									# TODO bring back best_unsatisfied    = unsatisfied
-									@logmsg DTDetail "  Found new optimum: " (best_purity__nt/nt) best_relation best_feature best_test_operator best_threshold
+									@logmsg DTDetail "  Found new optimum: " best_frame (best_purity__nt/nt) best_relation best_feature best_test_operator best_threshold
 								end
 							end
 						end # for threshold
@@ -274,10 +288,10 @@ module treeclassifier
 			# split the samples into two parts:
 			# - ones that are > threshold
 			# - ones that are <= threshold
-
 			node.purity         = best_purity
+			node.i_frame        = best_frame
 			node.modality       = best_relation
-			node.attribute      = best_feature
+			node.feature        = best_feature
 			node.test_operator  = best_test_operator
 			# TODO the selected threshold should actually be the result of a loss interpolation around best_threshold
 			node.threshold      = best_threshold
@@ -288,12 +302,12 @@ module treeclassifier
 			unsatisfied_flags = fill(1, n_instances)
 			for i in 1:n_instances
 				channel = ModalLogic.getChannel(X, indX[i + r_start], best_feature)
-				@logmsg DTDetail " Instance $(i)/$(n_instances)" channel Sfs[i]
-				(satisfied,S[indX[i + r_start]]) = ModalLogic.modalStep(Sfs[i], best_relation, channel, best_test_operator, best_threshold)
+				@logmsg DTDetail " Instance $(i)/$(n_instances)" channel Sfs[best_frame][i]
+				(satisfied,Ss[best_frame][indX[i + r_start]]) = ModalLogic.modalStep(Sfs[best_frame][i], best_relation, channel, best_test_operator, best_threshold)
 				unsatisfied_flags[i] = !satisfied # I'm using unsatisfied because then sorting puts YES instances first but TODO use the inverse sorting and use satisfied flag instead
 			end
 
-			@logmsg DTOverview " Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on condition: $(display_modal_test(best_relation, best_test_operator, featureSet[best_feature], best_threshold)), purity $(best_purity)"
+			@logmsg DTOverview " Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on condition: $(display_modal_test(best_relation, best_test_operator, best_feature, best_threshold)), purity $(best_purity)"
 
 			@logmsg DTDetail " unsatisfied_flags" unsatisfied_flags
 
@@ -301,7 +315,7 @@ module treeclassifier
 			# TODO bring back if best_unsatisfied != unsatisfied_flags || best_nl != n_instances-sum(unsatisfied_flags) || length(unique(unsatisfied_flags)) == 1
 			if best_nl != n_instances-sum(unsatisfied_flags) || length(unique(unsatisfied_flags)) == 1
 				errStr = "Something's wrong with the optimization steps.\n"
-				errStr *= "Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on condition: $(display_modal_test(best_relation, best_test_operator, featureSet[best_feature], best_threshold)), purity $(best_purity)"
+				errStr *= "Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on condition: $(display_modal_test(best_relation, best_test_operator, best_feature, best_threshold)), purity $(best_purity)"
 				if length(unique(unsatisfied_flags)) == 1
 					errStr *= "Uninformative split.\n$(unsatisfied_flags)\n"
 				end
@@ -313,11 +327,11 @@ module treeclassifier
 					errStr *= "Different unsatisfied:\ncomputed: $(best_nl)\nactual: $(unsatisfied_flags)\n$(n_instances-sum(unsatisfied_flags))\n"
 				end
 				for i in 1:n_instances
-					errStr *= "$(ModalLogic.getChannel(X, indX[i + r_start], best_feature))\t$(Sfs[i])\t$(!(unsatisfied_flags[i]==1))\t$(S[indX[i + r_start]])\n";
+					errStr *= "$(ModalLogic.getChannel(X, indX[i + r_start], best_feature))\t$(Sfs[best_frame][i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[best_frame][indX[i + r_start]])\n";
 				end
 				# throw or error(Base.ErrorException(errStr))
 				println("ERROR! " * errStr)
-                                # TODO bring this error back
+				# TODO bring this error back
 			end
 
 			@logmsg DTDetail "pre-partition" region indX[region] unsatisfied_flags
@@ -343,23 +357,28 @@ module treeclassifier
 		depth = node.depth+1
 		mdepth = (node.modality == RelationId ? node.modal_depth : node.modal_depth+1)
 		@logmsg DTDetail "fork!(...): " node ind region mdepth
+
+		l_oura = node.onlyUseRelationAll
+		l_oura[node.i_frame] = false
+		r_oura = node.onlyUseRelationAll
+
 		# no need to copy because we will copy at the end
-		node.l = NodeMeta{S,U}(region[    1:ind], depth, mdepth)
-		node.r = NodeMeta{S,U}(region[ind+1:end], depth, mdepth)
+		node.l = NodeMeta{S,U}(region[    1:ind], depth, mdepth, l_oura)
+		node.r = NodeMeta{S,U}(region[ind+1:end], depth, mdepth, r_oura)
 	end
 
 	function check_input(
-			Xs                  :: MultiFrameFeatModalDataset{FeatModalDataset},
+			Xs                  :: MultiFrameFeatModalDataset,
 			Y                   :: AbstractVector{S},
 			W                   :: AbstractVector{U},
 			loss_function       :: Function,
 			n_subfeatures       :: Vector{Int},
-			n_subrelations      :: Vector{Int},
+			n_subrelations      :: Vector{Function},
 			max_depth           :: Int,
 			min_samples_leaf    :: Int,
 			min_loss_at_leaf    :: AbstractFloat,
-			min_purity_increase :: AbstractFloat
-		) where {S, U, T, N}
+			min_purity_increase :: AbstractFloat,
+		) where {S, U}
 		n_instances = n_samples(Xs)
 
 		if length(Y) != n_instances
@@ -369,20 +388,24 @@ module treeclassifier
 		elseif max_depth < -1
 			error("unexpected value for max_depth: $(max_depth) (expected:"
 				* " max_depth >= 0, or max_depth = -1 for infinite depth)")
-		elseif [n_relations(Xs, i) < n_subrelations[i] for i in n_frames(Xs)]
-			error("in at least one frame the total number of relations is less than the number "
-				* "of relations required at each split\n"
-				* "# relations:    " * string([ n_relations(Xs, i) for i in n_frames(Xs)]) * "\n\tvs\n"
-				* "# subrelations: " * string(n_subrelations))
-		elseif [n_features(Xs, i) < n_subfeatures[i] for i in n_frames(Xs)]
+		elseif length(n_subfeatures) != n_instances
+			error("dimension mismatch between the dataset provided and n_subfeatures!")
+		elseif length(n_subrelations) != n_instances
+			error("dimension mismatch between the dataset provided and n_subrelations!")
+		elseif any([n_features(Xs, i) < n_subfeatures[i] for i in n_frames(Xs)])
 			error("in at least one frame the total number of features is less than the number "
 				* "of features required at each split\n"
 				* "# features:    " * string([ n_features(Xs, i) for i in n_frames(Xs)]) * "\n\tvs\n"
-				* "# subfeatures: " * string(n_subfeatures))
+				* "# subfeatures: " * string(n_subfeatures |> collect))
+		# elseif any([n_relations(Xs, i) < n_subrelations[i] for i in n_frames(Xs)])
+		# 	error("in at least one frame the total number of relations is less than the number "
+		# 		* "of relations required at each split\n"
+		# 		* "# relations:    " * string([ n_relations(Xs, i) for i in n_frames(Xs)]) * "\n\tvs\n"
+		# 		* "# subrelations: " * string(n_subrelations))
 		elseif length(findall([n_subfeatures < 0 for i in n_frames(Xs)])) > 0
 			error("total number of features $(n_subfeatures) must be >= zero ")
-		elseif length(findall([n_subrelations < 0 for i in n_frames(Xs)])) > 0
-			error("total number of relations $(n_subrelations) must be >= zero ")
+		# elseif length(findall([n_subrelations < 0 for i in n_frames(Xs)])) > 0
+		# 	error("total number of relations $(n_subrelations) must be >= zero ")
 		elseif min_samples_leaf < 1
 			error("min_samples_leaf must be a positive integer "
 				* "(given $(min_samples_leaf))")
@@ -419,107 +442,103 @@ module treeclassifier
 		# end
 	end
 
-	function optimize_tree_parameters!(
-			X               :: OntologicalDataset{T, N},
-			initCondition   :: DecisionTree._initCondition,
-			useRelationAll  :: Bool,
-			useRelationId	:: Bool,
-			test_operators  :: AbstractVector{<:TestOperator}
-		) where {T, N}
+	# function optimize_tree_parameters!(
+	# 		X               :: OntologicalDataset{T, N},
+	# 		initCondition   :: DecisionTree._initCondition,
+	# 		useRelationAll  :: Bool,
+	# 		test_operators  :: AbstractVector{<:TestOperator}
+	# 	) where {T, N}
 
-		# Adimensional ontological datasets:
-		#  flatten to adimensional case + strip of all relations from the ontology
-		if prod(channel_size(X)) == 1
-			if (length(X.ontology.relationSet) > 0)
-				warn("The OntologicalDataset provided has degenerate channel_size $(channel_size(X)), and more than 0 relations: $(X.ontology.relationSet).")
-			end
-			# X = OntologicalDataset{T, 0}(ModalLogic.strip_ontology(X.ontology), @views ModalLogic.strip_domain(X.domain))
-		end
+	# 	# Adimensional ontological datasets:
+	# 	#  flatten to adimensional case + strip of all relations from the ontology
+	# 	if prod(channel_size(X)) == 1
+	# 		if (length(X.ontology.relationSet) > 0)
+	# 			warn("The OntologicalDataset provided has degenerate channel_size $(channel_size(X)), and more than 0 relations: $(X.ontology.relationSet).")
+	# 		end
+	# 		# X = OntologicalDataset{T, 0}(ModalLogic.strip_ontology(X.ontology), @views ModalLogic.strip_domain(X.domain))
+	# 	end
 
-		ontology_relations = deepcopy(X.ontology.relationSet)
+	# 	ontology_relations = deepcopy(X.ontology.relationSet)
 
-		# Fix test_operators order
-		test_operators = unique(test_operators)
-		ModalLogic.sort_test_operators!(test_operators)
+	# 	# Fix test_operators order
+	# 	test_operators = unique(test_operators)
+	# 	ModalLogic.sort_test_operators!(test_operators)
 		
-		# Adimensional operators:
-		#  in the adimensional case, some pairs of operators (e.g. <= and >)
-		#  are complementary, and thus it is redundant to check both at the same node.
-		#  We avoid this by only keeping one of the two operators.
-		if prod(channel_size(X)) == 1
-			# No ontological relation
-			ontology_relations = []
-			if test_operators ⊆ ModalLogic.all_lowlevel_test_operators
-				test_operators = [TestOpGeq]
-				# test_operators = filter(e->e ≠ TestOpGeq,test_operators)
-			else
-				warn("Test operators set includes non-lowlevel test operators. Update this part of the code accordingly.")
-			end
-		end
+	# 	# Adimensional operators:
+	# 	#  in the adimensional case, some pairs of operators (e.g. <= and >)
+	# 	#  are complementary, and thus it is redundant to check both at the same node.
+	# 	#  We avoid this by only keeping one of the two operators.
+	# 	if prod(channel_size(X)) == 1
+	# 		# No ontological relation
+	# 		ontology_relations = []
+	# 		if test_operators ⊆ ModalLogic.all_lowlevel_test_operators
+	# 			test_operators = [TestOpGeq]
+	# 			# test_operators = filter(e->e ≠ TestOpGeq,test_operators)
+	# 		else
+	# 			warn("Test operators set includes non-lowlevel test operators. Update this part of the code accordingly.")
+	# 		end
+	# 	end
 
-		# Softened operators:
-		#  when the biggest world only has a few values, softened operators fallback
-		#  to being hard operators
-		# max_world_wratio = 1/prod(max_channel_size(X))
-		# if TestOpGeq in test_operators
-		# 	test_operators = filter((e)->(typeof(e) != _TestOpGeqSoft || e.alpha < 1-max_world_wratio), test_operators)
-		# end
-		# if TestOpLeq in test_operators
-		# 	test_operators = filter((e)->(typeof(e) != _TestOpLeqSoft || e.alpha < 1-max_world_wratio), test_operators)
-		# end
+	# 	# Softened operators:
+	# 	#  when the biggest world only has a few values, softened operators fallback
+	# 	#  to being hard operators
+	# 	# max_world_wratio = 1/prod(max_channel_size(X))
+	# 	# if TestOpGeq in test_operators
+	# 	# 	test_operators = filter((e)->(typeof(e) != _TestOpGeqSoft || e.alpha < 1-max_world_wratio), test_operators)
+	# 	# end
+	# 	# if TestOpLeq in test_operators
+	# 	# 	test_operators = filter((e)->(typeof(e) != _TestOpLeqSoft || e.alpha < 1-max_world_wratio), test_operators)
+	# 	# end
 
 
-		# Binary relations (= unary modal operators)
-		# Note: the identity relation is the first, and it is the one representing
-		#  propositional splits.
+	# 	# Binary relations (= unary modal operators)
+	# 	# Note: the identity relation is the first, and it is the one representing
+	# 	#  propositional splits.
 		
-		if RelationId in ontology_relations
-			error("Found RelationId in ontology provided. Use useRelationId = true instead.")
-			# ontology_relations = filter(e->e ≠ RelationId, ontology_relations)
-			# useRelationId = true
-		end
+	# 	if RelationId in ontology_relations
+	# 		error("Found RelationId in ontology provided. No need.")
+	# 		# ontology_relations = filter(e->e ≠ RelationId, ontology_relations)
+	# 	end
 
-		if RelationAll in ontology_relations
-			error("Found RelationAll in ontology provided. Use useRelationAll = true instead.")
-			# ontology_relations = filter(e->e ≠ RelationAll, ontology_relations)
-			# useRelationAll = true
-		end
+	# 	if RelationAll in ontology_relations
+	# 		error("Found RelationAll in ontology provided. Use useRelationAll = true instead.")
+	# 		# ontology_relations = filter(e->e ≠ RelationAll, ontology_relations)
+	# 		# useRelationAll = true
+	# 	end
 
-		relationSet = [RelationId, RelationAll, ontology_relations...]
-		relationId_id = 1
-		relationAll_id = 2
-		ontology_relation_ids = map((x)->x+2, 1:length(ontology_relations))
+	# 	relationSet = [RelationId, RelationAll, ontology_relations...]
+	# 	relationId_id = 1
+	# 	relationAll_id = 2
+	# 	ontology_relation_ids = map((x)->x+2, 1:length(ontology_relations))
 
-		needToComputeRelationAll = (useRelationAll || (initCondition == startWithRelationAll))
+	# 	needToComputeRelationAll = (useRelationAll || (initCondition == startWithRelationAll))
 
-		# Modal relations to compute gammas for
-		inUseRelation_ids = if needToComputeRelationAll
-			[relationAll_id, ontology_relation_ids...]
-		else
-			ontology_relation_ids
-		end
+	# 	# Modal relations to compute gammas for
+	# 	inUseRelation_ids = if needToComputeRelationAll
+	# 		[relationAll_id, ontology_relation_ids...]
+	# 	else
+	# 		ontology_relation_ids
+	# 	end
 
-		# Relations to use at each split
-		availableRelation_ids = []
+	# 	# Relations to use at each split
+	# 	availableRelation_ids = []
 
-		if useRelationId
-			push!(availableRelation_ids, relationId_id)
-		end
-		if useRelationAll
-			push!(availableRelation_ids, relationAll_id)
-		end
+	# 	push!(availableRelation_ids, relationId_id)
+	# 	if useRelationAll
+	# 		push!(availableRelation_ids, relationAll_id)
+	# 	end
 
-		availableRelation_ids = [availableRelation_ids..., ontology_relation_ids...]
+	# 	availableRelation_ids = [availableRelation_ids..., ontology_relation_ids...]
 
-		(
-			test_operators, relationSet,
-			relationId_id, relationAll_id,
-			inUseRelation_ids, availableRelation_ids
-		)
-	end
+	# 	(
+	# 		test_operators, relationSet,
+	# 		relationId_id, relationAll_id,
+	# 		inUseRelation_ids, availableRelation_ids
+	# 	)
+	# end
 
 	function _fit(
-			Xs                      :: MultiFrameFeatModalDataset{FeatModalDataset},
+			Xs                      :: MultiFrameFeatModalDataset,
 			Y                       :: AbstractVector{Label},
 			W                       :: AbstractVector{U},
 			loss                    :: Function,
@@ -531,19 +550,19 @@ module treeclassifier
 			min_loss_at_leaf        :: AbstractFloat,
 			n_subrelations          :: Vector{Function},
 			initConditions          :: Vector{DecisionTree._initCondition},
-			rng = Random.GLOBAL_RNG :: Random.AbstractRNG;
-			gammas                  :: AbstractVector{Union{GammaType,Nothing}},
-		) where {T, U, N}
+			rng = Random.GLOBAL_RNG :: Random.AbstractRNG
+		) where {U}
 
+		T = Float64
 		# Dataset sizes
 		n_instances = n_samples(Xs)
 
 		# Initialize world sets
-		Ss = Vector{AbstractVector}(undef, n_frames(Xs))
-		for i in 1:n_frames(Xs)
-			WT = world_type(Xs, i) # TODO: generalize function to get world type from a FeatModalDataset
+		Ss = Vector{<:Vector{<:WorldSet}}(undef, n_frames(Xs))
+		for i_frame in 1:n_frames(Xs)
+			WT = world_type(Xs, i_frame) # TODO: generalize function to get world type from a FeatModalDataset
 			# TODO: channel_size has to be called with proper argument
-			Ss[i] = WorldSet{WT}[DecisionTree.initWorldSet(initConditions[i], WT, channel_size(Xs[i])) for j in 1:n_instances] # TODO should be channel_size(X, j)
+			Ss[i_frame] = WorldSet{WT}[DecisionTree.initWorldSet(initConditions[i_frame], WT, channel_size(Xs[i_frame])) for i in 1:n_instances] # TODO should be channel_size(X, j) ?
 		end
 
 		# Array memory for class counts
@@ -555,10 +574,10 @@ module treeclassifier
 		# Xf = Array{T, N+1}(undef, channel_size(X)..., n_instances)
 		Yf = Vector{Label}(undef, n_instances)
 		Wf = Vector{U}(undef, n_instances)
-		Sfs = Vector{AbstractVector}(undef, n_frames(Xs))
-		for i in 1:n_frames(Xs)
-			WT = world_type(Xs, j)
-			Sfs[i] = Vector{WorldSet{WT}}(undef, n_instances)
+		Sfs = Vector{<:Vector{<:WorldSet}}(undef, n_frames(Xs))
+		for i_frame in 1:n_frames(Xs)
+			WT = world_type(Xs, i_frame)
+			Sfs[i_frame] = Vector{WorldSet{WT}}(undef, n_instances)
 		end
 		
 		# TODO: get relations ids to pass to _split!
@@ -567,62 +586,62 @@ module treeclassifier
 		# 	test_operators, relationSet,
 		# 	relationId_id, relationAll_id,
 		# 	inUseRelation_ids, availableRelation_ids
-		# ) = optimize_tree_parameters!(X, initCondition, useRelationAll, useRelationId, test_operators)
+		# ) = optimize_tree_parameters!(X, initCondition, useRelationAll, test_operators)
+
 
 		# if (length(availableRelation_ids) == 0)
-			# error("No available relation! Allow propositional splits with useRelationId=true")
+			# error("No available relation!")
+			# TODO actually this could be.
 		# end
 
-		for i in 1:n_frames(Xs)
-			if isnothing(gammas[i])
-				# Calculate gammas
-				#  A gamma, for a given feature f, world w, relation X and test_operator ⋈, is 
-				#  the unique value γ for which w ⊨ <X> f ⋈ γ and:
-				#  if polarity(⋈) == true:      ∀ a > γ:    w ⊭ <X> f ⋈ a
-				#  if polarity(⋈) == false:     ∀ a < γ:    w ⊭ <X> f ⋈ a
+		# for i in 1:n_frames(Xs)
+		# 	if isnothing(gammas[i])
+		# 		# Calculate gammas
+		# 		#  A gamma, for a given feature f, world w, relation X and test_operator ⋈, is 
+		# 		#  the unique value γ for which w ⊨ <X> f ⋈ γ and:
+		# 		#  if polarity(⋈) == true:      ∀ a > γ:    w ⊭ <X> f ⋈ a
+		# 		#  if polarity(⋈) == false:     ∀ a < γ:    w ⊭ <X> f ⋈ a
 				
-				gammas[i] = DecisionTree.computeGammas(Xs[i], test_operators, relationSet, relationId_id, inUseRelation_ids)
-				# using BenchmarkTools; gammas = @btime DecisionTree.computeGammas($X, $$test_operators, $relationSet, $relationId_id, $inUseRelation_ids)
-			else
-				DecisionTree.checkGammasConsistency(gammas[i], Xs[i], test_operators, relationSet)
-			end
-		end
+		# 		gammas[i] = DecisionTree.computeGammas(Xs[i], test_operators, relationSet, relationId_id, inUseRelation_ids)
+		# 		# using BenchmarkTools; gammas = @btime DecisionTree.computeGammas($X, $$test_operators, $relationSet, $relationId_id, $inUseRelation_ids)
+		# 	else
+		# 		DecisionTree.checkGammasConsistency(gammas[i], Xs[i], test_operators, relationSet)
+		# 	end
+		# end
 
 		# Let the core algorithm begin!
 
 		# Sample indices (array of indices that will be sorted and partitioned across the leaves)
 		indX = collect(1:n_instances)
 		# Create root node
-		root = NodeMeta{T,Float64}(1:n_instances, 0, 0)
+		onlyUseRelationAll = [(iC == startWithRelationAll) for iC in initConditions]
+		root = NodeMeta{T,Float64}(1:n_instances, 0, 0, onlyUseRelationAll)
 		# Stack of nodes to process
-		stack = Tuple{NodeMeta{T,Float64},Vector{Bool}}[(root,[(initCondition == startWithRelationAll) for initCondition in initConditions ])]
+		stack = NodeMeta{T,Float64}[root]
 		# The first iteration is treated sightly differently
 		@inbounds while length(stack) > 0
 			# Pop node and process it
-			(node,onlyUseRelationAll) = pop!(stack)
+			node = pop!(stack)
 			_split!(
 				Xs, Y, W, Ss,
 				loss, node,
-				n_subfeatures,
 				max_depth,
 				min_samples_leaf,
 				min_loss_at_leaf,
 				min_purity_increase,
 				n_subrelations,
-				test_operators,
+				n_subfeatures,
 				indX,
-				nc, ncl, ncr, 
-				# Xf, 
-				Yf, Wf, Sfs, gammas,
-				[ oura ? [relationAll_id] : availableRelation_ids for oura in onlyUseRelationAll ],
+				nc, ncl, ncr,
+				Yf, Wf, Sfs,
 				rng
 				)
 			# After processing, if needed, perform the split and push the two children for a later processing step
 			if !node.is_leaf
 				fork!(node)
 				# Note: the left (positive) child is not limited to RelationAll, whereas the right child is only if the current node is as well.
-				push!(stack, (node.l, false))
-				push!(stack, (node.r, onlyUseRelationAll))
+				push!(stack, node.l)
+				push!(stack, node.r)
 			end
 		end
 
@@ -635,13 +654,9 @@ module treeclassifier
 			#  a graph; instead, an instance is a dimensional domain (e.g. a matrix or a 3D matrix) onto which
 			#  worlds and relations are determined by a given Ontology.
 			# TODO Add default values for this function?
-			Xs                     :: MultiFrameFeatModalDataset{FeatModalDataset},
+			Xs                     :: MultiFrameFeatModalDataset,
 			Y                      :: AbstractVector{S},
 			W                      :: Union{AbstractVector{U},Nothing},
-			# this apparently redundant type for gammas allow one to choose to pass
-			# nothing: which means [ nothing, nothing, ..., nothing ]
-			# [ g1, nothing, g3, ... ] which means a mixed array to recycle previously calculated gammas for a frame
-			gammas                  :: Union{AbstractVector{Union{GammaType,Nothing}},Nothing} = nothing,
 
 			loss = util.entropy     :: Function,
 			max_depth               :: Int,
@@ -654,17 +669,19 @@ module treeclassifier
 			initConditions          :: Vector{DecisionTree._initCondition},
 
 			rng = Random.GLOBAL_RNG :: Random.AbstractRNG
-		) where {T, S, U, N}
-
+		) where {S, U}
+		
+		T = Float64
+		
 		# Obtain the dataset's "outer size": number of samples and number of features
 		n_instances = n_samples(Xs)
 
 		# Format gammas the proper way
-		if isnothing(gammas)
-			gammas = fill(nothing, n_frames(Xs))
-		else
-			@assert n_frames(Xs) == length(gammas) "MultiFrameFeatModalDataset and gammas sizes mismatch: n_frames(Xs) = $(n_frames(Xs)); length(gammas) = $(length(gammas))"
-		end
+		# if isnothing(gammas)
+		# 	gammas = fill(nothing, n_frames(Xs))
+		# else
+		# 	@assert n_frames(Xs) == length(gammas) "MultiFrameFeatModalDataset and gammas sizes mismatch: n_frames(Xs) = $(n_frames(Xs)); length(gammas) = $(length(gammas))"
+		# end
 
 		# Use unary weights if no weight is supplied
 		if isnothing(W)
@@ -683,7 +700,7 @@ module treeclassifier
 			max_depth,
 			min_samples_leaf,
 			min_loss_at_leaf,
-			min_purity_increase
+			min_purity_increase,
 		)
 
 		# Translate labels to categorical form
@@ -702,8 +719,7 @@ module treeclassifier
 			min_loss_at_leaf,
 			n_subrelations,
 			initConditions,
-			rng;
-			gammas = gammas
+			rng,
 		)
 		return Tree{T, S}(root, labels, indX, initConditions)
 	end

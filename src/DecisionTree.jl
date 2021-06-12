@@ -48,7 +48,7 @@ export print_apply_tree
 include("ModalLogic/ModalLogic.jl")
 using .ModalLogic
 include("gammas.jl")
-include("modalDataset.jl")
+# include("modalDataset.jl")
 include("measures.jl")
 
 ###########################
@@ -59,17 +59,17 @@ struct _startWithRelationAll  <: _initCondition end; const startWithRelationAll 
 struct _startAtCenter         <: _initCondition end; const startAtCenter         = _startAtCenter();
 struct _startAtWorld{wT<:AbstractWorld} <: _initCondition w::wT end;
 
-initWorldSet(initCondition::_startWithRelationAll, ::Type{WorldType}, channel_size::NTuple{N,Integer} where N) where {WorldType<:AbstractWorld} = begin
+initWorldSet(initConditions::AbstractVector{<:_initCondition}, worldTypes::AbstractVector{<:Type{<:AbstractWorld}}, args::Vararg) =
+	[initWorldSet(iC, WT, args...) for (iC, WT) in zip(initConditions, worldTypes)]
+
+initWorldSet(initCondition::_startWithRelationAll, ::Type{WorldType}, channel_size::NTuple{N,Integer} where N) where {WorldType<:AbstractWorld} =
 	WorldSet{WorldType}([WorldType(ModalLogic.emptyWorld)])
-end
 
-initWorldSet(initCondition::_startAtCenter, ::Type{WorldType}, channel_size::NTuple{N,Integer} where N) where {WorldType<:AbstractWorld} = begin
+initWorldSet(initCondition::_startAtCenter, ::Type{WorldType}, channel_size::NTuple{N,Integer} where N) where {WorldType<:AbstractWorld} =
 	WorldSet{WorldType}([WorldType(ModalLogic.centeredWorld, channel_size...)])
-end
 
-initWorldSet(initCondition::_startAtWorld{WorldType}, ::Type{WorldType}, channel_size::NTuple{N,Integer} where N) where {WorldType<:AbstractWorld} = begin
+initWorldSet(initCondition::_startAtWorld{WorldType}, ::Type{WorldType}, channel_size::NTuple{N,Integer} where N) where {WorldType<:AbstractWorld} =
 	WorldSet{WorldType}([WorldType(initCondition.w)])
-end
 
 # Leaf node, holding the output decision
 struct DTLeaf{T} # TODO specify output type: Number, Label, String, Union{Number,Label,String}?
@@ -83,7 +83,7 @@ end
 struct DTInternal{S<:Real, T}
 	# Split label
 	modality      :: R where R<:AbstractRelation
-	i_attr        :: Int
+	feature       :: ModalLogic.FeatureTypeFun # TODO move FeatureTypeFun out of ModalLogic?
 	test_operator :: TestOperator # Test operator (e.g. <=, ==)
 	threshold       :: AttrType where AttrType<:S
 	# Child nodes
@@ -98,7 +98,7 @@ const DTNode{S<:Real, T} = Union{DTLeaf{T}, DTInternal{S, T}}
 # TODO attach info about training (e.g. algorithm used + full namedtuple of training arguments) to these models
 struct DTree{S<:Real, T}
 	root           :: DTNode{S, T}
-	worldType      :: Type{<:AbstractWorld}
+	worldTypes     :: AbstractVector{Type{<:AbstractWorld}}
 	initConditions :: AbstractVector{_initCondition}
 end
 
@@ -116,7 +116,8 @@ is_modal_node(n::DTInternal) = (!is_leaf(n) && n.modality != RelationId)
 is_modal_node(t::DTree) = is_modal_node(t.root)
 
 zero(String) = ""
-convert(::Type{DTInternal{S, T}}, lf::DTLeaf{T}) where {S, T} = DTInternal(RelationNone, 0, :(nothing), zero(S), lf, DTLeaf(zero(T), [zero(T)]))
+
+# convert(::Type{DTInternal{S, T}}, lf::DTLeaf{T}) where {S, T} = DTInternal{S, T}(RelationNone, 0, :(nothing), zero(S), lf, DTLeaf(zero(T), [zero(T)]))
 
 promote_rule(::Type{DTInternal{S, T}}, ::Type{DTLeaf{T}}) where {S, T} = DTInternal{S, T}
 
@@ -186,7 +187,7 @@ function print_tree(tree::DTInternal, depth=-1, indent=0, indent_guides=[]; n_to
 		return
 	end
 
-	println(display_modal_test(tree.modality, tree.test_operator, ModalLogic.SimpleFeatureType(tree.test_operator, tree.i_attr), tree.threshold)) # TODO print purity?
+	println(display_modal_test(tree.modality, tree.test_operator, tree.feature, tree.threshold)) # TODO print purity?
 	# indent_str = " " ^ indent
 	indent_str = reduce(*, [i == 1 ? "│" : " " for i in indent_guides])
 	# print(indent_str * "╭✔")
@@ -198,8 +199,8 @@ function print_tree(tree::DTInternal, depth=-1, indent=0, indent_guides=[]; n_to
 end
 
 function print_tree(tree::DTree; n_tot_inst = false)
-	println("worldType: $(tree.worldType)")
-	println("initCondition: $(tree.initCondition)")
+	println("worldTypes: $(tree.worldTypes)")
+	println("initConditions: $(tree.initConditions)")
 	print_tree(tree.root, n_tot_inst = n_tot_inst)
 end
 

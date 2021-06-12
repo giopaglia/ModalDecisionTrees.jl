@@ -337,7 +337,7 @@ for i in exec_runs
 					dataset_slice[2,:] .= n_pos .+ Random.randperm(dataset_rng, n_neg)[1:n_per_class]
 					dataset_slice = dataset_slice[:]
 
-					(X_train, Y_train), (X_test, Y_test), _ = traintestsplit(dataset, split_threshold)
+					(X_train, Y_train), (X_test, Y_test) = traintestsplit(dataset, split_threshold)
 					balanced_dataset = (X[dataset_slice], Y[dataset_slice])
 					JLD2.@save (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
 					balanced_train = (X_train, Y_train)
@@ -375,7 +375,7 @@ for i in exec_runs
 					checkpoint_stdout("Saving dataset $(dataset_file_name)...")
 					(X, Y) = dataset
 					JLD2.@save (dataset_file_name * ".jld")                dataset n_pos n_neg
-					(X_train, Y_train), (X_test, Y_test), _ = traintestsplit(dataset, split_threshold)
+					(X_train, Y_train), (X_test, Y_test) = traintestsplit(dataset, split_threshold)
 					balanced_dataset = (X[dataset_slice], Y[dataset_slice])
 					JLD2.@save (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
 					balanced_train = (X_train, Y_train)

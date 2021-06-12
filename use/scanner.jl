@@ -91,6 +91,7 @@ function testDataset(
 		post_pruning_purity_thresholds  = [],
 		forest_args                     = [],
 		tree_args                       = [],
+		data_modal_args                 = (),
 		modal_args                      = (),
 		test_flattened                  = false,
 		# TODO add test_averaged          = false,
@@ -107,245 +108,289 @@ function testDataset(
 	println("Benchmarking dataset '$name' (train_seed = $(train_seed))...")
 	global_logger(ConsoleLogger(stderr, Logging.Warn));
 
-	calculateGammas(modal_args, X_all_d) = begin
-		if !precompute_gammas
-			(modal_args, nothing, world_type(modal_args.ontology))
-		else
-			haskey(modal_args, :ontology) || error("testDataset: precompute_gammas=true requires `ontology` field in modal_args: $(modal_args)")
+	function buildModalDatasets(modal_args, Xs_train_all::Vector{<:MatricialDataset}, X_test::Vector{<:MatricialDataset})	
+		X_test = MultiFrameOntologicalDataset(data_modal_args.ontology, X_test)
 
-			WorldType = world_type(modal_args.ontology)
-			# X_all = OntologicalDataset{eltype(X_all_d), ndims(X_all_d)-2, WorldType}(modal_args.ontology,X_all_d)
-			X_all = OntologicalDataset{eltype(X_all_d), ndims(X_all_d)-2}(modal_args.ontology,X_all_d)
+		if !precompute_gammas
+			error("TODO !precompute_gammas not coded yet")
+			Xs_train_all = MultiFrameOntologicalDataset(data_modal_args.ontology, Xs_train_all)
+			(modal_args, Xs_train_all, X_test)
+		else
+			WorldType = world_type(data_modal_args.ontology)
 
 			old_logger = global_logger(ConsoleLogger(stderr, log_level))
-			relationSet = nothing
-			initCondition = modal_args.initCondition
-			useRelationAll = modal_args.useRelationAll
-			useRelationId = modal_args.useRelationId
-			relationId_id = nothing
-			relationAll_id = nothing
-			availableModalRelation_ids = nothing
-			allAvailableRelation_ids = nothing
-			test_operators = deepcopy(modal_args.test_operators)
-			(
-				test_operators, relationSet,
-				relationId_id, relationAll_id,
-				availableModalRelation_ids, allAvailableRelation_ids
-				) = DecisionTree.treeclassifier.optimize_tree_parameters!(X_all, initCondition, useRelationAll, useRelationId, test_operators)
+			
+			Xs_train_all_multiframe_stump_fmd = stumpFeatModalDataset{<:Real,<:AbstractWorld}[]
 
-			# update values
-			modal_args = merge(modal_args, (test_operators = test_operators,))
+			for (i_frame, X_train_all) in enumerate(Xs_train_all)
+				
+				# X_train_all = OntologicalDataset{eltype(X_train_all)}(data_modal_args.ontology,X_train_all)
+				X_train_all = OntologicalDataset(data_modal_args.ontology, X_train_all)
 
-			# Generate path to gammas jld file
+				########################################################################
+				########################################################################
+				########################################################################
+				
+				# Prepare features
+				# TODO generalize
+				
+				features = FeatureTypeFun[]
 
-			if isa(gammas_save_path,String) || isnothing(gammas_save_path)
-				gammas_save_path = (gammas_save_path,nothing)
-			end
-
-			gammas_save_path, dataset_name_str = gammas_save_path
-
-			gammas_jld_path, gammas_hash_index_file, dataset_hash =
-				if isnothing(gammas_save_path)
-					(nothing, nothing, nothing)
+				if data_modal_args.test_operators == [TestOpGeq, TestOpLeq]
+					for i_attr in 1:n_attributes(X_train_all)
+						push!(features, ModalLogic.AttributeMinimumFeatureType(i_attr))
+						push!(features, ModalLogic.AttributeMaximumFeatureType(i_attr))
+					end
+				elseif data_modal_args.test_operators == [TestOpGeq_80, TestOpLeq_80]
+					for i_attr in 1:n_attributes(X_train_all)
+						push!(features, ModalLogic.AttributeSoftMinimumFeatureType(i_attr, 0.8))
+						push!(features, ModalLogic.AttributeSoftMaximumFeatureType(i_attr, 0.8))
+					end
 				else
-					dataset_hash = get_hash_sha256(X_all_d)
-					(
-						"$(gammas_save_path)/gammas_$(dataset_hash).jld",
-						"$(gammas_save_path)/gammas_hash_index.csv",
-						dataset_hash,
-					)
+					error("TODO fix $(data_modal_args.test_operators)")
 				end
 
-			gammas = 
-				if !isnothing(gammas_jld_path) && isfile(gammas_jld_path)
-					checkpoint_stdout("Loading gammas from file \"$(gammas_jld_path)\"...")
+				featsnops = Vector{<:TestOperatorFun}[
+					if any(map(t->isa(feature,t), [AttributeMinimumFeatureType, AttributeSoftMinimumFeatureType]))
+						[≥]
+					elseif any(map(t->isa(feature,t), [AttributeMaximumFeatureType, AttributeSoftMaximumFeatureType]))
+						[≤]
+					else
+						error("Unknown feature type: $(feature), $(typeof(feature))")
+						[≥, ≤]
+					end for feature in features
+				]
 
-					Serialization.deserialize(gammas_jld_path)
+				############################################################################
+				############################################################################
+				############################################################################
+				
+				relationSet = [RelationId, RelationAll, data_modal_args.ontology.relationSet...]
+				relationId_id = 1
+				relationAll_id = 2
+
+				ontology_relation_ids = map((x)->x+2, 1:length(data_modal_args.ontology.relationSet))
+				needToComputeRelationAll = (modal_args.useRelationAll || (modal_args.initConditions == DecisionTree.startWithRelationAll)) || ((modal_args.initConditions isa AbstractVector) && modal_args.initConditions[i_frame] == DecisionTree.startWithRelationAll)
+
+				# Modal relations to compute gammas for
+				inUseRelation_ids = if needToComputeRelationAll
+					[relationAll_id, ontology_relation_ids...]
 				else
-					checkpoint_stdout("Computing gammas for $(dataset_hash)...")
-					started = Dates.now()
-					gammas = 
-						if timing_mode == :none
-							DecisionTree.computeGammas(X_all,test_operators,relationSet,relationId_id,availableModalRelation_ids);
-						elseif timing_mode == :time
-							@time DecisionTree.computeGammas(X_all,test_operators,relationSet,relationId_id,availableModalRelation_ids);
-						elseif timing_mode == :btime
-							@btime DecisionTree.computeGammas($X_all,$test_operators,$relationSet,$relationId_id,$availableModalRelation_ids);
-					end
-					gammas_computation_time = (Dates.now() - started)
-					checkpoint_stdout("Computed gammas in $(human_readable_time(gammas_computation_time))...")
+					ontology_relation_ids
+				end
 
-					if !isnothing(gammas_jld_path)
-						checkpoint_stdout("Saving gammas to file \"$(gammas_jld_path)\"...")
-						mkpath(dirname(gammas_jld_path))
-						Serialization.serialize(gammas_jld_path, gammas)
-						# Add record line to the index file of the folder
-						if !isnothing(dataset_name_str)
-							# Generate path to gammas jld file)
-							# TODO fix column_separator here
-							append_in_file(gammas_hash_index_file, "$(dataset_hash);$(dataset_name_str)\n")
+				# Generate path to gammas jld file
+
+				if isa(gammas_save_path,String) || isnothing(gammas_save_path)
+					gammas_save_path = (gammas_save_path, nothing)
+				end
+
+				gammas_save_path, dataset_name_str = gammas_save_path
+
+				gammas_jld_path, gammas_hash_index_file, dataset_hash =
+					if isnothing(gammas_save_path)
+						(nothing, nothing, nothing)
+					else
+						dataset_hash = get_hash_sha256(X_train_all)
+						(
+							"$(gammas_save_path)/gammas_$(dataset_hash).jld",
+							"$(gammas_save_path)/gammas_hash_index.csv",
+							dataset_hash,
+						)
+					end
+
+				gammas = 
+					if !isnothing(gammas_jld_path) && isfile(gammas_jld_path)
+						checkpoint_stdout("Loading gammas from file \"$(gammas_jld_path)\"...")
+
+						Serialization.deserialize(gammas_jld_path)
+					else
+						checkpoint_stdout("Computing gammas for $(dataset_hash)...")
+						started = Dates.now()
+						gammas = 
+							if timing_mode == :none
+								DecisionTree.computeGammas(X_train_all,data_modal_args.test_operators,relationSet,relationId_id,inUseRelation_ids);
+							elseif timing_mode == :time
+								@time DecisionTree.computeGammas(X_train_all,data_modal_args.test_operators,relationSet,relationId_id,inUseRelation_ids);
+							elseif timing_mode == :btime
+								@btime DecisionTree.computeGammas($X_train_all,$data_modal_args.test_operators,$relationSet,$relationId_id,$inUseRelation_ids);
 						end
+						gammas_computation_time = (Dates.now() - started)
+						checkpoint_stdout("Computed gammas in $(human_readable_time(gammas_computation_time))...")
+
+						if !isnothing(gammas_jld_path)
+							checkpoint_stdout("Saving gammas to file \"$(gammas_jld_path)\"...")
+							mkpath(dirname(gammas_jld_path))
+							Serialization.serialize(gammas_jld_path, gammas)
+							# Add record line to the index file of the folder
+							if !isnothing(dataset_name_str)
+								# Generate path to gammas jld file)
+								# TODO fix column_separator here
+								append_in_file(gammas_hash_index_file, "$(dataset_hash);$(dataset_name_str)\n")
+							end
+						end
+						gammas
 					end
-					gammas
+				checkpoint_stdout("├ Type: $(typeof(gammas))")
+				checkpoint_stdout("├ Size: $(sizeof(gammas)/1024/1024 |> x->round(x, digits=2)) MBs")
+				checkpoint_stdout("└ Dimensions: $(size(gammas))")
+
+				########################################################
+				########################################################
+				########################################################
+				
+				# Compute modalDataset (equivalent to gammas)
+
+				fmd =
+					if timing_mode == :none
+						FeatModalDataset(X_train_all, features, featsnops)
+					elseif timing_mode == :time
+						@time FeatModalDataset(X_train_all, features, featsnops)
+					elseif timing_mode == :btime
+						@btime FeatModalDataset($X_train_all, $features, $featsnops)
 				end
-			checkpoint_stdout("├ Type: $(typeof(gammas))")
-			checkpoint_stdout("├ Size: $(sizeof(gammas)/1024/1024  |> x->round(x, digits=2)) MBs")
-			checkpoint_stdout("└ Dimensions: $(size(gammas))")
 
-			########################################################
-			########################################################
-			########################################################
-			
-			# Compute modalDataset (equivalent to gammas)
+				println("OntologicalDataset size:\t\t\t$(Base.summarysize(X_train_all) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
+				println("FeaturedWorldDataset size:\t\t\t$(Base.summarysize(fmd) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
 
-			features = FeatureTypeFun[]
 
-			for i_attr in 1:n_attributes(X_all)
-				push!(features, ModalLogic.AttributeMinimumFeatureType(i_attr))
-				push!(features, ModalLogic.AttributeMaximumFeatureType(i_attr))
-				# push!(features, ModalLogic.AttributeSoftMinimumFeatureType(i_attr, 0.8))
-				# push!(features, ModalLogic.AttributeSoftMaximumFeatureType(i_attr, 0.8))
-			end
+				# Check consistency between FeaturedWorldDataset and modalDataset
 
-			featnops = Vector{<:TestOperatorFun}[
-				if typeof(feature) in [AttributeMinimumFeatureType, AttributeSoftMinimumFeatureType]
-					[≥]
-				elseif typeof(feature) in [AttributeMaximumFeatureType, AttributeSoftMaximumFeatureType]
-					[≤]
-				else
-					error("Unknown feature type")
-					[≥, ≤]
-				end for feature in features
-			]
-			
-			fmd = FeatModalDataset(X_all, features, featnops, timing_mode = timing_mode)
+				for i_instance in 1:n_samples(X_train_all)
+					instance = ModalLogic.getInstance(X_train_all, i_instance)
+					for i_attribute in 1:n_attributes(X_train_all)
+						for i_test_operator in 1:2
+							for w in ModalLogic.enumAll(WorldType, ModalLogic.inst_channel_size(instance)...)
+								
+								g = DecisionTree.readGamma(gammas,i_test_operator,w,i_instance,1,i_attribute)
+								m = fmd[i_instance, w, (i_test_operator-1)+(i_attribute-1)*2+1]
 
-			println("OntologicalDataset size:\t\t\t$(Base.summarysize(X_all) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
-			println("FeaturedWorldDataset size:\t\t\t$(Base.summarysize(fmd) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
-
-			# Check consistency between FeaturedWorldDataset and modalDataset
-
-			for i_instance in 1:n_samples(X_all)
-				instance = ModalLogic.getInstance(X_all, i_instance)
-				for i_attribute in 1:n_attributes(X_all)
-					for i_test_operator in 1:2
-						for w in ModalLogic.enumAll(WorldType, ModalLogic.inst_channel_size(instance)...)
-							
-							g = DecisionTree.readGamma(gammas,i_test_operator,w,i_instance,1,i_attribute)
-							m = fmd[i_instance, w, (i_test_operator-1)+(i_attribute-1)*2+1]
-
-							if g != m
-								println("FeaturedWorldDataset check: g != m\n$(g)\n$(m)\ni_test_operator=$(i_test_operator)\nw=$(w)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
-								print("instance: ")
-								println(ModalLogic.getInstanceAttribute(instance, i_attribute))
-								error("aoe")
+								if g != m
+									println("FeaturedWorldDataset check: g != m\n$(g)\n$(m)\ni_test_operator=$(i_test_operator)\nw=$(w)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
+									print("instance: ")
+									println(ModalLogic.getInstanceAttribute(instance, i_attribute))
+									error("aoe")
+								end
 							end
 						end
 					end
 				end
+
+				# stump_fmd =
+				# 	if timing_mode == :none
+				# 		stumpFeatModalDataset(X_train_all, features, featsnops, computeRelationAll = needToComputeRelationAll, timing_mode = timing_mode);
+				# 	elseif timing_mode == :time
+				# 		@time stumpFeatModalDataset(X_train_all, features, featsnops, computeRelationAll = needToComputeRelationAll, timing_mode = timing_mode);
+				# 	elseif timing_mode == :btime
+				# 		@btime stumpFeatModalDataset($X_train_all, $features, $featsnops, computeRelationAll = $needToComputeRelationAll, timing_mode = $timing_mode);
+				# end
+
+				# global_logger(ConsoleLogger(stderr, DecisionTree.DTDebug))
+
+				stump_fmd =
+					if timing_mode == :none
+						stumpFeatModalDataset(fmd, computeRelationAll = needToComputeRelationAll);
+					elseif timing_mode == :time
+						@time stumpFeatModalDataset(fmd, computeRelationAll = needToComputeRelationAll);
+					elseif timing_mode == :btime
+						@btime stumpFeatModalDataset($fmd, computeRelationAll = $needToComputeRelationAll);
+				end
+
+				fmd   = stump_fmd.fmd
+				fmd_m = stump_fmd.fmd_m
+				fmd_g = stump_fmd.fmd_g
+
+				println(Base.size(X_train_all.domain))
+				println(Base.size(fmd.fwd))
+				println(Base.size(fmd_m))
+				if !isnothing(fmd_g)
+					println(Base.size(fmd_g))
+				end
+				println("Dataset size:\t\t\t$(Base.summarysize(X_train_all) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
+				println("modalDataset total size:\t$((Base.summarysize(fmd) + Base.summarysize(fmd_m) + Base.summarysize(fmd_g)) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
+				println("├ fmd size:\t\t$(Base.summarysize(fmd) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
+				println("├ fmd_m size:\t\t$(Base.summarysize(fmd_m) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
+				println("└ fmd_g size:\t\t$(Base.summarysize(fmd_g) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
+
+
+				# features_n_operators = Tuple{<:FeatureTypeFun,<:TestOperatorFun}[]
+				
+				# for feature in features
+				# 	if typeof(feature) in [AttributeMinimumFeatureType, AttributeSoftMinimumFeatureType]
+				# 		push!(features_n_operators, (feature, ≥))
+				# 	elseif typeof(feature) in [AttributeMaximumFeatureType, AttributeSoftMaximumFeatureType]
+				# 		push!(features_n_operators, (feature, ≤))
+				# 	else
+				# 		error("Unknown feature type")
+				# 		push!(features_n_operators, (feature, ≥))
+				# 		push!(features_n_operators, (feature, ≤))
+				# 	end
+				# end
+
+				# featnaggrs = ModalLogic.prepare_featnaggrs(featsnops)
+
+				firstWorld = WorldType(ModalLogic.firstWorld)
+
+				for i_instance in 1:n_samples(X_train_all)
+					instance = ModalLogic.getInstance(X_train_all, i_instance)
+					for i_attribute in 1:n_attributes(X_train_all)
+						for i_test_operator in 1:2
+							
+							i_featnaggr = (i_test_operator-1)+(i_attribute-1)*2+1
+
+							g = DecisionTree.readGamma(gammas,i_test_operator,firstWorld,i_instance,2,i_attribute)
+							m = fmd_g[i_instance, i_featnaggr]
+
+							if g != m
+								println("fmd_g check: g != m\n$(g)\n$(m)\ni_test_operator=$(i_test_operator)\ntest_operator=$(data_modal_args.test_operators[i_test_operator])\ni_featnaggr=$(i_featnaggr)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
+								print("instance: ")
+								println(ModalLogic.getInstanceAttribute(instance, i_attribute))
+								print(instance)
+								# error("aoe")
+								readline()
+							end
+						end
+					end
+				end
+
+				relations = X_train_all.ontology.relationSet
+
+				for i_instance in 1:n_samples(X_train_all)
+					instance = ModalLogic.getInstance(X_train_all, i_instance)
+					for i_attribute in 1:n_attributes(X_train_all)
+						for i_relation in 1:length(relations)
+							for i_test_operator in 1:2
+								for w in ModalLogic.enumAll(WorldType, ModalLogic.inst_channel_size(instance)...)
+									
+									i_featnaggr = (i_test_operator-1)+(i_attribute-1)*2+1
+
+									g = DecisionTree.readGamma(gammas,i_test_operator,w,i_instance,2+i_relation,i_attribute)
+									m = fmd_m[i_instance, w, i_featnaggr, i_relation]
+
+									if g != m
+										println("fmd_m check: g != m\n$(g)\n$(m)\ni_relation=$(i_relation), relation=$(relations[i_relation])\ni_test_operator=$(i_test_operator)\ntest_operator=$(data_modal_args.test_operators[i_test_operator])\nw=$(w)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
+										print("channel: ")
+										println(ModalLogic.getInstanceAttribute(instance, i_attribute))
+										# error("aoe")
+										readline()
+									end
+								end
+							end
+						end
+					end
+				end
+
+				push!(Xs_train_all_multiframe_stump_fmd, stump_fmd)
 			end
 
-			# features_n_operators = Tuple{<:FeatureTypeFun,<:TestOperatorFun}[]
-			
-			# for feature in features
-			# 	if typeof(feature) in [AttributeMinimumFeatureType, AttributeSoftMinimumFeatureType]
-			# 		push!(features_n_operators, (feature, ≥))
-			# 	elseif typeof(feature) in [AttributeMaximumFeatureType, AttributeSoftMaximumFeatureType]
-			# 		push!(features_n_operators, (feature, ≤))
-			# 	else
-			# 		error("Unknown feature type")
-			# 		push!(features_n_operators, (feature, ≥))
-			# 		push!(features_n_operators, (feature, ≤))
-			# 	end
-			# end
-
-			# grouped_featnaggrs = ModalLogic.prepare_featnaggrs(featnops)
-
-			# relations = X.ontology.relationSet
-			# # relations = relations[1:3]
-
-			# # Compute modal dataset propositions and 1-modal decisions
-			# modalDatasetM, modalDatasetG = 
-			# 	if timing_mode == :none
-			# 		computeModalDataset_m(X, relations, grouped_featnaggrs, fwd, features, computeRelationAll = computeRelationAll);
-			# 	elseif timing_mode == :time
-			# 		@time computeModalDataset_m(X, relations, grouped_featnaggrs, fwd, features, computeRelationAll = computeRelationAll);
-			# 	elseif timing_mode == :btime
-			# 		@btime computeModalDataset_m($X, $relations, $grouped_featnaggrs, $fwd, $features, computeRelationAll = $computeRelationAll);
-			# end
-
-			# println(Base.size(X))
-			# println(Base.size(fwd))
-			# if !isnothing(modalDatasetG)
-			# 	println(Base.size(modalDatasetM))
-			# end
-			# println("Dataset size:\t\t\t$(Base.summarysize(X) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
-			# println("modalDataset total size:\t$((Base.summarysize(fwd) + Base.summarysize(modalDatasetM) + Base.summarysize(modalDatasetG)) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
-			# println("├ fwd size:\t\t$(Base.summarysize(fwd) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
-			# println("├ modalDatasetM size:\t\t$(Base.summarysize(modalDatasetM) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
-			# println("└ modalDatasetG size:\t\t$(Base.summarysize(modalDatasetG) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
-
-			# computeRelationAll = true
-			# stumpMD = DecisionTree.stumpModalDataset(X_all, features, grouped_featnaggrs, flattened_featnaggrs, computeRelationAll = computeRelationAll, timing_mode = timing_mode);
-			# modalDatasetM = stumpMD.modalDatasetM
-			# modalDatasetG = stumpMD.modalDatasetG
-
-			# firstWorld = WorldType(ModalLogic.firstWorld)
-
-			# for i_instance in 1:n_samples(X_all)
-			# 	instance = ModalLogic.getInstance(X_all, i_instance)
-			# 	for i_attribute in 1:n_attributes(X_all)
-			# 		for i_test_operator in 1:2
-						
-			# 			i_featnaggr = (i_test_operator-1)+(i_attribute-1)*2+1
-
-			# 			g = DecisionTree.readGamma(gammas,i_test_operator,firstWorld,i_instance,2,i_attribute)
-			# 			m = DecisionTree.modalDatasetGet_g(modalDatasetG, i_instance, i_featnaggr)
-
-			# 			if g != m
-			# 				println("modalDatasetG check: g != m\n$(g)\n$(m)\ni_test_operator=$(i_test_operator)\ntest_operator=$(modal_args.test_operators[i_test_operator])\ni_featnaggr=$(i_featnaggr)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
-			# 				print("instance: ")
-			# 				println(ModalLogic.getInstanceAttribute(instance, i_attribute))
-			# 				error("aoe")
-			# 			end
-			# 		end
-			# 	end
-			# end
-
-			# relations = X_all.ontology.relationSet
-
-			# for i_instance in 1:n_samples(X_all)
-			# 	instance = ModalLogic.getInstance(X_all, i_instance)
-			# 	for i_attribute in 1:n_attributes(X_all)
-			# 		for i_relation in 1:length(relations)
-			# 			for i_test_operator in 1:2
-			# 				for w in ModalLogic.enumAll(WorldType, ModalLogic.inst_channel_size(instance)...)
-								
-			# 					i_featnaggr = (i_test_operator-1)+(i_attribute-1)*2+1
-
-			# 					g = DecisionTree.readGamma(gammas,i_test_operator,w,i_instance,2+i_relation,i_attribute)
-			# 					m = DecisionTree.modalDatasetGet_m(modalDatasetM, w, i_instance, i_featnaggr, i_relation)
-
-			# 					if g != m
-			# 						println("modalDatasetM check: g != m\n$(g)\n$(m)\ni_relation=$(i_relation), relation=$(relations[i_relation])\ni_test_operator=$(i_test_operator)\ntest_operator=$(modal_args.test_operators[i_test_operator])\nw=$(w)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
-			# 						print("channel: ")
-			# 						println(ModalLogic.getInstanceAttribute(instance, i_attribute))
-			# 						# error("aoe")
-			# 						readline()
-			# 					end
-			# 				end
-			# 			end
-			# 		end
-			# 	end
-			# end
-
+			Xs_train_all_multiframe_stump_fmd = MultiFrameFeatModalDataset(Xs_train_all_multiframe_stump_fmd)
 			########################################################
 			########################################################
 			########################################################
 			
-			println("(optimized) modal_args = ", modal_args)
+			# println("(optimized) modal_args = ", modal_args)
 			global_logger(old_logger);
-			(modal_args, gammas, world_type(modal_args.ontology))
+			(modal_args, Xs_train_all_multiframe_stump_fmd, X_test)
 		end
 	end
 
@@ -353,11 +398,12 @@ function testDataset(
 	# println("forest_args = ", length(forest_args), " × some forest_args structure")
 	println("tree_args   = ", tree_args)
 	println("modal_args  = ", modal_args)
+	println(typeof(dataset))
 
 	# Slice & split the dataset according to dataset_slice & split_threshold
 	# The instances for which the gammas are computed are either all, or the ones specified for training.	
 	# This depends on whether the dataset is already splitted or not.
-	modal_args, (X_train, Y_train), (X_test, Y_test), gammas_train = 
+	modal_args, (X_train, Y_train), (X_test, Y_test) = 
 		if split_threshold != false
 
 			# Unpack dataset
@@ -366,34 +412,29 @@ function testDataset(
 
 			# Apply scaling
 			if round_dataset_to_datatype != false
+				error("TODO case round_dataset_to_datatype != false not captured yet")
 				X, Y = roundDataset((X, Y), round_dataset_to_datatype)
 			end
 			
-			# Calculate gammas for the full set of instances
-			modal_args, gammas, WorldType = calculateGammas(modal_args, X)
+			# Compute mffmd for the full set of instances
+			modal_args, X, _ = buildModalDatasets(modal_args, X, X)
 
 			# Slice instances
-			X, Y, gammas_train =
+			X, Y =
 				if isnothing(dataset_slice)
-					(X, Y, gammas)
+					(X, Y,)
 				else
 					(
-						(@views ModalLogic.getInstances(X, dataset_slice)),
-						(@views Y[dataset_slice]),
-						if !isnothing(gammas)
-							DecisionTree.sliceGammasByInstances(WorldType, gammas, dataset_slice; return_view = true)
-						else
-							gammas
-						end
+						ModalLogic.slice_dataset(X, dataset_slice),
+						Y[dataset_slice]
 					)
 				end
-			# dataset = (X, Y, class_labels)
-
+			
 			# Split in train/test
-			((X_train, Y_train), (X_test, Y_test), gammas_train) =
-				traintestsplit((X, Y), split_threshold, gammas = gammas_train, worldType = WorldType)
+			((X_train, Y_train), (X_test, Y_test)) =
+				traintestsplit((X, Y), split_threshold)
 
-			modal_args, (X_train, Y_train), (X_test, Y_test), gammas_train
+			modal_args, (X_train, Y_train), (X_test, Y_test)
 		else
 
 			# Unpack dataset
@@ -402,32 +443,26 @@ function testDataset(
 
 			# Apply scaling
 			if round_dataset_to_datatype != false
+				error("TODO case round_dataset_to_datatype != false not captured yet")
 				(X_train, Y_train), (X_test,  Y_test) = roundDataset(((X_train, Y_train), (X_test,  Y_test)), round_dataset_to_datatype)
 			end
 			
-			# Calculate gammas for the training instances
-			modal_args, gammas, WorldType = calculateGammas(modal_args, X_train)
+			# Compute mffmd for the training instances
+			modal_args, X_train, X_test = buildModalDatasets(modal_args, X_train, X_test)
 
 			# Slice training instances
-			X_train, Y_train, gammas_train =
+			X_train, Y_train =
 				if isnothing(dataset_slice)
-					(X_train, Y_train, gammas)
+					(X_train, Y_train,)
 				else
 					(
-					@views ModalLogic.getInstances(X_train, dataset_slice),
-					@views Y_train[dataset_slice],
-					if !isnothing(gammas)
-						DecisionTree.sliceGammasByInstances(WorldType, gammas, dataset_slice; return_view = true)
-					else
-						gammas
-					end
+					ModalLogic.slice_dataset(X_train, dataset_slice),
+					Y_train[dataset_slice],
 					)
 				end
 
-			modal_args, (X_train, Y_train), (X_test, Y_test), gammas_train
+			modal_args, (X_train, Y_train), (X_test, Y_test)
 		end
-
-
 
 	# println(" n_samples = $(size(X_train)[end-1])")
 	println(" train size = $(size(X_train))")
@@ -459,7 +494,7 @@ function testDataset(
 		# # "$(round(DecisionTree.mean_PPV(cm)*100, digits=2))%\t" *
 		# "$(round(DecisionTree.macro_weighted_PPV(cm)*100, digits=2))%\t" *
 		# # "$(round(DecisionTree.mean_NPV(cm)*100, digits=2))%\t" *
-		# "$(round(DecisionTree.macro_weighted_NPV(cm)*100, digits=2))%\t"
+		# "$(round(DecisionTree.macro_weighted_NPV(cm)*100, digits=2))%\t" *
 		""
 	end
 
@@ -467,11 +502,11 @@ function testDataset(
 		started = Dates.now()
 		T =
 			if timing_mode == :none
-				build_tree(Y_train, X_train; tree_args..., modal_args..., gammas = gammas_train, rng = rng)
+				build_tree(X_train, Y_train; tree_args..., modal_args..., rng = rng)
 			elseif timing_mode == :time
-				@time build_tree(Y_train, X_train; tree_args..., modal_args..., gammas = gammas_train, rng = rng)
+				@time build_tree(X_train, Y_train; tree_args..., modal_args..., rng = rng)
 			elseif timing_mode == :btime
-				@btime build_tree($Y_train, $X_train; $tree_args..., $modal_args..., gammas = $gammas_train, rng = $rng)
+				@btime build_tree($X_train, $Y_train; $tree_args..., $modal_args..., rng = $rng)
 			end
 		Tt = Dates.now() - started
 		println("Train tree:")
@@ -517,11 +552,11 @@ function testDataset(
 				started = Dates.now()
 				[
 					if timing_mode == :none
-						build_forest(Y_train, X_train; f_args..., modal_args..., gammas = gammas_train, rng = rng);
+						build_forest(X_train, Y_train; f_args..., modal_args..., rng = rng);
 					elseif timing_mode == :time
-						@time build_forest(Y_train, X_train; f_args..., modal_args..., gammas = gammas_train, rng = rng);
+						@time build_forest(X_train, Y_train; f_args..., modal_args..., rng = rng);
 					elseif timing_mode == :btime
-						@btime build_forest($Y_train, $X_train; $f_args..., $modal_args..., gammas = $gammas_train, rng = $rng);
+						@btime build_forest($X_train, $Y_train; $f_args..., $modal_args..., rng = $rng);
 					end
 					for i in 1:forest_runs
 				], (Dates.now() - started)
