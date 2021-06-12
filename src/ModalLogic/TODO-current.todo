@@ -10,6 +10,7 @@ _split!
 - rewrite la parte dove si esegue il passo modale, occhio che best_feature è una feature, non un id di attributo. Attenzione, forse conviene portarsi dietro i dataset in forma originale per fare un cross check?
 - sistema il modo in cui vengono scansionate le decisioni (WorldType tree.jl riga 177)
 - WorldType riga 192
+- TODO add consistency_step_data
 
 Fix the T = Float64
 
@@ -27,6 +28,12 @@ Create class for labeled datasets, and remove slice_mf_dataset.
 
 ModalLogic.getInstanceAttribute(Xi, che usa tree.feature)
 DecisionTree.checkGammasConsistency da qualche parte (gammas[i], Xs[i], test_operators, relationSet)
+
+# if (length(availableRelation_ids) == 0)
+	# error("No available relation!")
+	# TODO actually this could be.
+# end
+
 
 ☐	TODO add enumAccReprAggr for relationAll, and for all worldtypes and relations
 ☐	TODO lancia con operatori hard
