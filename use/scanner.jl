@@ -83,39 +83,39 @@ include("dataset-utils.jl")
 #gammas_saving_task = nothing
 
 function testDataset(
-		name                            ::String,
-		dataset                         ::Tuple,
-		split_threshold                 ::Union{Bool,AbstractFloat};
-		###
-		forest_args                     = [],
-		tree_args                       = [],
-		optimize_forest_computation     = false,
-		tree_post_pruning_purity_thresh = [],
+		dataset                         ::Tuple;
+		### Training params
+		train_seed                      = 1,
 		modal_args                      = (),
+		tree_args                       = [],
+		tree_post_pruning_purity_thresh = [],
+		forest_args                     = [],
 		forest_runs                     = 1,
+		optimize_forest_computation     = false,
 		test_flattened                  = false, # TODO: Also test the same models but propositional (flattened, average+variance+...+curtosis?)
-		train_seed                      ::Integer = 1,
-		###
+		### Dataset params
+		split_threshold                 ::Union{Bool,AbstractFloat} = 1.0,
 		data_modal_args                 = (),
 		dataset_slice                   ::Union{AbstractVector,Nothing} = nothing,
 		round_dataset_to_datatype       ::Union{Bool,Type} = false,
 		precompute_gammas               = true,
 		gammas_save_path                ::Union{String,NTuple{2,String},Nothing} = nothing,
 		save_tree_path                  ::Union{String,Nothing} = nothing,
-		###
+		### Run params
+		run_name                        ::String,
 		log_level                       = DecisionTree.DTOverview,
 		timing_mode                     ::Symbol = :time,
 	)
-	println("Benchmarking dataset '$name' (train_seed = $(train_seed))...")
+	println("Benchmarking dataset '$run_name' (train_seed = $(train_seed))...")
 	global_logger(ConsoleLogger(stderr, Logging.Warn));
 
-	function buildModalDatasets(modal_args, Xs_train_all::Vector{<:MatricialDataset}, X_test::Vector{<:MatricialDataset})	
+	function buildModalDatasets(Xs_train_all::Vector{<:MatricialDataset}, X_test::Vector{<:MatricialDataset})	
 		X_test = MultiFrameOntologicalDataset(data_modal_args.ontology, X_test)
 
 		if !precompute_gammas
 			error("TODO !precompute_gammas not coded yet")
 			Xs_train_all = MultiFrameOntologicalDataset(data_modal_args.ontology, Xs_train_all)
-			(modal_args, Xs_train_all, X_test)
+			(Xs_train_all, X_test)
 		else
 			WorldType = world_type(data_modal_args.ontology)
 
@@ -388,26 +388,26 @@ function testDataset(
 			########################################################
 			########################################################
 			
-			# println("(optimized) modal_args = ", modal_args)
 			global_logger(old_logger);
-			(modal_args, Xs_train_all_multiframe_stump_fmd, X_test)
+			(Xs_train_all_multiframe_stump_fmd, X_test)
 		end
 	end
 
-	println("forest_args = ", forest_args)
-	# println("forest_args = ", length(forest_args), " × some forest_args structure")
-	println("tree_args   = ", tree_args)
-	println("modal_args  = ", modal_args)
-	println(typeof(dataset))
+	println("forest_args  = ", forest_args)
+	# println("forest_args  = ", length(forest_args), " × some forest_args structure")
+	println("tree_args    = ", tree_args)
+	println("modal_args   = ", modal_args)
+	println()
+	println("data_modal_args   = ", data_modal_args)
+	println("dataset type = ", typeof(dataset))
 
 	# Slice & split the dataset according to dataset_slice & split_threshold
-	# The instances for which the gammas are computed are either all, or the ones specified for training.	
+	# The instances for which the full stumpFeatModalDataset is computed are either all, or the ones specified for training.	
 	# This depends on whether the dataset is already splitted or not.
-	modal_args, (X_train, Y_train), (X_test, Y_test) = 
-		if split_threshold != false
-
+	(X_train, Y_train), (X_test, Y_test) = 
+		if split_threshold != false # Dataset is to splitted
+			
 			# Unpack dataset
-			length(dataset) == 2 || error("Wrong dataset length: $(length(dataset))")
 			X, Y = dataset
 
 			# Apply scaling
@@ -417,28 +417,28 @@ function testDataset(
 			end
 			
 			# Compute mffmd for the full set of instances
-			modal_args, X, _ = buildModalDatasets(modal_args, X, X)
+			X_to_train, X_to_test = buildModalDatasets(X, X)
 
-			# Slice instances
-			X, Y =
+			# Slice instances (for balancing, for example)
+			X_to_train, X_to_test, Y =
 				if isnothing(dataset_slice)
-					(X, Y,)
+					(X_to_train, X_to_test, Y,)
 				else
 					(
-						ModalLogic.slice_dataset(X, dataset_slice),
-						Y[dataset_slice]
+						ModalLogic.slice_dataset(X_to_train, dataset_slice),
+						ModalLogic.slice_dataset(X_to_test,  dataset_slice),
+						Y[dataset_slice],
 					)
-				end
+			end
 			
 			# Split in train/test
-			((X_train, Y_train), (X_test, Y_test)) =
-				traintestsplit((X, Y), split_threshold)
+			(X_train, Y_train), _ = traintestsplit((X_to_train, Y), split_threshold)
+			_, (X_test, Y_test)   = traintestsplit((X_to_test,  Y), split_threshold)
 
-			modal_args, (X_train, Y_train), (X_test, Y_test)
-		else
+			(X_train, Y_train), (X_test, Y_test)
+		else # Dataset is already splitted
 
 			# Unpack dataset
-			length(dataset) == 2 || error("Wrong dataset length: $(length(dataset))")
 			(X_train, Y_train), (X_test, Y_test) = dataset
 
 			# Apply scaling
@@ -448,9 +448,9 @@ function testDataset(
 			end
 			
 			# Compute mffmd for the training instances
-			modal_args, X_train, X_test = buildModalDatasets(modal_args, X_train, X_test)
+			X_train, X_test = buildModalDatasets(X_train, X_test)
 
-			# Slice training instances
+			# Slice training instances (for balancing, for example)
 			X_train, Y_train =
 				if isnothing(dataset_slice)
 					(X_train, Y_train,)
@@ -461,11 +461,11 @@ function testDataset(
 					)
 				end
 
-			modal_args, (X_train, Y_train), (X_test, Y_test)
-		end
+			(X_train, Y_train), (X_test, Y_test)
+	end
 
-	# println(" n_samples = $(size(X_train)[end-1])")
 	println(" train size = $(size(X_train))")
+	println(" test  size = $(size(X_test))")
 	# global_logger(ConsoleLogger(stderr, Logging.Info))
 	# global_logger(ConsoleLogger(stderr, log_level))
 	# global_logger(ConsoleLogger(stderr, DecisionTree.DTDebug))
@@ -536,7 +536,7 @@ function testDataset(
 			cm = confusion_matrix(Y_test, preds)
 			# @test cm.overall_accuracy > 0.99
 
-			println("RESULT:\t$(name)\t$(tree_args)\t$(modal_args)\t$(pruning_purity_threshold)\t$(display_cm_as_row(cm))")
+			println("RESULT:\t$(run_name)\t$(tree_args)\t$(modal_args)\t$(pruning_purity_threshold)\t$(display_cm_as_row(cm))")
 			
 			println(cm)
 			# @show cm
@@ -585,7 +585,7 @@ function testDataset(
 			cm = confusion_matrix(Y_test, preds)
 			# @test cm.overall_accuracy > 0.99
 
-			println("RESULT:\t$(name)\t$(f_args)\t$(modal_args)\t$(display_cm_as_row(cm))")
+			println("RESULT:\t$(run_name)\t$(f_args)\t$(modal_args)\t$(display_cm_as_row(cm))")
 
 			# println("  accuracy: ", round(cm.overall_accuracy*100, digits=2), "% kappa: ", round(cm.kappa*100, digits=2), "% ")
 			for (i,row) in enumerate(eachrow(cm.matrix))

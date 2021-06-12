@@ -134,7 +134,7 @@ forest_args = []
 #	end
 #end
 
-split_threshold = 1.0
+split_threshold = 0.8
 
 precompute_gammas = true
 
@@ -311,6 +311,8 @@ for i in exec_runs
 		#####################################################
 		n_task, n_version, nbands, dataset_kwargs, use_full_mfcc, test_operators, preprocess_wavs = params_combination
 
+		run_name = "($(n_task),$(n_version))" # TODO more verbose name?
+
 		# LOAD DATASET
 		dataset_file_name = saved_datasets_path * "/" * row_ref
 
@@ -350,7 +352,7 @@ for i in exec_runs
 					dataset_slice = dataset_slice[:]
 
 					balanced_dataset = slice_mf_dataset((X,Y), dataset_slice)
-					(X_train, Y_train), (X_test, Y_test) = traintestsplit(dataset, split_threshold)
+					(X_train, Y_train), (X_test, Y_test) = traintestsplit(balanced_dataset, split_threshold)
 					JLD2.@save (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
 					balanced_train = (X_train, Y_train)
 					JLD2.@save (dataset_file_name * "-balanced-train.jld") balanced_train
@@ -386,7 +388,7 @@ for i in exec_runs
 					(X, Y) = dataset
 					JLD2.@save (dataset_file_name * ".jld")                dataset n_pos n_neg
 					balanced_dataset = slice_mf_dataset((X,Y), dataset_slice)
-					(X_train, Y_train), (X_test, Y_test) = traintestsplit(dataset, split_threshold)
+					(X_train, Y_train), (X_test, Y_test) = traintestsplit(balanced_dataset, split_threshold)
 					JLD2.@save (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
 					balanced_train = (X_train, Y_train)
 					JLD2.@save (dataset_file_name * "-balanced-train.jld") balanced_train
@@ -413,9 +415,9 @@ for i in exec_runs
 
 		# ACTUAL COMPUTATION
 		Ts, Fs, Tcms, Fcms, Tts, Fts = testDataset(
-					"($(n_task),$(n_version))", # TODO more verbose name?
 					dataset,
-					split_threshold,
+					run_name                    = run_name,
+					split_threshold             =   split_threshold,
 					log_level                   =   log_level,
 					round_dataset_to_datatype   =   round_dataset_to_datatype,
 					dataset_slice               =   dataset_slice,

@@ -48,29 +48,38 @@ end
 # Scale and round dataset to fit into a certain datatype's range:
 # For integers: find minimum and maximum (ignoring Infs), and rescale the dataset
 # For floating-point, numbers, round
-# TODO roundDataset 
 roundDataset((X,Y)::Tuple{Any,Vector}, type::Type = UInt8) = (mapArrayToDataType(type, X),Y)
-roundDataset(((X_train,Y_train),(X_test,Y_test))::Tuple, type::Type = UInt8) = begin
+roundDataset(((X_train,Y_train),(X_test,Y_test))::Tuple{Tuple,Tuple}, type::Type = UInt8) = begin
 	X_train, X_test = mapArrayToDataType(type, (X_train, X_test))
 	(X_train,Y_train),(X_test,Y_test)
 end
-mapArrayToDataType(type::Type{<:Integer}, array::AbstractArray; minVal = minimum(array), maxVal = maximum(array)) = begin
+
+# Multiframe datasets: scale each frame independently
+mapArrayToDataType(type::Type, mf_array::AbstractArray{<:AbstractArray}) = begin
+	map(a->mapArrayToDataType(type, a), mf_array)
+end
+mapArrayToDataType(type::Type, mf_arrays::NTuple{N,AbstractArray{<:AbstractArray}}) where {N} = begin
+	zip(map((arrays)->mapArrayToDataType(type, arrays), zip(mf_arrays...))...)
+end
+
+# Integer: rescale datasets in the available discrete range.
+#  for tuples of datasets, min and max are calculated across all datasets
+mapArrayToDataType(type::Type{<:Integer}, arrays::NTuple{N,AbstractArray{<:Real}}) where {N} = begin
+	minVal, maxVal = minimum(minimum.(array)), maximum(maximum.(array))
+	map((array)->mapArrayToDataType(type,array), arrays; minVal = minVal, maxVal = maxVal)
+end
+mapArrayToDataType(type::Type{<:Integer}, array::AbstractArray{<:Real}; minVal = minimum(array), maxVal = maximum(array)) = begin
 	normalized_array = (array.-minVal)./(maxVal-minVal)
 	typemin(type) .+ round.(type, (big(typemax(type))-big(typemin(type)))*normalized_array)
 end
 
-mapArrayToDataType(type::Type{<:Integer}, arrays::Tuple) = begin
-	minVal, maxVal = minimum(minimum.(array)), maximum(maximum.(array))
-	map((array)->mapArrayToDataType(type,array), arrays; minVal = minVal, maxVal = maxVal)
+# Floats: just round to the nearest float
+mapArrayToDataType(type::Type{<:AbstractFloat}, arrays::NTuple{N,AbstractArray{<:Real}}) where {N} = begin
+	map((array)->mapArrayToDataType(type,array), arrays)
 end
 
-mapArrayToDataType(type::Type{<:AbstractFloat}, array::AbstractArray) = begin
+mapArrayToDataType(type::Type{<:AbstractFloat}, array::AbstractArray{<:Real}) = begin
 	# TODO worry about eps of the target type and the magnitude of values in array
 	#  (and eventually scale up or down the array). Also change mapArrayToDataType(type, Xs::Tuple) then
 	type.(array)
 end
-
-mapArrayToDataType(type::Type{<:AbstractFloat}, arrays::Tuple) = begin
-	map((array)->mapArrayToDataType(type,array), arrays)
-end
-
