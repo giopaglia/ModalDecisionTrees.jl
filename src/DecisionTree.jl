@@ -19,17 +19,19 @@ const DTDetail = Logging.LogLevel(-1500)
 
 # TODO update these
 export DTNode, DTLeaf, DTInternal,
-			 is_leaf, is_modal_node,
-			 num_nodes, height, modal_height,
-			 build_stump, build_tree,
-			 build_forest, apply_forest,
-       print_tree, prune_tree, apply_tree, print_forest,
-			 ConfusionMatrix, confusion_matrix, mean_squared_error, R2, load_data,
-			 #
-			 startWithRelationAll, startAtCenter,
-			 DTOverview, DTDebug, DTDetail,
-			 #
-			 GammaType, GammaSliceType, spawn_rng
+				is_leaf, is_modal_node,
+				num_nodes, height, modal_height,
+				build_stump, build_tree,
+				build_forest, apply_forest,
+				print_tree, prune_tree, apply_tree, print_forest,
+				ConfusionMatrix, confusion_matrix, mean_squared_error, R2, load_data,
+				#
+				startWithRelationAll, startAtCenter,
+				DTOverview, DTDebug, DTDetail,
+				#
+				GammaType, GammaSliceType, spawn_rng,
+				#
+				initWorldSet
 
 
 # ScikitLearn API
