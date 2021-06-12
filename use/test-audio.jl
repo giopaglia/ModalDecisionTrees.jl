@@ -76,7 +76,7 @@ round_dataset_to_datatype = false
 dataset, n_pos, n_neg = KDDDataset_not_stratified((n_task,n_version), audio_kwargs; dataset_kwargs...)
 println(dataset[1] |> size)
 
-testDataset("Test",
+execRun("Test",
 		dataset,
 		0.8;
 		log_level          =  log_level,
@@ -95,7 +95,7 @@ testDataset("Test",
 # 			dataset = KDDDataset_not_stratified((n_task,n_version), audio_kwargs; dataset_kwargs...)
 # 			# (1,1) -> 994
 
-# 			testDataset("($(n_task),$(n_version))", dataset, 0.8, 0,
+# 			execRun("($(n_task),$(n_version))", dataset, 0.8, 0,
 # 						log_level=log_level,
 # 						round_dataset_to_datatype=round_dataset_to_datatype,
 # 						forest_args=forest_args,
@@ -124,7 +124,7 @@ testDataset("Test",
 # dataset = KDDDataset_not_stratified((3,1), audio_kwargs; dataset_kwargs..., rng = rng) # 46/13 -> 13/13
 # dataset = KDDDataset_not_stratified((3,2), audio_kwargs; dataset_kwargs..., rng = rng) # 46/13 -> 13/13
 
-# testDataset("Test", dataset, 0.8, 0, log_level=log_level,
+# execRun("Test", dataset, 0.8, 0, log_level=log_level,
 # 			forest_args=forest_args, args=args, modal_args=modal_args,
 # 			test_tree = true, test_forest = true);
 

@@ -156,7 +156,7 @@ if log_results_best_values
 
 	for i in 1:repeat_test
 
-		global T, F, Tcm, Fcm = testDataset(
+		global T, F, Tcm, Fcm = execRun(
 			"Test",
 			dataset,
 			false;
@@ -193,7 +193,7 @@ if log_results_best_values
 		forest_oob_error
 	)
 else
-	T, F, Tcm, Fcm = testDataset(
+	T, F, Tcm, Fcm = execRun(
 		"Test",
 		dataset,
 		false;

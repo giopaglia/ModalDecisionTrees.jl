@@ -414,7 +414,7 @@ for i in exec_runs
 		)
 
 		# ACTUAL COMPUTATION
-		Ts, Fs, Tcms, Fcms, Tts, Fts = testDataset(
+		Ts, Fs, Tcms, Fcms, Tts, Fts = execRun(
 					dataset,
 					run_name                    = run_name,
 					split_threshold             =   split_threshold,
@@ -499,7 +499,7 @@ checkpoint_stdout("Finished!")
 # dataset = KDDDataset_not_stratified((3,2), audio_kwargs; dataset_kwargs..., rng = main_rng); # 54/20
 # dataset[1] |> size # (2673, 40)
 
-# testDataset("Test", dataset, 0.8, 0, log_level=log_level,
+# execRun("Test", dataset, 0.8, 0, log_level=log_level,
 # 			forest_args=forest_args, args=args, kwargs=modal_args,
 # 			test_tree = true, test_forest = true);
 

@@ -202,7 +202,7 @@ for i in exec_runs
 		)
 
 		# ACTUAL COMPUTATION
-		T, F, Tcm, Fcm = testDataset(
+		T, F, Tcm, Fcm = execRun(
 				"$(params_combination)",
 				dataset,
 				split_threshold,

@@ -82,7 +82,7 @@ include("dataset-utils.jl")
 
 #gammas_saving_task = nothing
 
-function testDataset(
+function execRun(
 		dataset                         ::Tuple;
 		### Training params
 		train_seed                      = 1,
@@ -705,7 +705,7 @@ function testDataset(
 	# try
 	go()
 	# catch e
-	# 	println("testDataset: An error occurred!")
+	# 	println("execRun: An error occurred!")
 	# 	println(e)
 	# 	return;
 	# end
