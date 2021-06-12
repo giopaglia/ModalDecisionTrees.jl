@@ -1,11 +1,5 @@
 
 
-Fix the T = Float64
-
-test on MultiFrameOntologicalDataset(X_test) (anche caso split_threshold != false -> buildModalDatasets(modal_args, X, X))
-
-consistency checks down the dataset pipeline, modalDatasetIsConsistent_m,_g etc.
-
 In tree.jl
 - rimuovi i gammas
 _split!
@@ -17,9 +11,15 @@ _split!
 - sistema il modo in cui vengono scansionate le decisioni (WorldType tree.jl riga 177)
 - WorldType riga 192
 
+Fix the T = Float64
+
+test on MultiFrameOntologicalDataset(X_test) (anche caso split_threshold != false -> buildModalDatasets(modal_args, X, X))
+
+
+consistency checks down the dataset pipeline, modalDatasetIsConsistent_m,_g etc.
+
 {computeRelationAll = true} -> relationAll nella ontologia
 
-Valuta quanto è meglio usare accrepr_functions anzichè acc_functions
 
 Create class for labeled datasets, and remove slice_mf_dataset.
 
@@ -38,7 +38,8 @@ non-precompute_gammas, that is, allow training directly on Ontological Dataset
 
 Nota: del test non c'è bisogno di calcolare il dataset in forma non-ontologica
 
-round_dataset_to_datatype != false, roundDataset
+Valuta quanto è meglio usare accrepr_functions anzichè acc_functions
+Testa round_dataset_to_datatype/mapArrayToDataType in versione multiframe
 Restore optimize_tree_parameters! optimizations
 
 DONE:
