@@ -279,6 +279,10 @@ slice_dataset(d::OntologicalDataset{T,N,WT}, args::Vararg) where {T,N,WT} = Onto
 struct MultiFrameOntologicalDataset{T}
 	frames  :: AbstractVector{<:OntologicalDataset{T}}
 	MultiFrameOntologicalDataset(Xs::AbstractVector{<:OntologicalDataset{T}}) where {T} = begin
+		MultiFrameOntologicalDataset{T}(Xs)
+	end
+
+	MultiFrameOntologicalDataset{T}(Xs::AbstractVector{<:OntologicalDataset{T}}) where {T} = begin
 		@assert length(Xs) > 0 && length(unique(n_samples.(Xs))) == 1 "Can't create an empty MultiFrameOntologicalDataset or with mismatching number of samples (n_frames: $(length(Xs)), frame_sizes: $(n_samples.(Xs)))."
 		new{T}(Xs)
 	end
@@ -290,7 +294,7 @@ end
 
 # TODO: test all these methods
 size(X::MultiFrameOntologicalDataset) = map(size, X.frames)
-getindex(X::MultiFrameOntologicalDataset, i::Integer) = X.frames[i]
+getindex(X::MultiFrameOntologicalDataset, i) = X.frames[i]
 n_frames(X::MultiFrameOntologicalDataset)             = length(X.frames)
 n_samples(X::MultiFrameOntologicalDataset)            = n_samples(X.frames[1]) # n_frames(X) > 0 ? n_samples(X.frames[1]) : 0
 length(X::MultiFrameOntologicalDataset)               = n_samples(X)
@@ -554,7 +558,7 @@ end
 
 # TODO: test all these methods
 size(X::MultiFrameFeatModalDataset) = map(size, X.frames)
-getindex(X::MultiFrameFeatModalDataset, i::Integer) = X.frames[i]
+getindex(X::MultiFrameFeatModalDataset, i) = X.frames[i]
 n_frames(X::MultiFrameFeatModalDataset)             = length(X.frames)
 n_samples(X::MultiFrameFeatModalDataset)            = n_samples(X.frames[1]) # n_frames(X) > 0 ? n_samples(X.frames[1]) : 0
 length(X::MultiFrameFeatModalDataset)               = n_samples(X)
