@@ -1,0 +1,50 @@
+
+
+Fix the T = Float64
+
+test on MultiFrameOntologicalDataset(X_test) (anche caso split_threshold != false -> buildModalDatasets(modal_args, X, X))
+
+consistency checks down the dataset pipeline, modalDatasetIsConsistent_m,_g etc.
+
+In tree.jl
+- rimuovi i gammas
+- channel_size
+_split!
+- modalDatasetGet,modalDatasetGet_m,modalDatasetGet_g -> unica interfaccia su FMD e FMD support (forse getindex(X::stumpFeatModalDataset{T,WorldType}, args::Vararg) ?)
+- Nota: tree.jl si aspetta relationAll nella ontologia, e valuta se usarlo a tempo di ... secondo onlyUseRelationAll.
+- relations->relation_ids
+- Aggiungici anche gli splits proposizionali
+- rewrite la parte dove si esegue il passo modale, occhio che best_feature è una feature, non un id di attributo. Attenzione, forse conviene portarsi dietro i dataset in forma originale per fare un cross check?
+- sistema il modo in cui vengono scansionate le decisioni (WorldType tree.jl riga 177)
+- WorldType riga 192
+
+{computeRelationAll = true} -> relationAll nella ontologia
+
+Valuta quanto è meglio usare accrepr_functions anzichè acc_functions
+
+Create class for labeled datasets, and remove slice_mf_dataset.
+
+initWorldSet(tree.initConditions, tree.worldTypes, channel_size(X)) : da risolvere ancora una volta tramite funzioni che inizializzano mondi per ciascuna istanza?
+ModalLogic.getInstanceAttribute(Xi, che usa tree.feature)
+DecisionTree.checkGammasConsistency da qualche parte (gammas[i], Xs[i], test_operators, relationSet)
+
+☐	TODO add enumAccReprAggr for relationAll, and for all worldtypes and relations
+☐	TODO lancia con operatori hard
+
+In scanner.jl rimuovi i gammas, rimuovi test_operators cambia il modo di indicare le features e featsnops
+- Rimuovere anche enumAccRepr
+
+rename modality<->relation, and i_frame
+
+non-precompute_gammas, that is, allow training directly on Ontological Dataset
+
+Nota: del test non c'è bisogno di calcolare il dataset in forma non-ontologica
+
+round_dataset_to_datatype != false, roundDataset
+Restore optimize_tree_parameters! optimizations
+
+DONE:
+
+Fix useRelationAll e useRelationId. Probabilmente è meglio tenere useRelationAll.
+DTree.initCondition->initConditions, DTree.worldType->worldTypes
+Sf->Sfs, S->Ss

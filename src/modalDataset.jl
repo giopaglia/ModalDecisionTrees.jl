@@ -3,7 +3,9 @@ using BenchmarkTools
 
 
 export computeModalDataset, computeModalDataset_m,
-				stumpModalDataset
+				stumpModalDataset,
+				ModalDatasetMType,
+				ModalDatasetGType
 				# , modalDataset
 
 @inline function checkModalDatasetConsistency(modalDataset, X::OntologicalDataset{T, N, WorldType}, features::AbstractVector{<:FeatureTypeFun}) where {T, N, WorldType<:AbstractWorld}
@@ -183,7 +185,7 @@ end
 function computeModalDataset_m(
 		X::OntologicalDataset{T, N, WorldType},
 		relations::AbstractVector{<:AbstractRelation},
-		grouped_featnaggrs::AbstractVector{AbstractVector{<:Aggregator}},
+		grouped_featnaggrs::AbstractVector{<:AbstractVector{<:Aggregator}},
 		modalDatasetP::ModalDatasetPType{T}, # TODO write stricter type
 		# modalDatasetP::modalDatasetType(OntologicalDataset{T, N, WorldType}),
 		# modalDatasetP::modalDatasetType(typeof(X)), # TODO make either this or X an optional argument

@@ -50,6 +50,15 @@ yieldRepr(test_operator::_TestOpLeq, repr::_ReprNone{Interval}, channel::Matrici
 enumAccRepr(test_operator::_TestOpGeq, w::Interval, ::_RelationAll, X::Integer) = _ReprMax(Interval(1,X+1))
 enumAccRepr(test_operator::_TestOpLeq, w::Interval, ::_RelationAll, X::Integer) = _ReprMin(Interval(1,X+1))
 
+enumAccReprAggr(f::Union{AttributeMinimumFeatureType,AttributeMaximumFeatureType}, a::Union{typeof(minimum),typeof(maximum)}, ::AbstractWorldSet{Interval}, r::_RelationAll,  X::Integer) = IterTools.imap(Interval, enumShortPairsIn(1, X+1))
+enumAccReprAggr(f::Union{AttributeMaximumFeatureType}, a::typeof(maximum), ::AbstractWorldSet{Interval}, r::_RelationAll,  X::Integer) = Interval[Interval(1, X+1)  ]
+enumAccReprAggr(f::Union{AttributeMinimumFeatureType}, a::typeof(minimum), ::AbstractWorldSet{Interval}, r::_RelationAll,  X::Integer) = Interval[Interval(1, X+1)  ]
+
+enumAccReprAggr(f::Union{AttributeSoftMinimumFeatureType,AttributeSoftMaximumFeatureType}, a::Union{typeof(minimum),typeof(maximum)}, ::AbstractWorldSet{Interval}, r::_RelationAll,  X::Integer) = IterTools.imap(Interval, enumShortPairsIn(1, X+1))
+enumAccReprAggr(f::Union{AttributeSoftMaximumFeatureType}, a::typeof(maximum), ::AbstractWorldSet{Interval}, r::_RelationAll,  X::Integer) = Interval[Interval(1, X+1)  ]
+enumAccReprAggr(f::Union{AttributeSoftMinimumFeatureType}, a::typeof(minimum), ::AbstractWorldSet{Interval}, r::_RelationAll,  X::Integer) = Interval[Interval(1, X+1)  ]
+
+
 # TODO optimize relationAll
 computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval, r::R where R<:AbstractRelation, channel::MatricialChannel{T,1}) where {T} =
 	yieldReprs(test_operator, enumAccRepr(test_operator, w, r, size(channel)...), channel)
