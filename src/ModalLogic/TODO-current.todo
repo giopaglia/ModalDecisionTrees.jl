@@ -13,8 +13,10 @@ _split!
 
 Fix the T = Float64
 
-test on MultiFrameOntologicalDataset(X_test) (anche caso split_threshold != false -> buildModalDatasets(modal_args, X, X))
+Scrivi i apply_tree per MultiFrameOntologicalDataset e MultiFrameFeatModalDataset e verifica che funzioni tutto.
 
+Verifica che il caching avvenga correttamente
+Verifica caso split_threshold == false
 
 consistency checks down the dataset pipeline, modalDatasetIsConsistent_m,_g etc.
 
