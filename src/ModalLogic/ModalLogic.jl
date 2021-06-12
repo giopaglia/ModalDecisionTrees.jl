@@ -28,8 +28,9 @@ abstract type AbstractWorld end
 abstract type AbstractRelation end
 
 show(io::IO, r::AbstractRelation) = print(io, display_existential_modality(r))
-display_existential_modality(r) = "⟨" * display_rel_short(r) * "⟩"
+display_existential_modality(r) = "⟨$(display_rel_short(r))⟩"
 
+const initWorldSetFunction = Function
 const accFunction = Function
 const accReprFunction = Function
 
@@ -293,6 +294,7 @@ getindex(X::MultiFrameOntologicalDataset, i::Integer) = X.frames[i]
 n_frames(X::MultiFrameOntologicalDataset)             = length(X.frames)
 n_samples(X::MultiFrameOntologicalDataset)            = n_samples(X.frames[1]) # n_frames(X) > 0 ? n_samples(X.frames[1]) : 0
 length(X::MultiFrameOntologicalDataset)               = n_samples(X)
+frames(X::MultiFrameOntologicalDataset) = X.frames
 Base.iterate(X::MultiFrameOntologicalDataset, state=1) = state > length(X) ? nothing : (getInstance(X, state), state+1)
 n_attributes(X::MultiFrameOntologicalDataset) = sum(n_attributes.(X.frames))
 n_attributes(X::MultiFrameOntologicalDataset, i_frame::Integer) = n_attributes(X.frames[i_frame])
@@ -321,6 +323,10 @@ struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 	## Modal frame:
 	# Accessibility relations
 	relations          :: AbstractVector{<:AbstractRelation}
+	
+	# Worldset initialization functions (one per instance)
+	#  with signature (w::WorldType, r::AbstractRelation) -> vs::AbstractVector{WorldType}
+	initws_functions      :: AbstractVector{<:initWorldSetFunction}
 	# Accessibility functions (one per instance)
 	#  with signature (w::WorldType, r::AbstractRelation) -> vs::AbstractVector{WorldType}
 	acc_functions      :: AbstractVector{<:accFunction}
@@ -337,15 +343,17 @@ struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 	FeatModalDataset(
 		fwd                :: AbstractFeaturedWorldDataset{T,WorldType},
 		relations          :: AbstractVector{<:AbstractRelation},
+		initws_functions   :: AbstractVector{<:initWorldSetFunction},
 		acc_functions      :: AbstractVector{<:accFunction},
 		accrepr_functions  :: AbstractVector{<:accReprFunction},
 		features           :: AbstractVector{<:FeatureTypeFun},
 		grouped_featsnops  :: AbstractVector{<:AbstractVector{<:TestOperatorFun}},
-	) where {T,WorldType} = begin FeatModalDataset{T, WorldType<:AbstractWorld}(fwd, relations, acc_functions, accrepr_functions, features, grouped_featsnops) end
+	) where {T,WorldType} = begin FeatModalDataset{T, WorldType<:AbstractWorld}(fwd, relations, initws_functions, acc_functions, accrepr_functions, features, grouped_featsnops) end
 
 	function FeatModalDataset{T, WorldType}(
 		fwd                :: AbstractFeaturedWorldDataset{T,WorldType},
 		relations          :: AbstractVector{<:AbstractRelation},
+		initws_functions   :: AbstractVector{<:initWorldSetFunction},
 		acc_functions      :: AbstractVector{<:accFunction},
 		accrepr_functions  :: AbstractVector{<:accReprFunction},
 		features           :: AbstractVector{<:FeatureTypeFun},
@@ -353,10 +361,11 @@ struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 	) where {T,WorldType<:AbstractWorld}
 		@assert n_samples(fwd) > 0 "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with no instance. (fwd's type $(typeof(fwd)))"
 		@assert length(grouped_featsnops) > 0 "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with no test operator."
+		@assert n_samples(fwd) == length(initws_functions) "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with different numbers of instances $(n_samples(fwd)) and of initws_functions $(length(initws_functions))."
 		@assert n_samples(fwd) == length(acc_functions) "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with different numbers of instances $(n_samples(fwd)) and of acc_functions $(length(acc_functions))."
 		@assert n_samples(fwd) == length(accrepr_functions) "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with different numbers of instances $(n_samples(fwd)) and of accrepr_functions $(length(accrepr_functions))."
 		@assert n_features(fwd) == length(features) "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with different numbers of instances $(n_samples(fwd)) and of features $(length(features))."
-		new{T, WorldType}(fwd, relations, acc_functions, accrepr_functions, features, grouped_featsnops)
+		new{T, WorldType}(fwd, relations, initws_functions, acc_functions, accrepr_functions, features, grouped_featsnops)
 	end
 
 	FeatModalDataset(
@@ -370,10 +379,11 @@ struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 
 		# TODO optimize this! When the underlying MatricialDataset is an AbstractArray, this is going to be an array of a single function.
 		# How to achievi this? Think about it.
+		initws_functions = [(iC)->initWorldSet(iC, WorldType, inst_channel_size(instance)) for instance in X]
 		acc_functions = [(w,R)->enumAccessibles(w,R,inst_channel_size(instance)...) for instance in X]
 		accrepr_functions = [(f,a,w,R)->enumAccReprAggr(f,a,w,R,inst_channel_size(instance)...) for instance in X]
 
-		FeatModalDataset{T, WorldType}(fwd, relations, acc_functions, accrepr_functions, features, grouped_featsnops)
+		FeatModalDataset{T, WorldType}(fwd, relations, initws_functions, acc_functions, accrepr_functions, features, grouped_featsnops)
 	end
 
 end
@@ -391,6 +401,7 @@ slice_dataset(X::FeatModalDataset{T,WorldType}, inds::AbstractVector{<:Integer},
 	FeatModalDataset{T,WorldType}(
 		slice_dataset(X.fwd, inds, args...),
 		X.relations,
+		X.initws_functions[inds],
 		X.acc_functions[inds],
 		X.accrepr_functions[inds],
 		X.features,
@@ -548,6 +559,7 @@ n_frames(X::MultiFrameFeatModalDataset)             = length(X.frames)
 n_samples(X::MultiFrameFeatModalDataset)            = n_samples(X.frames[1]) # n_frames(X) > 0 ? n_samples(X.frames[1]) : 0
 length(X::MultiFrameFeatModalDataset)               = n_samples(X)
 Base.iterate(X::MultiFrameFeatModalDataset, state=1) = state > length(X) ? nothing : (getInstance(X, state), state+1)
+frames(X::MultiFrameFeatModalDataset) = X.frames
 # get total number of features (TODO: figure if this is useless or not)
 n_features(X::MultiFrameFeatModalDataset) = sum(n_features.(X.frames))
 # get number of features in a single frame

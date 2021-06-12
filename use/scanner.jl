@@ -86,23 +86,24 @@ function testDataset(
 		name                            ::String,
 		dataset                         ::Tuple,
 		split_threshold                 ::Union{Bool,AbstractFloat};
-		log_level                       = DecisionTree.DTOverview,
-		round_dataset_to_datatype       ::Union{Bool,Type} = false,
-		post_pruning_purity_thresholds  = [],
+		###
 		forest_args                     = [],
 		tree_args                       = [],
-		data_modal_args                 = (),
-		modal_args                      = (),
-		test_flattened                  = false,
-		# TODO add test_averaged          = false,
-		precompute_gammas               = true,
 		optimize_forest_computation     = false,
+		tree_post_pruning_purity_thresh = [],
+		modal_args                      = (),
 		forest_runs                     = 1,
+		test_flattened                  = false, # TODO: Also test the same models but propositional (flattened, average+variance+...+curtosis?)
+		train_seed                      ::Integer = 1,
+		###
+		data_modal_args                 = (),
+		dataset_slice                   ::Union{AbstractVector,Nothing} = nothing,
+		round_dataset_to_datatype       ::Union{Bool,Type} = false,
+		precompute_gammas               = true,
 		gammas_save_path                ::Union{String,NTuple{2,String},Nothing} = nothing,
 		save_tree_path                  ::Union{String,Nothing} = nothing,
-		dataset_slice                   ::Union{AbstractVector,Nothing} = nothing,
-		error_catching                  = false,
-		train_seed                      ::Integer = 1,
+		###
+		log_level                       = DecisionTree.DTOverview,
 		timing_mode                     ::Symbol = :time,
 	)
 	println("Benchmarking dataset '$name' (train_seed = $(train_seed))...")
@@ -252,7 +253,6 @@ function testDataset(
 
 				println("OntologicalDataset size:\t\t\t$(Base.summarysize(X_train_all) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
 				println("FeaturedWorldDataset size:\t\t\t$(Base.summarysize(fmd) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
-
 
 				# Check consistency between FeaturedWorldDataset and modalDataset
 
@@ -528,7 +528,7 @@ function testDataset(
 
 		println(" test size = $(size(X_test))")
 		cm = nothing
-		for pruning_purity_threshold in sort(unique([(Float64.(post_pruning_purity_thresholds))...,1.0]))
+		for pruning_purity_threshold in sort(unique([(Float64.(tree_post_pruning_purity_thresh))...,1.0]))
 			println(" Purity threshold $pruning_purity_threshold")
 			
 			T_pruned = prune_tree(T, pruning_purity_threshold)
@@ -702,15 +702,11 @@ function testDataset(
 		Ts, Fs, Tcms, Fcms, Tts, Fts
 	end
 
-	if error_catching 
-		try
-			go()
-		catch e
-			println("ERROR occurred!")
-			println(e)
-			return;
-		end
-	else
-			go()
-	end
+	# try
+	go()
+	# catch e
+	# 	println("testDataset: An error occurred!")
+	# 	println(e)
+	# 	return;
+	# end
 end
