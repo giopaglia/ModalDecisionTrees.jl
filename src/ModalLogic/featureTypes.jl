@@ -1,4 +1,4 @@
-export FeatureType, FeatureTypeFun,
+export FeatureType, FeatureTypeNone, FeatureTypeFun,
 				AttributeMinimumFeatureType, AttributeMaximumFeatureType,
 				AttributeSoftMinimumFeatureType, AttributeSoftMaximumFeatureType
 
