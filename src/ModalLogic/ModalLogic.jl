@@ -28,8 +28,8 @@ Base.keys(g::Base.Generator) = g.iter
 abstract type AbstractWorld end
 abstract type AbstractRelation end
 
-show(io::IO, r::AbstractRelation) = print(io, display_existential_modality(r))
-display_existential_modality(r) = "⟨$(display_rel_short(r))⟩"
+show(io::IO, r::AbstractRelation) = print(io, display_existential_relation(r))
+display_existential_relation(r) = "⟨$(display_rel_short(r))⟩"
 
 const initWorldSetFunction = Function
 const accFunction = Function
@@ -969,7 +969,7 @@ display_propositional_decision(feature::FeatureTypeFun, test_operator::TestOpera
 display_decision(relation::AbstractRelation, feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number) = begin
 	propositional_decision = display_propositional_decision(feature, test_operator, threshold)
 	if relation != RelationId
-		"$(display_existential_modality(relation)) ($propositional_decision)"
+		"$(display_existential_relation(relation)) ($propositional_decision)"
 	else
 		"$propositional_decision"
 	end

@@ -97,7 +97,7 @@ end
 struct DTInternal{T, S}
 	# Split label
 	i_frame       :: Integer
-	modality      :: AbstractRelation
+	relation      :: AbstractRelation
 	feature       :: ModalLogic.FeatureTypeFun # TODO move FeatureTypeFun out of ModalLogic?
 	test_operator :: TestOperatorFun # Test operator (e.g. <=, ==)
 	threshold     :: T
@@ -107,29 +107,29 @@ struct DTInternal{T, S}
 
 	function DTInternal{T, S}(
 		i_frame       :: Integer,
-		modality      :: AbstractRelation,
+		relation      :: AbstractRelation,
 		feature       :: ModalLogic.FeatureTypeFun,
 		test_operator :: TestOperatorFun,
 		threshold     :: T,
 		left          :: Union{DTLeaf{S}, DTInternal{T, S}},
 		right         :: Union{DTLeaf{S}, DTInternal{T, S}},
 	) where {T, S}
-		new{T, S}(i_frame, modality, feature, test_operator, threshold, left, right)
+		new{T, S}(i_frame, relation, feature, test_operator, threshold, left, right)
 	end
 	function DTInternal(
 		i_frame       :: Integer,
-		modality      :: AbstractRelation,
+		relation      :: AbstractRelation,
 		feature       :: ModalLogic.FeatureTypeFun,
 		test_operator :: TestOperatorFun,
 		threshold     :: T,
 		left          :: Union{DTLeaf{S}, DTInternal{T, S}},
 		right         :: Union{DTLeaf{S}, DTInternal{T, S}},
 	) where {T, S}
-		DTInternal{T, S}(i_frame, modality, feature, test_operator, threshold, left, right)
+		DTInternal{T, S}(i_frame, relation, feature, test_operator, threshold, left, right)
 	end
 end
 
-display_decision(tree::DTInternal) = display_decision(tree.i_frame, tree.modality, tree.feature, tree.test_operator, tree.threshold)
+display_decision(tree::DTInternal) = ModalLogic.display_decision(tree.i_frame, tree.relation, tree.feature, tree.test_operator, tree.threshold)
 
 # Decision node/tree # TODO figure out, maybe this has to be abstract and to supertype DTLeaf and DTInternal
 const DTNode{T, S} = Union{DTLeaf{S}, DTInternal{T, S}}
@@ -177,7 +177,7 @@ is_leaf(l::DTLeaf) = true
 is_leaf(n::DTInternal) = false
 is_leaf(t::DTree) = is_leaf(t.root)
 
-is_modal_node(n::DTInternal) = (!is_leaf(n) && n.modality != RelationId)
+is_modal_node(n::DTInternal) = (!is_leaf(n) && n.relation != RelationId)
 is_modal_node(t::DTree) = is_modal_node(t.root)
 
 zero(String) = ""
@@ -336,7 +336,7 @@ function prune_tree(tree::DTNode, max_purity_threshold::AbstractFloat = 1.0)
 			end
 		else
 			# TODO also associate an Internal node with values and majority (all_labels, majority)
-			return DTInternal(tree.i_frame, tree.modality, tree.feature, tree.test_operator, tree.threshold,
+			return DTInternal(tree.i_frame, tree.relation, tree.feature, tree.test_operator, tree.threshold,
 						_prune_run(tree.left),
 						_prune_run(tree.right))
 		end
@@ -375,7 +375,7 @@ function apply_tree(tree::DTInternal, X::MultiFrameOntologicalDataset, i_instanc
 	@logmsg DTDetail "applying branch..."
 	satisfied = true
 	@logmsg DTDetail " worlds" worlds
-	(satisfied,new_worlds) = ModalLogic.modalStep(get_frame(X, tree.i_frame), i_instance, worlds[tree.i_frame], tree.modality, tree.feature, tree.test_operator, tree.threshold)
+	(satisfied,new_worlds) = ModalLogic.modalStep(get_frame(X, tree.i_frame), i_instance, worlds[tree.i_frame], tree.relation, tree.feature, tree.test_operator, tree.threshold)
 	worlds[tree.i_frame] = new_worlds
 	@logmsg DTDetail " ->(satisfied,worlds')" satisfied worlds
 	apply_tree((satisfied ? tree.left : tree.right), X, i_instance, worlds)
@@ -418,7 +418,7 @@ end
 function _empty_tree_leaves(tree::DTInternal)
 	return DTInternal(
 		tree.i_frame,
-		tree.modality,
+		tree.relation,
 		tree.feature,
 		tree.test_operator,
 		tree.threshold,
@@ -465,12 +465,12 @@ end
 function print_apply_tree(tree::DTInternal{T, S}, X::MultiFrameOntologicalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, class::S; update_majority = false) where {T, S}
 	satisfied = true
 
-	(satisfied,new_worlds) = ModalLogic.modalStep(get_frame(X, tree.i_frame), i_instance, worlds[tree.i_frame], tree.modality, tree.feature, tree.test_operator, tree.threshold)
+	(satisfied,new_worlds) = ModalLogic.modalStep(get_frame(X, tree.i_frame), i_instance, worlds[tree.i_frame], tree.relation, tree.feature, tree.test_operator, tree.threshold)
 	worlds[tree.i_frame] = new_worlds
 
 	return DTInternal(
 		tree.i_frame,
-		tree.modality,
+		tree.relation,
 		tree.feature,
 		tree.test_operator,
 		tree.threshold,
