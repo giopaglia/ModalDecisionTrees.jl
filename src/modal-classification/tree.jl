@@ -290,6 +290,9 @@ module treeclassifier
 			
 			# Compute new world sets (= take a modal step)
 
+			# println(decision_str)
+			decision_str = display_decision(node.i_frame, node.modality, node.feature, node.test_operator, node.threshold)
+			
 			# TODO instead of using memory, here, just use two opposite indices and perform substitutions. indj = n_instances
 			unsatisfied_flags = fill(1, n_instances)
 			for i_instance in 1:n_instances
@@ -300,12 +303,11 @@ module treeclassifier
 				Sf = Sfs[node.i_frame]
 				# instance = ModalLogic.getInstance(X, indX[i_instance + r_start])
 
-				println(display_modal_decision(node.modality, node.test_operator, node.feature, node.threshold))
 				# println(instance)
 				# println(Sf[i_instance])
 				(satisfied,Ss[node.i_frame][indX[i_instance + r_start]]) = ModalLogic.modalStep(X, indX[i_instance + r_start], Sf[i_instance], node.modality, node.feature, node.test_operator, node.threshold)
 				@logmsg DTDetail " [$satisfied] Instance $(i_instance)/$(n_instances)" Sf[i_instance] (if satisfied Ss[node.i_frame][indX[i_instance + r_start]] end)
-				println(satisfied)
+				# println(satisfied)
 				# println(Ss[node.i_frame][indX[i_instance + r_start]])
 				# readline()
 
@@ -313,12 +315,12 @@ module treeclassifier
 				unsatisfied_flags[i_instance] = !satisfied
 			end
 
-			@logmsg DTOverview " Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(node.i_frame) with decision: $(display_modal_decision(node.modality, node.test_operator, node.feature, node.threshold)), purity $(node.purity)"
+			@logmsg DTOverview " Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(node.i_frame) with decision: $(decision_str), purity $(node.purity)"
 
 			@logmsg DTDetail " unsatisfied_flags" unsatisfied_flags
 
 			if length(unique(unsatisfied_flags)) == 1
-				error("An uninformative split was reached. Something's off\nPurity: $(node.purity)\nSplit: $(display_modal_decision(node.modality, node.test_operator, node.feature, node.threshold))\nUnsatisfied flags: $(unsatisfied_flags)")
+				error("An uninformative split was reached. Something's off\nPurity: $(node.purity)\nSplit: $(decision_str)\nUnsatisfied flags: $(unsatisfied_flags)")
 			end
 			
 			# Check consistency
@@ -330,7 +332,7 @@ module treeclassifier
 
 			if best_consistency != consistency
 				errStr = "Something's wrong with the optimization steps.\n"
-				errStr *= "Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(node.i_frame) with decision: $(display_modal_decision(node.modality, node.test_operator, node.feature, node.threshold)), purity $(best_purity)\n"
+				errStr *= "Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(node.i_frame) with decision: $(decision_str), purity $(best_purity)\n"
 				errStr *= "Different separation was expected:\n"
 				if isa(consistency_sat_check,Vector)
 					errStr *= "Actual: $(consistency) ($(sum(consistency)))\n"
@@ -592,12 +594,19 @@ module treeclassifier
 
 		n_instances = n_samples(Xs)
 
-		# Initialize world sets for each instance
-		Ss = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, n_frames(Xs))
-		for (i_frame,X) in enumerate(ModalLogic.frames(Xs))
-			WT = world_type(X)
-			Ss[i_frame] = WorldSet{WT}[initws_functions(X)[i](initConditions[i_frame]) for i in 1:n_instances]
+		# TODO consolidate functions like this
+		init_world_sets(Xs::MultiFrameFeatModalDataset, initConditions::AbstractVector{<:DecisionTree._initCondition}) = begin
+			Ss = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, n_frames(Xs))
+			for (i_frame,X) in enumerate(ModalLogic.frames(Xs))
+				WT = world_type(X)
+				Ss[i_frame] = WorldSet{WT}[initws_function(X, i_instance)(initConditions[i_frame]) for i_instance in 1:n_samples(Xs)]
+			end
+			Ss
 		end
+
+		# Initialize world sets for each instance
+		Ss = init_world_sets(Xs, initConditions)
+
 
 		# Memory support for class counts
 		nc  = Vector{U}(undef, n_classes)

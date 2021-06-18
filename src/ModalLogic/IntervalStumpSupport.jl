@@ -1,8 +1,3 @@
-# TODO clean all of this.
-inst_readWorld(w::Interval, instance::MatricialInstance{T,2}) where {T} = instance[w.x:w.y-1,:]
-# computePropositionalThreshold(feature, w, channel) =  feature(readWorld(w,channel))
-computePropositionalThreshold(feature::FeatureTypeFun, w::AbstractWorld, instance::MatricialInstance) = yieldFunction(feature)(inst_readWorld(w,instance))
-
 
 # FeaturedWorldDataset(
 # 		X::OntologicalDataset{T, N, WorldType},
@@ -146,28 +141,6 @@ const FeaturedWorldDatasetSlice{T} = Union{
 # 	grouped_featsnaggrs
 # end
 
-# TODO add AbstractWorldSet type
-computeModalThreshold(fwd_propositional_slice::FeaturedWorldDatasetSlice{T}, worlds::Any, aggregator::Agg) where {T, Agg<:Aggregator} = begin
-	
-	# TODO try reduce(aggregator, worlds; init=ModalLogic.bottom(aggregator, T))
-	# TODO remove this aggregator_to_binary...
-	
-	if length(worlds |> collect) == 0
-		ModalLogic.aggregator_bottom(aggregator, T)
-	else
-		aggregator((w)->modalDatasetChannelSliceGet(fwd_propositional_slice, w), worlds)
-	end
-
-	# opt = aggregator_to_binary(aggregator)
-	# threshold = ModalLogic.bottom(aggregator, T)
-	# for w in worlds
-	# 	e = modalDatasetChannelSliceGet(fwd_propositional_slice, w)
-	# 	threshold = opt(threshold,e)
-	# end
-	# threshold
-end
-
-
 
 struct IntervalFMDStumpSupport{T} <: AbstractFMDStumpSupport{T, Interval}
 	d :: Array{T, 5}
@@ -270,7 +243,7 @@ function computeModalDatasetStumpSupport(
 			@logmsg DTOverview "Instance $(i_instance)/$(n_instances)"
 		end
 
-		for w in ModalLogic.enumAll(WorldType, fmd.acc_functions[i_instance])
+		for w in ModalLogic.enumAll(WorldType, acc_function(fmd, i_instance))
 			initFMDStumpSupportWorldSlice(fmd_m, w)
 		end
 
@@ -289,9 +262,9 @@ function computeModalDatasetStumpSupport(
 				# TODO optimize: all aggregators are likely reading the same raw values.
 				for (i_featsnaggr,aggregator) in aggregators
 					
-					# accessible_worlds = ModalLogic.enumAll(WorldType, fmd.acc_functions[i_instance])
+					# accessible_worlds = ModalLogic.enumAll(WorldType, acc_function(fmd, i_instance))
 					# TODO reintroduce the improvements for some operators: e.g. later. Actually, these can be simplified by using a set of representatives, as in some enumAccRepr!
-					accessible_worlds = ModalLogic.enumReprAll(WorldType, fmd.accrepr_functions[i_instance], features[i_feature], aggregator)
+					accessible_worlds = ModalLogic.enumReprAll(WorldType, accrepr_function(fmd, i_instance), features[i_feature], aggregator)
 
 					threshold = computeModalThreshold(cur_fwd_slice, accessible_worlds, aggregator)
 
@@ -309,16 +282,16 @@ function computeModalDatasetStumpSupport(
 
 				@logmsg DTDebug "Relation $(i_relation)/$(n_relations)"
 
-				for w in ModalLogic.enumAll(WorldType, fmd.acc_functions[i_instance])
+				for w in ModalLogic.enumAll(WorldType, acc_function(fmd, i_instance))
 
 					@logmsg DTDebug "World" w
 					
 					# TODO optimize: all aggregators are likely reading the same raw values.
 					for (i_featsnaggr,aggregator) in aggregators
 											
-						# accessible_worlds = fmd.acc_functions[i_instance](w, relation)
+						# accessible_worlds = acc_function(fmd, i_instance)(w, relation)
 						# TODO reintroduce the improvements for some operators: e.g. later. Actually, these can be simplified by using a set of representatives, as in some enumAccRepr!
-						accessible_worlds = fmd.accrepr_functions[i_instance](features[i_feature], aggregator, w, relation)
+						accessible_worlds = accrepr_function(fmd, i_instance)(features[i_feature], aggregator, w, relation)
 					
 						threshold = computeModalThreshold(cur_fwd_slice, accessible_worlds, aggregator)
 
