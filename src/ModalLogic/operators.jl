@@ -8,16 +8,6 @@ const TestOperatorFun = Function
 ################################################################################
 ################################################################################
 
-# abstract type AbstractTestOperator end
-
-################################################################################
-################################################################################
-
-# @inline bottom(::TestOperatorPositive, T::Type) = typemin(T)
-
-# @inline opt(::TestOperatorPositive) = max
-
-
 # @inline test_decision(test_operator::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
 # 	# Source: https://stackoverflow.com/questions/47564825/check-if-all-the-elements-of-a-julia-array-are-equal
 # 	# @inbounds
@@ -40,23 +30,23 @@ const TestOperatorFun = Function
 # 	return true
 # end
 
-# Base.show(io::IO, test_operator::_TestOpGeq) = print(io, "⫺")
-# Base.show(io::IO, test_operator::_TestOpLeq) = print(io, "⫹")
- 
+# (Rational(60,100))
 
- 
-# struct _TestOpGeqSoft  <: TestOperatorPositive
-#   alpha :: AbstractFloat
-#   _TestOpGeqSoft(a::T) where {T<:Real} = (a > 0 && a < 1) ? new(a) : error("Invalid instantiation for test operator: _TestOpGeqSoft($(a))")
-# end;
-# struct _TestOpLeqSoft  <: TestOperatorNegative
-#   alpha :: AbstractFloat
-#   _TestOpLeqSoft(a::T) where {T<:Real} = (a > 0 && a < 1) ? new(a) : error("Invalid instantiation for test operator: _TestOpLeqSoft($(a))")
-# end;
+# # TODO improved version for Rational numbers
+# # TODO check
+# @inline test_op_partialsort!(test_op::_TestOpGeqSoft, vals::Vector{T}) where {T} = 
+# 	partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)); rev=true)
+# @inline test_op_partialsort!(test_op::_TestOpLeqSoft, vals::Vector{T}) where {T} = 
+# 	partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)))
 
-# Base.show(io::IO, test_operator::_TestOpGeqSoft) = print(io, "⫺" * subscriptnumber(rstrip(rstrip(string(alpha(test_operator)*100), '0'), '.')))
-# Base.show(io::IO, test_operator::_TestOpLeqSoft) = print(io, "⫹" * subscriptnumber(rstrip(rstrip(string(alpha(test_operator)*100), '0'), '.')))
-
+# @inline computePropositionalThreshold(test_op::Union{_TestOpGeqSoft,_TestOpLeqSoft}, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
+# 	vals = vec(ch_readWorld(w,channel))
+# 	test_op_partialsort!(test_op,vals)
+# end
+# @inline computePropositionalThresholdMany(test_ops::Vector{<:TestOperator}, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
+# 	vals = vec(ch_readWorld(w,channel))
+# 	(test_op_partialsort!(test_op,vals) for test_op in test_ops)
+# end
 
 # @inline test_decision(test_operator::_TestOpGeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin 
 # 	ys = 0
@@ -82,32 +72,21 @@ const TestOperatorFun = Function
 # 	(ys/length(vals)) >= test_operator.alpha
 # end
 
+# const all_lowlevel_test_operators = [
+# 		TestOpGeq, TestOpLeq,
+# 		SoftenedOperators...
+# 	]
 
-# struct _NO_OP  <: AbstractTestOperator end; const NO_OP = _NO_OP();
-
-# TODO add NEQ
-
-
-# @inline test_decision(test_operator::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
-# 	# Source: https://stackoverflow.com/questions/47564825/check-if-all-the-elements-of-a-julia-array-are-equal
-# 	# @inbounds
-# 	# TODO try:
-# 	# all(ch_readWorld(w,channel) .>= threshold)
-# 	for x in ch_readWorld(w,channel)
-# 		x >= threshold || return false
-# 	end
-# 	return true
-# end
-# @inline test_decision(test_operator::_TestOpLeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
-# 	# Source: https://stackoverflow.com/questions/47564825/check-if-all-the-elements-of-a-julia-array-are-equal
-# 	# @info "WLes" w threshold #n ch_readWorld(w,channel)
-# 	# @inbounds
-# 	# TODO try:
-# 	# all(ch_readWorld(w,channel) .<= threshold)
-# 	for x in ch_readWorld(w,channel)
-# 		x <= threshold || return false
-# 	end
-# 	return true
+# const all_ordered_test_operators = [
+# 		TestOpGeq, TestOpLeq,
+# 		SoftenedOperators...
+# 	]
+# const all_test_operators_order = [
+# 		TestOpGeq, TestOpLeq,
+# 		SoftenedOperators...
+# 	]
+# sort_test_operators!(x::Vector{TO}) where {TO<:TestOperator} = begin
+# 	intersect(all_test_operators_order, x)
 # end
 
 # crisp operators
