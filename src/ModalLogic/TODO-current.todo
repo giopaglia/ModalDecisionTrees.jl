@@ -1,42 +1,38 @@
 
 ☐	TODO add enumAccReprAggr for relationAll, and for all worldtypes and relations
 ☐	Ottimizza gli enumAccessibles e i enumAccessibles per i sets.
+☐	remove ch_readWorld in favor of inst_readWorld
+Verifica caso split_threshold == false
 
 TODO Prova anche quel map(aggr->aggr...)
 
 In scanner.jl rimuovi i gammas, rimuovi test_operators cambia il modo di indicare le features e featsnops
 - Rimuovere anche enumAccRepr.
 
-non-precompute_gammas, that is, allow training directly on Ontological Dataset
-
-remove ch_readWorld in favor of inst_readWorld
-
-computePropositionalThreshold, computeModalThreshold, test_decision seem to do similar things. Maybe uniform their style and naming
-
-
-let split_consistency_check be an argument (split_consistency_satisfied_check) and create the debug and performance profiles
-
-In tree.jl
-_split!
-- Also write test_condition this for OntologicalDataset and perform the step with that, and bring back check di nl per fare un cross check
-- TODO add consistency_step_data and remove occurrences of "gamma"
-
-Scrivi i apply_tree per MultiFrameOntologicalDataset e MultiFrameFeatModalDataset e verifica che funzioni tutto.
-
-Verifica che il caching avvenga correttamente
-Verifica caso split_threshold == false
-
 Testa round_dataset_to_datatype/mapArrayToDataType in versione multiframe
 Restore optimize_tree_parameters! optimizations
 
 
+let split_consistency_check be an argument (split_consistency_satisfied_check) and create the debug and performance profiles
 
-consistency checks down the dataset pipeline, modalDatasetIsConsistent_m,_g etc.
-	DecisionTree.checkGammasConsistency da qualche parte (gammas[i], Xs[i], test_operators, relationSet)
+_split!: Also write test_condition this for OntologicalDataset and cross check
+TODO add consistency_step_data and remove occurrences of "gamma"
 
-Completa OntologicalDataset{T, N, WorldType} <: AbstractModalDataset{T, WorldType}
+Scrivi i apply_tree per MultiFrameOntologicalDataset e MultiFrameFeatModalDataset e verifica che funzioni tutto.
+
+
+computePropositionalThreshold, computeModalThreshold, test_decision seem to do similar things. Maybe uniform their style and naming
+
+
+
+non-precompute_gammas, that is, allow training directly on Ontological Dataset
+	Completa OntologicalDataset{T, N, WorldType} <: AbstractModalDataset{T, WorldType}
 	ModalLogic.getInstanceAttribute(Xi, che usa tree.feature)
 
-Create class for labeled datasets, and remove slice_mf_dataset.
 
-Valuta quanto è meglio usare accrepr_functions anzichè acc_functions
+
+
+consistency checks down the dataset pipeline, modalDatasetIsConsistent_m,_g etc.
+
+
+Create class for labeled datasets, and remove slice_mf_dataset.

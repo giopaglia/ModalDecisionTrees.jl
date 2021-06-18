@@ -963,6 +963,7 @@ const GenericDataset = Union{MatricialDataset,OntologicalDataset,MultiFrameOntol
 
 include("testOperators.jl")
 
+
 display_propositional_decision(feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number) =
 	"$(feature) $(test_operator) $(threshold)"
 
@@ -978,6 +979,21 @@ end
 display_decision(i_frame::Integer, relation::AbstractRelation, feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number) = begin
 	"{$i_frame} $(display_decision(relation, feature, test_operator, threshold))"
 end
+
+# TODO reason about shortened features
+
+display_propositional_decision(feature::AttributeMinimumFeatureType, test_operator::typeof(>), threshold::Number) =
+	"A$(feature.i_attr) ⫺ $(threshold)"
+
+display_propositional_decision(feature::AttributeMaximumFeatureType, test_operator::typeof(<), threshold::Number) =
+	"A$(feature.i_attr) ⫹ $(threshold)"
+
+
+display_propositional_decision(feature::AttributeSoftMinimumFeatureType, test_operator::typeof(>), threshold::Number) =
+	"A$(feature.i_attr) $("⫺" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold)"
+
+display_propositional_decision(feature::AttributeSoftMaximumFeatureType, test_operator::typeof(<), threshold::Number) =
+	"A$(feature.i_attr) $("⫹" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold)"
 
 ################################################################################
 ################################################################################
