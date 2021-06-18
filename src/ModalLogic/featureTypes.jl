@@ -1,12 +1,8 @@
-export FeatureType, FeatureTypeNone, FeatureTypeFun,
+export FeatureTypeNone, FeatureTypeFun,
 				AttributeMinimumFeatureType, AttributeMaximumFeatureType,
 				AttributeSoftMinimumFeatureType, AttributeSoftMaximumFeatureType
 
-const FeatureType = Integer
-
 SimpleFeatureType(a, feature) = feature
-
-display_feature(feature) = "V$(feature)"
 
 ################################################################################
 ################################################################################

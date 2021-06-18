@@ -13,15 +13,12 @@ const TestOperatorFun = Function
 ################################################################################
 ################################################################################
 
-# @inline evaluateThreshCondition(::TestOperatorPositive, t::T, gamma::T) where {T} = (t <= gamma)
-# @inline evaluateThreshCondition(::TestOperatorNegative, t::T, gamma::T) where {T} = (t >= gamma)
-
 # @inline bottom(::TestOperatorPositive, T::Type) = typemin(T)
 
 # @inline opt(::TestOperatorPositive) = max
 
 
-# @inline testCondition(test_operator::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
+# @inline test_decision(test_operator::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
 # 	# Source: https://stackoverflow.com/questions/47564825/check-if-all-the-elements-of-a-julia-array-are-equal
 # 	# @inbounds
 # 	# TODO try:
@@ -31,7 +28,7 @@ const TestOperatorFun = Function
 # 	end
 # 	return true
 # end
-# @inline testCondition(test_operator::_TestOpLeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
+# @inline test_decision(test_operator::_TestOpLeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
 # 	# Source: https://stackoverflow.com/questions/47564825/check-if-all-the-elements-of-a-julia-array-are-equal
 # 	# @info "WLes" w threshold #n ch_readWorld(w,channel)
 # 	# @inbounds
@@ -61,9 +58,9 @@ const TestOperatorFun = Function
 # Base.show(io::IO, test_operator::_TestOpLeqSoft) = print(io, "⫹" * subscriptnumber(rstrip(rstrip(string(alpha(test_operator)*100), '0'), '.')))
 
 
-# @inline testCondition(test_operator::_TestOpGeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin 
+# @inline test_decision(test_operator::_TestOpGeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin 
 # 	ys = 0
-# 	# TODO write with reduce, and optimize it (e.g. by stopping early if the condition is reached already)
+# 	# TODO write with reduce, and optimize it (e.g. by stopping early if the decision is reached already)
 # 	vals = ch_readWorld(w,channel)
 # 	for x in vals
 # 		if x >= threshold
@@ -73,9 +70,9 @@ const TestOperatorFun = Function
 # 	(ys/length(vals)) >= test_operator.alpha
 # end
 
-# @inline testCondition(test_operator::_TestOpLeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin 
+# @inline test_decision(test_operator::_TestOpLeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin 
 # 	ys = 0
-# 	# TODO write with reduce, and optimize it (e.g. by stopping early if the condition is reached already)
+# 	# TODO write with reduce, and optimize it (e.g. by stopping early if the decision is reached already)
 # 	vals = ch_readWorld(w,channel)
 # 	for x in vals
 # 		if x <= threshold
@@ -90,6 +87,28 @@ const TestOperatorFun = Function
 
 # TODO add NEQ
 
+
+# @inline test_decision(test_operator::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
+# 	# Source: https://stackoverflow.com/questions/47564825/check-if-all-the-elements-of-a-julia-array-are-equal
+# 	# @inbounds
+# 	# TODO try:
+# 	# all(ch_readWorld(w,channel) .>= threshold)
+# 	for x in ch_readWorld(w,channel)
+# 		x >= threshold || return false
+# 	end
+# 	return true
+# end
+# @inline test_decision(test_operator::_TestOpLeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
+# 	# Source: https://stackoverflow.com/questions/47564825/check-if-all-the-elements-of-a-julia-array-are-equal
+# 	# @info "WLes" w threshold #n ch_readWorld(w,channel)
+# 	# @inbounds
+# 	# TODO try:
+# 	# all(ch_readWorld(w,channel) .<= threshold)
+# 	for x in ch_readWorld(w,channel)
+# 		x <= threshold || return false
+# 	end
+# 	return true
+# end
 
 # crisp operators
 
@@ -108,6 +127,8 @@ existential_aggregator(::typeof(lesser_eq_than_operator))  = minimum
 # bottom_aggregator(::typeof(∪))          = TODO
 aggregator_bottom(::typeof(maximum), T::Type) = typemin(T)
 aggregator_bottom(::typeof(minimum), T::Type) = typemax(T)
+
+evaluate_thresh_decision(operator::TestOperatorFun, gamma::T, a::T) where {T} = operator(gamma, a)
 
 aggregator_to_binary(::typeof(maximum)) = max
 aggregator_to_binary(::typeof(minimum)) = min

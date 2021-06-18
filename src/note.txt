@@ -1,15 +1,9 @@
 Pulire codice
-- Aggiungere livello funzioni e trasformare livello operatori di test in livello polarità;
 - ArraysOfVector per supportare istanze di diversa dimensione;
-- Aggiungere possibilità di costruire gamma solo proposizionalmente.
-- Aggiungere multi-frame;
 
 TODO maybe the enumaccessibles functions for sets are not that useful.
 
-
 nella scelta delle riviste, leggere le intro degli ultimi paper accettati
-
-TODO remove relationAll slice from gammas when not used. Also, remove the world dimension for that relation
 
 TODO calcola mean specificity and mean PPV, ROC-AUC
 - TODO Possiamo fare un finetuning manuale prendendo parti di alberi ad alta sensitivita' e assemblandole insieme!

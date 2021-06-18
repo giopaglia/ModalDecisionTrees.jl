@@ -26,8 +26,8 @@ polarity(::TestOperatorNegative) = false
 @inline opt(::TestOperatorNegative) = min
 
 # Warning: I'm assuming all operators are "closed" (= not strict, like >= and <=)
-@inline evaluateThreshCondition(::TestOperatorPositive, t::T, gamma::T) where {T} = (t <= gamma)
-@inline evaluateThreshCondition(::TestOperatorNegative, t::T, gamma::T) where {T} = (t >= gamma)
+@inline evaluate_thresh_decision(::TestOperatorPositive, t::T, gamma::T) where {T} = (t <= gamma)
+@inline evaluate_thresh_decision(::TestOperatorNegative, t::T, gamma::T) where {T} = (t >= gamma)
 
 computeModalThreshold(test_operator::Union{TestOperatorPositive,TestOperatorNegative}, w::WorldType, relation::AbstractRelation, channel::MatricialChannel{T,N}) where {WorldType<:AbstractWorld,T,N} = begin
 	worlds = enumAccessibles([w], relation, channel)
@@ -89,7 +89,7 @@ end
 end
 @inline computePropositionalThresholdDual(::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = extrema(ch_readWorld(w,channel))
 
-@inline testCondition(test_operator::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
+@inline test_decision(test_operator::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
 	# Source: https://stackoverflow.com/questions/47564825/check-if-all-the-elements-of-a-julia-array-are-equal
 	# @inbounds
 	# TODO try:
@@ -99,7 +99,7 @@ end
 	end
 	return true
 end
-@inline testCondition(test_operator::_TestOpLeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
+@inline test_decision(test_operator::_TestOpLeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
 	# Source: https://stackoverflow.com/questions/47564825/check-if-all-the-elements-of-a-julia-array-are-equal
 	# @info "WLes" w threshold #n ch_readWorld(w,channel)
 	# @inbounds
@@ -195,9 +195,9 @@ end
 	(test_op_partialsort!(test_op,vals) for test_op in test_ops)
 end
 
-@inline testCondition(test_operator::_TestOpGeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin 
+@inline test_decision(test_operator::_TestOpGeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin 
 	ys = 0
-	# TODO write with reduce, and optimize it (e.g. by stopping early if the condition is reached already)
+	# TODO write with reduce, and optimize it (e.g. by stopping early if the decision is reached already)
 	vals = ch_readWorld(w,channel)
 	for x in vals
 		if x >= threshold
@@ -207,9 +207,9 @@ end
 	(ys/length(vals)) >= test_operator.alpha
 end
 
-@inline testCondition(test_operator::_TestOpLeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin 
+@inline test_decision(test_operator::_TestOpLeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin 
 	ys = 0
-	# TODO write with reduce, and optimize it (e.g. by stopping early if the condition is reached already)
+	# TODO write with reduce, and optimize it (e.g. by stopping early if the decision is reached already)
 	vals = ch_readWorld(w,channel)
 	for x in vals
 		if x <= threshold

@@ -1,55 +1,44 @@
+- risolvi le chiamate a modalStep in test
 
+☐	TODO add enumAccReprAggr for relationAll, and for all worldtypes and relations
+☐	TODO lancia con operatori hard
+
+TODO Prova anche quel map(aggr->aggr...)
+
+In scanner.jl rimuovi i gammas, rimuovi test_operators cambia il modo di indicare le features e featsnops
+- Rimuovere anche enumAccRepr.
+
+non-precompute_gammas, that is, allow training directly on Ontological Dataset
+
+
+let split_consistency_check be an argument (split_consistency_satisfied_check) and create the debug and performance profiles
 
 In tree.jl
-- rimuovi i gammas
 _split!
-- modalDatasetGet,modalDatasetGet_m,modalDatasetGet_g -> unica interfaccia su FMD e FMD support (forse getindex(X::stumpFeatModalDataset{T,WorldType}, args::Vararg) ?)
-- Nota: tree.jl si aspetta relationAll nella ontologia, e valuta se usarlo a tempo di ... secondo onlyUseRelationAll.
-- relations->relation_ids
-- Aggiungici anche gli splits proposizionali
-- rewrite la parte dove si esegue il passo modale, occhio che best_feature è una feature, non un id di attributo. Attenzione, forse conviene portarsi dietro i dataset in forma originale per fare un cross check?
-- sistema il modo in cui vengono scansionate le decisioni (WorldType tree.jl riga 177)
-- WorldType riga 192
-- TODO add consistency_step_data
-
-Fix the T = Float64
+- Also write test_condition this for OntologicalDataset and perform the step with that, and bring back check di nl per fare un cross check
+- TODO add consistency_step_data and remove occurrences of "gamma"
 
 Scrivi i apply_tree per MultiFrameOntologicalDataset e MultiFrameFeatModalDataset e verifica che funzioni tutto.
 
 Verifica che il caching avvenga correttamente
 Verifica caso split_threshold == false
 
+Testa round_dataset_to_datatype/mapArrayToDataType in versione multiframe
+Restore optimize_tree_parameters! optimizations
+
+
+
 consistency checks down the dataset pipeline, modalDatasetIsConsistent_m,_g etc.
+	DecisionTree.checkGammasConsistency da qualche parte (gammas[i], Xs[i], test_operators, relationSet)
 
-{computeRelationAll = true} -> relationAll nella ontologia
-
+Completa OntologicalDataset{T, N, WorldType} <: AbstractModalDataset{T, WorldType}
+	ModalLogic.getInstanceAttribute(Xi, che usa tree.feature)
 
 Create class for labeled datasets, and remove slice_mf_dataset.
 
-ModalLogic.getInstanceAttribute(Xi, che usa tree.feature)
-DecisionTree.checkGammasConsistency da qualche parte (gammas[i], Xs[i], test_operators, relationSet)
-
-# if (length(availableRelation_ids) == 0)
-	# error("No available relation!")
-	# TODO actually this could be.
-# end
-
-
-☐	TODO add enumAccReprAggr for relationAll, and for all worldtypes and relations
-☐	TODO lancia con operatori hard
-
-In scanner.jl rimuovi i gammas, rimuovi test_operators cambia il modo di indicare le features e featsnops
-- Rimuovere anche enumAccRepr
-
 rename modality<->relation, and i_frame
 
-non-precompute_gammas, that is, allow training directly on Ontological Dataset
-
-Nota: del test non c'è bisogno di calcolare il dataset in forma non-ontologica
-
 Valuta quanto è meglio usare accrepr_functions anzichè acc_functions
-Testa round_dataset_to_datatype/mapArrayToDataType in versione multiframe
-Restore optimize_tree_parameters! optimizations
 
 DONE:
 
