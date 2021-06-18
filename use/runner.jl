@@ -39,7 +39,7 @@ end
 abstract type Support end
 
 mutable struct ForestEvaluationSupport <: Support
-	f::Union{Nothing,Support,AbstractVector{DecisionTree.Forest{S, Ta}}} where {S, Ta}
+	f::Union{Nothing,Support,AbstractVector{DecisionTree.Forest}}
 	f_args::NamedTuple{T, N} where {T, N}
 	cm::Union{Nothing,AbstractVector{ConfusionMatrix}}
 	time::Dates.Millisecond
@@ -335,13 +335,13 @@ function execRun(
 						for i_attribute in 1:n_attributes(X_train_all)
 							for i_test_operator in 1:2
 								
-								i_featnaggr = (i_test_operator-1)+(i_attribute-1)*2+1
+								i_featsnaggr = (i_test_operator-1)+(i_attribute-1)*2+1
 
 								g = DecisionTree.readGamma(gammas,i_test_operator,firstWorld,i_instance,2,i_attribute)
-								m = stump_fmd.fmd_g[i_instance, i_featnaggr]
+								m = stump_fmd.fmd_g[i_instance, i_featsnaggr]
 
 								if g != m
-									println("fmd_g check: g != m\n$(g)\n$(m)\ni_test_operator=$(i_test_operator)\ntest_operator=$(data_modal_args.test_operators[i_test_operator])\ni_featnaggr=$(i_featnaggr)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
+									println("fmd_g check: g != m\n$(g)\n$(m)\ni_test_operator=$(i_test_operator)\ntest_operator=$(data_modal_args.test_operators[i_test_operator])\ni_featsnaggr=$(i_featsnaggr)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
 									print("instance: ")
 									println(ModalLogic.getInstanceAttribute(instance, i_attribute))
 									print(instance)
@@ -361,10 +361,10 @@ function execRun(
 								for i_test_operator in 1:2
 									for w in ModalLogic.enumAll(WorldType, ModalLogic.inst_channel_size(instance)...)
 										
-										i_featnaggr = (i_test_operator-1)+(i_attribute-1)*2+1
+										i_featsnaggr = (i_test_operator-1)+(i_attribute-1)*2+1
 
 										g = DecisionTree.readGamma(gammas,i_test_operator,w,i_instance,2+i_relation,i_attribute)
-										m = stump_fmd.fmd_m[i_instance, w, i_featnaggr, i_relation]
+										m = stump_fmd.fmd_m[i_instance, w, i_featsnaggr, i_relation]
 
 										if g != m
 											println("fmd_m check: g != m\n$(g)\n$(m)\ni_relation=$(i_relation), relation=$(relations[i_relation])\ni_test_operator=$(i_test_operator)\ntest_operator=$(data_modal_args.test_operators[i_test_operator])\nw=$(w)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
@@ -538,7 +538,8 @@ function execRun(
 			JLD2.@save total_save_path T
 		end
 
-		if X_train != X_test
+		# If not fulltraining
+		if split_threshold != 1.0
 			println("Test tree:")
 			print_apply_tree(T, X_test, Y_test)
 		end
@@ -563,7 +564,7 @@ function execRun(
 		return (T, cm, Tt);
 	end
 
-	go_forest(f_args, rng; prebuilt_model::Union{Nothing,AbstractVector{DecisionTree.Forest{S, T}}} = nothing) where {S,T} = begin
+	go_forest(f_args, rng; prebuilt_model::Union{Nothing,AbstractVector{DecisionTree.Forest{S}}} = nothing) where {S} = begin
 		Fs, Ft = 
 			if isnothing(prebuilt_model)
 				started = Dates.now()
@@ -581,11 +582,11 @@ function execRun(
 				println("Using slice of a prebuilt forest.")
 				# !!! HUGE PROBLEM HERE !!! #
 				# BUG: can't compute oob_error of a forest built slicing another forest!!!
-				forests::Vector{DecisionTree.Forest{S, T}} = []
+				forests::Vector{DecisionTree.Forest{S}} = []
 				for f in prebuilt_model
 					v_forest = @views f.trees[Random.randperm(rng, length(f.trees))[1:f_args.n_trees]]
 					v_cms = @views f.cm[Random.randperm(rng, length(f.cm))[1:f_args.n_trees]]
-					push!(forests, DecisionTree.Forest{S, T}(v_forest, v_cms, 0.0))
+					push!(forests, DecisionTree.Forest{S}(v_forest, v_cms, 0.0))
 				end
 				forests, Dates.Millisecond(0)
 			end
@@ -692,7 +693,7 @@ function execRun(
 
 			# put resulting forests in vector in the order the user gave them
 			for (i, f) in enumerate(forest_supports_user_order)
-				@assert f.f isa AbstractVector{DecisionTree.Forest{S, T}} where {S,T} "This is not a Vector of Forests! eltype = $(eltype(f.f))"
+				@assert f.f isa AbstractVector{DecisionTree.Forest{S}} where {S} "This is not a Vector of Forests! eltype = $(eltype(f.f))"
 				@assert f.cm isa AbstractVector{ConfusionMatrix} "This is not a Vector of ConfusionMatrix!"
 				@assert length(f.f) == forest_runs "There is a support struct with less than $(forest_runs) forests: $(length(f.f))"
 				@assert length(f.cm) == forest_runs "There is a support struct with less than $(forest_runs) confusion matrices: $(length(f.cm))"

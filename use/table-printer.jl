@@ -112,14 +112,14 @@ end
 
 # Print a tree entry in a row
 function data_to_string(
-		M::Union{DecisionTree.DTree{S, T},DecisionTree.DTNode{S, T}},
+		M::DecisionTree.DTree,
 		cm::ConfusionMatrix,
 		time::Dates.Millisecond;
 		start_s = "(",
 		end_s = ")",
 		separator = ";",
 		alt_separator = ","
-	) where {S, T}
+	)
 
 	result = start_s
 	result *= string(percent(cm.kappa), alt_separator)
@@ -135,14 +135,14 @@ end
 
 # Print a forest entry in a row
 function data_to_string(
-		Ms::AbstractVector{DecisionTree.Forest{S, T}},
+		Ms::AbstractVector{DecisionTree.Forest},
 		cms::AbstractVector{ConfusionMatrix},
 		time::Dates.Millisecond;
 		start_s = "(",
 		end_s = ")",
 		separator = ";",
 		alt_separator = ","
-	) where {S, T}
+	)
 
 	result = start_s
 	result *= string(percent(mean(map(cm->cm.kappa, cms))), alt_separator)

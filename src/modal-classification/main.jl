@@ -8,16 +8,15 @@ include("tree.jl")
 
 # Conversion: NodeMeta (node + training info) -> DTNode (bare decision tree model)
 function _convert(
-		node   :: treeclassifier.NodeMeta{S},
-		list   :: AbstractVector{T},
-		labels :: AbstractVector{T}) where {S<:Real, T<:String}
-
+		node   :: treeclassifier.NodeMeta,
+		list   :: AbstractVector{S},
+		labels :: AbstractVector{S}) where {U<:Real, S<:String}
 	if node.is_leaf
-		return DTLeaf{T}(list[node.label], labels[node.region])
+		return DTLeaf(list[node.label], labels[node.region])
 	else
-		left = _convert(node.l, list, labels)
+		left  = _convert(node.l, list, labels)
 		right = _convert(node.r, list, labels)
-		return DTInternal{S, T}(node.modality, node.feature, node.test_operator, node.threshold, left, right)
+		return DTInternal(node.modality, node.feature, node.test_operator, node.threshold, left, right)
 	end
 end
 
@@ -117,8 +116,6 @@ function build_tree(
 	##############################################################################
 	rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {S, U}
 
-	T = Float64
-
 	if useRelationAll isa Bool
 		useRelationAll = fill(useRelationAll, n_frames(Xs))
 	end
@@ -149,23 +146,23 @@ function build_tree(
 		min_loss_at_leaf    = min_loss_at_leaf,
 		############################################################################
 		n_subrelations      = n_subrelations,
-		n_subfeatures       = [ n_subfeatures[i](n_features(Xs[i])) for i in 1:n_frames(Xs) ],
+		n_subfeatures       = [ n_subfeatures[i](n_features(get_frame(Xs, i))) for i in 1:n_frames(Xs) ],
 		initConditions      = initConditions,
 		useRelationAll      = useRelationAll,
 		############################################################################
 		rng                 = rng)
 
 	root = _convert(t.root, t.list, Y[t.labels])
-	DTree{T, String}(root, world_types(Xs), initConditions)
+	DTree(root, world_types(Xs), initConditions)
 end
 
 # TODO fix this using specified purity
-function prune_tree(tree::DTNode{S, T}, max_purity_threshold::AbstractFloat = 1.0) where {S, T}
+function prune_tree(tree::DTNode, max_purity_threshold::AbstractFloat = 1.0)
 	if max_purity_threshold >= 1.0
 		return tree
 	end
 	# Prune the tree once TODO make more efficient (avoid copying so many nodes.)
-	function _prune_run(tree::DTNode{S, T}) where {S, T}
+	function _prune_run(tree::DTNode)
 		N = length(tree)
 		if N == 1        ## a DTLeaf
 			return tree
@@ -175,13 +172,13 @@ function prune_tree(tree::DTNode{S, T}, max_purity_threshold::AbstractFloat = 1.
 			matches = findall(all_labels .== majority)
 			purity = length(matches) / length(all_labels)
 			if purity >= max_purity_threshold
-				return DTLeaf{T}(majority, all_labels)
+				return DTLeaf(majority, all_labels)
 			else
 				return tree
 			end
 		else
 			# TODO also associate an Internal node with values and majority (all_labels, majority)
-			return DTInternal{S, T}(tree.modality, tree.feature, tree.test_operator, tree.threshold,
+			return DTInternal(tree.modality, tree.feature, tree.test_operator, tree.threshold,
 						_prune_run(tree.left),
 						_prune_run(tree.right))
 		end
@@ -197,35 +194,35 @@ function prune_tree(tree::DTNode{S, T}, max_purity_threshold::AbstractFloat = 1.
 	return pruned
 end
 
-function prune_tree(tree::DTree{S, T}, max_purity_threshold::AbstractFloat = 1.0) where {S, T}
-	DTree{S,T}(prune_tree(tree.root), tree.worldTypes, tree.initConditions)
+function prune_tree(tree::DTree, max_purity_threshold::AbstractFloat = 1.0)
+	DTree(prune_tree(tree.root), tree.worldTypes, tree.initConditions)
 end
 
 ################################################################################
 # Apply tree: predict labels for a new dataset of instances
 ################################################################################
 
-apply_tree(leaf::DTLeaf{T}, Xi::MatricialInstance{U,MN}, S::WorldSet{WorldType}) where {U, T, MN, WorldType<:AbstractWorld} = leaf.majority
+apply_tree(leaf::DTLeaf, Xi::MatricialInstance, worlds::WorldSet) = leaf.majority
 
-function apply_tree(tree::DTInternal{U, T}, Xi::MatricialInstance{U,MN}, S::WorldSet{WorldType}) where {U, T, MN, WorldType<:AbstractWorld}
+function apply_tree(tree::DTInternal, Xi::MatricialInstance, worlds::WorldSet)
 	return (
 		if tree.feature == ModalLogic.FeatureTypeNone
 			@error " found feature == FeatureTypeNone, TODO figure out where does this come from" tree
-			# apply_tree(tree.left, X, S)
+			# apply_tree(tree.left, X, worlds)
 		else
 			@logmsg DTDetail "applying branch..."
 			satisfied = true
 			channel = ModalLogic.getInstanceAttribute(Xi, tree.feature)
-			@logmsg DTDetail " S" S
-			(satisfied,S) = ModalLogic.modalStep(S, tree.modality, channel, tree.test_operator, tree.threshold)
-			@logmsg DTDetail " ->(satisfied,S')" satisfied S
-			apply_tree((satisfied ? tree.left : tree.right), Xi, S)
+			@logmsg DTDetail " worlds" worlds
+			(satisfied,worlds) = ModalLogic.modalStep(worlds, tree.modality, channel, tree.test_operator, tree.threshold)
+			@logmsg DTDetail " ->(satisfied,worlds')" satisfied worlds
+			apply_tree((satisfied ? tree.left : tree.right), Xi, worlds)
 		end
 	)
 end
 
 # Apply tree with initialConditions to a dimensional dataset in matricial form
-function apply_tree(tree::DTree{S, T}, X::MatricialDataset{S,D}) where {S, T, D}
+function apply_tree(tree::DTree{S}, X::MatricialDataset{T,D}) where {S, T, D}
 	@logmsg DTDetail "apply_tree..."
 	n_instances = n_samples(X)
 	predictions = Array{T,1}(undef, n_instances)
@@ -236,7 +233,7 @@ function apply_tree(tree::DTree{S, T}, X::MatricialDataset{S,D}) where {S, T, D}
 		worlds = initWorldSet(tree.initConditions, tree.worldTypes, channel_size(X))
 		predictions[i] = apply_tree(tree.root, ModalLogic.getInstance(X, i), worlds)
 	end
-	return (if T <: Float64
+	return (if S <: Float64 # TODO fix
 			Float64.(predictions)
 		else
 			predictions
@@ -244,20 +241,20 @@ function apply_tree(tree::DTree{S, T}, X::MatricialDataset{S,D}) where {S, T, D}
 end
 
 # Apply tree to a dimensional dataset in matricial form
-function apply_tree(tree::DTNode{S, T}, d::MatricialDataset{S,D}) where {S, T, D}
-	apply_tree(DTree{S, T}(tree, [world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2)))], [startWithRelationAll]), d)
+function apply_tree(tree::DTNode, d::MatricialDataset{T,D}) where {T, D}
+	apply_tree(DTree(tree, [world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2)))], [startWithRelationAll]), d)
 end
 
 ################################################################################
 # Apply tree: predict labels for a new dataset of instances
 ################################################################################
 
-function _empty_tree_leaves(leaf::DTLeaf{T}) where {T}
-		DTLeaf{T}(leaf.majority, [])
+function _empty_tree_leaves(leaf::DTLeaf)
+		DTLeaf(leaf.majority, [])
 end
 
-function _empty_tree_leaves(node::DTInternal{S, T}) where {S, T}
-	return DTInternal{S, T}(
+function _empty_tree_leaves(node::DTInternal)
+	return DTInternal(
 		node.modality,
 		node.feature,
 		node.test_operator,
@@ -267,22 +264,22 @@ function _empty_tree_leaves(node::DTInternal{S, T}) where {S, T}
 	)
 end
 
-function _empty_tree_leaves(tree::DTree{S, T}) where {S, T}
-	return DTree{S, T}(
+function _empty_tree_leaves(tree::DTree)
+	return DTree(
 		_empty_tree_leaves(tree.root),
 		tree.worldTypes,
 		tree.initConditions
 	)
 end
 
-function print_apply_tree(leaf::DTLeaf{T}, Xi::MatricialInstance{U,MN}, S::WorldSet{WorldType}, class::T; update_majority = false) where {T, U, MN, WorldType<:AbstractWorld}
+function print_apply_tree(leaf::DTLeaf{S}, Xi::MatricialInstance, worlds::WorldSet, class::S; update_majority = false) where {S}
 	vals = [ leaf.values..., class ]
 
 	majority = 
 	if update_majority
 
 		# TODO optimize this code
-		occur = Dict{T,Int}(v => 0 for v in unique(vals))
+		occur = Dict{S,Int}(v => 0 for v in unique(vals))
 		for v in vals
 			occur[v] += 1
 		end
@@ -299,32 +296,32 @@ function print_apply_tree(leaf::DTLeaf{T}, Xi::MatricialInstance{U,MN}, S::World
 		leaf.majority
 	end
 
-	return DTLeaf{T}(majority, vals)
+	return DTLeaf(majority, vals)
 end
 
-function print_apply_tree(node::DTInternal{U, T}, Xi::MatricialInstance{U,MN}, S::WorldSet{WorldType}, class::T; update_majority = false) where {U, T, MN, WorldType<:AbstractWorld}
+function print_apply_tree(node::DTInternal{T, S}, Xi::MatricialInstance, worlds::WorldSet, class::S; update_majority = false) where {T, S}
 	satisfied = true
 	channel = ModalLogic.getInstanceAttribute(Xi, node.feature)
-	(satisfied,S) = ModalLogic.modalStep(S, node.modality, channel, node.test_operator, node.threshold)
+	(satisfied,worlds) = ModalLogic.modalStep(worlds, node.modality, channel, node.test_operator, node.threshold)
 
-	return DTInternal{U, T}(
+	return DTInternal(
 		node.modality,
 		node.feature,
 		node.test_operator,
 		node.threshold,
-		satisfied ? print_apply_tree(node.left, Xi, S, class, update_majority = update_majority) : node.left,
-		(!satisfied) ? print_apply_tree(node.right, Xi, S, class, update_majority = update_majority) : node.right,
+		satisfied ? print_apply_tree(node.left, Xi, worlds, class, update_majority = update_majority) : node.left,
+		(!satisfied) ? print_apply_tree(node.right, Xi, worlds, class, update_majority = update_majority) : node.right,
 	)
 end
 
-function print_apply_tree(tree::DTree{S, T}, X::MatricialDataset{S,D}, Y::Vector{CT}; reset_leaves = true, update_majority = false) where {S, T, D, CT}
+function print_apply_tree(tree::DTree{S}, X::MatricialDataset{T,D}, Y::Vector{S}; reset_leaves = true, update_majority = false) where {S, T, D}
 	# Reset 
 	tree = (reset_leaves ? _empty_tree_leaves(tree) : tree)
 
 	# Propagate instances down the tree
 	for i in 1:n_samples(X)
 		worlds = initWorldSet(tree.initConditions, tree.worldTypes, channel_size(X))
-		tree = DTree{S, T}(
+		tree = DTree(
 			print_apply_tree(tree.root, ModalLogic.getInstance(X, i), worlds, Y[i], update_majority = update_majority),
 			tree.worldTypes,
 			tree.initConditions
@@ -334,8 +331,8 @@ function print_apply_tree(tree::DTree{S, T}, X::MatricialDataset{S,D}, Y::Vector
 	return tree
 end
 
-function print_apply_tree(tree::DTNode{S, T}, X::MatricialDataset{S,D}, Y::Vector{CT}; reset_leaves = true, update_majority = false) where {S, T, D, CT}
-	return print_apply_tree(DTree{S, T}(tree, [world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2)))], [startWithRelationAll]), X, Y, reset_leaves = reset_leaves, update_majority = update_majority)
+function print_apply_tree(tree::DTNode{T, S}, X::MatricialDataset{T,D}, Y::Vector{S}; reset_leaves = true, update_majority = false) where {S, T, D}
+	return print_apply_tree(DTree(tree, [world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2)))], [startWithRelationAll]), X, Y, reset_leaves = reset_leaves, update_majority = update_majority)
 end
 
 
@@ -381,7 +378,7 @@ n_labels` matrix of probabilities, each row summing up to 1.
 `col_labels` is a vector containing the distinct labels
 (eg. ["versicolor", "virginica", "setosa"]). It specifies the column ordering
 of the output matrix. """
-apply_tree_proba(leaf::DTLeaf{T}, features::AbstractVector{S}, labels) where {S, T} =
+apply_tree_proba(leaf::DTLeaf, features::AbstractVector, labels) where =
 	compute_probabilities(labels, leaf.values)
 
 function apply_tree_proba(tree::DTInternal{S, T}, features::AbstractVector{S}, labels) where {S, T}
@@ -394,7 +391,7 @@ function apply_tree_proba(tree::DTInternal{S, T}, features::AbstractVector{S}, l
 	end
 end
 
-apply_tree_proba(tree::DTNode{S, T}, features::AbstractMatrix{S}, labels) where {S, T} =
+apply_tree_proba(tree::DTNode, features::AbstractMatrix{S}, labels) =
 	stack_function_results(row->apply_tree_proba(tree, row, labels), features)
 
 =#
@@ -424,7 +421,6 @@ function build_forest(
 	##############################################################################
 	rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {S, U}
 
-	T = Float64
 	rng = mk_rng(rng)
 
 	if useRelationAll isa Bool
@@ -459,15 +455,15 @@ function build_forest(
 	# 			test_operators, relationSet,
 	# 			relationId_id, relationAll_id,
 	# 			availableModalRelation_ids, allAvailableRelation_ids
-	# 		) = treeclassifier.optimize_tree_parameters!(Xs[i], initConditions[i], useRelationAll, test_operators)
-	# 		gammas[i] = computeGammas(Xs[i],WorldType,test_operators,relationSet,relationId_id,availableModalRelation_ids)
+	# 		) = treeclassifier.optimize_tree_parameters!(get_frame(Xs, i), initConditions[i], useRelationAll, test_operators)
+	# 		gammas[i] = computeGammas(get_frame(Xs, i),WorldType,test_operators,relationSet,relationId_id,availableModalRelation_ids)
 	# 	end
 	# end
 
 	t_samples = n_samples(X)
 	num_samples = floor(Int, partial_sampling * t_samples)
 
-	trees = Vector{Union{DTree{T,S},DTNode{T,S}}}(undef, n_trees)
+	trees = Vector{DTree{S}}(undef, n_trees)
 	cms = Vector{ConfusionMatrix}(undef, n_trees)
 	oob_samples = Vector{Vector{Integer}}(undef, n_trees)
 
@@ -537,14 +533,16 @@ function build_forest(
 
 	oob_error = 1.0 - (length(findall(oob_classified)) / length(oob_classified))
 
-	return Forest{T, S}(trees, cms, oob_error)
+	return Forest{S}(trees, cms, oob_error)
 end
 
 # use an array of trees to test features
-function apply_forest(trees::AbstractVector{Union{DTree{S,T},DTNode{S,T}}}, bare_dataset::MatricialDataset{S, D}; tree_weights::Union{AbstractVector{N},Nothing} = nothing) where {S, T, D, N<:Real}
+function apply_forest(trees::AbstractVector{DTree{S}}, bare_dataset::MatricialDataset{T, D}; tree_weights::Union{AbstractVector{Z},Nothing} = nothing) where {S, T, D, Z<:Real}
 	@logmsg DTDetail "apply_forest..."
 	n_trees = length(trees)
 	n_instances = n_samples(bare_dataset)
+
+	@assert length(trees) == length(tree_weights)
 
 	votes = Matrix{T}(undef, n_trees, n_instances)
 	for i in 1:n_trees
@@ -572,7 +570,7 @@ function apply_forest(trees::AbstractVector{Union{DTree{S,T},DTNode{S,T}}}, bare
 end
 
 # use a proper forest to test features
-function apply_forest(forest::Forest{S,T}, features::MatricialDataset{S,D}; use_weighted_trees::Bool = false) where {S, T, D}
+function apply_forest(forest::Forest, features::MatricialDataset{T,D}; use_weighted_trees::Bool = false) where {T, D}
 	if use_weighted_trees
 		# TODO: choose HOW to weight a tree... overall_accuracy is just an example (maybe can be parameterized)
 		apply_forest(forest.trees, features, tree_weights = map(cm -> cm.overall_accuracy, forest.cm))

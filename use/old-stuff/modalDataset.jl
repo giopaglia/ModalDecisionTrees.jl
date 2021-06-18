@@ -62,23 +62,23 @@ const ModalDatasetSliceType{T} = Union{
 }
 
 modalDatasetType_m(::Type{<:OntologicalDataset{T, 1, ModalLogic.Interval}}) where {T} = AbstractArray{T, 5}
-@inline initModalDataset_m(X::OntologicalDataset{T, 1, ModalLogic.Interval}, n_featnaggrs::Integer, n_relations::Integer) where {T} =
-	Array{T, 5}(undef, max_channel_size(X)[1], max_channel_size(X)[1]+1, n_samples(X), n_featnaggrs, n_relations)
-@inline modalDatasetIsConsistent_m(modalDataset, X::OntologicalDataset{T, 1, ModalLogic.Interval}, n_featnaggrs::Integer, n_relations::Integer) where {T} =
-	(typeof(modalDataset)<:AbstractArray{T, 5} && size(modalDataset) == (max_channel_size(X)[1], max_channel_size(X)[1]+1, n_samples(X), n_featnaggrs, n_relations))
+@inline initModalDataset_m(X::OntologicalDataset{T, 1, ModalLogic.Interval}, n_featsnaggrs::Integer, n_relations::Integer) where {T} =
+	Array{T, 5}(undef, max_channel_size(X)[1], max_channel_size(X)[1]+1, n_samples(X), n_featsnaggrs, n_relations)
+@inline modalDatasetIsConsistent_m(modalDataset, X::OntologicalDataset{T, 1, ModalLogic.Interval}, n_featsnaggrs::Integer, n_relations::Integer) where {T} =
+	(typeof(modalDataset)<:AbstractArray{T, 5} && size(modalDataset) == (max_channel_size(X)[1], max_channel_size(X)[1]+1, n_samples(X), n_featsnaggrs, n_relations))
 @inline initModalDatasetWorldSlice_m(::Type{<:OntologicalDataset{T, 1, ModalLogic.Interval}}, modalDataset::AbstractArray{T, 5}, worldType::ModalLogic.Interval) where {T} =
 	nothing
-@inline modalDatasetSet_m(modalDataset::AbstractArray{T, 5}, w::ModalLogic.Interval, i_instance::Integer, i_featnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
-	modalDataset[w.x, w.y, i_instance, i_featnaggr, i_relation] = threshold
+@inline modalDatasetSet_m(modalDataset::AbstractArray{T, 5}, w::ModalLogic.Interval, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
+	modalDataset[w.x, w.y, i_instance, i_featsnaggr, i_relation] = threshold
 @inline sliceModalDatasetByInstances_m(::Type{<:OntologicalDataset{T, 1, ModalLogic.Interval}}, modalDataset::AbstractArray{T, 5}, inds::AbstractVector{<:Integer}; return_view = false) where {T,WorldType<:AbstractWorld} =
 	if return_view @view modalDataset[:,:,inds,:,:] else modalDataset[:,:,inds,:,:] end
 @inline function modalDatasetGet_m(
 	modalDataset    :: AbstractArray{T, 5},
 	w               :: ModalLogic.Interval,
 	i_instance      :: Integer,
-	i_featnaggr     :: Integer,
+	i_featsnaggr     :: Integer,
 	i_relation      :: Integer) where {T}
-	modalDataset[w.x, w.y, i_instance, i_featnaggr, i_relation]
+	modalDataset[w.x, w.y, i_instance, i_featsnaggr, i_relation]
 end
 
 const ModalDatasetMType{T} = Union{
@@ -86,19 +86,19 @@ const ModalDatasetMType{T} = Union{
 }
 
 modalDatasetType_g(::Type{<:OntologicalDataset{T, N, WorldType}}) where {T, N, WorldType<:AbstractWorld} = AbstractArray{T, 2}
-@inline initModalDataset_g(X::OntologicalDataset{T, N, WorldType}, n_featnaggrs::Integer) where {T, N, WorldType<:AbstractWorld} =
-	Array{T, 2}(undef, n_samples(X), n_featnaggrs)
-@inline modalDatasetIsConsistent_g(modalDataset, X::OntologicalDataset{T, N, WorldType}, n_featnaggrs::Integer) where {T, N, WorldType<:AbstractWorld} =
-	(typeof(modalDataset)<:AbstractArray{T, 2} && size(modalDataset) == (n_samples(X), n_featnaggrs))
-@inline modalDatasetSet_g(modalDataset::AbstractArray{T, 2}, i_instance::Integer, i_featnaggr::Integer, threshold::T) where {T} =
-	modalDataset[i_instance, i_featnaggr] = threshold
+@inline initModalDataset_g(X::OntologicalDataset{T, N, WorldType}, n_featsnaggrs::Integer) where {T, N, WorldType<:AbstractWorld} =
+	Array{T, 2}(undef, n_samples(X), n_featsnaggrs)
+@inline modalDatasetIsConsistent_g(modalDataset, X::OntologicalDataset{T, N, WorldType}, n_featsnaggrs::Integer) where {T, N, WorldType<:AbstractWorld} =
+	(typeof(modalDataset)<:AbstractArray{T, 2} && size(modalDataset) == (n_samples(X), n_featsnaggrs))
+@inline modalDatasetSet_g(modalDataset::AbstractArray{T, 2}, i_instance::Integer, i_featsnaggr::Integer, threshold::T) where {T} =
+	modalDataset[i_instance, i_featsnaggr] = threshold
 @inline sliceModalDatasetByInstances_g(::Type{<:OntologicalDataset{T, N, WorldType}}, modalDataset::AbstractArray{T, 2}, inds::AbstractVector{<:Integer}; return_view = false) where {T,N,WorldType<:AbstractWorld} =
 	if return_view @view modalDataset[inds,:] else modalDataset[inds,:] end
 @inline function modalDatasetGet_g(
 	modalDataset    :: AbstractArray{T, 2},
 	i_instance      :: Integer,
-	i_featnaggr     :: Integer) where {T}
-	modalDataset[i_instance, i_featnaggr]
+	i_featsnaggr     :: Integer) where {T}
+	modalDataset[i_instance, i_featsnaggr]
 end
 
 const ModalDatasetGType{T} = Union{
@@ -185,7 +185,7 @@ end
 function computeModalDataset_m(
 		X::OntologicalDataset{T, N, WorldType},
 		relations::AbstractVector{<:AbstractRelation},
-		grouped_featnaggrs::AbstractVector{<:AbstractVector{<:Aggregator}},
+		grouped_featsnaggrs::AbstractVector{<:AbstractVector{<:Aggregator}},
 		modalDatasetP::ModalDatasetPType{T}, # TODO write stricter type
 		# modalDatasetP::modalDatasetType(OntologicalDataset{T, N, WorldType}),
 		# modalDatasetP::modalDatasetType(typeof(X)), # TODO make either this or X an optional argument
@@ -205,15 +205,15 @@ function computeModalDataset_m(
 
 	n_instances = n_samples(X)
 	n_relations = length(relations)
-	n_featnaggrs = sum(length.(grouped_featnaggrs))
+	n_featsnaggrs = sum(length.(grouped_featsnaggrs))
 
 	# Prepare modalDatasetM
-	modalDatasetM = initModalDataset_m(X, n_featnaggrs, n_relations)
+	modalDatasetM = initModalDataset_m(X, n_featsnaggrs, n_relations)
 
 	# Prepare modalDatasetG
 	modalDatasetG =
 		if computeModalDatasetG
-			initModalDataset_g(X, n_featnaggrs)
+			initModalDataset_g(X, n_featsnaggrs)
 		else
 			nothing
 	end
@@ -235,7 +235,7 @@ function computeModalDataset_m(
 			initModalDatasetWorldSlice_m(typeof(X), modalDatasetM, w)
 		end
 
-		for (i_feature,aggregators) in enumerate(grouped_featnaggrs)
+		for (i_feature,aggregators) in enumerate(grouped_featsnaggrs)
 			
 			@logmsg DTDebug "Feature $(i_feature)"
 			
@@ -300,14 +300,14 @@ struct stumpModalDataset{T}
 	n_instances              :: Integer
 	relations                :: AbstractVector{<:AbstractRelation}
 	features                 :: AbstractVector{<:FeatureTypeFun}
-	grouped_featnaggrs       :: AbstractDict{Integer, Vector{Tuple{Integer,<:Aggregator}}}
-	flattened_featnaggrs     :: AbstractVector{Tuple{<:FeatureTypeFun,<:Aggregator}}
+	grouped_featsnaggrs       :: AbstractDict{Integer, Vector{Tuple{Integer,<:Aggregator}}}
+	flattened_featsnaggrs     :: AbstractVector{Tuple{<:FeatureTypeFun,<:Aggregator}}
 
-	function stumpModalDataset(X::OntologicalDataset{T, N, WorldType}, features, grouped_featnaggrs, flattened_featnaggrs; computeRelationAll = false, timing_mode = :none) where {T, N, WorldType<:AbstractWorld}
-		stumpModalDataset{T}(X, features, grouped_featnaggrs, flattened_featnaggrs, computeRelationAll = computeRelationAll, timing_mode = timing_mode)
+	function stumpModalDataset(X::OntologicalDataset{T, N, WorldType}, features, grouped_featsnaggrs, flattened_featsnaggrs; computeRelationAll = false, timing_mode = :none) where {T, N, WorldType<:AbstractWorld}
+		stumpModalDataset{T}(X, features, grouped_featsnaggrs, flattened_featsnaggrs, computeRelationAll = computeRelationAll, timing_mode = timing_mode)
 	end
 
-	function stumpModalDataset{T}(X::OntologicalDataset{T, N, WorldType}, features, grouped_featnaggrs, flattened_featnaggrs; computeRelationAll = false, timing_mode = :none) where {T, N, WorldType<:AbstractWorld}
+	function stumpModalDataset{T}(X::OntologicalDataset{T, N, WorldType}, features, grouped_featsnaggrs, flattened_featsnaggrs; computeRelationAll = false, timing_mode = :none) where {T, N, WorldType<:AbstractWorld}
 		
 		n_instances = n_samples(X)
 
@@ -327,11 +327,11 @@ struct stumpModalDataset{T}
 		# Compute modal dataset propositions and 1-modal decisions
 		modalDatasetM, modalDatasetG = 
 			if timing_mode == :none
-				computeModalDataset_m(X, relations, grouped_featnaggrs, modalDatasetP, features, computeRelationAll = computeRelationAll);
+				computeModalDataset_m(X, relations, grouped_featsnaggrs, modalDatasetP, features, computeRelationAll = computeRelationAll);
 			elseif timing_mode == :time
-				@time computeModalDataset_m(X, relations, grouped_featnaggrs, modalDatasetP, features, computeRelationAll = computeRelationAll);
+				@time computeModalDataset_m(X, relations, grouped_featsnaggrs, modalDatasetP, features, computeRelationAll = computeRelationAll);
 			elseif timing_mode == :btime
-				@btime computeModalDataset_m($X, $relations, $grouped_featnaggrs, $modalDatasetP, $features, computeRelationAll = $computeRelationAll);
+				@btime computeModalDataset_m($X, $relations, $grouped_featsnaggrs, $modalDatasetP, $features, computeRelationAll = $computeRelationAll);
 		end
 
 		# println(Base.size(X))
@@ -345,7 +345,7 @@ struct stumpModalDataset{T}
 		println("├ modalDatasetM size:\t\t$(Base.summarysize(modalDatasetM) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
 		println("└ modalDatasetG size:\t\t$(Base.summarysize(modalDatasetG) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
 
-		new{T}(modalDatasetP, modalDatasetM, modalDatasetG, n_instances, relations, features, grouped_featnaggrs, flattened_featnaggrs)
+		new{T}(modalDatasetP, modalDatasetM, modalDatasetG, n_instances, relations, features, grouped_featsnaggrs, flattened_featsnaggrs)
 	end
 
 end

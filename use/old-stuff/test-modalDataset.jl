@@ -28,14 +28,14 @@ features_n_operators
 ################################################################################
 
 # Group feats_n_operators by polarity
-(features, grouped_featnaggrs, flattened_featnaggrs) = DecisionTree.prepare_featnaggrs(features_n_operators)
+(features, grouped_featsnaggrs, flattened_featsnaggrs) = DecisionTree.prepare_featsnaggrs(features_n_operators)
 
 ################################################################################
 ################################################################################
 
 computeRelationAll = true
 timing_mode = :none
-stumpModalDataset = stumpModalDataset(X, features, grouped_featnaggrs, flattened_featnaggrs, computeRelationAll = computeRelationAll, timing_mode = timing_mode);
+stumpModalDataset = stumpModalDataset(X, features, grouped_featsnaggrs, flattened_featsnaggrs, computeRelationAll = computeRelationAll, timing_mode = timing_mode);
 
 modalDatasetP = stumpModalDataset.modalDatasetP
 modalDatasetM = stumpModalDataset.modalDatasetM

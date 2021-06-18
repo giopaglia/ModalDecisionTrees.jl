@@ -391,13 +391,15 @@ KDDDataset_not_stratified((n_task,n_version),
 		# 	# moving_average(vs,w,1-ceil(Int, o/w))
 		# end
 		n_samples = 0
+		# timeseries = Vector{Vector{Array{Float64, 2}}}[]
 		timeseries = []
 		for folder in folders
-			cur_folder_timeseries = Array{Array{Array{Float64, 2}, 1}, 1}(undef, length(files_map[folder]))
+			cur_folder_timeseries = Vector{Vector{Array{Float64, 2}}}(undef, length(files_map[folder]))
 
 			# collect is necessary because the threads macro only supports arrays
 			# https://stackoverflow.com/questions/57633477/multi-threading-julia-shows-error-with-enumerate-iterator
 			Threads.@threads for (i_samples, samples) in collect(enumerate(files_map[folder]))
+			# for (i_samples, samples) in collect(enumerate(files_map[folder]))
 				samples = 
 					if folder in ["asthmawebwithcough", "covidwebnocough", "covidwebwithcough", "healthywebnosymp", "healthywebwithcough"]
 						map((subfoldname)->"$folder/$subfoldname/audio_file_$(file_suffix).wav", samples)
@@ -406,7 +408,7 @@ KDDDataset_not_stratified((n_task,n_version),
 						map((filename)->"$folder/$subfolder/$filename", samples)
 					end
 
-				cur_file_timeseries = Array{Array{Float64, 2}, 1}(undef, length(samples))
+				cur_file_timeseries = Vector{Array{Float64, 2}}(undef, length(samples))
 				valid_i_filenames = []
 				for (i_filename, filename) in collect(enumerate(samples))
 					filepath = kdd_data_dir * "$filename"
@@ -436,6 +438,7 @@ KDDDataset_not_stratified((n_task,n_version),
 			append!(timeseries, [j for i in cur_folder_timeseries for j in i])
 		end
 		# @assert n_samples == tot_n_samples "KDDDataset: unmatching tot_n_samples: {$n_samples} != {$tot_n_samples}"
+		# timeseries[1:5]
 		timeseries
 	end
 
@@ -495,7 +498,6 @@ KDDDataset_not_stratified((n_task,n_version),
 		((getindex.(datasets, 1),datasets[1][2]), n_pos[1], n_neg[1])
 	end
 
-	
 	getTimeSeries((folders_Y, folders_N), dir_infos)
 end
 ################################################################################

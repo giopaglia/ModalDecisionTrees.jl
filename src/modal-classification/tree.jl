@@ -15,31 +15,32 @@ module treeclassifier
 	import Random
 	import StatsBase
 
-	mutable struct NodeMeta{S<:Real,U}
-		region           :: UnitRange{Int}                   # a slice of the samples used to decide the split of the node
-		depth            :: Int
-		modal_depth      :: Int
+	mutable struct NodeMeta{U}
+		region             :: UnitRange{Int}                   # a slice of the samples used to decide the split of the node
+		depth              :: Int
+		modal_depth        :: Int
 		# worlds      :: AbstractVector{WorldSet{W}}         # current set of worlds for each training instance
-		purity           :: U                                # purity grade attained at training time
-		label            :: Label                            # most likely label
-		is_leaf          :: Bool                             # whether this is a leaf node, or a split one
+		purity             :: U                                # purity grade attained at training time
+		label              :: Label                            # most likely label
+		is_leaf            :: Bool                             # whether this is a leaf node, or a split one
 		# split node-only properties
-		split_at         :: Int                              # index of samples
-		l                :: NodeMeta{S,U}                    # left child
-		r                :: NodeMeta{S,U}                    # right child
-		i_frame          :: Integer          # Id of frame
-		modality         :: R where R<:AbstractRelation      # modal operator (e.g. RelationId for the propositional case)
-		feature          :: Int                              # feature used for splitting
-		test_operator    :: TestOperator                     # test_operator (e.g. <=)
-		threshold        :: S                                # threshold value
+		split_at           :: Int                              # index of samples
+		l                  :: NodeMeta{U}                    # left child
+		r                  :: NodeMeta{U}                    # right child
+		i_frame            :: Integer          # Id of frame
+		modality           :: R where R<:AbstractRelation      # modal operator (e.g. RelationId for the propositional case)
+		feature            :: FeatureTypeFun                      # feature used for splitting
+		test_operator      :: TestOperatorFun                  # test_operator (e.g. <=)
+		threshold          :: T where T                                # threshold value
 		onlyUseRelationAll :: Vector{Bool}
-		function NodeMeta{S,U}(
+
+		function NodeMeta{U}(
 				region      :: UnitRange{Int},
 				depth       :: Int,
 				modal_depth :: Int,
 				oura        :: Vector{Bool},
-				) where {S<:Real,U}
-			node = new{S,U}()
+				) where {U}
+			node = new{U}()
 			node.region = region
 			node.depth = depth
 			node.modal_depth = modal_depth
@@ -50,9 +51,9 @@ module treeclassifier
 		end
 	end
 
-	struct Tree{S, T}
-		root           :: NodeMeta{S,Float64}
-		list           :: Vector{T}
+	struct Tree{S}
+		root           :: NodeMeta{Float64}
+		list           :: Vector{S}
 		labels         :: Vector{Label}
 		initConditions :: Vector{<:DecisionTree._initCondition}
 	end
@@ -67,7 +68,7 @@ module treeclassifier
 		Ss                  :: AbstractVector{<:AbstractVector{WST} where {WorldType,WST<:WorldSet{WorldType}}}, # the vector of current worlds
 		####################
 		loss_function       :: Function,
-		node                :: NodeMeta{T,<:AbstractFloat}, # the node to split
+		node                :: NodeMeta{<:AbstractFloat}, # the node to split
 		max_depth           :: Int,                         # the maximum depth of the resultant tree
 		min_samples_leaf    :: Int,                         # the minimum number of samples each leaf needs to have
 		min_loss_at_leaf    :: AbstractFloat,               # maximum purity allowed on a leaf
@@ -79,18 +80,20 @@ module treeclassifier
 		####################
 		indX                :: AbstractVector{<:Integer},   # an array of sample indices (we split using samples in indX[node.region])
 		####################
-		# The six arrays below are given for optimization purposes
+		# Arrays for optimization purposes
 		####################
 		nc                  :: AbstractVector{U},   # nc maintains a dictionary of all labels in the samples
 		ncl                 :: AbstractVector{U},   # ncl maintains the counts of labels on the left
 		ncr                 :: AbstractVector{U},   # ncr maintains the counts of labels on the right
+		consistency_sat_check :: Union{Nothing,AbstractVector{Bool}},
 		####################
 		Yf                  :: AbstractVector{Label},
 		Wf                  :: AbstractVector{U},
 		Sfs                 :: AbstractVector{<:AbstractVector{WST} where {WorldType,WST<:WorldSet{WorldType}}},
 		####################
 		rng                 :: Random.AbstractRNG,
-	) where {T, U}
+	) where {U}
+
 
 		# Region of indX to use to perform the split
 		region = node.region
@@ -139,229 +142,136 @@ module treeclassifier
 
 		# Optimization-tracking variables
 		best_frame = -1
-		best_purity__nt = typemin(U)
+		best_purity__nt = typemin(Float64)
 		best_relation = RelationNone
 		best_feature = FeatureTypeNone
-		best_test_operator = TestOpNone
-		best_threshold = typemin(U)
-		# TODO these are just for checking the consistency of gamma-optimizations
-		best_nl = -1
-		# TODO bring back best_unsatisfied = []
-
-		# TODO bring back best_unsatisfied = []
-
+		best_test_operator = nothing
+		best_threshold = nothing
+		best_consistency = nothing
+		
 		#####################
 		## Find best split ##
 		#####################
-		## Test all conditions
+		## Test all decisions
 		# For each frame (modal dataset)
-		for (i_frame, X) in enumerate(frames(Xs))
+		for (i_frame,
+					(X,
+					frame_Sf,
+					frame_n_subrelations,
+					frame_n_subfeatures,
+					frame_useRelationAll,
+					frame_onlyUseRelationAll)) in enumerate(zip(frames(Xs), Sfs, n_subrelations, n_subfeatures, useRelationAll, node.onlyUseRelationAll))
 
 			@logmsg DTDetail "  Frame $(best_frame)/$(length(frames(Xs)))"
 
-			function findSingleFrameOptimalDecision(
-				best_purity__nt     :: U,
-				X                   :: AbstractModalDataset{T,WorldType},
-				Sf                  :: Vector{WST},
-				####################
-				n_subrelations      :: Function,
-				n_subfeatures       :: Integer,
-				useRelationAll      :: Bool,
-				####################
-				onlyUseRelationAll  :: Bool,
-			) where {T,WorldType,WST<:WorldSet{WorldType}}
+			allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds = begin
 				
 				# Derive subset of features to consider
 				# Note: using "sample" function instead of "randperm" allows to insert weights for features which may be wanted in the future 
-				features_inds = StatsBase.sample(rng, Vector(1:n_features(X)), n_subfeatures, replace = false)
+				features_inds = StatsBase.sample(rng, 1:n_features(X), frame_n_subfeatures, replace = false)
+				sort!(features_inds)
 
 				# Derive all available relations
-				allow_modal_decisions, allow_global_decisions, relations_inds = begin
-					allow_modal_decisions, allow_global_decisions = begin
-						if onlyUseRelationAll
-							false, true
-						else
-							true, useRelationAll
-						end
+				allow_propositional_decisions, allow_modal_decisions, allow_global_decisions = begin
+					if frame_onlyUseRelationAll
+						false, false, true
+					else
+						true, true, frame_useRelationAll
 					end
-
-					tot_relations = 0
-					if allow_modal_decisions
-						tot_relations += length(relations)
-					end
-					if allow_global_decisions
-						tot_relations += 1
-					end
-					
-					# Derive subset of relations to consider
-					n_subrel = Int(n_subrelations(n_relations(X)))
-					relations_inds = StatsBase.sample(rng, 1:n_relations(X), n_subrel, replace = false)
-
-					# Check whether the global relation survived
-					if allow_global_decisions
-						allow_global_decisions = relations_inds[n_subrel]
-						relations_inds = relations_inds[1:end-1]
-					end
-					allow_modal_decisions, allow_global_decisions, relations_inds
 				end
 
-				########################################################################
-				########################################################################
-				########################################################################
+				tot_relations = 0
+				if allow_modal_decisions
+					tot_relations += length(relations(X))
+				end
+				if allow_global_decisions
+					tot_relations += 1
+				end
 				
-				print("relations_inds ")
-				println(relations_inds)
+				# Derive subset of relations to consider
+				n_subrel = Int(frame_n_subrelations(tot_relations))
+				modal_relations_inds = StatsBase.sample(rng, 1:tot_relations, n_subrel, replace = false)
+				sort!(modal_relations_inds)
 
-				allow_global_decisions
-				relations_inds
+				# Check whether the global relation survived
+				if allow_global_decisions
+					allow_global_decisions = (tot_relations in modal_relations_inds)
+					modal_relations_inds = filter!(r->r≠tot_relations, modal_relations_inds)
+					tot_relations = length(modal_relations_inds)
+				end
+				allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds
+			end
+			
+			# println(modal_relations_inds)
+			# println(features_inds)
+			# readline()
 
-				# For each relational operator
-				for relation_id in relations_inds
-					relation = relations(X)[relation_id]
-					@logmsg DTDebug "Testing relation $(relation) (id: $(relation_id))..." # "/$(length(relation_ids))"
-
-					# For each feature
-					@inbounds for feature_id in features_inds
-						feature = features(X)[feature_id]
-						@logmsg DTDebug "Testing feature $(feature) (id: $(feature_id))..."
-
-						thresholds = Array{T,2}(undef, length(grouped_featsnops(X)[feature_id]), n_instances)
-						for (i_test_operator,test_operator) in enumerate(grouped_featsnops(X)[feature_id])
-							@views cur_thr = thresholds[i_test_operator,:]
-							fill!(cur_thr, ModalLogic.bottom(test_operator, T))
-						end
-
-						@logmsg DTDebug "thresholds: " thresholds
-
-						# TODO optimize this!!
-						# TODO WorldType
-						firstWorld = WorldType(ModalLogic.firstWorld)
-						for i in 1:n_instances
-							@logmsg DTDetail " Instance $(i)/$(n_instances)" indX[i + r_start]
-							worlds = if (relation != RelationAll)
-									Sf[i]
-								else
-									[firstWorld]
-								end
-							# TODO maybe read the specific value of gammas referred to the test_operator?
-							# cur_gammas = DecisionTree.readGamma(gammas, w, indX[i + r_start], relation_id, feature_id)
-							# @logmsg DTDetail " cur_gammas" w cur_gammas
-							# TODO try using reduce for each operator instead.
-							for (i_test_operator,test_operator) in enumerate(grouped_featsnops(X)[feature_id]) # TODO use correct indexing for grouped_featsnops(X)[feature_id]
-								for w in worlds
-									# thresholds[i_test_operator,i] = ModalLogic.opt(test_operator)(thresholds[i_test_operator,i], cur_gammas[i_test_operator])
-									gamma = DecisionTree.readGamma(gammas, i_test_operator, w, indX[i + r_start], relation_id, feature_id)
-									thresholds[i_test_operator,i] = ModalLogic.opt(test_operator)(thresholds[i_test_operator,i], gamma)
-								end
-							end
-						end
-
-						# TODO sort this and optimize?
-						# TODO no need to do union!! Just use opGeqMaxThresh for one and opLesMinThresh for the other...
-						# Obtain the list of reasonable thresholds
-						
-						# thresholdDomain = setdiff(union(Set(opGeqMaxThresh),Set(opLesMinThresh)),Set([typemin(T), typemax(T)]))
-
-						# @logmsg DTDebug "Thresholds computed: " thresholds
-						# readline()
-
-						# Look for the correct test operator
-						for (i_test_operator,test_operator) in enumerate(grouped_featsnops(X)[feature_id])
-							thresholdArr = @views thresholds[i_test_operator,:]
-							thresholdDomain = setdiff(Set(thresholdArr),Set([typemin(T), typemax(T)]))
-							# Look for thresholdArr 'a' for the propositions like "feature >= a"
-							for threshold in thresholdDomain
-								@logmsg DTDebug " Testing condition: $(display_modal_test(relation, test_operator, feature, threshold))"
-								# Re-initialize right class counts
-								nr = zero(U)
-								ncr[:] .= zero(U)
-								# unsatisfied = fill(1, n_instances)
-								for i in 1:n_instances
-									# @logmsg DTDetail " instance $i/$n_instances ExtremeThresh ($(opGeqMaxThresh[i])/$(opLesMinThresh[i]))"
-									satisfied = ModalLogic.evaluateThreshCondition(test_operator, threshold, thresholdArr[i])
-									
-									if !satisfied
-										@logmsg DTDetail "NO"
-										nr += Wf[i]
-										ncr[Yf[i]] += Wf[i]
-									else
-										# unsatisfied[i] = 0
-										@logmsg DTDetail "YES"
-									end
-								end
-
-								# Calculate left class counts
-								@simd for lab in 1:length(nc) # TODO something like @simd ncl .= nc - ncr instead
-									ncl[lab] = nc[lab] - ncr[lab]
-								end
-								nl = nt - nr
-								@logmsg DTDebug "  (n_left,n_right) = ($nl,$nr)"
-
-								# Honor min_samples_leaf
-								if nl >= min_samples_leaf && (n_instances - nl) >= min_samples_leaf
-									purity__nt = -(nl * loss_function(ncl, nl) +
-												nr * loss_function(ncr, nr))
-									if purity__nt > best_purity__nt && !isapprox(purity__nt, best_purity__nt)
-										best_purity__nt     = purity__nt
-										best_relation       = relation
-										best_feature        = feature
-										best_test_operator  = test_operator
-										best_threshold      = threshold
-										# TODO just for checking the consistency of optimizations
-										best_nl             = nl
-										# TODO bring back best_unsatisfied    = unsatisfied
-										@logmsg DTDetail "  Found new optimum: " (best_purity__nt/nt) best_relation best_feature best_test_operator best_threshold
-									end
-								end
-							end # for threshold
-						end # for test_operator
-					end # for relation
-				end # for feature
+			########################################################################
+			########################################################################
+			########################################################################
+			
+			for ((relation, test_operator, feature, threshold), aggr_thresholds) in generate_feasible_decisions(X, indX[region], frame_Sf, allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds)
 				
-				best_purity__nt, best_relation, best_feature, best_test_operator, best_threshold, best_nl
-			end
+				# println((relation, test_operator, feature, threshold))
+				# Re-initialize right class counts
+				nr = zero(U)
+				ncr .= zero(U)
+				if isa(consistency_sat_check,Vector)
+					consistency_sat_check[1:n_instances] .= 1
+				end
+				for i_instance in 1:n_instances
+					gamma = aggr_thresholds[i_instance]
+					satisfied = ModalLogic.evaluate_thresh_decision(test_operator, gamma, threshold)
+					@logmsg DTDetail " instance $i_instance/$n_instances: (f=$(gamma)) -> satisfied = $(satisfied)"
+					
+					# TODO make this satisfied a fuzzy value
+					if !satisfied
+						nr += Wf[i_instance]
+						ncr[Yf[i_instance]] += Wf[i_instance]
+					else
+						if isa(consistency_sat_check,Vector)
+							consistency_sat_check[i_instance] = 0
+						end
+					end
+				end
 
-			# Obtain best split for this frame
-			purity__nt,
-			relation,
-			feature,
-			test_operator,
-			threshold,
-			nl = begin
-				findSingleFrameOptimalDecision(
-					best_purity__nt,
-					X,
-					Sfs[i_frame],
-					#################################
-					n_subrelations[i_frame],
-					n_subfeatures[i_frame],
-					useRelationAll[i_frame],
-					#################################
-					node.onlyUseRelationAll[i_frame],
-				)
-			end
+				# Calculate left class counts
+				ncl .= nc .- ncr
+				nl = nt - nr
+				@logmsg DTDebug "  (n_left,n_right) = ($nl,$nr)"
 
-			# Optimize to find the best split over any frame
-			if purity__nt > best_purity__nt && !isapprox(purity__nt, best_purity__nt)
-				#################################
-				best_purity__nt     = purity__nt
-				best_frame          = i_frame
-				#################################
-				best_relation       = relation
-				best_feature        = feature
-				best_test_operator  = test_operator
-				best_threshold      = threshold
-				# TODO just for checking the consistency of optimizations
-				best_nl             = nl
-				# TODO bring back best_unsatisfied    = unsatisfied
-				#################################
-				@logmsg DTDetail "  Found new optimum in frame $(best_frame): " (best_purity__nt/nt) best_relation best_feature best_test_operator best_threshold
-			end
-		end
+				# Honor min_samples_leaf
+				if nl >= min_samples_leaf && (n_instances - nl) >= min_samples_leaf
+					purity__nt = -(nl * loss_function(ncl, nl) + nr * loss_function(ncr, nr))
+					if purity__nt > best_purity__nt # && !isapprox(purity__nt, best_purity__nt)
+						#################################
+						best_frame          = i_frame
+						#################################
+						best_purity__nt     = purity__nt
+						#################################
+						best_relation       = relation
+						best_feature        = feature
+						best_test_operator  = test_operator
+						best_threshold      = threshold
+						#################################
+						# print((relation, test_operator, feature, threshold))
+						# println(" NEW BEST $best_frame, $best_purity__nt/nt")
+						@logmsg DTDetail "  Found new optimum in frame $(best_frame): " (best_purity__nt/nt) best_relation best_feature best_test_operator best_threshold
+						#################################
+						best_consistency  = if isa(consistency_sat_check,Vector)
+								consistency_sat_check[1:n_instances]
+							else
+								nr
+						end
+						#################################
+					end
+				end
+			end # END decisions
+		end # END frame
 
 		# @logmsg DTOverview "purity increase" best_purity__nt/nt node.purity (best_purity__nt/nt + node.purity) (best_purity__nt/nt - node.purity)
 		# If the best split is good, partition and split accordingly
-		@inbounds if (best_purity__nt == typemin(U)
+		@inbounds if (best_purity__nt == typemin(Float64)
 									|| (best_purity__nt/nt + node.purity <= min_purity_increase))
 			@logmsg DTDebug " Leaf" best_purity__nt min_purity_increase (best_purity__nt/nt) node.purity ((best_purity__nt/nt) + node.purity)
 			node.is_leaf = true
@@ -370,52 +280,77 @@ module treeclassifier
 			best_purity = best_purity__nt/nt
 
 			# split the samples into two parts:
-			# - ones that are > threshold
-			# - ones that are <= threshold
+			#  ones for which the is satisfied and those for whom it's not
 			node.purity         = best_purity
 			node.i_frame        = best_frame
 			node.modality       = best_relation
 			node.feature        = best_feature
 			node.test_operator  = best_test_operator
-			# TODO the selected threshold should actually be the result of a loss interpolation around best_threshold
 			node.threshold      = best_threshold
 			
-			# Compute new world sets (= make a modal step)
+			# Compute new world sets (= take a modal step)
 
 			# TODO instead of using memory, here, just use two opposite indices and perform substitutions. indj = n_instances
 			unsatisfied_flags = fill(1, n_instances)
-			for i in 1:n_instances
-				channel = ModalLogic.getChannel(X, indX[i + r_start], best_feature)
-				@logmsg DTDetail " Instance $(i)/$(n_instances)" channel Sfs[best_frame][i]
-				(satisfied,Ss[best_frame][indX[i + r_start]]) = ModalLogic.modalStep(Sfs[best_frame][i], best_relation, channel, best_test_operator, best_threshold)
-				unsatisfied_flags[i] = !satisfied # I'm using unsatisfied because then sorting puts YES instances first but TODO use the inverse sorting and use satisfied flag instead
+			for i_instance in 1:n_instances
+				# TODO perform step with an OntologicalModalDataset
+
+				# instance = ModalLogic.getInstance(X, node.i_frame, indX[i_instance + r_start])
+				X = get_frame(Xs, node.i_frame)
+				Sf = Sfs[node.i_frame]
+				# instance = ModalLogic.getInstance(X, indX[i_instance + r_start])
+
+				println(display_modal_decision(node.modality, node.test_operator, node.feature, node.threshold))
+				# println(instance)
+				# println(Sf[i_instance])
+				(satisfied,Ss[node.i_frame][indX[i_instance + r_start]]) = ModalLogic.modalStep(X, indX[i_instance + r_start], Sf[i_instance], node.modality, node.feature, node.test_operator, node.threshold)
+				@logmsg DTDetail " [$satisfied] Instance $(i_instance)/$(n_instances)" Sf[i_instance] (if satisfied Ss[node.i_frame][indX[i_instance + r_start]] end)
+				println(satisfied)
+				# println(Ss[node.i_frame][indX[i_instance + r_start]])
+				# readline()
+
+				# I'm using unsatisfied because sorting puts YES instances first, but TODO use the inverse sorting and use satisfied flag instead
+				unsatisfied_flags[i_instance] = !satisfied
 			end
 
-			@logmsg DTOverview " Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on condition: $(display_modal_test(best_relation, best_test_operator, best_feature, best_threshold)), purity $(best_purity)"
+			@logmsg DTOverview " Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(node.i_frame) with decision: $(display_modal_decision(node.modality, node.test_operator, node.feature, node.threshold)), purity $(node.purity)"
 
 			@logmsg DTDetail " unsatisfied_flags" unsatisfied_flags
 
-			# TODO this is only a consistency check
-			# TODO bring back if best_unsatisfied != unsatisfied_flags || best_nl != n_instances-sum(unsatisfied_flags) || length(unique(unsatisfied_flags)) == 1
-			if best_nl != n_instances-sum(unsatisfied_flags) || length(unique(unsatisfied_flags)) == 1
+			if length(unique(unsatisfied_flags)) == 1
+				error("An uninformative split was reached. Something's off\nPurity: $(node.purity)\nSplit: $(display_modal_decision(node.modality, node.test_operator, node.feature, node.threshold))\nUnsatisfied flags: $(unsatisfied_flags)")
+			end
+			
+			# Check consistency
+			consistency = if isa(consistency_sat_check,Vector)
+					unsatisfied_flags
+				else
+					sum(unsatisfied_flags)
+			end
+
+			if best_consistency != consistency
 				errStr = "Something's wrong with the optimization steps.\n"
-				errStr *= "Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on condition: $(display_modal_test(best_relation, best_test_operator, best_feature, best_threshold)), purity $(best_purity)"
-				if length(unique(unsatisfied_flags)) == 1
-					errStr *= "Uninformative split.\n$(unsatisfied_flags)\n"
+				errStr *= "Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(node.i_frame) with decision: $(display_modal_decision(node.modality, node.test_operator, node.feature, node.threshold)), purity $(best_purity)\n"
+				errStr *= "Different separation was expected:\n"
+				if isa(consistency_sat_check,Vector)
+					errStr *= "Actual: $(consistency) ($(sum(consistency)))\n"
+					errStr *= "Expected: $(best_consistency) ($(sum(best_consistency)))\n"
+					diff = best_consistency.-consistency
+					errStr *= "Difference: $(diff) ($(sum(abs.(diff))))\n"
+				else
+					errStr *= "Actual: $(consistency)\n"
+					errStr *= "Expected: $(best_consistency)\n"
+					diff = best_consistency-consistency
+					errStr *= "Difference: $(diff)\n"
 				end
-				# TODO bring back if best_unsatisfied != unsatisfied_flags || best_nl != n_instances-sum(unsatisfied_flags)
-				# if best_nl != n_instances-sum(unsatisfied_flags)
-				if best_nl != n_instances-sum(unsatisfied_flags)
-					# TODO bring back errStr *= "Different unsatisfied and best_unsatisfied:\ncomputed: $(best_unsatisfied)\n$(best_nl)\nactual: $(unsatisfied_flags)\n$(n_instances-sum(unsatisfied_flags))\n"
-					# errStr *= "Different unsatisfied and best_unsatisfied:\ncomputed: $(best_unsatisfied)\n$(best_nl)\nactual: $(unsatisfied_flags)\n$(n_instances-sum(unsatisfied_flags))\n"
-					errStr *= "Different unsatisfied:\ncomputed: $(best_nl)\nactual: $(unsatisfied_flags)\n$(n_instances-sum(unsatisfied_flags))\n"
-				end
-				for i in 1:n_instances
-					errStr *= "$(ModalLogic.getChannel(X, indX[i + r_start], best_feature))\t$(Sfs[best_frame][i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[best_frame][indX[i + r_start]])\n";
-				end
+				
+				# for i in 1:n_instances
+					# errStr *= "$(ModalLogic.getChannel(Xs, indX[i + r_start], best_feature))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[node.i_frame][indX[i + r_start]])\n";
+				# end
+
 				# throw or error(Base.ErrorException(errStr))
 				println("ERROR! " * errStr)
-				# TODO bring this error back
+				error("ERROR! " * errStr)
 			end
 
 			@logmsg DTDetail "pre-partition" region indX[region] unsatisfied_flags
@@ -431,11 +366,13 @@ module treeclassifier
 			# util.q_bi_sort!(unsatisfied_flags, indX, 1, n_instances, r_start)
 			# node.split_at = searchsortedfirst(unsatisfied_flags, true)
 		end
+		# println("END split!")
+		# readline()
 	end
 
 	# Split node at a previously-set node.split_at value.
 	# The children inherits some of the data
-	@inline function fork!(node::NodeMeta{S,U}) where {S,U}
+	@inline function fork!(node::NodeMeta{U}) where {U}
 		ind = node.split_at
 		region = node.region
 		depth = node.depth+1
@@ -449,8 +386,8 @@ module treeclassifier
 		r_oura = node.onlyUseRelationAll
 
 		# no need to copy because we will copy at the end
-		node.l = NodeMeta{S,U}(region[    1:ind], depth, mdepth, l_oura)
-		node.r = NodeMeta{S,U}(region[ind+1:end], depth, mdepth, r_oura)
+		node.l = NodeMeta{U}(region[    1:ind], depth, mdepth, l_oura)
+		node.r = NodeMeta{U}(region[ind+1:end], depth, mdepth, r_oura)
 	end
 
 	function check_input(
@@ -653,8 +590,6 @@ module treeclassifier
 			rng = Random.GLOBAL_RNG :: Random.AbstractRNG
 		) where {U}
 
-		T = Float64
-		
 		n_instances = n_samples(Xs)
 
 		# Initialize world sets for each instance
@@ -668,6 +603,8 @@ module treeclassifier
 		nc  = Vector{U}(undef, n_classes)
 		ncl = Vector{U}(undef, n_classes)
 		ncr = Vector{U}(undef, n_classes)
+		consistency_sat_check = Vector{Bool}(undef, n_instances)
+		# consistency_sat_check = nothing
 
 		# Memory support for worldsets, labels, weights 
 		# Xf = Array{T, N+1}(undef, channel_size(X)..., n_instances)
@@ -684,15 +621,15 @@ module treeclassifier
 		indX = collect(1:n_instances)
 		
 		# TODO
-		# DecisionTree.checkGammasConsistency(gammas[i], Xs[i], test_operators, relationSet)
+		# DecisionTree.checkGammasConsistency(gammas[i], get_frame(Xs, i), test_operators, relationSet)
 
 		# Let the core algorithm begin!
 
 		# Create root node
 		onlyUseRelationAll = [(iC == startWithRelationAll) for iC in initConditions]
-		root = NodeMeta{T,Float64}(1:n_instances, 0, 0, onlyUseRelationAll)
+		root = NodeMeta{Float64}(1:n_instances, 0, 0, onlyUseRelationAll)
 		# Process stack of nodes
-		stack = NodeMeta{T,Float64}[root]
+		stack = NodeMeta{Float64}[root]
 		@inbounds while length(stack) > 0
 			# Pop node and process it
 			node = pop!(stack)
@@ -717,6 +654,7 @@ module treeclassifier
 				nc,
 				ncl,
 				ncr,
+				consistency_sat_check,
 				########################################################################
 				Yf,
 				Wf,
@@ -764,8 +702,6 @@ module treeclassifier
 			rng = Random.GLOBAL_RNG :: Random.AbstractRNG
 		) where {S, U}
 
-		T = Float64
-		
 		# TODO ...
 		# if isnothing(consistency_step_data)
 		# 	gammas = fill(nothing, n_frames(Xs))
@@ -825,6 +761,6 @@ module treeclassifier
 		)
 		
 		# Create tree with labels and categorical leaves
-		return Tree{T, S}(root, labels, indX, initConditions)
+		return Tree{S}(root, labels, indX, initConditions)
 	end
 end

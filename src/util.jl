@@ -58,7 +58,7 @@ module util
 		return log(n) - s / n
 	end
 
-	@inline function entropy(ns :: AbstractVector{T}, n :: Integer) where {T <: Real}
+	@inline function entropy(ns :: AbstractVector{U}, n :: U) where {U <: Real}
 		s = 0.0
 		@simd for k in ns
 			if k > 0
