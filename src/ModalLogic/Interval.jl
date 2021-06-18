@@ -99,4 +99,5 @@ n_worlds(::Type{Interval}, channel_size::Tuple{Integer}) = div(channel_size[1]*(
 
 print_world(w::Interval) = println("Interval [$(w.x),$(w.y)), length $(w.y-w.x)")
 
-@inline ch_readWorld(w::Interval, channel::MatricialChannel{T,1}) where {T} = channel[w.x:w.y-1]
+ch_readWorld(w::Interval, channel::MatricialChannel{T,1}) where {T} = channel[w.x:w.y-1]
+inst_readWorld(w::Interval, instance::MatricialInstance{T,2}) where {T} = instance[w.x:w.y-1,:]

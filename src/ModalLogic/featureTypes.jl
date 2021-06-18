@@ -11,6 +11,8 @@ abstract type FeatureTypeFun end
 
 struct _FeatureTypeNone  <: FeatureTypeFun end; const FeatureTypeNone  = _FeatureTypeNone();
 
+yieldFunction(f::_FeatureTypeNone) = @error " Can't intepret FeatureTypeNone in any possible form"
+
 # struct AggregateFeatureType{worldType<:AbstractWorld} <: FeatureTypeFun
 # struct SingleAttributeAggregateFeatureType <: FeatureTypeFun
 # 	i_attribute::Integer
