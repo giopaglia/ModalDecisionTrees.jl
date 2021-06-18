@@ -52,7 +52,9 @@
 	Generic Kripke frame: worlds & relations
 	struct KripkeFrame{T} <: AbstractKripkeFrame{T}
 ☐	Methodically check the consistency of thresholds lookup table with the actual computed values; not only for the best split (it's suspicious how many relations are always discarted)
-☐	Interpolate impurity function and find best threshold by interpolation
+☐	Obtain best_threshold by interpolation of the loss
+☐	Further optimize the decision selection for the binary case: in fact, no need to test all of the thresholds: for some test_operators, one can optimize this step and test only those where you know that the loss function went down.
+
 ☐	Add point-based ontology, and test point-based + rectangle algebra?
 ☐	Generalize World as a tuple of parameters ( https://stackoverflow.com/questions/40160120/generic-constructors-for-subtypes-of-an-abstract-type )
 ☐	Maybe add new hard operator valuesbetween(a,b) (doesn't make the tree more expressive, just maybe faster at capturing patterns)

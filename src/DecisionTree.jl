@@ -41,9 +41,9 @@ export DecisionTreeClassifier,
 #        # Should we export these functions? They have a conflict with
 #        # DataFrames/RDataset over fit!, and users can always
 #        # `using ScikitLearnBase`.
-       predict,
-       # predict_proba,
-       fit!, get_classes
+			predict,
+			# predict_proba,
+			fit!, get_classes
 
 export print_apply_tree
 
@@ -74,40 +74,99 @@ initWorldSet(initCondition::_startAtWorld{WorldType}, ::Type{WorldType}, channel
 	WorldSet{WorldType}([WorldType(initCondition.w)])
 
 # Leaf node, holding the output decision
-struct DTLeaf{T} # TODO specify output type: Number, Label, String, Union{Number,Label,String}?
+struct DTLeaf{S} # TODO specify output type: Number, Label, String, Union{Number,Label,String}?
 	# Majority class/value (output)
-	majority :: T
+	majority :: S
 	# Training support
-	values   :: Vector{T}
+	values   :: Vector{S}
+
+	function DTLeaf{S}(
+		majority :: S,
+		values   :: Vector{S},
+	) where {S}
+		new{S}(majority, values)
+	end
+	function DTLeaf(
+		majority :: S,
+		values   :: Vector{S},
+	) where {S}
+		new{S}(majority, values)
+	end
 end
 
 # Inner node, holding the output decision
-struct DTInternal{S<:Real, T}
+struct DTInternal{T, S}
 	# Split label
-	modality      :: R where R<:AbstractRelation
+	modality      :: AbstractRelation
 	feature       :: ModalLogic.FeatureTypeFun # TODO move FeatureTypeFun out of ModalLogic?
-	test_operator :: TestOperator # Test operator (e.g. <=, ==)
-	threshold       :: AttrType where AttrType<:S
+	test_operator :: TestOperatorFun # Test operator (e.g. <=, ==)
+	threshold     :: T
 	# Child nodes
-	left          :: Union{DTLeaf{T}, DTInternal{S, T}}
-	right         :: Union{DTLeaf{T}, DTInternal{S, T}}
+	left          :: Union{DTLeaf{S}, DTInternal{T, S}}
+	right         :: Union{DTLeaf{S}, DTInternal{T, S}}
 
+	function DTInternal{T, S}(
+		modality      :: AbstractRelation,
+		feature       :: ModalLogic.FeatureTypeFun,
+		test_operator :: TestOperatorFun,
+		threshold     :: T,
+		left          :: Union{DTLeaf{S}, DTInternal{T, S}},
+		right         :: Union{DTLeaf{S}, DTInternal{T, S}},
+	) where {T, S}
+		new{T, S}(modality, feature, test_operator, threshold, left, right)
+	end
+	function DTInternal(
+		modality      :: AbstractRelation,
+		feature       :: ModalLogic.FeatureTypeFun,
+		test_operator :: TestOperatorFun,
+		threshold     :: T,
+		left          :: Union{DTLeaf{S}, DTInternal{T, S}},
+		right         :: Union{DTLeaf{S}, DTInternal{T, S}},
+	) where {T, S}
+		new{T, S}(modality, feature, test_operator, threshold, left, right)
+	end
 end
 
 # Decision node/tree # TODO figure out, maybe this has to be abstract and to supertype DTLeaf and DTInternal
-const DTNode{S<:Real, T} = Union{DTLeaf{T}, DTInternal{S, T}}
+const DTNode{T, S} = Union{DTLeaf{S}, DTInternal{T, S}}
 
 # TODO attach info about training (e.g. algorithm used + full namedtuple of training arguments) to these models
-struct DTree{S<:Real, T}
-	root           :: DTNode{S, T}
-	worldTypes     :: AbstractVector{Type{<:AbstractWorld}}
-	initConditions :: AbstractVector{_initCondition}
+struct DTree{S}
+	root           :: DTNode{T, S} where T
+	worldTypes     :: AbstractVector{<:Type} # <:Type{<:AbstractWorld}}
+	initConditions :: AbstractVector{<:_initCondition}
+	function DTree{S}(
+		root           :: DTNode{T, S},
+		worldTypes     :: AbstractVector{<:Type}, # <:Type{<:AbstractWorld}},
+		initConditions :: AbstractVector{<:_initCondition},
+	) where {T, S}
+	new{S}(root, worldTypes, initConditions)
+	end
+	function DTree(
+		root           :: DTNode{T, S},
+		args...,
+	) where {T, S}
+	DTree{S}(root, args...)
+	end
 end
 
-struct Forest{S<:Real, T}
-	trees       :: Vector{Union{DTree{S, T},DTNode{S, T}}}
-	cm          :: Vector{ConfusionMatrix}
+struct Forest{S}
+	trees       :: AbstractVector{<:DTree{S}}
+	cm          :: AbstractVector{<:ConfusionMatrix}
 	oob_error   :: AbstractFloat
+	function Forest{S}(
+		trees       :: AbstractVector{<:DTree{S}},
+		cm          :: AbstractVector{<:ConfusionMatrix},
+		oob_error   :: AbstractFloat,
+	) where {S}
+	new{S}(trees, cm, oob_error)
+	end
+	function Forest(
+		trees       :: AbstractVector{<:DTree{S}},
+		args...,
+	) where {S}
+	Forest{S}(root, args...)
+	end
 end
 
 is_leaf(l::DTLeaf) = true
@@ -119,9 +178,9 @@ is_modal_node(t::DTree) = is_modal_node(t.root)
 
 zero(String) = ""
 
-# convert(::Type{DTInternal{S, T}}, lf::DTLeaf{T}) where {S, T} = DTInternal{S, T}(RelationNone, 0, :(nothing), zero(S), lf, DTLeaf(zero(T), [zero(T)]))
+# convert(::Type{DTInternal{T, S}}, lf::DTLeaf{S}) where {S, T} = DTInternal{T, S}(RelationNone, 0, :(nothing), zero(S), lf, DTLeaf(zero(T), [zero(T)]))
 
-promote_rule(::Type{DTInternal{S, T}}, ::Type{DTLeaf{T}}) where {S, T} = DTInternal{S, T}
+promote_rule(::Type{DTInternal{T, S}}, ::Type{DTLeaf{S}}) where {T, S} = DTInternal{T, S}
 
 # make a Random Number Generator object
 mk_rng(rng::Random.AbstractRNG) = rng
@@ -189,7 +248,7 @@ function print_tree(tree::DTInternal, depth=-1, indent=0, indent_guides=[]; n_to
 		return
 	end
 
-	println(display_modal_test(tree.modality, tree.test_operator, tree.feature, tree.threshold)) # TODO print purity?
+	println(display_modal_decision(tree.modality, tree.test_operator, tree.feature, tree.threshold)) # TODO print purity?
 	# indent_str = " " ^ indent
 	indent_str = reduce(*, [i == 1 ? "│" : " " for i in indent_guides])
 	# print(indent_str * "╭✔")
