@@ -17,11 +17,11 @@ args = (
 	# min_loss_at_leaf = 1.0, # TODO check there's something wrong here, I think this sets min_purity_increase.
 )
 
-# TODO add parameter: allow relationAll at all levels? Maybe it must be part of the relations... I don't know
+# TODO add parameter: allow relationGlob at all levels? Maybe it must be part of the relations... I don't know
 kwargs = (
 	initCondition = DecisionTree.startAtCenter,
 	# initCondition = DecisionTree._startAtWorld(ModalLogic.Interval2D((1,3),(3,4))),
-	# initCondition = DecisionTree.startWithRelationAll,
+	# initCondition = DecisionTree.startWithRelationGlob,
 	
 	# ontology = getIntervalOntologyOfDim(Val(2)),
 	# ontology = Ontology(ModalLogic.Interval2D,setdiff(Set(ModalLogic.RCC8Relations),Set([ModalLogic.Topo_PO]))),
@@ -33,8 +33,8 @@ kwargs = (
 	# ontology=Ontology(ModalLogic.Interval2D,ModalLogic.AbstractRelation[]),
 	useRelationId = true,
 	# useRelationId = false,
-	# useRelationAll = true,
-	useRelationAll = false,
+	# useRelationGlob = true,
+	useRelationGlob = false,
 	# test_operators = [TestOpGeq],
 	# test_operators = [TestOpLeq],
 	test_operators = [TestOpGeq, TestOpLeq],
@@ -178,7 +178,7 @@ for dataset_name in ["Salinas", "Salinas-A", "PaviaCentre", "Pavia", "IndianPine
 		# for window_size in [3,1] #,5]
 		for (window_size,flattened,ontology) in [(1,false,o_RCC8),(3,true,o_RCC8),(3,false,o_RCC8),(3,false,o_RCC5)] #,5]
 			# for dataset_name in ["Salinas", "Salinas-A", "PaviaCentre"] # "IndianPines", "Pavia"]
-			for useRelationAll in [false] # true]
+			for useRelationGlob in [false] # true]
 				for initCondition in [DecisionTree.startAtCenter]
 					for test_operators in [
 							[TestOpGeq, TestOpLeq,
@@ -193,7 +193,7 @@ for dataset_name in ["Salinas", "Salinas-A", "PaviaCentre", "Pavia", "IndianPine
 						cur_args = selected_args
 						cur_kwargs = merge(kwargs, (
 							ontology = ontology,
-							useRelationAll = useRelationAll,
+							useRelationGlob = useRelationGlob,
 							initCondition = startAtCenter,
 							test_operators = test_operators,
 							))
@@ -201,7 +201,7 @@ for dataset_name in ["Salinas", "Salinas-A", "PaviaCentre", "Pavia", "IndianPine
 						# execRun(datasets[databatch*5+3], timing_mode, log_level = DecisionTree.DTOverview, args=cur_args, kwargs=cur_kwargs);
 						# exit()
 
-						println("$(ontology)\t$(i)\t$(window_size)\t$(dataset_name)\t$(useRelationAll)\t$(initCondition)\t$(test_operators)")
+						println("$(ontology)\t$(i)\t$(window_size)\t$(dataset_name)\t$(useRelationGlob)\t$(initCondition)\t$(test_operators)")
 						# rng_new = DecisionTree.mk_rng(abs(rand(rng_i, Int)))
 						rng_new = copy(rng_new)
 						dataset = SampleLandCoverDataset(dataset_name,                 n_instances,        window_size, flattened = flattened,                   rng = rng_new)
@@ -254,7 +254,7 @@ while i_relation <= length(relations)
 		initCondition=DecisionTree._startAtWorld(ModalLogic.Interval2D((1,3),(3,4))),
 		# initCondition=DecisionTree._startAtWorld(ModalLogic.Interval2D((1,4),(1,6))),
 		useRelationId = false,
-		useRelationAll = false,
+		useRelationGlob = false,
 		test_operators=[TestOpGeq, TestOpLeq],
 		ontology=Ontology(ModalLogic.Interval2D,[relation]),
 		# ontology=Ontology(ModalLogic.Interval2D,relation_set),
@@ -282,7 +282,7 @@ timing_mode = :time
 for min_purity_increase in [0.0, 0.02]
 	for max_purity_split in [1.0, 0.9]
 		for ontology in [getIntervalRCC8OntologyOfDim(Val(2)), getIntervalOntologyOfDim(Val(2))]
-			for initCondition in [DecisionTree.startAtCenter,DecisionTree.startWithRelationAll]
+			for initCondition in [DecisionTree.startAtCenter,DecisionTree.startWithRelationGlob]
 				args = (
 					max_depth=-1,
 					min_samples_leaf=4,

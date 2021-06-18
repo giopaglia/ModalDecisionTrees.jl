@@ -190,14 +190,14 @@ function computeModalDataset_m(
 		# modalDatasetP::modalDatasetType(OntologicalDataset{T, N, WorldType}),
 		# modalDatasetP::modalDatasetType(typeof(X)), # TODO make either this or X an optional argument
 		features::AbstractVector{<:FeatureTypeFun};
-		computeRelationAll = false,
+		computeRelationGlob = false,
 	) where {T, N, WorldType<:AbstractWorld}
 	
 	computeModalDatasetG =
-		if RelationAll in relations
-			relations = filter!(l->l≠RelationAll, relations)
+		if RelationGlob in relations
+			relations = filter!(l->l≠RelationGlob, relations)
 			true
-		elseif computeRelationAll
+		elseif computeRelationGlob
 			true
 		else
 			false
@@ -245,12 +245,12 @@ function computeModalDataset_m(
 
 			# Global relation (independent of the current world)
 			if computeModalDatasetG
-				@logmsg DTDebug "RelationAll"
+				@logmsg DTDebug "RelationGlob"
 
 				# TODO optimize: all aggregators are likely reading the same raw values.
 				for (i_aggregator,aggregator) in aggregators
 					
-					threshold = computeModalThreshold(cur_modalDatasetP, RelationAll, firstWorld, aggregator, instance, features[i_feature])
+					threshold = computeModalThreshold(cur_modalDatasetP, RelationGlob, firstWorld, aggregator, instance, features[i_feature])
 					
 					# @logmsg DTDebug "Aggregator" aggregator threshold
 					
@@ -303,11 +303,11 @@ struct stumpModalDataset{T}
 	grouped_featsnaggrs       :: AbstractDict{Integer, Vector{Tuple{Integer,<:Aggregator}}}
 	flattened_featsnaggrs     :: AbstractVector{Tuple{<:FeatureTypeFun,<:Aggregator}}
 
-	function stumpModalDataset(X::OntologicalDataset{T, N, WorldType}, features, grouped_featsnaggrs, flattened_featsnaggrs; computeRelationAll = false, timing_mode = :none) where {T, N, WorldType<:AbstractWorld}
-		stumpModalDataset{T}(X, features, grouped_featsnaggrs, flattened_featsnaggrs, computeRelationAll = computeRelationAll, timing_mode = timing_mode)
+	function stumpModalDataset(X::OntologicalDataset{T, N, WorldType}, features, grouped_featsnaggrs, flattened_featsnaggrs; computeRelationGlob = false, timing_mode = :none) where {T, N, WorldType<:AbstractWorld}
+		stumpModalDataset{T}(X, features, grouped_featsnaggrs, flattened_featsnaggrs, computeRelationGlob = computeRelationGlob, timing_mode = timing_mode)
 	end
 
-	function stumpModalDataset{T}(X::OntologicalDataset{T, N, WorldType}, features, grouped_featsnaggrs, flattened_featsnaggrs; computeRelationAll = false, timing_mode = :none) where {T, N, WorldType<:AbstractWorld}
+	function stumpModalDataset{T}(X::OntologicalDataset{T, N, WorldType}, features, grouped_featsnaggrs, flattened_featsnaggrs; computeRelationGlob = false, timing_mode = :none) where {T, N, WorldType<:AbstractWorld}
 		
 		n_instances = n_samples(X)
 
@@ -327,11 +327,11 @@ struct stumpModalDataset{T}
 		# Compute modal dataset propositions and 1-modal decisions
 		modalDatasetM, modalDatasetG = 
 			if timing_mode == :none
-				computeModalDataset_m(X, relations, grouped_featsnaggrs, modalDatasetP, features, computeRelationAll = computeRelationAll);
+				computeModalDataset_m(X, relations, grouped_featsnaggrs, modalDatasetP, features, computeRelationGlob = computeRelationGlob);
 			elseif timing_mode == :time
-				@time computeModalDataset_m(X, relations, grouped_featsnaggrs, modalDatasetP, features, computeRelationAll = computeRelationAll);
+				@time computeModalDataset_m(X, relations, grouped_featsnaggrs, modalDatasetP, features, computeRelationGlob = computeRelationGlob);
 			elseif timing_mode == :btime
-				@btime computeModalDataset_m($X, $relations, $grouped_featsnaggrs, $modalDatasetP, $features, computeRelationAll = $computeRelationAll);
+				@btime computeModalDataset_m($X, $relations, $grouped_featsnaggrs, $modalDatasetP, $features, computeRelationGlob = $computeRelationGlob);
 		end
 
 		# println(Base.size(X))

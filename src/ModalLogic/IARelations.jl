@@ -62,7 +62,7 @@ const IARelations = [IA_A,  IA_L,  IA_B,  IA_E,  IA_D,  IA_O,
 const IA3Relations = [IA_I, IA_L, IA_Li]
 
 # 13 Interval Algebra extended with universal
-const IARelations_extended = [RelationAll, IARelations...]
+const IARelations_extended = [RelationGlob, IARelations...]
 
 # Enumerate accessible worlds from a single world
 enumAccBare(w::Interval, ::_IA_A,  X::Integer) = zip(Iterators.repeated(w.y), w.y+1:X+1)
@@ -146,7 +146,7 @@ enumAccessibles(S::AbstractWorldSet{Interval}, ::_IA_Ai, X::Integer) =
 # IA_E   val
 
 # TODO parametrize on the test_operator. These are wrong anyway...
-# Note: these conditions are the ones that make a modalStep inexistent
+# Note: these conditions are the ones that make a modal_step inexistent
 enumAccRepr(test_operator::Union{_TestOpGeq,_TestOpLeq}, w::Interval, ::_IA_A,  X::Integer) = (w.y < X+1)                 ? _ReprVal(Interval(w.y, w.y+1)   ) : _ReprNone{Interval}() # [Interval(w.y, X+1)]     : Interval[]
 enumAccRepr(test_operator::Union{_TestOpGeq,_TestOpLeq}, w::Interval, ::_IA_Ai, X::Integer) = (1 < w.x)                   ? _ReprVal(Interval(w.x-1, w.x)   ) : _ReprNone{Interval}() # [Interval(1, w.x)]       : Interval[]
 enumAccRepr(test_operator::Union{_TestOpGeq,_TestOpLeq}, w::Interval, ::_IA_B,  X::Integer) = (w.x < w.y-1)               ? _ReprVal(Interval(w.x, w.x+1)   ) : _ReprNone{Interval}() # [Interval(w.x, w.y-1)]   : Interval[]

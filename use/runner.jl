@@ -160,7 +160,7 @@ function execRun(
 				# X_train_all = OntologicalDataset{eltype(X_train_all)}(data_modal_args.ontology,X_train_all)
 				X_train_all = OntologicalDataset(data_modal_args.ontology, X_train_all)
 				
-				needToComputeRelationAll = (modal_args.useRelationAll || (modal_args.initConditions == DecisionTree.startWithRelationAll)) || ((modal_args.initConditions isa AbstractVector) && modal_args.initConditions[i_frame] == DecisionTree.startWithRelationAll)
+				needToComputeRelationGlob = (modal_args.useRelationGlob || (modal_args.initConditions == DecisionTree.startWithRelationGlob)) || ((modal_args.initConditions isa AbstractVector) && modal_args.initConditions[i_frame] == DecisionTree.startWithRelationGlob)
 
 				########################################################################
 				########################################################################
@@ -218,21 +218,21 @@ function execRun(
 
 				# stump_fmd =
 				# 	if timing_mode == :none
-				# 		StumpFeatModalDataset(fmd, computeRelationAll = needToComputeRelationAll);
+				# 		StumpFeatModalDataset(fmd, computeRelationGlob = needToComputeRelationGlob);
 				# 	elseif timing_mode == :time
-				# 		@time StumpFeatModalDataset(fmd, computeRelationAll = needToComputeRelationAll);
+				# 		@time StumpFeatModalDataset(fmd, computeRelationGlob = needToComputeRelationGlob);
 				# 	elseif timing_mode == :btime
-				# 		@btime StumpFeatModalDataset($fmd, computeRelationAll = $needToComputeRelationAll);
+				# 		@btime StumpFeatModalDataset($fmd, computeRelationGlob = $needToComputeRelationGlob);
 				# end
 
 				checkpoint_stdout("Creating StumpFeatModalDataset...")
 				stump_fmd =
 					if timing_mode == :none
-						StumpFeatModalDataset(X_train_all, features, featsnops, computeRelationAll = needToComputeRelationAll);
+						StumpFeatModalDataset(X_train_all, features, featsnops, computeRelationGlob = needToComputeRelationGlob);
 					elseif timing_mode == :time
-						@time StumpFeatModalDataset(X_train_all, features, featsnops, computeRelationAll = needToComputeRelationAll);
+						@time StumpFeatModalDataset(X_train_all, features, featsnops, computeRelationGlob = needToComputeRelationGlob);
 					elseif timing_mode == :btime
-						@btime StumpFeatModalDataset($X_train_all, $features, $featsnops, computeRelationAll = $needToComputeRelationAll);
+						@btime StumpFeatModalDataset($X_train_all, $features, $featsnops, computeRelationGlob = $needToComputeRelationGlob);
 				end
 
 				########################################################################
@@ -242,14 +242,14 @@ function execRun(
 				########################################################################
 
 				if legacy_gammas_check
-					relationSet = [RelationId, RelationAll, data_modal_args.ontology.relationSet...]
+					relationSet = [RelationId, RelationGlob, data_modal_args.ontology.relationSet...]
 					relationId_id = 1
-					relationAll_id = 2
+					relationGlob_id = 2
 					ontology_relation_ids = map((x)->x+2, 1:length(data_modal_args.ontology.relationSet))
 
 					# Modal relations to compute gammas for
-					inUseRelation_ids = if needToComputeRelationAll
-						[relationAll_id, ontology_relation_ids...]
+					inUseRelation_ids = if needToComputeRelationGlob
+						[relationGlob_id, ontology_relation_ids...]
 					else
 						ontology_relation_ids
 					end

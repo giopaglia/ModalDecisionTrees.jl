@@ -111,13 +111,13 @@ function build_tree(
 	##############################################################################
 	n_subrelations      :: Union{Function,Vector{Function}}               = identity,
 	n_subfeatures       :: Union{Function,Vector{Function}}               = identity,
-	initConditions      :: Union{_initCondition,Vector{_initCondition}}   = startWithRelationAll,
-	useRelationAll      :: Union{Bool,Vector{Bool}}                       = true,
+	initConditions      :: Union{_initCondition,Vector{_initCondition}}   = startWithRelationGlob,
+	useRelationGlob      :: Union{Bool,Vector{Bool}}                       = true,
 	##############################################################################
 	rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {S, U}
 
-	if useRelationAll isa Bool
-		useRelationAll = fill(useRelationAll, n_frames(Xs))
+	if useRelationGlob isa Bool
+		useRelationGlob = fill(useRelationGlob, n_frames(Xs))
 	end
 	if n_subrelations isa Function
 		n_subrelations = fill(n_subrelations, n_frames(Xs))
@@ -148,7 +148,7 @@ function build_tree(
 		n_subrelations      = n_subrelations,
 		n_subfeatures       = [ n_subfeatures[i](n_features(get_frame(Xs, i))) for i in 1:n_frames(Xs) ],
 		initConditions      = initConditions,
-		useRelationAll      = useRelationAll,
+		useRelationGlob      = useRelationGlob,
 		############################################################################
 		rng                 = rng)
 
@@ -176,15 +176,15 @@ function build_forest(
 	# Modal parameters
 	n_subrelations      :: Union{Function,Vector{Function}}               = identity,
 	n_subfeatures       :: Union{Function,Vector{Function}}               = x -> ceil(Int, sqrt(x)),
-	initConditions      :: Union{_initCondition,Vector{_initCondition}}   = startWithRelationAll,
-	useRelationAll      :: Union{Bool,Vector{Bool}}                       = true,
+	initConditions      :: Union{_initCondition,Vector{_initCondition}}   = startWithRelationGlob,
+	useRelationGlob      :: Union{Bool,Vector{Bool}}                       = true,
 	##############################################################################
 	rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {S, U}
 
 	rng = mk_rng(rng)
 
-	if useRelationAll isa Bool
-		useRelationAll = fill(useRelationAll, n_frames(Xs))
+	if useRelationGlob isa Bool
+		useRelationGlob = fill(useRelationGlob, n_frames(Xs))
 	end
 	if n_subrelations isa Function
 		n_subrelations = fill(n_subrelations, n_frames(Xs))
@@ -213,9 +213,9 @@ function build_forest(
 	# 	if isnothing(gammas)
 	# 		(
 	# 			test_operators, relationSet,
-	# 			relationId_id, relationAll_id,
+	# 			relationId_id, relationGlob_id,
 	# 			availableModalRelation_ids, allAvailableRelation_ids
-	# 		) = treeclassifier.optimize_tree_parameters!(get_frame(Xs, i), initConditions[i], useRelationAll, test_operators)
+	# 		) = treeclassifier.optimize_tree_parameters!(get_frame(Xs, i), initConditions[i], useRelationGlob, test_operators)
 	# 		gammas[i] = computeGammas(get_frame(Xs, i),WorldType,test_operators,relationSet,relationId_id,availableModalRelation_ids)
 	# 	end
 	# end
@@ -250,7 +250,7 @@ function build_forest(
 			n_subrelations       = n_subrelations,
 			n_subfeatures        = n_subfeatures,
 			initConditions       = initConditions,
-			useRelationAll       = useRelationAll,
+			useRelationGlob       = useRelationGlob,
 			####
 			rng                  = rngs[i])
 

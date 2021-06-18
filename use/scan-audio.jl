@@ -74,9 +74,9 @@ audio_kwargs_full_mfcc = (
 
 
 modal_args = (
-	initCondition = DecisionTree.startWithRelationAll,
+	initCondition = DecisionTree.startWithRelationGlob,
 	useRelationId = true,
-	useRelationAll = false,
+	useRelationGlob = false,
 	ontology = getIntervalOntologyOfDim(Val(1)),
 #	test_operators = [TestOpGeq_70, TestOpLeq_70],
 #	test_operators = [TestOpGeq_80, TestOpLeq_80],

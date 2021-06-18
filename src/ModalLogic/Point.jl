@@ -19,10 +19,10 @@
 # show(io::IO, r::Interval) = print(io, "($(x)×$(y))")
 
 # enumAccBare(w::Point, ::_RelationId, XYZ::Vararg{Integer,N}) where N = [(w.x,)]
-# enumAccessibles(S::AbstractWorldSet{Point}, r::_RelationAll, X::Integer) =
+# enumAccessibles(S::AbstractWorldSet{Point}, r::_RelationGlob, X::Integer) =
 # 	IterTools.imap(Point, 1:X)
 
-# worldTypeSize(::Type{Interval}) = 1
+# worldTypeComplexity(::Type{Interval}) = 1
 
 # @inline ch_readWorld(w::Point, channel::MatricialChannel{T,1}) where {T} = channel[w.x]
 

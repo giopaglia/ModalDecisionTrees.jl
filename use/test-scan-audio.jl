@@ -74,8 +74,8 @@ audio_kwargs_full_mfcc = (
 
 
 modal_args = (
-	initConditions = DecisionTree.startWithRelationAll,
-	useRelationAll = false,
+	initConditions = DecisionTree.startWithRelationGlob,
+	useRelationGlob = false,
 )
 
 data_modal_args = (
@@ -134,8 +134,9 @@ forest_args = []
 #	end
 #end
 
-# split_threshold = 0.8
-split_threshold = 1.0
+split_threshold = 0.8
+# split_threshold = 1.0
+# split_threshold = false
 
 use_ontological_form = false
 
@@ -154,8 +155,8 @@ exec_nbands = 40
 # exec_nbands = [20,40,60]
 exec_dataset_kwargs =   [(
 							# max_points = 10,
-							max_points = 20,
-							# max_points = 3,
+							# max_points = 20,
+							max_points = 3,
 							ma_size = 75,
 							ma_step = 50,
 						# ),(

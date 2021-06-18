@@ -33,9 +33,9 @@ features_n_operators
 ################################################################################
 ################################################################################
 
-computeRelationAll = true
+computeRelationGlob = true
 timing_mode = :none
-stumpModalDataset = stumpModalDataset(X, features, grouped_featsnaggrs, flattened_featsnaggrs, computeRelationAll = computeRelationAll, timing_mode = timing_mode);
+stumpModalDataset = stumpModalDataset(X, features, grouped_featsnaggrs, flattened_featsnaggrs, computeRelationGlob = computeRelationGlob, timing_mode = timing_mode);
 
 modalDatasetP = stumpModalDataset.modalDatasetP
 modalDatasetM = stumpModalDataset.modalDatasetM

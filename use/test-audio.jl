@@ -13,13 +13,13 @@ tree_args = [(
 	min_loss_at_leaf = 0.4,
 )]
 
-# TODO add parameter: allow relationAll at all levels? Maybe it must be part of the relations... I don't know
+# TODO add parameter: allow relationGlob at all levels? Maybe it must be part of the relations... I don't know
 modal_args = (
 	# n_subrelations = x -> ceil(sqrt(x)),
 	# n_subrelations = x -> ceil(x/2),
-	initCondition = DecisionTree.startWithRelationAll,
+	initCondition = DecisionTree.startWithRelationGlob,
 	useRelationId = true,
-	useRelationAll = false,
+	useRelationGlob = false,
 	ontology = getIntervalOntologyOfDim(Val(1)),
 	# test_operators = [TestOpGeq, TestOpLeq],
 	test_operators = [TestOpGeq_70, TestOpLeq_70],
