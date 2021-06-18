@@ -37,7 +37,7 @@ Union{
 # TODO maybe use offset-arrays? https://docs.julialang.org/en/v1/devdocs/offset-arrays/
 
 @inline function checkGammasConsistency(gammas, X::OntologicalDataset{T, N, WorldType}, test_operators::AbstractVector{<:TestOperator}, RelationSet::AbstractVector{<:AbstractRelation}) where {T, N, WorldType<:AbstractWorld}
-	if !(gammasIsConsistent(gammas, X, length(test_operators), length(RelationSet))) # Note: max(2, ...) because at least RelationId and RelationAll are always present.
+	if !(gammasIsConsistent(gammas, X, length(test_operators), length(RelationSet))) # Note: max(2, ...) because at least RelationId and RelationGlob are always present.
 		error("The provided gammas structure is not consistent with the expected dataset, test operators and/or relations!"
 			* "\n$(typeof(gammas))"
 			* "\n$(eltype(gammas))"
@@ -132,7 +132,7 @@ end
 	i_relation      :: Integer,
 	i_feature       :: Integer) where {T}
 	gammas[w.x, w.y, i_test_operator, i_instance, i_feature, i_relation]
-	# (optimized) modal_args = (initCondition = DecisionTree._startWithRelationAll(), useRelationId = true, useRelationAll = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = DecisionTree.TestOperator[DecisionTree.ModalLogic._TestOpGeq(), DecisionTree.ModalLogic._TestOpLeq()])
+	# (optimized) modal_args = (initCondition = DecisionTree._startWithRelationGlob(), useRelationId = true, useRelationGlob = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = DecisionTree.TestOperator[DecisionTree.ModalLogic._TestOpGeq(), DecisionTree.ModalLogic._TestOpLeq()])
 	# train size = (5, 226, 40)
 	# gammas[i_test_operator, w.x, w.y, i, i_relation, feature]     # 3.981 ms (92645 allocations: 4.01 MiB)
 	# @view gammas[:,w.x, w.y, i, i_relation, feature]           # 6.813 ms (119765 allocations: 5.66 MiB)
@@ -347,7 +347,7 @@ function computeGammas(
 			channel = ModalLogic.getChannel(X, i, feature) # TODO check that @views actually avoids copying
 			initGammaSlice(WorldType, gammas, i, relationId_id, feature)
 			# println(channel)
-			for w in ModalLogic.enumAccessibles(WorldType[], RelationAll, channel)
+			for w in ModalLogic.enumAccessibles(WorldType[], RelationGlob, channel)
 				@logmsg DTDetail "World" w
 
 				i_to = 1
@@ -414,8 +414,8 @@ function computeGammas(
 				# TODO Check if cur_gammas improves performances
 				@views cur_gammas = sliceGammas(WorldType, gammas, i, relation_id, feature)
 				# For each world w and each relation, compute the thresholds of all v worlds, with w<R>v
-				worlds = if relation != RelationAll
-						ModalLogic.enumAccessibles(WorldType[], RelationAll, channel)
+				worlds = if relation != RelationGlob
+						ModalLogic.enumAccessibles(WorldType[], RelationGlob, channel)
 					else
 						[firstWorld]
 				end

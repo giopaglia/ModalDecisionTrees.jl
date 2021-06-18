@@ -19,13 +19,38 @@ show(io::IO, w::Interval) = begin
 	print(io, ")")
 end
 
+print_world(w::Interval) = println("Interval [$(w.x),$(w.y)) ($(w.y-w.x) points)")
+
 worldTypeDimensionality(::Type{Interval}) = 1
+# worldTypeComplexity(::Type{Interval}) = 2
+n_worlds(::Type{Interval}, channel_size::Tuple{Integer}) = div(channel_size[1]*(channel_size[1]+1),2)
+
+inst_readWorld(w::Interval, instance::MatricialInstance{T,2}) where {T} = instance[w.x:w.y-1,:]
 
 # Convenience function: enumerate intervals in a given range
 enumPairsIn(a::Integer, b::Integer) =
 	Iterators.filter((a)->a[1]<a[2], Iterators.product(a:b-1, a+1:b)) # TODO try to avoid filter maybe
 enumShortPairsIn(a::Integer, b::Integer) =
 	IterTools.imap((x)->(x,x+1), a:b-1)
+
+enumAccReprAggr(f::Union{AttributeMinimumFeatureType,AttributeMaximumFeatureType}, a::Union{typeof(minimum),typeof(maximum)}, ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = IterTools.imap(Interval, enumShortPairsIn(1, X+1))
+enumAccReprAggr(f::Union{AttributeMaximumFeatureType}, a::typeof(maximum), ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = Interval[Interval(1, X+1)  ]
+enumAccReprAggr(f::Union{AttributeMinimumFeatureType}, a::typeof(minimum), ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = Interval[Interval(1, X+1)  ]
+
+enumAccReprAggr(f::Union{AttributeSoftMinimumFeatureType,AttributeSoftMaximumFeatureType}, a::Union{typeof(minimum),typeof(maximum)}, ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = IterTools.imap(Interval, enumShortPairsIn(1, X+1))
+enumAccReprAggr(f::Union{AttributeSoftMaximumFeatureType}, a::typeof(maximum), ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = Interval[Interval(1, X+1)  ]
+enumAccReprAggr(f::Union{AttributeSoftMinimumFeatureType}, a::typeof(minimum), ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = Interval[Interval(1, X+1)  ]
+
+enumAccBare(w::Interval, ::_RelationId, XYZ::Vararg{Integer,N}) where N = [(w.x, w.y)]
+enumAccessibles(S::Union{Interval,AbstractWorldSet{Interval}}, r::_RelationGlob, X::Integer) =
+	IterTools.imap(Interval, enumPairsIn(1, X+1))
+
+
+################################################################################
+################################################################################
+################################################################################
+
+# needed for GAMMAS
 
 yieldReprs(test_operator::_TestOpGeq, repr::_ReprMax{Interval},  channel::MatricialChannel{T,1}) where {T} =
 	reverse(extrema(ch_readWorld(repr.w, channel)))::NTuple{2,T}
@@ -47,26 +72,17 @@ yieldRepr(test_operator::_TestOpGeq, repr::_ReprNone{Interval}, channel::Matrici
 yieldRepr(test_operator::_TestOpLeq, repr::_ReprNone{Interval}, channel::MatricialChannel{T,1}) where {T} =
 	typemax(T)::T
 
-enumAccRepr(test_operator::_TestOpGeq, w::Interval, ::_RelationAll, X::Integer) = _ReprMax(Interval(1,X+1))
-enumAccRepr(test_operator::_TestOpLeq, w::Interval, ::_RelationAll, X::Integer) = _ReprMin(Interval(1,X+1))
+enumAccRepr(test_operator::_TestOpGeq, w::Interval, ::_RelationGlob, X::Integer) = _ReprMax(Interval(1,X+1))
+enumAccRepr(test_operator::_TestOpLeq, w::Interval, ::_RelationGlob, X::Integer) = _ReprMin(Interval(1,X+1))
 
-enumAccReprAggr(f::Union{AttributeMinimumFeatureType,AttributeMaximumFeatureType}, a::Union{typeof(minimum),typeof(maximum)}, ::AbstractWorldSet{Interval}, r::_RelationAll,  X::Integer) = IterTools.imap(Interval, enumShortPairsIn(1, X+1))
-enumAccReprAggr(f::Union{AttributeMaximumFeatureType}, a::typeof(maximum), ::AbstractWorldSet{Interval}, r::_RelationAll,  X::Integer) = Interval[Interval(1, X+1)  ]
-enumAccReprAggr(f::Union{AttributeMinimumFeatureType}, a::typeof(minimum), ::AbstractWorldSet{Interval}, r::_RelationAll,  X::Integer) = Interval[Interval(1, X+1)  ]
-
-enumAccReprAggr(f::Union{AttributeSoftMinimumFeatureType,AttributeSoftMaximumFeatureType}, a::Union{typeof(minimum),typeof(maximum)}, ::AbstractWorldSet{Interval}, r::_RelationAll,  X::Integer) = IterTools.imap(Interval, enumShortPairsIn(1, X+1))
-enumAccReprAggr(f::Union{AttributeSoftMaximumFeatureType}, a::typeof(maximum), ::AbstractWorldSet{Interval}, r::_RelationAll,  X::Integer) = Interval[Interval(1, X+1)  ]
-enumAccReprAggr(f::Union{AttributeSoftMinimumFeatureType}, a::typeof(minimum), ::AbstractWorldSet{Interval}, r::_RelationAll,  X::Integer) = Interval[Interval(1, X+1)  ]
-
-
-# TODO optimize relationAll
+# TODO optimize relationGlob
 computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval, r::R where R<:AbstractRelation, channel::MatricialChannel{T,1}) where {T} =
 	yieldReprs(test_operator, enumAccRepr(test_operator, w, r, size(channel)...), channel)
 computeModalThreshold(test_operator::Union{_TestOpGeq,_TestOpLeq}, w::Interval, r::R where R<:AbstractRelation, channel::MatricialChannel{T,1}) where {T} =
 	yieldRepr(test_operator, enumAccRepr(test_operator, w, r, size(channel)...), channel)
 
-# TODO optimize relationAll?
-# computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval, ::_RelationAll, channel::MatricialChannel{T,1}) where {T} = begin
+# TODO optimize relationGlob?
+# computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval, ::_RelationGlob, channel::MatricialChannel{T,1}) where {T} = begin
 # 	# X = length(channel)
 # 	# println("Check!")
 # 	# println(test_operator)
@@ -78,26 +94,17 @@ computeModalThreshold(test_operator::Union{_TestOpGeq,_TestOpLeq}, w::Interval, 
 # 	# computePropositionalThresholdDual(test_operator, Interval(1,X+1), channel)
 # 	reverse(extrema(channel))
 # end
-# computeModalThreshold(test_operator::_TestOpGeq, w::Interval, ::_RelationAll, channel::MatricialChannel{T,1}) where {T} = begin
+# computeModalThreshold(test_operator::_TestOpGeq, w::Interval, ::_RelationGlob, channel::MatricialChannel{T,1}) where {T} = begin
 # 	# TODO optimize this by replacing readworld with channel[1:X]...
 # 	# X = length(channel)
 # 	# maximum(ch_readWorld(Interval(1,X+1),channel))
 # 	maximum(channel)
 # end
-# computeModalThreshold(test_operator::_TestOpLeq, w::Interval, ::_RelationAll, channel::MatricialChannel{T,1}) where {T} = begin
+# computeModalThreshold(test_operator::_TestOpLeq, w::Interval, ::_RelationGlob, channel::MatricialChannel{T,1}) where {T} = begin
 # 	# TODO optimize this by replacing readworld with channel[1:X]...
 # 	# X = length(channel)
 # 	# minimum(ch_readWorld(Interval(1,X+1),channel))
 # 	minimum(channel)
 # end
-enumAccBare(w::Interval, ::_RelationId, XYZ::Vararg{Integer,N}) where N = [(w.x, w.y)]
-enumAccessibles(S::Union{Interval,AbstractWorldSet{Interval}}, r::_RelationAll, X::Integer) =
-	IterTools.imap(Interval, enumPairsIn(1, X+1))
-
-# worldTypeSize(::Type{Interval}) = 2
-n_worlds(::Type{Interval}, channel_size::Tuple{Integer}) = div(channel_size[1]*(channel_size[1]+1),2)
-
-print_world(w::Interval) = println("Interval [$(w.x),$(w.y)), length $(w.y-w.x)")
-
+	
 ch_readWorld(w::Interval, channel::MatricialChannel{T,1}) where {T} = channel[w.x:w.y-1]
-inst_readWorld(w::Interval, instance::MatricialInstance{T,2}) where {T} = instance[w.x:w.y-1,:]

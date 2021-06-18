@@ -43,11 +43,11 @@ yieldRepr(test_operator::_TestOpGeq, repr::_ReprNone{Interval2D}, channel::Matri
 yieldRepr(test_operator::_TestOpLeq, repr::_ReprNone{Interval2D}, channel::MatricialChannel{T,2}) where {T} =
 	typemax(T)::T
 
-enumAccRepr(test_operator::_TestOpGeq, w::Interval2D, ::_RelationAll, X::Integer, Y::Integer) = _ReprMax(Interval2D(Interval(1,X+1), Interval(1,Y+1)))
-enumAccRepr(test_operator::_TestOpLeq, w::Interval2D, ::_RelationAll, X::Integer, Y::Integer) = _ReprMin(Interval2D(Interval(1,X+1), Interval(1,Y+1)))
+enumAccRepr(test_operator::_TestOpGeq, w::Interval2D, ::_RelationGlob, X::Integer, Y::Integer) = _ReprMax(Interval2D(Interval(1,X+1), Interval(1,Y+1)))
+enumAccRepr(test_operator::_TestOpLeq, w::Interval2D, ::_RelationGlob, X::Integer, Y::Integer) = _ReprMin(Interval2D(Interval(1,X+1), Interval(1,Y+1)))
 
 # TODO write only one ExtremeModal/ExtremaModal
-# TODO optimize relationAll
+# TODO optimize relationGlob
 computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval2D, r::R where R<:AbstractRelation, channel::MatricialChannel{T,2}) where {T} = begin
 	# if (channel == [412 489 559 619 784; 795 771 1317 854 1256; 971 874 878 1278 560] && w.x.x==1 && w.x.y==3 && w.y.x==3 && w.y.y==4)
 	# 	println(enumAccRepr(test_operator, w, r, size(channel)...))
@@ -72,7 +72,7 @@ computeModalThreshold(test_operator::Union{_TestOpGeq,_TestOpLeq}, w::Interval2D
 # vals=channel2
 # mapslices(maximum, vals, dims=1)
 
-# computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval2D, ::_RelationAll, channel::MatricialChannel{T,2}) where {T} = begin
+# computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval2D, ::_RelationGlob, channel::MatricialChannel{T,2}) where {T} = begin
 # 	# X = size(channel, 1)
 # 	# Y = size(channel, 2)
 # 	# println("Check!")
@@ -85,14 +85,14 @@ computeModalThreshold(test_operator::Union{_TestOpGeq,_TestOpLeq}, w::Interval2D
 # 	# computePropositionalThresholdDual(test_operator, Interval2D(Interval(1,X+1), Interval(1, Y+1)), channel)
 # 	reverse(extrema(channel))
 # end
-# computeModalThreshold(test_operator::_TestOpGeq, w::Interval2D, ::_RelationAll, channel::MatricialChannel{T,2}) where {T} = begin
+# computeModalThreshold(test_operator::_TestOpGeq, w::Interval2D, ::_RelationGlob, channel::MatricialChannel{T,2}) where {T} = begin
 # 	# TODO optimize this by replacing readworld with channel[1:X]...
 # 	# X = size(channel, 1)
 # 	# Y = size(channel, 2)
 # 	# maximum(channel[1:X,1:Y])
 # 	maximum(channel)
 # end
-# computeModalThreshold(test_operator::_TestOpLeq, w::Interval2D, ::_RelationAll, channel::MatricialChannel{T,2}) where {T} = begin
+# computeModalThreshold(test_operator::_TestOpLeq, w::Interval2D, ::_RelationGlob, channel::MatricialChannel{T,2}) where {T} = begin
 # 	# TODO optimize this by replacing readworld with channel[1:X]...
 # 	# X = size(channel, 1)
 # 	# Y = size(channel, 2)
@@ -104,17 +104,17 @@ computeModalThreshold(test_operator::Union{_TestOpGeq,_TestOpLeq}, w::Interval2D
 # 	minimum(channel)
 # end
 # enumAccBare(w::Interval2D, ::_RelationId, XYZ::Vararg{Integer,N}) where N = [(w.x, w.y)]
-enumAccessibles(S::Union{Interval2D,AbstractWorldSet{Interval2D}}, r::_RelationAll, X::Integer, Y::Integer) =
+enumAccessibles(S::Union{Interval2D,AbstractWorldSet{Interval2D}}, r::_RelationGlob, X::Integer, Y::Integer) =
 	IterTools.imap(Interval2D,
 		Iterators.product(enumPairsIn(1, X+1), enumPairsIn(1, Y+1))
-		# enumAccBare(w..., IA2DRel(RelationAll,RelationAll), X, Y)
+		# enumAccBare(w..., IA2DRel(RelationGlob,RelationGlob), X, Y)
 	)
 	# IterTools.imap(Interval2D, enumPairsIn(1, X+1), enumPairsIn(1, Y+1))
-		# enumAccBare(w, IA2DRel(RelationAll,RelationAll), X, Y)
-# enumAccBare(w::Interval2D, r::_RelationAll, X::Integer, Y::Integer) =
-# 	enumAccBare(w, _IA2DRel(RelationAll,RelationAll), X, Y)
+		# enumAccBare(w, IA2DRel(RelationGlob,RelationGlob), X, Y)
+# enumAccBare(w::Interval2D, r::_RelationGlob, X::Integer, Y::Integer) =
+# 	enumAccBare(w, _IA2DRel(RelationGlob,RelationGlob), X, Y)
 
-# worldTypeSize(::Type{Interval2D}) = 4
+# worldTypeComplexity(::Type{Interval2D}) = 4
 n_worlds(::Type{Interval2D}, channel_size::Tuple{Integer,Integer}) = n_worlds(Interval, channel_size[1]) * n_worlds(Interval, channel_size[2])
 
 print_world(w::Interval2D) = println("Interval2D [$(w.x.x),$(w.x.y)) × [$(w.y.x),$(w.y.y)), length $(w.x.y-w.x.x)×$(w.y.y-w.y.x) = $((w.x.y-w.x.x)*(w.y.y-w.y.x))")

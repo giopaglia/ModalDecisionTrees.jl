@@ -32,7 +32,7 @@ module treeclassifier
 		feature            :: FeatureTypeFun                      # feature used for splitting
 		test_operator      :: TestOperatorFun                  # test_operator (e.g. <=)
 		threshold          :: T where T                                # threshold value
-		onlyUseRelationAll :: Vector{Bool}
+		onlyUseRelationGlob :: Vector{Bool}
 
 		function NodeMeta{U}(
 				region      :: UnitRange{Int},
@@ -46,7 +46,7 @@ module treeclassifier
 			node.modal_depth = modal_depth
 			node.purity = U(NaN)
 			node.is_leaf = false
-			node.onlyUseRelationAll = oura
+			node.onlyUseRelationGlob = oura
 			node
 		end
 	end
@@ -76,7 +76,7 @@ module treeclassifier
 		####################
 		n_subrelations      :: Vector{<:Function},
 		n_subfeatures       :: Vector{<:Integer},           # number of features to use to split
-		useRelationAll      :: Vector{Bool},
+		useRelationGlob      :: Vector{Bool},
 		####################
 		indX                :: AbstractVector{<:Integer},   # an array of sample indices (we split using samples in indX[node.region])
 		####################
@@ -159,8 +159,8 @@ module treeclassifier
 					frame_Sf,
 					frame_n_subrelations,
 					frame_n_subfeatures,
-					frame_useRelationAll,
-					frame_onlyUseRelationAll)) in enumerate(zip(frames(Xs), Sfs, n_subrelations, n_subfeatures, useRelationAll, node.onlyUseRelationAll))
+					frame_useRelationGlob,
+					frame_onlyUseRelationGlob)) in enumerate(zip(frames(Xs), Sfs, n_subrelations, n_subfeatures, useRelationGlob, node.onlyUseRelationGlob))
 
 			@logmsg DTDetail "  Frame $(best_frame)/$(length(frames(Xs)))"
 
@@ -173,10 +173,10 @@ module treeclassifier
 
 				# Derive all available relations
 				allow_propositional_decisions, allow_modal_decisions, allow_global_decisions = begin
-					if frame_onlyUseRelationAll
+					if frame_onlyUseRelationGlob
 						false, false, true
 					else
-						true, true, frame_useRelationAll
+						true, true, frame_useRelationGlob
 					end
 				end
 
@@ -305,7 +305,7 @@ module treeclassifier
 
 				# println(instance)
 				# println(Sf[i_instance])
-				(satisfied,Ss[node.i_frame][indX[i_instance + r_start]]) = ModalLogic.modalStep(X, indX[i_instance + r_start], Sf[i_instance], node.relation, node.feature, node.test_operator, node.threshold)
+				(satisfied,Ss[node.i_frame][indX[i_instance + r_start]]) = ModalLogic.modal_step(X, indX[i_instance + r_start], Sf[i_instance], node.relation, node.feature, node.test_operator, node.threshold)
 				@logmsg DTDetail " [$satisfied] Instance $(i_instance)/$(n_instances)" Sf[i_instance] (if satisfied Ss[node.i_frame][indX[i_instance + r_start]] end)
 				# println(satisfied)
 				# println(Ss[node.i_frame][indX[i_instance + r_start]])
@@ -381,11 +381,11 @@ module treeclassifier
 		mdepth = (node.relation == RelationId ? node.modal_depth : node.modal_depth+1)
 		@logmsg DTDetail "fork!(...): " node ind region mdepth
 
-		# onlyUseRelationAll changes:
+		# onlyUseRelationGlob changes:
 		# on the left node, the frame where the decision was taken
-		l_oura = copy(node.onlyUseRelationAll)
+		l_oura = copy(node.onlyUseRelationGlob)
 		l_oura[node.i_frame] = false
-		r_oura = node.onlyUseRelationAll
+		r_oura = node.onlyUseRelationGlob
 
 		# no need to copy because we will copy at the end
 		node.l = NodeMeta{U}(region[    1:ind], depth, mdepth, l_oura)
@@ -406,7 +406,7 @@ module treeclassifier
 			n_subrelations          :: Vector{<:Function},
 			n_subfeatures           :: Vector{<:Integer},
 			initConditions          :: Vector{<:DecisionTree._initCondition},
-			useRelationAll          :: Vector{Bool},
+			useRelationGlob          :: Vector{Bool},
 		) where {S, U}
 		n_instances = n_samples(Xs)
 
@@ -421,8 +421,8 @@ module treeclassifier
 			error("mismatching number of n_subfeatures with number of frames: $(length(n_subfeatures)) vs $(n_frames(Xs))")
 		elseif length(initConditions) != n_frames(Xs)
 			error("mismatching number of initConditions with number of frames: $(length(initConditions)) vs $(n_frames(Xs))")
-		elseif length(useRelationAll) != n_frames(Xs)
-			error("mismatching number of useRelationAll with number of frames: $(length(useRelationAll)) vs $(n_frames(Xs))")
+		elseif length(useRelationGlob) != n_frames(Xs)
+			error("mismatching number of useRelationGlob with number of frames: $(length(useRelationGlob)) vs $(n_frames(Xs))")
 		############################################################################
 		# elseif any(n_relations(Xs) .< n_subrelations)
 		# 	error("in at least one frame the total number of relations is less than the number "
@@ -480,7 +480,7 @@ module treeclassifier
 	# function optimize_tree_parameters!(
 	# 		X               :: OntologicalDataset{T, N},
 	# 		initCondition   :: DecisionTree._initCondition,
-	# 		useRelationAll  :: Bool,
+	# 		useRelationGlob  :: Bool,
 	# 		test_operators  :: AbstractVector{<:TestOperator}
 	# 	) where {T, N}
 
@@ -535,22 +535,22 @@ module treeclassifier
 	# 		# ontology_relations = filter(e->e ≠ RelationId, ontology_relations)
 	# 	end
 
-	# 	if RelationAll in ontology_relations
-	# 		error("Found RelationAll in ontology provided. Use useRelationAll = true instead.")
-	# 		# ontology_relations = filter(e->e ≠ RelationAll, ontology_relations)
-	# 		# useRelationAll = true
+	# 	if RelationGlob in ontology_relations
+	# 		error("Found RelationGlob in ontology provided. Use useRelationGlob = true instead.")
+	# 		# ontology_relations = filter(e->e ≠ RelationGlob, ontology_relations)
+	# 		# useRelationGlob = true
 	# 	end
 
-	# 	relationSet = [RelationId, RelationAll, ontology_relations...]
+	# 	relationSet = [RelationId, RelationGlob, ontology_relations...]
 	# 	relationId_id = 1
-	# 	relationAll_id = 2
+	# 	relationGlob_id = 2
 	# 	ontology_relation_ids = map((x)->x+2, 1:length(ontology_relations))
 
-	# 	needToComputeRelationAll = (useRelationAll || (initCondition == startWithRelationAll))
+	# 	needToComputeRelationGlob = (useRelationGlob || (initCondition == startWithRelationGlob))
 
 	# 	# Modal relations to compute gammas for
-	# 	inUseRelation_ids = if needToComputeRelationAll
-	# 		[relationAll_id, ontology_relation_ids...]
+	# 	inUseRelation_ids = if needToComputeRelationGlob
+	# 		[relationGlob_id, ontology_relation_ids...]
 	# 	else
 	# 		ontology_relation_ids
 	# 	end
@@ -559,15 +559,15 @@ module treeclassifier
 	# 	availableRelation_ids = []
 
 	# 	push!(availableRelation_ids, relationId_id)
-	# 	if useRelationAll
-	# 		push!(availableRelation_ids, relationAll_id)
+	# 	if useRelationGlob
+	# 		push!(availableRelation_ids, relationGlob_id)
 	# 	end
 
 	# 	availableRelation_ids = [availableRelation_ids..., ontology_relation_ids...]
 
 	# 	(
 	# 		test_operators, relationSet,
-	# 		relationId_id, relationAll_id,
+	# 		relationId_id, relationGlob_id,
 	# 		inUseRelation_ids, availableRelation_ids
 	# 	)
 	# end
@@ -587,7 +587,7 @@ module treeclassifier
 			n_subrelations          :: Vector{<:Function},
 			n_subfeatures           :: Vector{<:Integer},
 			initConditions          :: Vector{<:DecisionTree._initCondition},
-			useRelationAll          :: Vector{Bool},
+			useRelationGlob          :: Vector{Bool},
 			##########################################################################
 			rng = Random.GLOBAL_RNG :: Random.AbstractRNG
 		) where {U}
@@ -632,8 +632,8 @@ module treeclassifier
 		# Let the core algorithm begin!
 
 		# Create root node
-		onlyUseRelationAll = [(iC == startWithRelationAll) for iC in initConditions]
-		root = NodeMeta{Float64}(1:n_instances, 0, 0, onlyUseRelationAll)
+		onlyUseRelationGlob = [(iC == startWithRelationGlob) for iC in initConditions]
+		root = NodeMeta{Float64}(1:n_instances, 0, 0, onlyUseRelationGlob)
 		# Process stack of nodes
 		stack = NodeMeta{Float64}[root]
 		@inbounds while length(stack) > 0
@@ -654,7 +654,7 @@ module treeclassifier
 				########################################################################
 				n_subrelations,
 				n_subfeatures,
-				useRelationAll,
+				useRelationGlob,
 				########################################################################
 				indX,
 				nc,
@@ -671,7 +671,7 @@ module treeclassifier
 			# After processing, if needed, perform the split and push the two children for a later processing step
 			if !node.is_leaf
 				fork!(node)
-				# Note: the left (positive) child is not limited to RelationAll, whereas the right child is only if the current node is as well.
+				# Note: the left (positive) child is not limited to RelationGlob, whereas the right child is only if the current node is as well.
 				push!(stack, node.l)
 				push!(stack, node.r)
 			end
@@ -702,7 +702,7 @@ module treeclassifier
 			n_subrelations          :: Vector{<:Function},
 			n_subfeatures           :: Vector{<:Integer},
 			initConditions          :: Vector{<:DecisionTree._initCondition},
-			useRelationAll          :: Vector{Bool},
+			useRelationGlob          :: Vector{Bool},
 			# TODO add consistency_step_data
 			##########################################################################
 			rng = Random.GLOBAL_RNG :: Random.AbstractRNG
@@ -738,7 +738,7 @@ module treeclassifier
 			n_subrelations,
 			n_subfeatures,
 			initConditions,
-			useRelationAll,
+			useRelationGlob,
 		)
 
 		# Transform labels to categorical form
@@ -761,7 +761,7 @@ module treeclassifier
 				n_subrelations,
 				n_subfeatures,
 				initConditions,
-				useRelationAll,
+				useRelationGlob,
 				########################################################################
 				rng,
 		)
