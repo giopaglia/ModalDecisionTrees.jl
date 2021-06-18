@@ -1,7 +1,8 @@
-- risolvi le chiamate a modalStep in test
+
+rename modality<->relation
 
 ☐	TODO add enumAccReprAggr for relationAll, and for all worldtypes and relations
-☐	TODO lancia con operatori hard
+☐	Ottimizza gli enumAccessibles e i enumAccessibles per i sets.
 
 TODO Prova anche quel map(aggr->aggr...)
 
@@ -9,6 +10,10 @@ In scanner.jl rimuovi i gammas, rimuovi test_operators cambia il modo di indicar
 - Rimuovere anche enumAccRepr.
 
 non-precompute_gammas, that is, allow training directly on Ontological Dataset
+
+remove ch_readWorld in favor of inst_readWorld
+
+computePropositionalThreshold, computeModalThreshold, test_decision seem to do similar things. Maybe uniform their style and naming
 
 
 let split_consistency_check be an argument (split_consistency_satisfied_check) and create the debug and performance profiles
@@ -36,14 +41,4 @@ Completa OntologicalDataset{T, N, WorldType} <: AbstractModalDataset{T, WorldTyp
 
 Create class for labeled datasets, and remove slice_mf_dataset.
 
-rename modality<->relation, and i_frame
-
 Valuta quanto è meglio usare accrepr_functions anzichè acc_functions
-
-DONE:
-
-initWorldSet(tree.initConditions, tree.worldTypes, channel_size(X)) : da risolvere ancora una volta tramite funzioni che inizializzano mondi per ciascuna istanza?
-
-Fix useRelationAll e useRelationId. Probabilmente è meglio tenere useRelationAll.
-DTree.initCondition->initConditions, DTree.worldType->worldTypes
-Sf->Sfs, S->Ss

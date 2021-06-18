@@ -10,12 +10,12 @@ mkpath(output_directory)
 
 # tree_files = map(str -> trees_directory * "/" * str, filter!(endswith(".jld"), readdir(trees_directory)))
 
-# function load_tree(file_name::String)::Union{DecisionTree.DTree,DecisionTree.DTInternal}
+# function load_tree(file_name::String)::DecisionTree.DTree
 # 	println("Loading $(file_name)...")
 # 	load(string(file_name))["T"]
 # end
 
-# function load_all_trees(file_names::Vector{String})::Vector{DecisionTree.DTree,DecisionTree.DTInternal}
+# function load_all_trees(file_names::Vector{String})::DecisionTree.DTree
 # 	arr = []
 # 	for f in file_names
 # 		push!(arr, load_tree(f))

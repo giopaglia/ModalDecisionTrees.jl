@@ -15,9 +15,8 @@ using BenchmarkTools # TODO only need this when testing and using @btime
 
 export AbstractWorld, AbstractRelation,
 				Ontology,
-				WorldSet,
-				display_propositional_decision,
-				display_modal_decision,
+				AbstractWorldSet, WorldSet,
+				display_decision,
 				RelationAll, RelationNone, RelationId,
 				world_type, world_types # TODO maybe remove this function?
 				# enumAccessibles, enumAccRepr
@@ -146,8 +145,8 @@ export n_samples, n_attributes, n_features, n_relations,
 				n_frames, frames, get_frame,
 				##############################
 				relations,
-				initws_functions,
-				acc_functions,
+				initws_function,
+				acc_function,
 				accrepr_functions,
 				features,
 				grouped_featsaggrsnops,
@@ -238,6 +237,41 @@ getInstanceAttribute(inst::MatricialInstance{T,3},      idx::Integer) where T = 
 # MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,3}) where T = Array{T, 2}(undef, size(d)[1:end-1])::MatricialUniDataset{T, 2}
 # MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,4}) where T = Array{T, 3}(undef, size(d)[1:end-1])::MatricialUniDataset{T, 3}
 
+test_decision(
+		X::MatricialDataset{T},
+		i_instance::Integer,
+		w::AbstractWorld,
+		feature::FeatureTypeFun,
+		test_operator::TestOperatorFun,
+		threshold::T) where {T} = begin
+	instance = getInstance(X, i_instance)
+	gamma = computePropositionalThreshold(feature, w, instance)
+	evaluate_thresh_decision(test_operator, gamma, threshold)
+end
+
+test_decision(
+		X::MatricialDataset{T},
+		i_instance::Integer,
+		w::AbstractWorld,
+		relation::AbstractRelation,
+		feature::FeatureTypeFun,
+		test_operator::TestOperatorFun,
+		threshold::T) where {T} = begin
+	instance = getInstance(X, i_instance)
+
+	aggregator = existential_aggregator(test_operator)
+	
+	worlds = enumAccReprAggr(feature, aggregator, w, relation, inst_channel_size(instance)...)
+	gamma = if length(worlds |> collect) == 0
+		ModalLogic.aggregator_bottom(aggregator, T)
+	else
+		aggregator((w)->computePropositionalThreshold(feature, w, instance), worlds)
+	end
+
+	evaluate_thresh_decision(test_operator, gamma, threshold)
+end
+
+
 @computed struct OntologicalDataset{T, N, WorldType} <: AbstractModalDataset{T, WorldType}
 	
 	ontology  :: Ontology{WorldType}
@@ -276,43 +310,41 @@ end
 
 # TODO define getindex?
 
-size(X::OntologicalDataset{T,N})             where {T,N} = size(X.domain)
-size(X::OntologicalDataset{T,N}, i::Integer) where {T,N} = size(X.domain, i)
-n_samples(X::OntologicalDataset{T,N})        where {T,N} = n_samples(X.domain)
-n_attributes(X::OntologicalDataset{T,N})     where {T,N} = n_attributes(X.domain)
-n_relations(X::OntologicalDataset{T,N})      where {T,N} = length(X.ontology.relationSet)
+size(X::OntologicalDataset)             = size(X.domain)
+size(X::OntologicalDataset, i::Integer) = size(X.domain, i)
+n_samples(X::OntologicalDataset)        = n_samples(X.domain)
+n_attributes(X::OntologicalDataset)     = n_attributes(X.domain)
+n_relations(X::OntologicalDataset)      = length(X.ontology.relationSet)
 world_type(d::OntologicalDataset{T,N,WT})    where {T,N,WT<:AbstractWorld} = WT
 
-length(X::OntologicalDataset{T,N})        where {T,N} = n_samples(X)
-Base.iterate(X::OntologicalDataset{T,N}, state=1)  where {T,N} = state > length(X) ? nothing : (getInstance(X, state), state+1) # Base.iterate(X.domain, state=state)
-channel_size(X::OntologicalDataset{T,N})     where {T,N} = channel_size(X.domain)
+length(X::OntologicalDataset)                = n_samples(X)
+Base.iterate(X::OntologicalDataset, state=1) = state > length(X) ? nothing : (getInstance(X, state), state+1) # Base.iterate(X.domain, state=state)
+channel_size(X::OntologicalDataset)          = channel_size(X.domain)
 
-getInstance(d::OntologicalDataset{T,N,WT}, args::Vararg) where {T,N,WT}  = getInstance(d.domain, args...)
-getChannel(d::OntologicalDataset{T,N,WT},   args::Vararg) where {T,N,WT} = getChannel(d.domain, args...)
+getInstance(d::OntologicalDataset, args::Vararg)     = getInstance(d.domain, args...)
+getChannel(d::OntologicalDataset,   args::Vararg)    = getChannel(d.domain, args...)
 
-slice_dataset(d::OntologicalDataset{T,N,WT}, args::Vararg) where {T,N,WT} = OntologicalDataset{T, N, WT}(d.ontology, slice_dataset(d.domain, args...))
+slice_dataset(d::OntologicalDataset, args::Vararg)    = OntologicalDataset(d.ontology, slice_dataset(d.domain, args...))
 
-struct MultiFrameOntologicalDataset{T}
-	frames  :: AbstractVector{<:OntologicalDataset{T}}
-	
-	function MultiFrameOntologicalDataset(Xs::AbstractVector{<:OntologicalDataset{T}}) where {T}
-		MultiFrameOntologicalDataset{T}(Xs)
-	end
-	function MultiFrameOntologicalDataset{T}(Xs::AbstractVector{<:OntologicalDataset{T}}) where {T}
+test_decision(X::OntologicalDataset, args...) = test_decision(X.domain, args...)
+
+acc_function(X::OntologicalDataset, i_instance) = (w,R)->enumAccessibles(w,R, inst_channel_size(getInstance(X, i_instance))...)
+
+struct MultiFrameOntologicalDataset
+	frames  :: AbstractVector{<:OntologicalDataset}
+
+	function MultiFrameOntologicalDataset(Xs::AbstractVector{<:OntologicalDataset})
 		@assert length(Xs) > 0 && length(unique(n_samples.(Xs))) == 1 "Can't create an empty MultiFrameOntologicalDataset or with mismatching number of samples (n_frames: $(length(Xs)), frame_sizes: $(n_samples.(Xs)))."
-		new{T}(Xs)
+		new(Xs)
 	end
 
-	function MultiFrameOntologicalDataset(X::OntologicalDataset{T}) where {T}
-		MultiFrameOntologicalDataset{T}(X)
-	end
-	function MultiFrameOntologicalDataset{T}(X::OntologicalDataset{T}) where {T}
-		new{T}([X])
+	function MultiFrameOntologicalDataset(X::OntologicalDataset)
+		MultiFrameOntologicalDataset([X])
 	end
 
 	# MultiFrameOntologicalDataset with same ontology for each frame
-	function MultiFrameOntologicalDataset(ontology::Ontology, Xs::AbstractVector{<:MatricialDataset{T}}) where {T}
-		MultiFrameOntologicalDataset([OntologicalDataset{T}(ontology, X) for X in Xs])
+	function MultiFrameOntologicalDataset(ontology::Ontology, Xs::AbstractVector{<:MatricialDataset})
+		MultiFrameOntologicalDataset([OntologicalDataset(ontology, X) for X in Xs])
 	end
 end
 
@@ -337,9 +369,7 @@ slice_dataset(X::MultiFrameOntologicalDataset, i_frame::Integer, inds::AbstractV
 getChannel(X::MultiFrameOntologicalDataset,   i_frame::Integer, idx_i::Integer, idx_f::Integer, args::Vararg)  = getChannel(X.frames[i], idx_i, idx_f, args...)
 
 # getInstance(X::MultiFrameOntologicalDataset, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...) # TODO should slice across the frames!
-slice_dataset(X::MultiFrameOntologicalDataset{T}, inds::AbstractVector{<:Integer}, args::Vararg) where {T} = MultiFrameOntologicalDataset{T}(map(frame->slice_dataset(frame, inds, args...), X.frames))
-
-
+slice_dataset(X::MultiFrameOntologicalDataset, inds::AbstractVector{<:Integer}, args::Vararg) where {T} = MultiFrameOntologicalDataset(map(frame->slice_dataset(frame, inds, args...), X.frames))
 
 abstract type AbstractFeaturedWorldDataset{T, WorldType} end
 
@@ -433,9 +463,9 @@ struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 end
 
 relations(X::FeatModalDataset)         = X.relations
-initws_functions(X::FeatModalDataset)  = X.initws_functions
-acc_functions(X::FeatModalDataset)     = X.acc_functions
-accrepr_functions(X::FeatModalDataset) = X.accrepr_functions
+initws_function(X::FeatModalDataset,  i_instance::Integer)  = X.initws_functions[i_instance]
+acc_function(X::FeatModalDataset,     i_instance::Integer)  = X.acc_functions[i_instance]
+accrepr_function(X::FeatModalDataset, i_instance::Integer)  = X.accrepr_functions[i_instance]
 features(X::FeatModalDataset)          = X.features
 grouped_featsaggrsnops(X::FeatModalDataset) = X.grouped_featsaggrsnops
 
@@ -483,7 +513,7 @@ find_feature_id(X::FeatModalDataset{T,WorldType}, feature::FeatureTypeFun) where
 find_relation_id(X::FeatModalDataset{T,WorldType}, relation::AbstractRelation) where {T,WorldType} =
 	findall(x->x==relation, relations(X))[1]
 
-@inline test_decision(
+test_decision(
 		X::FeatModalDataset{T,WorldType},
 		i_instance::Integer,
 		w::WorldType,
@@ -549,7 +579,7 @@ end
 				@logmsg DTDetail " Test operator $(test_operator)"
 				# Look for the best threshold 'a', as in propositions like "feature >= a"
 				for threshold in aggr_domain
-					@logmsg DTDebug " Testing decision: $(display_modal_decision(relation, test_operator, feature, threshold))"
+					@logmsg DTDebug " Testing decision: $(display_decision(relation, feature, test_operator, threshold))"
 					@yield (relation, test_operator, feature, threshold), aggr_thresholds
 				end # for threshold
 			end # for test_operator
@@ -669,9 +699,9 @@ end
 featsnaggrs(X::StumpFeatModalDataset)         = X.featsnaggrs
 grouped_featsnaggrs(X::StumpFeatModalDataset) = X.grouped_featsnaggrs
 relations(X::StumpFeatModalDataset)          = relations(X.fmd)
-initws_functions(X::StumpFeatModalDataset)   = initws_functions(X.fmd)
-acc_functions(X::StumpFeatModalDataset)      = acc_functions(X.fmd)
-accrepr_functions(X::StumpFeatModalDataset)  = accrepr_functions(X.fmd)
+initws_function(X::StumpFeatModalDataset,  args...) = initws_function(X.fmd, args...)
+acc_function(X::StumpFeatModalDataset,     args...) = acc_function(X.fmd, args...)
+accrepr_function(X::StumpFeatModalDataset, args...) = accrepr_function(X.fmd, args...)
 features(X::StumpFeatModalDataset)           = features(X.fmd)
 grouped_featsaggrsnops(X::StumpFeatModalDataset)  = grouped_featsaggrsnops(X.fmd)
 
@@ -698,7 +728,7 @@ find_relation_id(X::StumpFeatModalDataset{T,WorldType}, relation::AbstractRelati
 find_featsnaggr_id(X::StumpFeatModalDataset{T,WorldType}, feature::FeatureTypeFun, aggregator::Aggregator) where {T,WorldType} =
 	findall(x->x==(feature, aggregator), featsnaggrs(X))[1]
 
-@inline test_decision(
+test_decision(
 		X::StumpFeatModalDataset{T,WorldType},
 		i_instance::Integer,
 		w::WorldType,
@@ -706,7 +736,7 @@ find_featsnaggr_id(X::StumpFeatModalDataset{T,WorldType}, feature::FeatureTypeFu
 		test_operator::TestOperatorFun,
 		threshold::T) where {WorldType<:AbstractWorld, T} = test_decision(X.fmd, i_instance, w, feature, test_operator, threshold)
 
-@inline test_decision(
+test_decision(
 		X::StumpFeatModalDataset{T,WorldType},
 		i_instance::Integer,
 		w::WorldType,
@@ -800,7 +830,7 @@ end
 				
 				# Look for the best threshold 'a', as in propositions like "feature >= a"
 				for threshold in aggr_domain
-					@logmsg DTDebug " Testing decision: $(display_modal_decision(relation, test_operator, feature, threshold))"
+					@logmsg DTDebug " Testing decision: $(display_decision(relation, feature, test_operator, threshold))"
 
 					@yield (relation, test_operator, feature, threshold), aggr_thresholds
 					
@@ -874,7 +904,7 @@ end
 					
 					# Look for the best threshold 'a', as in propositions like "feature >= a"
 					for threshold in aggr_domain
-						@logmsg DTDebug " Testing decision: $(display_modal_decision(relation, test_operator, feature, threshold))"
+						@logmsg DTDebug " Testing decision: $(display_decision(relation, feature, test_operator, threshold))"
 
 						@yield (relation, test_operator, feature, threshold), aggr_thresholds
 						
@@ -933,16 +963,20 @@ const GenericDataset = Union{MatricialDataset,OntologicalDataset,MultiFrameOntol
 
 include("testOperators.jl")
 
-display_propositional_decision(test_operator::TestOperatorFun, feature::FeatureTypeFun, threshold::Number) =
+display_propositional_decision(feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number) =
 	"$(feature) $(test_operator) $(threshold)"
 
-display_modal_decision(relation::AbstractRelation, test_operator::TestOperatorFun, feature::FeatureTypeFun, threshold::Number) = begin
-	propositional_decision = display_propositional_decision(test_operator, feature, threshold)
+display_decision(relation::AbstractRelation, feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number) = begin
+	propositional_decision = display_propositional_decision(feature, test_operator, threshold)
 	if relation != RelationId
 		"$(display_existential_modality(relation)) ($propositional_decision)"
 	else
 		"$propositional_decision"
 	end
+end
+
+display_decision(i_frame::Integer, relation::AbstractRelation, feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number) = begin
+	"{$i_frame} $(display_decision(relation, feature, test_operator, threshold))"
 end
 
 ################################################################################
@@ -1077,6 +1111,30 @@ getIntervalRCC5OntologyOfDim(::Val{2}) = Interval2DRCC5Ontology
 
 include("IntervalStumpSupport.jl")
 
+
+computePropositionalThreshold(feature::FeatureTypeFun, w::AbstractWorld, instance::MatricialInstance) = yieldFunction(feature)(inst_readWorld(w, instance))
+
+# TODO add AbstractWorldSet type
+computeModalThreshold(fwd_propositional_slice::FeaturedWorldDatasetSlice{T}, worlds::Any, aggregator::Agg) where {T, Agg<:Aggregator} = begin
+	
+	# TODO try reduce(aggregator, worlds; init=ModalLogic.bottom(aggregator, T))
+	# TODO remove this aggregator_to_binary...
+	
+	if length(worlds |> collect) == 0
+		ModalLogic.aggregator_bottom(aggregator, T)
+	else
+		aggregator((w)->modalDatasetChannelSliceGet(fwd_propositional_slice, w), worlds)
+	end
+
+	# opt = aggregator_to_binary(aggregator)
+	# threshold = ModalLogic.bottom(aggregator, T)
+	# for w in worlds
+	# 	e = modalDatasetChannelSliceGet(fwd_propositional_slice, w)
+	# 	threshold = opt(threshold,e)
+	# end
+	# threshold
+end
+
 ################################################################################
 ################################################################################
 
@@ -1099,14 +1157,14 @@ include("IntervalStumpSupport.jl")
 # Perform the modal step, that is, evaluate a modal formula
 #  on a domain, and eventually compute the new world set.
 function modalStep(
-		X::AbstractModalDataset{T,WorldType},
+		X::Union{AbstractModalDataset{T,WorldType},OntologicalDataset{T,N,WorldType}},
 		i_instance::Integer,
 		worlds::WorldSetType,
 		relation::AbstractRelation,
 		feature::FeatureTypeFun,
 		test_operator::TestOperatorFun,
-		threshold::T) where {T, WorldType<:AbstractWorld, WorldSetType<:AbstractWorldSet{WorldType}}
-	@logmsg DTDetail "modalStep" worlds display_modal_decision(relation, test_operator, feature, threshold)
+		threshold::T) where {T, N, WorldType<:AbstractWorld, WorldSetType<:AbstractWorldSet{WorldType}}
+	@logmsg DTDetail "modalStep" worlds display_decision(relation, feature, test_operator, threshold)
 
 	satisfied = false
 	
@@ -1116,15 +1174,22 @@ function modalStep(
 		# If there are no neighboring worlds, then the modal decision is not met
 		@logmsg DTDetail "   No accessible world"
 	else
-		# Otherwise, check whether at least one of the worlds witnesses truth of the decision.
+		# Otherwise, check whether at least one of the accessible worlds witnesses truth of the decision.
+		# TODO rewrite with new_worlds = map(...acc_worlds)
+		# Initialize new worldset
 		new_worlds = WorldSetType()
-		for w in worlds
-			if test_decision(X, i_instance, w, relation, feature, test_operator, threshold)
+
+		# List all accessible worlds
+		acc_worlds = acc_function(X, i_instance)(worlds, relation)
+
+		for w in acc_worlds
+			if test_decision(X, i_instance, w, feature, test_operator, threshold)
 				# @logmsg DTDetail " Found world " w ch_readWorld(w, channel)
 				satisfied = true
 				push!(new_worlds, w)
 			end
 		end
+
 		if satisfied == true
 			worlds = new_worlds
 		else 
@@ -1137,7 +1202,7 @@ function modalStep(
 	else
 		@logmsg DTDetail "   NO"
 	end
-	return (satisfied,worlds)
+	return (satisfied, worlds)
 end
 
 export generate_feasible_decisions,

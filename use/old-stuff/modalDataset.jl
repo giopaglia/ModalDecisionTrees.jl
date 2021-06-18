@@ -158,11 +158,11 @@ function computeModalDataset(
 		
 		instance = ModalLogic.getInstance(X, i_instance)
 
+		@logmsg DTDebug "instance" ModalLogic.getInstance(X, i_instance)
+		
 		for w in ModalLogic.enumAll(WorldType, ModalLogic.inst_channel_size(instance)...)
 			initModalDatasetWorldSlice(typeof(X), modalDataset, w)
 		end
-
-		@logmsg DTDebug "instance" instance
 
 		for w in ModalLogic.enumAll(WorldType, ModalLogic.inst_channel_size(instance)...)
 			

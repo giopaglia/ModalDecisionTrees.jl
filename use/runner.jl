@@ -716,14 +716,16 @@ function execRun(
 		Ts, Fs, Tcms, Fcms, Tts, Fts
 	end
 
-	# try
-	go()
-	# catch e
-	# 	println("execRun: An error occurred!")
-	# 	println(e)
-	# 	return;
-	# end
+	ret =
+		# try
+		go()
+		# catch e
+		# 	println("execRun: An error occurred!")
+		# 	println(e)
+		# 	return;
+		# end
 
 	global_logger(old_logger);
 	
-	end
+	ret
+end
