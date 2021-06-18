@@ -629,9 +629,6 @@ module treeclassifier
 		#  this is an array of indices that will be recursively permuted and partitioned
 		indX = collect(1:n_instances)
 		
-		# TODO
-		# DecisionTree.checkGammasConsistency(gammas[i], get_frame(Xs, i), test_operators, relationSet)
-
 		# Let the core algorithm begin!
 
 		# Create root node
