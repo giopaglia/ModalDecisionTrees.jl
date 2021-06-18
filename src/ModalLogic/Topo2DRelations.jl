@@ -34,9 +34,9 @@ end
 enumAccBare(w::Interval2D, ::_Topo_DC,    X::Integer, Y::Integer) =
 	IterTools.distinct(
 		Iterators.flatten((
-			Iterators.product(enumAccBare(w.x, Topo_DC,    X), enumAccBare2(w.y, RelationAll,Y)),
-			Iterators.product(enumAccBare2(w.x, RelationAll,X), enumAccBare(w.y, Topo_DC,    Y)),
-			# TODO try avoiding the distinct, replacing the second line (RelationAll,enumAccBare) with 7 combinations of RelationAll with Topo_EC, Topo_PO, Topo_TPP, Topo_TPPi, Topo_NTPP, Topo_NTPPi
+			Iterators.product(enumAccBare(w.x, Topo_DC,    X), enumAccBare2(w.y, RelationGlob,Y)),
+			Iterators.product(enumAccBare2(w.x, RelationGlob,X), enumAccBare(w.y, Topo_DC,    Y)),
+			# TODO try avoiding the distinct, replacing the second line (RelationGlob,enumAccBare) with 7 combinations of RelationGlob with Topo_EC, Topo_PO, Topo_TPP, Topo_TPPi, Topo_NTPP, Topo_NTPPi
 		))
 	)
 enumAccBare(w::Interval2D, ::_Topo_EC,    X::Integer, Y::Integer) =
@@ -134,7 +134,7 @@ enumAccRepr(test_operator::_TestOpLeq, w::Interval, ::_Virtual_Enlarge,  X::Inte
 
 
 # Topo2D2Topo1D(::_Topo_DC) = [
-# 															(RelationAll , Topo_DC),
+# 															(RelationGlob , Topo_DC),
 # 															# TODO many many others but for now let's just say...
 # 															(Topo_DC     , Virtual_Enlarge),
 # ]
@@ -214,8 +214,8 @@ Topo2D2Topo1D(::_Topo_NTPPi) = [
 
 
 computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_DC, channel::MatricialChannel{T,2}) where {T} = begin
-	reprx1 = enumAccRepr2D(test_operator, w, RelationAll, IA_L,         size(channel)..., _ReprMax)
-	reprx2 = enumAccRepr2D(test_operator, w, RelationAll, IA_Li,        size(channel)..., _ReprMax)
+	reprx1 = enumAccRepr2D(test_operator, w, RelationGlob, IA_L,         size(channel)..., _ReprMax)
+	reprx2 = enumAccRepr2D(test_operator, w, RelationGlob, IA_Li,        size(channel)..., _ReprMax)
 	repry1 = enumAccRepr2D(test_operator, w, IA_L,     Virtual_Enlarge, size(channel)..., _ReprMax)
 	repry2 = enumAccRepr2D(test_operator, w, IA_Li,    Virtual_Enlarge, size(channel)..., _ReprMax)
 	extr = yieldReprs(test_operator, reprx1, channel),
@@ -225,12 +225,12 @@ computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_DC,
 	maxExtrema(extr)
 end
 computeModalThreshold(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_DC, channel::MatricialChannel{T,2}) where {T} = begin
-	# reprx1 = enumAccRepr2D(test_operator, w, IA_L,         RelationAll, size(channel)..., _ReprMax)
-	# reprx2 = enumAccRepr2D(test_operator, w, IA_Li,        RelationAll, size(channel)..., _ReprMax)
-	# repry1 = enumAccRepr2D(test_operator, w, RelationAll,  IA_L,        size(channel)..., _ReprMax)
-	# repry2 = enumAccRepr2D(test_operator, w, RelationAll,  IA_Li,       size(channel)..., _ReprMax)
-	reprx1 = enumAccRepr2D(test_operator, w, RelationAll, IA_L,         size(channel)..., _ReprMax)
-	reprx2 = enumAccRepr2D(test_operator, w, RelationAll, IA_Li,        size(channel)..., _ReprMax)
+	# reprx1 = enumAccRepr2D(test_operator, w, IA_L,         RelationGlob, size(channel)..., _ReprMax)
+	# reprx2 = enumAccRepr2D(test_operator, w, IA_Li,        RelationGlob, size(channel)..., _ReprMax)
+	# repry1 = enumAccRepr2D(test_operator, w, RelationGlob,  IA_L,        size(channel)..., _ReprMax)
+	# repry2 = enumAccRepr2D(test_operator, w, RelationGlob,  IA_Li,       size(channel)..., _ReprMax)
+	reprx1 = enumAccRepr2D(test_operator, w, RelationGlob, IA_L,         size(channel)..., _ReprMax)
+	reprx2 = enumAccRepr2D(test_operator, w, RelationGlob, IA_Li,        size(channel)..., _ReprMax)
 	repry1 = enumAccRepr2D(test_operator, w, IA_L,     Virtual_Enlarge, size(channel)..., _ReprMax)
 	repry2 = enumAccRepr2D(test_operator, w, IA_Li,    Virtual_Enlarge, size(channel)..., _ReprMax)
 	# if channel == [819 958 594; 749 665 383; 991 493 572] && w.x.x==1 && w.x.y==2 && w.y.x==1 && w.y.y==3
@@ -246,8 +246,8 @@ computeModalThreshold(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_DC, cha
 			 yieldRepr(test_operator, repry2, channel))
 end
 computeModalThreshold(test_operator::_TestOpLeq, w::Interval2D, r::_Topo_DC, channel::MatricialChannel{T,2}) where {T} = begin
-	reprx1 = enumAccRepr2D(test_operator, w, RelationAll, IA_L,         size(channel)..., _ReprMin)
-	reprx2 = enumAccRepr2D(test_operator, w, RelationAll, IA_Li,        size(channel)..., _ReprMin)
+	reprx1 = enumAccRepr2D(test_operator, w, RelationGlob, IA_L,         size(channel)..., _ReprMin)
+	reprx2 = enumAccRepr2D(test_operator, w, RelationGlob, IA_Li,        size(channel)..., _ReprMin)
 	repry1 = enumAccRepr2D(test_operator, w, IA_L,     Virtual_Enlarge, size(channel)..., _ReprMin)
 	repry2 = enumAccRepr2D(test_operator, w, IA_Li,    Virtual_Enlarge, size(channel)..., _ReprMin)
 	min(yieldRepr(test_operator, reprx1, channel),

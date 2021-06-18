@@ -5,9 +5,9 @@
 # 	) where {T, N, WorldType<:AbstractWorld} = FeaturedWorldDataset{T, WorldType}(X, features)
 
 FeaturedWorldDataset(
-		X::OntologicalDataset{T, N, WorldType},
+		X::OntologicalDataset,
 		features::AbstractVector{<:FeatureTypeFun}
-	) where {T, N, WorldType<:AbstractWorld} = begin
+	) = begin
 
 	n_instances = n_samples(X)
 	n_features = length(features)
@@ -22,22 +22,20 @@ FeaturedWorldDataset(
 		if i_instance == 1 || ((i_instance+1) % (floor(Int, ((n_instances)/5))+1)) == 0
 			@logmsg DTOverview "Instance $(i_instance)/$(n_instances)"
 		end
-		
-		instance = getInstance(X, i_instance)
 
-		for w in enumAll(WorldType, inst_channel_size(instance)...)
-			initFeaturedWorldDatasetWorldSlice(fwd, w)
-		end
+		# instance = getInstance(X, i_instance)
+		# @logmsg DTDebug "instance" instance
 
-		@logmsg DTDebug "instance" instance
-
-		for w in enumAll(WorldType, inst_channel_size(instance)...)
+		for w in accAll_function(X, i_instance)
 			
+			initFeaturedWorldDatasetWorldSlice(fwd, w)
+
 			@logmsg DTDebug "World" w
 
 			for (i_feature,feature) in enumerate(features)
 
-				threshold = computePropositionalThreshold(feature, w, instance)
+				# threshold = computePropositionalThreshold(feature, w, instance)
+				threshold = get_feature_val(X, i_instance, w, feature)
 
 				@logmsg DTDebug "Feature $(i_feature)" threshold
 			
@@ -196,7 +194,7 @@ slice_dataset(fmds::IntervalFMDStumpGlobalSupport{T}, inds::AbstractVector{<:Int
 function computeModalDatasetStumpSupport(
 		fmd                 :: FeatModalDataset{T, WorldType},
 		grouped_featsnaggrs :: AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}};
-		computeRelationAll = false,
+		computeRelationGlob = false,
 	) where {T, N, WorldType<:AbstractWorld}
 	
 	fwd = fmd.fwd
@@ -204,11 +202,11 @@ function computeModalDatasetStumpSupport(
 	relations = fmd.relations
 
 	computefmd_g =
-		if RelationAll in relations
-			error("RelationAll in relations: $(relations)")
-			relations = filter!(l->l≠RelationAll, relations)
+		if RelationGlob in relations
+			error("RelationGlob in relations: $(relations)")
+			relations = filter!(l->l≠RelationGlob, relations)
 			true
-		elseif computeRelationAll
+		elseif computeRelationGlob
 			true
 		else
 			false
@@ -243,7 +241,7 @@ function computeModalDatasetStumpSupport(
 			@logmsg DTOverview "Instance $(i_instance)/$(n_instances)"
 		end
 
-		for w in ModalLogic.enumAll(WorldType, acc_function(fmd, i_instance))
+		for w in accAll_function(fmd, i_instance)
 			initFMDStumpSupportWorldSlice(fmd_m, w)
 		end
 
@@ -257,12 +255,12 @@ function computeModalDatasetStumpSupport(
 
 			# Global relation (independent of the current world)
 			if computefmd_g
-				@logmsg DTDebug "RelationAll"
+				@logmsg DTDebug "RelationGlob"
 
 				# TODO optimize: all aggregators are likely reading the same raw values.
 				for (i_featsnaggr,aggregator) in aggregators
 					
-					# accessible_worlds = ModalLogic.enumAll(WorldType, acc_function(fmd, i_instance))
+					# accessible_worlds = accAll_function(fmd, i_instance)
 					# TODO reintroduce the improvements for some operators: e.g. later. Actually, these can be simplified by using a set of representatives, as in some enumAccRepr!
 					accessible_worlds = ModalLogic.enumReprAll(WorldType, accrepr_function(fmd, i_instance), features[i_feature], aggregator)
 
@@ -282,7 +280,7 @@ function computeModalDatasetStumpSupport(
 
 				@logmsg DTDebug "Relation $(i_relation)/$(n_relations)"
 
-				for w in ModalLogic.enumAll(WorldType, acc_function(fmd, i_instance))
+				for w in accAll_function(fmd, i_instance)
 
 					@logmsg DTDebug "World" w
 					

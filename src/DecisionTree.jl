@@ -27,7 +27,7 @@ export DTNode, DTLeaf, DTInternal,
 				print_apply_tree,
 				ConfusionMatrix, confusion_matrix, mean_squared_error, R2, load_data,
 				#
-				startWithRelationAll, startAtCenter,
+				startWithRelationGlob, startAtCenter,
 				DTOverview, DTDebug, DTDetail,
 				#
 				GammaType, GammaSliceType, spawn_rng,
@@ -56,14 +56,14 @@ include("measures.jl")
 ########## Types ##########
 
 abstract type _initCondition end
-struct _startWithRelationAll  <: _initCondition end; const startWithRelationAll  = _startWithRelationAll();
+struct _startWithRelationGlob  <: _initCondition end; const startWithRelationGlob  = _startWithRelationGlob();
 struct _startAtCenter         <: _initCondition end; const startAtCenter         = _startAtCenter();
 struct _startAtWorld{wT<:AbstractWorld} <: _initCondition w::wT end;
 
 initWorldSet(initConditions::AbstractVector{<:_initCondition}, worldTypes::AbstractVector{<:Type#={<:AbstractWorld}=#}, args::Vararg) =
 	[initWorldSet(iC, WT, args...) for (iC, WT) in zip(initConditions, worldTypes)]
 
-initWorldSet(initCondition::_startWithRelationAll, ::Type{WorldType}, channel_size::NTuple{N,Integer} where N) where {WorldType<:AbstractWorld} =
+initWorldSet(initCondition::_startWithRelationGlob, ::Type{WorldType}, channel_size::NTuple{N,Integer} where N) where {WorldType<:AbstractWorld} =
 	WorldSet{WorldType}([WorldType(ModalLogic.emptyWorld)])
 
 initWorldSet(initCondition::_startAtCenter, ::Type{WorldType}, channel_size::NTuple{N,Integer} where N) where {WorldType<:AbstractWorld} =
@@ -375,7 +375,7 @@ function apply_tree(tree::DTInternal, X::MultiFrameOntologicalDataset, i_instanc
 	@logmsg DTDetail "applying branch..."
 	satisfied = true
 	@logmsg DTDetail " worlds" worlds
-	(satisfied,new_worlds) = ModalLogic.modalStep(get_frame(X, tree.i_frame), i_instance, worlds[tree.i_frame], tree.relation, tree.feature, tree.test_operator, tree.threshold)
+	(satisfied,new_worlds) = ModalLogic.modal_step(get_frame(X, tree.i_frame), i_instance, worlds[tree.i_frame], tree.relation, tree.feature, tree.test_operator, tree.threshold)
 	worlds[tree.i_frame] = new_worlds
 	@logmsg DTDetail " ->(satisfied,worlds')" satisfied worlds
 	apply_tree((satisfied ? tree.left : tree.right), X, i_instance, worlds)
@@ -404,7 +404,7 @@ end
 
 # Apply tree to a dimensional dataset in matricial form
 # function apply_tree(tree::DTNode, d::MatricialDataset{T,D}) where {T, D}
-# 	apply_tree(DTree(tree, [world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2)))], [startWithRelationAll]), d)
+# 	apply_tree(DTree(tree, [world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2)))], [startWithRelationGlob]), d)
 # end
 
 ################################################################################
@@ -465,7 +465,7 @@ end
 function print_apply_tree(tree::DTInternal{T, S}, X::MultiFrameOntologicalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, class::S; update_majority = false) where {T, S}
 	satisfied = true
 
-	(satisfied,new_worlds) = ModalLogic.modalStep(get_frame(X, tree.i_frame), i_instance, worlds[tree.i_frame], tree.relation, tree.feature, tree.test_operator, tree.threshold)
+	(satisfied,new_worlds) = ModalLogic.modal_step(get_frame(X, tree.i_frame), i_instance, worlds[tree.i_frame], tree.relation, tree.feature, tree.test_operator, tree.threshold)
 	worlds[tree.i_frame] = new_worlds
 
 	return DTInternal(
@@ -499,7 +499,7 @@ function print_apply_tree(tree::DTree{S}, X::MultiFrameOntologicalDataset, Y::Ve
 end
 
 # function print_apply_tree(tree::DTNode{T, S}, X::MatricialDataset{T,D}, Y::Vector{S}; reset_leaves = true, update_majority = false) where {S, T, D}
-# 	return print_apply_tree(DTree(tree, [world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2)))], [startWithRelationAll]), X, Y, reset_leaves = reset_leaves, update_majority = update_majority)
+# 	return print_apply_tree(DTree(tree, [world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2)))], [startWithRelationGlob]), X, Y, reset_leaves = reset_leaves, update_majority = update_majority)
 # end
 
 
