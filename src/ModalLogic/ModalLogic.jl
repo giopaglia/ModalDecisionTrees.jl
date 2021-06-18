@@ -997,18 +997,6 @@ display_propositional_decision(feature::AttributeSoftMaximumFeatureType, test_op
 
 ################################################################################
 ################################################################################
-# TODO remove or rebrand?
-
-# Utility type for enhanced computation of thresholds
-abstract type _ReprTreatment end
-struct _ReprFake{WorldType<:AbstractWorld} <: _ReprTreatment w :: WorldType end
-struct _ReprMax{WorldType<:AbstractWorld}  <: _ReprTreatment w :: WorldType end
-struct _ReprMin{WorldType<:AbstractWorld}  <: _ReprTreatment w :: WorldType end
-struct _ReprVal{WorldType<:AbstractWorld}  <: _ReprTreatment w :: WorldType end
-struct _ReprNone{WorldType<:AbstractWorld} <: _ReprTreatment end
-
-################################################################################
-################################################################################
 
 ## Enumerate accessible worlds
 
@@ -1040,9 +1028,6 @@ struct _RelationId    <: AbstractRelation end; const RelationId   = _RelationId(
 enumAccessibles(w::WorldType,           ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = [w] # IterTools.imap(identity, [w])
 enumAccessibles(S::AbstractWorldSet{W}, ::_RelationId, XYZ::Vararg{Integer,N}) where {W<:AbstractWorld,N} = S # TODO try IterTools.imap(identity, S) ?
 
-enumAccRepr(::_TestOpGeq, w::WorldType, ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = _ReprMin(w)
-enumAccRepr(::_TestOpLeq, w::WorldType, ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = _ReprMax(w)
-
 enumAccReprAggr(f::FeatureTypeFun, a::Aggregator, w::WorldType, r::AbstractRelation, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = enumAccessibles(w, r, XYZ...)
 enumAccReprAggr(::FeatureTypeFun, ::Aggregator, w::WorldType, r::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = enumAccessibles(w, r, XYZ...)
 
@@ -1055,6 +1040,23 @@ enumAccReprAggr(::FeatureTypeFun, ::Aggregator, w::WorldType, r::_RelationId, XY
 
 display_rel_short(::_RelationId)  = "Id"
 
+
+################################################################################
+################################################################################
+# TODO remove (needed for GAMMAS)
+# Utility type for enhanced computation of thresholds
+abstract type _ReprTreatment end
+struct _ReprFake{WorldType<:AbstractWorld} <: _ReprTreatment w :: WorldType end
+struct _ReprMax{WorldType<:AbstractWorld}  <: _ReprTreatment w :: WorldType end
+struct _ReprMin{WorldType<:AbstractWorld}  <: _ReprTreatment w :: WorldType end
+struct _ReprVal{WorldType<:AbstractWorld}  <: _ReprTreatment w :: WorldType end
+struct _ReprNone{WorldType<:AbstractWorld} <: _ReprTreatment end
+enumAccRepr(::_TestOpGeq, w::WorldType, ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = _ReprMin(w)
+enumAccRepr(::_TestOpLeq, w::WorldType, ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = _ReprMax(w)
+
+################################################################################
+################################################################################
+#
 # TODO rename into RelationGlobal (and then GlobalRelation?)
 # Global relation    (RelationAll)   =  S -> all-worlds
 struct _RelationAll   <: AbstractRelation end; const RelationAll  = _RelationAll();
