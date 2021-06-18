@@ -28,7 +28,7 @@ module treeclassifier
 		l                  :: NodeMeta{U}                    # left child
 		r                  :: NodeMeta{U}                    # right child
 		i_frame            :: Integer          # Id of frame
-		modality           :: R where R<:AbstractRelation      # modal operator (e.g. RelationId for the propositional case)
+		relation           :: R where R<:AbstractRelation      # modal operator (e.g. RelationId for the propositional case)
 		feature            :: FeatureTypeFun                      # feature used for splitting
 		test_operator      :: TestOperatorFun                  # test_operator (e.g. <=)
 		threshold          :: T where T                                # threshold value
@@ -283,7 +283,7 @@ module treeclassifier
 			#  ones for which the is satisfied and those for whom it's not
 			node.purity         = best_purity
 			node.i_frame        = best_frame
-			node.modality       = best_relation
+			node.relation       = best_relation
 			node.feature        = best_feature
 			node.test_operator  = best_test_operator
 			node.threshold      = best_threshold
@@ -291,7 +291,7 @@ module treeclassifier
 			# Compute new world sets (= take a modal step)
 
 			# println(decision_str)
-			decision_str = display_decision(node.i_frame, node.modality, node.feature, node.test_operator, node.threshold)
+			decision_str = display_decision(node.i_frame, node.relation, node.feature, node.test_operator, node.threshold)
 			
 			# TODO instead of using memory, here, just use two opposite indices and perform substitutions. indj = n_instances
 			unsatisfied_flags = fill(1, n_instances)
@@ -305,7 +305,7 @@ module treeclassifier
 
 				# println(instance)
 				# println(Sf[i_instance])
-				(satisfied,Ss[node.i_frame][indX[i_instance + r_start]]) = ModalLogic.modalStep(X, indX[i_instance + r_start], Sf[i_instance], node.modality, node.feature, node.test_operator, node.threshold)
+				(satisfied,Ss[node.i_frame][indX[i_instance + r_start]]) = ModalLogic.modalStep(X, indX[i_instance + r_start], Sf[i_instance], node.relation, node.feature, node.test_operator, node.threshold)
 				@logmsg DTDetail " [$satisfied] Instance $(i_instance)/$(n_instances)" Sf[i_instance] (if satisfied Ss[node.i_frame][indX[i_instance + r_start]] end)
 				# println(satisfied)
 				# println(Ss[node.i_frame][indX[i_instance + r_start]])
@@ -378,7 +378,7 @@ module treeclassifier
 		ind = node.split_at
 		region = node.region
 		depth = node.depth+1
-		mdepth = (node.modality == RelationId ? node.modal_depth : node.modal_depth+1)
+		mdepth = (node.relation == RelationId ? node.modal_depth : node.modal_depth+1)
 		@logmsg DTDetail "fork!(...): " node ind region mdepth
 
 		# onlyUseRelationAll changes:

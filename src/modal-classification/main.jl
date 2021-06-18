@@ -16,7 +16,7 @@ function _convert(
 	else
 		left  = _convert(node.l, list, labels)
 		right = _convert(node.r, list, labels)
-		return DTInternal(node.i_frame, node.modality, node.feature, node.test_operator, node.threshold, left, right)
+		return DTInternal(node.i_frame, node.relation, node.feature, node.test_operator, node.threshold, left, right)
 	end
 end
 
