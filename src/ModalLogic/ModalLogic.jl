@@ -239,7 +239,7 @@ getInstanceAttribute(inst::MatricialInstance{T,3},      idx::Integer) where T = 
 
 get_feature_val(X::Any, i_instance::Integer, w::AbstractWorld, feature::FeatureTypeFun) =
 	yieldFunction(feature)(inst_readWorld(w, getInstance(X, i_instance)))
-	
+
 test_decision(
 		X::MatricialDataset{T},
 		i_instance::Integer,
@@ -584,7 +584,7 @@ end
 				# Look for the best threshold 'a', as in propositions like "feature >= a"
 				for threshold in aggr_domain
 					@logmsg DTDebug " Testing decision: $(display_decision(relation, feature, test_operator, threshold))"
-					@yield (relation, test_operator, feature, threshold), aggr_thresholds
+					@yield (relation, feature, test_operator, threshold), aggr_thresholds
 				end # for threshold
 			end # for test_operator
 		end # for aggregator
@@ -628,12 +628,12 @@ struct StumpFeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 		@assert sum(length.(grouped_featsnaggrs)) == length(featsnaggrs) "Can't instantiate StumpFeatModalDataset{$(T), $(WorldType)} with unmatching n_featsnaggrs (grouped vs flattened structure): $(sum(length.(fmd.grouped_featsaggrsnops))) and $(length(featsnaggrs))"
 		@assert sum(length.(fmd.grouped_featsaggrsnops)) == length(featsnaggrs) "Can't instantiate StumpFeatModalDataset{$(T), $(WorldType)} with unmatching n_featsnaggrs for fmd and provided featsnaggrs: $(sum(length.(fmd.grouped_featsaggrsnops))) and $(length(featsnaggrs))"
 		@assert sum(length.(fmd.grouped_featsaggrsnops)) == n_featsnaggrs(fmd_m) "Can't instantiate StumpFeatModalDataset{$(T), $(WorldType)} with unmatching n_featsnaggrs for fmd and fmd_m support: $(sum(length.(fmd.grouped_featsaggrsnops))) and $(n_featsnaggrs(fmd_m))"
-		@assert sum(length.(fmd.grouped_featsaggrsnops)) == n_featsnaggrs(fmd_g) "Can't instantiate StumpFeatModalDataset{$(T), $(WorldType)} with unmatching n_featsnaggrs for fmd and fmd_g support: $(sum(length.(fmd.grouped_featsaggrsnops))) and $(n_featsnaggrs(fmd_g))"
 
 		if fmd_g != nothing
 			@assert n_samples(fmd) == n_samples(fmd_g) "Can't instantiate StumpFeatModalDataset{$(T), $(WorldType)} with unmatching n_samples for fmd and fmd_g support: $(n_samples(fmd)) and $(n_samples(fmd_g))"
 			# @assert somethinglike(fmd) == n_featsnaggrs(fmd_g) "Can't instantiate StumpFeatModalDataset{$(T), $(WorldType)} with unmatching somethinglike for fmd and fmd_g support: $(somethinglike(fmd)) and $(n_featsnaggrs(fmd_g))"
 			@assert world_type(fmd) == world_type(fmd_g) "Can't instantiate StumpFeatModalDataset{$(T), $(WorldType)} with unmatching world_type for fmd and fmd_g support: $(world_type(fmd)) and $(world_type(fmd_g))"
+			@assert sum(length.(fmd.grouped_featsaggrsnops)) == n_featsnaggrs(fmd_g) "Can't instantiate StumpFeatModalDataset{$(T), $(WorldType)} with unmatching n_featsnaggrs for fmd and fmd_g support: $(sum(length.(fmd.grouped_featsaggrsnops))) and $(n_featsnaggrs(fmd_g))"
 		end
 
 		new{T, WorldType}(fmd, fmd_m, fmd_g, featsnaggrs, grouped_featsnaggrs)
@@ -711,7 +711,7 @@ features(X::StumpFeatModalDataset)           = features(X.fmd)
 grouped_featsaggrsnops(X::StumpFeatModalDataset)  = grouped_featsaggrsnops(X.fmd)
 
 
-size(X::StumpFeatModalDataset)             where {T,N} =  (size(X.fmd), size(X.fmd_m), size(X.fmd_g))
+size(X::StumpFeatModalDataset)             where {T,N} =  (size(X.fmd), size(X.fmd_m), (isnothing(X.fmd_g) ? nothing : size(X.fmd_g)))
 n_samples(X::StumpFeatModalDataset{T, WorldType}) where {T, WorldType}   = n_samples(X.fmd)
 n_features(X::StumpFeatModalDataset{T, WorldType}) where {T, WorldType}  = n_features(X.fmd)
 n_relations(X::StumpFeatModalDataset{T, WorldType}) where {T, WorldType} = n_relations(X.fmd)
@@ -722,7 +722,7 @@ slice_dataset(X::StumpFeatModalDataset{T,WorldType}, inds::AbstractVector{<:Inte
 	StumpFeatModalDataset{T,WorldType}(
 		slice_dataset(X.fmd, inds, args...),
 		slice_dataset(X.fmd_m, inds, args...),
-		slice_dataset(X.fmd_g, inds, args...),
+		(isnothing(X.fmd_g) ? nothing : slice_dataset(X.fmd_g, inds, args...)),
 		X.featsnaggrs,
 		X.grouped_featsnaggrs)
 
@@ -754,6 +754,7 @@ test_decision(
 	else
 		gamma = if relation == RelationGlob
 				i_featsnaggr = find_featsnaggr_id(X, feature, existential_aggregator(test_operator))
+				@assert !isnothing(X.fmd_g) "Error. StumpFeatModalDataset must be built with computeRelationGlob = true for it to be ready to test global decisions."
 				X.fmd_g[i_instance, i_featsnaggr]
 			else
 				i_relation = find_relation_id(X, relation)
@@ -782,6 +783,8 @@ end
 	relation = RelationGlob
 	n_instances = length(instances_inds)
 	
+	@assert !isnothing(X.fmd_g) "Error. StumpFeatModalDataset must be built with computeRelationGlob = true for it to be ready to generate global decisions."
+
 	# For each feature
 	for i_feature in features_inds
 		feature = features(X)[i_feature]
@@ -837,7 +840,7 @@ end
 				for threshold in aggr_domain
 					@logmsg DTDebug " Testing decision: $(display_decision(relation, feature, test_operator, threshold))"
 
-					@yield (relation, test_operator, feature, threshold), aggr_thresholds
+					@yield (relation, feature, test_operator, threshold), aggr_thresholds
 					
 				end # for threshold
 			end # for test_operator
@@ -911,7 +914,7 @@ end
 					for threshold in aggr_domain
 						@logmsg DTDebug " Testing decision: $(display_decision(relation, feature, test_operator, threshold))"
 
-						@yield (relation, test_operator, feature, threshold), aggr_thresholds
+						@yield (relation, feature, test_operator, threshold), aggr_thresholds
 						
 					end # for threshold
 				end # for test_operator

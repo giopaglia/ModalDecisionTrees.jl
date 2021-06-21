@@ -210,9 +210,10 @@ module treeclassifier
 			########################################################################
 			########################################################################
 			
-			for ((relation, test_operator, feature, threshold), aggr_thresholds) in generate_feasible_decisions(X, indX[region], frame_Sf, allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds)
+			for ((relation, feature, test_operator, threshold), aggr_thresholds) in generate_feasible_decisions(X, indX[region], frame_Sf, allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds)
 				
-				# println((relation, test_operator, feature, threshold))
+				println(display_decision(i_frame, relation, feature, test_operator, threshold))
+
 				# Re-initialize right class counts
 				nr = zero(U)
 				ncr .= zero(U)
@@ -600,6 +601,7 @@ module treeclassifier
 			for (i_frame,X) in enumerate(ModalLogic.frames(Xs))
 				WT = world_type(X)
 				Ss[i_frame] = WorldSet{WT}[initws_function(X, i_instance)(initConditions[i_frame]) for i_instance in 1:n_samples(Xs)]
+				# Ss[i_frame] = WorldSet{WT}[[ModalLogic.Interval(1,2)] for i_instance in 1:n_samples(Xs)]
 			end
 			Ss
 		end
