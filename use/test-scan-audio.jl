@@ -76,6 +76,9 @@ audio_kwargs_full_mfcc = (
 modal_args = (
 	initConditions = DecisionTree.startWithRelationGlob,
 	useRelationGlob = false,
+	
+	# initConditions = DecisionTree.startAtCenter,
+	# useRelationGlob = true,
 )
 
 data_modal_args = (

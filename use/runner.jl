@@ -329,24 +329,26 @@ function execRun(
 					end
 
 					# global decisions
-					firstWorld = WorldType(ModalLogic.firstWorld)
-					for i_instance in 1:n_samples(X_train_all)
-						instance = ModalLogic.getInstance(X_train_all, i_instance)
-						for i_attribute in 1:n_attributes(X_train_all)
-							for i_test_operator in 1:2
-								
-								i_featsnaggr = (i_test_operator-1)+(i_attribute-1)*2+1
+					if !isnothing(stump_fmd.fmd_g)
+						firstWorld = WorldType(ModalLogic.firstWorld)
+						for i_instance in 1:n_samples(X_train_all)
+							instance = ModalLogic.getInstance(X_train_all, i_instance)
+							for i_attribute in 1:n_attributes(X_train_all)
+								for i_test_operator in 1:2
+									
+									i_featsnaggr = (i_test_operator-1)+(i_attribute-1)*2+1
 
-								g = DecisionTree.readGamma(gammas,i_test_operator,firstWorld,i_instance,2,i_attribute)
-								m = stump_fmd.fmd_g[i_instance, i_featsnaggr]
+									g = DecisionTree.readGamma(gammas,i_test_operator,firstWorld,i_instance,2,i_attribute)
+									m = stump_fmd.fmd_g[i_instance, i_featsnaggr]
 
-								if g != m
-									println("fmd_g check: g != m\n$(g)\n$(m)\ni_test_operator=$(i_test_operator)\ntest_operator=$(data_modal_args.test_operators[i_test_operator])\ni_featsnaggr=$(i_featsnaggr)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
-									print("instance: ")
-									println(ModalLogic.getInstanceAttribute(instance, i_attribute))
-									print(instance)
-									# error("aoe")
-									readline()
+									if g != m
+										println("fmd_g check: g != m\n$(g)\n$(m)\ni_test_operator=$(i_test_operator)\ntest_operator=$(data_modal_args.test_operators[i_test_operator])\ni_featsnaggr=$(i_featsnaggr)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
+										print("instance: ")
+										println(ModalLogic.getInstanceAttribute(instance, i_attribute))
+										print(instance)
+										# error("aoe")
+										readline()
+									end
 								end
 							end
 						end
@@ -365,7 +367,7 @@ function execRun(
 
 										g = DecisionTree.readGamma(gammas,i_test_operator,w,i_instance,2+i_relation,i_attribute)
 										m = stump_fmd.fmd_m[i_instance, w, i_featsnaggr, i_relation]
-
+										
 										if g != m
 											println("fmd_m check: g != m\n$(g)\n$(m)\ni_relation=$(i_relation), relation=$(relations[i_relation])\ni_test_operator=$(i_test_operator)\ntest_operator=$(data_modal_args.test_operators[i_test_operator])\nw=$(w)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
 											print("channel: ")
