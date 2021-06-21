@@ -1,4 +1,3 @@
-Controlla che vengano fatti anche split non Glob
 Ricontrolla che il check tra gamma e stump venga fatto correttamente
 ☐	TODO add enumAccReprAggr for relationAll, and for all worldtypes and relations
 ☐	Ottimizza gli enumAccessibles e i enumAccessibles per i sets.
