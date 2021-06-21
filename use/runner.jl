@@ -77,10 +77,9 @@ function checkpoint_stdout(string::String)
 	flush(stdout)
 end
 
+include("caching.jl")
 include("datasets.jl")
 include("dataset-utils.jl")
-
-#gammas_saving_task = nothing
 
 function execRun(
 		run_name                        ::String,
@@ -402,6 +401,23 @@ function execRun(
 			end
 			
 			Xs_train_all_multiframe_stump_fmd = MultiFrameFeatModalDataset(Xs_train_all_multiframe_stump_fmd)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 			println("X_train\t\t\t$(Base.summarysize(Xs_train_all_multiframe_stump_fmd) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
 			if n_frames(Xs_train_all_multiframe_stump_fmd) > 1
