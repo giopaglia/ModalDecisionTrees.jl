@@ -224,16 +224,35 @@ function execRun(
 				# 		@btime StumpFeatModalDataset($fmd, computeRelationGlob = $needToComputeRelationGlob);
 				# end
 
-				checkpoint_stdout("Creating StumpFeatModalDataset...")
-				stump_fmd =
-					if timing_mode == :none
-						StumpFeatModalDataset(X_train_all, features, featsnops, computeRelationGlob = needToComputeRelationGlob);
-					elseif timing_mode == :time
-						@time StumpFeatModalDataset(X_train_all, features, featsnops, computeRelationGlob = needToComputeRelationGlob);
-					elseif timing_mode == :btime
-						@btime StumpFeatModalDataset($X_train_all, $features, $featsnops, computeRelationGlob = $needToComputeRelationGlob);
+				if isa(data_savedir,String) || isnothing(data_savedir)
+					data_savedir = (data_savedir, nothing)
 				end
 
+				data_savedir, dataset_name_str = data_savedir
+
+				info_dict = Dict{String,Any}(
+					"dataset_hash_sha256" => get_hash_sha256(X_train_all),
+					"features" => features,
+					"featsnops" => featsnops,
+					"computeRelationGlob" => needToComputeRelationGlob)
+				stump_fmd =
+					if cached_obj_exists("stump_fmd", info_dict, data_savedir)
+						checkpoint_stdout("Loading StumpFeatModalDataset...")
+						load_cached_obj("stump_fmd", info_dict, data_savedir)
+					else
+						checkpoint_stdout("Creating StumpFeatModalDataset...")
+						sfmd =
+							if timing_mode == :none
+								StumpFeatModalDataset(X_train_all, features, featsnops, computeRelationGlob = needToComputeRelationGlob);
+							elseif timing_mode == :time
+								@time StumpFeatModalDataset(X_train_all, features, featsnops, computeRelationGlob = needToComputeRelationGlob);
+							elseif timing_mode == :btime
+								@btime StumpFeatModalDataset($X_train_all, $features, $featsnops, computeRelationGlob = $needToComputeRelationGlob);
+							end
+						cache_obj("stump_fmd", sfmd, info_dict, data_savedir)
+						sfmd
+					end
+				
 				########################################################################
 				########################################################################
 				######################## LEGACY CHECK WITH GAMMAS ######################
@@ -254,12 +273,6 @@ function execRun(
 					end
 
 					# Generate path to gammas jld file
-					if isa(data_savedir,String) || isnothing(data_savedir)
-						data_savedir = (data_savedir, nothing)
-					end
-
-					data_savedir, dataset_name_str = data_savedir
-
 					gammas_jld_path, gammas_hash_index_file, dataset_hash =
 						if isnothing(data_savedir)
 							(nothing, nothing, nothing)
@@ -403,23 +416,6 @@ function execRun(
 			end
 			
 			Xs_train_all_multiframe_stump_fmd = MultiFrameFeatModalDataset(Xs_train_all_multiframe_stump_fmd)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 			println("X_train\t\t\t$(Base.summarysize(Xs_train_all_multiframe_stump_fmd) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
 			if n_frames(Xs_train_all_multiframe_stump_fmd) > 1

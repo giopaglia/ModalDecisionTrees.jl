@@ -6,6 +6,11 @@ function _infos_to_dict(infos::NamedTuple)::Dict
     Dict([String(k) => v for (k,v) in zip(keys(infos),values(infos))])
 end
 
+function cached_obj_exists(type::String, infos::Dict, common_cache_dir::String)::Bool
+	isdir(common_cache_dir) && isfile(common_cache_dir * "/" * _default_jld_file_name(type, get_hash_sha256(infos)))
+end
+cached_obj_exists(type::String, infos::NamedTuple, common_cache_dir::String; kwargs...) = cached_obj_exists(type, _infos_to_dict(infos), common_cache_dir)
+
 function cache_obj(type::String, obj::Any, infos::Dict, common_cache_dir::String; column_separator::String = ";")
 	info_hash = get_hash_sha256(infos)
 
@@ -16,7 +21,7 @@ function cache_obj(type::String, obj::Any, infos::Dict, common_cache_dir::String
 
     table_file = open(common_cache_dir * "/" * _default_table_file_name(type), "a+")
     if should_write_header
-        write(f, "TIMESTAMP$(column_separator)INFOS$(column_separator)FILE NAME$(column_separator)\n")
+        write(table_file, string("TIMESTAMP$(column_separator)INFOS$(column_separator)FILE NAME$(column_separator)\n"))
     end
 	write(table_file, string(
             Dates.format(Dates.now(), "dd/mm/yyyy HH:MM:SS"), column_separator,
