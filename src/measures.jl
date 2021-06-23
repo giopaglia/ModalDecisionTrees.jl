@@ -132,15 +132,7 @@ function majority_vote(labels::AbstractVector)
 		return nothing
 	end
 	counts = _hist(labels)
-	top_vote = labels[1]
-	top_count = -1
-	for (k,v) in counts
-		if v > top_count
-			top_vote = k
-			top_count = v
-		end
-	end
-	return top_vote
+	argmax(counts)
 end
 
 function best_score(labels::AbstractVector{T}, weights::Union{Nothing,AbstractVector{N}}) where {T, N<:Real}
@@ -148,7 +140,12 @@ function best_score(labels::AbstractVector{T}, weights::Union{Nothing,AbstractVe
 		return majority_vote(labels)
 	end
 
+	if length(labels) == 0
+		return nothing
+	end
+
 	@assert length(labels) === length(weights) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
+	@assert length(labels) != 0 "Can't compute best_score with 0 predictions" # TODO figure out whether we want to force this or returning nothing is fine.
 
 	counts = Dict{T,AbstractFloat}()
 	for i in 1:length(labels)
@@ -156,17 +153,7 @@ function best_score(labels::AbstractVector{T}, weights::Union{Nothing,AbstractVe
 		counts[l] = get(counts, l, 0) + weights[i]
 	end
 
-	top_vote = labels[1]
-	top_score = -1
-
-	for (k,v) in counts
-		if v > top_score
-			top_vote = k
-			top_score = v
-		end
-	end
-
-	return top_vote
+	return argmax(counts)
 end
 
 ### Classification ###

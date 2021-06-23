@@ -27,7 +27,7 @@ tree_savedir = results_dir * "/trees"
 
 column_separator = ";"
 
-save_datasets = false
+save_datasets = true
 just_produce_datasets_jld = false
 saved_datasets_path = results_dir * "/datasets"
 
@@ -71,29 +71,27 @@ println(" $(length(tree_args)) trees")
 forest_runs = 5
 optimize_forest_computation = true
 
+
 forest_args = []
 
-#for n_trees in [50,100]
-#	for n_subfeatures in [id_f, half_f]
-#		for n_subrelations in [id_f]
-#			push!(forest_args, (
-#				n_subfeatures       = n_subfeatures,
-#				n_trees             = n_trees,
-#				partial_sampling    = 1.0,
-#				n_subrelations      = n_subrelations,
-#				forest_tree_args...
-#			))
-#		end
-#	end
-#end
+for n_trees in [50,100]
+	for n_subfeatures in [half_f]
+		for n_subrelations in [id_f]
+			push!(forest_args, (
+				n_subfeatures       = n_subfeatures,
+				n_trees             = n_trees,
+				partial_sampling    = 1.0,
+				n_subrelations      = n_subrelations,
+				# Optimization arguments for trees in a forest (no pruning is performed)
+				loss_function = DecisionTree.util.entropy,
+				min_samples_leaf = 1,
+				min_purity_increase = 0.0,
+				min_loss_at_leaf = 0.0,
+			))
+		end
+	end
+end
 
-# Optimization arguments for trees in a forest (no pruning is performed)
-forest_tree_args = (
-	loss_function = DecisionTree.util.entropy,
-	min_samples_leaf = 1,
-	min_purity_increase = 0.0,
-	min_loss_at_leaf = 0.0,
-)
 
 println(" $(length(forest_args)) forests (repeated $(forest_runs) times)")
 
@@ -137,10 +135,10 @@ split_threshold = 0.8
 
 use_ontological_form = false
 
-test_flattened = true
-test_averaged = true
+test_flattened = false
+test_averaged  = false
 
-legacy_gammas_check = true
+legacy_gammas_check = false
 
 
 ################################################################################
@@ -237,11 +235,6 @@ exec_ranges_dict = (
 	test_operators   = exec_test_operators,
 )
 
-exec_ranges_names, exec_ranges = collect(string.(keys(exec_ranges_dict))), collect(values(exec_ranges_dict))
-history = load_or_create_history(
-	iteration_progress_json_file_path, exec_ranges_names, exec_ranges
-)
-
 ################################################################################
 ################################### SCAN FILTERS ###############################
 ################################################################################
@@ -305,6 +298,10 @@ print_head(full_output_file_path, tree_args, forest_args, separator = column_sep
 	forest_columns = ["K", "sensitivity", "specificity", "precision", "accuracy", "oob_error", "σ² K", "σ² sensitivity", "σ² specificity", "σ² precision", "σ² accuracy", "σ² oob_error", "t"],
 )
 
+exec_ranges_names, exec_ranges = collect(string.(keys(exec_ranges_dict))), collect(values(exec_ranges_dict))
+history = load_or_create_history(
+	iteration_progress_json_file_path, exec_ranges_names, exec_ranges
+)
 ################################################################################
 ################################################################################
 ################################################################################
@@ -442,7 +439,7 @@ for params_combination in IterTools.product(exec_ranges...)
 	##############################################################################
 	
 	# ACTUAL COMPUTATION
-	Ts, Fs, Tcms, Fcms, Tts, Fts = execRun(
+	Ts, Fs, Tcms, Fcms, Tts, Fts = exec_run(
 				run_name,
 				dataset,
 				split_threshold             =   split_threshold,
@@ -454,6 +451,7 @@ for params_combination in IterTools.product(exec_ranges...)
 				data_modal_args             =   cur_data_modal_args,
 				modal_args                  =   cur_modal_args,
 				test_flattened              =   test_flattened,
+				test_averaged               =   test_averaged,
 				legacy_gammas_check         =   legacy_gammas_check,
 				use_ontological_form        =   use_ontological_form,
 				optimize_forest_computation =   optimize_forest_computation,
@@ -531,7 +529,7 @@ checkpoint_stdout("Finished!")
 # dataset = KDDDataset_not_stratified((3,2), audio_kwargs; dataset_kwargs..., rng = main_rng); # 54/20
 # dataset[1] |> size # (2673, 40)
 
-# execRun("Test", dataset, 0.8, 0, log_level=log_level,
+# exec_run("Test", dataset, 0.8, 0, log_level=log_level,
 # 			forest_args=forest_args, args=args, kwargs=modal_args,
 # 			test_tree = true, test_forest = true);
 

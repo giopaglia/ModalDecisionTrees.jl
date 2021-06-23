@@ -135,14 +135,14 @@ end
 
 # Print a forest entry in a row
 function data_to_string(
-		Ms::AbstractVector{DecisionTree.Forest},
+		Ms::AbstractVector{DecisionTree.Forest{S}},
 		cms::AbstractVector{ConfusionMatrix},
 		time::Dates.Millisecond;
 		start_s = "(",
 		end_s = ")",
 		separator = ";",
 		alt_separator = ","
-	)
+	) where {S}
 
 	result = start_s
 	result *= string(percent(mean(map(cm->cm.kappa, cms))), alt_separator)

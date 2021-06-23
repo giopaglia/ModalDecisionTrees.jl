@@ -3,7 +3,7 @@
 
 include("runner.jl")
 
-# execRuns(d, timing_mode::Bool = true) = map((x)->execRun(x, timing_mode), d);
+# exec_runs(d, timing_mode::Bool = true) = map((x)->exec_run(x, timing_mode), d);
 
 rng = my_rng()
 
@@ -52,11 +52,11 @@ rng_i = DecisionTree.mk_rng(1)
 # timing_mode = :btime
 # timing_mode = :none
 
-# T = execRun(("Pavia, 3x3",                           traintestsplit(SampleLandCoverDataset("Pavia", 30,  3, n_attributes = 1, rng = my_rng),0.8)), timing_mode, args=args, kwargs=kwargs);
+# T = exec_run(("Pavia, 3x3",                           traintestsplit(SampleLandCoverDataset("Pavia", 30,  3, n_attributes = 1, rng = my_rng),0.8)), timing_mode, args=args, kwargs=kwargs);
 
-# T = execRun(datasets[1], timing_mode, args=args, kwargs=kwargs);
-# T = execRun(datasets[2], timing_mode, log_level=DecisionTree.DTOverview, args=args, kwargs=kwargs);
-# T = execRun(datasets[3], timing_mode, args=args, kwargs=kwargs);
+# T = exec_run(datasets[1], timing_mode, args=args, kwargs=kwargs);
+# T = exec_run(datasets[2], timing_mode, log_level=DecisionTree.DTOverview, args=args, kwargs=kwargs);
+# T = exec_run(datasets[3], timing_mode, args=args, kwargs=kwargs);
 
 # exit()
 
@@ -82,7 +82,7 @@ rng_i = DecisionTree.mk_rng(1)
 
 # 					for i in 1:5
 # 						rng_new = DecisionTree.mk_rng(abs(rand(rng_i, Int)))
-# 						execRun(("$(dataset_name), 1x1",                           traintestsplit(SampleLandCoverDataset(dataset_name,                 n_instances,        1,                   rng = rng_new),0.8)), timing_mode, log_level = log_level, args=cur_args, kwargs=cur_kwargs);
+# 						exec_run(("$(dataset_name), 1x1",                           traintestsplit(SampleLandCoverDataset(dataset_name,                 n_instances,        1,                   rng = rng_new),0.8)), timing_mode, log_level = log_level, args=cur_args, kwargs=cur_kwargs);
 # 					end
 # 				end
 # 			end
@@ -99,7 +99,7 @@ rng_i = DecisionTree.mk_rng(1)
 # # relation = ModalLogic._IA2DRel(RelationId , ModalLogic.IA_O)
 # println(relation)
 # cur_kwargs = merge(kwargs, (ontology=Ontology(ModalLogic.Interval2D,relation),))
-# T = execRun(datasets[databatch*3+3], timing_mode, log_level = Logging.Warn, args=args, kwargs=cur_kwargs);
+# T = exec_run(datasets[databatch*3+3], timing_mode, log_level = Logging.Warn, args=args, kwargs=cur_kwargs);
 # println(T)
 # i_relation+=1
 # end
@@ -141,7 +141,7 @@ n_instances = 10
 # for dataset_name in ["IndianPines", "Pavia"]
 # 	for i in 1:10
 # 		rng_new = DecisionTree.mk_rng(abs(rand(rng_i, Int)))
-# 		execRun((dataset_name * ", 1x1",  traintestsplit(SampleLandCoverDataset(dataset_name,  n_instances,  1,                   rng = rng_new),0.8)), timing_mode, log_level = log_level, args=selected_args, kwargs=kwargs, rng = rng_new);
+# 		exec_run((dataset_name * ", 1x1",  traintestsplit(SampleLandCoverDataset(dataset_name,  n_instances,  1,                   rng = rng_new),0.8)), timing_mode, log_level = log_level, args=selected_args, kwargs=kwargs, rng = rng_new);
 # 	end
 # end
 
@@ -197,15 +197,15 @@ for dataset_name in ["Salinas", "Salinas-A", "PaviaCentre", "Pavia", "IndianPine
 							initCondition = startAtCenter,
 							test_operators = test_operators,
 							))
-						# execRun(("Pavia, 3x3", traintestsplit(SampleLandCoverDataset("Pavia", 30,  3, n_attributes = 10, rng = rng_new),0.8)), timing_mode, log_level = DecisionTree.DTOverview, args=cur_args, kwargs=cur_kwargs);
-						# execRun(datasets[databatch*5+3], timing_mode, log_level = DecisionTree.DTOverview, args=cur_args, kwargs=cur_kwargs);
+						# exec_run(("Pavia, 3x3", traintestsplit(SampleLandCoverDataset("Pavia", 30,  3, n_attributes = 10, rng = rng_new),0.8)), timing_mode, log_level = DecisionTree.DTOverview, args=cur_args, kwargs=cur_kwargs);
+						# exec_run(datasets[databatch*5+3], timing_mode, log_level = DecisionTree.DTOverview, args=cur_args, kwargs=cur_kwargs);
 						# exit()
 
 						println("$(ontology)\t$(i)\t$(window_size)\t$(dataset_name)\t$(useRelationGlob)\t$(initCondition)\t$(test_operators)")
 						# rng_new = DecisionTree.mk_rng(abs(rand(rng_i, Int)))
 						rng_new = copy(rng_new)
 						dataset = SampleLandCoverDataset(dataset_name,                 n_instances,        window_size, flattened = flattened,                   rng = rng_new)
-						execRun("$(dataset_name), $(window_size)x$(window_size)" * (if flattened " flattened" else "" end),
+						exec_run("$(dataset_name), $(window_size)x$(window_size)" * (if flattened " flattened" else "" end),
 														dataset,
 														0.8,
 														timing_mode,
@@ -218,11 +218,11 @@ for dataset_name in ["Salinas", "Salinas-A", "PaviaCentre", "Pavia", "IndianPine
 														test_forest = true,
 														);
 						
-						# execRun(datasets[databatch*5+1], timing_mode, log_level = log_level, args=cur_args, kwargs=cur_kwargs);
-						# execRun(datasets[databatch*5+2], timing_mode, log_level = log_level, args=cur_args, kwargs=cur_kwargs);
-						# execRun(datasets[databatch*5+3], timing_mode, log_level = log_level, args=cur_args, kwargs=cur_kwargs);
-						# execRun(datasets[databatch*5+4], timing_mode, log_level = log_level, args=cur_args, kwargs=cur_kwargs);
-						# execRun(datasets[databatch*5+5], timing_mode, log_level = log_level, args=cur_args, kwargs=cur_kwargs);
+						# exec_run(datasets[databatch*5+1], timing_mode, log_level = log_level, args=cur_args, kwargs=cur_kwargs);
+						# exec_run(datasets[databatch*5+2], timing_mode, log_level = log_level, args=cur_args, kwargs=cur_kwargs);
+						# exec_run(datasets[databatch*5+3], timing_mode, log_level = log_level, args=cur_args, kwargs=cur_kwargs);
+						# exec_run(datasets[databatch*5+4], timing_mode, log_level = log_level, args=cur_args, kwargs=cur_kwargs);
+						# exec_run(datasets[databatch*5+5], timing_mode, log_level = log_level, args=cur_args, kwargs=cur_kwargs);
 					end
 				end
 			end
@@ -232,15 +232,15 @@ end
 
 exit()
 
-T = execRun(datasets[3], 0, args=args, kwargs=kwargs);
-T = execRun(datasets[6], 0, args=args, kwargs=kwargs);
-T = execRun("Pavia, 3x3",                           traintestsplit(SampleLandCoverDataset("Pavia", 30,  3, n_attributes = 1, rng = my_rng),0.8), timing_mode, args=args, kwargs=kwargs);
+T = exec_run(datasets[3], 0, args=args, kwargs=kwargs);
+T = exec_run(datasets[6], 0, args=args, kwargs=kwargs);
+T = exec_run("Pavia, 3x3",                           traintestsplit(SampleLandCoverDataset("Pavia", 30,  3, n_attributes = 1, rng = my_rng),0.8), timing_mode, args=args, kwargs=kwargs);
 
 exit()
 
 
-# T = execRun(("Pavia, sample", traintestsplit(SampleLandCoverDataset("Pavia", 5, 3, n_attributes = 1, rng = my_rng),0.8)), timing_mode, args=args, kwargs=kwargs);
-# T = execRun(("Pavia, sample", traintestsplit(SampleLandCoverDataset("Pavia", 5, 1, n_attributes = 1, rng = my_rng),0.8)), timing_mode, args=args, kwargs=kwargs);
+# T = exec_run(("Pavia, sample", traintestsplit(SampleLandCoverDataset("Pavia", 5, 3, n_attributes = 1, rng = my_rng),0.8)), timing_mode, args=args, kwargs=kwargs);
+# T = exec_run(("Pavia, sample", traintestsplit(SampleLandCoverDataset("Pavia", 5, 1, n_attributes = 1, rng = my_rng),0.8)), timing_mode, args=args, kwargs=kwargs);
 
 
 # TODO test the same with window 3x5; also test with a specific initial world. One that allows During, for example, or one on the border
@@ -259,7 +259,7 @@ while i_relation <= length(relations)
 		ontology=Ontology(ModalLogic.Interval2D,[relation]),
 		# ontology=Ontology(ModalLogic.Interval2D,relation_set),
 	)
-	T = execRun(("Pavia, 3x3 mod",                           traintestsplit(SampleLandCoverDataset(30, ,5),  ("Pavia", rng = my_rng),0.8)), 0, args=args, kwargs=kwargs);
+	T = exec_run(("Pavia, 3x3 mod",                           traintestsplit(SampleLandCoverDataset(30, ,5),  ("Pavia", rng = my_rng),0.8)), 0, args=args, kwargs=kwargs);
 	println(T)
 	i_relation+=1
 end
@@ -268,14 +268,14 @@ end
 
 # exit()
 
-T = execRun(("Pavia, sample", traintestsplit(SampleLandCoverDataset("Pavia", 5, 3, n_attributes = 10, rng = my_rng),0.8)), timing_mode, args=args, kwargs=kwargs);
+T = exec_run(("Pavia, sample", traintestsplit(SampleLandCoverDataset("Pavia", 5, 3, n_attributes = 10, rng = my_rng),0.8)), timing_mode, args=args, kwargs=kwargs);
 post_pruning_purity_thresholds = [0.7, 0.8, 0.9]
-T = execRun(datasets[1], timing_mode, post_pruning_purity_thresholds = post_pruning_purity_thresholds, args=args, kwargs=kwargs);
-T = execRun(datasets[2], timing_mode, post_pruning_purity_thresholds = post_pruning_purity_thresholds, args=args, kwargs=kwargs);
-T = execRun(datasets[3], timing_mode, post_pruning_purity_thresholds = post_pruning_purity_thresholds, args=args, kwargs=kwargs);
-T = execRun(datasets[4], timing_mode, post_pruning_purity_thresholds = post_pruning_purity_thresholds, args=args, kwargs=kwargs);
-T = execRun(datasets[5], timing_mode, post_pruning_purity_thresholds = post_pruning_purity_thresholds, args=args, kwargs=kwargs);
-T = execRun(datasets[6], timing_mode, post_pruning_purity_thresholds = post_pruning_purity_thresholds, args=args, kwargs=kwargs);
+T = exec_run(datasets[1], timing_mode, post_pruning_purity_thresholds = post_pruning_purity_thresholds, args=args, kwargs=kwargs);
+T = exec_run(datasets[2], timing_mode, post_pruning_purity_thresholds = post_pruning_purity_thresholds, args=args, kwargs=kwargs);
+T = exec_run(datasets[3], timing_mode, post_pruning_purity_thresholds = post_pruning_purity_thresholds, args=args, kwargs=kwargs);
+T = exec_run(datasets[4], timing_mode, post_pruning_purity_thresholds = post_pruning_purity_thresholds, args=args, kwargs=kwargs);
+T = exec_run(datasets[5], timing_mode, post_pruning_purity_thresholds = post_pruning_purity_thresholds, args=args, kwargs=kwargs);
+T = exec_run(datasets[6], timing_mode, post_pruning_purity_thresholds = post_pruning_purity_thresholds, args=args, kwargs=kwargs);
 
 
 timing_mode = :time
@@ -297,27 +297,27 @@ for min_purity_increase in [0.0, 0.02]
 					# test_operators=[TestOpGeq, TestOpLeq, TestOpGeq075, TestOpLeq075],
 				)
 
-				T = execRun(datasets[1], timing_mode, args=args, kwargs=kwargs);
-				T = execRun(datasets[3], timing_mode, args=args, kwargs=kwargs);
-				T = execRun(datasets[4], timing_mode, args=args, kwargs=kwargs);
-				T = execRun(datasets[6], timing_mode, args=args, kwargs=kwargs);
+				T = exec_run(datasets[1], timing_mode, args=args, kwargs=kwargs);
+				T = exec_run(datasets[3], timing_mode, args=args, kwargs=kwargs);
+				T = exec_run(datasets[4], timing_mode, args=args, kwargs=kwargs);
+				T = exec_run(datasets[6], timing_mode, args=args, kwargs=kwargs);
 
-				T = execRun(datasets[7], timing_mode, args=args, kwargs=kwargs);
-				T = execRun(datasets[8], timing_mode, args=args, kwargs=kwargs);
-				T = execRun(datasets[9], timing_mode, args=args, kwargs=kwargs);
-				T = execRun(datasets[10], timing_mode, args=args, kwargs=kwargs);
+				T = exec_run(datasets[7], timing_mode, args=args, kwargs=kwargs);
+				T = exec_run(datasets[8], timing_mode, args=args, kwargs=kwargs);
+				T = exec_run(datasets[9], timing_mode, args=args, kwargs=kwargs);
+				T = exec_run(datasets[10], timing_mode, args=args, kwargs=kwargs);
 			end
 		end
 	end
 end
 # run(`say 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'`)
 
-# @profview T = execRun(datasets[2], false)
-# T = execRun(datasets[1], false)
-# @profile T = execRun(datasets[1], false)
+# @profview T = exec_run(datasets[2], false)
+# T = exec_run(datasets[1], false)
+# @profile T = exec_run(datasets[1], false)
 # pprof()
 # Profile.print()
-# execRuns(datasets);
+# exec_runs(datasets);
 
 # X_train, Y_train, X_test, Y_test = traintestsplit(simpleDataset(200,n_attributes = 50,rng = my_rng),0.8)
 # model = fit!(DecisionTreeClassifier(pruning_purity_threshold=pruning_purity_threshold), X_train, Y_train)
@@ -358,4 +358,4 @@ end
 # println(X, " ", Y, " ", (X*(X+1))/2 * (Y*(Y+1))/2 - 1, " ", sum)
 @assert SUM == ((X*(X+1))/2 * (Y*(Y+1))/2 - 1)
 
-# Test that T = execRun(datasets[1], timing_mode, args=args, kwargs=kwargs); with test_operators=[TestOpLeq] and without is equivalent
+# Test that T = exec_run(datasets[1], timing_mode, args=args, kwargs=kwargs); with test_operators=[TestOpLeq] and without is equivalent

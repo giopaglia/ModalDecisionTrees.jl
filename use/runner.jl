@@ -39,9 +39,9 @@ end
 abstract type Support end
 
 mutable struct ForestEvaluationSupport <: Support
-	f::Union{Nothing,Support,AbstractVector{DecisionTree.Forest}}
+	f::Union{Nothing,Support,AbstractVector{Forest{S}}} where {S}
 	f_args::NamedTuple{T, N} where {T, N}
-	cm::Union{Nothing,AbstractVector{ConfusionMatrix}}
+	cm::Union{Nothing,AbstractVector{<:ConfusionMatrix}}
 	time::Dates.Millisecond
 	enqueued::Bool
 	ForestEvaluationSupport(f_args) = new(nothing, f_args, nothing, Dates.Millisecond(0), false)
@@ -81,7 +81,7 @@ include("caching.jl")
 include("datasets.jl")
 include("dataset-utils.jl")
 
-function execRun(
+function exec_run(
 		run_name                        ::String,
 		dataset                         ::Tuple;
 		### Training params
@@ -93,6 +93,7 @@ function execRun(
 		forest_runs                     = 1,
 		optimize_forest_computation     = false,
 		test_flattened                  = false,
+		test_averaged                   = false,
 		### Dataset params
 		split_threshold                 ::Union{Bool,AbstractFloat} = 1.0,
 		data_modal_args                 = (),
@@ -231,29 +232,37 @@ function execRun(
 				# 		@btime StumpFeatModalDataset($fmd, computeRelationGlob = $needToComputeRelationGlob);
 				# end
 
-				info_dict = Dict{String,Any}(
-					"dataset_hash_sha256" => get_hash_sha256(X_train_all),
-					"features" => features,
-					"featsnops" => featsnops,
-					"computeRelationGlob" => needToComputeRelationGlob)
-				stump_fmd =
-					if cached_obj_exists("stump_fmd", info_dict, data_savedir)
-						checkpoint_stdout("Loading StumpFeatModalDataset...")
-						load_cached_obj("stump_fmd", info_dict, data_savedir)
-					else
-						checkpoint_stdout("Creating StumpFeatModalDataset...")
-						sfmd =
-							if timing_mode == :none
-								StumpFeatModalDataset(X_train_all, features, featsnops, computeRelationGlob = needToComputeRelationGlob);
-							elseif timing_mode == :time
-								@time StumpFeatModalDataset(X_train_all, features, featsnops, computeRelationGlob = needToComputeRelationGlob);
-							elseif timing_mode == :btime
-								@btime StumpFeatModalDataset($X_train_all, $features, $featsnops, computeRelationGlob = $needToComputeRelationGlob);
-							end
-						cache_obj("stump_fmd", sfmd, info_dict, data_savedir)
-						sfmd
-					end
+				# info_dict = Dict{String,Any}(
+				# 	"dataset_hash_sha256" => get_hash_sha256(X_train_all),
+				# 	"features" => features,
+				# 	"featsnops" => featsnops,
+				# 	"computeRelationGlob" => needToComputeRelationGlob)
+				# stump_fmd =
+				# 	if cached_obj_exists("stump_fmd", info_dict, data_savedir)
+				# 		checkpoint_stdout("Loading StumpFeatModalDataset...")
+				# 		load_cached_obj("stump_fmd", info_dict, data_savedir)
+				# 	else
+				# 		checkpoint_stdout("Creating StumpFeatModalDataset...")
+				# 		sfmd =
+				# 			if timing_mode == :none
+				# 				StumpFeatModalDataset(X_train_all, features, featsnops, computeRelationGlob = needToComputeRelationGlob);
+				# 			elseif timing_mode == :time
+				# 				@time StumpFeatModalDataset(X_train_all, features, featsnops, computeRelationGlob = needToComputeRelationGlob);
+				# 			elseif timing_mode == :btime
+				# 				@btime StumpFeatModalDataset($X_train_all, $features, $featsnops, computeRelationGlob = $needToComputeRelationGlob);
+				# 			end
+				# 		cache_obj("stump_fmd", sfmd, info_dict, data_savedir)
+				# 		sfmd
+				# 	end
 				
+				stump_fmd =
+					if timing_mode == :none
+						StumpFeatModalDataset(X_train_all, features, featsnops, computeRelationGlob = needToComputeRelationGlob);
+					elseif timing_mode == :time
+						@time StumpFeatModalDataset(X_train_all, features, featsnops, computeRelationGlob = needToComputeRelationGlob);
+					elseif timing_mode == :btime
+						@btime StumpFeatModalDataset($X_train_all, $features, $featsnops, computeRelationGlob = $needToComputeRelationGlob);
+					end
 				########################################################################
 				########################################################################
 				######################## LEGACY CHECK WITH GAMMAS ######################
@@ -591,7 +600,7 @@ function execRun(
 		return (T, cm, Tt);
 	end
 
-	go_forest(dataset, f_args, rng; prebuilt_model::Union{Nothing,AbstractVector{DecisionTree.Forest{S}}} = nothing) where {S} = begin
+	go_forest(dataset, f_args, rng; prebuilt_model::Union{Nothing,AbstractVector{Forest{S}}} = nothing) where {S} = begin
 		(X_train,Y_train), (X_test,Y_test) = dataset
 		Fs, Ft = 
 			if isnothing(prebuilt_model)
@@ -610,11 +619,11 @@ function execRun(
 				println("Using slice of a prebuilt forest.")
 				# !!! HUGE PROBLEM HERE !!! #
 				# BUG: can't compute oob_error of a forest built slicing another forest!!!
-				forests::Vector{DecisionTree.Forest{S}} = []
+				forests::Vector{Forest{S}} = []
 				for f in prebuilt_model
 					v_forest = @views f.trees[Random.randperm(rng, length(f.trees))[1:f_args.n_trees]]
 					v_cms = @views f.cm[Random.randperm(rng, length(f.cm))[1:f_args.n_trees]]
-					push!(forests, DecisionTree.Forest{S}(v_forest, v_cms, 0.0))
+					push!(forests, Forest{S}(v_forest, v_cms, 0.0))
 				end
 				forests, Dates.Millisecond(0)
 			end
@@ -623,7 +632,7 @@ function execRun(
 			print(F)
 		end
 		
-		cms = []
+		cms = ConfusionMatrix[]
 		for F in Fs
 			println(" test size = $(size(X_test))")
 			
@@ -658,7 +667,7 @@ function execRun(
 		Fts = []
 
 		for (i_model, this_args) in enumerate(tree_args)
-			checkpoint_stdout("Computing Tree $(i_model) / $(length(tree_args))...")
+			checkpoint_stdout("Computing tree $(i_model) / $(length(tree_args))...")
 			this_T, this_Tcm, this_Tt = go_tree(dataset, this_args, Random.MersenneTwister(train_seed))
 			push!(Ts, this_T)
 			push!(Tcms, this_Tcm)
@@ -711,7 +720,7 @@ function execRun(
 
 			# put resulting forests in vector in the order the user gave them
 			for (i, f) in enumerate(forest_supports_user_order)
-				@assert f.f isa AbstractVector{DecisionTree.Forest{S}} where {S} "This is not a Vector of Forests! eltype = $(eltype(f.f))"
+				@assert f.f isa AbstractVector{Forest{S}} where {S} "This is not a Vector of Forests! eltype = $(eltype(f.f))"
 				@assert f.cm isa AbstractVector{ConfusionMatrix} "This is not a Vector of ConfusionMatrix!"
 				@assert length(f.f) == forest_runs "There is a support struct with less than $(forest_runs) forests: $(length(f.f))"
 				@assert length(f.cm) == forest_runs "There is a support struct with less than $(forest_runs) confusion matrices: $(length(f.cm))"
@@ -736,7 +745,7 @@ function execRun(
 	
 	rets = []
 
-	println(typeof(dataset))
+	# TODO
 	# if test_flattened == true
 	# 	# Flatten 
 	# 	(X_train,Y_train), (X_test,Y_test) = dataset
@@ -745,13 +754,14 @@ function execRun(
 	# 	flat_dataset = (X_train,Y_train), (X_test,Y_test)
 	# 	push!(rets, go(flat_dataset))
 	# end
+	# test_averaged ...
 
 	push!(rets, go(dataset))
 	
 	# try
 	# go(dataset)
 	# catch e
-	# 	println("execRun: An error occurred!")
+	# 	println("exec_run: An error occurred!")
 	# 	println(e)
 	# 	return;
 	# end
