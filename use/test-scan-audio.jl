@@ -31,7 +31,7 @@ for loss_function in [DecisionTree.util.entropy]
 	end
 end
 
-# Optimization arguments for trees in a forest (no pruning is perfo rmed)
+# Optimization arguments for trees in a forest (no pruning is performed)
 forest_tree_args = (
 	loss_function = DecisionTree.util.entropy,
 	min_samples_leaf = 1,
@@ -75,10 +75,8 @@ audio_kwargs_full_mfcc = (
 
 modal_args = (
 	initConditions = DecisionTree.startWithRelationGlob,
-	useRelationGlob = false,
-	
 	# initConditions = DecisionTree.startAtCenter,
-	# useRelationGlob = true,
+	useRelationGlob = false,
 )
 
 data_modal_args = (

@@ -1,14 +1,14 @@
 # TODO note that these splitting functions simply cut the dataset in two,
 #  and they don't necessarily produce balanced cuts. To produce balanced cuts,
 #  one must manually stratify the dataset beforehand
-function traintestsplit((Xs,Y)::Tuple{AbstractVector{<:GenericDataset},AbstractVector{String}}, args::Vararg)
+function traintestsplit((Xs,Y)::Tuple{AbstractVector{<:GenericDataset},AbstractVector{String}}, split_threshold::AbstractFloat; is_balanced = true)
 	Xs_train = Vector(undef, length(Xs))
 	Xs_test  = Vector(undef, length(Xs))
 	the_Y_train = nothing
 	the_Y_test = nothing
 	for (i,X) in enumerate(Xs)
 
-		(X_train,Y_train), (X_test,Y_test) = traintestsplit((X,Y), args...)
+		(X_train,Y_train), (X_test,Y_test) = traintestsplit((X,Y), split_threshold; is_balanced = is_balanced)
 		Xs_train[i]      = X_train
 		Xs_test[i]       = X_test
 		the_Y_train      = Y_train

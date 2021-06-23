@@ -1,8 +1,39 @@
+################################################################################
+################################################################################
+################################## Scan script #################################
+################################################################################
+################################################################################
+
 include("runner.jl")
 include("table-printer.jl")
 include("progressive-iterator-manager.jl")
 
 main_rng = DecisionTree.mk_rng(1)
+
+train_seed = 1
+
+
+################################################################################
+#################################### FOLDERS ###################################
+################################################################################
+
+results_dir = "./results-audio-scan"
+
+iteration_progress_json_file_path = results_dir * "/progress.json"
+concise_output_file_path = results_dir * "/grouped_in_models.csv"
+full_output_file_path = results_dir * "/full_columns.csv"
+data_savedir = results_dir * "/gammas"
+tree_savedir = results_dir * "/trees"
+
+column_separator = ";"
+
+save_datasets = false
+just_produce_datasets_jld = false
+saved_datasets_path = results_dir * "/datasets"
+
+################################################################################
+##################################### TREES ####################################
+################################################################################
 
 # Optimization arguments for single-tree
 tree_args = [
@@ -14,13 +45,13 @@ tree_args = [
 #	)
 ]
 
-for loss in [DecisionTree.util.entropy]
+for loss_function in [DecisionTree.util.entropy]
 	for min_samples_leaf in [1] # [1,2]
 		for min_purity_increase in [0.01] # [0.01, 0.001]
 			for min_loss_at_leaf in [0.6] # [0.4, 0.6]
 				push!(tree_args, 
 					(
-						loss_function = loss,
+						loss_function = loss_function,
 						min_samples_leaf = min_samples_leaf,
 						min_purity_increase = min_purity_increase,
 						min_loss_at_leaf = min_loss_at_leaf,
@@ -31,6 +62,31 @@ for loss in [DecisionTree.util.entropy]
 	end
 end
 
+println(" $(length(tree_args)) trees")
+
+################################################################################
+#################################### FORESTS ###################################
+################################################################################
+
+forest_runs = 5
+optimize_forest_computation = true
+
+forest_args = []
+
+#for n_trees in [50,100]
+#	for n_subfeatures in [id_f, half_f]
+#		for n_subrelations in [id_f]
+#			push!(forest_args, (
+#				n_subfeatures       = n_subfeatures,
+#				n_trees             = n_trees,
+#				partial_sampling    = 1.0,
+#				n_subrelations      = n_subrelations,
+#				forest_tree_args...
+#			))
+#		end
+#	end
+#end
+
 # Optimization arguments for trees in a forest (no pruning is performed)
 forest_tree_args = (
 	loss_function = DecisionTree.util.entropy,
@@ -38,6 +94,77 @@ forest_tree_args = (
 	min_purity_increase = 0.0,
 	min_loss_at_leaf = 0.0,
 )
+
+println(" $(length(forest_args)) forests (repeated $(forest_runs) times)")
+
+################################################################################
+################################## MODAL ARGS ##################################
+################################################################################
+
+modal_args = (
+	initConditions = DecisionTree.startWithRelationGlob,
+	# initConditions = DecisionTree.startAtCenter,
+	useRelationGlob = false,
+)
+
+data_modal_args = (
+	ontology = getIntervalOntologyOfDim(Val(1)),
+	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A]),
+	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A, ModalLogic.IA_L, ModalLogic.IA_Li, ModalLogic.IA_D]),
+)
+
+
+################################################################################
+##################################### MISC #####################################
+################################################################################
+
+# log_level = Logging.Warn
+log_level = DecisionTree.DTOverview
+# log_level = DecisionTree.DTDebug
+# log_level = DecisionTree.DTDetail
+
+timing_mode = :none
+# timing_mode = :time
+# timing_mode = :btime
+
+#round_dataset_to_datatype = Float32
+# round_dataset_to_datatype = UInt16
+round_dataset_to_datatype = false
+
+split_threshold = 0.8
+# split_threshold = 1.0
+# split_threshold = false
+
+use_ontological_form = false
+
+test_flattened = true
+test_averaged = true
+
+legacy_gammas_check = true
+
+
+################################################################################
+##################################### SCAN #####################################
+################################################################################
+
+exec_dataseed = 1:5
+exec_n_tasks = 1:1
+exec_n_versions = 1:3
+exec_nbands = [20,40,60]
+
+max_points = 3
+# max_points = 30
+
+exec_dataset_kwargs =   [(
+							max_points = max_points,
+							ma_size = 75,
+							ma_step = 50,
+						),(
+							max_points = max_points,
+							ma_size = 45,
+							ma_step = 30,
+						)
+						]
 
 audio_kwargs_partial_mfcc = (
 	wintime = 0.025, # in ms          # 0.020-0.040
@@ -72,20 +199,24 @@ audio_kwargs_full_mfcc = (
 	modelorder=0
 )
 
+exec_use_full_mfcc = [false]
 
-modal_args = (
-	initCondition = DecisionTree.startWithRelationGlob,
-	useRelationId = true,
-	useRelationGlob = false,
-	ontology = getIntervalOntologyOfDim(Val(1)),
-#	test_operators = [TestOpGeq_70, TestOpLeq_70],
-#	test_operators = [TestOpGeq_80, TestOpLeq_80],
-#	test_operators = [TestOpGeq, TestOpLeq],
+
+wav_preprocessors = Dict(
+	"NG" => noise_gate!,
+	"Normalize" => normalize!,
 )
+
+exec_preprocess_wavs = [
+	["Normalize"],
+	[],
+#	["NG", "Normalize"]
+]
 
 # https://github.com/JuliaIO/JSON.jl/issues/203
 # https://discourse.julialang.org/t/json-type-serialization/9794
 # TODO: make test operators types serializable
+# exec_test_operators = [ "TestOp" ]
 exec_test_operators = [ "TestOp_80" ]
 
 test_operators_dict = Dict(
@@ -94,102 +225,63 @@ test_operators_dict = Dict(
 	"TestOp" => [TestOpGeq, TestOpLeq],
 )
 
-# log_level = Logging.Warn
-log_level = DecisionTree.DTOverview
-# log_level = DecisionTree.DTDebug
-
-timing_mode = :none
-# timing_mode = :time
-# timing_mode = :btime
-
-#round_dataset_to_datatype = Float32
-# round_dataset_to_datatype = UInt16
-round_dataset_to_datatype = false
-
-# TODO
-# TEST:
-# - decision tree
-# - RF with:
-forest_args = []
-
-#for n_trees in [50,100]
-#	for n_subfeatures in [id_f, half_f]
-#		for n_subrelations in [id_f]
-#			push!(forest_args, (
-#				n_subfeatures       = n_subfeatures,
-#				n_trees             = n_trees,
-#				partial_sampling    = 1.0,
-#				n_subrelations      = n_subrelations,
-#				forest_tree_args...
-#			))
-#		end
-#	end
-#end
-
-split_threshold = 1.0
-
-use_ontological_form = true
-
-test_flattened = false
-
-# exec_runs = 1
-# exec_n_tasks = 1
-# exec_n_versions = 1
-# exec_nbands = 20
-exec_runs = 1:5
-exec_n_tasks = 1:1
-exec_n_versions = 1:2
-exec_nbands = [20,40,60]
-exec_dataset_kwargs =   [(
-							max_points = 30,
-							ma_size = 75,
-							ma_step = 50,
-						),(
-							max_points = 30,
-							ma_size = 45,
-							ma_step = 30,
-						)
-						]
-
-wav_preprocessors = Dict(
-	"NG" => noise_gate!,
-	"Normalize" => normalize!,
-)
-						
-exec_use_full_mfcc = [false]
-
-exec_preprocess_wavs = [
-	["Normalize"],
-	[],
-#	["NG", "Normalize"]
-]
 
 exec_ranges_dict = (
+	dataseed         = exec_dataseed,
 	n_task           = exec_n_tasks,
 	n_version        = exec_n_versions,
 	nbands           = exec_nbands,
 	dataset_kwargs   = exec_dataset_kwargs,
 	use_full_mfcc    = exec_use_full_mfcc,
+	preprocess_wavs  = exec_preprocess_wavs,
 	test_operators   = exec_test_operators,
-	preprocess_wavs  = exec_preprocess_wavs
 )
 
-forest_runs = 5
-optimize_forest_computation = true
+exec_ranges_names, exec_ranges = collect(string.(keys(exec_ranges_dict))), collect(values(exec_ranges_dict))
+history = load_or_create_history(
+	iteration_progress_json_file_path, exec_ranges_names, exec_ranges
+)
 
-results_dir = "./results-audio-scan"
+################################################################################
+################################### SCAN FILTERS ###############################
+################################################################################
 
-iteration_progress_json_file_path = results_dir * "/progress.json"
-concise_output_file_path = results_dir * "/grouped_in_models.csv"
-full_output_file_path = results_dir * "/full_columns.csv"
-data_savedir = results_dir * "/gammas"
-tree_savedir = results_dir * "/trees"
+dry_run = false
 
-column_separator = ";"
+# TODO let iteration_white/blacklist a decision function and not a "in-array" condition?
+iteration_whitelist = [
+	# TASK 1
+	# (
+	# 	n_version = 1,
+	# 	nbands = 40,
+	# 	dataset_kwargs = (max_points = 30, ma_size = 75, ma_step = 50),
+	# ),
+	# (
+	# 	n_version = 1,
+	# 	nbands = 60,
+	# 	dataset_kwargs = (max_points = 30, ma_size = 75, ma_step = 50),
+	# ),
+	# # TASK 2
+	# (
+	# 	n_version = 2,
+	# 	nbands = 20,
+	# 	dataset_kwargs = (max_points = 30, ma_size = 45, ma_step = 30),
+	# ),
+	# (
+	# 	n_version = 2,
+	# 	nbands = 40,
+	# 	dataset_kwargs = (max_points = 30, ma_size = 45, ma_step = 30),
+	# )
+]
 
-save_datasets = true
-just_produce_datasets_jld = false
-saved_datasets_path = results_dir * "/datasets"
+iteration_blacklist = []
+
+
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+
 mkpath(saved_datasets_path)
 
 if "-f" in ARGS
@@ -207,257 +299,214 @@ if "-f" in ARGS
 	end
 end
 
-exec_ranges_names, exec_ranges = collect(string.(keys(exec_ranges_dict))), collect(values(exec_ranges_dict))
-exec_dicts = load_or_create_execution_progress_dictionary(
-	iteration_progress_json_file_path, exec_ranges, exec_ranges_names
-)
-
-just_test_filters = false
-iteration_whitelist = [
-	# TASK 1
-	(
-		n_version = 1,
-		nbands = 40,
-		dataset_kwargs = (max_points = 30, ma_size = 75, ma_step = 50),
-	),
-	(
-		n_version = 1,
-		nbands = 60,
-		dataset_kwargs = (max_points = 30, ma_size = 75, ma_step = 50),
-	),
-	# TASK 2
-	(
-		n_version = 2,
-		nbands = 20,
-		dataset_kwargs = (max_points = 30, ma_size = 45, ma_step = 30),
-	),
-	(
-		n_version = 2,
-		nbands = 40,
-		dataset_kwargs = (max_points = 30, ma_size = 45, ma_step = 30),
-	)
-]
-
-iteration_blacklist = []
-
 # if the output files does not exists initilize them
 print_head(concise_output_file_path, tree_args, forest_args, tree_columns = [""], forest_columns = ["", "σ²", "t"], separator = column_separator)
 print_head(full_output_file_path, tree_args, forest_args, separator = column_separator,
 	forest_columns = ["K", "sensitivity", "specificity", "precision", "accuracy", "oob_error", "σ² K", "σ² sensitivity", "σ² specificity", "σ² precision", "σ² accuracy", "σ² oob_error", "t"],
 )
 
-# a = KDDDataset_not_stratified((1,1), merge(audio_kwargs, (nbands=40,)); exec_dataset_kwargs[1]...)
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+# TODO actually,no need to recreate the dataset when changing, say, testoperators. Make a distinction between dataset params and run params
+for params_combination in IterTools.product(exec_ranges...)
 
-# Old seeds (TODO: remove)
-#run_to_seed = Dict{Number, Number}(
-#	1 => 7933197233428195239,
-#	2 => 1735640862149943821,
-#	3 => 3245434972983169324,
-#	4 => 1708661255722239460,
-#	5 => 1107158645723204584
-#)
+	# Unpack params combination
+	params_namedtuple = (zip(Symbol.(exec_ranges_names), params_combination) |> Dict |> namedtuple)
 
+	# FILTER ITERATIONS
+	if (!is_whitelisted_test(params_namedtuple, iteration_whitelist)) || is_blacklisted_test(params_namedtuple, iteration_blacklist)
+		continue
+	end
 
-train_seed = 1
+	##############################################################################
+	##############################################################################
+	##############################################################################
 
-# RUN
-for i in exec_runs
-	dataset_seed = i
+	run_name = join([replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)], ",")
 
-	println("DATA SEED: $(dataset_seed)")
+	# Placed here so we can keep track of which iteration is being skipped
+	checkpoint_stdout("Computing iteration $(run_name)...")
 
-	for params_combination in IterTools.product(exec_ranges...)
-		# Unpack params combination
-		params_namedtuple = (zip(map(Symbol, exec_ranges_names), params_combination) |> Dict |> namedtuple)
+	if dry_run
+		continue
+	end
 
-		# FILTER ITERATIONS
-		if (length(iteration_whitelist) > 0 && !is_whitelisted_test(params_namedtuple, iteration_whitelist)) || is_blacklisted_test(params_namedtuple, iteration_blacklist)
-			continue
+	# CHECK WHETHER THIS ITERATION WAS ALREADY COMPUTED OR NOT
+	if iteration_in_history(history, params_namedtuple) && !just_produce_datasets_jld
+		println("Iteration $(run_name) already done, skipping...")
+		continue
+	end
+
+	##############################################################################
+	##############################################################################
+	##############################################################################
+	
+	dataset_seed, n_task, n_version, nbands, dataset_kwargs, use_full_mfcc, preprocess_wavs, test_operators = params_combination
+
+	dataset_rng = Random.MersenneTwister(dataset_seed)
+
+	# LOAD DATASET
+	dataset_file_name = saved_datasets_path * "/" * run_name
+
+	cur_audio_kwargs = merge(
+		if use_full_mfcc
+			audio_kwargs_full_mfcc
+		else
+			audio_kwargs_partial_mfcc
 		end
-		#####################################################
+		, (nbands=nbands,))
 
-		# CHECK WHETHER THIS ITERATION WAS ALREADY COMPUTED OR NOT
-		done = is_combination_already_computed(exec_dicts, exec_ranges_names, params_combination, i)
+	cur_modal_args = modal_args
+	
+	cur_preprocess_wavs = [ wav_preprocessors[k] for k in preprocess_wavs ]
 
-		dataset_rng = Random.MersenneTwister(dataset_seed)
-
-		row_ref = string(
-			string(dataset_seed),
-			["," * replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)]...,
-		)
-
-		# Placed here so we can keep track of which iteration is being skipped
-		checkpoint_stdout("Computing iteration $(row_ref)...")
-
-		if just_test_filters
-			continue
-		end
-		println(params_combination)
-
-		if done && !just_produce_datasets_jld
-			println("Iteration $(params_combination) already done, skipping...")
-			continue
-		end
-		#####################################################
-		n_task, n_version, nbands, dataset_kwargs, use_full_mfcc, test_operators, preprocess_wavs = params_combination
-
-		# LOAD DATASET
-		dataset_file_name = saved_datasets_path * "/" * row_ref
-
-		dataset = nothing
-		n_pos = nothing
-		n_neg = nothing
-		
-		cur_audio_kwargs = merge(
-			if use_full_mfcc
-				audio_kwargs_full_mfcc
-			else
-				audio_kwargs_partial_mfcc
+	# TODO reduce redundancy with caching function
+	dataset = 
+		if save_datasets && isfile(dataset_file_name * ".jld")
+			if just_produce_datasets_jld
+				continue
 			end
-			, (nbands=nbands,))
 
-		cur_modal_args = merge(modal_args, (test_operators = test_operators_dict[test_operators],))
-		
-		cur_preprocess_wavs = [ wav_preprocessors[k] for k in preprocess_wavs ]
-
-		dataset = 
-			if save_datasets && isfile(dataset_file_name * ".jld")
-				if just_produce_datasets_jld
-					continue
-				end
-				checkpoint_stdout("Loading dataset $(dataset_file_name * ".jld")...")
-				JLD2.@load (dataset_file_name * ".jld") dataset n_pos n_neg
-				(X,Y) = dataset
-				if isfile(dataset_file_name * "-balanced.jld")
-					JLD2.@load (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
-				else
-					n_per_class = min(n_pos, n_neg)
-					dataset_slice = Array{Int,2}(undef, 2, n_per_class)
-					dataset_slice[1,:] .=          Random.randperm(dataset_rng, n_pos)[1:n_per_class]
-					dataset_slice[2,:] .= n_pos .+ Random.randperm(dataset_rng, n_neg)[1:n_per_class]
-					dataset_slice = dataset_slice[:]
-
-					(X_train, Y_train), (X_test, Y_test) = traintestsplit(dataset, split_threshold)
-					balanced_dataset = (X[dataset_slice], Y[dataset_slice])
-					JLD2.@save (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
-					balanced_train = (X_train, Y_train)
-					JLD2.@save (dataset_file_name * "-balanced-train.jld") balanced_train
-					balanced_test = (X_test,  Y_test)
-					JLD2.@save (dataset_file_name * "-balanced-test.jld")  balanced_test
-				end
-
-				dataset
-				# Y = 1 .- Y
-				# Y = [ (y == 0 ? "yes" : "no") for y in Y]
-				dataset = (X,Y)
+			checkpoint_stdout("Loading dataset $(dataset_file_name * ".jld")...")
+			
+			dataset = nothing
+			n_pos = nothing
+			n_neg = nothing
+			
+			JLD2.@load (dataset_file_name * ".jld") dataset n_pos n_neg
+			(X,Y) = dataset
+			if isfile(dataset_file_name * "-balanced.jld")
+				JLD2.@load (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
 			else
-				checkpoint_stdout("Creating dataset...")
-				# TODO wrap dataset creation into a function accepting the rng and other parameters...
-				dataset, n_pos, n_neg = KDDDataset_not_stratified(
-					(n_task,n_version),
-					cur_audio_kwargs;
-					dataset_kwargs...,
-					preprocess_wavs = cur_preprocess_wavs,
-					use_full_mfcc = use_full_mfcc
-				)
 				n_per_class = min(n_pos, n_neg)
-				# using Random
-				# n_pos = 10
-				# n_neg = 15 
-				# dataset_rng = Random.MersenneTwister(2)
-
 				dataset_slice = Array{Int,2}(undef, 2, n_per_class)
 				dataset_slice[1,:] .=          Random.randperm(dataset_rng, n_pos)[1:n_per_class]
 				dataset_slice[2,:] .= n_pos .+ Random.randperm(dataset_rng, n_neg)[1:n_per_class]
 				dataset_slice = dataset_slice[:]
 
-				if save_datasets
-					checkpoint_stdout("Saving dataset $(dataset_file_name)...")
-					(X, Y) = dataset
-					JLD2.@save (dataset_file_name * ".jld")                dataset n_pos n_neg
-					(X_train, Y_train), (X_test, Y_test) = traintestsplit(dataset, split_threshold)
-					balanced_dataset = (X[dataset_slice], Y[dataset_slice])
-					JLD2.@save (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
-					balanced_train = (X_train, Y_train)
-					JLD2.@save (dataset_file_name * "-balanced-train.jld") balanced_train
-					balanced_test = (X_test,  Y_test)
-					JLD2.@save (dataset_file_name * "-balanced-test.jld")  balanced_test
-					if just_produce_datasets_jld
-						continue
-					end
-				end
-				dataset
+				balanced_dataset = slice_mf_dataset((X,Y), dataset_slice)
+				typeof(balanced_dataset) |> println
+				(X_train, Y_train), (X_test, Y_test) = traintestsplit(balanced_dataset, split_threshold)
+				JLD2.@save (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
+				balanced_train = (X_train, Y_train)
+				JLD2.@save (dataset_file_name * "-balanced-train.jld") balanced_train
+				balanced_test = (X_test,  Y_test)
+				JLD2.@save (dataset_file_name * "-balanced-test.jld")  balanced_test
 			end
-		# println(dataset_slice)
 
-		#####################################################
-		dataset_name_str = string(
-			[string(value) * column_separator for value in values(params_namedtuple)]...,
-			string(cur_audio_kwargs), column_separator,
-			string(dataset_rng.seed)
-		)
+			dataset = (X,Y)
+		else
+			checkpoint_stdout("Creating dataset...")
+			# TODO wrap dataset creation into a function accepting the rng and other parameters...
+			dataset, n_pos, n_neg = KDDDataset_not_stratified(
+				(n_task,n_version),
+				cur_audio_kwargs;
+				dataset_kwargs...,
+				preprocess_wavs = cur_preprocess_wavs,
+				use_full_mfcc = use_full_mfcc
+			)
 
-		# ACTUAL COMPUTATION
-		Ts, Fs, Tcms, Fcms, Tts, Fts = execRun(
-					"($(n_task),$(n_version))", # TODO more verbose name?
-					dataset,
-					split_threshold,
-					log_level                   =   log_level,
-					round_dataset_to_datatype   =   round_dataset_to_datatype,
-					dataset_slice               =   dataset_slice,
-					forest_args                 =   forest_args,
-					tree_args                   =   tree_args,
-					modal_args                  =   cur_modal_args,
-					test_flattened              =   test_flattened,
-					use_ontological_form           =   use_ontological_form,
-					optimize_forest_computation =   optimize_forest_computation,
-					forest_runs                 =   forest_runs,
-					data_savedir            =   (data_savedir, dataset_name_str),
-					tree_savedir              =   tree_savedir,
-					train_seed                  =   train_seed,
-					timing_mode                      =   timing_mode
-				);
-		#####################################################
-		# PRINT RESULT IN FILES
-		#####################################################
+			n_per_class = min(n_pos, n_neg)
 
-		# PRINT CONCISE
-		concise_output_string = string(row_ref, column_separator)
-		for j in 1:length(tree_args)
-			concise_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j]; alt_separator=", ", separator = column_separator))
-			concise_output_string *= string(column_separator)
+			dataset_slice = Array{Int,2}(undef, 2, n_per_class)
+			dataset_slice[1,:] .=          Random.randperm(dataset_rng, n_pos)[1:n_per_class]
+			dataset_slice[2,:] .= n_pos .+ Random.randperm(dataset_rng, n_neg)[1:n_per_class]
+			dataset_slice = dataset_slice[:]
+
+			if save_datasets
+				checkpoint_stdout("Saving dataset $(dataset_file_name)...")
+				(X, Y) = dataset
+				JLD2.@save (dataset_file_name * ".jld")                dataset n_pos n_neg
+				balanced_dataset = slice_mf_dataset((X,Y), dataset_slice)
+				typeof(balanced_dataset) |> println
+				(X_train, Y_train), (X_test, Y_test) = traintestsplit(balanced_dataset, split_threshold)
+				JLD2.@save (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
+				balanced_train = (X_train, Y_train)
+				JLD2.@save (dataset_file_name * "-balanced-train.jld") balanced_train
+				balanced_test = (X_test,  Y_test)
+				JLD2.@save (dataset_file_name * "-balanced-test.jld")  balanced_test
+				if just_produce_datasets_jld
+					continue
+				end
+			end
+			dataset
 		end
-		for j in 1:length(forest_args)
-			concise_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j]; alt_separator=", ", separator = column_separator))
-			concise_output_string *= string(column_separator)
-		end
-		concise_output_string *= string("\n")
-		append_in_file(concise_output_file_path, concise_output_string)
+	# println(dataset_slice)
 
-		# PRINT FULL
-		full_output_string = string(row_ref, column_separator)
-		for j in 1:length(tree_args)
-			full_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j]; start_s = "", end_s = "", alt_separator = column_separator))
-			full_output_string *= string(column_separator)
-		end
-		for j in 1:length(forest_args)
-			full_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j]; start_s = "", end_s = "", alt_separator = column_separator))
-			full_output_string *= string(column_separator)
-		end
-		full_output_string *= string("\n")
-		append_in_file(full_output_file_path, full_output_string)
-		#####################################################
+	cur_data_modal_args = merge(data_modal_args, (test_operators = test_operators_dict[test_operators],))
+	
+	##############################################################################
+	##############################################################################
+	##############################################################################
+	
+	# ACTUAL COMPUTATION
+	Ts, Fs, Tcms, Fcms, Tts, Fts = execRun(
+				run_name,
+				dataset,
+				split_threshold             =   split_threshold,
+				log_level                   =   log_level,
+				round_dataset_to_datatype   =   round_dataset_to_datatype,
+				dataset_slice               =   dataset_slice,
+				forest_args                 =   forest_args,
+				tree_args                   =   tree_args,
+				data_modal_args             =   cur_data_modal_args,
+				modal_args                  =   cur_modal_args,
+				test_flattened              =   test_flattened,
+				legacy_gammas_check         =   legacy_gammas_check,
+				use_ontological_form        =   use_ontological_form,
+				optimize_forest_computation =   optimize_forest_computation,
+				forest_runs                 =   forest_runs,
+				data_savedir                =   (data_savedir, run_name),
+				tree_savedir                =   tree_savedir,
+				train_seed                  =   train_seed,
+				timing_mode                 =   timing_mode
+			);
+	##############################################################################
+	##############################################################################
+	# PRINT RESULT IN FILES 
+	##############################################################################
+	##############################################################################
 
-		# ADD THIS STEP TO THE "HISTORY" OF ALREADY COMPUTED ITERATION
-		push_seed_to_history!(exec_dicts, exec_ranges_names, params_combination, i)
-		export_execution_progress_dictionary(iteration_progress_json_file_path, exec_dicts)
-		#####################################################
+	# PRINT CONCISE
+	concise_output_string = string(run_name, column_separator)
+	for j in 1:length(tree_args)
+		concise_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j]; alt_separator=", ", separator = column_separator))
+		concise_output_string *= string(column_separator)
 	end
+	for j in 1:length(forest_args)
+		concise_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j]; alt_separator=", ", separator = column_separator))
+		concise_output_string *= string(column_separator)
+	end
+	concise_output_string *= string("\n")
+	append_in_file(concise_output_file_path, concise_output_string)
+
+	# PRINT FULL
+	full_output_string = string(run_name, column_separator)
+	for j in 1:length(tree_args)
+		full_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j]; start_s = "", end_s = "", alt_separator = column_separator))
+		full_output_string *= string(column_separator)
+	end
+	for j in 1:length(forest_args)
+		full_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j]; start_s = "", end_s = "", alt_separator = column_separator))
+		full_output_string *= string(column_separator)
+	end
+	full_output_string *= string("\n")
+	append_in_file(full_output_file_path, full_output_string)
+
+	##############################################################################
+	##############################################################################
+	# ADD THIS STEP TO THE "HISTORY" OF ALREADY COMPUTED ITERATION
+	push_iteration_to_history!(history, params_namedtuple)
+	save_history(iteration_progress_json_file_path, history)
+	##############################################################################
+	##############################################################################
 end
 
 checkpoint_stdout("Finished!")
 
-# selected_args = merge(args, (loss_function = loss,
+# selected_args = merge(args, (loss_function = loss_function,
 # 															min_samples_leaf = min_samples_leaf,
 # 															min_purity_increase = min_purity_increase,
 # 															min_loss_at_leaf = min_loss_at_leaf,

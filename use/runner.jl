@@ -92,7 +92,7 @@ function execRun(
 		forest_args                     = [],
 		forest_runs                     = 1,
 		optimize_forest_computation     = false,
-		test_flattened                  = false, # TODO: Also test the same models but propositional (flattened, average+variance+...+curtosis?)
+		test_flattened                  = false,
 		### Dataset params
 		split_threshold                 ::Union{Bool,AbstractFloat} = 1.0,
 		data_modal_args                 = (),
@@ -106,6 +106,13 @@ function execRun(
 		log_level                       = DecisionTree.DTOverview,
 		timing_mode                     ::Symbol = :time,
 	)
+	
+	if isa(data_savedir,String) || isnothing(data_savedir)
+		data_savedir = (data_savedir, nothing)
+	end
+
+	data_savedir, dataset_name_str = data_savedir
+	
 	println()
 	println("executing run '$run_name'...")
 	println("dataset type = ", typeof(dataset))
@@ -223,12 +230,6 @@ function execRun(
 				# 	elseif timing_mode == :btime
 				# 		@btime StumpFeatModalDataset($fmd, computeRelationGlob = $needToComputeRelationGlob);
 				# end
-
-				if isa(data_savedir,String) || isnothing(data_savedir)
-					data_savedir = (data_savedir, nothing)
-				end
-
-				data_savedir, dataset_name_str = data_savedir
 
 				info_dict = Dict{String,Any}(
 					"dataset_hash_sha256" => get_hash_sha256(X_train_all),
@@ -448,6 +449,8 @@ function execRun(
 				X, Y = roundDataset((X, Y), round_dataset_to_datatype)
 			end
 			
+			# println(size.(X))
+			
 			# Compute mffmd for the full set of instances
 			X_to_train, X_to_test = buildModalDatasets(X, X)
 
@@ -462,11 +465,18 @@ function execRun(
 						Y[dataset_slice],
 					)
 			end
-			
+
 			# Split in train/test
+			# println(typeof(X_to_train))
+			# println(typeof(X_to_test))
 			(X_train, Y_train), _ = traintestsplit((X_to_train, Y), split_threshold)
 			_, (X_test, Y_test)   = traintestsplit((X_to_test,  Y), split_threshold)
-
+			# println(typeof(X_train))
+			# println(typeof(X_test))
+			
+			# println(" train dataset:\ttype $(typeof(X_to_train))\tsize $(size(X_to_train))")
+			# println(" test  dataset:\ttype $(typeof(X_to_test))\tsize $(size(X_to_test))")
+			
 			(X_train, Y_train), (X_test, Y_test)
 		else # Dataset is already splitted
 
@@ -496,10 +506,12 @@ function execRun(
 			(X_train, Y_train), (X_test, Y_test)
 	end
 
-	(X_train, Y_train), (X_test, Y_test)
+	dataset = (X_train,Y_train), (X_test,Y_test)
 
 	println(" train dataset:\ttype $(typeof(X_train))\tsize $(size(X_train))")
 	println(" test  dataset:\ttype $(typeof(X_test))\tsize $(size(X_test))")
+
+	# readline()
 
 	function display_cm_as_row(cm::ConfusionMatrix)
 		"|\t" *
@@ -529,7 +541,8 @@ function execRun(
 		""
 	end
 
-	go_tree(tree_args, rng) = begin
+	go_tree(dataset, tree_args, rng) = begin
+		(X_train,Y_train), (X_test,Y_test) = dataset
 		started = Dates.now()
 		T =
 			if timing_mode == :none
@@ -578,7 +591,8 @@ function execRun(
 		return (T, cm, Tt);
 	end
 
-	go_forest(f_args, rng; prebuilt_model::Union{Nothing,AbstractVector{DecisionTree.Forest{S}}} = nothing) where {S} = begin
+	go_forest(dataset, f_args, rng; prebuilt_model::Union{Nothing,AbstractVector{DecisionTree.Forest{S}}} = nothing) where {S} = begin
+		(X_train,Y_train), (X_test,Y_test) = dataset
 		Fs, Ft = 
 			if isnothing(prebuilt_model)
 				started = Dates.now()
@@ -635,7 +649,7 @@ function execRun(
 		return (Fs, cms, Ft);
 	end
 
-	go() = begin
+	go(dataset) = begin
 		Ts = []
 		Fs = []
 		Tcms = []
@@ -645,21 +659,11 @@ function execRun(
 
 		for (i_model, this_args) in enumerate(tree_args)
 			checkpoint_stdout("Computing Tree $(i_model) / $(length(tree_args))...")
-			this_T, this_Tcm, this_Tt = go_tree(this_args, Random.MersenneTwister(train_seed))
+			this_T, this_Tcm, this_Tt = go_tree(dataset, this_args, Random.MersenneTwister(train_seed))
 			push!(Ts, this_T)
 			push!(Tcms, this_Tcm)
 			push!(Tts, this_Tt)
 		end
-
-		# # TODO
-		# if test_flattened == true
-		# 	T, Tcm = go_flattened_tree()
-		# 	# Flatten 
-		# 	(X_train,Y_train), (X_test,Y_test) = dataset
-		# 	X_train = ...
-		# 	X_test = ...
-		# 	dataset = (X_train,Y_train), (X_test,Y_test)
-		# end
 
 		if optimize_forest_computation
 			# initialize support structures
@@ -702,7 +706,7 @@ function execRun(
 					model = model.f
 				end
 
-				forest_supports_build_order[i].f, forest_supports_build_order[i].cm, forest_supports_build_order[i].time = go_forest(f.f_args, Random.MersenneTwister(train_seed), prebuilt_model = model)
+				forest_supports_build_order[i].f, forest_supports_build_order[i].cm, forest_supports_build_order[i].time = go_forest(dataset, f.f_args, Random.MersenneTwister(train_seed), prebuilt_model = model)
 			end
 
 			# put resulting forests in vector in the order the user gave them
@@ -720,7 +724,7 @@ function execRun(
 		else
 			for (i_forest, f_args) in enumerate(forest_args)
 				checkpoint_stdout("Computing Random Forest $(i_forest) / $(length(forest_args))...")
-				this_F, this_Fcm, this_Ft = go_forest(f_args, Random.MersenneTwister(train_seed))
+				this_F, this_Fcm, this_Ft = go_forest(dataset, f_args, Random.MersenneTwister(train_seed))
 				push!(Fs, this_F)
 				push!(Fcms, this_Fcm)
 				push!(Fts, this_Ft)
@@ -729,17 +733,33 @@ function execRun(
 
 		Ts, Fs, Tcms, Fcms, Tts, Fts
 	end
+	
+	rets = []
 
-	ret =
-		# try
-		go()
-		# catch e
-		# 	println("execRun: An error occurred!")
-		# 	println(e)
-		# 	return;
-		# end
+	println(typeof(dataset))
+	# if test_flattened == true
+	# 	# Flatten 
+	# 	(X_train,Y_train), (X_test,Y_test) = dataset
+	# 	X_train = ...
+	# 	X_test = ...
+	# 	flat_dataset = (X_train,Y_train), (X_test,Y_test)
+	# 	push!(rets, go(flat_dataset))
+	# end
 
+	push!(rets, go(dataset))
+	
+	# try
+	# go(dataset)
+	# catch e
+	# 	println("execRun: An error occurred!")
+	# 	println(e)
+	# 	return;
+	# end
+	
 	global_logger(old_logger);
 	
-	ret
+	rets = zip(rets...)
+	rets = map((r)->Iterators.flatten(r) |> collect, rets)
+
+	rets
 end
