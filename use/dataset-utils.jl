@@ -37,7 +37,7 @@ function traintestsplit((X,Y)::Tuple{GenericDataset,AbstractVector{String}}, spl
 	(X_train,Y_train), (X_test,Y_test)
 end
 
-function slice_mf_dataset((Xs,Y)::Tuple{AbstractVector{<:GenericDataset},AbstractVector}, dataset_slice::AbstractVector)
+function slice_labeled_dataset((Xs,Y)::Tuple{AbstractVector{<:GenericDataset},AbstractVector}, dataset_slice::AbstractVector)
 	(map(X->ModalLogic.slice_dataset(X, dataset_slice), Xs), Y[dataset_slice])
 end
 

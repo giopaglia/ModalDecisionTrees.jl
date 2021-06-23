@@ -112,7 +112,7 @@ end
 
 # Print a tree entry in a row
 function data_to_string(
-		M::DecisionTree.DTree,
+		M::DTree,
 		cm::ConfusionMatrix,
 		time::Dates.Millisecond;
 		start_s = "(",
@@ -135,7 +135,7 @@ end
 
 # Print a forest entry in a row
 function data_to_string(
-		Ms::AbstractVector{DecisionTree.Forest{S}},
+		Ms::AbstractVector{Forest{S}},
 		cms::AbstractVector{ConfusionMatrix},
 		time::Dates.Millisecond;
 		start_s = "(",

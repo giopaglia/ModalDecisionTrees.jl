@@ -146,6 +146,7 @@ legacy_gammas_check = false
 ################################################################################
 
 exec_dataseed = 1:5
+
 exec_n_tasks = 1:1
 exec_n_versions = 1:3
 exec_nbands = [20,40,60]
@@ -225,7 +226,6 @@ test_operators_dict = Dict(
 
 
 exec_ranges_dict = (
-	dataseed         = exec_dataseed,
 	n_task           = exec_n_tasks,
 	n_version        = exec_n_versions,
 	nbands           = exec_nbands,
@@ -233,6 +233,7 @@ exec_ranges_dict = (
 	use_full_mfcc    = exec_use_full_mfcc,
 	preprocess_wavs  = exec_preprocess_wavs,
 	test_operators   = exec_test_operators,
+	dataseed         = exec_dataseed,
 )
 
 ################################################################################
@@ -340,9 +341,9 @@ for params_combination in IterTools.product(exec_ranges...)
 	##############################################################################
 	##############################################################################
 	
-	dataset_seed, n_task, n_version, nbands, dataset_kwargs, use_full_mfcc, preprocess_wavs, test_operators = params_combination
+	n_task, n_version, nbands, dataset_kwargs, use_full_mfcc, preprocess_wavs, test_operators, dataseed = params_combination
 
-	dataset_rng = Random.MersenneTwister(dataset_seed)
+	dataset_rng = Random.MersenneTwister(dataseed)
 
 	# LOAD DATASET
 	dataset_file_name = saved_datasets_path * "/" * run_name
@@ -383,7 +384,7 @@ for params_combination in IterTools.product(exec_ranges...)
 				dataset_slice[2,:] .= n_pos .+ Random.randperm(dataset_rng, n_neg)[1:n_per_class]
 				dataset_slice = dataset_slice[:]
 
-				balanced_dataset = slice_mf_dataset((X,Y), dataset_slice)
+				balanced_dataset = slice_labeled_dataset((X,Y), dataset_slice)
 				typeof(balanced_dataset) |> println
 				(X_train, Y_train), (X_test, Y_test) = traintestsplit(balanced_dataset, split_threshold)
 				JLD2.@save (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
@@ -416,7 +417,7 @@ for params_combination in IterTools.product(exec_ranges...)
 				checkpoint_stdout("Saving dataset $(dataset_file_name)...")
 				(X, Y) = dataset
 				JLD2.@save (dataset_file_name * ".jld")                dataset n_pos n_neg
-				balanced_dataset = slice_mf_dataset((X,Y), dataset_slice)
+				balanced_dataset = slice_labeled_dataset((X,Y), dataset_slice)
 				typeof(balanced_dataset) |> println
 				(X_train, Y_train), (X_test, Y_test) = traintestsplit(balanced_dataset, split_threshold)
 				JLD2.@save (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
