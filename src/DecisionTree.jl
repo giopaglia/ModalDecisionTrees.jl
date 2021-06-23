@@ -19,6 +19,7 @@ const DTDetail = Logging.LogLevel(-1500)
 
 # TODO update these
 export DTNode, DTLeaf, DTInternal,
+				DTree, Forest,
 				is_leaf, is_modal_node,
 				num_nodes, height, modal_height,
 				build_stump, build_tree,
@@ -579,7 +580,7 @@ function apply_trees(trees::AbstractVector{DTree{S}}, X::GenericDataset; tree_we
 	if !isnothing(tree_weights)
 		@assert length(trees) === length(tree_weights) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
 	end
-	
+
 	votes = Matrix{S}(undef, n_trees, n_instances)
 	for i_tree in 1:n_trees
 		votes[i_tree,:] = apply_tree(trees[i_tree], X)
