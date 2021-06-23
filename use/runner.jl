@@ -523,7 +523,6 @@ function exec_run(
 	# readline()
 
 	function display_cm_as_row(cm::ConfusionMatrix)
-		"|\t" *
 		"$(round(cm.overall_accuracy*100, digits=2))%\t" *
 		"$(join(round.(cm.sensitivities.*100, digits=2), "%\t"))%\t" *
 		"$(join(round.(cm.PPVs.*100, digits=2), "%\t"))%\t" *
@@ -590,7 +589,7 @@ function exec_run(
 			cm = confusion_matrix(Y_test, preds)
 			# @test cm.overall_accuracy > 0.99
 
-			println("RESULT:\t$(run_name)\t$(tree_args)\t$(modal_args)\t$(pruning_purity_threshold)\t$(display_cm_as_row(cm))")
+			println("RESULT:\t$(run_name)\t$(tree_args)\t$(modal_args)\t$(pruning_purity_threshold)\t|\t$(display_cm_as_row(cm))")
 			
 			println(cm)
 			# @show cm
