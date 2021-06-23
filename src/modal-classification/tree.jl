@@ -212,7 +212,7 @@ module treeclassifier
 			
 			for ((relation, feature, test_operator, threshold), aggr_thresholds) in generate_feasible_decisions(X, indX[region], frame_Sf, allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds)
 				
-				println(display_decision(i_frame, relation, feature, test_operator, threshold))
+				# println(display_decision(i_frame, relation, feature, test_operator, threshold))
 
 				# Re-initialize right class counts
 				nr = zero(U)
