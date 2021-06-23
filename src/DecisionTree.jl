@@ -22,7 +22,7 @@ export DTNode, DTLeaf, DTInternal,
 				is_leaf, is_modal_node,
 				num_nodes, height, modal_height,
 				build_stump, build_tree,
-				build_forest, apply_forest,
+				build_forest, apply_forest, apply_trees,
 				print_tree, prune_tree, apply_tree, print_forest,
 				print_apply_tree,
 				ConfusionMatrix, confusion_matrix, mean_squared_error, R2, load_data,
@@ -369,9 +369,17 @@ inst_init_world_sets(Xs::MultiFrameOntologicalDataset, tree::DTree, i_instance::
 	Ss
 end
 
+inst_init_world_sets(Xs::MultiFrameFeatModalDataset, tree::DTree, i_instance::Integer) = begin
+	Ss = Vector{WorldSet}(undef, n_frames(Xs))
+	for (i_frame,X) in enumerate(ModalLogic.frames(Xs))
+		Ss[i_frame] = initws_function(X, i_instance)(tree.initConditions[i_frame])
+	end
+	Ss
+end
+
 apply_tree(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}) = leaf.majority
 
-function apply_tree(tree::DTInternal, X::MultiFrameOntologicalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
+function apply_tree(tree::DTInternal, X::MultiFrameGenericDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
 	@logmsg DTDetail "applying branch..."
 	satisfied = true
 	@logmsg DTDetail " worlds" worlds
@@ -382,7 +390,7 @@ function apply_tree(tree::DTInternal, X::MultiFrameOntologicalDataset, i_instanc
 end
 
 # Apply tree with initialConditions to a dimensional dataset in matricial form
-function apply_tree(tree::DTree{S}, X::MultiFrameOntologicalDataset) where {S}
+function apply_tree(tree::DTree{S}, X::GenericDataset) where {S}
 	@logmsg DTDetail "apply_tree..."
 	n_instances = n_samples(X)
 	predictions = Vector{S}(undef, n_instances)
@@ -462,13 +470,12 @@ function print_apply_tree(leaf::DTLeaf{S}, X::Any, i_instance::Integer, worlds::
 	return DTLeaf(majority, vals)
 end
 
-function print_apply_tree(tree::DTInternal{T, S}, X::MultiFrameOntologicalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, class::S; update_majority = false) where {T, S}
-	satisfied = true
-
+function print_apply_tree(tree::DTInternal{T, S}, X::MultiFrameGenericDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, class::S; update_majority = false) where {T, S}
+	
 	(satisfied,new_worlds) = ModalLogic.modal_step(get_frame(X, tree.i_frame), i_instance, worlds[tree.i_frame], tree.relation, tree.feature, tree.test_operator, tree.threshold)
 	worlds[tree.i_frame] = new_worlds
 
-	return DTInternal(
+	DTInternal(
 		tree.i_frame,
 		tree.relation,
 		tree.feature,
@@ -479,7 +486,7 @@ function print_apply_tree(tree::DTInternal{T, S}, X::MultiFrameOntologicalDatase
 	)
 end
 
-function print_apply_tree(tree::DTree{S}, X::MultiFrameOntologicalDataset, Y::Vector{S}; reset_leaves = true, update_majority = false) where {S}
+function print_apply_tree(tree::DTree{S}, X::GenericDataset, Y::Vector{S}; reset_leaves = true, update_majority = false) where {S}
 	# Reset 
 	tree = (reset_leaves ? _empty_tree_leaves(tree) : tree)
 
@@ -564,21 +571,24 @@ apply_tree_proba(tree::DTNode, features::AbstractMatrix{S}, labels) =
 =#
 
 # use an array of trees to test features
-function apply_forest(trees::AbstractVector{DTree{S}}, bare_dataset::MatricialDataset{T, D}; tree_weights::Union{AbstractVector{Z},Nothing} = nothing) where {S, T, D, Z<:Real}
-	@logmsg DTDetail "apply_forest..."
+function apply_trees(trees::AbstractVector{DTree{S}}, X::GenericDataset; tree_weights::Union{AbstractVector{Z},Nothing} = nothing) where {S, Z<:Real}
+	@logmsg DTDetail "apply_trees..."
 	n_trees = length(trees)
-	n_instances = n_samples(bare_dataset)
+	n_instances = n_samples(X)
 
-	@assert length(trees) == length(tree_weights)
-
-	votes = Matrix{T}(undef, n_trees, n_instances)
-	for i in 1:n_trees
-		votes[i,:] = apply_tree(trees[i], bare_dataset)
+	if !isnothing(tree_weights)
+		@assert length(trees) === length(tree_weights) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
+	end
+	
+	votes = Matrix{S}(undef, n_trees, n_instances)
+	for i_tree in 1:n_trees
+		votes[i_tree,:] = apply_tree(trees[i_tree], X)
 	end
 
-	predictions = Array{T}(undef, n_instances)
-	for i in 1:n_instances
-		if T <: Float64
+	predictions = Vector{S}(undef, n_instances)
+	Threads.@threads for i in 1:n_instances
+		if S <: Float64
+			@error "apply_trees need a code expansion. The case is S = $(S) <: Float64"
 			if isnothing(tree_weights)
 				predictions[i] = mean(votes[:,i])
 			else
@@ -597,12 +607,14 @@ function apply_forest(trees::AbstractVector{DTree{S}}, bare_dataset::MatricialDa
 end
 
 # use a proper forest to test features
-function apply_forest(forest::Forest, features::MatricialDataset{T,D}; use_weighted_trees::Bool = false) where {T, D}
-	if use_weighted_trees
+function apply_forest(forest::Forest, X::GenericDataset; weight_trees_by::Bool = false)
+	if weight_trees_by == false
+		apply_trees(forest.trees, X)
+	elseif weight_trees_by == :accuracy
 		# TODO: choose HOW to weight a tree... overall_accuracy is just an example (maybe can be parameterized)
-		apply_forest(forest.trees, features, tree_weights = map(cm -> cm.overall_accuracy, forest.cm))
+		apply_trees(forest.trees, X, tree_weights = map(cm -> cm.overall_accuracy, forest.cm))
 	else
-		apply_forest(forest.trees, features)
+		@error "Unexpected value for weight_trees_by: $(weight_trees_by)"
 	end
 end
 

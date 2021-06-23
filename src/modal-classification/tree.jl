@@ -32,7 +32,7 @@ module treeclassifier
 		feature            :: FeatureTypeFun                      # feature used for splitting
 		test_operator      :: TestOperatorFun                  # test_operator (e.g. <=)
 		threshold          :: T where T                                # threshold value
-		onlyUseRelationGlob :: Vector{Bool}
+		onlyUseRelationGlob:: Vector{Bool}
 
 		function NodeMeta{U}(
 				region      :: UnitRange{Int},
@@ -76,7 +76,7 @@ module treeclassifier
 		####################
 		n_subrelations      :: Vector{<:Function},
 		n_subfeatures       :: Vector{<:Integer},           # number of features to use to split
-		useRelationGlob      :: Vector{Bool},
+		useRelationGlob     :: Vector{Bool},
 		####################
 		indX                :: AbstractVector{<:Integer},   # an array of sample indices (we split using samples in indX[node.region])
 		####################
@@ -407,7 +407,7 @@ module treeclassifier
 			n_subrelations          :: Vector{<:Function},
 			n_subfeatures           :: Vector{<:Integer},
 			initConditions          :: Vector{<:DecisionTree._initCondition},
-			useRelationGlob          :: Vector{Bool},
+			useRelationGlob         :: Vector{Bool},
 		) where {S, U}
 		n_instances = n_samples(Xs)
 
@@ -481,7 +481,7 @@ module treeclassifier
 	# function optimize_tree_parameters!(
 	# 		X               :: OntologicalDataset{T, N},
 	# 		initCondition   :: DecisionTree._initCondition,
-	# 		useRelationGlob  :: Bool,
+	# 		useRelationGlob :: Bool,
 	# 		test_operators  :: AbstractVector{<:TestOperator}
 	# 	) where {T, N}
 
@@ -588,7 +588,7 @@ module treeclassifier
 			n_subrelations          :: Vector{<:Function},
 			n_subfeatures           :: Vector{<:Integer},
 			initConditions          :: Vector{<:DecisionTree._initCondition},
-			useRelationGlob          :: Vector{Bool},
+			useRelationGlob         :: Vector{Bool},
 			##########################################################################
 			rng = Random.GLOBAL_RNG :: Random.AbstractRNG
 		) where {U}
@@ -704,7 +704,7 @@ module treeclassifier
 			n_subrelations          :: Vector{<:Function},
 			n_subfeatures           :: Vector{<:Integer},
 			initConditions          :: Vector{<:DecisionTree._initCondition},
-			useRelationGlob          :: Vector{Bool},
+			useRelationGlob         :: Vector{Bool},
 			# TODO add consistency_step_data
 			##########################################################################
 			rng = Random.GLOBAL_RNG :: Random.AbstractRNG
