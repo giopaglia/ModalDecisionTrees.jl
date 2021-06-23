@@ -153,6 +153,8 @@ export n_samples, n_attributes, n_features, n_relations,
 				featsnaggrs,
 				grouped_featsnaggrs,
 				##############################
+				SingleFrameGenericDataset,
+				MultiFrameGenericDataset,
 				GenericDataset,
 				AbstractModalDataset,
 				OntologicalDataset, 
@@ -326,7 +328,7 @@ channel_size(X::OntologicalDataset)          = channel_size(X.domain)
 getInstance(d::OntologicalDataset, args::Vararg)     = getInstance(d.domain, args...)
 getChannel(d::OntologicalDataset,   args::Vararg)    = getChannel(d.domain, args...)
 
-slice_dataset(d::OntologicalDataset, args...)    = OntologicalDataset(d.ontology, slice_dataset(d.domain, args...))
+slice_dataset(d::OntologicalDataset, inds::AbstractVector{<:Integer}; args...)    = OntologicalDataset(d.ontology, slice_dataset(d.domain, inds; args...))
 
 test_decision(X::OntologicalDataset, args...) = test_decision(X.domain, args...)
 
@@ -368,12 +370,12 @@ world_types(X::MultiFrameOntologicalDataset) = world_type.(X.frames) # convert(V
 world_type(X::MultiFrameOntologicalDataset, i_frame::Integer) = world_type(X.frames[i_frame])
 
 getInstance(X::MultiFrameOntologicalDataset,  i_frame::Integer, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...)
-# slice_dataset(X::MultiFrameOntologicalDataset, i_frame::Integer, inds::AbstractVector{Integer}, args...)  = slice_dataset(X.frames[i], inds, args...)
+# slice_dataset(X::MultiFrameOntologicalDataset, i_frame::Integer, inds::AbstractVector{Integer}, args...)  = slice_dataset(X.frames[i], inds; args...)
 getChannel(X::MultiFrameOntologicalDataset,   i_frame::Integer, idx_i::Integer, idx_f::Integer, args::Vararg)  = getChannel(X.frames[i], idx_i, idx_f, args...)
 
 # getInstance(X::MultiFrameOntologicalDataset, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...) # TODO should slice across the frames!
-slice_dataset(X::MultiFrameOntologicalDataset, inds::AbstractVector{<:Integer}, args...) =
-	MultiFrameOntologicalDataset(map(frame->slice_dataset(frame, inds, args...), X.frames))
+slice_dataset(X::MultiFrameOntologicalDataset, inds::AbstractVector{<:Integer}; args...) =
+	MultiFrameOntologicalDataset(map(frame->slice_dataset(frame, inds; args...), X.frames))
 
 abstract type AbstractFeaturedWorldDataset{T, WorldType} end
 
@@ -484,9 +486,9 @@ getindex(X::FeatModalDataset{T,WorldType}, args::Vararg) where {T,WorldType} = g
 world_type(X::FeatModalDataset{T,WorldType}) where {T,WorldType<:AbstractWorld} = WorldType
 
 
-slice_dataset(X::FeatModalDataset{T,WorldType}, inds::AbstractVector{<:Integer}, args...) where {T,WorldType} =
+slice_dataset(X::FeatModalDataset{T,WorldType}, inds::AbstractVector{<:Integer}; args...) where {T,WorldType} =
 	FeatModalDataset{T,WorldType}(
-		slice_dataset(X.fwd, inds, args...),
+		slice_dataset(X.fwd, inds; args...),
 		X.relations,
 		X.initws_functions[inds],
 		X.acc_functions[inds],
@@ -719,11 +721,11 @@ n_relations(X::StumpFeatModalDataset{T, WorldType}) where {T, WorldType} = n_rel
 # getindex(X::StumpFeatModalDataset{T,WorldType}, args::Vararg) where {T,WorldType} = getindex(X.fmd, args...)
 world_type(X::StumpFeatModalDataset{T,WorldType}) where {T,WorldType<:AbstractWorld} = WorldType
 
-slice_dataset(X::StumpFeatModalDataset{T,WorldType}, inds::AbstractVector{<:Integer}, args...) where {T,WorldType} =
+slice_dataset(X::StumpFeatModalDataset{T,WorldType}, inds::AbstractVector{<:Integer}; args...) where {T,WorldType} =
 	StumpFeatModalDataset{T,WorldType}(
-		slice_dataset(X.fmd, inds, args...),
-		slice_dataset(X.fmd_m, inds, args...),
-		(isnothing(X.fmd_g) ? nothing : slice_dataset(X.fmd_g, inds, args...)),
+		slice_dataset(X.fmd, inds; args...),
+		slice_dataset(X.fmd_m, inds; args...),
+		(isnothing(X.fmd_g) ? nothing : slice_dataset(X.fmd_g, inds; args...)),
 		X.featsnaggrs,
 		X.grouped_featsnaggrs)
 
@@ -956,15 +958,17 @@ world_type(X::MultiFrameFeatModalDataset, i_frame::Integer) = world_type(X.frame
 world_types(X::MultiFrameFeatModalDataset) = world_type.(X.frames) # convert(Vector{<:Type{<:AbstractWorld}}, world_type.(X.frames))
 
 getInstance(X::MultiFrameFeatModalDataset,  i_frame::Integer, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...)
-# slice_dataset(X::MultiFrameFeatModalDataset, i_frame::Integer, inds::AbstractVector{<:Integer}, args::Vararg)  = slice_dataset(X.frames[i], inds, args...)
+# slice_dataset(X::MultiFrameFeatModalDataset, i_frame::Integer, inds::AbstractVector{<:Integer}, args::Vararg)  = slice_dataset(X.frames[i], inds; args...)
 getChannel(X::MultiFrameFeatModalDataset,   i_frame::Integer, idx_i::Integer, idx_f::Integer, args::Vararg)  = getChannel(X.frames[i], idx_i, idx_f, args...)
 
 # getInstance(X::MultiFrameFeatModalDataset, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...) # TODO should slice across the frames!
-slice_dataset(X::MultiFrameFeatModalDataset, inds::AbstractVector{<:Integer}, args...) =
-	MultiFrameFeatModalDataset(map(frame->slice_dataset(frame, inds, args...), X.frames))
+slice_dataset(X::MultiFrameFeatModalDataset, inds::AbstractVector{<:Integer}; args...) =
+	MultiFrameFeatModalDataset(map(frame->slice_dataset(frame, inds; args...), X.frames))
 
 
-const GenericDataset = Union{MatricialDataset,OntologicalDataset,MultiFrameOntologicalDataset,AbstractModalDataset,MultiFrameFeatModalDataset}
+const SingleFrameGenericDataset = Union{MatricialDataset,OntologicalDataset,AbstractModalDataset}
+const MultiFrameGenericDataset = Union{MultiFrameOntologicalDataset,MultiFrameFeatModalDataset}
+const GenericDataset = Union{SingleFrameGenericDataset,MultiFrameGenericDataset}
 
 ################################################################################
 # END Dataset types

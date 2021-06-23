@@ -2,6 +2,7 @@
 ☐	Ottimizza gli enumAccessibles e i enumAccessibles per i sets.
 ☐	remove ch_readWorld in favor of inst_readWorld
 
+Add test_flattened and test_averaged parameters to runner.jl, that evaluate the same models on a propositional dataset
 
 TODO Prova anche quel map(aggr->aggr...)
 

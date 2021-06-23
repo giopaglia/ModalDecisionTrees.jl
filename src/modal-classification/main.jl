@@ -109,10 +109,10 @@ function build_tree(
 	min_purity_increase :: AbstractFloat                      = 0.0,
 	min_loss_at_leaf    :: AbstractFloat                      = -Inf,
 	##############################################################################
-	n_subrelations      :: Union{Function,Vector{Function}}               = identity,
-	n_subfeatures       :: Union{Function,Vector{Function}}               = identity,
-	initConditions      :: Union{_initCondition,Vector{_initCondition}}   = startWithRelationGlob,
-	useRelationGlob      :: Union{Bool,Vector{Bool}}                       = true,
+	n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
+	n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = identity,
+	initConditions      :: Union{_initCondition,AbstractVector{<:_initCondition}} = startWithRelationGlob,
+	useRelationGlob     :: Union{Bool,AbstractVector{Bool}}                       = true,
 	##############################################################################
 	rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {S, U}
 
@@ -146,9 +146,9 @@ function build_tree(
 		min_loss_at_leaf    = min_loss_at_leaf,
 		############################################################################
 		n_subrelations      = n_subrelations,
-		n_subfeatures       = [ n_subfeatures[i](n_features(get_frame(Xs, i))) for i in 1:n_frames(Xs) ],
+		n_subfeatures       = [ n_subfeatures[i](n_features(frame)) for (i,frame) in enumerate(frames(Xs)) ],
 		initConditions      = initConditions,
-		useRelationGlob      = useRelationGlob,
+		useRelationGlob     = useRelationGlob,
 		############################################################################
 		rng                 = rng)
 
@@ -174,18 +174,15 @@ function build_forest(
 	min_loss_at_leaf    :: AbstractFloat      = -Inf,
 	##############################################################################
 	# Modal parameters
-	n_subrelations      :: Union{Function,Vector{Function}}               = identity,
-	n_subfeatures       :: Union{Function,Vector{Function}}               = x -> ceil(Int, sqrt(x)),
-	initConditions      :: Union{_initCondition,Vector{_initCondition}}   = startWithRelationGlob,
-	useRelationGlob      :: Union{Bool,Vector{Bool}}                       = true,
+	n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
+	n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = x -> ceil(Int, sqrt(x)),
+	initConditions      :: Union{_initCondition,AbstractVector{<:_initCondition}} = startWithRelationGlob,
+	useRelationGlob     :: Union{Bool,AbstractVector{Bool}}                       = true,
 	##############################################################################
 	rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {S, U}
 
 	rng = mk_rng(rng)
 
-	if useRelationGlob isa Bool
-		useRelationGlob = fill(useRelationGlob, n_frames(Xs))
-	end
 	if n_subrelations isa Function
 		n_subrelations = fill(n_subrelations, n_frames(Xs))
 	end
@@ -194,6 +191,9 @@ function build_forest(
 	end
 	if initConditions isa _initCondition
 		initConditions = fill(initConditions, n_frames(Xs))
+	end
+	if useRelationGlob isa Bool
+		useRelationGlob = fill(useRelationGlob, n_frames(Xs))
 	end
 
 	if n_trees < 1
@@ -204,38 +204,28 @@ function build_forest(
 		error("partial_sampling must be in the range (0,1]")
 	end
 	
-	# precompute-gammas, since they are shared by all trees
-	# TODO remove
-	# if isnothing(gammas)
-	# 	gammas = fill(nothing, n_frames(Xs))
-	# end
-	# for i in 1:length(gammas)
-	# 	if isnothing(gammas)
-	# 		(
-	# 			test_operators, relationSet,
-	# 			relationId_id, relationGlob_id,
-	# 			availableModalRelation_ids, allAvailableRelation_ids
-	# 		) = treeclassifier.optimize_tree_parameters!(get_frame(Xs, i), initConditions[i], useRelationGlob, test_operators)
-	# 		gammas[i] = computeGammas(get_frame(Xs, i),WorldType,test_operators,relationSet,relationId_id,availableModalRelation_ids)
-	# 	end
-	# end
+	for X in frames(Xs)
+		if X isa FeatModalDataset
+			@warn "Warning! FeatModalDataset encountered in build_forest, while the use of StumpFeatModalDataset is recommended for performance reasons."
+		end
+	end
 
-	t_samples = n_samples(X)
+	t_samples = n_samples(Xs)
 	num_samples = floor(Int, partial_sampling * t_samples)
 
 	trees = Vector{DTree{S}}(undef, n_trees)
 	cms = Vector{ConfusionMatrix}(undef, n_trees)
 	oob_samples = Vector{Vector{Integer}}(undef, n_trees)
 
-	rngs = [spawn_rng(rng) for i in 1:n_trees]
-	Threads.@threads for i in 1:n_trees
-		inds = rand(rngs[i], 1:t_samples, num_samples)
+	rngs = [spawn_rng(rng) for i_tree in 1:n_trees]
+	Threads.@threads for i_tree in 1:n_trees
+		inds = rand(rngs[i_tree], 1:t_samples, num_samples)
 
-		X_slice = ModalLogic.slice_dataset(X, inds; return_view = true)
+		X_slice = ModalLogic.slice_dataset(Xs, inds; return_view = true)
 		Y_slice = @view Y[inds]
 		# v_weights = @views W[inds]
 
-		trees[i] = build_tree(
+		trees[i_tree] = build_tree(
 			X_slice
 			, Y_slice
 			# , v_weights
@@ -250,15 +240,15 @@ function build_forest(
 			n_subrelations       = n_subrelations,
 			n_subfeatures        = n_subfeatures,
 			initConditions       = initConditions,
-			useRelationGlob       = useRelationGlob,
+			useRelationGlob      = useRelationGlob,
 			####
-			rng                  = rngs[i])
+			rng                  = rngs[i_tree])
 
 		# grab out-of-bag indices
-		oob_samples[i] = setdiff(1:t_samples, inds)
+		oob_samples[i_tree] = setdiff(1:t_samples, inds)
 
-		tree_preds = apply_tree(trees[i], ModalLogic.slice_dataset(X, oob_samples[i]; return_view = true))
-		cms[i] = confusion_matrix(Y[oob_samples[i]], tree_preds)
+		tree_preds = apply_tree(trees[i_tree], ModalLogic.slice_dataset(Xs, oob_samples[i_tree]; return_view = true))
+		cms[i_tree] = confusion_matrix(Y[oob_samples[i_tree]], tree_preds)
 	end
 
 	oob_classified = Vector{Bool}()
@@ -269,9 +259,9 @@ function build_forest(
 		selected_trees = fill(false, n_trees)
 
 		# pick every tree trained without i-th sample
-		for j in 1:n_trees
-			if i in oob_samples[j] # if i is present in the j-th tree, selecte thi tree
-				selected_trees[j] = true
+		for i_tree in 1:n_trees
+			if i in oob_samples[i_tree] # if i is present in the i_tree-th tree, selecte thi tree
+				selected_trees[i_tree] = true
 			end
 		end
 		
@@ -281,12 +271,12 @@ function build_forest(
 			continue
 		end
 
-		v_features = ModalLogic.slice_dataset(X, [i]; return_view = true)
-		v_labels = @views Y[[i]]
+		X_slice = ModalLogic.slice_dataset(Xs, [i]; return_view = true)
+		Y_slice = @views Y[[i]]
 
 		# TODO: optimization - no need to pass through ConfusionMatrix
-		pred = apply_forest(trees[index_of_trees_to_test_with], v_features)
-		cm = confusion_matrix(v_labels, pred)
+		pred = apply_trees(trees[index_of_trees_to_test_with], X_slice)
+		cm = confusion_matrix(Y_slice, pred)
 
 		push!(oob_classified, cm.overall_accuracy > 0.5)
 	end
