@@ -147,7 +147,15 @@ function exec_run(
 	# This function transforms bare MatricialDatasets into modal datasets in the form of ontological or featmodal dataset
 	#  The train dataset, unless use_ontological_form, is transformed in featmodal form, which is optimized for training.
 	#  The test dataset is kept in ontological form
-	function buildModalDatasets(Xs_train_all::Vector{<:MatricialDataset}, X_test::Vector{<:MatricialDataset})	
+	function buildModalDatasets(Xs_train_all::Union{MatricialDataset,Vector{<:MatricialDataset}}, X_test::Union{MatricialDataset,Vector{<:MatricialDataset}})	
+
+		if Xs_train_all isa MatricialDataset
+			Xs_train_all = [Xs_train_all]
+		end
+		if X_test isa MatricialDataset
+			X_test = [X_test]
+		end
+		
 		# The test dataset is kept in its ontological form
 		X_test = MultiFrameOntologicalDataset(data_modal_args.ontology, X_test)
 
@@ -167,8 +175,11 @@ function exec_run(
 				# X_train_all = OntologicalDataset{eltype(X_train_all)}(data_modal_args.ontology,X_train_all)
 				X_train_all = OntologicalDataset(data_modal_args.ontology, X_train_all)
 				
-				needToComputeRelationGlob = (modal_args.useRelationGlob || (modal_args.initConditions == DecisionTree.startWithRelationGlob)) || ((modal_args.initConditions isa AbstractVector) && modal_args.initConditions[i_frame] == DecisionTree.startWithRelationGlob)
-
+				needToComputeRelationGlob =
+					WorldType != OneWorld && (
+						(modal_args.useRelationGlob || (modal_args.initConditions == DecisionTree.startWithRelationGlob))
+							|| ((modal_args.initConditions isa AbstractVector) && modal_args.initConditions[i_frame] == DecisionTree.startWithRelationGlob)
+					)
 				########################################################################
 				########################################################################
 				########################################################################
@@ -263,13 +274,17 @@ function exec_run(
 					elseif timing_mode == :btime
 						@btime StumpFeatModalDataset($X_train_all, $features, $featsnops, computeRelationGlob = $needToComputeRelationGlob);
 					end
+
+				println("Ontological form" * display_structure(X_train_all))
+				println("Stump form" * display_structure(stump_fmd))
+
 				########################################################################
 				########################################################################
 				######################## LEGACY CHECK WITH GAMMAS ######################
 				########################################################################
 				########################################################################
 
-				if legacy_gammas_check
+				if legacy_gammas_check && WorldType != OneWorld # TODO gammas are faulty in the propositional case (= with OneWorld)
 					relationSet = [RelationId, RelationGlob, data_modal_args.ontology.relationSet...]
 					relationId_id = 1
 					relationGlob_id = 2
@@ -296,7 +311,7 @@ function exec_run(
 						end
 
 					gammas = 
-						if !isnothing(gammas_jld_path) && isfile(gammas_jld_path)
+						if !isnothing(gammas_jld_path) && isfile(gammas_jld_path) # && false
 							checkpoint_stdout("Loading gammas from file \"$(gammas_jld_path)\"...")
 
 							Serialization.deserialize(gammas_jld_path)
@@ -327,93 +342,128 @@ function exec_run(
 							end
 							gammas
 						end
+					
+					println("Gammas form\t\t$(sizeof(gammas)/1024/1024 |> x->round(x, digits=2)) MBs\t(shape $(size(gammas)), type $(typeof(gammas)))")
+					
 					# Check consistency between FeaturedWorldDataset and modalDataset
 
+
+					checkpoint_stdout("Start checking propositional consistency...")
+
 					# propositional decisions
+					n_checks = 0
 					for i_instance in 1:n_samples(X_train_all)
 						instance = ModalLogic.getInstance(X_train_all, i_instance)
+						i_feature = 1
 						for i_attribute in 1:n_attributes(X_train_all)
-							for i_test_operator in 1:2
+							for (i_test_operator,test_operator) in enumerate(data_modal_args.test_operators)
 								for w in ModalLogic.enumAll(WorldType, ModalLogic.inst_channel_size(instance)...)
 									
 									g = DecisionTree.readGamma(gammas,i_test_operator,w,i_instance,1,i_attribute)
-									m = stump_fmd.fmd[i_instance, w, (i_test_operator-1)+(i_attribute-1)*2+1]
+									m = get_gamma(stump_fmd, i_instance, w, features[i_feature])
+									n_checks += 1
 
 									if g != m
-										println("FeaturedWorldDataset check: g != m\n$(g)\n$(m)\ni_test_operator=$(i_test_operator)\nw=$(w)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
+										println("FeaturedWorldDataset check: g != m\n$(g)\n$(m)")
+										println("i_test_operator=$(i_test_operator)")
+										println("w=$(w)")
+										println("i_instance=$(i_instance)")
+										println("i_attribute=$(i_attribute)")
 										print("instance: ")
 										println(ModalLogic.getInstanceAttribute(instance, i_attribute))
 										error("aoe")
 									end
 								end
+								i_feature += 1
 							end
 						end
 					end
-
+					
 					# global decisions
 					if !isnothing(stump_fmd.fmd_g)
+						checkpoint_stdout("Start checking global consistency ($n_checks checks so far)...")
 						firstWorld = WorldType(ModalLogic.firstWorld)
 						for i_instance in 1:n_samples(X_train_all)
 							instance = ModalLogic.getInstance(X_train_all, i_instance)
+							i_feature = 1
 							for i_attribute in 1:n_attributes(X_train_all)
-								for i_test_operator in 1:2
+								for (i_test_operator,test_operator) in enumerate(data_modal_args.test_operators)
 									
-									i_featsnaggr = (i_test_operator-1)+(i_attribute-1)*2+1
-
 									g = DecisionTree.readGamma(gammas,i_test_operator,firstWorld,i_instance,2,i_attribute)
-									m = stump_fmd.fmd_g[i_instance, i_featsnaggr]
+									m = ModalLogic.get_global_gamma(stump_fmd, i_instance, features[i_feature], featsnops[i_feature][1])
+									n_checks += 1
+									
+									# println(g,m)
 
 									if g != m
-										println("fmd_g check: g != m\n$(g)\n$(m)\ni_test_operator=$(i_test_operator)\ntest_operator=$(data_modal_args.test_operators[i_test_operator])\ni_featsnaggr=$(i_featsnaggr)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
+										println("fmd_g check: g != m")
+										println("$(g)")
+										println("$(m)")
+										println("i_test_operator=$(i_test_operator)")
+										println("test_operator=$(data_modal_args.test_operators[i_test_operator])")
+										println("i_instance=$(i_instance)")
+										println("i_attribute=$(i_attribute)")
 										print("instance: ")
 										println(ModalLogic.getInstanceAttribute(instance, i_attribute))
 										print(instance)
 										# error("aoe")
 										readline()
+									
 									end
+									i_feature += 1
 								end
 							end
 						end
 					end
 
 					# modal decisions
+					checkpoint_stdout("Start checking modal consistency ($n_checks checks so far)...")
 					relations = X_train_all.ontology.relationSet
 					for i_instance in 1:n_samples(X_train_all)
 						instance = ModalLogic.getInstance(X_train_all, i_instance)
+						i_feature = 1
 						for i_attribute in 1:n_attributes(X_train_all)
-							for i_relation in 1:length(relations)
-								for i_test_operator in 1:2
+							i_feature2 = nothing
+							for (i_relation,relation) in enumerate(relations)
+								i_feature2 = i_feature
+								for (i_test_operator,test_operator) in enumerate(data_modal_args.test_operators)
+									test_operator = featsnops[i_feature2][1]
 									for w in ModalLogic.enumAll(WorldType, ModalLogic.inst_channel_size(instance)...)
 										
-										i_featsnaggr = (i_test_operator-1)+(i_attribute-1)*2+1
 
 										g = DecisionTree.readGamma(gammas,i_test_operator,w,i_instance,2+i_relation,i_attribute)
-										m = stump_fmd.fmd_m[i_instance, w, i_featsnaggr, i_relation]
+										m = ModalLogic.get_modal_gamma(stump_fmd, i_instance, w, relation, features[i_feature2], test_operator)
+										n_checks += 1
 										
 										if g != m
-											println("fmd_m check: g != m\n$(g)\n$(m)\ni_relation=$(i_relation), relation=$(relations[i_relation])\ni_test_operator=$(i_test_operator)\ntest_operator=$(data_modal_args.test_operators[i_test_operator])\nw=$(w)\ni_instance=$(i_instance)\ni_attribute=$(i_attribute)")
+											println("fmd_m check: g != m")
+											
+											println("$(g)")
+											println("$(m)")
+
+											println("i_relation=$(i_relation), relation=$(relation)")
+											println("w=$(w)")
+											println("i_instance=$(i_instance)")
+											println("i_attribute=$(i_attribute)")
+
+											println("i_test_operator=$(i_test_operator)")
+											println("test_operator=$(test_operator)")
+											println("test_operator=$(data_modal_args.test_operators[i_test_operator])")
+											println("i_feature2=$(i_feature2) (i_feature=$(i_feature))")
+
 											print("channel: ")
 											println(ModalLogic.getInstanceAttribute(instance, i_attribute))
 											# error("aoe")
 											readline()
 										end
 									end
+									i_feature2 += 1
 								end
 							end
+							i_feature = i_feature2
 						end
 					end
-
-					println("Ontological form\t$(Base.summarysize(X_train_all) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t\t(shape $(Base.size(X_train_all.domain)), # relations $(length(X_train_all.ontology.relationSet)), max_channel_size $(max_channel_size(X_train_all))")
-					println("Stump form\t\t$((Base.summarysize(stump_fmd.fmd) + Base.summarysize(stump_fmd.fmd_m) + Base.summarysize(stump_fmd.fmd_g)) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
-					println("├ fmd\t\t\t$(Base.summarysize(stump_fmd.fmd) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t(shape $(Base.size(stump_fmd.fmd.fwd)))")
-					println("├ fmd_m\t\t\t$(Base.summarysize(stump_fmd.fmd_m) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t(shape $(Base.size(stump_fmd.fmd_m)))")
-					print("└ fmd_g\t\t\t$(Base.summarysize(stump_fmd.fmd_g) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
-					if isnothing(stump_fmd.fmd_g)
-						println()
-					else
-						println("\t(shape $(Base.size(stump_fmd.fmd_g)))")
-					end
-					println("Gammas form\t\t$(sizeof(gammas)/1024/1024 |> x->round(x, digits=2)) MBs\t(shape $(size(gammas)), type $(typeof(gammas)))")
+					println("Checked consistency for $(n_checks) gammas. All clear!")
 				end
 
 				########################################################################
@@ -427,17 +477,7 @@ function exec_run(
 			
 			Xs_train_all_multiframe_stump_fmd = MultiFrameFeatModalDataset(Xs_train_all_multiframe_stump_fmd)
 
-			println("X_train\t\t\t$(Base.summarysize(Xs_train_all_multiframe_stump_fmd) / 1024 / 1024 |> x->round(x, digits=2)) MBs")
-			if n_frames(Xs_train_all_multiframe_stump_fmd) > 1
-				for (i_frame, X_train) in enumerate(frames(Xs_train_all_multiframe_stump_fmd))
-					if i_frame == n_frames(Xs_train_all_multiframe_stump_fmd)
-						print("└ ")
-					else
-						print("├ ")
-					end
-					println("[$(i_frame)]\t\t\t$(Base.summarysize(X_train) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t(world_type: $(world_type(X_train)))")
-				end
-			end
+			println("X_train" * display_structure(Xs_train_all_multiframe_stump_fmd))
 
 			(Xs_train_all_multiframe_stump_fmd, X_test)
 		end
@@ -474,6 +514,8 @@ function exec_run(
 						Y[dataset_slice],
 					)
 			end
+			println(display_structure(X_to_train))
+			println(display_structure(X_to_test))
 
 			# Split in train/test
 			# println(typeof(X_to_train))
@@ -515,11 +557,17 @@ function exec_run(
 			(X_train, Y_train), (X_test, Y_test)
 	end
 
+	@assert n_samples(X_train) == length(Y_train)
+	@assert n_samples(X_test) == length(Y_test)
+	
 	dataset = (X_train,Y_train), (X_test,Y_test)
 
 	println(" train dataset:\ttype $(typeof(X_train))\tsize $(size(X_train))")
 	println(" test  dataset:\ttype $(typeof(X_test))\tsize $(size(X_test))")
 
+	println(display_structure(X_train))
+	println(display_structure(X_test))
+	
 	# readline()
 
 	function display_cm_as_row(cm::ConfusionMatrix)

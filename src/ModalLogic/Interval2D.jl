@@ -21,7 +21,27 @@ show(io::IO, w::Interval2D) = begin
 	print(io, ")")
 end
 
+print_world(w::Interval2D) = println("Interval2D [$(w.x.x),$(w.x.y)) × [$(w.y.x),$(w.y.y)), length $(w.x.y-w.x.x)×$(w.y.y-w.y.x) = $((w.x.y-w.x.x)*(w.y.y-w.y.x))")
+
 worldTypeDimensionality(::Type{Interval2D}) = 2
+# worldTypeComplexity(::Type{Interval2D}) = 4
+n_worlds(::Type{Interval2D}, channel_size::Tuple{Integer,Integer}) = n_worlds(Interval, channel_size[1]) * n_worlds(Interval, channel_size[2])
+
+inst_readWorld(w::Interval2D, instance::MatricialInstance{T,3}) where {T} = instance[w.x.x:w.x.y-1,w.y.x:w.y.y-1,:]
+
+enumAccReprAggr(f::Union{AttributeMinimumFeatureType,AttributeMaximumFeatureType}, a::Union{typeof(minimum),typeof(maximum)}, ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = IterTools.imap(Interval2D, Iterators.product(enumPairsIn(1, X+1), enumPairsIn(1, Y+1)))
+enumAccReprAggr(f::Union{AttributeMaximumFeatureType}, a::typeof(maximum), ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = Interval2D[Interval2D(Interval(1,X+1), Interval(1,Y+1))  ]
+enumAccReprAggr(f::Union{AttributeMinimumFeatureType}, a::typeof(minimum), ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = Interval2D[Interval2D(Interval(1,X+1), Interval(1,Y+1))  ]
+
+enumAccReprAggr(f::Union{AttributeSoftMinimumFeatureType,AttributeSoftMaximumFeatureType}, a::Union{typeof(minimum),typeof(maximum)}, ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = IterTools.imap(Interval2D, Iterators.product(enumPairsIn(1, X+1), enumPairsIn(1, Y+1)))
+enumAccReprAggr(f::Union{AttributeSoftMaximumFeatureType}, a::typeof(maximum), ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = Interval2D[Interval2D(Interval(1,X+1), Interval(1,Y+1))  ]
+enumAccReprAggr(f::Union{AttributeSoftMinimumFeatureType}, a::typeof(minimum), ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = Interval2D[Interval2D(Interval(1,X+1), Interval(1,Y+1))  ]
+
+################################################################################
+################################################################################
+################################################################################
+
+# needed for GAMMAS
 
 yieldReprs(test_operator::_TestOpGeq, repr::_ReprMax{Interval2D},  channel::MatricialChannel{T,2}) where {T} =
 	reverse(extrema(ch_readWorld(repr.w, channel)))::NTuple{2,T}
@@ -113,10 +133,5 @@ enumAccessibles(S::Union{Interval2D,AbstractWorldSet{Interval2D}}, r::_RelationG
 		# enumAccBare(w, IA2DRel(RelationGlob,RelationGlob), X, Y)
 # enumAccBare(w::Interval2D, r::_RelationGlob, X::Integer, Y::Integer) =
 # 	enumAccBare(w, _IA2DRel(RelationGlob,RelationGlob), X, Y)
-
-# worldTypeComplexity(::Type{Interval2D}) = 4
-n_worlds(::Type{Interval2D}, channel_size::Tuple{Integer,Integer}) = n_worlds(Interval, channel_size[1]) * n_worlds(Interval, channel_size[2])
-
-print_world(w::Interval2D) = println("Interval2D [$(w.x.x),$(w.x.y)) × [$(w.y.x),$(w.y.y)), length $(w.x.y-w.x.x)×$(w.y.y-w.y.x) = $((w.x.y-w.x.x)*(w.y.y-w.y.x))")
 
 @inline ch_readWorld(w::Interval2D, channel::MatricialChannel{T,2}) where {T} = channel[w.x.x:w.x.y-1,w.y.x:w.y.y-1]

@@ -575,7 +575,7 @@ SampleLandCoverDataset(dataset::String,
 												sample_size::Union{Int,NTuple{2,Int}}
 												;
 												n_attributes::Int = -1,
-												flattened::Bool = false,
+												flattened::Union{Bool,Symbol} = false,
 												rng = Random.GLOBAL_RNG :: Random.AbstractRNG) = begin
 	if sample_size isa Int
 		sample_size = (sample_size, sample_size)
@@ -689,11 +689,27 @@ SampleLandCoverDataset(dataset::String,
 	inputs = inputs[:,:,sp,:]
 	
 	labels = reshape(transpose(reshape(labels, (n_samples_per_label,n_labels))), n_samples)
-	inputs = reshape(permutedims(reshape(inputs, (sample_size[1],sample_size[2],n_samples_per_label,n_labels,size(inputs, 4))), [1,2,4,3,5]), (sample_size[1],sample_size[2],n_samples,size(inputs, 4)))
+	inputs = reshape(permutedims(reshape(inputs, (size(inputs, 1),size(inputs, 2),n_samples_per_label,n_labels,size(inputs, 4))), [1,2,4,3,5]), (size(inputs, 1),size(inputs, 2),n_samples,size(inputs, 4)))
 
-	if flattened
-		inputs = reshape(inputs, (1,1,n_samples,(sample_size[1]*sample_size[2]*size(inputs, 4))))
+
+	if flattened != false
+		if flattened == :flattened
+			inputs = reshape(inputs, (n_samples,(size(inputs, 1)*size(inputs, 2)*size(inputs, 4))))
+		elseif flattened == :averaged
+			inputs = sum(inputs, dims=(1,2))./(size(inputs, 1)*size(inputs, 2))
+			inputs = dropdims(inputs; dims=(1,2))
+		else
+			error("Unexpected value for flattened: $(flattened)")
+		end
+		inputs = permutedims(inputs, [2,1])
+	elseif (size(inputs, 1), size(inputs, 2)) == (1, 1)
+		inputs = dropdims(inputs; dims=(1,2))
+		inputs = permutedims(inputs, [2,1])
+	else
+		inputs = permutedims(inputs, [1,2,4,3])
 	end
+	
+
 	# println([class_labels_map[y] for y in existingLabels])
 	# println(labels)
 	class_labels = [class_labels_map[y] for y in existingLabels]

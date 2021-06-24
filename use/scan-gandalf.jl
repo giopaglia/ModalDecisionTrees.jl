@@ -17,7 +17,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./results-audio-scan"
+results_dir = "./results-gandalf"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 concise_output_file_path = results_dir * "/grouped_in_models.csv"
@@ -46,9 +46,9 @@ tree_args = [
 ]
 
 for loss_function in [DecisionTree.util.entropy]
-	for min_samples_leaf in [1] # [1,2]
+	for min_samples_leaf in [4] # [1,2]
 		for min_purity_increase in [0.01] # [0.01, 0.001]
-			for min_loss_at_leaf in [0.6] # [0.4, 0.6]
+			for min_loss_at_leaf in [0.3] # [0.4, 0.6]
 				push!(tree_args, 
 					(
 						loss_function = loss_function,
@@ -74,34 +74,35 @@ optimize_forest_computation = true
 
 forest_args = []
 
-for n_trees in [50,100]
-	for n_subfeatures in [half_f]
-		for n_subrelations in [id_f]
-			push!(forest_args, (
-				n_subfeatures       = n_subfeatures,
-				n_trees             = n_trees,
-				partial_sampling    = 1.0,
-				n_subrelations      = n_subrelations,
-				# Optimization arguments for trees in a forest (no pruning is performed)
-				loss_function = DecisionTree.util.entropy,
-				min_samples_leaf = 1,
-				min_purity_increase = 0.0,
-				min_loss_at_leaf = 0.0,
-			))
-		end
-	end
-end
+# for n_trees in [50,100]
+# 	for n_subfeatures in [half_f]
+# 		for n_subrelations in [id_f]
+# 			push!(forest_args, (
+# 				n_subfeatures       = n_subfeatures,
+# 				n_trees             = n_trees,
+# 				partial_sampling    = 1.0,
+# 				n_subrelations      = n_subrelations,
+# 				# Optimization arguments for trees in a forest (no pruning is performed)
+# 				loss_function = DecisionTree.util.entropy,
+# 				min_samples_leaf = 1,
+# 				min_purity_increase = 0.0,
+# 				min_loss_at_leaf = 0.0,
+# 			))
+# 		end
+# 	end
+# end
 
 
-println(" $(length(forest_args)) forests (repeated $(forest_runs) times)")
+println(" $(length(forest_args)) forests " * (length(forest_args) > 0 ? "(repeated $(forest_runs) times)" : ""))
 
 ################################################################################
 ################################## MODAL ARGS ##################################
 ################################################################################
 
 modal_args = (
-	initConditions = DecisionTree.startWithRelationGlob,
-	# initConditions = DecisionTree.startAtCenter,
+	# initConditions = DecisionTree.startWithRelationGlob,
+	initConditions = DecisionTree.startAtCenter,
+	# useRelationGlob = true,
 	useRelationGlob = false,
 )
 
@@ -121,13 +122,14 @@ log_level = DecisionTree.DTOverview
 # log_level = DecisionTree.DTDebug
 # log_level = DecisionTree.DTDetail
 
-timing_mode = :none
-# timing_mode = :time
+# timing_mode = :none
+timing_mode = :time
 # timing_mode = :btime
 
+# round_dataset_to_datatype = false
+round_dataset_to_datatype = UInt16
 #round_dataset_to_datatype = Float32
 # round_dataset_to_datatype = UInt16
-round_dataset_to_datatype = false
 
 split_threshold = 0.8
 # split_threshold = 1.0
@@ -138,103 +140,61 @@ use_ontological_form = false
 test_flattened = false
 test_averaged  = false
 
-legacy_gammas_check = false
+legacy_gammas_check = true
 
 
 ################################################################################
 ##################################### SCAN #####################################
 ################################################################################
 
-exec_dataseed = 1:5
+exec_dataseed = 1:10
 
-exec_n_tasks = 1:1
-exec_n_versions = 1:3
-exec_nbands = [20,40,60]
+exec_dataset_name = ["Salinas", "Salinas-A", "PaviaCentre", "IndianPines", "Pavia"]
 
-max_points = 3
-# max_points = 30
-
-exec_dataset_kwargs =   [(
-							max_points = max_points,
-							ma_size = 75,
-							ma_step = 50,
-						),(
-							max_points = max_points,
-							ma_size = 45,
-							ma_step = 30,
-						)
-						]
-
-audio_kwargs_partial_mfcc = (
-	wintime = 0.025, # in ms          # 0.020-0.040
-	steptime = 0.010, # in ms         # 0.010-0.015
-	fbtype = :mel,                    # [:mel, :htkmel, :fcmel]
-	window_f = DSP.hamming, # [DSP.hamming, (nwin)->DSP.tukey(nwin, 0.25)]
-	pre_emphasis = 0.97,              # any, 0 (no pre_emphasis)
-	nbands = 40,                      # any, (also try 20)
-	sumpower = false,                 # [false, true]
-	dither = false,                   # [false, true]
-	# bwidth = 1.0,                   # 
-	# minfreq = 0.0,
-	# maxfreq = (sr)->(sr/2),
-	# usecmp = false,
-)
-
-audio_kwargs_full_mfcc = (
-	wintime=0.025,
-	steptime=0.01,
-	numcep=13,
-	lifterexp=-22,
-	sumpower=false,
-	preemph=0.97,
-	dither=false,
-	minfreq=0.0,
-	# maxfreq=sr/2,
-	nbands=20,
-	bwidth=1.0,
-	dcttype=3,
-	fbtype=:htkmel,
-	usecmp=false,
-	modelorder=0
-)
-
-exec_use_full_mfcc = [false]
-
-
-wav_preprocessors = Dict(
-	"NG" => noise_gate!,
-	"Normalize" => normalize!,
-)
-
-exec_preprocess_wavs = [
-	["Normalize"],
-	[],
-#	["NG", "Normalize"]
-]
+o_RCC8, o_RCC5 = getIntervalRCC8OntologyOfDim(Val(2)), getIntervalRCC5OntologyOfDim(Val(2))
+exec_windowsize_flattened_ontology = [(1,false,OneWorldOntology),(3,:flattened,OneWorldOntology),(3,:averaged,OneWorldOntology),(3,false,o_RCC8),(3,false,o_RCC5)]
 
 # https://github.com/JuliaIO/JSON.jl/issues/203
 # https://discourse.julialang.org/t/json-type-serialization/9794
 # TODO: make test operators types serializable
+exec_test_operators = [ "TestOpAll" ]
 # exec_test_operators = [ "TestOp" ]
-exec_test_operators = [ "TestOp_80" ]
+# exec_test_operators = [ "TestOp_80" ]
 
 test_operators_dict = Dict(
 	"TestOp_70" => [TestOpGeq_70, TestOpLeq_70],
 	"TestOp_80" => [TestOpGeq_80, TestOpLeq_80],
-	"TestOp" => [TestOpGeq, TestOpLeq],
+	"TestOp"    => [TestOpGeq, TestOpLeq],
+	"TestOpAll" => [
+									TestOpGeq, TestOpLeq,
+									TestOpGeq_90, TestOpLeq_90,
+									TestOpGeq_80, TestOpLeq_80,
+									TestOpGeq_70, TestOpLeq_70,
+									TestOpGeq_60, TestOpLeq_60,
+									],
 )
 
 
 exec_ranges_dict = (
-	n_task           = exec_n_tasks,
-	n_version        = exec_n_versions,
-	nbands           = exec_nbands,
-	dataset_kwargs   = exec_dataset_kwargs,
-	use_full_mfcc    = exec_use_full_mfcc,
-	preprocess_wavs  = exec_preprocess_wavs,
-	test_operators   = exec_test_operators,
-	dataseed         = exec_dataseed,
+	windowsize_flattened_ontology = exec_windowsize_flattened_ontology,
+	test_operators                = exec_test_operators,
+	dataset_name                  = exec_dataset_name,
+	dataseed                      = exec_dataseed,
 )
+
+n_samples_per_label = 100
+
+dataset_function = (
+	(windowsize,flattened,ontology),
+	test_operators,
+	dataset_name,
+	dataseed)->SampleLandCoverDataset(
+		dataset_name,
+		n_samples_per_label,
+		windowsize,
+		flattened = flattened,
+		# n_attributes = 3,
+		rng = Random.MersenneTwister(dataseed))
 
 ################################################################################
 ################################### SCAN FILTERS ###############################
@@ -243,30 +203,7 @@ exec_ranges_dict = (
 dry_run = false
 
 # TODO let iteration_white/blacklist a decision function and not a "in-array" condition?
-iteration_whitelist = [
-	# TASK 1
-	# (
-	# 	n_version = 1,
-	# 	nbands = 40,
-	# 	dataset_kwargs = (max_points = 30, ma_size = 75, ma_step = 50),
-	# ),
-	# (
-	# 	n_version = 1,
-	# 	nbands = 60,
-	# 	dataset_kwargs = (max_points = 30, ma_size = 75, ma_step = 50),
-	# ),
-	# # TASK 2
-	# (
-	# 	n_version = 2,
-	# 	nbands = 20,
-	# 	dataset_kwargs = (max_points = 30, ma_size = 45, ma_step = 30),
-	# ),
-	# (
-	# 	n_version = 2,
-	# 	nbands = 40,
-	# 	dataset_kwargs = (max_points = 30, ma_size = 45, ma_step = 30),
-	# )
-]
+iteration_whitelist = []
 
 iteration_blacklist = []
 
@@ -341,99 +278,85 @@ for params_combination in IterTools.product(exec_ranges...)
 	##############################################################################
 	##############################################################################
 	
-	n_task, n_version, nbands, dataset_kwargs, use_full_mfcc, preprocess_wavs, test_operators, dataseed = params_combination
-
-	dataset_rng = Random.MersenneTwister(dataseed)
-
+	(windowsize,flattened,ontology), test_operators, dataset_name, dataseed = params_combination
+	
 	# LOAD DATASET
 	dataset_file_name = saved_datasets_path * "/" * run_name
 
-	cur_audio_kwargs = merge(
-		if use_full_mfcc
-			audio_kwargs_full_mfcc
-		else
-			audio_kwargs_partial_mfcc
-		end
-		, (nbands=nbands,))
-
 	cur_modal_args = modal_args
-	
-	cur_preprocess_wavs = [ wav_preprocessors[k] for k in preprocess_wavs ]
 
 	# TODO reduce redundancy with caching function
-	dataset = 
-		if save_datasets && isfile(dataset_file_name * ".jld")
-			if just_produce_datasets_jld
-				continue
-			end
+	dataset = dataset_function(params_combination...)
+	dataset_slice = nothing
+	# dataset_rng = Random.MersenneTwister(dataseed)
+	# dataset, dataset_slice = 
+	# 	if save_datasets && isfile(dataset_file_name * ".jld")
+	# 		if just_produce_datasets_jld
+	# 			continue
+	# 		end
 
-			checkpoint_stdout("Loading dataset $(dataset_file_name * ".jld")...")
+	# 		checkpoint_stdout("Loading dataset $(dataset_file_name * ".jld")...")
 			
-			dataset = nothing
-			n_pos = nothing
-			n_neg = nothing
+	# 		dataset = nothing
+	# 		n_pos = nothing
+	# 		n_neg = nothing
 			
-			JLD2.@load (dataset_file_name * ".jld") dataset n_pos n_neg
-			(X,Y) = dataset
-			if isfile(dataset_file_name * "-balanced.jld")
-				JLD2.@load (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
-			else
-				n_per_class = min(n_pos, n_neg)
-				dataset_slice = Array{Int,2}(undef, 2, n_per_class)
-				dataset_slice[1,:] .=          Random.randperm(dataset_rng, n_pos)[1:n_per_class]
-				dataset_slice[2,:] .= n_pos .+ Random.randperm(dataset_rng, n_neg)[1:n_per_class]
-				dataset_slice = dataset_slice[:]
+	# 		JLD2.@load (dataset_file_name * ".jld") dataset n_pos n_neg
+	# 		(X,Y) = dataset
+	# 		if isfile(dataset_file_name * "-balanced.jld")
+	# 			JLD2.@load (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
+	# 		else
+	# 			n_per_class = min(n_pos, n_neg)
+	# 			dataset_slice = Array{Int,2}(undef, 2, n_per_class)
+	# 			dataset_slice[1,:] .=          Random.randperm(dataset_rng, n_pos)[1:n_per_class]
+	# 			dataset_slice[2,:] .= n_pos .+ Random.randperm(dataset_rng, n_neg)[1:n_per_class]
+	# 			dataset_slice = dataset_slice[:]
 
-				balanced_dataset = slice_labeled_dataset((X,Y), dataset_slice)
-				typeof(balanced_dataset) |> println
-				(X_train, Y_train), (X_test, Y_test) = traintestsplit(balanced_dataset, split_threshold)
-				JLD2.@save (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
-				balanced_train = (X_train, Y_train)
-				JLD2.@save (dataset_file_name * "-balanced-train.jld") balanced_train
-				balanced_test = (X_test,  Y_test)
-				JLD2.@save (dataset_file_name * "-balanced-test.jld")  balanced_test
-			end
+	# 			balanced_dataset = slice_labeled_dataset((X,Y), dataset_slice)
+	# 			typeof(balanced_dataset) |> println
+	# 			(X_train, Y_train), (X_test, Y_test) = traintestsplit(balanced_dataset, split_threshold)
+	# 			JLD2.@save (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
+	# 			balanced_train = (X_train, Y_train)
+	# 			JLD2.@save (dataset_file_name * "-balanced-train.jld") balanced_train
+	# 			balanced_test = (X_test,  Y_test)
+	# 			JLD2.@save (dataset_file_name * "-balanced-test.jld")  balanced_test
+	# 		end
 
-			dataset = (X,Y)
-		else
-			checkpoint_stdout("Creating dataset...")
-			# TODO wrap dataset creation into a function accepting the rng and other parameters...
-			dataset, n_pos, n_neg = KDDDataset_not_stratified(
-				(n_task,n_version),
-				cur_audio_kwargs;
-				dataset_kwargs...,
-				preprocess_wavs = cur_preprocess_wavs,
-				use_full_mfcc = use_full_mfcc
-			)
+	# 		dataset = (X,Y)
+	#			dataset, dataset_slice
+	# 	else
+	# 		checkpoint_stdout("Creating dataset...")
+	# 		# TODO wrap dataset creation into a function accepting the rng and other parameters...
+	# 		dataset = dataset_function(params_combination)
 
-			n_per_class = min(n_pos, n_neg)
+	# 		n_per_class = min(n_pos, n_neg)
 
-			dataset_slice = Array{Int,2}(undef, 2, n_per_class)
-			dataset_slice[1,:] .=          Random.randperm(dataset_rng, n_pos)[1:n_per_class]
-			dataset_slice[2,:] .= n_pos .+ Random.randperm(dataset_rng, n_neg)[1:n_per_class]
-			dataset_slice = dataset_slice[:]
+	# 		dataset_slice = Array{Int,2}(undef, 2, n_per_class)
+	# 		dataset_slice[1,:] .=          Random.randperm(dataset_rng, n_pos)[1:n_per_class]
+	# 		dataset_slice[2,:] .= n_pos .+ Random.randperm(dataset_rng, n_neg)[1:n_per_class]
+	# 		dataset_slice = dataset_slice[:]
 
-			if save_datasets
-				checkpoint_stdout("Saving dataset $(dataset_file_name)...")
-				(X, Y) = dataset
-				JLD2.@save (dataset_file_name * ".jld")                dataset n_pos n_neg
-				balanced_dataset = slice_labeled_dataset((X,Y), dataset_slice)
-				typeof(balanced_dataset) |> println
-				(X_train, Y_train), (X_test, Y_test) = traintestsplit(balanced_dataset, split_threshold)
-				JLD2.@save (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
-				balanced_train = (X_train, Y_train)
-				JLD2.@save (dataset_file_name * "-balanced-train.jld") balanced_train
-				balanced_test = (X_test,  Y_test)
-				JLD2.@save (dataset_file_name * "-balanced-test.jld")  balanced_test
-				if just_produce_datasets_jld
-					continue
-				end
-			end
-			dataset
-		end
+	# 		if save_datasets
+	# 			checkpoint_stdout("Saving dataset $(dataset_file_name)...")
+	# 			(X, Y) = dataset
+	# 			JLD2.@save (dataset_file_name * ".jld")                dataset n_pos n_neg
+	# 			balanced_dataset = slice_labeled_dataset((X,Y), dataset_slice)
+	# 			typeof(balanced_dataset) |> println
+	# 			(X_train, Y_train), (X_test, Y_test) = traintestsplit(balanced_dataset, split_threshold)
+	# 			JLD2.@save (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
+	# 			balanced_train = (X_train, Y_train)
+	# 			JLD2.@save (dataset_file_name * "-balanced-train.jld") balanced_train
+	# 			balanced_test = (X_test,  Y_test)
+	# 			JLD2.@save (dataset_file_name * "-balanced-test.jld")  balanced_test
+	# 			if just_produce_datasets_jld
+	# 				continue
+	# 			end
+	# 		end
+	# 		dataset, dataset_slice
+	# 	end
 	# println(dataset_slice)
 
-	cur_data_modal_args = merge(data_modal_args, (test_operators = test_operators_dict[test_operators],))
+	cur_data_modal_args = merge(data_modal_args, (test_operators = test_operators_dict[test_operators], ontology = ontology))
 	
 	##############################################################################
 	##############################################################################
@@ -504,33 +427,3 @@ for params_combination in IterTools.product(exec_ranges...)
 end
 
 checkpoint_stdout("Done!")
-
-# selected_args = merge(args, (loss_function = loss_function,
-# 															min_samples_leaf = min_samples_leaf,
-# 															min_purity_increase = min_purity_increase,
-# 															min_loss_at_leaf = min_loss_at_leaf,
-# 															))
-
-# dataset_kwargs = (
-# 	max_points = -1,
-# 	ma_size = 1,
-# 	ma_step = 1,
-# )
-# 
-# dataset = KDDDataset_not_stratified((1,1), audio_kwargs; dataset_kwargs..., rng = main_rng); # 141/298
-# dataset[1] |> size # (1413, 282)
-# dataset = KDDDataset_not_stratified((1,2), audio_kwargs; dataset_kwargs..., rng = main_rng); # 141/298
-# dataset[1] |> size # (2997, 282)
-# dataset = KDDDataset_not_stratified((2,1), audio_kwargs; dataset_kwargs..., rng = main_rng); # 54/32
-# dataset[1] |> size # (1413, 64)
-# dataset = KDDDataset_not_stratified((2,2), audio_kwargs; dataset_kwargs..., rng = main_rng); # 54/32
-# dataset[1] |> size # (2997, 64)
-# dataset = KDDDataset_not_stratified((3,1), audio_kwargs; dataset_kwargs..., rng = main_rng); # 54/20
-# dataset[1] |> size # (1413, 40)
-# dataset = KDDDataset_not_stratified((3,2), audio_kwargs; dataset_kwargs..., rng = main_rng); # 54/20
-# dataset[1] |> size # (2673, 40)
-
-# exec_run("Test", dataset, 0.8, 0, log_level=log_level,
-# 			forest_args=forest_args, args=args, kwargs=modal_args,
-# 			test_tree = true, test_forest = true);
-
