@@ -570,7 +570,13 @@ PaviaDataset() = begin
 	(X, Y) = map(((x)->round.(Int,x)), (X, Y))
 end
 
-SampleLandCoverDataset(dataset::String, n_samples_per_label::Int, sample_size::Union{Int,NTuple{2,Int}}; n_attributes::Int = -1, flattened::Bool = false, rng = Random.GLOBAL_RNG :: Random.AbstractRNG) = begin
+SampleLandCoverDataset(dataset::String,
+												n_samples_per_label::Int,
+												sample_size::Union{Int,NTuple{2,Int}}
+												;
+												n_attributes::Int = -1,
+												flattened::Bool = false,
+												rng = Random.GLOBAL_RNG :: Random.AbstractRNG) = begin
 	if sample_size isa Int
 		sample_size = (sample_size, sample_size)
 	end
