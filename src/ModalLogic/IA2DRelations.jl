@@ -187,7 +187,14 @@ computeModalThreshold(test_operator::Union{_TestOpGeq,_TestOpLeq}, w::Interval2D
 	yieldMinMaxCombination(test_operator, enumAccRepr2D(test_operator, w, r.x, r.y, size(channel)..., _ReprFake), channel, 2)
 end
 
+
 # TODO: per _TestOpLeq gli operatori si invertono
+
+const _IA2DRelMax = Union{_RelationGlob,_IA_L,_IA_Li,_IA_D}
+const _IA2DRelMin = Union{_RelationId,_IA_O,_IA_Oi,_IA_Bi,_IA_Ei,_IA_Di}
+const _IA2DRelVal = Union{_IA_A,_IA_Ai,_IA_B,_IA_E}
+
+# enumAccReprAggr(f::Union{AttributeMinimumFeatureType,AttributeMaximumFeatureType}, a::Union{typeof(minimum),typeof(maximum)}, w::Interval2D, r::_IA2DRel{R1,R2} where {R1<:_IA2DRelMax,R2<:_IA2DRelMax},  X::Integer) = IterTools.imap(Interval2D, Iterators.product(enumAccReprAggr(f, a, w.x, rx, X), enumAccReprAggr(f, a, w.y, ry, Y)))
 
 ################################################################################
 # END IA2D relations

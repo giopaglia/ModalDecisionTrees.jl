@@ -35,7 +35,7 @@ FeaturedWorldDataset(
 			for (i_feature,feature) in enumerate(features)
 
 				# threshold = computePropositionalThreshold(feature, w, instance)
-				threshold = get_feature_val(X, i_instance, w, feature)
+				threshold = get_gamma(X, i_instance, w, feature)
 
 				@logmsg DTDebug "Feature $(i_feature)" threshold
 			
@@ -72,6 +72,39 @@ end
 # 	end
 # end
 
+
+struct OneWorldFeaturedWorldDataset{T} <: AbstractFeaturedWorldDataset{T, OneWorld}
+	d :: Array{T, 2}
+end
+
+# TODO rename these functions to underscore case
+initFeaturedWorldDataset(X::OntologicalDataset{T, 0, OneWorld}, n_features::Integer) where {T} =
+	OneWorldFeaturedWorldDataset{T}(Array{T, 2}(undef, n_samples(X), n_features))
+modalDatasetIsConsistent(fwd::Any, X::OntologicalDataset{T, 0, OneWorld}, n_features::Integer) where {T} =
+	(typeof(fwd)<:OneWorldFeaturedWorldDataset{T} && size(fwd) == (n_samples(X), n_features))
+initFeaturedWorldDatasetWorldSlice(fwd::OneWorldFeaturedWorldDataset{T}, worldType::OneWorld) where {T} =
+	nothing
+modalDatasetSet(fwd::OneWorldFeaturedWorldDataset{T}, w::OneWorld, i_instance::Integer, i_feature::Integer, threshold::T) where {T} =
+	fwd.d[i_instance, i_feature] = threshold
+slice_dataset(fwd::OneWorldFeaturedWorldDataset{T}, inds::AbstractVector{<:Integer}; return_view = false) where {T} =
+	OneWorldFeaturedWorldDataset{T}(if return_view @view fwd.d[inds,:] else fwd.d[inds,:] end)
+modalDatasetChannelSlice(fwd::OneWorldFeaturedWorldDataset{T}, i_instance::Integer, i_feature::Integer) where {T} =
+	fwd.d[i_instance, i_feature]
+const OneWorldFeaturedChannel{T} = T
+# const OneWorldFeaturedChannel{T} = Union{T}
+modalDatasetChannelSliceGet(fwc::T #=OneWorldFeaturedChannel{T}=#, w::OneWorld) where {T} = fwc
+
+n_samples(fwd::OneWorldFeaturedWorldDataset{T}) where {T}  = size(fwd, 1)
+n_features(fwd::OneWorldFeaturedWorldDataset{T}) where {T} = size(fwd, 2)
+getindex(
+	fwd         :: OneWorldFeaturedWorldDataset{T},
+	i_instance  :: Integer,
+	w           :: OneWorld,
+	i_feature   :: Integer) where {T} = fwd.d[i_instance, i_feature]
+size(fwd::OneWorldFeaturedWorldDataset{T}, args::Vararg) where {T} = size(fwd.d, args...)
+world_type(fwd::OneWorldFeaturedWorldDataset{T}) where {T} = OneWorld
+
+
 struct IntervalFeaturedWorldDataset{T} <: AbstractFeaturedWorldDataset{T, Interval}
 	d :: Array{T, 4}
 end
@@ -88,7 +121,7 @@ modalDatasetSet(fwd::IntervalFeaturedWorldDataset{T}, w::Interval, i_instance::I
 slice_dataset(fwd::IntervalFeaturedWorldDataset{T}, inds::AbstractVector{<:Integer}; return_view = false) where {T} =
 	IntervalFeaturedWorldDataset{T}(if return_view @view fwd.d[:,:,inds,:] else fwd.d[:,:,inds,:] end)
 modalDatasetChannelSlice(fwd::IntervalFeaturedWorldDataset{T}, i_instance::Integer, i_feature::Integer) where {T} =
-	@views fwd.d[:, :, i_instance, i_feature]
+	@views fwd.d[:,:,i_instance, i_feature]
 const IntervalFeaturedChannel{T} = AbstractArray{T, 2}
 modalDatasetChannelSliceGet(fwc::IntervalFeaturedChannel{T}, w::Interval) where {T} =
 	fwc[w.x, w.y]
@@ -104,10 +137,45 @@ size(fwd::IntervalFeaturedWorldDataset{T}, args::Vararg) where {T} = size(fwd.d,
 world_type(fwd::IntervalFeaturedWorldDataset{T}) where {T} = Interval
 
 
+struct Interval2DFeaturedWorldDataset{T} <: AbstractFeaturedWorldDataset{T, Interval2D}
+	d :: Array{T, 6}
+end
+
+# TODO rename these functions to underscore case
+initFeaturedWorldDataset(X::OntologicalDataset{T, 2, Interval2D}, n_features::Integer) where {T} =
+	Interval2DFeaturedWorldDataset{T}(Array{T, 6}(undef, max_channel_size(X)[1], max_channel_size(X)[1]+1, max_channel_size(X)[2], max_channel_size(X)[2]+1, n_samples(X), n_features))
+modalDatasetIsConsistent(fwd::Any, X::OntologicalDataset{T, 2, Interval2D}, n_features::Integer) where {T} =
+	(typeof(fwd)<:Interval2DFeaturedWorldDataset{T} && size(fwd) == (max_channel_size(X)[1], max_channel_size(X)[1]+1, max_channel_size(X)[2], max_channel_size(X)[2]+1, n_samples(X), n_features))
+initFeaturedWorldDatasetWorldSlice(fwd::Interval2DFeaturedWorldDataset{T}, worldType::Interval2D) where {T} =
+	nothing
+modalDatasetSet(fwd::Interval2DFeaturedWorldDataset{T}, w::Interval2D, i_instance::Integer, i_feature::Integer, threshold::T) where {T} =
+	fwd.d[w.x.x, w.x.y, w.y.x, w.y.y, i_instance, i_feature] = threshold
+slice_dataset(fwd::Interval2DFeaturedWorldDataset{T}, inds::AbstractVector{<:Integer}; return_view = false) where {T} =
+	Interval2DFeaturedWorldDataset{T}(if return_view @view fwd.d[:,:,:,:,inds,:] else fwd.d[:,:,:,:,inds,:] end)
+modalDatasetChannelSlice(fwd::Interval2DFeaturedWorldDataset{T}, i_instance::Integer, i_feature::Integer) where {T} =
+	@views fwd.d[:,:,:,:,i_instance, i_feature]
+const Interval2DFeaturedChannel{T} = AbstractArray{T, 4}
+modalDatasetChannelSliceGet(fwc::Interval2DFeaturedChannel{T}, w::Interval2D) where {T} =
+	fwc[w.x.x, w.x.y, w.y.x, w.y.y]
+
+n_samples(fwd::Interval2DFeaturedWorldDataset{T}) where {T}  = size(fwd, 5)
+n_features(fwd::Interval2DFeaturedWorldDataset{T}) where {T} = size(fwd, 6)
+getindex(
+	fwd         :: Interval2DFeaturedWorldDataset{T},
+	i_instance  :: Integer,
+	w           :: Interval2D,
+	i_feature   :: Integer) where {T} = fwd.d[w.x.x, w.x.y, w.y.x, w.y.y, i_instance, i_feature]
+size(fwd::Interval2DFeaturedWorldDataset{T}, args::Vararg) where {T} = size(fwd.d, args...)
+world_type(fwd::Interval2DFeaturedWorldDataset{T}) where {T} = Interval2D
+
+
+
 const FeaturedWorldDatasetSlice{T} = Union{
 	# FeaturedWorldDatasetSlice(OntologicalDataset{T where T, 0, ModalLogic.OneWorld})
-	IntervalFeaturedChannel{T}
-	# FeaturedWorldDatasetSlice(OntologicalDataset{T where T, 2, ModalLogic.Interval2D})
+	T, # OneWorldFeaturedChannel{T},
+	IntervalFeaturedChannel{T},
+	Interval2DFeaturedChannel{T},
+	# FeaturedWorldDatasetSlice(OntologicalDataset{T where T, 2, Interval2D})
 }
 
 
@@ -140,6 +208,35 @@ const FeaturedWorldDatasetSlice{T} = Union{
 # end
 
 
+struct OneWorldFMDStumpSupport{T} <: AbstractFMDStumpSupport{T, OneWorld}
+	d :: Array{T, 3}
+end
+
+n_samples(fmds::OneWorldFMDStumpSupport{T}) where {T}  = size(fmds, 1)
+n_featsnaggrs(fmds::OneWorldFMDStumpSupport{T}) where {T} = size(fmds, 2)
+n_relations(fmds::OneWorldFMDStumpSupport{T}) where {T} = size(fmds, 3)
+getindex(
+	fmds         :: OneWorldFMDStumpSupport{T},
+	i_instance   :: Integer,
+	w            :: OneWorld,
+	i_featsnaggr :: Integer,
+	i_relation   :: Integer) where {T} = fmds.d[i_instance, i_featsnaggr, i_relation]
+size(fmds::OneWorldFMDStumpSupport{T}, args::Vararg) where {T} = size(fmds.d, args...)
+world_type(fmds::OneWorldFMDStumpSupport{T}) where {T} = OneWorld
+
+initFMDStumpSupport(fmd::FeatModalDataset{T, OneWorld}, n_featsnaggrs::Integer, n_relations::Integer) where {T} =
+	OneWorldFMDStumpSupport{T}(Array{T, 3}(undef, n_samples(fmd), n_featsnaggrs, n_relations))
+# modalDatasetIsConsistent_m(modalDataset, fmd::FeatModalDataset{T, OneWorld}, n_featsnaggrs::Integer, n_relations::Integer) where {T} =
+	# (typeof(modalDataset)<:AbstractArray{T, 3} && size(modalDataset) == (n_samples(fmd), n_featsnaggrs, n_relations))
+initFMDStumpSupportWorldSlice(fmds::OneWorldFMDStumpSupport{T}, worldType::OneWorld) where {T} =
+	nothing
+FMDStumpSupportSet(fmds::OneWorldFMDStumpSupport{T}, w::OneWorld, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
+	fmds.d[i_instance, i_featsnaggr, i_relation] = threshold
+slice_dataset(fmds::OneWorldFMDStumpSupport{T}, inds::AbstractVector{<:Integer}; return_view = false) where {T} =
+	OneWorldFMDStumpSupport{T}(if return_view @view fmds.d[inds,:,:] else fmds.d[inds,:,:] end)
+
+
+
 struct IntervalFMDStumpSupport{T} <: AbstractFMDStumpSupport{T, Interval}
 	d :: Array{T, 5}
 end
@@ -156,39 +253,66 @@ getindex(
 size(fmds::IntervalFMDStumpSupport{T}, args::Vararg) where {T} = size(fmds.d, args...)
 world_type(fmds::IntervalFMDStumpSupport{T}) where {T} = Interval
 
-initFMDStumpSupport(fmd::FeatModalDataset{T, ModalLogic.Interval}, n_featsnaggrs::Integer, n_relations::Integer) where {T} =
+initFMDStumpSupport(fmd::FeatModalDataset{T, Interval}, n_featsnaggrs::Integer, n_relations::Integer) where {T} =
 	IntervalFMDStumpSupport{T}(Array{T, 5}(undef, size(fmd.fwd, 1), size(fmd.fwd, 2), n_samples(fmd), n_featsnaggrs, n_relations))
-# modalDatasetIsConsistent_m(modalDataset, fmd::FeatModalDataset{T, ModalLogic.Interval}, n_featsnaggrs::Integer, n_relations::Integer) where {T} =
+# modalDatasetIsConsistent_m(modalDataset, fmd::FeatModalDataset{T, Interval}, n_featsnaggrs::Integer, n_relations::Integer) where {T} =
 	# (typeof(modalDataset)<:AbstractArray{T, 5} && size(modalDataset) == (max_channel_size(fmd)[1], max_channel_size(fmd)[1]+1, n_samples(fmd), n_featsnaggrs, n_relations))
-initFMDStumpSupportWorldSlice(fmds::IntervalFMDStumpSupport{T}, worldType::ModalLogic.Interval) where {T} =
+initFMDStumpSupportWorldSlice(fmds::IntervalFMDStumpSupport{T}, worldType::Interval) where {T} =
 	nothing
-FMDStumpSupportSet(fmds::IntervalFMDStumpSupport{T}, w::ModalLogic.Interval, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
+FMDStumpSupportSet(fmds::IntervalFMDStumpSupport{T}, w::Interval, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
 	fmds.d[w.x, w.y, i_instance, i_featsnaggr, i_relation] = threshold
 slice_dataset(fmds::IntervalFMDStumpSupport{T}, inds::AbstractVector{<:Integer}; return_view = false) where {T} =
 	IntervalFMDStumpSupport{T}(if return_view @view fmds.d[:,:,inds,:,:] else fmds.d[:,:,inds,:,:] end)
 
-struct IntervalFMDStumpGlobalSupport{T} <: AbstractFMDStumpGlobalSupport{T, Interval}
+struct Interval2DFMDStumpSupport{T} <: AbstractFMDStumpSupport{T, Interval2D}
+	d :: Array{T, 7}
+end
+
+n_samples(fmds::Interval2DFMDStumpSupport{T}) where {T}  = size(fmds, 5)
+n_featsnaggrs(fmds::Interval2DFMDStumpSupport{T}) where {T} = size(fmds, 6)
+n_relations(fmds::Interval2DFMDStumpSupport{T}) where {T} = size(fmds, 7)
+getindex(
+	fmds         :: Interval2DFMDStumpSupport{T},
+	i_instance   :: Integer,
+	w            :: Interval2D,
+	i_featsnaggr :: Integer,
+	i_relation   :: Integer) where {T} = fmds.d[w.x.x, w.x.y, w.y.x, w.y.y, i_instance, i_featsnaggr, i_relation]
+size(fmds::Interval2DFMDStumpSupport{T}, args::Vararg) where {T} = size(fmds.d, args...)
+world_type(fmds::Interval2DFMDStumpSupport{T}) where {T} = Interval2D
+
+initFMDStumpSupport(fmd::FeatModalDataset{T, Interval2D}, n_featsnaggrs::Integer, n_relations::Integer) where {T} =
+	Interval2DFMDStumpSupport{T}(Array{T, 7}(undef, size(fmd.fwd, 1), size(fmd.fwd, 2), size(fmd.fwd, 3), size(fmd.fwd, 4), n_samples(fmd), n_featsnaggrs, n_relations))
+# modalDatasetIsConsistent_m(modalDataset, fmd::FeatModalDataset{T, Interval2D}, n_featsnaggrs::Integer, n_relations::Integer) where {T} =
+	# (typeof(modalDataset)<:AbstractArray{T, 7} && size(modalDataset) == (max_channel_size(fmd)[1], max_channel_size(fmd)[1]+1, n_samples(fmd), n_featsnaggrs, n_relations))
+initFMDStumpSupportWorldSlice(fmds::Interval2DFMDStumpSupport{T}, worldType::Interval2D) where {T} =
+	nothing
+FMDStumpSupportSet(fmds::Interval2DFMDStumpSupport{T}, w::Interval2D, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
+	fmds.d[w.x.x, w.x.y, w.y.x, w.y.y, i_instance, i_featsnaggr, i_relation] = threshold
+slice_dataset(fmds::Interval2DFMDStumpSupport{T}, inds::AbstractVector{<:Integer}; return_view = false) where {T} =
+	Interval2DFMDStumpSupport{T}(if return_view @view fmds.d[:,:,:,:,inds,:,:] else fmds.d[:,:,:,:,inds,:,:] end)
+
+
+# Note: global support is world-agnostic
+struct FMDStumpGlobalSupportArray{T} <: AbstractFMDStumpGlobalSupport{T}
 	d :: Array{T, 2}
 end
 
-n_samples(fmds::IntervalFMDStumpGlobalSupport{T}) where {T}  = size(fmds, 1)
-n_featsnaggrs(fmds::IntervalFMDStumpGlobalSupport{T}) where {T} = size(fmds, 2)
+n_samples(fmds::FMDStumpGlobalSupportArray{T}) where {T}  = size(fmds, 1)
+n_featsnaggrs(fmds::FMDStumpGlobalSupportArray{T}) where {T} = size(fmds, 2)
 getindex(
-	fmds         :: IntervalFMDStumpGlobalSupport{T},
+	fmds         :: FMDStumpGlobalSupportArray{T},
 	i_instance   :: Integer,
 	i_featsnaggr  :: Integer) where {T} = fmds.d[i_instance, i_featsnaggr]
-size(fmds::IntervalFMDStumpGlobalSupport{T}, args::Vararg) where {T} = size(fmds.d, args...)
-world_type(fmds::IntervalFMDStumpGlobalSupport{T}) where {T} = Interval
+size(fmds::FMDStumpGlobalSupportArray{T}, args::Vararg) where {T} = size(fmds.d, args...)
 
-initFMDStumpGlobalSupport(fmd::FeatModalDataset{T, ModalLogic.Interval}, n_featsnaggrs::Integer) where {T} =
-	IntervalFMDStumpGlobalSupport{T}(Array{T, 2}(undef, n_samples(fmd), n_featsnaggrs))
-# modalDatasetIsConsistent_g(modalDataset, fmd::FeatModalDataset{T, ModalLogic.Interval} n_featsnaggrs::Integer) where {T, N, WorldType<:AbstractWorld} =
+initFMDStumpGlobalSupport(fmd::FeatModalDataset{T}, n_featsnaggrs::Integer) where {T} =
+	FMDStumpGlobalSupportArray{T}(Array{T, 2}(undef, n_samples(fmd), n_featsnaggrs))
+# modalDatasetIsConsistent_g(modalDataset, fmd::FeatModalDataset{T, ModalLogic.anyworld...} n_featsnaggrs::Integer) where {T, N, WorldType<:AbstractWorld} =
 # 	(typeof(modalDataset)<:AbstractArray{T, 2} && size(modalDataset) == (n_samples(fmd), n_featsnaggrs))
-FMDStumpGlobalSupportSet(fmds::IntervalFMDStumpGlobalSupport{T}, i_instance::Integer, i_featsnaggr::Integer, threshold::T) where {T} =
+FMDStumpGlobalSupportSet(fmds::FMDStumpGlobalSupportArray{T}, i_instance::Integer, i_featsnaggr::Integer, threshold::T) where {T} =
 	fmds.d[i_instance, i_featsnaggr] = threshold
-slice_dataset(fmds::IntervalFMDStumpGlobalSupport{T}, inds::AbstractVector{<:Integer}; return_view = false) where {T} =
-	IntervalFMDStumpGlobalSupport{T}(if return_view @view fmds.d[inds,:] else fmds.d[inds,:] end)
-
+slice_dataset(fmds::FMDStumpGlobalSupportArray{T}, inds::AbstractVector{<:Integer}; return_view = false) where {T} =
+	FMDStumpGlobalSupportArray{T}(if return_view @view fmds.d[inds,:] else fmds.d[inds,:] end)
 
 
 function computeModalDatasetStumpSupport(
