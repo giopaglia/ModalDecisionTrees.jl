@@ -2,7 +2,12 @@
 ☐	Ottimizza gli enumAccessibles e i enumAccessibles per i sets.
 ☐	remove ch_readWorld in favor of inst_readWorld
 
+max_points=30
+legacy_gammas_check
+
 Add test_flattened and test_averaged parameters to runner.jl, that evaluate the same models on a propositional dataset
+
+channel_size/max_channel_size
 
 TODO Prova anche quel map(aggr->aggr...)
 
