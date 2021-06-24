@@ -112,6 +112,8 @@ evaluate_thresh_decision(operator::TestOperatorFun, gamma::T, a::T) where {T} = 
 aggregator_to_binary(::typeof(maximum)) = max
 aggregator_to_binary(::typeof(minimum)) = min
 
+dual_test_operator(::typeof(≥)) = ≤
+dual_test_operator(::typeof(≤)) = ≥
 
 const EQ  = equality_operator
 const GT  = greater_than_operator

@@ -351,10 +351,11 @@ getChannel(X::MultiFrameOntologicalDataset,   i_frame::Integer, idx_i::Integer, 
 slice_dataset(X::MultiFrameOntologicalDataset, inds::AbstractVector{<:Integer}; args...) =
 	MultiFrameOntologicalDataset(map(frame->slice_dataset(frame, inds; args...), X.frames))
 
-display_structure(X::OntologicalDataset, indent::Integer = 0) = begin
-	out = repeat(' ', indent) * "OntologicalDataset\t$(Base.summarysize(X) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t\t"
-	out *= "(shape $(Base.size(X.domain)), # relations $(length(X.ontology.relationSet))"
-	out *= "max_channel_size $(max_channel_size(X))"
+display_structure(X::OntologicalDataset; indent::Integer = 0) = begin
+	out = "$(typeof(X))\t$(Base.summarysize(X) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
+	out *= repeat(' ', indent) * "├ domain shape\t$(Base.size(X.domain))\n"
+	out *= repeat(' ', indent) * "├ $(length(X.ontology.relationSet)) relations\t$(X.ontology.relationSet)\n"
+	out *= repeat(' ', indent) * "└ max_channel_size\t$(max_channel_size(X))"
 	out
 end
 
@@ -550,7 +551,7 @@ end
 			# TODO also try this instead
 			# values = [X.fmd[instance_id, w, i_feature] for w in worlds]
 			# thresholds[:,i_instance] = map(aggr->aggr(values), aggregators)
-				
+			
 			for w in worlds
 				gamma = X.fwd[instance_id, w, i_feature]
 				for (i_aggr,aggr) in enumerate(aggregators)
@@ -558,18 +559,28 @@ end
 				end
 			end
 		end
+		
+		# tested_test_operator = TestOperatorFun[]
+
 		# @logmsg DTDebug "thresholds: " thresholds
 		# For each aggregator
 		for (i_aggr,aggr) in enumerate(aggregators)
 			aggr_thresholds = thresholds[i_aggr,:]
 			aggr_domain = setdiff(Set(aggr_thresholds),Set([typemin(T), typemax(T)]))
 			for (i_test_operator,test_operator) in enumerate(aggrsnops[aggr])
+				# TODO figure out a solution to this issue: >= and <= in a propositional condition can find more or less the same optimum, so no need to check both; but which one of them should be the one on the left child, the one that makes the modal step?
+				# if dual_test_operator(test_operator) in tested_test_operator
+				# 	error("Double-check this part of the code: there's a foundational issue here to settle!")
+				# 	println("Found $(test_operator)'s dual $(dual_test_operator(test_operator)) in tested_test_operator = $(tested_test_operator)")
+				# 	continue
+				# end
 				@logmsg DTDetail " Test operator $(test_operator)"
 				# Look for the best threshold 'a', as in propositions like "feature >= a"
 				for threshold in aggr_domain
 					@logmsg DTDebug " Testing decision: $(display_decision(relation, feature, test_operator, threshold))"
 					@yield (relation, feature, test_operator, threshold), aggr_thresholds
 				end # for threshold
+				# push!(tested_test_operator, test_operator)
 			end # for test_operator
 		end # for aggregator
 	end # for feature
@@ -708,13 +719,15 @@ slice_dataset(X::StumpFeatModalDataset{T,WorldType}, inds::AbstractVector{<:Inte
 		X.featsnaggrs,
 		X.grouped_featsnaggrs)
 
-display_structure(X::StumpFeatModalDataset, indent::Integer = 0) = begin
-	out = repeat(' ', indent) * "\t\t$((Base.summarysize(X.fmd) + Base.summarysize(X.fmd_m) + Base.summarysize(X.fmd_g)) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
-	out *= repeat(' ', indent) * "├ fmd\t\t\t$(Base.summarysize(X.fmd) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t(shape $(Base.size(X.fmd.fwd)))\n"
-	out *= repeat(' ', indent) * "├ fmd_m\t\t\t$(Base.summarysize(X.fmd_m) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t(shape $(Base.size(X.fmd_m)))\n"
-	out *= repeat(' ', indent) * "└ fmd_g\t\t\t$(Base.summarysize(X.fmd_g) / 1024 / 1024 |> x->round(x, digits=2)) MBs"
+display_structure(X::StumpFeatModalDataset; indent::Integer = 0) = begin
+	out = "$(typeof(X))\t$((Base.summarysize(X.fmd) + Base.summarysize(X.fmd_m) + Base.summarysize(X.fmd_g)) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
+	out *= repeat(' ', indent) * "├ fmd\t$(Base.summarysize(X.fmd) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t(shape $(Base.size(X.fmd.fwd)))\n"
+	out *= repeat(' ', indent) * "├ fmd_m\t$(Base.summarysize(X.fmd_m) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t(shape $(Base.size(X.fmd_m)))\n"
+	out *= repeat(' ', indent) * "└ fmd_g\t$(Base.summarysize(X.fmd_g) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t"
 	if !isnothing(X.fmd_g)
 		out *= "\t(shape $(Base.size(X.fmd_g)))"
+	else
+		out *= "\t−"
 	end
 	out
 end
@@ -976,16 +989,17 @@ const SingleFrameGenericDataset{T} = Union{MatricialDataset{T},OntologicalDatase
 const MultiFrameGenericDataset = Union{MultiFrameOntologicalDataset,MultiFrameFeatModalDataset}
 const GenericDataset = Union{SingleFrameGenericDataset,MultiFrameGenericDataset}
 
-display_structure(Xs::MultiFrameGenericDataset, indent::Integer = 0) = begin
-	out = repeat(' ', indent) * "$(typeof(Xs))\t\t\t$(Base.summarysize(Xs) / 1024 / 1024 |> x->round(x, digits=2)) MBs"
+display_structure(Xs::MultiFrameGenericDataset; indent::Integer = 0) = begin
+	out = "$(typeof(Xs))" # * "\t\t\t$(Base.summarysize(Xs) / 1024 / 1024 |> x->round(x, digits=2)) MBs"
 	for (i_frame, X) in enumerate(frames(Xs))
 		if i_frame == n_frames(Xs)
 			out *= "\n" * repeat(' ', indent) * "└ "
 		else
 			out *= "\n" * repeat(' ', indent) * "├ "
 		end
-		out *= "[$(i_frame)]\t\t\t$(Base.summarysize(X) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t(world_type: $(world_type(X)))"
-		out *= display_structure(X, indent+1) * "\n"
+		out *= "[$(i_frame)] "
+		# \t\t\t$(Base.summarysize(X) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t(world_type: $(world_type(X)))"
+		out *= display_structure(X; indent = indent+3) * "\n"
 	end
 	out
 end
@@ -1016,18 +1030,18 @@ end
 
 # TODO reason about shortened features
 
-display_propositional_decision(feature::AttributeMinimumFeatureType, test_operator::typeof(>), threshold::Number) =
-	"A$(feature.i_attr) ⫺ $(threshold)"
+display_propositional_decision(feature::AttributeMinimumFeatureType, test_operator::typeof(≥), threshold::Number) =
+	"A$(feature.i_attribute) ⫺ $(threshold)"
 
-display_propositional_decision(feature::AttributeMaximumFeatureType, test_operator::typeof(<), threshold::Number) =
-	"A$(feature.i_attr) ⫹ $(threshold)"
+display_propositional_decision(feature::AttributeMaximumFeatureType, test_operator::typeof(≤), threshold::Number) =
+	"A$(feature.i_attribute) ⫹ $(threshold)"
 
 
-display_propositional_decision(feature::AttributeSoftMinimumFeatureType, test_operator::typeof(>), threshold::Number) =
-	"A$(feature.i_attr) $("⫺" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold)"
+display_propositional_decision(feature::AttributeSoftMinimumFeatureType, test_operator::typeof(≥), threshold::Number) =
+	"A$(feature.i_attribute) $("⫺" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold)"
 
-display_propositional_decision(feature::AttributeSoftMaximumFeatureType, test_operator::typeof(<), threshold::Number) =
-	"A$(feature.i_attr) $("⫹" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold)"
+display_propositional_decision(feature::AttributeSoftMaximumFeatureType, test_operator::typeof(≤), threshold::Number) =
+	"A$(feature.i_attribute) $("⫹" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold)"
 
 ################################################################################
 ################################################################################
@@ -1294,10 +1308,11 @@ test_decision(
 end
 
 
-export generate_feasible_decisions,
-				generate_propositional_feasible_decisions,
-				generate_global_feasible_decisions,
-				generate_modal_feasible_decisions
+export generate_feasible_decisions
+				# ,
+				# generate_propositional_feasible_decisions,
+				# generate_global_feasible_decisions,
+				# generate_modal_feasible_decisions
 
 @resumable function generate_feasible_decisions(
 		X::AbstractModalDataset{T,WorldType},
