@@ -173,7 +173,9 @@ module treeclassifier
 
 				# Derive all available relations
 				allow_propositional_decisions, allow_modal_decisions, allow_global_decisions = begin
-					if frame_onlyUseRelationGlob
+					if world_type(X) == OneWorld
+						true, false, false
+					elseif frame_onlyUseRelationGlob
 						false, false, true
 					else
 						true, true, frame_useRelationGlob

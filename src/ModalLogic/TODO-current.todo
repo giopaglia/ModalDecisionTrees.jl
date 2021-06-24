@@ -1,6 +1,6 @@
-☐	TODO add enumAccReprAggr for relationAll, and for all worldtypes and relations
+☐	Optimize: TODO add enumAccReprAggr for relationAll, and for all worldtypes and relations
 ☐	Ottimizza gli enumAccessibles e i enumAccessibles per i sets.
-☐	remove ch_readWorld in favor of inst_readWorld
+☐	remove ch_readWorld in favor of inst_readWorld. In general, remove all gamma infrastructure.
 
 max_points=30
 legacy_gammas_check
@@ -16,7 +16,6 @@ In scanner.jl rimuovi i gammas, rimuovi test_operators cambia il modo di indicar
 
 Testa round_dataset_to_datatype/mapArrayToDataType in versione multiframe
 Restore optimize_tree_parameters! optimizations
-
 
 let split_consistency_check be an argument (split_consistency_satisfied_check) and create the debug and performance profiles
 

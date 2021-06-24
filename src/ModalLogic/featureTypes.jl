@@ -2,8 +2,6 @@ export FeatureTypeNone, FeatureTypeFun,
 				AttributeMinimumFeatureType, AttributeMaximumFeatureType,
 				AttributeSoftMinimumFeatureType, AttributeSoftMaximumFeatureType
 
-SimpleFeatureType(a, feature) = feature
-
 ################################################################################
 ################################################################################
 
@@ -66,10 +64,17 @@ struct AttributeSoftMaximumFeatureType{T<:AbstractFloat} <: FeatureTypeFun
 	end
 end
 
-yieldFunction(f::AttributeSoftMinimumFeatureType{T}) where T =
+
+yieldFunction(f::AttributeSoftMinimumFeatureType) =
 	(x)->(vals = vec(ModalLogic.getInstanceAttribute(x,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals)); rev=true))
-yieldFunction(f::AttributeSoftMaximumFeatureType{T}) where T =
+yieldFunction(f::AttributeSoftMaximumFeatureType) =
 	(x)->(vals = vec(ModalLogic.getInstanceAttribute(x,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals))))
+
+# TODO simplify OneWorld case!! Maybe features must dispatch on WorldType as well or on the type of underlying data!
+# For now, OneWorld falls into the generic case through this definition of vec()
+vec(x::Number) = [x]
+# yieldFunction(f::AttributeSoftMinimumFeatureType) = ModalLogic.getInstanceAttribute(x,f.i_attribute)
+# yieldFunction(f::AttributeSoftMaximumFeatureType) = ModalLogic.getInstanceAttribute(x,f.i_attribute)
 
 Base.show(io::IO, f::AttributeSoftMinimumFeatureType) = Base.print(io, "min" * subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
 Base.show(io::IO, f::AttributeSoftMaximumFeatureType) = Base.print(io, "max" * subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
