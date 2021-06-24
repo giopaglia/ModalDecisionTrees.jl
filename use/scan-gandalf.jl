@@ -152,16 +152,19 @@ exec_dataseed = 1:10
 exec_dataset_name = ["Salinas", "Salinas-A", "PaviaCentre", "IndianPines", "Pavia"]
 
 o_RCC8, o_RCC5 = getIntervalRCC8OntologyOfDim(Val(2)), getIntervalRCC5OntologyOfDim(Val(2))
-exec_windowsize_flattened_ontology = [(1,false,OneWorldOntology),(3,:flattened,OneWorldOntology),(3,:averaged,OneWorldOntology),(3,false,o_RCC8),(3,false,o_RCC5)]
+exec_windowsize_flattened_ontology_test_operators = [(1,false,OneWorldOntology,"TestOpGeq"),(3,:flattened,OneWorldOntology,"TestOpGeq"),(3,:averaged,OneWorldOntology,"TestOpGeq"),(3,false,o_RCC8,"TestOpAll"),(3,false,o_RCC5,"TestOpAll")]
+# exec_windowsize_flattened_ontology_test_operators = [(3,:averaged,OneWorldOntology,"TestOpGeq")]
+# exec_windowsize_flattened_ontology_test_operators = [(3,false,o_RCC8,"TestOp")]
 
 # https://github.com/JuliaIO/JSON.jl/issues/203
 # https://discourse.julialang.org/t/json-type-serialization/9794
 # TODO: make test operators types serializable
-exec_test_operators = [ "TestOpAll" ]
+# exec_test_operators = [ "TestOpAll" ]
 # exec_test_operators = [ "TestOp" ]
 # exec_test_operators = [ "TestOp_80" ]
 
 test_operators_dict = Dict(
+	"TestOpGeq" => [TestOpGeq],
 	"TestOp_70" => [TestOpGeq_70, TestOpLeq_70],
 	"TestOp_80" => [TestOpGeq_80, TestOpLeq_80],
 	"TestOp"    => [TestOpGeq, TestOpLeq],
@@ -176,8 +179,8 @@ test_operators_dict = Dict(
 
 
 exec_ranges_dict = (
-	windowsize_flattened_ontology = exec_windowsize_flattened_ontology,
-	test_operators                = exec_test_operators,
+	windowsize_flattened_ontology_test_operators = exec_windowsize_flattened_ontology_test_operators,
+	# test_operators                = exec_test_operators,
 	dataset_name                  = exec_dataset_name,
 	dataseed                      = exec_dataseed,
 )
@@ -185,8 +188,7 @@ exec_ranges_dict = (
 n_samples_per_label = 100
 
 dataset_function = (
-	(windowsize,flattened,ontology),
-	test_operators,
+	(windowsize,flattened,ontology,test_operators),
 	dataset_name,
 	dataseed)->SampleLandCoverDataset(
 		dataset_name,
@@ -278,7 +280,7 @@ for params_combination in IterTools.product(exec_ranges...)
 	##############################################################################
 	##############################################################################
 	
-	(windowsize,flattened,ontology), test_operators, dataset_name, dataseed = params_combination
+	(windowsize,flattened,ontology,test_operators), dataset_name, dataseed = params_combination
 	
 	# LOAD DATASET
 	dataset_file_name = saved_datasets_path * "/" * run_name

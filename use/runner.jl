@@ -275,8 +275,8 @@ function exec_run(
 						@btime StumpFeatModalDataset($X_train_all, $features, $featsnops, computeRelationGlob = $needToComputeRelationGlob);
 					end
 
-				println("Ontological form" * display_structure(X_train_all))
-				println("Stump form" * display_structure(stump_fmd))
+				# println("Ontological form" * display_structure(X_train_all))
+				# println("Stump form" * display_structure(stump_fmd))
 
 				########################################################################
 				########################################################################
@@ -477,7 +477,8 @@ function exec_run(
 			
 			Xs_train_all_multiframe_stump_fmd = MultiFrameFeatModalDataset(Xs_train_all_multiframe_stump_fmd)
 
-			println("X_train" * display_structure(Xs_train_all_multiframe_stump_fmd))
+			println("X_train:")
+			println("  " * display_structure(Xs_train_all_multiframe_stump_fmd; indent = 2))
 
 			(Xs_train_all_multiframe_stump_fmd, X_test)
 		end
@@ -494,7 +495,6 @@ function exec_run(
 
 			# Apply scaling
 			if round_dataset_to_datatype != false
-				error("TODO case round_dataset_to_datatype != false not captured yet")
 				X, Y = roundDataset((X, Y), round_dataset_to_datatype)
 			end
 			
@@ -514,8 +514,9 @@ function exec_run(
 						Y[dataset_slice],
 					)
 			end
-			println(display_structure(X_to_train))
-			println(display_structure(X_to_test))
+
+			# println(display_structure(X_to_train))
+			# println(display_structure(X_to_test))
 
 			# Split in train/test
 			# println(typeof(X_to_train))
@@ -536,7 +537,6 @@ function exec_run(
 
 			# Apply scaling
 			if round_dataset_to_datatype != false
-				error("TODO case round_dataset_to_datatype != false not captured yet")
 				(X_train, Y_train), (X_test,  Y_test) = roundDataset(((X_train, Y_train), (X_test,  Y_test)), round_dataset_to_datatype)
 			end
 			
@@ -562,11 +562,11 @@ function exec_run(
 	
 	dataset = (X_train,Y_train), (X_test,Y_test)
 
-	println(" train dataset:\ttype $(typeof(X_train))\tsize $(size(X_train))")
-	println(" test  dataset:\ttype $(typeof(X_test))\tsize $(size(X_test))")
+	println("train dataset:")
+	println("  " * display_structure(X_train; indent = 2))
 
-	println(display_structure(X_train))
-	println(display_structure(X_test))
+	println("test  dataset:")
+	println("  " * display_structure(X_test; indent = 2))
 	
 	# readline()
 
