@@ -640,45 +640,54 @@ module treeclassifier
 		root = NodeMeta{Float64}(1:n_instances, 0, 0, onlyUseRelationGlob)
 		# Process stack of nodes
 		stack = NodeMeta{Float64}[root]
+		currently_processed_nodes::Vector{NodeMeta{Float64}} = []
 		@inbounds while length(stack) > 0
-			# Pop node and process it
-			node = pop!(stack)
-			_split!(
-				Xs,
-				Y,
-				W,
-				Ss,
-				########################################################################
-				loss_function,
-				node,
-				max_depth,
-				min_samples_leaf,
-				min_loss_at_leaf,
-				min_purity_increase,
-				########################################################################
-				n_subrelations,
-				n_subfeatures,
-				useRelationGlob,
-				########################################################################
-				indX,
-				nc,
-				ncl,
-				ncr,
-				consistency_sat_check,
-				########################################################################
-				Yf,
-				Wf,
-				Sfs,
-				########################################################################
-				rng
-			)
-			# After processing, if needed, perform the split and push the two children for a later processing step
-			if !node.is_leaf
-				fork!(node)
-				# Note: the left (positive) child is not limited to RelationGlob, whereas the right child is only if the current node is as well.
-				push!(stack, node.l)
-				push!(stack, node.r)
+			empty!(currently_processed_nodes) 
+			# Pop nodes and queue them to be processed
+			while length(stack) > 0
+				push!(currently_processed_nodes, pop!(stack))
 			end
+			Threads.@threads for node in currently_processed_nodes
+				_split!(
+					Xs,
+					Y,
+					W,
+					Ss,
+					########################################################################
+					loss_function,
+					node,
+					max_depth,
+					min_samples_leaf,
+					min_loss_at_leaf,
+					min_purity_increase,
+					########################################################################
+					n_subrelations,
+					n_subfeatures,
+					useRelationGlob,
+					########################################################################
+					indX,
+					nc,
+					ncl,
+					ncr,
+					consistency_sat_check,
+					########################################################################
+					Yf,
+					Wf,
+					Sfs,
+					########################################################################
+					rng
+				)
+				# After processing, if needed, perform the split and push the two children for a later processing step
+				if !node.is_leaf
+					fork!(node)
+					# Note: the left (positive) child is not limited to RelationGlob, whereas the right child is only if the current node is as well.
+					lock(stack)
+						push!(stack, node.l)
+						push!(stack, node.r)
+					unlock(stack)
+				end
+			end
+			# here threads joins
 		end
 
 		return (root, indX)
