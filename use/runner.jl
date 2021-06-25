@@ -266,7 +266,7 @@ function exec_run(
 				# 		sfmd
 				# 	end
 				
-				stump_fmd =
+				sfmd_c(X_train_all, features, featsnops, needToComputeRelationGlob) = begin
 					if timing_mode == :none
 						StumpFeatModalDataset(X_train_all, features, featsnops, computeRelationGlob = needToComputeRelationGlob);
 					elseif timing_mode == :time
@@ -274,6 +274,9 @@ function exec_run(
 					elseif timing_mode == :btime
 						@btime StumpFeatModalDataset($X_train_all, $features, $featsnops, computeRelationGlob = $needToComputeRelationGlob);
 					end
+				end
+
+				stump_fmd = @cache "stump_fmd" data_savedir (X_train_all, features, featsnops, needToComputeRelationGlob) sfmd_c
 
 				# println("Ontological form" * display_structure(X_train_all))
 				# println("Stump form" * display_structure(stump_fmd))
