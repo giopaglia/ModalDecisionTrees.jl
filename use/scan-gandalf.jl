@@ -140,7 +140,7 @@ use_ontological_form = false
 test_flattened = false
 test_averaged  = false
 
-legacy_gammas_check = true
+legacy_gammas_check = false # true
 
 
 ################################################################################
