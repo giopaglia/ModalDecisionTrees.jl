@@ -7,18 +7,18 @@ function init_new_history(file_path::String, params_names::Vector{String}, exec_
 	import_history(file_path)
 end
 
-function save_history(file_path::String, dicts::AbstractVector)
+function save_history(file_path::String, history::AbstractVector)
 	mkpath(dirname(file_path))
 	file = open(file_path, "w+")
-	write(file, JSON.json(dicts))
+	write(file, JSON.json(history))
 	close(file)
 end
 
 function import_history(file_path::String)
 	file = open(file_path)
-	dicts = JSON.parse(file)
+	history = JSON.parse(file)
 	close(file)
-	dicts
+	history
 end
 
 function append_in_file(file_name::String, text::String)
@@ -29,19 +29,19 @@ function append_in_file(file_name::String, text::String)
 end
 
 function _are_the_same(obj1::Any, obj2::Any)::Bool
-	# Tuple -> Array
-	obj1 = obj1 isa Tuple ? [obj1...] : obj1
-	obj2 = obj2 isa Tuple ? [obj2...] : obj2
+	# # Tuple -> Array
+	# obj1 = obj1 isa Tuple ? [obj1...] : obj1
+	# obj2 = obj2 isa Tuple ? [obj2...] : obj2
 
-	# NamedTuple -> Dict
-	obj1 = obj1 isa NamedTuple ? 
-		Dict{String, Any}([String(k) => v for (k,v) in zip(keys(obj1),values(obj1))]) : obj1
-	obj2 = obj2 isa NamedTuple ? 
-		Dict{String, Any}([String(k) => v for (k,v) in zip(keys(obj2),values(obj2))]) : obj2
+	# # NamedTuple -> Dict
+	# obj1 = obj1 isa NamedTuple ? 
+	# 	Dict{String, Any}([String(k) => v for (k,v) in zip(keys(obj1),values(obj1))]) : obj1
+	# obj2 = obj2 isa NamedTuple ? 
+	# 	Dict{String, Any}([String(k) => v for (k,v) in zip(keys(obj2),values(obj2))]) : obj2
 
-	# Symbol -> String
-	obj1 = obj1 isa Symbol ? string(obj1) : obj1
-	obj2 = obj2 isa Symbol ? string(obj2) : obj2
+	# # Symbol -> String
+	# obj1 = obj1 isa Symbol ? string(obj1) : obj1
+	# obj2 = obj2 isa Symbol ? string(obj2) : obj2
 
 	if obj1 isa Dict && obj2 isa Dict
 		for (key1,val1) in obj1
@@ -64,7 +64,7 @@ end
 
 function iteration_in_history(history, nt)::Bool
 	for item in history
-		if _are_the_same(nt, item)
+		if _are_the_same(JSON.parse(JSON.json(nt)), item)
 			return true
 		end
 	end
@@ -72,7 +72,7 @@ function iteration_in_history(history, nt)::Bool
 end
 
 function push_iteration_to_history!(history, nt)
-	push!(history, nt)
+	push!(history, JSON.parse(JSON.json(nt)))
 end
 
 function _match_filter(test_parameters, filters)::Bool
