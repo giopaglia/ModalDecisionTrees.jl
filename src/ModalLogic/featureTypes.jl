@@ -2,6 +2,8 @@ export FeatureTypeNone, FeatureTypeFun,
 				AttributeMinimumFeatureType, AttributeMaximumFeatureType,
 				AttributeSoftMinimumFeatureType, AttributeSoftMaximumFeatureType
 
+import Base.vec
+
 ################################################################################
 ################################################################################
 
