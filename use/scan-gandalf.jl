@@ -151,10 +151,9 @@ exec_dataseed = 1:10
 
 exec_dataset_name = ["Salinas", "Salinas-A", "PaviaCentre", "IndianPines", "Pavia"]
 
-o_RCC8, o_RCC5 = getIntervalRCC8OntologyOfDim(Val(2)), getIntervalRCC5OntologyOfDim(Val(2))
-exec_windowsize_flattened_ontology_test_operators = [(1,false,OneWorldOntology,"TestOpGeq"),(3,:flattened,OneWorldOntology,"TestOpGeq"),(3,:averaged,OneWorldOntology,"TestOpGeq"),(3,false,o_RCC8,"TestOpAll"),(3,false,o_RCC5,"TestOpAll")]
-# exec_windowsize_flattened_ontology_test_operators = [(3,:averaged,OneWorldOntology,"TestOpGeq")]
-# exec_windowsize_flattened_ontology_test_operators = [(3,false,o_RCC8,"TestOp")]
+exec_windowsize_flattened_ontology_test_operators = [(1,false,"o_None","TestOpGeq"),(3,:flattened,"o_None","TestOpGeq"),(3,:averaged,"o_None","TestOpGeq"),(3,false,"o_RCC8","TestOpAll"),(3,false,"o_RCC5","TestOpAll")]
+# exec_windowsize_flattened_ontology_test_operators = [(3,:averaged,"o_None","TestOpGeq")]
+# exec_windowsize_flattened_ontology_test_operators = [(3,false,"o_RCC8","TestOp")]
 
 # https://github.com/JuliaIO/JSON.jl/issues/203
 # https://discourse.julialang.org/t/json-type-serialization/9794
@@ -175,6 +174,12 @@ test_operators_dict = Dict(
 									TestOpGeq_70, TestOpLeq_70,
 									TestOpGeq_60, TestOpLeq_60,
 									],
+)
+
+ontology_dict = Dict(
+	"o_RCC8" => getIntervalRCC8OntologyOfDim(Val(2)),
+	"o_RCC5" => getIntervalRCC5OntologyOfDim(Val(2)),
+	"o_None" => OneWorldOntology,
 )
 
 
@@ -264,15 +269,17 @@ for params_combination in IterTools.product(exec_ranges...)
 	run_name = join([replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)], ",")
 
 	# Placed here so we can keep track of which iteration is being skipped
-	checkpoint_stdout("Computing iteration $(run_name)...")
-
-	if dry_run
-		continue
-	end
+	print("Iteration \"$(run_name)\"")
 
 	# CHECK WHETHER THIS ITERATION WAS ALREADY COMPUTED OR NOT
 	if iteration_in_history(history, params_namedtuple) && !just_produce_datasets_jld
-		println("Iteration $(run_name) already done, skipping...")
+		println(": skipping")
+		continue
+	else
+		println("...")
+	end
+
+	if dry_run
 		continue
 	end
 
@@ -297,7 +304,7 @@ for params_combination in IterTools.product(exec_ranges...)
 	# 			continue
 	# 		end
 
-	# 		checkpoint_stdout("Loading dataset $(dataset_file_name * ".jld")...")
+	# 		println("Loading dataset $(dataset_file_name * ".jld")...")
 			
 	# 		dataset = nothing
 	# 		n_pos = nothing
@@ -327,7 +334,7 @@ for params_combination in IterTools.product(exec_ranges...)
 	# 		dataset = (X,Y)
 	#			dataset, dataset_slice
 	# 	else
-	# 		checkpoint_stdout("Creating dataset...")
+	# 		println("Creating dataset...")
 	# 		# TODO wrap dataset creation into a function accepting the rng and other parameters...
 	# 		dataset = dataset_function(params_combination)
 
@@ -339,7 +346,7 @@ for params_combination in IterTools.product(exec_ranges...)
 	# 		dataset_slice = dataset_slice[:]
 
 	# 		if save_datasets
-	# 			checkpoint_stdout("Saving dataset $(dataset_file_name)...")
+	# 			println("Saving dataset $(dataset_file_name)...")
 	# 			(X, Y) = dataset
 	# 			JLD2.@save (dataset_file_name * ".jld")                dataset n_pos n_neg
 	# 			balanced_dataset = slice_labeled_dataset((X,Y), dataset_slice)
@@ -358,7 +365,7 @@ for params_combination in IterTools.product(exec_ranges...)
 	# 	end
 	# println(dataset_slice)
 
-	cur_data_modal_args = merge(data_modal_args, (test_operators = test_operators_dict[test_operators], ontology = ontology))
+	cur_data_modal_args = merge(data_modal_args, (test_operators = test_operators_dict[test_operators], ontology = ontology_dict[ontology]))
 	
 	##############################################################################
 	##############################################################################
@@ -428,4 +435,4 @@ for params_combination in IterTools.product(exec_ranges...)
 	##############################################################################
 end
 
-checkpoint_stdout("Done!")
+println("Done!")

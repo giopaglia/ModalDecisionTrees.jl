@@ -36,9 +36,12 @@ function _are_the_same(obj1::Any, obj2::Any)::Bool
 	# NamedTuple -> Dict
 	obj1 = obj1 isa NamedTuple ? 
 		Dict{String, Any}([String(k) => v for (k,v) in zip(keys(obj1),values(obj1))]) : obj1
-
 	obj2 = obj2 isa NamedTuple ? 
 		Dict{String, Any}([String(k) => v for (k,v) in zip(keys(obj2),values(obj2))]) : obj2
+
+	# Symbol -> String
+	obj1 = obj1 isa Symbol ? string(obj1) : obj1
+	obj2 = obj2 isa Symbol ? string(obj2) : obj2
 
 	if obj1 isa Dict && obj2 isa Dict
 		for (key1,val1) in obj1

@@ -5,6 +5,9 @@
 max_points=30
 legacy_gammas_check
 
+julia -t30 scan-gandalf.jl > results-gandalf/scan.out 2> results-gandalf/scan.err &
+julia -t30 scan-gandalf.jl -f > results-gandalf/scan.out 2> results-gandalf/scan.err &
+
 Add test_flattened and test_averaged parameters to runner.jl, that evaluate the same models on a propositional dataset
 
 channel_size/max_channel_size
