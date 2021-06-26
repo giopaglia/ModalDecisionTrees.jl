@@ -122,13 +122,13 @@ log_level = DecisionTree.DTOverview
 # log_level = DecisionTree.DTDebug
 # log_level = DecisionTree.DTDetail
 
-timing_mode = :none
-# timing_mode = :time
+# timing_mode = :none
+timing_mode = :time
 # timing_mode = :btime
 
-round_dataset_to_datatype = false
+# round_dataset_to_datatype = false
 # round_dataset_to_datatype = UInt16
-#round_dataset_to_datatype = Float32
+round_dataset_to_datatype = Float32
 # round_dataset_to_datatype = UInt16
 
 split_threshold = 0.8
