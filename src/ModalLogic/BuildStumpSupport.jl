@@ -437,7 +437,9 @@ function computeModalDatasetStumpSupport(
 
 				@logmsg DTDebug "Relation $(i_relation)/$(n_relations)"
 
-				initFMDStumpSupportWorldSlice(fmd_m, i_instance, i_featsnaggr, i_relation)
+				for (i_featsnaggr,aggregator) in aggregators
+					initFMDStumpSupportWorldSlice(fmd_m, i_instance, i_featsnaggr, i_relation)
+				end
 
 				for w in accAll_function(fmd, i_instance)
 
