@@ -122,12 +122,12 @@ log_level = DecisionTree.DTOverview
 # log_level = DecisionTree.DTDebug
 # log_level = DecisionTree.DTDetail
 
-# timing_mode = :none
-timing_mode = :time
+timing_mode = :none
+# timing_mode = :time
 # timing_mode = :btime
 
-# round_dataset_to_datatype = false
-round_dataset_to_datatype = UInt16
+round_dataset_to_datatype = false
+# round_dataset_to_datatype = UInt16
 #round_dataset_to_datatype = Float32
 # round_dataset_to_datatype = UInt16
 
@@ -149,9 +149,10 @@ legacy_gammas_check = false # true
 
 exec_dataseed = 1:10
 
-exec_dataset_name = ["Salinas", "Salinas-A", "PaviaCentre", "IndianPines", "Pavia"]
-
+# exec_dataset_name = ["Salinas", "Salinas-A", "PaviaCentre", "IndianPines", "Pavia"]
+exec_dataset_name = ["Pavia", "Salinas-A", "PaviaCentre", "IndianPines", "Salinas"]
 exec_windowsize_flattened_ontology_test_operators = [(1,false,"o_None","TestOpGeq"),(3,:flattened,"o_None","TestOpGeq"),(3,:averaged,"o_None","TestOpGeq"),(3,false,"o_RCC8","TestOpAll"),(3,false,"o_RCC5","TestOpAll")]
+# exec_windowsize_flattened_ontology_test_operators = [(1,false,"o_None","TestOpGeq"),(3,:flattened,"o_None","TestOpGeq"),(3,:averaged,"o_None","TestOpGeq"),(3,false,"o_RCC8","TestOp"),(3,false,"o_RCC5","TestOp")]
 # exec_windowsize_flattened_ontology_test_operators = [(3,:averaged,"o_None","TestOpGeq")]
 # exec_windowsize_flattened_ontology_test_operators = [(3,false,"o_RCC8","TestOp")]
 
