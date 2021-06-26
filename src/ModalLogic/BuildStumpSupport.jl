@@ -232,8 +232,8 @@ initFMDStumpSupport(fmd::FeatModalDataset{T, WorldType}, n_featsnaggrs::Integer,
 	GenericFMDStumpSupport{T, WorldType}(Array{Dict{WorldType,T}, 3}(undef, n_samples(fmd), n_featsnaggrs, n_relations))
 # modalDatasetIsConsistent_m(modalDataset, fmd::FeatModalDataset{T, AbstractWorld}, n_featsnaggrs::Integer, n_relations::Integer) where {T, WorldType} =
 	# (typeof(modalDataset)<:AbstractArray{T, 7} && size(modalDataset) == (max_channel_size(fmd)[1], max_channel_size(fmd)[1]+1, n_samples(fmd), n_featsnaggrs, n_relations))
-initFMDStumpSupportWorldSlice(fmds::GenericFMDStumpSupport{T, WorldType}, i_instance::Integer, i_relation::Integer, i_feature::Integer) where {T, WorldType} =
-	fmds.d[i_instance, i_relation, i_feature] = Dict{WorldType,T}()
+initFMDStumpSupportWorldSlice(fmds::GenericFMDStumpSupport{T, WorldType}, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer) where {T, WorldType} =
+	fmds.d[i_instance, i_featsnaggr, i_relation] = Dict{WorldType,T}()
 FMDStumpSupportSet(fmds::GenericFMDStumpSupport{T, WorldType}, w::AbstractWorld, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T, WorldType} =
 	fmds.d[i_instance, i_featsnaggr, i_relation][w] = threshold
 slice_dataset(fmds::GenericFMDStumpSupport{T, WorldType}, inds::AbstractVector{<:Integer}; return_view = false) where {T, WorldType} =
@@ -261,7 +261,7 @@ initFMDStumpSupport(fmd::FeatModalDataset{T, OneWorld}, n_featsnaggrs::Integer, 
 	OneWorldFMDStumpSupport{T}(Array{T, 3}(undef, n_samples(fmd), n_featsnaggrs, n_relations))
 # modalDatasetIsConsistent_m(modalDataset, fmd::FeatModalDataset{T, OneWorld}, n_featsnaggrs::Integer, n_relations::Integer) where {T} =
 	# (typeof(modalDataset)<:AbstractArray{T, 3} && size(modalDataset) == (n_samples(fmd), n_featsnaggrs, n_relations))
-initFMDStumpSupportWorldSlice(fmds::OneWorldFMDStumpSupport, i_instance::Integer, i_relation::Integer, i_feature::Integer) =
+initFMDStumpSupportWorldSlice(fmds::OneWorldFMDStumpSupport, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer) =
 	nothing
 FMDStumpSupportSet(fmds::OneWorldFMDStumpSupport{T}, w::OneWorld, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
 	fmds.d[i_instance, i_featsnaggr, i_relation] = threshold
@@ -290,7 +290,7 @@ initFMDStumpSupport(fmd::FeatModalDataset{T, Interval}, n_featsnaggrs::Integer, 
 	IntervalFMDStumpSupport{T}(Array{T, 5}(undef, size(fmd.fwd, 1), size(fmd.fwd, 2), n_samples(fmd), n_featsnaggrs, n_relations))
 # modalDatasetIsConsistent_m(modalDataset, fmd::FeatModalDataset{T, Interval}, n_featsnaggrs::Integer, n_relations::Integer) where {T} =
 	# (typeof(modalDataset)<:AbstractArray{T, 5} && size(modalDataset) == (max_channel_size(fmd)[1], max_channel_size(fmd)[1]+1, n_samples(fmd), n_featsnaggrs, n_relations))
-initFMDStumpSupportWorldSlice(fmds::IntervalFMDStumpSupport, i_instance::Integer, i_relation::Integer, i_feature::Integer) =
+initFMDStumpSupportWorldSlice(fmds::IntervalFMDStumpSupport, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer) =
 	nothing
 FMDStumpSupportSet(fmds::IntervalFMDStumpSupport{T}, w::Interval, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
 	fmds.d[w.x, w.y, i_instance, i_featsnaggr, i_relation] = threshold
@@ -318,7 +318,7 @@ slice_dataset(fmds::IntervalFMDStumpSupport{T}, inds::AbstractVector{<:Integer};
 # 	Interval2DFMDStumpSupport{T}(Array{T, 7}(undef, size(fmd.fwd, 1), size(fmd.fwd, 2), size(fmd.fwd, 3), size(fmd.fwd, 4), n_samples(fmd), n_featsnaggrs, n_relations))
 # # modalDatasetIsConsistent_m(modalDataset, fmd::FeatModalDataset{T, Interval2D}, n_featsnaggrs::Integer, n_relations::Integer) where {T} =
 # 	# (typeof(modalDataset)<:AbstractArray{T, 7} && size(modalDataset) == (max_channel_size(fmd)[1], max_channel_size(fmd)[1]+1, n_samples(fmd), n_featsnaggrs, n_relations))
-# initFMDStumpSupportWorldSlice(fmds::Interval2DFMDStumpSupport, i_instance::Integer, i_relation::Integer, i_feature::Integer) =
+# initFMDStumpSupportWorldSlice(fmds::Interval2DFMDStumpSupport, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer) =
 # 	nothing
 # FMDStumpSupportSet(fmds::Interval2DFMDStumpSupport{T}, w::Interval2D, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
 # 	fmds.d[w.x.x, w.x.y, w.y.x, w.y.y, i_instance, i_featsnaggr, i_relation] = threshold
@@ -436,7 +436,7 @@ function computeModalDatasetStumpSupport(
 
 				@logmsg DTDebug "Relation $(i_relation)/$(n_relations)"
 
-				initFMDStumpSupportWorldSlice(fmd_m, i_instance, i_relation, i_feature)
+				initFMDStumpSupportWorldSlice(fmd_m, i_instance, i_featsnaggr, i_relation)
 
 				for w in accAll_function(fmd, i_instance)
 
