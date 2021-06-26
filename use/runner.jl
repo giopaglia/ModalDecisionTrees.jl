@@ -128,7 +128,7 @@ function exec_run(
 	println()
 	println("split_threshold   = ", split_threshold)
 	println("data_modal_args   = ", data_modal_args)
-	# println("dataset_slice   = ", dataset_slice)
+	println("dataset_slice   = ", dataset_slice)
 	# println("round_dataset_to_datatype   = ", round_dataset_to_datatype)
 	# println("use_ontological_form   = ", use_ontological_form)
 	# println("data_savedir   = ", data_savedir)
@@ -266,15 +266,51 @@ function exec_run(
 				# 		sfmd
 				# 	end
 				
-				stump_fmd =
-					if timing_mode == :none
-						StumpFeatModalDataset(X_train_all, features, featsnops, computeRelationGlob = needToComputeRelationGlob);
-					elseif timing_mode == :time
-						@time StumpFeatModalDataset(X_train_all, features, featsnops, computeRelationGlob = needToComputeRelationGlob);
-					elseif timing_mode == :btime
-						@btime StumpFeatModalDataset($X_train_all, $features, $featsnops, computeRelationGlob = $needToComputeRelationGlob);
+				stump_fmd_jld_path, stump_fmd_hash_index_file, dataset_hash =
+					if isnothing(data_savedir)
+						(nothing, nothing, nothing)
+					else
+						dataset_hash = get_hash_sha256(X_train_all)
+						(
+							"$(data_savedir)/stump_fmd_$(dataset_hash).jld",
+							"$(data_savedir)/stump_fmd_hash_index.csv",
+							dataset_hash,
+						)
 					end
 
+				stump_fmd = 
+					if !isnothing(stump_fmd_jld_path) && isfile(stump_fmd_jld_path) # && false
+						checkpoint_stdout("Loading stump_fmd from file \"$(stump_fmd_jld_path)\"...")
+
+						Serialization.deserialize(stump_fmd_jld_path)
+					else
+						checkpoint_stdout("Computing stump_fmd for $(dataset_hash)...")
+						started = Dates.now()
+						stump_fmd =
+							if timing_mode == :none
+								StumpFeatModalDataset(X_train_all, features, featsnops, computeRelationGlob = needToComputeRelationGlob);
+							elseif timing_mode == :time
+								@time StumpFeatModalDataset(X_train_all, features, featsnops, computeRelationGlob = needToComputeRelationGlob);
+							elseif timing_mode == :btime
+								@btime StumpFeatModalDataset($X_train_all, $features, $featsnops, computeRelationGlob = $needToComputeRelationGlob);
+							end
+						stump_fmd_computation_time = (Dates.now() - started)
+						checkpoint_stdout("Computed stump_fmd in $(human_readable_time(stump_fmd_computation_time))...")
+
+						if !isnothing(stump_fmd_jld_path)
+							println("Saving stump_fmd to file \"$(stump_fmd_jld_path)\"...")
+							mkpath(dirname(stump_fmd_jld_path))
+							Serialization.serialize(stump_fmd_jld_path, stump_fmd)
+							# Add record line to the index file of the folder
+							if !isnothing(dataset_name_str)
+								# Generate path to stump_fmd jld file)
+								# TODO fix column_separator here
+								append_in_file(stump_fmd_hash_index_file, "$(dataset_hash);$(dataset_name_str)\n")
+							end
+						end
+						stump_fmd
+					end
+				
 				# println("Ontological form" * display_structure(X_train_all))
 				# println("Stump form" * display_structure(stump_fmd))
 
