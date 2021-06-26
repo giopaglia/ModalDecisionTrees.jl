@@ -27,11 +27,13 @@ module treeclassifier
 		split_at           :: Int                              # index of samples
 		l                  :: NodeMeta{U}                    # left child
 		r                  :: NodeMeta{U}                    # right child
+
 		i_frame            :: Integer          # Id of frame
 		relation           :: R where R<:AbstractRelation      # modal operator (e.g. RelationId for the propositional case)
 		feature            :: FeatureTypeFun                      # feature used for splitting
 		test_operator      :: TestOperatorFun                  # test_operator (e.g. <=)
 		threshold          :: T where T                                # threshold value
+		
 		onlyUseRelationGlob:: Vector{Bool}
 
 		function NodeMeta{U}(
@@ -82,19 +84,18 @@ module treeclassifier
 		####################
 		# Arrays for optimization purposes
 		####################
-		nc                  :: AbstractVector{U},   # nc maintains a dictionary of all labels in the samples
-		ncl                 :: AbstractVector{U},   # ncl maintains the counts of labels on the left
-		ncr                 :: AbstractVector{U},   # ncr maintains the counts of labels on the right
+		nc                    :: AbstractVector{U},   # nc maintains a dictionary of all labels in the samples
+		ncl                   :: AbstractVector{U},   # ncl maintains the counts of labels on the left
+		ncr                   :: AbstractVector{U},   # ncr maintains the counts of labels on the right
 		consistency_sat_check :: Union{Nothing,AbstractVector{Bool}},
 		####################
-		Yf                  :: AbstractVector{Label},
-		Wf                  :: AbstractVector{U},
-		Sfs                 :: AbstractVector{<:AbstractVector{WST} where {WorldType,WST<:WorldSet{WorldType}}},
+		Yf                    :: AbstractVector{Label},
+		Wf                    :: AbstractVector{U},
+		Sfs                   :: AbstractVector{<:AbstractVector{WST} where {WorldType,WST<:WorldSet{WorldType}}},
 		####################
-		rng                 :: Random.AbstractRNG,
+		rng                   :: Random.AbstractRNG,
 	) where {U}
-
-
+		
 		# Region of indX to use to perform the split
 		region = node.region
 		n_instances = length(region)
@@ -607,10 +608,9 @@ module treeclassifier
 			end
 			Ss
 		end
-
+		
 		# Initialize world sets for each instance
 		Ss = init_world_sets(Xs, initConditions)
-
 
 		# Memory support for class counts
 		nc  = Vector{U}(undef, n_classes)
