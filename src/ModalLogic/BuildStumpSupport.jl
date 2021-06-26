@@ -9,12 +9,14 @@ FeaturedWorldDataset(
 		features::AbstractVector{<:FeatureTypeFun}
 	) = begin
 
+	@logmsg DTOverview "OntologicalDataset -> FeatModalDataset"
+
 	n_instances = n_samples(X)
 	n_features = length(features)
-
+	
 	# Prepare FeaturedWorldDataset (the actual implementation depends on the OntologicalDataset)
 	fwd = initFeaturedWorldDataset(X, n_features)
-
+	
 	# Compute features
 	@inbounds Threads.@threads for i_instance in 1:n_instances
 		@logmsg DTDebug "Instance $(i_instance)/$(n_instances)"
@@ -321,6 +323,8 @@ function computeModalDatasetStumpSupport(
 		computeRelationGlob = false,
 	) where {T, N, WorldType<:AbstractWorld}
 	
+	@logmsg DTOverview "FeatModalDataset -> StumpFeatModalDataset"
+
 	fwd = fmd.fwd
 	features = fmd.features
 	relations = fmd.relations
@@ -358,7 +362,7 @@ function computeModalDatasetStumpSupport(
 
 	# Compute features
 
-	@inbounds Threads.@threads for i_instance in 1:n_instances
+	@inbounds for i_instance in 1:n_instances
 		@logmsg DTDebug "Instance $(i_instance)/$(n_instances)"
 		
 		if i_instance == 1 || ((i_instance+1) % (floor(Int, ((n_instances)/5))+1)) == 0
@@ -369,7 +373,7 @@ function computeModalDatasetStumpSupport(
 			initFMDStumpSupportWorldSlice(fmd_m, w)
 		end
 
-		for (i_feature,aggregators) in enumerate(grouped_featsnaggrs)
+		Threads.@threads for (i_feature,aggregators) in enumerate(grouped_featsnaggrs)
 			
 			@logmsg DTDebug "Feature $(i_feature)"
 			
