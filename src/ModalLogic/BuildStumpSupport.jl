@@ -362,7 +362,7 @@ function computeModalDatasetStumpSupport(
 
 	# Compute features
 
-	@inbounds for i_instance in 1:n_instances
+	@inbounds Threads.@threads for i_instance in 1:n_instances
 		@logmsg DTDebug "Instance $(i_instance)/$(n_instances)"
 		
 		if i_instance == 1 || ((i_instance+1) % (floor(Int, ((n_instances)/5))+1)) == 0
@@ -373,7 +373,7 @@ function computeModalDatasetStumpSupport(
 			initFMDStumpSupportWorldSlice(fmd_m, w)
 		end
 
-		Threads.@threads for (i_feature,aggregators) in enumerate(grouped_featsnaggrs)
+		for (i_feature,aggregators) in enumerate(grouped_featsnaggrs)
 			
 			@logmsg DTDebug "Feature $(i_feature)"
 			
@@ -387,6 +387,7 @@ function computeModalDatasetStumpSupport(
 
 				# TODO optimize: all aggregators are likely reading the same raw values.
 				for (i_featsnaggr,aggregator) in aggregators
+				# Threads.@threads for (i_featsnaggr,aggregator) in aggregators
 					
 					# accessible_worlds = accAll_function(fmd, i_instance)
 					# TODO reintroduce the improvements for some operators: e.g. later. Actually, these can be simplified by using a set of representatives, as in some enumAccRepr!
