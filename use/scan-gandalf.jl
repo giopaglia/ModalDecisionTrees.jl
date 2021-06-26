@@ -196,13 +196,34 @@ n_samples_per_label = 100
 dataset_function = (
 	(windowsize,flattened,ontology,test_operators),
 	dataset_name,
-	dataseed)->SampleLandCoverDataset(
-		dataset_name,
-		n_samples_per_label,
-		windowsize,
-		flattened = flattened,
-		# n_attributes = 3,
-		rng = Random.MersenneTwister(dataseed))
+	dataseed)->begin
+		dataset_rng = Random.MersenneTwister(dataseed)
+		
+		# Dataset
+		dataset, n_label_samples = SampleLandCoverDataset(
+					dataset_name,
+					n_samples_per_label,
+					windowsize,
+					stratify = false,
+					# stratify = true,
+					flattened = flattened,
+					# n_attributes = 3,
+					# rng = dataset_rng)
+					rng = copy(main_rng))
+		
+		# Dataset slice
+		n_per_class = minimum(n_samples_per_label)
+		dataset_slice = Array{Int64,2}(undef, length(n_label_samples), n_per_class)
+		c = 0
+		for i in 1:length(n_label_samples)
+			dataset_slice[i,:] .= c .+ Random.randperm(dataset_rng, n_label_samples[i])[1:n_per_class]
+			c += n_label_samples[i]
+		end
+		dataset_slice = dataset_slice[:]
+
+		# dataset_slice = nothing
+		dataset, dataset_slice
+	end
 
 ################################################################################
 ################################### SCAN FILTERS ###############################
@@ -297,8 +318,7 @@ for params_combination in IterTools.product(exec_ranges...)
 	cur_modal_args = modal_args
 
 	# TODO reduce redundancy with caching function
-	dataset = dataset_function(params_combination...)
-	dataset_slice = nothing
+	dataset, dataset_slice = dataset_function(params_combination...)
 	# dataset_rng = Random.MersenneTwister(dataseed)
 	# dataset, dataset_slice = 
 	# 	if save_datasets && isfile(dataset_file_name * ".jld")
