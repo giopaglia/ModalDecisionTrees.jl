@@ -642,7 +642,6 @@ module treeclassifier
 		stack = NodeMeta{Float64}[root]
 		currently_processed_nodes::Vector{NodeMeta{Float64}} = []
 		@inbounds while length(stack) > 0
-			empty!(currently_processed_nodes) 
 			# Pop nodes and queue them to be processed
 			while length(stack) > 0
 				push!(currently_processed_nodes, pop!(stack))
@@ -677,17 +676,17 @@ module treeclassifier
 					########################################################################
 					rng
 				)
-				# After processing, if needed, perform the split and push the two children for a later processing step
+			end
+			# After processing, if needed, perform the split and push the two children for a later processing step
+			for node in currently_processed_nodes
 				if !node.is_leaf
 					fork!(node)
 					# Note: the left (positive) child is not limited to RelationGlob, whereas the right child is only if the current node is as well.
-					lock(stack)
-						push!(stack, node.l)
-						push!(stack, node.r)
-					unlock(stack)
+					push!(stack, node.l)
+					push!(stack, node.r)
 				end
 			end
-			# here threads joins
+			empty!(currently_processed_nodes)
 		end
 
 		return (root, indX)
