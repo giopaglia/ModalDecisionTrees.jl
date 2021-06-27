@@ -6,43 +6,92 @@ function _infos_to_dict(infos::NamedTuple)::Dict
     Dict([String(k) => v for (k,v) in zip(keys(infos),values(infos))])
 end
 
-function cached_obj_exists(type::String, infos::Dict, common_cache_dir::String)::Bool
-	isdir(common_cache_dir) && isfile(common_cache_dir * "/" * _default_jld_file_name(type, get_hash_sha256(infos)))
+function cached_obj_exists(type::String, common_cache_dir::String, hash::String)::Bool
+	isdir(common_cache_dir) && isfile(common_cache_dir * "/" * _default_jld_file_name(type, hash))
 end
-cached_obj_exists(type::String, infos::NamedTuple, common_cache_dir::String; kwargs...) = cached_obj_exists(type, _infos_to_dict(infos), common_cache_dir)
+cached_obj_exists(type::String, common_cache_dir::String, infos::Dict)::Bool = cached_obj_exists(type, common_cache_dir, get_hash_sha256(infos))
+cached_obj_exists(type::String, common_cache_dir::String, infos::NamedTuple)::Bool = cached_obj_exists(type, common_cache_dir, _infos_to_dict(infos))
 
-function cache_obj(type::String, obj::Any, infos::Dict, common_cache_dir::String; column_separator::String = ";")
-	info_hash = get_hash_sha256(infos)
-
-	total_save_path = common_cache_dir * "/" * _default_jld_file_name(type, info_hash)
+function cache_obj(type::String, common_cache_dir::String, obj::Any, hash::String; column_separator::String = ";")
+	total_save_path = common_cache_dir * "/" * _default_jld_file_name(type, hash)
 	mkpath(dirname(total_save_path))
 
-    should_write_header::Bool = ! isfile(common_cache_dir * "/" * _default_table_file_name(type))
-
     table_file = open(common_cache_dir * "/" * _default_table_file_name(type), "a+")
-    if should_write_header
-        write(table_file, string("TIMESTAMP$(column_separator)INFOS$(column_separator)FILE NAME$(column_separator)\n"))
+    if ! isfile(common_cache_dir * "/" * _default_table_file_name(type))
+        write(table_file, string("TIMESTAMP$(column_separator)FILE NAME$(column_separator)\n"))
     end
 	write(table_file, string(
             Dates.format(Dates.now(), "dd/mm/yyyy HH:MM:SS"), column_separator,
-            _default_jld_file_name(type, info_hash), column_separator,
-            infos, column_separator, "\n"))
+            _default_jld_file_name(type, hash), column_separator, "\n"))
 	close(table_file)
 
 	checkpoint_stdout("Saving $(type) to file $(total_save_path)...")
-    # saving obj_infos dict allows the user to inspect a cached file later
-	JLD2.@save total_save_path obj infos
+	JLD2.@save total_save_path obj
 end
-cache_obj(type::String, obj::Any, infos::NamedTuple, common_cache_dir::String; kwargs...) = cache_obj(type, obj, _infos_to_dict(infos), common_cache_dir)
+cache_obj(type::String, common_cache_dir::String, obj::Any, infos::Dict; kwargs...) = cache_obj(type, common_cache_dir, obj, get_hash_sha256(infos); kwargs...)
+cache_obj(type::String, common_cache_dir::String, obj::Any, infos::NamedTuple; kwargs...) = cache_obj(type, common_cache_dir, obj, _infos_to_dict(infos))
 
-function load_cached_obj(type::String, infos::Dict, common_cache_dir::String)
-	info_hash = get_hash_sha256(infos)
-
-	total_load_path = common_cache_dir * "/" * _default_jld_file_name(type, info_hash)
+function load_cached_obj(type::String, common_cache_dir::String, hash::String)
+	total_load_path = common_cache_dir * "/" * _default_jld_file_name(type, hash)
 
 	checkpoint_stdout("Loading $(type) from file $(total_load_path)...")
 	JLD2.@load total_load_path obj
 
 	obj
 end
-load_cached_obj(type::String, infos::NamedTuple, common_cache_dir::String) = load_cached_obj(type, _infos_to_dict(infos), common_cache_dir)
+load_cached_obj(type::String, common_cache_dir::String, infos::NamedTuple) = load_cached_obj(type, common_cache_dir, _infos_to_dict(infos))
+load_cached_obj(type::String, common_cache_dir::String, infos::Dict) = load_cached_obj(type, common_cache_dir, get_hash_sha256(infos))
+
+macro cache(type, common_cache_dir, args, kwargs, compute_function)
+	# TODO type check
+	# hyigene
+	type = esc(type)
+	common_cache_dir = esc(common_cache_dir)
+	args = esc(args)
+	kwargs = esc(kwargs)
+	compute_function = esc(compute_function)
+
+	return quote
+		hash = get_hash_sha256(($(args), _infos_to_dict($(kwargs))))
+		if cached_obj_exists($(type), $(common_cache_dir), hash)
+			load_cached_obj($(type), $(common_cache_dir), hash)
+		else
+			checkpoint_stdout("Computing " * $(type) * "...")
+
+			_started = Dates.now()
+			_result_value = $(compute_function)($(args)...; $(kwargs)...)
+			_finish_time = (Dates.now() - _started)
+
+			checkpoint_stdout("Computed " * $(type) * " in " * human_readable_time(_finish_time))
+
+			cache_obj($(type), $(common_cache_dir), _result_value, hash)
+			_result_value
+		end
+	end
+end
+macro cache(type, common_cache_dir, args, compute_function)
+	# TODO type check
+	# hyigene
+	type = esc(type)
+	common_cache_dir = esc(common_cache_dir)
+	args = esc(args)
+	compute_function = esc(compute_function)
+
+	return quote
+		hash = get_hash_sha256($(args))
+		if cached_obj_exists($(type), $(common_cache_dir), hash)
+			load_cached_obj($(type), $(common_cache_dir), hash)
+		else
+			checkpoint_stdout("Computing " * $(type) * "...")
+
+			_started = Dates.now()
+			_result_value = $(compute_function)($(args)...)
+			_finish_time = (Dates.now() - _started)
+
+			checkpoint_stdout("Computed " * $(type) * " in " * human_readable_time(_finish_time))
+
+			cache_obj($(type), $(common_cache_dir), _result_value, hash)
+			_result_value
+		end
+	end
+end
