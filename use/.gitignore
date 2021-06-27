@@ -3,6 +3,8 @@ old-stuff/results
 old-stuff/results-find-best-values
 old-stuff/results-siemens
 
+local.jl
+
 **.tmp
 **.jld
 **/progress.json
