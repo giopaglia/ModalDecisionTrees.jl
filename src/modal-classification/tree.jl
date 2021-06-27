@@ -27,11 +27,13 @@ module treeclassifier
 		split_at           :: Int                              # index of samples
 		l                  :: NodeMeta{U}                    # left child
 		r                  :: NodeMeta{U}                    # right child
+
 		i_frame            :: Integer          # Id of frame
 		relation           :: R where R<:AbstractRelation      # modal operator (e.g. RelationId for the propositional case)
 		feature            :: FeatureTypeFun                      # feature used for splitting
 		test_operator      :: TestOperatorFun                  # test_operator (e.g. <=)
 		threshold          :: T where T                                # threshold value
+		
 		onlyUseRelationGlob:: Vector{Bool}
 
 		function NodeMeta{U}(
@@ -82,19 +84,18 @@ module treeclassifier
 		####################
 		# Arrays for optimization purposes
 		####################
-		nc                  :: AbstractVector{U},   # nc maintains a dictionary of all labels in the samples
-		ncl                 :: AbstractVector{U},   # ncl maintains the counts of labels on the left
-		ncr                 :: AbstractVector{U},   # ncr maintains the counts of labels on the right
+		nc                    :: AbstractVector{U},   # nc maintains a dictionary of all labels in the samples
+		ncl                   :: AbstractVector{U},   # ncl maintains the counts of labels on the left
+		ncr                   :: AbstractVector{U},   # ncr maintains the counts of labels on the right
 		consistency_sat_check :: Union{Nothing,AbstractVector{Bool}},
 		####################
-		Yf                  :: AbstractVector{Label},
-		Wf                  :: AbstractVector{U},
-		Sfs                 :: AbstractVector{<:AbstractVector{WST} where {WorldType,WST<:WorldSet{WorldType}}},
+		Yf                    :: AbstractVector{Label},
+		Wf                    :: AbstractVector{U},
+		Sfs                   :: AbstractVector{<:AbstractVector{WST} where {WorldType,WST<:WorldSet{WorldType}}},
 		####################
-		rng                 :: Random.AbstractRNG,
+		rng                   :: Random.AbstractRNG,
 	) where {U}
-
-
+		
 		# Region of indX to use to perform the split
 		region = node.region
 		n_instances = length(region)
@@ -607,10 +608,9 @@ module treeclassifier
 			end
 			Ss
 		end
-
+		
 		# Initialize world sets for each instance
 		Ss = init_world_sets(Xs, initConditions)
-
 
 		# Memory support for class counts
 		nc  = Vector{U}(undef, n_classes)
@@ -640,54 +640,45 @@ module treeclassifier
 		root = NodeMeta{Float64}(1:n_instances, 0, 0, onlyUseRelationGlob)
 		# Process stack of nodes
 		stack = NodeMeta{Float64}[root]
-		currently_processed_nodes::Vector{NodeMeta{Float64}} = []
 		@inbounds while length(stack) > 0
-			empty!(currently_processed_nodes) 
 			# Pop nodes and queue them to be processed
-			while length(stack) > 0
-				push!(currently_processed_nodes, pop!(stack))
+			node = pop!(stack)
+			_split!(
+				Xs,
+				Y,
+				W,
+				Ss,
+				########################################################################
+				loss_function,
+				node,
+				max_depth,
+				min_samples_leaf,
+				min_loss_at_leaf,
+				min_purity_increase,
+				########################################################################
+				n_subrelations,
+				n_subfeatures,
+				useRelationGlob,
+				########################################################################
+				indX,
+				nc,
+				ncl,
+				ncr,
+				consistency_sat_check,
+				########################################################################
+				Yf,
+				Wf,
+				Sfs,
+				########################################################################
+				rng
+			)
+			# After processing, if needed, perform the split and push the two children for a later processing step
+			if !node.is_leaf
+				fork!(node)
+				# Note: the left (positive) child is not limited to RelationGlob, whereas the right child is only if the current node is as well.
+				push!(stack, node.l)
+				push!(stack, node.r)
 			end
-			Threads.@threads for node in currently_processed_nodes
-				_split!(
-					Xs,
-					Y,
-					W,
-					Ss,
-					########################################################################
-					loss_function,
-					node,
-					max_depth,
-					min_samples_leaf,
-					min_loss_at_leaf,
-					min_purity_increase,
-					########################################################################
-					n_subrelations,
-					n_subfeatures,
-					useRelationGlob,
-					########################################################################
-					indX,
-					nc,
-					ncl,
-					ncr,
-					consistency_sat_check,
-					########################################################################
-					Yf,
-					Wf,
-					Sfs,
-					########################################################################
-					rng
-				)
-				# After processing, if needed, perform the split and push the two children for a later processing step
-				if !node.is_leaf
-					fork!(node)
-					# Note: the left (positive) child is not limited to RelationGlob, whereas the right child is only if the current node is as well.
-					lock(stack)
-						push!(stack, node.l)
-						push!(stack, node.r)
-					unlock(stack)
-				end
-			end
-			# here threads joins
 		end
 
 		return (root, indX)
