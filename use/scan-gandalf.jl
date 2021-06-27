@@ -22,7 +22,7 @@ results_dir = "./results-gandalf"
 iteration_progress_json_file_path = results_dir * "/progress.json"
 concise_output_file_path = results_dir * "/grouped_in_models.csv"
 full_output_file_path = results_dir * "/full_columns.csv"
-data_savedir = results_dir * "/gammas"
+data_savedir = results_dir * "/cache"
 tree_savedir = results_dir * "/trees"
 
 column_separator = ";"
