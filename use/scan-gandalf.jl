@@ -22,7 +22,7 @@ results_dir = "./results-gandalf"
 iteration_progress_json_file_path = results_dir * "/progress.json"
 concise_output_file_path = results_dir * "/grouped_in_models.csv"
 full_output_file_path = results_dir * "/full_columns.csv"
-data_savedir = results_dir * "/gammas"
+data_savedir = results_dir * "/cache"
 tree_savedir = results_dir * "/trees"
 
 column_separator = ";"
@@ -317,8 +317,7 @@ for params_combination in IterTools.product(exec_ranges...)
 
 	cur_modal_args = modal_args
 
-	# TODO reduce redundancy with caching function
-	dataset, dataset_slice = dataset_function(params_combination...)
+	dataset, dataset_slice = @cache "dataset" data_savedir params_combination dataset_function
 	# dataset_rng = Random.MersenneTwister(dataseed)
 	# dataset, dataset_slice = 
 	# 	if save_datasets && isfile(dataset_file_name * ".jld")
