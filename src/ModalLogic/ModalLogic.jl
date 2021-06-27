@@ -258,7 +258,7 @@ get_gamma(X::MatricialDataset, i_instance::Integer, w::AbstractWorld, feature::F
 	
 	# Core data
 	domain    :: MatricialDataset{T,N+1+1}
-
+	
 	function OntologicalDataset(ontology::Ontology{WorldType}, domain::MatricialDataset{T,D}) where {T, N, D, WorldType<:AbstractWorld}
 		OntologicalDataset{T}(ontology, domain)
 	end
@@ -935,9 +935,7 @@ end
 					# Look for the best threshold 'a', as in propositions like "feature >= a"
 					for threshold in aggr_domain
 						@logmsg DTDebug " Testing decision: $(display_decision(relation, feature, test_operator, threshold))"
-
 						@yield (relation, feature, test_operator, threshold), aggr_thresholds
-						
 					end # for threshold
 				end # for test_operator
 			end # for aggregator
@@ -1161,7 +1159,7 @@ const IntervalRCC8Ontology   = Ontology{Interval}(RCC8Relations)
 const Interval2DRCC8Ontology = Ontology{Interval2D}(RCC8Relations)
 const IntervalRCC5Ontology   = Ontology{Interval}(RCC5Relations)
 const Interval2DRCC5Ontology = Ontology{Interval2D}(RCC5Relations)
- 
+
 getIntervalOntologyOfDim(::MatricialDataset{T,D}) where {T,D} = getIntervalOntologyOfDim(Val(D-2))
 getIntervalOntologyOfDim(::Val{1}) = IntervalOntology
 getIntervalOntologyOfDim(::Val{2}) = Interval2DOntology
