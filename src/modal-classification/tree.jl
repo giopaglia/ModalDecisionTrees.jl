@@ -641,7 +641,7 @@ module treeclassifier
 		# Process stack of nodes
 		stack = NodeMeta{Float64}[root]
 		@inbounds while length(stack) > 0
-			# Pop node and process it
+			# Pop nodes and queue them to be processed
 			node = pop!(stack)
 			_split!(
 				Xs,
