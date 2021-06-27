@@ -72,6 +72,10 @@ yieldFunction(f::AttributeSoftMinimumFeatureType) =
 yieldFunction(f::AttributeSoftMaximumFeatureType) =
 	(x)->(vals = vec(ModalLogic.getInstanceAttribute(x,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals))))
 
+
+alpha(x::AttributeSoftMinimumFeatureType) = x.alpha
+alpha(x::AttributeSoftMaximumFeatureType) = x.alpha
+
 # TODO simplify OneWorld case!! Maybe features must dispatch on WorldType as well or on the type of underlying data!
 # For now, OneWorld falls into the generic case through this definition of vec()
 vec(x::Number) = [x]
