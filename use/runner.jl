@@ -301,55 +301,21 @@ function exec_run(
 					end
 
 					# Generate path to gammas jld file
-					gammas_jld_path, gammas_hash_index_file, dataset_hash =
-						if isnothing(data_savedir)
-							(nothing, nothing, nothing)
-						else
-							dataset_hash = get_hash_sha256(X_train_all)
-							(
-								"$(data_savedir)/gammas_$(dataset_hash).jld",
-								"$(data_savedir)/gammas_hash_index.csv",
-								dataset_hash,
-							)
+					gammas_c(X_train_all,test_operators,relationSet,relationId_id,inUseRelation_ids) = begin
+						if timing_mode == :none
+							DecisionTree.computeGammas(X_train_all,test_operators,relationSet,relationId_id,inUseRelation_ids);
+						elseif timing_mode == :time
+							@time DecisionTree.computeGammas(X_train_all,test_operators,relationSet,relationId_id,inUseRelation_ids);
+						elseif timing_mode == :btime
+							@btime DecisionTree.computeGammas($X_train_all,$test_operators,$relationSet,$relationId_id,$inUseRelation_ids);
 						end
+					end
 
-					gammas = 
-						if !isnothing(gammas_jld_path) && isfile(gammas_jld_path) # && false
-							checkpoint_stdout("Loading gammas from file \"$(gammas_jld_path)\"...")
-
-							Serialization.deserialize(gammas_jld_path)
-						else
-							checkpoint_stdout("Computing gammas for $(dataset_hash)...")
-							started = Dates.now()
-							gammas = 
-								if timing_mode == :none
-									DecisionTree.computeGammas(X_train_all,data_modal_args.test_operators,relationSet,relationId_id,inUseRelation_ids);
-								elseif timing_mode == :time
-									@time DecisionTree.computeGammas(X_train_all,data_modal_args.test_operators,relationSet,relationId_id,inUseRelation_ids);
-								elseif timing_mode == :btime
-									@btime DecisionTree.computeGammas($X_train_all,$data_modal_args.test_operators,$relationSet,$relationId_id,$inUseRelation_ids);
-							end
-							gammas_computation_time = (Dates.now() - started)
-							checkpoint_stdout("Computed gammas in $(human_readable_time(gammas_computation_time))...")
-
-							if !isnothing(gammas_jld_path)
-								println("Saving gammas to file \"$(gammas_jld_path)\"...")
-								mkpath(dirname(gammas_jld_path))
-								Serialization.serialize(gammas_jld_path, gammas)
-								# Add record line to the index file of the folder
-								if !isnothing(dataset_name_str)
-									# Generate path to gammas jld file)
-									# TODO fix column_separator here
-									append_in_file(gammas_hash_index_file, "$(dataset_hash);$(dataset_name_str)\n")
-								end
-							end
-							gammas
-						end
+					gammas = @cache "gammas" data_savedir (X_train_all,data_modal_args.test_operators,relationSet,relationId_id,inUseRelation_ids) gammas_c
 					
 					println("Gammas form\t\t$(sizeof(gammas)/1024/1024 |> x->round(x, digits=2)) MBs\t(shape $(size(gammas)), type $(typeof(gammas)))")
 					
 					# Check consistency between FeaturedWorldDataset and modalDataset
-
 
 					checkpoint_stdout("Start checking propositional consistency...")
 

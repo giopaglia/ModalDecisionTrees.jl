@@ -295,7 +295,7 @@ for params_combination in IterTools.product(exec_ranges...)
 	cur_modal_args = modal_args
 
 	# TODO reduce redundancy with caching function
-	dataset = dataset_function(params_combination...)
+	dataset = @cache "dataset" data_savedir params_combination dataset_function
 	dataset_slice = nothing
 	# dataset_rng = Random.MersenneTwister(dataseed)
 	# dataset, dataset_slice = 
