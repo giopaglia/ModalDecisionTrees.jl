@@ -22,7 +22,7 @@ results_dir = "./results-gandalf"
 iteration_progress_json_file_path = results_dir * "/progress.json"
 concise_output_file_path = results_dir * "/grouped_in_models.csv"
 full_output_file_path = results_dir * "/full_columns.csv"
-data_savedir = results_dir * "/gammas"
+data_savedir = results_dir * "/cache"
 tree_savedir = results_dir * "/trees"
 
 column_separator = ";"
@@ -127,8 +127,8 @@ timing_mode = :time
 # timing_mode = :btime
 
 # round_dataset_to_datatype = false
-round_dataset_to_datatype = UInt16
-#round_dataset_to_datatype = Float32
+# round_dataset_to_datatype = UInt16
+round_dataset_to_datatype = Float32
 # round_dataset_to_datatype = UInt16
 
 split_threshold = 0.8
@@ -149,9 +149,10 @@ legacy_gammas_check = false # true
 
 exec_dataseed = 1:10
 
-exec_dataset_name = ["Salinas", "Salinas-A", "PaviaCentre", "IndianPines", "Pavia"]
-
+# exec_dataset_name = ["Salinas", "Salinas-A", "PaviaCentre", "IndianPines", "Pavia"]
+exec_dataset_name = ["Pavia", "Salinas-A", "PaviaCentre", "IndianPines", "Salinas"]
 exec_windowsize_flattened_ontology_test_operators = [(1,false,"o_None","TestOpGeq"),(3,:flattened,"o_None","TestOpGeq"),(3,:averaged,"o_None","TestOpGeq"),(3,false,"o_RCC8","TestOpAll"),(3,false,"o_RCC5","TestOpAll")]
+# exec_windowsize_flattened_ontology_test_operators = [(1,false,"o_None","TestOpGeq"),(3,:flattened,"o_None","TestOpGeq"),(3,:averaged,"o_None","TestOpGeq"),(3,false,"o_RCC8","TestOp"),(3,false,"o_RCC5","TestOp")]
 # exec_windowsize_flattened_ontology_test_operators = [(3,:averaged,"o_None","TestOpGeq")]
 # exec_windowsize_flattened_ontology_test_operators = [(3,false,"o_RCC8","TestOp")]
 
@@ -185,9 +186,9 @@ ontology_dict = Dict(
 
 exec_ranges_dict = (
 	windowsize_flattened_ontology_test_operators = exec_windowsize_flattened_ontology_test_operators,
-	# test_operators                = exec_test_operators,
-	dataset_name                  = exec_dataset_name,
-	dataseed                      = exec_dataseed,
+	# test_operators                             = exec_test_operators,
+	dataset_name                                 = exec_dataset_name,
+	dataseed                                     = exec_dataseed,
 )
 
 n_samples_per_label = 100
@@ -195,13 +196,34 @@ n_samples_per_label = 100
 dataset_function = (
 	(windowsize,flattened,ontology,test_operators),
 	dataset_name,
-	dataseed)->SampleLandCoverDataset(
-		dataset_name,
-		n_samples_per_label,
-		windowsize,
-		flattened = flattened,
-		# n_attributes = 3,
-		rng = Random.MersenneTwister(dataseed))
+	dataseed)->begin
+		dataset_rng = Random.MersenneTwister(dataseed)
+		
+		# Dataset
+		dataset, n_label_samples = SampleLandCoverDataset(
+					dataset_name,
+					n_samples_per_label,
+					windowsize,
+					stratify = false,
+					# stratify = true,
+					flattened = flattened,
+					# n_attributes = 3,
+					# rng = dataset_rng)
+					rng = copy(main_rng))
+		
+		# Dataset slice
+		n_per_class = minimum(n_samples_per_label)
+		dataset_slice = Array{Int64,2}(undef, length(n_label_samples), n_per_class)
+		c = 0
+		for i in 1:length(n_label_samples)
+			dataset_slice[i,:] .= c .+ Random.randperm(dataset_rng, n_label_samples[i])[1:n_per_class]
+			c += n_label_samples[i]
+		end
+		dataset_slice = dataset_slice[:]
+
+		# dataset_slice = nothing
+		dataset, dataset_slice
+	end
 
 ################################################################################
 ################################### SCAN FILTERS ###############################
@@ -247,6 +269,7 @@ exec_ranges_names, exec_ranges = collect(string.(keys(exec_ranges_dict))), colle
 history = load_or_create_history(
 	iteration_progress_json_file_path, exec_ranges_names, exec_ranges
 )
+
 ################################################################################
 ################################################################################
 ################################################################################
@@ -294,9 +317,7 @@ for params_combination in IterTools.product(exec_ranges...)
 
 	cur_modal_args = modal_args
 
-	# TODO reduce redundancy with caching function
-	dataset = dataset_function(params_combination...)
-	dataset_slice = nothing
+	dataset, dataset_slice = @cache "dataset" data_savedir params_combination dataset_function
 	# dataset_rng = Random.MersenneTwister(dataseed)
 	# dataset, dataset_slice = 
 	# 	if save_datasets && isfile(dataset_file_name * ".jld")

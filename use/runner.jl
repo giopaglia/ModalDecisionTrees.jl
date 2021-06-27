@@ -128,7 +128,7 @@ function exec_run(
 	println()
 	println("split_threshold   = ", split_threshold)
 	println("data_modal_args   = ", data_modal_args)
-	# println("dataset_slice   = ", dataset_slice)
+	println("dataset_slice   = ", dataset_slice)
 	# println("round_dataset_to_datatype   = ", round_dataset_to_datatype)
 	# println("use_ontological_form   = ", use_ontological_form)
 	# println("data_savedir   = ", data_savedir)
@@ -277,7 +277,7 @@ function exec_run(
 				end
 
 				stump_fmd = @cache "stump_fmd" data_savedir (X_train_all, features, featsnops, needToComputeRelationGlob) sfmd_c
-
+				
 				# println("Ontological form" * display_structure(X_train_all))
 				# println("Stump form" * display_structure(stump_fmd))
 
@@ -287,7 +287,7 @@ function exec_run(
 				########################################################################
 				########################################################################
 
-				if legacy_gammas_check && WorldType != OneWorld # TODO gammas are faulty in the propositional case (= with OneWorld)
+				if legacy_gammas_check != false && WorldType != OneWorld # TODO gammas are faulty in the propositional case (= with OneWorld)
 					relationSet = [RelationId, RelationGlob, data_modal_args.ontology.relationSet...]
 					relationId_id = 1
 					relationGlob_id = 2
@@ -301,172 +301,140 @@ function exec_run(
 					end
 
 					# Generate path to gammas jld file
-					gammas_jld_path, gammas_hash_index_file, dataset_hash =
-						if isnothing(data_savedir)
-							(nothing, nothing, nothing)
-						else
-							dataset_hash = get_hash_sha256(X_train_all)
-							(
-								"$(data_savedir)/gammas_$(dataset_hash).jld",
-								"$(data_savedir)/gammas_hash_index.csv",
-								dataset_hash,
-							)
+					gammas_c(X_train_all,test_operators,relationSet,relationId_id,inUseRelation_ids) = begin
+						if timing_mode == :none
+							DecisionTree.computeGammas(X_train_all,test_operators,relationSet,relationId_id,inUseRelation_ids);
+						elseif timing_mode == :time
+							@time DecisionTree.computeGammas(X_train_all,test_operators,relationSet,relationId_id,inUseRelation_ids);
+						elseif timing_mode == :btime
+							@btime DecisionTree.computeGammas($X_train_all,$test_operators,$relationSet,$relationId_id,$inUseRelation_ids);
 						end
+					end
 
-					gammas = 
-						if !isnothing(gammas_jld_path) && isfile(gammas_jld_path) # && false
-							checkpoint_stdout("Loading gammas from file \"$(gammas_jld_path)\"...")
-
-							Serialization.deserialize(gammas_jld_path)
-						else
-							checkpoint_stdout("Computing gammas for $(dataset_hash)...")
-							started = Dates.now()
-							gammas = 
-								if timing_mode == :none
-									DecisionTree.computeGammas(X_train_all,data_modal_args.test_operators,relationSet,relationId_id,inUseRelation_ids);
-								elseif timing_mode == :time
-									@time DecisionTree.computeGammas(X_train_all,data_modal_args.test_operators,relationSet,relationId_id,inUseRelation_ids);
-								elseif timing_mode == :btime
-									@btime DecisionTree.computeGammas($X_train_all,$data_modal_args.test_operators,$relationSet,$relationId_id,$inUseRelation_ids);
-							end
-							gammas_computation_time = (Dates.now() - started)
-							checkpoint_stdout("Computed gammas in $(human_readable_time(gammas_computation_time))...")
-
-							if !isnothing(gammas_jld_path)
-								println("Saving gammas to file \"$(gammas_jld_path)\"...")
-								mkpath(dirname(gammas_jld_path))
-								Serialization.serialize(gammas_jld_path, gammas)
-								# Add record line to the index file of the folder
-								if !isnothing(dataset_name_str)
-									# Generate path to gammas jld file)
-									# TODO fix column_separator here
-									append_in_file(gammas_hash_index_file, "$(dataset_hash);$(dataset_name_str)\n")
-								end
-							end
-							gammas
-						end
+					gammas = @cache "gammas" data_savedir (X_train_all,data_modal_args.test_operators,relationSet,relationId_id,inUseRelation_ids) gammas_c
 					
 					println("Gammas form\t\t$(sizeof(gammas)/1024/1024 |> x->round(x, digits=2)) MBs\t(shape $(size(gammas)), type $(typeof(gammas)))")
 					
 					# Check consistency between FeaturedWorldDataset and modalDataset
 
+					if legacy_gammas_check == true
+						checkpoint_stdout("Start checking propositional consistency...")
 
-					checkpoint_stdout("Start checking propositional consistency...")
-
-					# propositional decisions
-					n_checks = 0
-					for i_instance in 1:n_samples(X_train_all)
-						instance = ModalLogic.getInstance(X_train_all, i_instance)
-						i_feature = 1
-						for i_attribute in 1:n_attributes(X_train_all)
-							for (i_test_operator,test_operator) in enumerate(data_modal_args.test_operators)
-								for w in ModalLogic.enumAll(WorldType, ModalLogic.inst_channel_size(instance)...)
-									
-									g = DecisionTree.readGamma(gammas,i_test_operator,w,i_instance,1,i_attribute)
-									m = get_gamma(stump_fmd, i_instance, w, features[i_feature])
-									n_checks += 1
-
-									if g != m
-										println("FeaturedWorldDataset check: g != m\n$(g)\n$(m)")
-										println("i_test_operator=$(i_test_operator)")
-										println("w=$(w)")
-										println("i_instance=$(i_instance)")
-										println("i_attribute=$(i_attribute)")
-										print("instance: ")
-										println(ModalLogic.getInstanceAttribute(instance, i_attribute))
-										error("aoe")
-									end
-								end
-								i_feature += 1
-							end
-						end
-					end
-					
-					# global decisions
-					if !isnothing(stump_fmd.fmd_g)
-						checkpoint_stdout("Start checking global consistency ($n_checks checks so far)...")
-						firstWorld = WorldType(ModalLogic.firstWorld)
+						# propositional decisions
+						n_checks = 0
 						for i_instance in 1:n_samples(X_train_all)
 							instance = ModalLogic.getInstance(X_train_all, i_instance)
 							i_feature = 1
 							for i_attribute in 1:n_attributes(X_train_all)
 								for (i_test_operator,test_operator) in enumerate(data_modal_args.test_operators)
-									
-									g = DecisionTree.readGamma(gammas,i_test_operator,firstWorld,i_instance,2,i_attribute)
-									m = ModalLogic.get_global_gamma(stump_fmd, i_instance, features[i_feature], featsnops[i_feature][1])
-									n_checks += 1
-									
-									# println(g,m)
+									for w in ModalLogic.enumAll(WorldType, ModalLogic.inst_channel_size(instance)...)
+										
+										g = DecisionTree.readGamma(gammas,i_test_operator,w,i_instance,1,i_attribute)
+										m = get_gamma(stump_fmd, i_instance, w, features[i_feature])
+										n_checks += 1
 
-									if g != m
-										println("fmd_g check: g != m")
-										println("$(g)")
-										println("$(m)")
-										println("i_test_operator=$(i_test_operator)")
-										println("test_operator=$(data_modal_args.test_operators[i_test_operator])")
-										println("i_instance=$(i_instance)")
-										println("i_attribute=$(i_attribute)")
-										print("instance: ")
-										println(ModalLogic.getInstanceAttribute(instance, i_attribute))
-										print(instance)
-										# error("aoe")
-										readline()
-									
+										if g != m
+											println("FeaturedWorldDataset check: g != m\n$(g)\n$(m)")
+											println("i_test_operator=$(i_test_operator)")
+											println("w=$(w)")
+											println("i_instance=$(i_instance)")
+											println("i_attribute=$(i_attribute)")
+											print("instance: ")
+											println(ModalLogic.getInstanceAttribute(instance, i_attribute))
+											error("aoe")
+										end
 									end
 									i_feature += 1
 								end
 							end
 						end
-					end
-
-					# modal decisions
-					checkpoint_stdout("Start checking modal consistency ($n_checks checks so far)...")
-					relations = X_train_all.ontology.relationSet
-					for i_instance in 1:n_samples(X_train_all)
-						instance = ModalLogic.getInstance(X_train_all, i_instance)
-						i_feature = 1
-						for i_attribute in 1:n_attributes(X_train_all)
-							i_feature2 = nothing
-							for (i_relation,relation) in enumerate(relations)
-								i_feature2 = i_feature
-								for (i_test_operator,test_operator) in enumerate(data_modal_args.test_operators)
-									test_operator = featsnops[i_feature2][1]
-									for w in ModalLogic.enumAll(WorldType, ModalLogic.inst_channel_size(instance)...)
+						
+						# global decisions
+						if !isnothing(stump_fmd.fmd_g)
+							checkpoint_stdout("Start checking global consistency ($n_checks checks so far)...")
+							firstWorld = WorldType(ModalLogic.firstWorld)
+							for i_instance in 1:n_samples(X_train_all)
+								instance = ModalLogic.getInstance(X_train_all, i_instance)
+								i_feature = 1
+								for i_attribute in 1:n_attributes(X_train_all)
+									for (i_test_operator,test_operator) in enumerate(data_modal_args.test_operators)
 										
-
-										g = DecisionTree.readGamma(gammas,i_test_operator,w,i_instance,2+i_relation,i_attribute)
-										m = ModalLogic.get_modal_gamma(stump_fmd, i_instance, w, relation, features[i_feature2], test_operator)
+										g = DecisionTree.readGamma(gammas,i_test_operator,firstWorld,i_instance,2,i_attribute)
+										m = ModalLogic.get_global_gamma(stump_fmd, i_instance, features[i_feature], featsnops[i_feature][1])
 										n_checks += 1
 										
+										# println(g,m)
+
 										if g != m
-											println("fmd_m check: g != m")
-											
+											println("fmd_g check: g != m")
 											println("$(g)")
 											println("$(m)")
-
-											println("i_relation=$(i_relation), relation=$(relation)")
-											println("w=$(w)")
+											println("i_test_operator=$(i_test_operator)")
+											println("test_operator=$(data_modal_args.test_operators[i_test_operator])")
 											println("i_instance=$(i_instance)")
 											println("i_attribute=$(i_attribute)")
-
-											println("i_test_operator=$(i_test_operator)")
-											println("test_operator=$(test_operator)")
-											println("test_operator=$(data_modal_args.test_operators[i_test_operator])")
-											println("i_feature2=$(i_feature2) (i_feature=$(i_feature))")
-
-											print("channel: ")
+											print("instance: ")
 											println(ModalLogic.getInstanceAttribute(instance, i_attribute))
+											print(instance)
 											# error("aoe")
 											readline()
+										
 										end
+										i_feature += 1
 									end
-									i_feature2 += 1
 								end
 							end
-							i_feature = i_feature2
 						end
+
+						# modal decisions
+						checkpoint_stdout("Start checking modal consistency ($n_checks checks so far)...")
+						relations = X_train_all.ontology.relationSet
+						for i_instance in 1:n_samples(X_train_all)
+							instance = ModalLogic.getInstance(X_train_all, i_instance)
+							i_feature = 1
+							for i_attribute in 1:n_attributes(X_train_all)
+								i_feature2 = nothing
+								for (i_relation,relation) in enumerate(relations)
+									i_feature2 = i_feature
+									for (i_test_operator,test_operator) in enumerate(data_modal_args.test_operators)
+										test_operator = featsnops[i_feature2][1]
+										for w in ModalLogic.enumAll(WorldType, ModalLogic.inst_channel_size(instance)...)
+											
+
+											g = DecisionTree.readGamma(gammas,i_test_operator,w,i_instance,2+i_relation,i_attribute)
+											m = ModalLogic.get_modal_gamma(stump_fmd, i_instance, w, relation, features[i_feature2], test_operator)
+											n_checks += 1
+											
+											if g != m
+												println("fmd_m check: g != m")
+												
+												println("$(g)")
+												println("$(m)")
+
+												println("i_relation=$(i_relation), relation=$(relation)")
+												println("w=$(w)")
+												println("i_instance=$(i_instance)")
+												println("i_attribute=$(i_attribute)")
+
+												println("i_test_operator=$(i_test_operator)")
+												println("test_operator=$(test_operator)")
+												println("test_operator=$(data_modal_args.test_operators[i_test_operator])")
+												println("i_feature2=$(i_feature2) (i_feature=$(i_feature))")
+
+												print("channel: ")
+												println(ModalLogic.getInstanceAttribute(instance, i_attribute))
+												# error("aoe")
+												readline()
+											end
+										end
+										i_feature2 += 1
+									end
+								end
+								i_feature = i_feature2
+							end
+						end
+						println("Checked consistency for $(n_checks) gammas. All clear!")
 					end
-					println("Checked consistency for $(n_checks) gammas. All clear!")
 				end
 
 				########################################################################

@@ -574,6 +574,7 @@ SampleLandCoverDataset(dataset::String,
 												n_samples_per_label::Int,
 												sample_size::Union{Int,NTuple{2,Int}}
 												;
+												stratify = true,
 												n_attributes::Int = -1,
 												flattened::Union{Bool,Symbol} = false,
 												rng = Random.GLOBAL_RNG :: Random.AbstractRNG) = begin
@@ -688,9 +689,10 @@ SampleLandCoverDataset(dataset::String,
 	labels = labels[sp]
 	inputs = inputs[:,:,sp,:]
 	
-	labels = reshape(transpose(reshape(labels, (n_samples_per_label,n_labels))), n_samples)
-	inputs = reshape(permutedims(reshape(inputs, (size(inputs, 1),size(inputs, 2),n_samples_per_label,n_labels,size(inputs, 4))), [1,2,4,3,5]), (size(inputs, 1),size(inputs, 2),n_samples,size(inputs, 4)))
-
+	if stratify
+		labels = reshape(transpose(reshape(labels, (n_samples_per_label,n_labels))), n_samples)
+		inputs = reshape(permutedims(reshape(inputs, (size(inputs, 1),size(inputs, 2),n_samples_per_label,n_labels,size(inputs, 4))), [1,2,4,3,5]), (size(inputs, 1),size(inputs, 2),n_samples,size(inputs, 4)))
+	end
 
 	if flattened != false
 		if flattened == :flattened
@@ -713,5 +715,13 @@ SampleLandCoverDataset(dataset::String,
 	# println([class_labels_map[y] for y in existingLabels])
 	# println(labels)
 	class_labels = [class_labels_map[y] for y in existingLabels]
-	inputs, [class_labels[y] for y in labels]
+	ys = [class_labels[y] for y in labels]
+	
+	dataset = inputs, ys
+
+	if stratify
+		dataset
+	else
+		dataset, Tuple(fill(n_samples_per_label, n_labels))
+	end
 end

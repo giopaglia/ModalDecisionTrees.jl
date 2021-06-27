@@ -56,10 +56,16 @@ macro cache(type, common_cache_dir, args, kwargs, compute_function)
 		if cached_obj_exists($(type), $(common_cache_dir), hash)
 			load_cached_obj($(type), $(common_cache_dir), hash)
 		else
-			checkpoint_stdout("Computing $(type)...")
-			value = $(compute_function)($(args)...; $(kwargs)...)
-			cache_obj($(type), $(common_cache_dir), value, hash)
-			value
+			checkpoint_stdout("Computing " * $(type) * "...")
+
+			_started = Dates.now()
+			_result_value = $(compute_function)($(args)...; $(kwargs)...)
+			_finish_time = (Dates.now() - _started)
+
+			checkpoint_stdout("Computed " * $(type) * " in " * human_readable_time(_finish_time))
+
+			cache_obj($(type), $(common_cache_dir), _result_value, hash)
+			_result_value
 		end
 	end
 end
@@ -76,10 +82,16 @@ macro cache(type, common_cache_dir, args, compute_function)
 		if cached_obj_exists($(type), $(common_cache_dir), hash)
 			load_cached_obj($(type), $(common_cache_dir), hash)
 		else
-			checkpoint_stdout("Computing $(type)...")
-			value = $(compute_function)($(args)...)
-			cache_obj($(type), $(common_cache_dir), value, hash)
-			value
+			checkpoint_stdout("Computing " * $(type) * "...")
+
+			_started = Dates.now()
+			_result_value = $(compute_function)($(args)...)
+			_finish_time = (Dates.now() - _started)
+
+			checkpoint_stdout("Computed " * $(type) * " in " * human_readable_time(_finish_time))
+
+			cache_obj($(type), $(common_cache_dir), _result_value, hash)
+			_result_value
 		end
 	end
 end
