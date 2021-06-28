@@ -219,53 +219,7 @@ function exec_run(
 				########################################################################
 				########################################################################
 				########################################################################
-				
-				# checkpoint_stdout("Creating FeatModalDataset...")
 
-				# fmd =
-				# 	if timing_mode == :none
-				# 		FeatModalDataset(X_train_all, features, featsnops)
-				# 	elseif timing_mode == :time
-				# 		@time FeatModalDataset(X_train_all, features, featsnops)
-				# 	elseif timing_mode == :btime
-				# 		@btime FeatModalDataset($X_train_all, $features, $featsnops)
-				# end
-
-				# # global_logger(ConsoleLogger(stderr, DecisionTree.DTDebug))
-				# checkpoint_stdout("Creating StumpFeatModalDataset...")
-
-				# stump_fmd =
-				# 	if timing_mode == :none
-				# 		StumpFeatModalDataset(fmd, computeRelationGlob = needToComputeRelationGlob);
-				# 	elseif timing_mode == :time
-				# 		@time StumpFeatModalDataset(fmd, computeRelationGlob = needToComputeRelationGlob);
-				# 	elseif timing_mode == :btime
-				# 		@btime StumpFeatModalDataset($fmd, computeRelationGlob = $needToComputeRelationGlob);
-				# end
-
-				# info_dict = Dict{String,Any}(
-				# 	"dataset_hash_sha256" => get_hash_sha256(X_train_all),
-				# 	"features" => features,
-				# 	"featsnops" => featsnops,
-				# 	"computeRelationGlob" => needToComputeRelationGlob)
-				# stump_fmd =
-				# 	if cached_obj_exists("stump_fmd", info_dict, data_savedir)
-				# 		checkpoint_stdout("Loading StumpFeatModalDataset...")
-				# 		load_cached_obj("stump_fmd", info_dict, data_savedir)
-				# 	else
-				# 		checkpoint_stdout("Creating StumpFeatModalDataset...")
-				# 		sfmd =
-				# 			if timing_mode == :none
-				# 				StumpFeatModalDataset(X_train_all, features, featsnops, computeRelationGlob = needToComputeRelationGlob);
-				# 			elseif timing_mode == :time
-				# 				@time StumpFeatModalDataset(X_train_all, features, featsnops, computeRelationGlob = needToComputeRelationGlob);
-				# 			elseif timing_mode == :btime
-				# 				@btime StumpFeatModalDataset($X_train_all, $features, $featsnops, computeRelationGlob = $needToComputeRelationGlob);
-				# 			end
-				# 		cache_obj("stump_fmd", sfmd, info_dict, data_savedir)
-				# 		sfmd
-				# 	end
-				
 				sfmd_c(X_train_all, features, featsnops, needToComputeRelationGlob) = begin
 					if timing_mode == :none
 						StumpFeatModalDataset(X_train_all, features, featsnops, computeRelationGlob = needToComputeRelationGlob);
