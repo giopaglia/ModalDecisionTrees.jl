@@ -162,7 +162,7 @@ function ClassificationDataset(frames::Vector{ModalFrame}, classes::CategoricalA
 end
 
 function ClassificationDataset2RunnerDataset(d::ClassificationDataset)
-	Y = Array(d.classes)
+	Y = map(string, Array(d.classes))
 	X = Array{<:Number}[]
 	for frame in d.frames
 		push!(X, ModalFrame2MatricialDataset(frame))

@@ -602,7 +602,7 @@ module treeclassifier
 			initConditions          :: Vector{<:DecisionTree._initCondition},
 			useRelationGlob         :: Vector{Bool},
 			##########################################################################
-			perform_consistency_check :: Bool
+			perform_consistency_check :: Bool,
 			##########################################################################
 			rng = Random.GLOBAL_RNG :: Random.AbstractRNG
 		) where {U}

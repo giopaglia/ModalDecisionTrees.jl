@@ -198,12 +198,7 @@ n_samples_per_label = 100
 
 dataset_function = (
 	(windowsize,flattened,ontology,test_operators),
-	dataset_name,
-	dataseed)->begin
-		dataset_rng = Random.MersenneTwister(dataseed)
-		
-		# Dataset
-		dataset, n_label_samples = SampleLandCoverDataset(
+		dataset_name)->SampleLandCoverDataset(
 					dataset_name,
 					n_samples_per_label,
 					windowsize,
@@ -213,20 +208,6 @@ dataset_function = (
 					# n_attributes = 3,
 					# rng = dataset_rng)
 					rng = copy(main_rng))
-		
-		# Dataset slice
-		n_per_class = minimum(n_samples_per_label)
-		dataset_slice = Array{Int64,2}(undef, length(n_label_samples), n_per_class)
-		c = 0
-		for i in 1:length(n_label_samples)
-			dataset_slice[i,:] .= c .+ Random.randperm(dataset_rng, n_label_samples[i])[1:n_per_class]
-			c += n_label_samples[i]
-		end
-		dataset_slice = dataset_slice[:]
-
-		# dataset_slice = nothing
-		dataset, dataset_slice
-	end
 
 ################################################################################
 ################################### SCAN FILTERS ###############################
@@ -312,12 +293,17 @@ for params_combination in IterTools.product(exec_ranges...)
 	##############################################################################
 	
 	(windowsize,flattened,ontology,test_operators), dataset_name, dataseed = params_combination
+	dataset_fun_sub_params = (windowsize,flattened,ontology,test_operators), dataset_name
 	
-	# LOAD DATASET
+	# Load Dataset
+	dataset, n_label_samples = @cache "dataset" data_savedir dataset_fun_sub_params dataset_function
+
+	# Dataset slice
+	dataset_slice = balanced_dataset_slice(n_label_samples, dataseed)
 
 	cur_modal_args = modal_args
-
-	dataset, dataset_slice = @cache "dataset" data_savedir params_combination dataset_function
+	cur_data_modal_args = data_modal_args
+	
 	# dataset_file_name = ... saved_datasets_path * "/" * run_name
 	# dataset_rng = Random.MersenneTwister(dataseed)
 	# dataset, dataset_slice = 

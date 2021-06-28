@@ -159,25 +159,7 @@ exec_ranges_dict = (
 	dataseed                                     = exec_dataseed,
 )
 
-dataset_function =
-	(((from,to), dataseed))->begin
-		dataset_rng = Random.MersenneTwister(dataseed)
-
-		dataset, n_label_samples = SiemensJuneDataset_not_stratified(from, to)
-
-		# Dataset slice
-		n_per_class = minimum(n_label_samples)
-		dataset_slice = Array{Int64,2}(undef, length(n_label_samples), n_per_class)
-		c = 0
-		for i in 1:length(n_label_samples)
-			dataset_slice[i,:] .= c .+ Random.randperm(dataset_rng, n_label_samples[i])[1:n_per_class]
-			c += n_label_samples[i]
-		end
-		dataset_slice = dataset_slice[:]
-
-		# dataset_slice = nothing
-		dataset, dataset_slice
-	end
+dataset_function = (from,to)->SiemensJuneDataset_not_stratified(from, to)
 
 ################################################################################
 ################################### SCAN FILTERS ###############################
@@ -264,15 +246,21 @@ for params_combination in IterTools.product(exec_ranges...)
 	##############################################################################
 	##############################################################################
 	
-	from_to, dataseed = params_combination
+	(from,to), dataseed = params_combination
+	dataset_fun_sub_params = (from,to)
 	
-	# LOAD DATASET
+	# Load Dataset
+	dataset, n_label_samples = @cache "dataset" data_savedir dataset_fun_sub_params dataset_function
+
+	# Dataset slice
+	dataset_slice = balanced_dataset_slice(n_label_samples, dataseed)
+	
+	X,Y = dataset
+	dataset = map(x->ModalLogic.slice_dataset(x, [1:4..., 100:103...]), X), Y
+	dataset_slice = 1:8
 
 	cur_modal_args = modal_args
-
 	cur_data_modal_args = data_modal_args
-	
-	dataset, dataset_slice = @cache "dataset" data_savedir params_combination dataset_function
 
 	##############################################################################
 	##############################################################################
