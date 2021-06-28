@@ -163,14 +163,12 @@ export n_samples, n_attributes, n_features, n_relations,
 				grouped_featsnaggrs,
 				##############################
 				SingleFrameGenericDataset,
-				MultiFrameGenericDataset,
 				GenericDataset,
+				MultiFrameModalDataset,
 				AbstractModalDataset,
 				OntologicalDataset, 
-				MultiFrameOntologicalDataset,
 				AbstractFeaturedWorldDataset,
 				FeatModalDataset,
-				MultiFrameFeatModalDataset,
 				StumpFeatModalDataset,
 				MatricialInstance,
 				MatricialDataset,
@@ -290,12 +288,18 @@ end
 
 # TODO define getindex?
 
+relations(X::OntologicalDataset)        = X.ontology.relationSet
 size(X::OntologicalDataset)             = size(X.domain)
-size(X::OntologicalDataset, i::Integer) = size(X.domain, i)
 n_samples(X::OntologicalDataset)        = n_samples(X.domain)
 n_attributes(X::OntologicalDataset)     = n_attributes(X.domain)
-n_relations(X::OntologicalDataset)      = length(X.ontology.relationSet)
+n_relations(X::OntologicalDataset)      = length(relations(X))
 world_type(d::OntologicalDataset{T,N,WT})    where {T,N,WT<:AbstractWorld} = WT
+
+initws_function(X::OntologicalDataset{T, N, WorldType},  i_instance) where {T, N, WorldType} =
+	(iC)->initWorldSet(iC, WorldType, inst_channel_size(getInstance(X, i_instance)))
+acc_function(X::OntologicalDataset, i_instance) = (w,R)->enumAccessibles(w,R, inst_channel_size(getInstance(X, i_instance))...)
+accAll_function(X::OntologicalDataset{T, N, WorldType}, i_instance) where {T, N, WorldType} = enumAll(WorldType, acc_function(X, i_instance))
+accrepr_function(X::OntologicalDataset, i_instance)  = (f,a,w,R)->enumAccReprAggr(f,a,w,R,inst_channel_size(getInstance(X, i_instance))...)
 
 length(X::OntologicalDataset)                = n_samples(X)
 Base.iterate(X::OntologicalDataset, state=1) = state > length(X) ? nothing : (getInstance(X, state), state+1) # Base.iterate(X.domain, state=state)
@@ -306,59 +310,14 @@ getChannel(d::OntologicalDataset,   args::Vararg)    = getChannel(d.domain, args
 
 slice_dataset(d::OntologicalDataset, inds::AbstractVector{<:Integer}; args...)    = OntologicalDataset(d.ontology, slice_dataset(d.domain, inds; args...))
 
-acc_function(X::OntologicalDataset, i_instance) = (w,R)->enumAccessibles(w,R, inst_channel_size(getInstance(X, i_instance))...)
-accAll_function(X::OntologicalDataset{T, N, WorldType}, i_instance) where {T, N, WorldType} = enumAll(WorldType, acc_function(X, i_instance))
-
-struct MultiFrameOntologicalDataset
-	frames  :: AbstractVector{<:OntologicalDataset}
-
-	function MultiFrameOntologicalDataset(Xs::AbstractVector{<:OntologicalDataset})
-		@assert length(Xs) > 0 && length(unique(n_samples.(Xs))) == 1 "Can't create an empty MultiFrameOntologicalDataset or with mismatching number of samples (n_frames: $(length(Xs)), frame_sizes: $(n_samples.(Xs)))."
-		new(Xs)
-	end
-
-	function MultiFrameOntologicalDataset(X::OntologicalDataset)
-		MultiFrameOntologicalDataset([X])
-	end
-
-	# MultiFrameOntologicalDataset with same ontology for each frame
-	function MultiFrameOntologicalDataset(ontology::Ontology, Xs::AbstractVector{<:MatricialDataset})
-		MultiFrameOntologicalDataset([OntologicalDataset(ontology, X) for X in Xs])
-	end
-end
-
-# TODO: test all these methods
-size(X::MultiFrameOntologicalDataset) = map(size, X.frames)
-get_frame(X::MultiFrameOntologicalDataset, i) = X.frames[i]
-n_frames(X::MultiFrameOntologicalDataset)             = length(X.frames)
-n_samples(X::MultiFrameOntologicalDataset)            = n_samples(X.frames[1]) # n_frames(X) > 0 ? n_samples(X.frames[1]) : 0
-length(X::MultiFrameOntologicalDataset)               = n_samples(X)
-frames(X::MultiFrameOntologicalDataset) = X.frames
-Base.iterate(X::MultiFrameOntologicalDataset, state=1) = state > length(X) ? nothing : (getInstance(X, state), state+1)
-n_attributes(X::MultiFrameOntologicalDataset) = map(n_attributes, X.frames)
-n_attributes(X::MultiFrameOntologicalDataset, i_frame::Integer) = n_attributes(X.frames[i_frame])
-# TODO: Note: channel_size doesn't make sense at this point. Only the acc_functions[i] functions.
-n_relations(X::MultiFrameOntologicalDataset) = map(n_relations, X.frames)
-n_relations(X::MultiFrameOntologicalDataset, i_frame::Integer) = n_relations(X.frames[i_frame])
-world_types(X::MultiFrameOntologicalDataset) = world_type.(X.frames) # convert(Vector{<:Type{<:AbstractWorld}}, world_type.(X.frames))
-world_type(X::MultiFrameOntologicalDataset, i_frame::Integer) = world_type(X.frames[i_frame])
-
-getInstance(X::MultiFrameOntologicalDataset,  i_frame::Integer, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...)
-# slice_dataset(X::MultiFrameOntologicalDataset, i_frame::Integer, inds::AbstractVector{Integer}, args...)  = slice_dataset(X.frames[i], inds; args...)
-getChannel(X::MultiFrameOntologicalDataset,   i_frame::Integer, idx_i::Integer, idx_a::Integer, args::Vararg)  = getChannel(X.frames[i], idx_i, idx_a, args...)
-
-# getInstance(X::MultiFrameOntologicalDataset, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...) # TODO should slice across the frames!
-slice_dataset(X::MultiFrameOntologicalDataset, inds::AbstractVector{<:Integer}; args...) =
-	MultiFrameOntologicalDataset(map(frame->slice_dataset(frame, inds; args...), X.frames))
 
 display_structure(X::OntologicalDataset; indent::Integer = 0) = begin
 	out = "$(typeof(X))\t$(Base.summarysize(X) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
 	out *= repeat(' ', indent) * "├ domain shape\t$(Base.size(X.domain))\n"
-	out *= repeat(' ', indent) * "├ $(length(X.ontology.relationSet)) relations\t$(X.ontology.relationSet)\n"
+	out *= repeat(' ', indent) * "├ $(length(relations(X))) relations\t$(relations(X))\n"
 	out *= repeat(' ', indent) * "└ max_channel_size\t$(max_channel_size(X))"
 	out
 end
-
 
 get_gamma(X::OntologicalDataset, args...) = get_gamma(X.domain, args...)
 
@@ -440,24 +399,22 @@ struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 	) where {T, N, WorldType<:AbstractWorld} = begin
 		fwd = FeaturedWorldDataset(X, features);
 
-		relations = X.ontology.relationSet
-
 		# TODO optimize this! When the underlying MatricialDataset is an AbstractArray, this is going to be an array of a single function.
 		# How to achievi this? Think about it.
-		initws_functions = [(iC)->initWorldSet(iC, WorldType, inst_channel_size(instance)) for instance in X]
-		acc_functions = [(w,R)->enumAccessibles(w,R,inst_channel_size(instance)...) for instance in X]
-		accrepr_functions = [(f,a,w,R)->enumAccReprAggr(f,a,w,R,inst_channel_size(instance)...) for instance in X]
+		initws_functions = [initws_function(X,  i_instance) for i_instance in 1:n_samples(X)]
+		acc_functions = [acc_function(X,  i_instance) for i_instance in 1:n_samples(X)]
+		accrepr_functions = [accrepr_function(X,  i_instance) for i_instance in 1:n_samples(X)]
 
-		FeatModalDataset(fwd, relations, initws_functions, acc_functions, accrepr_functions, features, grouped_featsaggrsnops_or_featsnops)
+		FeatModalDataset(fwd, relations(X), initws_functions, acc_functions, accrepr_functions, features, grouped_featsaggrsnops_or_featsnops)
 	end
 
 end
 
 relations(X::FeatModalDataset)         = X.relations
-initws_function(X::FeatModalDataset,  i_instance::Integer)  = X.initws_functions[i_instance]
-acc_function(X::FeatModalDataset,     i_instance::Integer)  = X.acc_functions[i_instance]
+initws_function(X::FeatModalDataset,  i_instance)  = X.initws_functions[i_instance]
+acc_function(X::FeatModalDataset,     i_instance)  = X.acc_functions[i_instance]
 accAll_function(X::FeatModalDataset{T, WorldType}, i_instance) where {T, WorldType} = enumAll(WorldType, acc_function(X, i_instance))
-accrepr_function(X::FeatModalDataset, i_instance::Integer)  = X.accrepr_functions[i_instance]
+accrepr_function(X::FeatModalDataset, i_instance)  = X.accrepr_functions[i_instance]
 features(X::FeatModalDataset)          = X.features
 grouped_featsaggrsnops(X::FeatModalDataset) = X.grouped_featsaggrsnops
 
@@ -943,51 +900,50 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
 	end # for relation
 end
 
-struct MultiFrameFeatModalDataset
+struct MultiFrameModalDataset
 	frames  :: AbstractVector{<:AbstractModalDataset}
-	# function MultiFrameFeatModalDataset(Xs::AbstractVector{<:AbstractModalDataset{<:T, <:AbstractWorld}}) where {T}
-	# function MultiFrameFeatModalDataset(Xs::AbstractVector{<:AbstractModalDataset{T, <:AbstractWorld}}) where {T}
-	function MultiFrameFeatModalDataset(Xs::AbstractVector{<:AbstractModalDataset{<:Real, <:AbstractWorld}})
-		@assert length(Xs) > 0 && length(unique(n_samples.(Xs))) == 1 "Can't create an empty MultiFrameFeatModalDataset or with mismatching number of samples (n_frames: $(length(Xs)), frame_sizes: $(n_samples.(Xs)))."
+	# function MultiFrameModalDataset(Xs::AbstractVector{<:AbstractModalDataset{<:T, <:AbstractWorld}}) where {T}
+	# function MultiFrameModalDataset(Xs::AbstractVector{<:AbstractModalDataset{T, <:AbstractWorld}}) where {T}
+	function MultiFrameModalDataset(Xs::AbstractVector{<:AbstractModalDataset{<:Real, <:AbstractWorld}})
+		@assert length(Xs) > 0 && length(unique(n_samples.(Xs))) == 1 "Can't create an empty MultiFrameModalDataset or with mismatching number of samples (n_frames: $(length(Xs)), frame_sizes: $(n_samples.(Xs)))."
 		new(Xs)
 	end
-	function MultiFrameFeatModalDataset(X::AbstractModalDataset{<:Real, <:AbstractWorld})
+	function MultiFrameModalDataset(X::AbstractModalDataset{<:Real, <:AbstractWorld})
 		new([X])
 	end
 end
 
 # TODO: test all these methods
-size(X::MultiFrameFeatModalDataset) = map(size, X.frames)
-get_frame(X::MultiFrameFeatModalDataset, i) = X.frames[i]
-n_frames(X::MultiFrameFeatModalDataset)             = length(X.frames)
-n_samples(X::MultiFrameFeatModalDataset)            = n_samples(X.frames[1]) # n_frames(X) > 0 ? n_samples(X.frames[1]) : 0
-length(X::MultiFrameFeatModalDataset)               = n_samples(X)
-Base.iterate(X::MultiFrameFeatModalDataset, state=1) = state > length(X) ? nothing : (getInstance(X, state), state+1)
-frames(X::MultiFrameFeatModalDataset) = X.frames
+size(X::MultiFrameModalDataset) = map(size, X.frames)
+get_frame(X::MultiFrameModalDataset, i) = X.frames[i]
+n_frames(X::MultiFrameModalDataset)             = length(X.frames)
+n_samples(X::MultiFrameModalDataset)            = n_samples(X.frames[1]) # n_frames(X) > 0 ? n_samples(X.frames[1]) : 0
+length(X::MultiFrameModalDataset)               = n_samples(X)
+frames(X::MultiFrameModalDataset) = X.frames
+Base.iterate(X::MultiFrameModalDataset, state=1) = state > length(X) ? nothing : (getInstance(X, state), state+1)
 # get total number of features (TODO: figure if this is useless or not)
-n_features(X::MultiFrameFeatModalDataset) = map(n_features, X.frames)
+n_features(X::MultiFrameModalDataset) = map(n_features, X.frames)
 # get number of features in a single frame
-n_features(X::MultiFrameFeatModalDataset, i_frame::Integer) = n_features(X.frames[i_frame])
+n_features(X::MultiFrameModalDataset, i_frame::Integer) = n_features(X.frames[i_frame])
 # TODO: Note: channel_size doesn't make sense at this point. Only the acc_functions[i] functions.
-n_relations(X::MultiFrameFeatModalDataset) = map(n_relations, X.frames)
-n_relations(X::MultiFrameFeatModalDataset, i_frame::Integer) = n_relations(X.frames[i_frame])
-world_type(X::MultiFrameFeatModalDataset, i_frame::Integer) = world_type(X.frames[i_frame])
-world_types(X::MultiFrameFeatModalDataset) = world_type.(X.frames) # convert(Vector{<:Type{<:AbstractWorld}}, world_type.(X.frames))
+n_relations(X::MultiFrameModalDataset) = map(n_relations, X.frames)
+n_relations(X::MultiFrameModalDataset, i_frame::Integer) = n_relations(X.frames[i_frame])
+world_type(X::MultiFrameModalDataset, i_frame::Integer) = world_type(X.frames[i_frame])
+world_types(X::MultiFrameModalDataset) = world_type.(X.frames) # convert(Vector{<:Type{<:AbstractWorld}}, world_type.(X.frames))
 
-getInstance(X::MultiFrameFeatModalDataset,  i_frame::Integer, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...)
-# slice_dataset(X::MultiFrameFeatModalDataset, i_frame::Integer, inds::AbstractVector{<:Integer}, args::Vararg)  = slice_dataset(X.frames[i], inds; args...)
-getChannel(X::MultiFrameFeatModalDataset,   i_frame::Integer, idx_i::Integer, idx_f::Integer, args::Vararg)  = getChannel(X.frames[i], idx_i, idx_f, args...)
+getInstance(X::MultiFrameModalDataset,  i_frame::Integer, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...)
+# slice_dataset(X::MultiFrameModalDataset, i_frame::Integer, inds::AbstractVector{<:Integer}, args::Vararg)  = slice_dataset(X.frames[i], inds; args...)
+getChannel(X::MultiFrameModalDataset,   i_frame::Integer, idx_i::Integer, idx_f::Integer, args::Vararg)  = getChannel(X.frames[i], idx_i, idx_f, args...)
 
-# getInstance(X::MultiFrameFeatModalDataset, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...) # TODO should slice across the frames!
-slice_dataset(X::MultiFrameFeatModalDataset, inds::AbstractVector{<:Integer}; args...) =
-	MultiFrameFeatModalDataset(map(frame->slice_dataset(frame, inds; args...), X.frames))
+# getInstance(X::MultiFrameModalDataset, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...) # TODO should slice across the frames!
+slice_dataset(X::MultiFrameModalDataset, inds::AbstractVector{<:Integer}; args...) =
+	MultiFrameModalDataset(map(frame->slice_dataset(frame, inds; args...), X.frames))
 
 
 const SingleFrameGenericDataset{T} = Union{MatricialDataset{T},OntologicalDataset{T},AbstractModalDataset{T}}
-const MultiFrameGenericDataset = Union{MultiFrameOntologicalDataset,MultiFrameFeatModalDataset}
-const GenericDataset = Union{SingleFrameGenericDataset,MultiFrameGenericDataset}
+const GenericDataset = Union{SingleFrameGenericDataset,MultiFrameModalDataset}
 
-display_structure(Xs::MultiFrameGenericDataset; indent::Integer = 0) = begin
+display_structure(Xs::MultiFrameModalDataset; indent::Integer = 0) = begin
 	out = "$(typeof(Xs))" # * "\t\t\t$(Base.summarysize(Xs) / 1024 / 1024 |> x->round(x, digits=2)) MBs"
 	for (i_frame, X) in enumerate(frames(Xs))
 		if i_frame == n_frames(Xs)

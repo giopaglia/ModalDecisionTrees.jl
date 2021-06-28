@@ -66,7 +66,7 @@ module treeclassifier
 	Base.@propagate_inbounds function _split!(
 		node                  :: NodeMeta{<:AbstractFloat}, # the node to split
 		####################
-		Xs                    :: MultiFrameFeatModalDataset, # the modal dataset
+		Xs                    :: MultiFrameModalDataset, # the modal dataset
 		Y                     :: AbstractVector{Label},      # the label array
 		W                     :: AbstractVector{U},          # the weight vector
 		Ss                    :: AbstractVector{<:AbstractVector{WST} where {WorldType,WST<:WorldSet{WorldType}}}, # the vector of current worlds
@@ -406,7 +406,7 @@ module treeclassifier
 	end
 
 	function check_input(
-			Xs                      :: MultiFrameFeatModalDataset,
+			Xs                      :: MultiFrameModalDataset,
 			Y                       :: AbstractVector{S},
 			W                       :: AbstractVector{U},
 			##########################################################################
@@ -586,7 +586,7 @@ module treeclassifier
 	# end
 
 	function _fit(
-			Xs                      :: MultiFrameFeatModalDataset,
+			Xs                      :: MultiFrameModalDataset,
 			Y                       :: AbstractVector{Label},
 			W                       :: AbstractVector{U},
 			##########################################################################
@@ -610,7 +610,7 @@ module treeclassifier
 		n_instances = n_samples(Xs)
 
 		# TODO consolidate functions like this
-		init_world_sets(Xs::MultiFrameFeatModalDataset, initConditions::AbstractVector{<:DecisionTree._initCondition}) = begin
+		init_world_sets(Xs::MultiFrameModalDataset, initConditions::AbstractVector{<:DecisionTree._initCondition}) = begin
 			Ss = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, n_frames(Xs))
 			for (i_frame,X) in enumerate(ModalLogic.frames(Xs))
 				WT = world_type(X)
@@ -693,7 +693,7 @@ module treeclassifier
 
 	function fit(;
 			# TODO Add default values for this function? loss_function = util.entropy
-			Xs                      :: MultiFrameFeatModalDataset,
+			Xs                      :: MultiFrameModalDataset,
 			Y                       :: AbstractVector{S},
 			W                       :: Union{AbstractVector{U},Nothing},
 			##########################################################################

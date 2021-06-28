@@ -63,7 +63,7 @@ function build_stump(
 	labels        :: AbstractVector{String},
 	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
 	kwargs...) where {T, N, U, WorldType}
-	build_stump(MultiFrameFeatModalDataset(ontol_dataset), labels, weights; kwargs...)
+	build_stump(MultiFrameModalDataset(ontol_dataset), labels, weights; kwargs...)
 end
 
 function build_tree(
@@ -71,7 +71,7 @@ function build_tree(
 	labels        :: AbstractVector{String},
 	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
 	kwargs...) where {T, N, U, WorldType}
-	build_tree(MultiFrameFeatModalDataset(ontol_dataset), labels, weights; kwargs...)
+	build_tree(MultiFrameModalDataset(ontol_dataset), labels, weights; kwargs...)
 end
 
 function build_forest(
@@ -79,8 +79,8 @@ function build_forest(
 	labels        :: AbstractVector{String},
 	# weights       :: Union{Nothing,AbstractVector{U}} = nothing TODO
 	kwargs...) where {T, N, U, WorldType}
-	# build_forest(MultiFrameFeatModalDataset(ontol_dataset), labels, weights; kwargs...)
-	build_forest(MultiFrameFeatModalDataset(ontol_dataset), labels; kwargs...)
+	# build_forest(MultiFrameModalDataset(ontol_dataset), labels, weights; kwargs...)
+	build_forest(MultiFrameModalDataset(ontol_dataset), labels; kwargs...)
 end
 
 ################################################################################
@@ -89,7 +89,7 @@ end
 
 # Build a stump (tree with depth 1)
 function build_stump(
-		X	                :: MultiFrameFeatModalDataset,
+		X	                :: MultiFrameModalDataset,
 		Y                 :: AbstractVector{String},
 		W                 :: Union{Nothing,AbstractVector{U}} = nothing;
 		kwargs...) where {N, U}
@@ -99,7 +99,7 @@ end
 
 # Build a tree
 function build_tree(
-	Xs                  :: MultiFrameFeatModalDataset,
+	Xs                  :: MultiFrameModalDataset,
 	Y                   :: AbstractVector{S},
 	W                   :: Union{Nothing,AbstractVector{U}}   = nothing;
 	##############################################################################
@@ -161,7 +161,7 @@ function build_tree(
 end
 
 function build_forest(
-	Xs                  :: MultiFrameFeatModalDataset,
+	Xs                  :: MultiFrameModalDataset,
 	Y                   :: AbstractVector{S}
 	;
 	# , W                   :: Union{Nothing,AbstractVector{U}} = nothing; TODO these must also be used for the calculation of the oob_error
