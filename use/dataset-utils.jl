@@ -48,8 +48,8 @@ end
 # Scale and round dataset to fit into a certain datatype's range:
 # For integers: find minimum and maximum (ignoring Infs), and rescale the dataset
 # For floating-point, numbers, round
-roundDataset((X,Y)::Tuple{Any,Vector}, type::Type = UInt8) = (mapArrayToDataType(type, X),Y)
-roundDataset(((X_train,Y_train),(X_test,Y_test))::Tuple{Tuple,Tuple}, type::Type = UInt8) = begin
+round_dataset((X,Y)::Tuple{Any,Vector}, type::Type = UInt8) = (mapArrayToDataType(type, X),Y)
+round_dataset(((X_train,Y_train),(X_test,Y_test))::Tuple{Tuple,Tuple}, type::Type = UInt8) = begin
 	X_train, X_test = mapArrayToDataType(type, (X_train, X_test))
 	(X_train,Y_train),(X_test,Y_test)
 end

@@ -17,7 +17,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./results-gandalf"
+results_dir = "./gandalf"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 concise_output_file_path = results_dir * "/grouped_in_models.csv"
@@ -29,7 +29,6 @@ column_separator = ";"
 
 save_datasets = true
 just_produce_datasets_jld = false
-saved_datasets_path = results_dir * "/datasets"
 
 ################################################################################
 ##################################### TREES ####################################
@@ -127,9 +126,13 @@ timing_mode = :time
 # timing_mode = :btime
 
 # round_dataset_to_datatype = false
+# round_dataset_to_datatype = UInt8
 # round_dataset_to_datatype = UInt16
+# round_dataset_to_datatype = UInt32
+# round_dataset_to_datatype = UInt64
+# round_dataset_to_datatype = Float16
 round_dataset_to_datatype = Float32
-# round_dataset_to_datatype = UInt16
+# round_dataset_to_datatype = Float64
 
 split_threshold = 0.8
 # split_threshold = 1.0
@@ -242,8 +245,6 @@ iteration_blacklist = []
 ################################################################################
 ################################################################################
 
-mkpath(saved_datasets_path)
-
 if "-f" in ARGS
 	if isfile(iteration_progress_json_file_path)
 		println("Backing up existing $(iteration_progress_json_file_path)...")
@@ -313,11 +314,11 @@ for params_combination in IterTools.product(exec_ranges...)
 	(windowsize,flattened,ontology,test_operators), dataset_name, dataseed = params_combination
 	
 	# LOAD DATASET
-	dataset_file_name = saved_datasets_path * "/" * run_name
 
 	cur_modal_args = modal_args
 
 	dataset, dataset_slice = @cache "dataset" data_savedir params_combination dataset_function
+	# dataset_file_name = ... saved_datasets_path * "/" * run_name
 	# dataset_rng = Random.MersenneTwister(dataseed)
 	# dataset, dataset_slice = 
 	# 	if save_datasets && isfile(dataset_file_name * ".jld")

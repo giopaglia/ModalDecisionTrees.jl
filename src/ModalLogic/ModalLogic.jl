@@ -515,7 +515,7 @@ get_gamma(
 end
 
 
-@resumable function generate_propositional_feasible_decisions(
+Base.@propagate_inbounds @resumable function generate_propositional_feasible_decisions(
 		X::FeatModalDataset{T,WorldType},
 		instances_inds::AbstractVector{<:Integer},
 		Sf::AbstractVector{<:AbstractWorldSet{WorldType}},
@@ -525,7 +525,7 @@ end
 	n_instances = length(instances_inds)
 
 	# For each feature
-	for i_feature in features_inds
+	@inbounds for i_feature in features_inds
 		feature = features(X)[i_feature]
 		@logmsg DTDebug "Feature $(i_feature): $(feature)"
 
@@ -787,7 +787,7 @@ test_decision(
 	end
 end
 
-@resumable function generate_propositional_feasible_decisions(
+Base.@propagate_inbounds @resumable function generate_propositional_feasible_decisions(
 		X::StumpFeatModalDataset{T,WorldType},
 		args...
 		) where {T, WorldType<:AbstractWorld}
@@ -796,7 +796,7 @@ end
 		end
 end
 
-@resumable function generate_global_feasible_decisions(
+Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
 		X::StumpFeatModalDataset{T,WorldType},
 		instances_inds::AbstractVector{<:Integer},
 		Sf::AbstractVector{<:AbstractWorldSet{WorldType}},
@@ -808,7 +808,7 @@ end
 	@assert !isnothing(X.fmd_g) "Error. StumpFeatModalDataset must be built with computeRelationGlob = true for it to be ready to generate global decisions."
 
 	# For each feature
-	for i_feature in features_inds
+	@inbounds for i_feature in features_inds
 		feature = features(X)[i_feature]
 		@logmsg DTDebug "Feature $(i_feature): $(feature)"
 
@@ -871,7 +871,7 @@ end
 end
 
 
-@resumable function generate_modal_feasible_decisions(
+Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
 		X::StumpFeatModalDataset{T,WorldType},
 		instances_inds::AbstractVector{<:Integer},
 		Sf::AbstractVector{<:AbstractWorldSet{WorldType}},
@@ -881,7 +881,7 @@ end
 	n_instances = length(instances_inds)
 
 	# For each relational operator
-	for i_relation in modal_relations_inds
+	@inbounds for i_relation in modal_relations_inds
 		relation = relations(X)[i_relation]
 		@logmsg DTDebug "Relation $(relation)..."
 
@@ -1312,7 +1312,7 @@ export generate_feasible_decisions
 				# generate_global_feasible_decisions,
 				# generate_modal_feasible_decisions
 
-@resumable function generate_feasible_decisions(
+Base.@propagate_inbounds @resumable function generate_feasible_decisions(
 		X::AbstractModalDataset{T,WorldType},
 		instances_inds::AbstractVector{<:Integer},
 		Sf::AbstractVector{<:AbstractWorldSet{WorldType}},

@@ -17,7 +17,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./results-siemens"
+results_dir = "./siemens"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 concise_output_file_path = results_dir * "/grouped_in_models.csv"
@@ -26,10 +26,9 @@ data_savedir = results_dir * "/cache"
 tree_savedir = results_dir * "/trees"
 
 column_separator = ";"
-siemens
 save_datasets = true
 just_produce_datasets_jld = false
-saved_datasets_path = results_dir * "/datasets"
+# saved_datasets_path = results_dir * "/datasets"
 
 ################################################################################
 ##################################### TREES ####################################
@@ -46,15 +45,15 @@ tree_args = [
 ]
 
 for loss_function in [DecisionTree.util.entropy]
-	for min_samples_leaf in [4] # [1,2]
-		for min_purity_increase in [0.01] # [0.01, 0.001]
-			for min_loss_at_leaf in [0.3] # [0.4, 0.6]
+	for min_samples_leaf in [1] # [1,2]
+		for min_purity_increase in [0.01, 0.001]
+			for min_loss_at_leaf in [0.4, 0.6]
 				push!(tree_args, 
 					(
-						loss_function = loss_function,
-						min_samples_leaf = min_samples_leaf,
+						loss_function       = loss_function,
+						min_samples_leaf    = min_samples_leaf,
 						min_purity_increase = min_purity_increase,
-						min_loss_at_leaf = min_loss_at_leaf,
+						min_loss_at_leaf    = min_loss_at_leaf,
 					)
 				)
 			end
@@ -100,8 +99,8 @@ println(" $(length(forest_args)) forests " * (length(forest_args) > 0 ? "(repeat
 ################################################################################
 
 modal_args = (
-	# initConditions = DecisionTree.startWithRelationGlob,
-	initConditions = DecisionTree.startAtCenter,
+	initConditions = DecisionTree.startWithRelationGlob,
+	# initConditions = DecisionTree.startAtCenter,
 	# useRelationGlob = true,
 	useRelationGlob = false,
 )
@@ -110,6 +109,7 @@ data_modal_args = (
 	ontology = getIntervalOntologyOfDim(Val(1)),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A]),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A, ModalLogic.IA_L, ModalLogic.IA_Li, ModalLogic.IA_D]),
+	test_operators = [TestOpGeq_80, TestOpLeq_80],
 )
 
 
@@ -126,9 +126,9 @@ log_level = DecisionTree.DTOverview
 timing_mode = :time
 # timing_mode = :btime
 
-# round_dataset_to_datatype = false
+round_dataset_to_datatype = false
 # round_dataset_to_datatype = UInt16
-round_dataset_to_datatype = Float32
+# round_dataset_to_datatype = Float32
 # round_dataset_to_datatype = UInt16
 
 split_threshold = 0.8
@@ -149,70 +149,24 @@ legacy_gammas_check = false # true
 
 exec_dataseed = 1:10
 
-# exec_dataset_name = ["Salinas", "Salinas-A", "PaviaCentre", "IndianPines", "Pavia"]
-exec_dataset_name = ["Pavia", "Salinas-A", "PaviaCentre", "IndianPines", "Salinas"]
-exec_windowsize_flattened_ontology_test_operators = [(1,false,"o_None","TestOpGeq"),(3,:flattened,"o_None","TestOpGeq"),(3,:averaged,"o_None","TestOpGeq"),(3,false,"o_RCC8","TestOpAll"),(3,false,"o_RCC5","TestOpAll")]
-# exec_windowsize_flattened_ontology_test_operators = [(1,false,"o_None","TestOpGeq"),(3,:flattened,"o_None","TestOpGeq"),(3,:averaged,"o_None","TestOpGeq"),(3,false,"o_RCC8","TestOp"),(3,false,"o_RCC5","TestOp")]
-# exec_windowsize_flattened_ontology_test_operators = [(3,:averaged,"o_None","TestOpGeq")]
-# exec_windowsize_flattened_ontology_test_operators = [(3,false,"o_RCC8","TestOp")]
-
-# https://github.com/JuliaIO/JSON.jl/issues/203
-# https://discourse.julialang.org/t/json-type-serialization/9794
-# TODO: make test operators types serializable
-# exec_test_operators = [ "TestOpAll" ]
-# exec_test_operators = [ "TestOp" ]
-# exec_test_operators = [ "TestOp_80" ]
-
-test_operators_dict = Dict(
-	"TestOpGeq" => [TestOpGeq],
-	"TestOp_70" => [TestOpGeq_70, TestOpLeq_70],
-	"TestOp_80" => [TestOpGeq_80, TestOpLeq_80],
-	"TestOp"    => [TestOpGeq, TestOpLeq],
-	"TestOpAll" => [
-									TestOpGeq, TestOpLeq,
-									TestOpGeq_90, TestOpLeq_90,
-									TestOpGeq_80, TestOpLeq_80,
-									TestOpGeq_70, TestOpLeq_70,
-									TestOpGeq_60, TestOpLeq_60,
-									],
-)
-
-ontology_dict = Dict(
-	"o_RCC8" => getIntervalRCC8OntologyOfDim(Val(2)),
-	"o_RCC5" => getIntervalRCC5OntologyOfDim(Val(2)),
-	"o_None" => OneWorldOntology,
-)
+exec_from_to = [(1,120)]
+# exec_from_to = [(1,120),(1440-120+1,1440)]
 
 
 exec_ranges_dict = (
-	windowsize_flattened_ontology_test_operators = exec_windowsize_flattened_ontology_test_operators,
-	# test_operators                             = exec_test_operators,
-	dataset_name                                 = exec_dataset_name,
+	from_to                                      = exec_from_to,
+	####
 	dataseed                                     = exec_dataseed,
 )
 
-n_samples_per_label = 100
-
-dataset_function = (
-	(windowsize,flattened,ontology,test_operators),
-	dataset_name,
-	dataseed)->begin
+dataset_function =
+	(((from,to), dataseed))->begin
 		dataset_rng = Random.MersenneTwister(dataseed)
-		
-		# Dataset
-		dataset, n_label_samples = SampleLandCoverDataset(
-					dataset_name,
-					n_samples_per_label,
-					windowsize,
-					stratify = false,
-					# stratify = true,
-					flattened = flattened,
-					# n_attributes = 3,
-					# rng = dataset_rng)
-					rng = copy(main_rng))
-		
+
+		dataset, n_label_samples = SiemensJuneDataset_not_stratified(from, to)
+
 		# Dataset slice
-		n_per_class = minimum(n_samples_per_label)
+		n_per_class = minimum(n_label_samples)
 		dataset_slice = Array{Int64,2}(undef, length(n_label_samples), n_per_class)
 		c = 0
 		for i in 1:length(n_label_samples)
@@ -242,7 +196,7 @@ iteration_blacklist = []
 ################################################################################
 ################################################################################
 
-mkpath(saved_datasets_path)
+# mkpath(saved_datasets_path)
 
 if "-f" in ARGS
 	if isfile(iteration_progress_json_file_path)
@@ -310,84 +264,16 @@ for params_combination in IterTools.product(exec_ranges...)
 	##############################################################################
 	##############################################################################
 	
-	(windowsize,flattened,ontology,test_operators), dataset_name, dataseed = params_combination
+	from_to, dataseed = params_combination
 	
 	# LOAD DATASET
-	dataset_file_name = saved_datasets_path * "/" * run_name
 
 	cur_modal_args = modal_args
 
-	dataset, dataset_slice = @cache "dataset" data_savedir params_combination dataset_function
-	# dataset_rng = Random.MersenneTwister(dataseed)
-	# dataset, dataset_slice = 
-	# 	if save_datasets && isfile(dataset_file_name * ".jld")
-	# 		if just_produce_datasets_jld
-	# 			continue
-	# 		end
-
-	# 		println("Loading dataset $(dataset_file_name * ".jld")...")
-			
-	# 		dataset = nothing
-	# 		n_pos = nothing
-	# 		n_neg = nothing
-			
-	# 		JLD2.@load (dataset_file_name * ".jld") dataset n_pos n_neg
-	# 		(X,Y) = dataset
-	# 		if isfile(dataset_file_name * "-balanced.jld")
-	# 			JLD2.@load (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
-	# 		else
-	# 			n_per_class = min(n_pos, n_neg)
-	# 			dataset_slice = Array{Int,2}(undef, 2, n_per_class)
-	# 			dataset_slice[1,:] .=          Random.randperm(dataset_rng, n_pos)[1:n_per_class]
-	# 			dataset_slice[2,:] .= n_pos .+ Random.randperm(dataset_rng, n_neg)[1:n_per_class]
-	# 			dataset_slice = dataset_slice[:]
-
-	# 			balanced_dataset = slice_labeled_dataset((X,Y), dataset_slice)
-	# 			typeof(balanced_dataset) |> println
-	# 			(X_train, Y_train), (X_test, Y_test) = traintestsplit(balanced_dataset, split_threshold)
-	# 			JLD2.@save (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
-	# 			balanced_train = (X_train, Y_train)
-	# 			JLD2.@save (dataset_file_name * "-balanced-train.jld") balanced_train
-	# 			balanced_test = (X_test,  Y_test)
-	# 			JLD2.@save (dataset_file_name * "-balanced-test.jld")  balanced_test
-	# 		end
-
-	# 		dataset = (X,Y)
-	#			dataset, dataset_slice
-	# 	else
-	# 		println("Creating dataset...")
-	# 		# TODO wrap dataset creation into a function accepting the rng and other parameters...
-	# 		dataset = dataset_function(params_combination)
-
-	# 		n_per_class = min(n_pos, n_neg)
-
-	# 		dataset_slice = Array{Int,2}(undef, 2, n_per_class)
-	# 		dataset_slice[1,:] .=          Random.randperm(dataset_rng, n_pos)[1:n_per_class]
-	# 		dataset_slice[2,:] .= n_pos .+ Random.randperm(dataset_rng, n_neg)[1:n_per_class]
-	# 		dataset_slice = dataset_slice[:]
-
-	# 		if save_datasets
-	# 			println("Saving dataset $(dataset_file_name)...")
-	# 			(X, Y) = dataset
-	# 			JLD2.@save (dataset_file_name * ".jld")                dataset n_pos n_neg
-	# 			balanced_dataset = slice_labeled_dataset((X,Y), dataset_slice)
-	# 			typeof(balanced_dataset) |> println
-	# 			(X_train, Y_train), (X_test, Y_test) = traintestsplit(balanced_dataset, split_threshold)
-	# 			JLD2.@save (dataset_file_name * "-balanced.jld") balanced_dataset dataset_slice
-	# 			balanced_train = (X_train, Y_train)
-	# 			JLD2.@save (dataset_file_name * "-balanced-train.jld") balanced_train
-	# 			balanced_test = (X_test,  Y_test)
-	# 			JLD2.@save (dataset_file_name * "-balanced-test.jld")  balanced_test
-	# 			if just_produce_datasets_jld
-	# 				continue
-	# 			end
-	# 		end
-	# 		dataset, dataset_slice
-	# 	end
-	# println(dataset_slice)
-
-	cur_data_modal_args = merge(data_modal_args, (test_operators = test_operators_dict[test_operators], ontology = ontology_dict[ontology]))
+	cur_data_modal_args = data_modal_args
 	
+	dataset, dataset_slice = @cache "dataset" data_savedir params_combination dataset_function
+
 	##############################################################################
 	##############################################################################
 	##############################################################################

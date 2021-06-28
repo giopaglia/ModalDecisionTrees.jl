@@ -128,7 +128,7 @@ function exec_run(
 	println()
 	println("split_threshold   = ", split_threshold)
 	println("data_modal_args   = ", data_modal_args)
-	println("dataset_slice   = ", dataset_slice)
+	println("dataset_slice     = ($(length(dataset_slice))) -> ", dataset_slice)
 	# println("round_dataset_to_datatype   = ", round_dataset_to_datatype)
 	# println("use_ontological_form   = ", use_ontological_form)
 	# println("data_savedir   = ", data_savedir)
@@ -147,7 +147,8 @@ function exec_run(
 	# This function transforms bare MatricialDatasets into modal datasets in the form of ontological or featmodal dataset
 	#  The train dataset, unless use_ontological_form, is transformed in featmodal form, which is optimized for training.
 	#  The test dataset is kept in ontological form
-	function buildModalDatasets(Xs_train_all::Union{MatricialDataset,Vector{<:MatricialDataset}}, X_test::Union{MatricialDataset,Vector{<:MatricialDataset}})	
+	# function buildModalDatasets(Xs_train_all::Union{MatricialDataset,Vector{<:MatricialDataset}}, X_test::Union{MatricialDataset,Vector{<:MatricialDataset}})	
+	function buildModalDatasets(Xs_train_all, X_test)	
 
 		if Xs_train_all isa MatricialDataset
 			Xs_train_all = [Xs_train_all]
@@ -420,7 +421,7 @@ function exec_run(
 
 			# Apply scaling
 			if round_dataset_to_datatype != false
-				X, Y = roundDataset((X, Y), round_dataset_to_datatype)
+				X, Y = round_dataset((X, Y), round_dataset_to_datatype)
 			end
 			
 			# println(size.(X))
@@ -462,7 +463,7 @@ function exec_run(
 
 			# Apply scaling
 			if round_dataset_to_datatype != false
-				(X_train, Y_train), (X_test,  Y_test) = roundDataset(((X_train, Y_train), (X_test,  Y_test)), round_dataset_to_datatype)
+				(X_train, Y_train), (X_test,  Y_test) = round_dataset(((X_train, Y_train), (X_test,  Y_test)), round_dataset_to_datatype)
 			end
 			
 			# Compute mffmd for the training instances
