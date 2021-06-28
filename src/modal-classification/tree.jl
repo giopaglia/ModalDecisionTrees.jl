@@ -81,6 +81,7 @@ module treeclassifier
 		useRelationGlob     :: Vector{Bool},
 		####################
 		indX                :: AbstractVector{<:Integer},   # an array of sample indices (we split using samples in indX[node.region])
+		n_classes           :: Int,
 		####################
 		perform_consistency_check :: Bool,
 		####################
@@ -95,7 +96,7 @@ module treeclassifier
 		r_start = region.start - 1
 
 		# Class counts
-		nc::AbstractVector{U} = fill(zero(U), length(region))
+		nc::AbstractVector{U} = fill(zero(U), n_classes)
 		@simd for i in region
 			@inbounds nc[Y[indX[i]]] += W[indX[i]]
 		end
@@ -130,9 +131,9 @@ module treeclassifier
 			Wf[i] = W[indX[i + r_start]]
 		end
 
-		Sfs = Vector{AbstractVector{WST} where {WorldType,WST<:Union{AbstractSet{WorldType}, AbstractVector{WorldType}}}}(undef, n_frames(Xs))
+		Sfs = Vector{AbstractVector{WST} where {WorldType,WST<:AbstractVector{WorldType}}}(undef, n_frames(Xs))
 		for i_frame in 1:n_frames(Xs)
-			Sfs[i_frame] = Vector{eltype(Ss[i_frame])}(undef, n_instances)
+			Sfs[i_frame] = Vector{Vector{world_type(Xs, i_frame)}}(undef, n_instances)
 			@simd for i in 1:n_instances
 				Sfs[i_frame][i] = Ss[i_frame][indX[i + r_start]]
 			end
@@ -216,18 +217,13 @@ module treeclassifier
 			########################################################################
 			########################################################################
 			
-			Threads.lock(writing_lock)
-			feasible_decisions = [
-				dec for dec in generate_feasible_decisions(X, indX[region], frame_Sf, allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds)
-			]
-			Threads.unlock(writing_lock)
-			for ((relation, feature, test_operator, threshold), aggr_thresholds) in feasible_decisions
+			for ((relation, feature, test_operator, threshold), aggr_thresholds) in generate_feasible_decisions(X, indX[region], frame_Sf, allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds)
 				
 				# println(display_decision(i_frame, relation, feature, test_operator, threshold))
 
 				# Re-initialize right class counts
 				nr = zero(U)
-				ncr::AbstractVector{U} = fill(zero(U), n_instances)
+				ncr::AbstractVector{U} = fill(zero(U), n_classes)
 				if isa(consistency_sat_check,Vector)
 					consistency_sat_check[1:n_instances] .= 1
 				end
@@ -248,7 +244,7 @@ module treeclassifier
 				end
 
 				# Calculate left class counts
-				ncl::AbstractVector{U} = Vector{U}(undef, n_instances)
+				ncl::AbstractVector{U} = Vector{U}(undef, n_classes)
 				ncl .= nc .- ncr
 				nl = nt - nr
 				@logmsg DTDebug "  (n_left,n_right) = ($nl,$nr)"
@@ -310,12 +306,12 @@ module treeclassifier
 			unsatisfied_flags = fill(1, n_instances)
 			for i_instance in 1:n_instances
 				# TODO perform step with an OntologicalModalDataset
-				
+
 				# instance = ModalLogic.getInstance(X, node.i_frame, indX[i_instance + r_start])
 				X = get_frame(Xs, node.i_frame)
 				Sf = Sfs[node.i_frame]
 				# instance = ModalLogic.getInstance(X, indX[i_instance + r_start])
-				
+
 				# println(instance)
 				# println(Sf[i_instance])
 				_sat, _ss = ModalLogic.modal_step(X, indX[i_instance + r_start], Sf[i_instance], node.relation, node.feature, node.test_operator, node.threshold)
@@ -664,6 +660,7 @@ module treeclassifier
 					useRelationGlob,
 					########################################################################
 					indX,
+					n_classes,
 					########################################################################
 					perform_consistency_check,
 					########################################################################
