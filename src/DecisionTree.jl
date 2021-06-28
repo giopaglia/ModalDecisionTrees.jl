@@ -362,15 +362,7 @@ end
 # Apply tree: predict labels for a new dataset of instances
 ################################################################################
 
-inst_init_world_sets(Xs::MultiFrameOntologicalDataset, tree::DTree, i_instance::Integer) = begin
-	Ss = Vector{WorldSet}(undef, n_frames(Xs))
-	for (i_frame,X) in enumerate(ModalLogic.frames(Xs))
-		Ss[i_frame] = initWorldSet(tree.initConditions[i_frame], tree.worldTypes[i_frame], ModalLogic.inst_channel_size(ModalLogic.getInstance(X, i_instance)))
-	end
-	Ss
-end
-
-inst_init_world_sets(Xs::MultiFrameFeatModalDataset, tree::DTree, i_instance::Integer) = begin
+inst_init_world_sets(Xs::MultiFrameModalDataset, tree::DTree, i_instance::Integer) = begin
 	Ss = Vector{WorldSet}(undef, n_frames(Xs))
 	for (i_frame,X) in enumerate(ModalLogic.frames(Xs))
 		Ss[i_frame] = initws_function(X, i_instance)(tree.initConditions[i_frame])
@@ -380,7 +372,7 @@ end
 
 apply_tree(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}) = leaf.majority
 
-function apply_tree(tree::DTInternal, X::MultiFrameGenericDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
+function apply_tree(tree::DTInternal, X::MultiFrameModalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
 	@logmsg DTDetail "applying branch..."
 	satisfied = true
 	@logmsg DTDetail " worlds" worlds
@@ -471,7 +463,7 @@ function print_apply_tree(leaf::DTLeaf{S}, X::Any, i_instance::Integer, worlds::
 	return DTLeaf(majority, vals)
 end
 
-function print_apply_tree(tree::DTInternal{T, S}, X::MultiFrameGenericDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, class::S; update_majority = false) where {T, S}
+function print_apply_tree(tree::DTInternal{T, S}, X::MultiFrameModalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, class::S; update_majority = false) where {T, S}
 	
 	(satisfied,new_worlds) = ModalLogic.modal_step(get_frame(X, tree.i_frame), i_instance, worlds[tree.i_frame], tree.relation, tree.feature, tree.test_operator, tree.threshold)
 	worlds[tree.i_frame] = new_worlds
