@@ -64,34 +64,28 @@ module treeclassifier
 	#  (e.g. max_depth, min_samples_leaf, etc.)
 	# TODO move this function inside the caller function, and get rid of all parameters
 	Base.@propagate_inbounds function _split!(
-		Xs                  :: MultiFrameFeatModalDataset, # the modal dataset
-		Y                   :: AbstractVector{Label},      # the label array
-		W                   :: AbstractVector{U},          # the weight vector
-		Ss                  :: AbstractVector{<:AbstractVector{WST} where {WorldType,WST<:WorldSet{WorldType}}}, # the vector of current worlds
+		Xs                    :: MultiFrameFeatModalDataset, # the modal dataset
+		Y                     :: AbstractVector{Label},      # the label array
+		W                     :: AbstractVector{U},          # the weight vector
+		Ss                    :: AbstractVector{<:AbstractVector{WST} where {WorldType,WST<:WorldSet{WorldType}}}, # the vector of current worlds
 		####################
-		loss_function       :: Function,
-		node                :: NodeMeta{<:AbstractFloat}, # the node to split
-		max_depth           :: Int,                         # the maximum depth of the resultant tree
-		min_samples_leaf    :: Int,                         # the minimum number of samples each leaf needs to have
-		min_loss_at_leaf    :: AbstractFloat,               # maximum purity allowed on a leaf
-		min_purity_increase :: AbstractFloat,               # minimum purity increase needed for a split
+		loss_function         :: Function,
+		node                  :: NodeMeta{<:AbstractFloat}, # the node to split
+		max_depth             :: Int,                         # the maximum depth of the resultant tree
+		min_samples_leaf      :: Int,                         # the minimum number of samples each leaf needs to have
+		min_loss_at_leaf      :: AbstractFloat,               # maximum purity allowed on a leaf
+		min_purity_increase   :: AbstractFloat,               # minimum purity increase needed for a split
 		####################
-		n_subrelations      :: Vector{<:Function},
-		n_subfeatures       :: Vector{<:Integer},           # number of features to use to split
-		useRelationGlob     :: Vector{Bool},
+		n_subrelations        :: Vector{<:Function},
+		n_subfeatures         :: Vector{<:Integer},           # number of features to use to split
+		useRelationGlob       :: Vector{Bool},
 		####################
-		indX                :: AbstractVector{<:Integer},   # an array of sample indices (we split using samples in indX[node.region])
+		indX                  :: AbstractVector{<:Integer},   # an array of sample indices (we split using samples in indX[node.region])
+		n_classes             :: Int,
 		####################
-		# Arrays for optimization purposes
+		perform_consistency_check :: Bool,
 		####################
-		nc                    :: AbstractVector{U},   # nc maintains a dictionary of all labels in the samples
-		ncl                   :: AbstractVector{U},   # ncl maintains the counts of labels on the left
-		ncr                   :: AbstractVector{U},   # ncr maintains the counts of labels on the right
-		consistency_sat_check :: Union{Nothing,AbstractVector{Bool}},
-		####################
-		Yf                    :: AbstractVector{Label},
-		Wf                    :: AbstractVector{U},
-		Sfs                   :: AbstractVector{<:AbstractVector{WST} where {WorldType,WST<:WorldSet{WorldType}}},
+		writing_lock          :: Threads.Condition,
 		####################
 		rng                   :: Random.AbstractRNG,
 	) where {U}
@@ -102,7 +96,7 @@ module treeclassifier
 		r_start = region.start - 1
 
 		# Class counts
-		nc[:] .= zero(U)
+		nc = fill(zero(U), n_classes)
 		@inbounds @simd for i in region
 			nc[Y[indX[i]]] += W[indX[i]]
 		end
@@ -130,12 +124,16 @@ module treeclassifier
 
 		# Gather all values needed for the current set of instances
 		# TODO also slice the dataset?
+		Yf = Vector{U}(undef, n_instances)
+		Wf = Vector{U}(undef, n_instances)
 		@simd for i in 1:n_instances
 			Yf[i] = Y[indX[i + r_start]]
 			Wf[i] = W[indX[i + r_start]]
 		end
 
+		Sfs = Vector{AbstractVector{WST} where {WorldType,WST<:AbstractVector{WorldType}}}(undef, n_frames(Xs))
 		for i_frame in 1:n_frames(Xs)
+			Sfs[i_frame] = Vector{Vector{world_type(Xs, i_frame)}}(undef, n_instances)
 			@simd for i in 1:n_instances
 				Sfs[i_frame][i] = Ss[i_frame][indX[i + r_start]]
 			end
@@ -148,6 +146,12 @@ module treeclassifier
 		best_feature = FeatureTypeNone
 		best_test_operator = nothing
 		best_threshold = nothing
+		consistency_sat_check =
+			if perform_consistency_check
+				Vector{Bool}(undef, n_instances)
+			else
+				nothing
+			end
 		best_consistency = nothing
 		
 		#####################
@@ -219,7 +223,7 @@ module treeclassifier
 
 				# Re-initialize right class counts
 				nr = zero(U)
-				ncr .= zero(U)
+				ncr = fill(zero(U), n_classes)
 				if isa(consistency_sat_check,Vector)
 					consistency_sat_check[1:n_instances] .= 1
 				end
@@ -240,6 +244,7 @@ module treeclassifier
 				end
 
 				# Calculate left class counts
+				ncl = Vector{U}(undef, n_classes)
 				ncl .= nc .- ncr
 				nl = nt - nr
 				@logmsg DTDebug "  (n_left,n_right) = ($nl,$nr)"
@@ -309,7 +314,10 @@ module treeclassifier
 
 				# println(instance)
 				# println(Sf[i_instance])
-				(satisfied,Ss[node.i_frame][indX[i_instance + r_start]]) = ModalLogic.modal_step(X, indX[i_instance + r_start], Sf[i_instance], node.relation, node.feature, node.test_operator, node.threshold)
+				_sat, _ss = ModalLogic.modal_step(X, indX[i_instance + r_start], Sf[i_instance], node.relation, node.feature, node.test_operator, node.threshold)
+				Threads.lock(writing_lock)
+				(satisfied,Ss[node.i_frame][indX[i_instance + r_start]]) = _sat, _ss
+				Threads.unlock(writing_lock)
 				@logmsg DTDetail " [$satisfied] Instance $(i_instance)/$(n_instances)" Sf[i_instance] (if satisfied Ss[node.i_frame][indX[i_instance + r_start]] end)
 				# println(satisfied)
 				# println(Ss[node.i_frame][indX[i_instance + r_start]])
@@ -612,23 +620,8 @@ module treeclassifier
 		# Initialize world sets for each instance
 		Ss = init_world_sets(Xs, initConditions)
 
-		# Memory support for class counts
-		nc  = Vector{U}(undef, n_classes)
-		ncl = Vector{U}(undef, n_classes)
-		ncr = Vector{U}(undef, n_classes)
-		consistency_sat_check = Vector{Bool}(undef, n_instances)
-		# consistency_sat_check = nothing
+		perform_consistency_check = true
 
-		# Memory support for worldsets, labels, weights 
-		# Xf = Array{T, N+1}(undef, channel_size(X)..., n_instances)
-		Sfs = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, n_frames(Xs))
-		for i_frame in 1:n_frames(Xs)
-			WT = world_type(Xs, i_frame)
-			Sfs[i_frame] = Vector{WorldSet{WT}}(undef, n_instances)
-		end
-		Yf = Vector{Label}(undef, n_instances)
-		Wf = Vector{U}(undef, n_instances)
-		
 		# Memory support for the instances distribution throughout the tree
 		#  this is an array of indices that will be recursively permuted and partitioned
 		indX = collect(1:n_instances)
@@ -640,45 +633,52 @@ module treeclassifier
 		root = NodeMeta{Float64}(1:n_instances, 0, 0, onlyUseRelationGlob)
 		# Process stack of nodes
 		stack = NodeMeta{Float64}[root]
+		currently_processed_nodes::Vector{NodeMeta{Float64}} = []
+		writing_lock = Threads.Condition()
 		@inbounds while length(stack) > 0
+			rngs = [spawn_rng(rng) for _n in 1:length(stack)]
 			# Pop nodes and queue them to be processed
-			node = pop!(stack)
-			_split!(
-				Xs,
-				Y,
-				W,
-				Ss,
-				########################################################################
-				loss_function,
-				node,
-				max_depth,
-				min_samples_leaf,
-				min_loss_at_leaf,
-				min_purity_increase,
-				########################################################################
-				n_subrelations,
-				n_subfeatures,
-				useRelationGlob,
-				########################################################################
-				indX,
-				nc,
-				ncl,
-				ncr,
-				consistency_sat_check,
-				########################################################################
-				Yf,
-				Wf,
-				Sfs,
-				########################################################################
-				rng
-			)
-			# After processing, if needed, perform the split and push the two children for a later processing step
-			if !node.is_leaf
-				fork!(node)
-				# Note: the left (positive) child is not limited to RelationGlob, whereas the right child is only if the current node is as well.
-				push!(stack, node.l)
-				push!(stack, node.r)
+			while length(stack) > 0
+				push!(currently_processed_nodes, pop!(stack))
 			end
+			Threads.@threads for (i_node, node) in collect(enumerate(currently_processed_nodes))
+				_split!(
+					Xs,
+					Y,
+					W,
+					Ss,
+					########################################################################
+					loss_function,
+					node,
+					max_depth,
+					min_samples_leaf,
+					min_loss_at_leaf,
+					min_purity_increase,
+					########################################################################
+					n_subrelations,
+					n_subfeatures,
+					useRelationGlob,
+					########################################################################
+					indX,
+					n_classes,
+					########################################################################
+					perform_consistency_check,
+					########################################################################
+					writing_lock,
+					########################################################################
+					rngs[i_node]
+				)
+			end
+			# After processing, if needed, perform the split and push the two children for a later processing step
+			for node in currently_processed_nodes
+				if !node.is_leaf
+					fork!(node)
+					# Note: the left (positive) child is not limited to RelationGlob, whereas the right child is only if the current node is as well.
+					push!(stack, node.l)
+					push!(stack, node.r)
+				end
+			end
+			empty!(currently_processed_nodes)
 		end
 
 		return (root, indX)
