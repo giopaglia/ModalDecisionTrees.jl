@@ -4,10 +4,10 @@
 # 		features::AbstractVector{<:FeatureTypeFun}
 # 	) where {T, N, WorldType<:AbstractWorld} = FeaturedWorldDataset{T, WorldType}(X, features)
 
-FeaturedWorldDataset(
+Base.@propagate_inbounds function FeaturedWorldDataset(
 		X::OntologicalDataset,
 		features::AbstractVector{<:FeatureTypeFun}
-	) = begin
+	)
 
 	@logmsg DTOverview "OntologicalDataset -> FeatModalDataset"
 
@@ -349,7 +349,7 @@ slice_dataset(fmds::FMDStumpGlobalSupportArray{T}, inds::AbstractVector{<:Intege
 	FMDStumpGlobalSupportArray{T}(if return_view @view fmds.d[inds,:] else fmds.d[inds,:] end)
 
 
-function computeModalDatasetStumpSupport(
+Base.@propagate_inbounds function computeModalDatasetStumpSupport(
 		fmd                 :: FeatModalDataset{T, WorldType},
 		grouped_featsnaggrs :: AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}};
 		computeRelationGlob = false,

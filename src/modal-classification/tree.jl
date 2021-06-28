@@ -63,7 +63,7 @@ module treeclassifier
 	# Find an optimal local split satisfying the given constraints
 	#  (e.g. max_depth, min_samples_leaf, etc.)
 	# TODO move this function inside the caller function, and get rid of all parameters
-	function _split!(
+	Base.@propagate_inbounds function _split!(
 		Xs                  :: MultiFrameFeatModalDataset, # the modal dataset
 		Y                   :: AbstractVector{Label},      # the label array
 		W                   :: AbstractVector{U},          # the weight vector
@@ -103,8 +103,8 @@ module treeclassifier
 
 		# Class counts
 		nc[:] .= zero(U)
-		@simd for i in region
-			@inbounds nc[Y[indX[i]]] += W[indX[i]]
+		@inbounds @simd for i in region
+			nc[Y[indX[i]]] += W[indX[i]]
 		end
 		nt = sum(nc)
 		node.purity = loss_function(nc, nt)
@@ -155,7 +155,7 @@ module treeclassifier
 		#####################
 		## Test all decisions
 		# For each frame (modal dataset)
-		for (i_frame,
+		@inbounds for (i_frame,
 					(X,
 					frame_Sf,
 					frame_n_subrelations,
@@ -213,7 +213,7 @@ module treeclassifier
 			########################################################################
 			########################################################################
 			
-			for ((relation, feature, test_operator, threshold), aggr_thresholds) in generate_feasible_decisions(X, indX[region], frame_Sf, allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds)
+			@inbounds for ((relation, feature, test_operator, threshold), aggr_thresholds) in generate_feasible_decisions(X, indX[region], frame_Sf, allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds)
 				
 				# println(display_decision(i_frame, relation, feature, test_operator, threshold))
 
