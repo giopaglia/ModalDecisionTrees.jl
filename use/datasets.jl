@@ -84,6 +84,8 @@ SplatEduardDataset(N) = begin
 end
 
 
+include("datasets-siemens.jl")
+
 # function testSplatSiemensDataset_not_stratified()
 # 	for seed ∈ [1,2,3,4,5,6,7,8,9,10]
 # 		for nmeans ∈ [5,10,15]
