@@ -114,6 +114,8 @@ function build_tree(
 	initConditions      :: Union{_initCondition,AbstractVector{<:_initCondition}} = startWithRelationGlob,
 	useRelationGlob     :: Union{Bool,AbstractVector{Bool}}                       = true,
 	##############################################################################
+	perform_consistency_check :: Bool = true,
+	##############################################################################
 	rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {S, U}
 
 	if useRelationGlob isa Bool
@@ -150,6 +152,8 @@ function build_tree(
 		initConditions      = initConditions,
 		useRelationGlob     = useRelationGlob,
 		############################################################################
+		perform_consistency_check = perform_consistency_check,
+		############################################################################
 		rng                 = rng)
 
 	root = _convert(t.root, t.list, Y[t.labels])
@@ -178,6 +182,8 @@ function build_forest(
 	n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = x -> ceil(Int, sqrt(x)),
 	initConditions      :: Union{_initCondition,AbstractVector{<:_initCondition}} = startWithRelationGlob,
 	useRelationGlob     :: Union{Bool,AbstractVector{Bool}}                       = true,
+	##############################################################################
+	perform_consistency_check :: Bool = true,
 	##############################################################################
 	rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {S, U}
 
@@ -241,6 +247,8 @@ function build_forest(
 			n_subfeatures        = n_subfeatures,
 			initConditions       = initConditions,
 			useRelationGlob      = useRelationGlob,
+			####
+			perform_consistency_check = perform_consistency_check,
 			####
 			rng                  = rngs[i_tree])
 

@@ -64,13 +64,14 @@ module treeclassifier
 	#  (e.g. max_depth, min_samples_leaf, etc.)
 	# TODO move this function inside the caller function, and get rid of all parameters
 	Base.@propagate_inbounds function _split!(
+		node                  :: NodeMeta{<:AbstractFloat}, # the node to split
+		####################
 		Xs                    :: MultiFrameFeatModalDataset, # the modal dataset
 		Y                     :: AbstractVector{Label},      # the label array
 		W                     :: AbstractVector{U},          # the weight vector
 		Ss                    :: AbstractVector{<:AbstractVector{WST} where {WorldType,WST<:WorldSet{WorldType}}}, # the vector of current worlds
 		####################
 		loss_function         :: Function,
-		node                  :: NodeMeta{<:AbstractFloat}, # the node to split
 		max_depth             :: Int,                         # the maximum depth of the resultant tree
 		min_samples_leaf      :: Int,                         # the minimum number of samples each leaf needs to have
 		min_loss_at_leaf      :: AbstractFloat,               # maximum purity allowed on a leaf
@@ -601,6 +602,8 @@ module treeclassifier
 			initConditions          :: Vector{<:DecisionTree._initCondition},
 			useRelationGlob         :: Vector{Bool},
 			##########################################################################
+			perform_consistency_check :: Bool
+			##########################################################################
 			rng = Random.GLOBAL_RNG :: Random.AbstractRNG
 		) where {U}
 
@@ -619,8 +622,6 @@ module treeclassifier
 		
 		# Initialize world sets for each instance
 		Ss = init_world_sets(Xs, initConditions)
-
-		perform_consistency_check = true
 
 		# Memory support for the instances distribution throughout the tree
 		#  this is an array of indices that will be recursively permuted and partitioned
@@ -643,29 +644,30 @@ module treeclassifier
 			end
 			Threads.@threads for (i_node, node) in collect(enumerate(currently_processed_nodes))
 				_split!(
+					node,
+					######################################################################
 					Xs,
 					Y,
 					W,
 					Ss,
-					########################################################################
+					######################################################################
 					loss_function,
-					node,
 					max_depth,
 					min_samples_leaf,
 					min_loss_at_leaf,
 					min_purity_increase,
-					########################################################################
+					######################################################################
 					n_subrelations,
 					n_subfeatures,
 					useRelationGlob,
-					########################################################################
+					######################################################################
 					indX,
 					n_classes,
-					########################################################################
+					######################################################################
 					perform_consistency_check,
-					########################################################################
+					######################################################################
 					writing_lock,
-					########################################################################
+					######################################################################
 					rngs[i_node]
 				)
 			end
@@ -707,17 +709,11 @@ module treeclassifier
 			n_subfeatures           :: Vector{<:Integer},
 			initConditions          :: Vector{<:DecisionTree._initCondition},
 			useRelationGlob         :: Vector{Bool},
-			# TODO add consistency_step_data
+			##########################################################################
+			perform_consistency_check :: Bool,
 			##########################################################################
 			rng = Random.GLOBAL_RNG :: Random.AbstractRNG
 		) where {S, U}
-
-		# TODO ...
-		# if isnothing(consistency_step_data)
-		# 	gammas = fill(nothing, n_frames(Xs))
-		# else
-		# 	@assert n_frames(Xs) == length(gammas) "MultiFrameFeatModalDataset and gammas sizes mismatch: n_frames(Xs) = $(n_frames(Xs)); length(gammas) = $(length(gammas))"
-		# end
 
 		# Use unary weights if no weight is supplied
 		if isnothing(W)
@@ -766,6 +762,8 @@ module treeclassifier
 				n_subfeatures,
 				initConditions,
 				useRelationGlob,
+				########################################################################
+				perform_consistency_check,
 				########################################################################
 				rng,
 		)

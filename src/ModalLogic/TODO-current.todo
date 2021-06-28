@@ -20,7 +20,7 @@ In scanner.jl rimuovi i gammas, rimuovi test_operators cambia il modo di indicar
 Testa round_dataset_to_datatype/mapArrayToDataType in versione multiframe
 Restore optimize_tree_parameters! optimizations
 
-let split_consistency_check be an argument (split_consistency_satisfied_check) and create the debug and performance profiles
+let perform_consistency_check be an argument (split_consistency_satisfied_check) and create the debug and performance profiles
 
 _split!: Also write test_condition this for OntologicalDataset and cross check
 TODO add consistency_step_data and remove occurrences of "gamma"
