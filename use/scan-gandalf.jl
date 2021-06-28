@@ -127,11 +127,11 @@ timing_mode = :time
 
 # round_dataset_to_datatype = false
 # round_dataset_to_datatype = UInt8
-# round_dataset_to_datatype = UInt16
+round_dataset_to_datatype = UInt16
 # round_dataset_to_datatype = UInt32
 # round_dataset_to_datatype = UInt64
 # round_dataset_to_datatype = Float16
-round_dataset_to_datatype = Float32
+# round_dataset_to_datatype = Float32
 # round_dataset_to_datatype = Float64
 
 split_threshold = 0.8
@@ -225,6 +225,8 @@ iteration_blacklist = []
 ################################################################################
 ################################################################################
 ################################################################################
+
+mkpath(results_dir)
 
 if "-f" in ARGS
 	if isfile(iteration_progress_json_file_path)
@@ -400,7 +402,7 @@ for params_combination in IterTools.product(exec_ranges...)
 				data_savedir                =   (data_savedir, run_name),
 				tree_savedir                =   tree_savedir,
 				train_seed                  =   train_seed,
-				timing_mode                 =   timing_mode
+				timing_mode                 =   timing_mode,
 			);
 	##############################################################################
 	##############################################################################

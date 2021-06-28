@@ -1,3 +1,5 @@
+remove n_relations()?
+
 ☐	Optimize: TODO add enumAccReprAggr for relationAll, and for all worldtypes and relations
 ☐	Ottimizza gli enumAccessibles e i enumAccessibles per i sets.
 ☐	remove ch_readWorld in favor of inst_readWorld. In general, remove all gamma infrastructure.

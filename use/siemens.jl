@@ -178,7 +178,7 @@ iteration_blacklist = []
 ################################################################################
 ################################################################################
 
-# mkpath(saved_datasets_path)
+mkpath(results_dir)
 
 if "-f" in ARGS
 	if isfile(iteration_progress_json_file_path)
@@ -254,7 +254,7 @@ for params_combination in IterTools.product(exec_ranges...)
 
 	# Dataset slice
 	dataset_slice = balanced_dataset_slice(n_label_samples, dataseed)
-	
+
 	X,Y = dataset
 	dataset = map(x->ModalLogic.slice_dataset(x, [1:4..., 100:103...]), X), Y
 	dataset_slice = 1:8
