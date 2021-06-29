@@ -482,7 +482,7 @@ function SiemensJuneDataset_not_stratified(from, to)
 	# Qua fai un nuovo dataset, cambiando il path, con trip vs no-trip
 	ds, n_label_samples = trip_no_trip(data_dir * "Data_Features"); 
 	# Qua si fa una trasformazione del dataset usando la window che va dal punto 1 al punto 120, i.e., le prime due ore.
-	transform!(ds, window_slice, 1; from=from,to=to)
+	transform!(ds, window_slice, 1; from=from, to=to)
 
 	ClassificationDataset2RunnerDataset(ds), n_label_samples
 end

@@ -284,7 +284,7 @@ for params_combination in IterTools.product(exec_ranges...)
 				data_savedir                =   (data_savedir, run_name),
 				tree_savedir                =   tree_savedir,
 				train_seed                  =   train_seed,
-				timing_mode                 =   timing_mode
+				timing_mode                 =   timing_mode,
 			);
 	##############################################################################
 	##############################################################################
