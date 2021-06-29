@@ -90,8 +90,8 @@ balanced_dataset_slice(n_label_samples::NTuple{N,Integer}, dataseed::Integer) wh
 	dataset_slice = Array{Int64,2}(undef, length(n_label_samples), n_per_class)
 	c = 0
 	for i in 1:length(n_label_samples)
-		dataset_slice[i,:] .= c .+ Random.randperm(dataset_rng, n_label_samples[i])[1:n_per_class]
+		dataset_slice[i,:] .= sort(c .+ Random.randperm(dataset_rng, n_label_samples[i])[1:n_per_class])
 		c += n_label_samples[i]
 	end
-	dataset_slice = sort(dataset_slice[:])
+	dataset_slice = dataset_slice[:]
 end
