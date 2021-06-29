@@ -123,8 +123,8 @@ log_level = DecisionTree.DTOverview
 # log_level = DecisionTree.DTDetail
 
 # timing_mode = :none
-timing_mode = :time
-# timing_mode = :btime
+# timing_mode = :time
+timing_mode = :btime
 
 round_dataset_to_datatype = false
 # round_dataset_to_datatype = UInt16
@@ -149,7 +149,8 @@ legacy_gammas_check = false # true
 
 exec_dataseed = 1:10
 
-exec_from_to = [(1,120)]
+exec_from_to = [(1,10)]
+# exec_from_to = [(1,120)]
 # exec_from_to = [(1,120),(1440-120+1,1440)]
 
 
@@ -254,10 +255,6 @@ for params_combination in IterTools.product(exec_ranges...)
 
 	# Dataset slice
 	dataset_slice = balanced_dataset_slice(n_label_samples, dataseed)
-
-	X,Y = dataset
-	dataset = map(x->ModalLogic.slice_dataset(x, [1:4..., 100:103...]), X), Y
-	dataset_slice = 1:8
 
 	cur_modal_args = modal_args
 	cur_data_modal_args = data_modal_args
