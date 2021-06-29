@@ -123,8 +123,8 @@ log_level = DecisionTree.DTOverview
 # log_level = DecisionTree.DTDetail
 
 # timing_mode = :none
-# timing_mode = :time
-timing_mode = :btime
+timing_mode = :time
+# timing_mode = :btime
 
 round_dataset_to_datatype = false
 # round_dataset_to_datatype = UInt16
