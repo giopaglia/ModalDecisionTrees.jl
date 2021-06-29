@@ -369,14 +369,23 @@ inst_init_world_sets(Xs::MultiFrameModalDataset, tree::DTree, i_instance::Intege
 	end
 	Ss
 end
-
+ 
 apply_tree(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}) = leaf.majority
 
 function apply_tree(tree::DTInternal, X::MultiFrameModalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
 	@logmsg DTDetail "applying branch..."
 	satisfied = true
 	@logmsg DTDetail " worlds" worlds
-	(satisfied,new_worlds) = ModalLogic.modal_step(get_frame(X, tree.i_frame), i_instance, worlds[tree.i_frame], tree.relation, tree.feature, tree.test_operator, tree.threshold)
+	(satisfied,new_worlds) =
+		ModalLogic.modal_step(
+						get_frame(X, tree.i_frame),
+						i_instance,
+						worlds[tree.i_frame],
+						tree.relation,
+						tree.feature,
+						tree.test_operator,
+						tree.threshold)
+
 	worlds[tree.i_frame] = new_worlds
 	@logmsg DTDetail " ->(satisfied,worlds')" satisfied worlds
 	apply_tree((satisfied ? tree.left : tree.right), X, i_instance, worlds)
@@ -387,6 +396,7 @@ function apply_tree(tree::DTree{S}, X::GenericDataset) where {S}
 	@logmsg DTDetail "apply_tree..."
 	n_instances = n_samples(X)
 	predictions = Vector{S}(undef, n_instances)
+	
 	for i_instance in 1:n_instances
 		@logmsg DTDetail " instance $i_instance/$n_instances"
 		# TODO figure out: is it better to interpret the whole dataset at once, or instance-by-instance? The first one enables reusing training code
