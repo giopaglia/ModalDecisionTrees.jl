@@ -57,7 +57,7 @@ function string_head(
 		separator = ";",
 		tree_columns = ["K", "sensitivity", "specificity", "precision", "accuracy", "t"],
 		forest_columns = ["K", "σ² K", "sensitivity", "σ² sensitivity", "specificity", "σ² specificity", "precision", "σ² precision", "accuracy", "σ² accuracy", "oob_error", "σ² oob_error", "t"],
-        empty_columns_before = 1
+    empty_columns_before = 1
 	)::String
 
 	result = ""

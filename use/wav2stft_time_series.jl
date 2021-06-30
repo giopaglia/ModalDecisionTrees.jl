@@ -109,7 +109,7 @@ function wav2stft_time_series(filepath, kwargs; preprocess_sample::AbstractVecto
 	ts
 end
 
-# wav2stft_time_series(wav_example_filepath)
+# wav2stft_time_series("../datasets/KDD/asthmaandroidwithcough/breath/breaths_2aSAZx0fOr_1586937599109.wav")
 
 # DSP.Periodograms.stft(samps, div(length(samps), 8), div(n, 2); onesided=true, nfft=nextfastfft(n), fs=1, window=nothing)
 
