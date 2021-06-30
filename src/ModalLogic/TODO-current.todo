@@ -1,5 +1,13 @@
 remove n_relations()?
 
+Test with use_ontological_form = true: need to write these for OntologicalDataset
+ features(X::FeatModalDataset)          = X.features
+ grouped_featsaggrsnops(X::FeatModalDataset) = X.grouped_featsaggrsnops
+ n_features(X::FeatModalDataset{T, WorldType}) where {T, WorldType}  = length(X.features)
+ getindex(X::FeatModalDataset{T,WorldType}, args::Vararg) where {T,WorldType} = getindex(X.fwd, args...)
+
+Use ThreadsX
+
 ☐	Optimize: TODO add enumAccReprAggr for relationAll, and for all worldtypes and relations
 ☐	Ottimizza gli enumAccessibles e i enumAccessibles per i sets.
 ☐	remove ch_readWorld in favor of inst_readWorld. In general, remove all gamma infrastructure.
