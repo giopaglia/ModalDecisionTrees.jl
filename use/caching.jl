@@ -46,6 +46,7 @@ function load_cached_obj(type::String, common_cache_dir::String, hash::String)
 	checkpoint_stdout("Loading $(type) from file $(total_load_path)...")
 	obj = nothing
 
+	# TODO use magic number check instead of try/catch
 	try
 		JLD2.@load total_load_path obj
 	catch e
