@@ -278,7 +278,7 @@ for params_combination in IterTools.product(exec_ranges...)
 	dataset_fun_sub_params = (windowsize,flattened,ontology,test_operators), dataset_name
 	
 	# Load Dataset
-	dataset, n_label_samples = @cache "dataset" data_savedir dataset_fun_sub_params dataset_function
+	dataset, n_label_samples = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
 
 	cur_modal_args = modal_args
 	cur_data_modal_args = merge(data_modal_args,
