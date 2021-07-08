@@ -4,14 +4,11 @@
 ################################################################################
 ################################################################################
 
-include("runner.jl")
-include("table-printer.jl")
-include("progressive-iterator-manager.jl")
+include("scanner.jl")
 
 main_rng = DecisionTree.mk_rng(1)
 
 train_seed = 1
-
 
 ################################################################################
 #################################### FOLDERS ###################################
@@ -20,15 +17,14 @@ train_seed = 1
 results_dir = "./siemens"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
-concise_output_file_path = results_dir * "/grouped_in_models.csv"
-full_output_file_path = results_dir * "/full_columns.csv"
 data_savedir = results_dir * "/cache"
 tree_savedir = results_dir * "/trees"
 
-column_separator = ";"
-save_datasets = true
-just_produce_datasets_jld = false
-# saved_datasets_path = results_dir * "/datasets"
+dry_run = false
+
+save_datasets = false
+# save_datasets = true
+skip_training = false
 
 ################################################################################
 ##################################### TREES ####################################
@@ -98,14 +94,14 @@ println(" $(length(forest_args)) forests " * (length(forest_args) > 0 ? "(repeat
 ################################## MODAL ARGS ##################################
 ################################################################################
 
-modal_args = (
+modal_args = (;
 	initConditions = DecisionTree.startWithRelationGlob,
 	# initConditions = DecisionTree.startAtCenter,
 	# useRelationGlob = true,
 	useRelationGlob = false,
 )
 
-data_modal_args = (
+data_modal_args = (;
 	ontology = getIntervalOntologyOfDim(Val(1)),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A]),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A, ModalLogic.IA_L, ModalLogic.IA_Li, ModalLogic.IA_D]),
@@ -127,9 +123,13 @@ timing_mode = :time
 # timing_mode = :btime
 
 round_dataset_to_datatype = false
+# round_dataset_to_datatype = UInt8
 # round_dataset_to_datatype = UInt16
+# round_dataset_to_datatype = UInt32
+# round_dataset_to_datatype = UInt64
+# round_dataset_to_datatype = Float16
 # round_dataset_to_datatype = Float32
-# round_dataset_to_datatype = UInt16
+# round_dataset_to_datatype = Float64
 
 split_threshold = 0.8
 # split_threshold = 1.0
@@ -166,13 +166,10 @@ dataset_function = (from,to)->SiemensJuneDataset_not_stratified(from, to)
 ################################### SCAN FILTERS ###############################
 ################################################################################
 
-dry_run = false
-
 # TODO let iteration_white/blacklist a decision function and not a "in-array" condition?
 iteration_whitelist = []
 
 iteration_blacklist = []
-
 
 ################################################################################
 ################################################################################
@@ -186,21 +183,7 @@ if "-f" in ARGS
 		println("Backing up existing $(iteration_progress_json_file_path)...")
 		backup_file_using_creation_date(iteration_progress_json_file_path)
 	end
-	if isfile(concise_output_file_path)
-		println("Backing up existing $(concise_output_file_path)...")
-		backup_file_using_creation_date(concise_output_file_path)
-	end
-	if isfile(full_output_file_path)
-		println("Backing up existing $(full_output_file_path)...")
-		backup_file_using_creation_date(full_output_file_path)
-	end
 end
-
-# if the output files does not exists initilize them
-print_head(concise_output_file_path, tree_args, forest_args, tree_columns = [""], forest_columns = ["", "σ²", "t"], separator = column_separator)
-print_head(full_output_file_path, tree_args, forest_args, separator = column_separator,
-	forest_columns = ["K", "sensitivity", "specificity", "precision", "accuracy", "oob_error", "σ² K", "σ² sensitivity", "σ² specificity", "σ² precision", "σ² accuracy", "σ² oob_error", "t"],
-)
 
 exec_ranges_names, exec_ranges = collect(string.(keys(exec_ranges_dict))), collect(values(exec_ranges_dict))
 history = load_or_create_history(
@@ -231,8 +214,8 @@ for params_combination in IterTools.product(exec_ranges...)
 	# Placed here so we can keep track of which iteration is being skipped
 	print("Iteration \"$(run_name)\"")
 
-	# CHECK WHETHER THIS ITERATION WAS ALREADY COMPUTED OR NOT
-	if iteration_in_history(history, params_namedtuple) && !just_produce_datasets_jld
+	# Check whether this iteration was already computed or not
+	if all(iteration_in_history(history, (params_namedtuple, dataseed)) for dataseed in exec_dataseed) && (!save_datasets) # !skip_training
 		println(": skipping")
 		continue
 	else
@@ -251,7 +234,7 @@ for params_combination in IterTools.product(exec_ranges...)
 	dataset_fun_sub_params = (from,to)
 	
 	# Load Dataset
-	dataset, n_label_samples = @cache "dataset" data_savedir dataset_fun_sub_params dataset_function
+	dataset, n_label_samples = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
 
 	# Dataset slice
 	dataset_slice = balanced_dataset_slice(n_label_samples, dataseed)
@@ -259,72 +242,53 @@ for params_combination in IterTools.product(exec_ranges...)
 	cur_modal_args = modal_args
 	cur_data_modal_args = data_modal_args
 
+	## Dataset slices
+	# obtain dataseeds that are were not done before
+	todo_dataseeds = filter((dataseed)->!iteration_in_history(history, (params_namedtuple, dataseed)), exec_dataseed)
+	dataset_slices = [(dataseed,balanced_dataset_slice(n_label_samples, dataseed)) for dataseed in todo_dataseeds]
+
+	println("Dataseeds = $(todo_dataseeds)")
+
 	##############################################################################
 	##############################################################################
 	##############################################################################
 	
-	# ACTUAL COMPUTATION
-	Ts, Fs, Tcms, Fcms, Tts, Fts = exec_run(
-				run_name,
-				dataset,
-				split_threshold             =   split_threshold,
-				log_level                   =   log_level,
-				round_dataset_to_datatype   =   round_dataset_to_datatype,
-				dataset_slice               =   dataset_slice,
-				forest_args                 =   forest_args,
-				tree_args                   =   tree_args,
-				data_modal_args             =   cur_data_modal_args,
-				modal_args                  =   cur_modal_args,
-				test_flattened              =   test_flattened,
-				test_averaged               =   test_averaged,
-				legacy_gammas_check         =   legacy_gammas_check,
-				use_ontological_form        =   use_ontological_form,
-				optimize_forest_computation =   optimize_forest_computation,
-				forest_runs                 =   forest_runs,
-				data_savedir                =   (data_savedir, run_name),
-				tree_savedir                =   tree_savedir,
-				train_seed                  =   train_seed,
-				timing_mode                 =   timing_mode,
-			);
-	##############################################################################
-	##############################################################################
-	# PRINT RESULT IN FILES 
-	##############################################################################
-	##############################################################################
+	exec_scan(
+		run_name,
+		dataset;
+		### Training params
+		train_seed                      =   train_seed,
+		modal_args                      =   cur_modal_args,
+		tree_args                       =   tree_args,
+		tree_post_pruning_purity_thresh =   [],
+		forest_args                     =   forest_args,
+		forest_runs                     =   forest_runs,
+		optimize_forest_computation     =   optimize_forest_computation,
+		test_flattened                  =   test_flattened,
+		test_averaged                   =   test_averaged,
+		### Dataset params
+		split_threshold                 =   split_threshold,
+		data_modal_args                 =   cur_data_modal_args,
+		dataset_slices                  =   dataset_slices,
+		round_dataset_to_datatype       =   round_dataset_to_datatype,
+		use_ontological_form            =   use_ontological_form,
+		### Run params
+		results_dir                     =   results_dir,
+		data_savedir                    =   data_savedir,
+		tree_savedir                    =   tree_savedir,
+		legacy_gammas_check             =   legacy_gammas_check,
+		log_level                       =   log_level,
+		timing_mode                     =   timing_mode,
+		### Misc
+		save_datasets                   =   save_datasets,
+		skip_training                   =   skip_training,
+		callback                        =   (dataseed)->begin
+			# Add this step to the "history" of already computed iteration
+			push_iteration_to_history!(history, (params_namedtuple, dataseed))
+			save_history(iteration_progress_json_file_path, history)
+		end
+	);
 
-	# PRINT CONCISE
-	concise_output_string = string(run_name, column_separator)
-	for j in 1:length(tree_args)
-		concise_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j]; alt_separator=", ", separator = column_separator))
-		concise_output_string *= string(column_separator)
-	end
-	for j in 1:length(forest_args)
-		concise_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j]; alt_separator=", ", separator = column_separator))
-		concise_output_string *= string(column_separator)
-	end
-	concise_output_string *= string("\n")
-	append_in_file(concise_output_file_path, concise_output_string)
-
-	# PRINT FULL
-	full_output_string = string(run_name, column_separator)
-	for j in 1:length(tree_args)
-		full_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j]; start_s = "", end_s = "", alt_separator = column_separator))
-		full_output_string *= string(column_separator)
-	end
-	for j in 1:length(forest_args)
-		full_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j]; start_s = "", end_s = "", alt_separator = column_separator))
-		full_output_string *= string(column_separator)
-	end
-	full_output_string *= string("\n")
-	append_in_file(full_output_file_path, full_output_string)
-
-	##############################################################################
-	##############################################################################
-	# ADD THIS STEP TO THE "HISTORY" OF ALREADY COMPUTED ITERATION
-	push_iteration_to_history!(history, params_namedtuple)
-	save_history(iteration_progress_json_file_path, history)
-	##############################################################################
-	##############################################################################
 end
 
 println("Done!")

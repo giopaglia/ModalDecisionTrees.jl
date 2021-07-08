@@ -46,10 +46,10 @@ for loss_function in [DecisionTree.util.entropy]
 			for min_loss_at_leaf in [0.3] # [0.4, 0.6]
 				push!(tree_args, 
 					(
-						loss_function = loss_function,
-						min_samples_leaf = min_samples_leaf,
+						loss_function       = loss_function,
+						min_samples_leaf    = min_samples_leaf,
 						min_purity_increase = min_purity_increase,
-						min_loss_at_leaf = min_loss_at_leaf,
+						min_loss_at_leaf    = min_loss_at_leaf,
 					)
 				)
 			end
