@@ -362,6 +362,12 @@ end
 # Apply tree: predict labels for a new dataset of instances
 ################################################################################
 
+# TODO avoid these fallbacks?
+inst_init_world_sets(X::SingleFrameGenericDataset, tree::DTree, i_instance::Integer) = 
+	inst_init_world_sets(MultiFrameModalDataset(X), tree, i_instance)
+print_apply_tree(tree::DTree{S}, X::SingleFrameGenericDataset, Y::Vector{S}; reset_leaves = true, update_majority = false) where {S} = 
+	print_apply_tree(tree, MultiFrameModalDataset(X), Y; reset_leaves = reset_leaves, update_majority = update_majority)
+
 inst_init_world_sets(Xs::MultiFrameModalDataset, tree::DTree, i_instance::Integer) = begin
 	Ss = Vector{WorldSet}(undef, n_frames(Xs))
 	for (i_frame,X) in enumerate(ModalLogic.frames(Xs))
