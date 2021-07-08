@@ -156,8 +156,6 @@ exec_from_to = [(1,10)]
 
 exec_ranges_dict = (
 	from_to                                      = exec_from_to,
-	####
-	dataseed                                     = exec_dataseed,
 )
 
 dataset_function = (from,to)->SiemensJuneDataset_not_stratified(from, to)
@@ -230,14 +228,11 @@ for params_combination in IterTools.product(exec_ranges...)
 	##############################################################################
 	##############################################################################
 	
-	(from,to), dataseed = params_combination
+	(from,to), = params_combination
 	dataset_fun_sub_params = (from,to)
 	
 	# Load Dataset
 	dataset, n_label_samples = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
-
-	# Dataset slice
-	dataset_slice = balanced_dataset_slice(n_label_samples, dataseed)
 
 	cur_modal_args = modal_args
 	cur_data_modal_args = data_modal_args
