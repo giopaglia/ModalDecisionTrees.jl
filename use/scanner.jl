@@ -310,7 +310,7 @@ function buildModalDatasets(Xs_train_all, X_test, data_modal_args, modal_args, u
 
 				stump_fmd = 
 					if save_datasets
-						@cache "stump_fmd" data_savedir (X_train_all, features, featsnops, needToComputeRelationGlob) sfmd_c
+						@cachefast "stump_fmd" data_savedir (X_train_all, features, featsnops, needToComputeRelationGlob) sfmd_c
 					else
 						sfmd_c(X_train_all, features, featsnops, needToComputeRelationGlob)
 					end
@@ -350,7 +350,7 @@ function buildModalDatasets(Xs_train_all, X_test, data_modal_args, modal_args, u
 
 					gammas = 
 					if save_datasets
-						@cache "gammas" data_savedir (X_train_all,data_modal_args.test_operators,relationSet,relationId_id,inUseRelation_ids) gammas_c
+						@cachefast "gammas" data_savedir (X_train_all,data_modal_args.test_operators,relationSet,relationId_id,inUseRelation_ids) gammas_c
 					else
 						gammas_c(X_train_all,test_operators,relationSet,relationId_id,inUseRelation_ids)
 					end

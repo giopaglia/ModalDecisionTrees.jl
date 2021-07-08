@@ -22,8 +22,8 @@ tree_savedir = results_dir * "/trees"
 
 dry_run = false
 
-save_datasets = false
-# save_datasets = true
+# save_datasets = false
+save_datasets = true
 skip_training = false
 
 ################################################################################
