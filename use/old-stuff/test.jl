@@ -213,7 +213,7 @@ for dataset_name in ["Salinas", "Salinas-A", "PaviaCentre", "Pavia", "IndianPine
 														log_level = log_level,
 														args = cur_args,
 														kwargs = cur_kwargs,
-														use_ontological_form = true,
+														use_training_form = true,
 														test_tree = true,
 														test_forest = true,
 														);

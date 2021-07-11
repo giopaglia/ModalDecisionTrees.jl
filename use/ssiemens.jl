@@ -135,7 +135,10 @@ split_threshold = 0.8
 # split_threshold = 1.0
 # split_threshold = false
 
-use_ontological_form = false
+# use_training_form = :dimensional
+# use_training_form = :fmd
+# use_training_form = :stump
+use_training_form = :stump_with_memoization
 
 test_flattened = false
 test_averaged  = false
@@ -266,7 +269,7 @@ for params_combination in IterTools.product(exec_ranges...)
 		data_modal_args                 =   cur_data_modal_args,
 		dataset_slices                  =   dataset_slices,
 		round_dataset_to_datatype       =   round_dataset_to_datatype,
-		use_ontological_form            =   use_ontological_form,
+		use_training_form               =   use_training_form,
 		### Run params
 		results_dir                     =   results_dir,
 		data_savedir                    =   data_savedir,

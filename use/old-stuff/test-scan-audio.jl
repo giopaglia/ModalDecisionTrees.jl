@@ -139,7 +139,7 @@ split_threshold = 0.8
 # split_threshold = 1.0
 # split_threshold = false
 
-use_ontological_form = false
+use_training_form = false
 
 test_flattened = false
 
@@ -437,7 +437,7 @@ for i in exec_runs
 					modal_args                  =   cur_modal_args,
 					test_flattened              =   test_flattened,
 					legacy_gammas_check         =   legacy_gammas_check,
-					use_ontological_form        =   use_ontological_form,
+					use_training_form        =   use_training_form,
 					optimize_forest_computation =   optimize_forest_computation,
 					forest_runs                 =   forest_runs,
 					data_savedir                =   (data_savedir, dataset_name_str),

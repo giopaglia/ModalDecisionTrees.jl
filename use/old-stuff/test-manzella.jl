@@ -165,7 +165,7 @@ if log_results_best_values
 			forest_args                 =   forest_args,
 			tree_args                   =   tree_args,
 			modal_args                  =   modal_args,
-			use_ontological_form           =   use_ontological_form,
+			use_training_form           =   use_training_form,
 			optimize_forest_computation =   optimize_forest_computation,
 			rng                         =   rng
 		);

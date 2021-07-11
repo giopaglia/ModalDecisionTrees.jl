@@ -1,14 +1,14 @@
 # TODO note that these splitting functions simply cut the dataset in two,
 #  and they don't necessarily produce balanced cuts. To produce balanced cuts,
 #  one must manually stratify the dataset beforehand
-function traintestsplit((Xs,Y)::Tuple{AbstractVector{<:GenericDataset},AbstractVector{String}}, split_threshold::AbstractFloat; is_balanced = true)
+function traintestsplit((Xs,Y)::Tuple{AbstractVector{<:GenericDataset},AbstractVector{String}}, split_threshold::AbstractFloat; is_balanced = true, return_view = false)
 	Xs_train = Vector(undef, length(Xs))
 	Xs_test  = Vector(undef, length(Xs))
 	the_Y_train = nothing
 	the_Y_test = nothing
 	for (i,X) in enumerate(Xs)
 
-		(X_train,Y_train), (X_test,Y_test) = traintestsplit((X,Y), split_threshold; is_balanced = is_balanced)
+		(X_train,Y_train), (X_test,Y_test) = traintestsplit((X,Y), split_threshold; is_balanced = is_balanced, return_view = return_view)
 		Xs_train[i]      = X_train
 		Xs_test[i]       = X_test
 		the_Y_train      = Y_train
@@ -18,7 +18,7 @@ function traintestsplit((Xs,Y)::Tuple{AbstractVector{<:GenericDataset},AbstractV
 	(Xs_train, the_Y_train), (Xs_test, the_Y_test)
 end
 
-function traintestsplit((X,Y)::Tuple{GenericDataset,AbstractVector{String}}, split_threshold::AbstractFloat; is_balanced = true)
+function traintestsplit((X,Y)::Tuple{GenericDataset,AbstractVector{String}}, split_threshold::AbstractFloat; is_balanced = true, return_view = false)
 	if split_threshold == 1.0
 		# Full train
 		return (X,Y), (X,Y)
@@ -30,19 +30,19 @@ function traintestsplit((X,Y)::Tuple{GenericDataset,AbstractVector{String}}, spl
 	if length(unique(Y)) == 2 && is_balanced
 		spl = isodd(spl) ? (spl-1) : spl
 	end
-	X_train = ModalLogic.slice_dataset(X, 1:spl)
+	X_train = ModalLogic.slice_dataset(X, 1:spl; return_view = return_view)
 	Y_train = Y[1:spl]
-	X_test  = ModalLogic.slice_dataset(X, spl+1:num_instances)
+	X_test  = ModalLogic.slice_dataset(X, spl+1:num_instances; return_view = return_view)
 	Y_test  = Y[spl+1:end]
 	(X_train,Y_train), (X_test,Y_test)
 end
 
 function slice_labeled_dataset((Xs,Y)::Tuple{AbstractVector{<:GenericDataset},AbstractVector}, dataset_slice::AbstractVector)
-	(map(X->ModalLogic.slice_dataset(X, dataset_slice), Xs), Y[dataset_slice])
+	(map(X->ModalLogic.slice_dataset(X, dataset_slice), Xs; return_view = return_view), Y[dataset_slice])
 end
 
-# function slice_dataset((X,Y)::Tuple{MatricialDataset,AbstractVector}, dataset_slice::AbstractVector)
-# 	(ModalLogic.slice_dataset(X, dataset_slice), Y[dataset_slice])
+# function slice_dataset((X,Y)::Tuple{MatricialDataset,AbstractVector}, dataset_slice::AbstractVector; return_view = false)
+# 	(ModalLogic.slice_dataset(X, dataset_slice; return_view = return_view), Y[dataset_slice])
 # end
 
 # Scale and round dataset to fit into a certain datatype's range:

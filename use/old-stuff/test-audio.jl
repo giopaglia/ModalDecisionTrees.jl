@@ -84,7 +84,7 @@ exec_run("Test",
 		forest_args        =  forest_args,
 		tree_args          =  tree_args,
 		modal_args         =  modal_args,
-		use_ontological_form  =  true
+		use_training_form  =  true
 	);
 
 # round_dataset_to_datatype = false

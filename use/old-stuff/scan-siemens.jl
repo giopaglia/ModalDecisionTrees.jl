@@ -91,8 +91,8 @@ split_threshold = 0.8
 
 error_catching = false
 
-# use_ontological_form = true
-use_ontological_form = false
+# use_training_form = true
+use_training_form = false
 
 # log_level = Logging.Warn
 log_level = DecisionTree.DTOverview
@@ -213,7 +213,7 @@ for i in exec_runs
 				tree_args                       = tree_args,
 				modal_args                      = modal_args,
 				test_flattened                  = test_flattened,
-				use_ontological_form               = use_ontological_form,
+				use_training_form               = use_training_form,
 				data_savedir                = (data_savedir, dataset_name_str),
 				dataset_slice                   = dataset_slice,
 				error_catching                  = error_catching,

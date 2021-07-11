@@ -14,7 +14,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./gandalf"
+results_dir = "./covid"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir = results_dir * "/cache"
@@ -42,9 +42,9 @@ tree_args = [
 ]
 
 for loss_function in [DecisionTree.util.entropy]
-	for min_samples_leaf in [4] # [1,2]
+	for min_samples_leaf in [2] # [1,2]
 		for min_purity_increase in [0.01] # [0.01, 0.001]
-			for min_loss_at_leaf in [0.3] # [0.4, 0.6]
+			for min_loss_at_leaf in [0.6] # [0.4, 0.6]
 				push!(tree_args, 
 					(
 						loss_function       = loss_function,
@@ -70,23 +70,23 @@ optimize_forest_computation = true
 
 forest_args = []
 
-# for n_trees in [50,100]
-# 	for n_subfeatures in [half_f]
-# 		for n_subrelations in [id_f]
-# 			push!(forest_args, (
-# 				n_subfeatures       = n_subfeatures,
-# 				n_trees             = n_trees,
-# 				partial_sampling    = 1.0,
-# 				n_subrelations      = n_subrelations,
-# 				# Optimization arguments for trees in a forest (no pruning is performed)
-# 				loss_function = DecisionTree.util.entropy,
-# 				min_samples_leaf = 1,
-# 				min_purity_increase = 0.0,
-# 				min_loss_at_leaf = 0.0,
-# 			))
-# 		end
-# 	end
-# end
+for n_trees in [50,100]
+	for n_subfeatures in [half_f]
+		for n_subrelations in [id_f]
+			push!(forest_args, (
+				n_subfeatures       = n_subfeatures,
+				n_trees             = n_trees,
+				partial_sampling    = 1.0,
+				n_subrelations      = n_subrelations,
+				# Optimization arguments for trees in a forest (no pruning is performed)
+				loss_function = DecisionTree.util.entropy,
+				min_samples_leaf = 1,
+				min_purity_increase = 0.0,
+				min_loss_at_leaf = 0.0,
+			))
+		end
+	end
+end
 
 
 println(" $(length(forest_args)) forests " * (length(forest_args) > 0 ? "(repeated $(forest_runs) times)" : ""))
@@ -96,14 +96,14 @@ println(" $(length(forest_args)) forests " * (length(forest_args) > 0 ? "(repeat
 ################################################################################
 
 modal_args = (;
-	# initConditions = DecisionTree.startWithRelationGlob,
-	initConditions = DecisionTree.startAtCenter,
+	initConditions = DecisionTree.startWithRelationGlob,
+	# initConditions = DecisionTree.startAtCenter,
 	# useRelationGlob = true,
 	useRelationGlob = false,
 )
 
 data_modal_args = (;
-	# ontology = getIntervalOntologyOfDim(Val(1)),
+	ontology = getIntervalOntologyOfDim(Val(1)),
 	# ontology = getIntervalOntologyOfDim(Val(2)),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A]),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A, ModalLogic.IA_L, ModalLogic.IA_Li, ModalLogic.IA_D]),
@@ -123,9 +123,9 @@ log_level = DecisionTree.DTOverview
 # timing_mode = :time
 timing_mode = :btime
 
-# round_dataset_to_datatype = false
+round_dataset_to_datatype = false
 # round_dataset_to_datatype = UInt8
-round_dataset_to_datatype = UInt16
+# round_dataset_to_datatype = UInt16
 # round_dataset_to_datatype = UInt32
 # round_dataset_to_datatype = UInt64
 # round_dataset_to_datatype = Float16
@@ -152,76 +152,142 @@ legacy_gammas_check = false
 ##################################### SCAN #####################################
 ################################################################################
 
-exec_dataseed = 1:10
+exec_dataseed = 1:5
 
-# exec_dataset_name = ["Salinas", "Salinas-A", "PaviaCentre", "IndianPines", "Pavia"]
-exec_dataset_name = ["Pavia", "Salinas-A", "PaviaCentre", "IndianPines", "Salinas"]
-# exec_windowsize_flattened_ontology_test_operators = [(1,false,"o_None","TestOpGeq"),(3,:flattened,"o_None","TestOpGeq"),(3,:averaged,"o_None","TestOpGeq"),(3,false,"o_RCC8","TestOpAll"),(3,false,"o_RCC5","TestOpAll")]
-# exec_windowsize_flattened_ontology_test_operators = [(1,false,"o_None","TestOpGeq"),(3,:flattened,"o_None","TestOpGeq"),(3,:averaged,"o_None","TestOpGeq"),(3,false,"o_RCC8","TestOp"),(3,false,"o_RCC5","TestOp")]
-# exec_windowsize_flattened_ontology_test_operators = [(3,:averaged,"o_None","TestOpGeq")]
-# exec_windowsize_flattened_ontology_test_operators = [(3,false,"o_RCC8","TestOp")]
-# exec_windowsize_flattened_ontology_test_operators = [(3,false,"o_ALLiDxA","TestOp")]
-exec_windowsize_flattened_ontology_test_operators = [(7,false,"o_ALLiDxA","TestOp")]
+exec_n_tasks = 1:1
+exec_n_versions = 1:3
+exec_nbands = [20,40,60]
+
+max_points = 3
+# max_points = 30
+
+exec_dataset_kwargs =   [(
+							max_points = max_points,
+							ma_size = 75,
+							ma_step = 50,
+						),(
+							max_points = max_points,
+							ma_size = 45,
+							ma_step = 30,
+						)
+						]
+
+audio_kwargs_partial_mfcc = (
+	wintime = 0.025, # in ms          # 0.020-0.040
+	steptime = 0.010, # in ms         # 0.010-0.015
+	fbtype = :mel,                    # [:mel, :htkmel, :fcmel]
+	window_f = DSP.hamming, # [DSP.hamming, (nwin)->DSP.tukey(nwin, 0.25)]
+	pre_emphasis = 0.97,              # any, 0 (no pre_emphasis)
+	nbands = 40,                      # any, (also try 20)
+	sumpower = false,                 # [false, true]
+	dither = false,                   # [false, true]
+	# bwidth = 1.0,                   # 
+	# minfreq = 0.0,
+	# maxfreq = (sr)->(sr/2),
+	# usecmp = false,
+)
+
+audio_kwargs_full_mfcc = (
+	wintime=0.025,
+	steptime=0.01,
+	numcep=13,
+	lifterexp=-22,
+	sumpower=false,
+	preemph=0.97,
+	dither=false,
+	minfreq=0.0,
+	# maxfreq=sr/2,
+	nbands=20,
+	bwidth=1.0,
+	dcttype=3,
+	fbtype=:htkmel,
+	usecmp=false,
+	modelorder=0
+)
+
+exec_use_full_mfcc = [false]
+
+
+wav_preprocessors = Dict(
+	"NG" => noise_gate!,
+	"Normalize" => normalize!,
+)
+
+exec_preprocess_wavs = [
+	["Normalize"],
+	[],
+#	["NG", "Normalize"]
+]
 
 # https://github.com/JuliaIO/JSON.jl/issues/203
 # https://discourse.julialang.org/t/json-type-serialization/9794
 # TODO: make test operators types serializable
-# exec_test_operators = [ "TestOpAll" ]
 # exec_test_operators = [ "TestOp" ]
-# exec_test_operators = [ "TestOp_80" ]
+exec_test_operators = [ "TestOp_80" ]
 
 test_operators_dict = Dict(
-	"TestOpGeq" => [TestOpGeq],
 	"TestOp_70" => [TestOpGeq_70, TestOpLeq_70],
 	"TestOp_80" => [TestOpGeq_80, TestOpLeq_80],
-	"TestOp"    => [TestOpGeq, TestOpLeq],
-	"TestOpAll" => [
-									TestOpGeq, TestOpLeq,
-									TestOpGeq_90, TestOpLeq_90,
-									TestOpGeq_80, TestOpLeq_80,
-									TestOpGeq_70, TestOpLeq_70,
-									TestOpGeq_60, TestOpLeq_60,
-									],
+	"TestOp" => [TestOpGeq, TestOpLeq],
 )
 
-ontology_dict = Dict(
-	"o_RCC8"    => getIntervalRCC8OntologyOfDim(Val(2)),
-	"o_RCC5"    => getIntervalRCC5OntologyOfDim(Val(2)),
-	"o_ALLiDxA" => Ontology{ModalLogic.Interval2D}([ModalLogic.IA_AA, ModalLogic.IA_LA, ModalLogic.IA_LiA, ModalLogic.IA_DA]),
-	"o_None"    => OneWorldOntology,
-)
-
-exec_n_samples_per_label = 4:4
-exec_n_attributes = 3:3
 
 exec_ranges_dict = (
-	windowsize_flattened_ontology_test_operators = exec_windowsize_flattened_ontology_test_operators,
-	n_samples_per_label                          = exec_n_samples_per_label,
-	n_attributes                                 = exec_n_attributes,
-	dataset_name                                 = exec_dataset_name,
-	# dataseed                                     = exec_dataseed,
+	n_task           = exec_n_tasks,
+	n_version        = exec_n_versions,
+	nbands           = exec_nbands,
+	dataset_kwargs   = exec_dataset_kwargs,
+	use_full_mfcc    = exec_use_full_mfcc,
+	preprocess_wavs  = exec_preprocess_wavs,
+	test_operators   = exec_test_operators,
+	dataseed         = exec_dataseed,
 )
 
 dataset_function = (
-	(windowsize,flattened,ontology,test_operators),
-	n_samples_per_label,n_attributes,
-		dataset_name)->SampleLandCoverDataset(
-					dataset_name,
-					n_samples_per_label,
-					windowsize,
-					stratify = false,
-					# stratify = true,
-					flattened = flattened,
-					n_attributes = n_attributes,
-					# rng = dataset_rng)
-					rng = copy(main_rng))
+	(n_task,
+		n_version,
+		cur_audio_kwargs,
+		dataset_kwargs,
+		cur_preprocess_wavs,
+		use_full_mfcc,)->
+	KDDDataset_not_stratified(
+		(n_task,n_version),
+		cur_audio_kwargs;
+		dataset_kwargs...,
+		preprocess_wavs = cur_preprocess_wavs,
+		use_full_mfcc = use_full_mfcc
+	)
+)
 
 ################################################################################
 ################################### SCAN FILTERS ###############################
 ################################################################################
 
 # TODO let iteration_white/blacklist a decision function and not a "in-array" condition?
-iteration_whitelist = []
+iteration_whitelist = [
+	# TASK 1
+	# (
+	# 	n_version = 1,
+	# 	nbands = 40,
+	# 	dataset_kwargs = (max_points = 30, ma_size = 75, ma_step = 50),
+	# ),
+	# (
+	# 	n_version = 1,
+	# 	nbands = 60,
+	# 	dataset_kwargs = (max_points = 30, ma_size = 75, ma_step = 50),
+	# ),
+	# # TASK 2
+	# (
+	# 	n_version = 2,
+	# 	nbands = 20,
+	# 	dataset_kwargs = (max_points = 30, ma_size = 45, ma_step = 30),
+	# ),
+	# (
+	# 	n_version = 2,
+	# 	nbands = 40,
+	# 	dataset_kwargs = (max_points = 30, ma_size = 45, ma_step = 30),
+	# )
+]
 
 iteration_blacklist = []
 
@@ -284,19 +350,36 @@ for params_combination in IterTools.product(exec_ranges...)
 	##############################################################################
 	##############################################################################
 	
-	(windowsize,flattened,ontology,test_operators), n_samples_per_label,n_attributes, dataset_name = params_combination
-	dataset_fun_sub_params = (windowsize,flattened,ontology,test_operators), n_samples_per_label,n_attributes, dataset_name
+	n_task, n_version, nbands, dataset_kwargs, use_full_mfcc, preprocess_wavs, test_operators, dataseed = params_combination
 	
-	# Load Dataset
-	dataset, n_label_samples = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
+	cur_audio_kwargs = merge(
+		if use_full_mfcc
+			audio_kwargs_full_mfcc
+		else
+			audio_kwargs_partial_mfcc
+		end
+		, (nbands=nbands,))
+
+	cur_preprocess_wavs = [ wav_preprocessors[k] for k in preprocess_wavs ]
 
 	cur_modal_args = modal_args
+	
 	cur_data_modal_args = merge(data_modal_args,
 		(
 			test_operators = test_operators_dict[test_operators],
-			ontology = ontology_dict[ontology],
-			)
 		)
+	)
+
+	dataset_fun_sub_params = (
+			n_task,
+			n_version,
+			cur_audio_kwargs,
+			dataset_kwargs,
+			cur_preprocess_wavs,
+			use_full_mfcc,)	
+
+	# Load Dataset
+	dataset, n_label_samples = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
 
 	## Dataset slices
 	# obtain dataseeds that are were not done before

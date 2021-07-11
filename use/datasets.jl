@@ -497,7 +497,7 @@ KDDDataset_not_stratified((n_task,n_version),
 		#@assert length(unique(n_pos)) == 1 "n_pos mismatch across frames: $(length.(n_pos))"
 		#@assert length(unique(n_neg)) == 1 "n_neg mismatch across frames: $(length.(n_neg))"
 
-		((getindex.(datasets, 1),datasets[1][2]), n_pos[1], n_neg[1])
+		((getindex.(datasets, 1),datasets[1][2]), (n_pos[1], n_neg[1]))
 	end
 
 	getTimeSeries((folders_Y, folders_N), dir_infos)

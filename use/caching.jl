@@ -1,3 +1,4 @@
+import JLD2
 
 _default_table_file_name(type::String) = "$(type)_cached.csv"
 _default_jld_file_name(type::String, hash::String) = string(type * "_" * hash * ".jld")
