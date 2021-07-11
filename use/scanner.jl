@@ -223,7 +223,7 @@ include("dataset-utils.jl")
 end
 
 
-function training_dataset_c(data_modal_args, Xs_train_all, modal_args, save_datasets, legacy_gammas_check)
+function training_dataset_c(data_modal_args, Xs_train_all, modal_args, save_datasets, use_training_form, legacy_gammas_check)
 	WorldType = world_type(data_modal_args.ontology)
 
 	Xs_train_all_frames = AbstractModalDataset{<:Real,<:AbstractWorld}[]
@@ -515,9 +515,9 @@ function buildModalDatasets(Xs_train_all, X_test, data_modal_args, modal_args, u
 			MultiFrameModalDataset([OntologicalDataset(data_modal_args.ontology, X) for X in Xs_train_all])
 		elseif use_training_form in [:fmd, :stump, :stump_with_memoization]
 			if save_datasets
-				@cachefast "training_dataset" data_savedir (data_modal_args, Xs_train_all, modal_args, save_datasets, legacy_gammas_check) training_dataset_c
+				@cachefast "training_dataset" data_savedir (data_modal_args, Xs_train_all, modal_args, save_datasets, use_training_form, legacy_gammas_check) training_dataset_c
 			else
-				training_dataset_c(data_modal_args, Xs_train_all, modal_args, save_datasets, legacy_gammas_check)
+				training_dataset_c(data_modal_args, Xs_train_all, modal_args, save_datasets, use_training_form, legacy_gammas_check)
 			end
 		else
 			error("Unexpected value for use_training_form: $(use_training_form)!")
