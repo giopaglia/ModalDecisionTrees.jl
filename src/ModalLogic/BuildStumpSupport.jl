@@ -228,8 +228,15 @@ getindex(
 size(fmds::GenericFMDStumpSupport, args::Vararg) = size(fmds.d, args...)
 world_type(fmds::GenericFMDStumpSupport{T, WorldType}) where {T, WorldType} = WorldType
 
-initFMDStumpSupport(fmd::FeatModalDataset{T, WorldType}, n_featsnaggrs::Integer, n_relations::Integer) where {T, WorldType} =
-	GenericFMDStumpSupport{T, WorldType}(Array{Dict{WorldType,T}, 3}(undef, n_samples(fmd), n_featsnaggrs, n_relations))
+initFMDStumpSupport(fmd::FeatModalDataset{T, WorldType}, n_featsnaggrs::Integer, n_relations::Integer; perform_initialization = false) where {T, WorldType} = begin
+	if perform_initialization
+		_fmd_m = fill!(Array{Dict{WorldType,Union{T,Nothing}}, 3}(undef, n_samples(fmd), n_featsnaggrs, n_relations), nothing)
+		GenericFMDStumpSupport{Union{T,Nothing}, WorldType}(_fmd_m)
+	else
+		_fmd_m = Array{Dict{WorldType,T}, 3}(undef, n_samples(fmd), n_featsnaggrs, n_relations)
+		GenericFMDStumpSupport{T, WorldType}(_fmd_m)
+	end
+end
 # modalDatasetIsConsistent_m(modalDataset, fmd::FeatModalDataset{T, AbstractWorld}, n_featsnaggrs::Integer, n_relations::Integer) where {T, WorldType} =
 	# (typeof(modalDataset)<:AbstractArray{T, 7} && size(modalDataset) == (max_channel_size(fmd)[1], max_channel_size(fmd)[1]+1, n_samples(fmd), n_featsnaggrs, n_relations))
 initFMDStumpSupportWorldSlice(fmds::GenericFMDStumpSupport{T, WorldType}, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer) where {T, WorldType} =
@@ -257,8 +264,15 @@ getindex(
 size(fmds::OneWorldFMDStumpSupport{T}, args::Vararg) where {T} = size(fmds.d, args...)
 world_type(fmds::OneWorldFMDStumpSupport{T}) where {T} = OneWorld
 
-initFMDStumpSupport(fmd::FeatModalDataset{T, OneWorld}, n_featsnaggrs::Integer, n_relations::Integer) where {T} =
-	OneWorldFMDStumpSupport{T}(Array{T, 3}(undef, n_samples(fmd), n_featsnaggrs, n_relations))
+initFMDStumpSupport(fmd::FeatModalDataset{T, OneWorld}, n_featsnaggrs::Integer, n_relations::Integer; perform_initialization = false) where {T} = begin
+	if perform_initialization
+		_fmd_m = fill!(Array{Union{T,Nothing}, 3}(undef, n_samples(fmd), n_featsnaggrs, n_relations), nothing)
+		OneWorldFMDStumpSupport{Union{T,Nothing}}(_fmd_m)
+	else
+		_fmd_m = Array{T, 3}(undef, n_samples(fmd), n_featsnaggrs, n_relations)
+		OneWorldFMDStumpSupport{T}(_fmd_m)
+	end
+end
 # modalDatasetIsConsistent_m(modalDataset, fmd::FeatModalDataset{T, OneWorld}, n_featsnaggrs::Integer, n_relations::Integer) where {T} =
 	# (typeof(modalDataset)<:AbstractArray{T, 3} && size(modalDataset) == (n_samples(fmd), n_featsnaggrs, n_relations))
 initFMDStumpSupportWorldSlice(fmds::OneWorldFMDStumpSupport, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer) =
@@ -286,8 +300,15 @@ getindex(
 size(fmds::IntervalFMDStumpSupport{T}, args::Vararg) where {T} = size(fmds.d, args...)
 world_type(fmds::IntervalFMDStumpSupport{T}) where {T} = Interval
 
-initFMDStumpSupport(fmd::FeatModalDataset{T, Interval}, n_featsnaggrs::Integer, n_relations::Integer) where {T} =
-	IntervalFMDStumpSupport{T}(Array{T, 5}(undef, size(fmd.fwd, 1), size(fmd.fwd, 2), n_samples(fmd), n_featsnaggrs, n_relations))
+initFMDStumpSupport(fmd::FeatModalDataset{T, Interval}, n_featsnaggrs::Integer, n_relations::Integer; perform_initialization = false) where {T} = begin
+	if perform_initialization
+		_fmd_m = fill!(Array{Union{T,Nothing}, 5}(undef, size(fmd.fwd, 1), size(fmd.fwd, 2), n_samples(fmd), n_featsnaggrs, n_relations), nothing)
+		IntervalFMDStumpSupport{Union{T,Nothing}}(_fmd_m)
+	else
+		_fmd_m = Array{T, 5}(undef, size(fmd.fwd, 1), size(fmd.fwd, 2), n_samples(fmd), n_featsnaggrs, n_relations)
+		IntervalFMDStumpSupport{T}(_fmd_m)
+	end
+end
 # modalDatasetIsConsistent_m(modalDataset, fmd::FeatModalDataset{T, Interval}, n_featsnaggrs::Integer, n_relations::Integer) where {T} =
 	# (typeof(modalDataset)<:AbstractArray{T, 5} && size(modalDataset) == (max_channel_size(fmd)[1], max_channel_size(fmd)[1]+1, n_samples(fmd), n_featsnaggrs, n_relations))
 initFMDStumpSupportWorldSlice(fmds::IntervalFMDStumpSupport, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer) =
@@ -314,8 +335,15 @@ getindex(
 size(fmds::Interval2DFMDStumpSupport{T}, args::Vararg) where {T} = size(fmds.d, args...)
 world_type(fmds::Interval2DFMDStumpSupport{T}) where {T} = Interval2D
 
-initFMDStumpSupport(fmd::FeatModalDataset{T, Interval2D}, n_featsnaggrs::Integer, n_relations::Integer) where {T} =
-	Interval2DFMDStumpSupport{T}(Array{T, 7}(undef, size(fmd.fwd, 1), size(fmd.fwd, 2), size(fmd.fwd, 3), size(fmd.fwd, 4), n_samples(fmd), n_featsnaggrs, n_relations))
+initFMDStumpSupport(fmd::FeatModalDataset{T, Interval2D}, n_featsnaggrs::Integer, n_relations::Integer; perform_initialization = false) where {T} = begin
+	if perform_initialization
+		_fmd_m = fill!(Array{Union{T,Nothing}, 7}(undef, size(fmd.fwd, 1), size(fmd.fwd, 2), size(fmd.fwd, 3), size(fmd.fwd, 4), n_samples(fmd), n_featsnaggrs, n_relations), nothing)
+		Interval2DFMDStumpSupport{Union{T,Nothing}}(_fmd_m)
+	else
+		_fmd_m = Array{T, 7}(undef, size(fmd.fwd, 1), size(fmd.fwd, 2), size(fmd.fwd, 3), size(fmd.fwd, 4), n_samples(fmd), n_featsnaggrs, n_relations)
+		Interval2DFMDStumpSupport{T}(_fmd_m)
+	end
+end
 # modalDatasetIsConsistent_m(modalDataset, fmd::FeatModalDataset{T, Interval2D}, n_featsnaggrs::Integer, n_relations::Integer) where {T} =
 	# (typeof(modalDataset)<:AbstractArray{T, 7} && size(modalDataset) == (max_channel_size(fmd)[1], max_channel_size(fmd)[1]+1, n_samples(fmd), n_featsnaggrs, n_relations))
 initFMDStumpSupportWorldSlice(fmds::Interval2DFMDStumpSupport, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer) =
@@ -353,6 +381,7 @@ Base.@propagate_inbounds function computeModalDatasetStumpSupport(
 		fmd                 :: FeatModalDataset{T, WorldType},
 		grouped_featsnaggrs :: AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}};
 		computeRelationGlob = false,
+		simply_init_modal = false,
 	) where {T, N, WorldType<:AbstractWorld}
 	
 	@logmsg DTOverview "FeatModalDataset -> StumpFeatModalDataset"
@@ -382,7 +411,7 @@ Base.@propagate_inbounds function computeModalDatasetStumpSupport(
 	# println(grouped_featsnaggrs)
 
 	# Prepare fmd_m
-	fmd_m = initFMDStumpSupport(fmd, n_featsnaggrs, n_relations)
+	fmd_m = initFMDStumpSupport(fmd, n_featsnaggrs, n_relations; perform_initialization = simply_init_modal)
 
 	# Prepare fmd_g
 	fmd_g =
@@ -391,8 +420,6 @@ Base.@propagate_inbounds function computeModalDatasetStumpSupport(
 		else
 			nothing
 	end
-
-	# Compute features
 
 	@inbounds Threads.@threads for i_instance in 1:n_instances
 		@logmsg DTDebug "Instance $(i_instance)/$(n_instances)"
@@ -432,31 +459,33 @@ Base.@propagate_inbounds function computeModalDatasetStumpSupport(
 			end
 			# readline()
 
-			# Other relations
-			for (i_relation,relation) in enumerate(relations)
+			if !simply_init_modal
+				# Other relations
+				for (i_relation,relation) in enumerate(relations)
 
-				@logmsg DTDebug "Relation $(i_relation)/$(n_relations)"
+					@logmsg DTDebug "Relation $(i_relation)/$(n_relations)"
 
-				for (i_featsnaggr,aggregator) in aggregators
-					initFMDStumpSupportWorldSlice(fmd_m, i_instance, i_featsnaggr, i_relation)
-				end
-
-				for w in accAll_function(fmd, i_instance)
-
-					@logmsg DTDebug "World" w
-					
-					# TODO optimize: all aggregators are likely reading the same raw values.
 					for (i_featsnaggr,aggregator) in aggregators
-											
-						# accessible_worlds = acc_function(fmd, i_instance)(w, relation)
-						# TODO reintroduce the improvements for some operators: e.g. later. Actually, these can be simplified by using a set of representatives, as in some enumAccRepr!
-						accessible_worlds = accrepr_function(fmd, i_instance)(features[i_feature], aggregator, w, relation)
-					
-						threshold = computeModalThreshold(cur_fwd_slice, accessible_worlds, aggregator)
+						initFMDStumpSupportWorldSlice(fmd_m, i_instance, i_featsnaggr, i_relation)
+					end
 
-						# @logmsg DTDebug "Aggregator" aggregator threshold
+					for w in accAll_function(fmd, i_instance)
+
+						@logmsg DTDebug "World" w
 						
-						FMDStumpSupportSet(fmd_m, w, i_instance, i_featsnaggr, i_relation, threshold)
+						# TODO optimize: all aggregators are likely reading the same raw values.
+						for (i_featsnaggr,aggregator) in aggregators
+												
+							# accessible_worlds = acc_function(fmd, i_instance)(w, relation)
+							# TODO reintroduce the improvements for some operators: e.g. later. Actually, these can be simplified by using a set of representatives, as in some enumAccRepr!
+							accessible_worlds = accrepr_function(fmd, i_instance)(features[i_feature], aggregator, w, relation)
+						
+							threshold = computeModalThreshold(cur_fwd_slice, accessible_worlds, aggregator)
+
+							# @logmsg DTDebug "Aggregator" aggregator threshold
+							
+							FMDStumpSupportSet(fmd_m, w, i_instance, i_featsnaggr, i_relation, threshold)
+						end
 					end
 				end
 			end
