@@ -21,6 +21,7 @@ data_savedir = results_dir * "/cache"
 tree_savedir = results_dir * "/trees"
 
 dry_run = false
+# dry_run = true
 
 # save_datasets = true
 save_datasets = false
@@ -44,7 +45,7 @@ tree_args = [
 for loss_function in [DecisionTree.util.entropy]
 	for min_samples_leaf in [2] # [1,2]
 		for min_purity_increase in [0.01] # [0.01, 0.001]
-			for min_loss_at_leaf in [0.6] # [0.4, 0.6]
+			for min_loss_at_leaf in [0.2, 0.6] # [0.4, 0.6]
 				push!(tree_args, 
 					(
 						loss_function       = loss_function,
@@ -70,7 +71,7 @@ optimize_forest_computation = true
 
 forest_args = []
 
-for n_trees in [50,100]
+for n_trees in [10] # [50,100] TODO
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
 			push!(forest_args, (
@@ -79,10 +80,10 @@ for n_trees in [50,100]
 				partial_sampling    = 1.0,
 				n_subrelations      = n_subrelations,
 				# Optimization arguments for trees in a forest (no pruning is performed)
-				loss_function = DecisionTree.util.entropy,
-				min_samples_leaf = 1,
+				loss_function       = DecisionTree.util.entropy,
+				min_samples_leaf    = 1,
 				min_purity_increase = 0.0,
-				min_loss_at_leaf = 0.0,
+				min_loss_at_leaf    = 0.0,
 			))
 		end
 	end
@@ -121,7 +122,7 @@ log_level = DecisionTree.DTOverview
 
 # timing_mode = :none
 # timing_mode = :time
-timing_mode = :btime
+timing_mode = :btime # TODO
 
 round_dataset_to_datatype = false
 # round_dataset_to_datatype = UInt8
@@ -138,7 +139,7 @@ split_threshold = 0.8
 
 # use_training_form = :dimensional
 # use_training_form = :fmd
-use_training_form = :stump
+# use_training_form = :stump
 # use_training_form = :stump_with_memoization
 
 test_flattened = false
@@ -152,23 +153,36 @@ legacy_gammas_check = false
 ##################################### SCAN #####################################
 ################################################################################
 
-exec_dataseed = 1:5
+exec_dataseed = 1:10
+
+exec_use_training_form = [:stump, :stump_with_memoization] # TODO
 
 exec_n_tasks = 1:1
-exec_n_versions = 1:3
-exec_nbands = [20,40,60]
+exec_n_versions = 1:1 # 1:3 # 1:3 # TODO
+exec_nbands = [20] # [20,40,60]
 
-max_points = 3
 # max_points = 30
 
-exec_dataset_kwargs =   [(
-							max_points = max_points,
-							ma_size = 75,
-							ma_step = 50,
-						),(
-							max_points = max_points,
+exec_dataset_kwargs =   [( # TODO
+							max_points = 10,
 							ma_size = 45,
 							ma_step = 30,
+						),(
+							max_points = 20,
+							ma_size = 45,
+							ma_step = 30,
+						# ),(
+						# 	max_points = 30,
+						# 	ma_size = 45,
+						# 	ma_step = 30,
+						# ),(
+						# 	max_points = 30,
+						# 	ma_size = 75,
+						# 	ma_step = 50,
+						# ),(
+						# 	max_points = 50,
+						# 	ma_size = 45,
+						# 	ma_step = 30,
 						)
 						]
 
@@ -214,7 +228,7 @@ wav_preprocessors = Dict(
 )
 
 exec_preprocess_wavs = [
-	["Normalize"],
+	# ["Normalize"],
 	[],
 #	["NG", "Normalize"]
 ]
@@ -228,19 +242,20 @@ exec_test_operators = [ "TestOp_80" ]
 test_operators_dict = Dict(
 	"TestOp_70" => [TestOpGeq_70, TestOpLeq_70],
 	"TestOp_80" => [TestOpGeq_80, TestOpLeq_80],
-	"TestOp" => [TestOpGeq, TestOpLeq],
+	"TestOp"    => [TestOpGeq, TestOpLeq],
 )
 
 
 exec_ranges_dict = (
-	n_task           = exec_n_tasks,
-	n_version        = exec_n_versions,
-	nbands           = exec_nbands,
-	dataset_kwargs   = exec_dataset_kwargs,
-	use_full_mfcc    = exec_use_full_mfcc,
-	preprocess_wavs  = exec_preprocess_wavs,
-	test_operators   = exec_test_operators,
-	dataseed         = exec_dataseed,
+	use_training_form = exec_use_training_form,
+	n_task            = exec_n_tasks,
+	n_version         = exec_n_versions,
+	nbands            = exec_nbands,
+	dataset_kwargs    = exec_dataset_kwargs,
+	use_full_mfcc     = exec_use_full_mfcc,
+	preprocess_wavs   = exec_preprocess_wavs,
+	test_operators    = exec_test_operators,
+	dataseed          = exec_dataseed,
 )
 
 dataset_function = (
@@ -350,7 +365,7 @@ for params_combination in IterTools.product(exec_ranges...)
 	##############################################################################
 	##############################################################################
 	
-	n_task, n_version, nbands, dataset_kwargs, use_full_mfcc, preprocess_wavs, test_operators, dataseed = params_combination
+	use_training_form, n_task, n_version, nbands, dataset_kwargs, use_full_mfcc, preprocess_wavs, test_operators, dataseed = params_combination
 	
 	cur_audio_kwargs = merge(
 		if use_full_mfcc
