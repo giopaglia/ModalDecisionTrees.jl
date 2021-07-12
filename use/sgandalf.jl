@@ -163,6 +163,14 @@ exec_dataset_name = ["Pavia", "Salinas-A", "PaviaCentre", "IndianPines", "Salina
 # exec_windowsize_flattened_ontology_test_operators = [(3,false,"o_ALLiDxA","TestOp")]
 exec_windowsize_flattened_ontology_test_operators = [(7,false,"o_ALLiDxA","TestOp")]
 
+# exec_windowsize_flattened_ontology_test_operators = Dict(
+#   "single-pixel"  => (1,false,"o_None","TestOpGeq"),
+#   "flattened"     => (3,:flattened,"o_None","TestOpGeq"),
+#   "averaged"      => (3,:averaged,"o_None","TestOpGeq"),
+#   "RCC8"          => (3,false,"o_RCC8","TestOpAll"),
+#   "RCC5"          => (3,false,"o_RCC5","TestOpAll"),
+# )
+
 # https://github.com/JuliaIO/JSON.jl/issues/203
 # https://discourse.julialang.org/t/json-type-serialization/9794
 # TODO: make test operators types serializable
@@ -202,7 +210,7 @@ exec_ranges = (;
 )
 
 dataset_function = (
-	(windowsize,flattened,ontology,test_operators),
+	(windowsize,flattened,test_operators),
 	n_samples_per_label,n_attributes,
 		dataset_name)->SampleLandCoverDataset(
 					dataset_name,
@@ -284,8 +292,16 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	##############################################################################
 	
-	(windowsize,flattened,ontology,test_operators), n_samples_per_label,n_attributes, dataset_name = params_combination
-	dataset_fun_sub_params = (windowsize,flattened,ontology,test_operators), n_samples_per_label,n_attributes, dataset_name
+	windowsize_flattened_ontology_test_operators, n_samples_per_label,n_attributes, dataset_name = params_combination
+	
+	windowsize_flattened_ontology_test_operators = exec_windowsize_flattened_ontology_test_operators_dict[windowsize_flattened_ontology_test_operators]
+
+	(windowsize,flattened,ontology,test_operators) = windowsize_flattened_ontology_test_operators
+
+	test_operators = test_operators_dict[test_operators]
+	ontology       = ontology_dict[ontology]
+
+	dataset_fun_sub_params = (windowsize,flattened,test_operators), n_samples_per_label,n_attributes, dataset_name
 	
 	# Load Dataset
 	dataset, n_label_samples = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
@@ -293,10 +309,10 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	cur_modal_args = modal_args
 	cur_data_modal_args = merge(data_modal_args,
 		(
-			test_operators = test_operators_dict[test_operators],
-			ontology = ontology_dict[ontology],
-			)
+		test_operators = test_operators,
+		ontology       = ontology,
 		)
+	)
 
 	## Dataset slices
 	# obtain dataseeds that are were not done before

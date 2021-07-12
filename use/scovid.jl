@@ -367,6 +367,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	
 	use_training_form, n_task, n_version, nbands, dataset_kwargs, use_full_mfcc, preprocess_wavs, test_operators = params_combination
 	
+	test_operators = test_operators_dict[test_operators]
+
 	cur_audio_kwargs = merge(
 		if use_full_mfcc
 			audio_kwargs_full_mfcc
@@ -381,7 +383,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	
 	cur_data_modal_args = merge(data_modal_args,
 		(
-			test_operators = test_operators_dict[test_operators],
+			test_operators = test_operators,
 		)
 	)
 
