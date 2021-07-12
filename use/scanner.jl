@@ -562,7 +562,7 @@ function exec_scan(
 		callback                        :: Function = identity,
 	)
 
-	go_tree(dataset, tree_args, rng) = begin
+	go_tree(slice_id, dataset, tree_args, rng) = begin
 		(X_train,Y_train), (X_test,Y_test) = dataset
 		started = Dates.now()
 		T =
@@ -602,7 +602,7 @@ function exec_scan(
 			cm = confusion_matrix(Y_test, preds)
 			# @test cm.overall_accuracy > 0.99
 
-			println("RESULT:\t$(run_name)\t$(tree_args)\t$(modal_args)\t$(pruning_purity_threshold)\t|\t$(display_cm_as_row(cm))")
+			println("RESULT:\t$(run_name)\t$(slice_id)\t$(tree_args)\t$(modal_args)\t$(pruning_purity_threshold)\t|\t$(display_cm_as_row(cm))")
 			
 			println(cm)
 			# @show cm
@@ -612,7 +612,7 @@ function exec_scan(
 		return (T, cm, Tt);
 	end
 
-	go_forest(dataset, f_args, rng; prebuilt_model::Union{Nothing,AbstractVector{Forest{S}}} = nothing) where {S} = begin
+	go_forest(slice_id, dataset, f_args, rng; prebuilt_model::Union{Nothing,AbstractVector{Forest{S}}} = nothing) where {S} = begin
 		(X_train,Y_train), (X_test,Y_test) = dataset
 		Fs, Ft = 
 			if isnothing(prebuilt_model)
@@ -652,7 +652,7 @@ function exec_scan(
 			cm = confusion_matrix(Y_test, preds)
 			# @test cm.overall_accuracy > 0.99
 
-			println("RESULT:\t$(run_name)\t$(f_args)\t$(modal_args)\t$(display_cm_as_row(cm))")
+			println("RESULT:\t$(run_name)\t$(slice_id)\t$(f_args)\t$(modal_args)\t$(display_cm_as_row(cm))")
 
 			# println("  accuracy: ", round(cm.overall_accuracy*100, digits=2), "% kappa: ", round(cm.kappa*100, digits=2), "% ")
 			for (i,row) in enumerate(eachrow(cm.matrix))
@@ -680,7 +680,7 @@ function exec_scan(
 
 		for (i_model, this_args) in enumerate(tree_args)
 			checkpoint_stdout("Computing tree $(i_model) / $(length(tree_args))...")
-			this_T, this_Tcm, this_Tt = go_tree(dataset, this_args, Random.MersenneTwister(train_seed))
+			this_T, this_Tcm, this_Tt = go_tree(slice_id, dataset, this_args, Random.MersenneTwister(train_seed))
 			push!(Ts, this_T)
 			push!(Tcms, this_Tcm)
 			push!(Tts, this_Tt)
@@ -727,7 +727,7 @@ function exec_scan(
 					model = model.f
 				end
 
-				forest_supports_build_order[i].f, forest_supports_build_order[i].cm, forest_supports_build_order[i].time = go_forest(dataset, f.f_args, Random.MersenneTwister(train_seed), prebuilt_model = model)
+				forest_supports_build_order[i].f, forest_supports_build_order[i].cm, forest_supports_build_order[i].time = go_forest(slice_id, dataset, f.f_args, Random.MersenneTwister(train_seed), prebuilt_model = model)
 			end
 
 			# put resulting forests in vector in the order the user gave them
@@ -745,7 +745,7 @@ function exec_scan(
 		else
 			for (i_forest, f_args) in enumerate(forest_args)
 				checkpoint_stdout("Computing Random Forest $(i_forest) / $(length(forest_args))...")
-				this_F, this_Fcm, this_Ft = go_forest(dataset, f_args, Random.MersenneTwister(train_seed))
+				this_F, this_Fcm, this_Ft = go_forest(slice_id, dataset, f_args, Random.MersenneTwister(train_seed))
 				push!(Fs, this_F)
 				push!(Fcms, this_Fcm)
 				push!(Fts, this_Ft)
