@@ -199,7 +199,6 @@ exec_ranges_dict = (
 	n_samples_per_label                          = exec_n_samples_per_label,
 	n_attributes                                 = exec_n_attributes,
 	dataset_name                                 = exec_dataset_name,
-	# dataseed                                     = exec_dataseed,
 )
 
 dataset_function = (
