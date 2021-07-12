@@ -1,0 +1,1104 @@
+ 1 trees
+ 0 forests 
+Backing up existing ./gandalf/progress.json...
+Creating history file "./gandalf/progress.json"...
+Iteration "Pavia,3,4,(7,false,"o_ALLiDxA","TestOp")"...
+● [ 11/07/2021 15:21:46 ] Computing dataset...
+● [ 11/07/2021 15:21:53 ] Computed dataset in 00:00:07
+● [ 11/07/2021 15:21:56 ] Saving dataset to file ./gandalf/cache/dataset_71b93ef2ae43acd96f0979a4ca27fd99b4cdad5dd678f9f4fb0ee2d688a5a859.jld...
+Dataseeds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+executing run 'Pavia,3,4,(7,false,"o_ALLiDxA","TestOp")'...
+dataset type = Tuple{Array{Int64, 4}, Vector{String}}
+
+train_seed   = 1
+modal_args   = (initConditions = DecisionTree._startAtCenter(), useRelationGlob = false)
+tree_args    = Any[(loss_function = DecisionTree.util.entropy, min_samples_leaf = 4, min_purity_increase = 0.01, min_loss_at_leaf = 0.3)]
+forest_args  = Any[]
+forest_runs  = 5
+
+split_threshold   = 0.8
+data_modal_args   = (test_operators = TestOperator[⫺, ⫹], ontology = Ontology{DecisionTree.ModalLogic.Interval2D}(DecisionTree.ModalLogic._IA2DRel{R1, DecisionTree.ModalLogic._IA_A} where R1<:Union{DecisionTree.ModalLogic._RelationGlob, DecisionTree.ModalLogic._RelationId, DecisionTree.ModalLogic._IARel}[⟨A,A⟩, ⟨L,A⟩, ⟨L̅,A⟩, ⟨D,A⟩]))
+dataset_slices    = (10 dataset_slices)
+
+Frame 1/1
+  132.796 ms (7875524 allocations: 344.89 MiB)
+Dataset_slice = (36) -> [1, 8, 10, 13, 18, 21, 26, 32, 34, 3, 5, 11, 16, 19, 24, 27, 31, 33, 4, 6, 12, 15, 17, 22, 25, 30, 36, 2, 7, 9, 14, 20, 23, 28, 29, 35]
+train dataset:
+  MultiFrameModalDataset
+  └ [1] StumpFeatModalDatasetWithMemoization{UInt16, DecisionTree.ModalLogic.Interval2D}	11.73 MBs
+     ├ fmd	1.39 MBs	(shape (7, 8, 7, 8, 29, 8))
+     ├ fmd_m	10.34 MBs	(shape (7, 8, 7, 8, 29, 8, 4), 2910208 nothings)
+     └ fmd_g	0.0 MBs		−
+
+test  dataset:
+  MultiFrameModalDataset
+  └ [1] OntologicalDataset{UInt16, 2, DecisionTree.ModalLogic.Interval2D, 4}	0.01 MBs
+     ├ domain shape	(7, 7, 4, 7)
+     ├ 4 relations	DecisionTree.ModalLogic._IA2DRel{R1, DecisionTree.ModalLogic._IA_A} where R1<:Union{DecisionTree.ModalLogic._RelationGlob, DecisionTree.ModalLogic._RelationId, DecisionTree.ModalLogic._IARel}[⟨A,A⟩, ⟨L,A⟩, ⟨L̅,A⟩, ⟨D,A⟩]
+     └ max_channel_size	(7, 7)
+
+● [ 11/07/2021 15:22:55 ] Computing tree 1 / 1...
+  55.678 ms (383130 allocations: 13.47 MiB)
+Train tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 3
+Modal height:  2
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨L̅,A⟩ (A4 ⫺ 26352)
+✔ {1} ⟨L,A⟩ (A4 ⫹ 28933)
+│✔ {1} A1 ⫺ 13667
+││✔ Painted metal sheets : 3/4 (conf: 0.75)
+││✘ Trees : 3/5 (conf: 0.6)
+│✘ Meadows : 4/4 (conf: 1.0)
+✘ {1} A3 ⫺ 22075
+ ✔ Self-Blocking Bricks : 3/6 (conf: 0.5)
+ ✘ {1} ⟨L,A⟩ (A3 ⫺ 18574)
+  ✔ Asphalt : 4/4 (conf: 1.0)
+  ✘ Bitumen : 3/6 (conf: 0.5)
+● [ 11/07/2021 15:23:32 ] Saving tree to file ./gandalf/trees/tree_1caaf7bfdded9dc12114f616a21877b677355c870ae0f99fa974725e6db6f4d2.jld...
+Test tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 3
+Modal height:  2
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨L̅,A⟩ (A4 ⫺ 26352)
+✔ {1} ⟨L,A⟩ (A4 ⫹ 28933)
+│✔ {1} A1 ⫺ 13667
+││✔ Painted metal sheets : 0/2 (conf: 0.0)
+││✘ Trees : 1/1 (conf: 1.0)
+│✘ Meadows : 0/1 (conf: 0.0)
+✘ {1} A3 ⫺ 22075
+ ✔ Self-Blocking Bricks : 0/0 (conf: NaN)
+ ✘ {1} ⟨L,A⟩ (A3 ⫺ 18574)
+  ✔ Asphalt : 0/1 (conf: 0.0)
+  ✘ Bitumen : 0/2 (conf: 0.0)
+ test size = [(7, 7, 4, 7)]
+ Purity threshold 1.0
+RESULT:	Pavia,3,4,(7,false,"o_ALLiDxA","TestOp")	(loss_function = DecisionTree.util.entropy, min_samples_leaf = 4, min_purity_increase = 0.01, min_loss_at_leaf = 0.3)	(initConditions = DecisionTree._startAtCenter(), useRelationGlob = false)	1.0	|	14.29%	NaN%	0.0%	0.0%	0.0%	NaN%	0.0%	0.0%	0.0%	100.0%	0.0%	NaN%	0.0%	NaN%	0.0%	0.0%	NaN%	NaN%	100.0%	||	4.55%	[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 100.0]%	
+  accuracy: 14.29% kappa: 4.55% 
+ 0 0 0 0 0 0 0 0 0	NaN%		Asphalt
+ 0 0 1 0 0 0 0 0 0	0.0%		Bare Soil
+ 1 0 0 0 0 0 0 0 0	0.0%		Bitumen
+ 0 0 0 0 0 1 0 0 0	0.0%		Gravel
+ 0 0 0 0 0 0 0 0 0	NaN%		Meadows
+ 0 0 0 0 1 0 0 0 0	0.0%		Painted metal sheets
+ 0 0 0 0 0 1 0 0 0	0.0%		Self-Blocking Bricks
+ 0 0 1 0 0 0 0 0 0	0.0%		Shadows
+ 0 0 0 0 0 0 0 0 1	100.0%		Trees
+
+overall_acc:	0.14285714285714285
+κ =		0.04545454545454544
+sensitivities:	[NaN, 0.0, 0.0, 0.0, NaN, 0.0, 0.0, 0.0, 1.0]
+specificities:	[0.8571428571428571, 1.0, 0.6666666666666666, 1.0, 0.8571428571428571, 0.6666666666666666, 1.0, 1.0, 1.0]
+PPVs:		[0.0, NaN, 0.0, NaN, 0.0, 0.0, NaN, NaN, 1.0]
+NPVs:		[1.0, 0.8571428571428571, 0.8, 0.8571428571428571, 1.0, 0.8, 0.8571428571428571, 0.8571428571428571, 1.0]
+F1s:		[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+accuracies:	[0.8571428571428571, 0.8571428571428571, 0.5714285714285714, 0.8571428571428571, 0.8571428571428571, 0.5714285714285714, 0.8571428571428571, 0.8571428571428571, 1.0]
+mean_accuracy:	0.8095238095238094
+Dataset_slice = (36) -> [1, 8, 12, 13, 19, 24, 26, 31, 35, 4, 6, 11, 16, 17, 21, 28, 30, 33, 2, 7, 10, 15, 18, 23, 27, 29, 34, 3, 5, 9, 14, 20, 22, 25, 32, 36]
+train dataset:
+  MultiFrameModalDataset
+  └ [1] StumpFeatModalDatasetWithMemoization{UInt16, DecisionTree.ModalLogic.Interval2D}	11.73 MBs
+     ├ fmd	1.39 MBs	(shape (7, 8, 7, 8, 29, 8))
+     ├ fmd_m	10.34 MBs	(shape (7, 8, 7, 8, 29, 8, 4), 2902720 nothings)
+     └ fmd_g	0.0 MBs		−
+
+test  dataset:
+  MultiFrameModalDataset
+  └ [1] OntologicalDataset{UInt16, 2, DecisionTree.ModalLogic.Interval2D, 4}	0.01 MBs
+     ├ domain shape	(7, 7, 4, 7)
+     ├ 4 relations	DecisionTree.ModalLogic._IA2DRel{R1, DecisionTree.ModalLogic._IA_A} where R1<:Union{DecisionTree.ModalLogic._RelationGlob, DecisionTree.ModalLogic._RelationId, DecisionTree.ModalLogic._IARel}[⟨A,A⟩, ⟨L,A⟩, ⟨L̅,A⟩, ⟨D,A⟩]
+     └ max_channel_size	(7, 7)
+
+● [ 11/07/2021 15:23:45 ] Computing tree 1 / 1...
+  55.042 ms (323773 allocations: 10.83 MiB)
+Train tree:
+Decision Tree
+Leaves: 5
+Tot nodes: 9
+Height: 3
+Modal height:  2
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨L̅,A⟩ (A2 ⫹ 15993)
+✔ {1} A4 ⫺ 22402
+│✔ {1} ⟨A,A⟩ (A4 ⫹ 28133)
+││✔ Bare Soil : 3/6 (conf: 0.5)
+││✘ Meadows : 4/4 (conf: 1.0)
+│✘ Asphalt : 4/7 (conf: 0.5714285714285714)
+✘ {1} A4 ⫺ 22099
+ ✔ Self-Blocking Bricks : 3/7 (conf: 0.42857142857142855)
+ ✘ Bitumen : 3/5 (conf: 0.6)
+● [ 11/07/2021 15:23:59 ] Saving tree to file ./gandalf/trees/tree_ef7d2b2fe4a885ab771a608f2db822f20aef17a6f3d0cdea35adcecf182671b7.jld...
+Test tree:
+Decision Tree
+Leaves: 5
+Tot nodes: 9
+Height: 3
+Modal height:  2
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨L̅,A⟩ (A2 ⫹ 15993)
+✔ {1} A4 ⫺ 22402
+│✔ {1} ⟨A,A⟩ (A4 ⫹ 28133)
+││✔ Bare Soil : 0/0 (conf: NaN)
+││✘ Meadows : 0/1 (conf: 0.0)
+│✘ Asphalt : 0/2 (conf: 0.0)
+✘ {1} A4 ⫺ 22099
+ ✔ Self-Blocking Bricks : 1/3 (conf: 0.3333333333333333)
+ ✘ Bitumen : 0/1 (conf: 0.0)
+ test size = [(7, 7, 4, 7)]
+ Purity threshold 1.0
+RESULT:	Pavia,3,4,(7,false,"o_ALLiDxA","TestOp")	(loss_function = DecisionTree.util.entropy, min_samples_leaf = 4, min_purity_increase = 0.01, min_loss_at_leaf = 0.3)	(initConditions = DecisionTree._startAtCenter(), useRelationGlob = false)	1.0	|	14.29%	NaN%	0.0%	0.0%	0.0%	NaN%	0.0%	100.0%	0.0%	0.0%	0.0%	NaN%	0.0%	NaN%	0.0%	NaN%	33.33%	NaN%	NaN%	||	6.67%	[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 50.0, 0.0, 0.0]%	
+  accuracy: 14.29% kappa: 6.67% 
+ 0 0 0 0 0 0 0 0 0	NaN%		Asphalt
+ 0 0 0 0 0 0 1 0 0	0.0%		Bare Soil
+ 1 0 0 0 0 0 0 0 0	0.0%		Bitumen
+ 0 0 1 0 0 0 0 0 0	0.0%		Gravel
+ 0 0 0 0 0 0 0 0 0	NaN%		Meadows
+ 0 0 0 0 0 0 1 0 0	0.0%		Painted metal sheets
+ 0 0 0 0 0 0 1 0 0	100.0%		Self-Blocking Bricks
+ 1 0 0 0 0 0 0 0 0	0.0%		Shadows
+ 0 0 0 0 1 0 0 0 0	0.0%		Trees
+
+overall_acc:	0.14285714285714285
+κ =		0.06666666666666667
+sensitivities:	[NaN, 0.0, 0.0, 0.0, NaN, 0.0, 1.0, 0.0, 0.0]
+specificities:	[0.7142857142857143, 1.0, 0.8333333333333334, 1.0, 0.8571428571428571, 1.0, 0.6666666666666666, 1.0, 1.0]
+PPVs:		[0.0, NaN, 0.0, NaN, 0.0, NaN, 0.3333333333333333, NaN, NaN]
+NPVs:		[1.0, 0.8571428571428571, 0.8333333333333334, 0.8571428571428571, 1.0, 0.8571428571428571, 1.0, 0.8571428571428571, 0.8571428571428571]
+F1s:		[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0]
+accuracies:	[0.7142857142857143, 0.8571428571428571, 0.7142857142857143, 0.8571428571428571, 0.8571428571428571, 0.8571428571428571, 0.7142857142857143, 0.8571428571428571, 0.8571428571428571]
+mean_accuracy:	0.8095238095238094
+Dataset_slice = (36) -> [3, 7, 12, 15, 17, 24, 27, 31, 34, 4, 5, 11, 16, 19, 23, 25, 29, 33, 2, 8, 9, 14, 18, 22, 28, 30, 35, 1, 6, 10, 13, 20, 21, 26, 32, 36]
+train dataset:
+  MultiFrameModalDataset
+  └ [1] StumpFeatModalDatasetWithMemoization{UInt16, DecisionTree.ModalLogic.Interval2D}	11.73 MBs
+     ├ fmd	1.39 MBs	(shape (7, 8, 7, 8, 29, 8))
+     ├ fmd_m	10.34 MBs	(shape (7, 8, 7, 8, 29, 8, 4), 2900768 nothings)
+     └ fmd_g	0.0 MBs		−
+
+test  dataset:
+  MultiFrameModalDataset
+  └ [1] OntologicalDataset{UInt16, 2, DecisionTree.ModalLogic.Interval2D, 4}	0.01 MBs
+     ├ domain shape	(7, 7, 4, 7)
+     ├ 4 relations	DecisionTree.ModalLogic._IA2DRel{R1, DecisionTree.ModalLogic._IA_A} where R1<:Union{DecisionTree.ModalLogic._RelationGlob, DecisionTree.ModalLogic._RelationId, DecisionTree.ModalLogic._IARel}[⟨A,A⟩, ⟨L,A⟩, ⟨L̅,A⟩, ⟨D,A⟩]
+     └ max_channel_size	(7, 7)
+
+● [ 11/07/2021 15:23:59 ] Computing tree 1 / 1...
+  36.561 ms (241743 allocations: 7.69 MiB)
+Train tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 3
+Modal height:  1
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} A4 ⫺ 19276
+✔ {1} A1 ⫺ 13158
+│✔ {1} A1 ⫺ 20028
+││✔ Painted metal sheets : 3/4 (conf: 0.75)
+││✘ Self-Blocking Bricks : 3/5 (conf: 0.6)
+│✘ {1} ⟨L,A⟩ (A4 ⫹ 29563)
+│ ✔ Bare Soil : 3/6 (conf: 0.5)
+│ ✘ Meadows : 4/4 (conf: 1.0)
+✘ {1} ⟨L,A⟩ (A3 ⫺ 18574)
+ ✔ Asphalt : 4/5 (conf: 0.8)
+ ✘ Shadows : 3/5 (conf: 0.6)
+● [ 11/07/2021 15:24:11 ] Saving tree to file ./gandalf/trees/tree_ada26ae7f385753a024891da53107c81784c7f8c548832642464b2e880057346.jld...
+Test tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 3
+Modal height:  1
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} A4 ⫺ 19276
+✔ {1} A1 ⫺ 13158
+│✔ {1} A1 ⫺ 20028
+││✔ Painted metal sheets : 1/1 (conf: 1.0)
+││✘ Self-Blocking Bricks : 0/0 (conf: NaN)
+│✘ {1} ⟨L,A⟩ (A4 ⫹ 29563)
+│ ✔ Bare Soil : 0/3 (conf: 0.0)
+│ ✘ Meadows : 0/1 (conf: 0.0)
+✘ {1} ⟨L,A⟩ (A3 ⫺ 18574)
+ ✔ Asphalt : 0/0 (conf: NaN)
+ ✘ Shadows : 1/2 (conf: 0.5)
+ test size = [(7, 7, 4, 7)]
+ Purity threshold 1.0
+RESULT:	Pavia,3,4,(7,false,"o_ALLiDxA","TestOp")	(loss_function = DecisionTree.util.entropy, min_samples_leaf = 4, min_purity_increase = 0.01, min_loss_at_leaf = 0.3)	(initConditions = DecisionTree._startAtCenter(), useRelationGlob = false)	1.0	|	28.57%	0.0%	0.0%	0.0%	NaN%	100.0%	0.0%	100.0%	0.0%	0.0%	NaN%	NaN%	0.0%	100.0%	NaN%	50.0%	NaN%	||	18.6%	[0.0, 0.0, 0.0, 0.0, 100.0, 0.0, 66.67, 0.0]%	
+  accuracy: 28.57% kappa: 18.6% 
+ 0 0 0 1 0 0 0 0	0.0%		Bare Soil
+ 0 0 0 0 0 0 1 0	0.0%		Bitumen
+ 1 0 0 0 0 0 0 0	0.0%		Gravel
+ 0 0 0 0 0 0 0 0	NaN%		Meadows
+ 0 0 0 0 1 0 0 0	100.0%		Painted metal sheets
+ 1 0 0 0 0 0 0 0	0.0%		Self-Blocking Bricks
+ 0 0 0 0 0 0 1 0	100.0%		Shadows
+ 1 0 0 0 0 0 0 0	0.0%		Trees
+
+overall_acc:	0.2857142857142857
+κ =		0.18604651162790697
+sensitivities:	[0.0, 0.0, 0.0, NaN, 1.0, 0.0, 1.0, 0.0]
+specificities:	[0.5, 1.0, 1.0, 0.8571428571428571, 1.0, 1.0, 0.8333333333333334, 1.0]
+PPVs:		[0.0, NaN, NaN, 0.0, 1.0, NaN, 0.5, NaN]
+NPVs:		[0.75, 0.8571428571428571, 0.8571428571428571, 1.0, 1.0, 0.8571428571428571, 1.0, 0.8571428571428571]
+F1s:		[0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.6666666666666666, 0.0]
+accuracies:	[0.42857142857142855, 0.8571428571428571, 0.8571428571428571, 0.8571428571428571, 1.0, 0.8571428571428571, 0.8571428571428571, 0.8571428571428571]
+mean_accuracy:	0.8214285714285713
+Dataset_slice = (36) -> [2, 7, 12, 13, 20, 24, 28, 29, 34, 1, 6, 9, 14, 17, 22, 25, 30, 36, 4, 5, 11, 15, 19, 23, 27, 31, 33, 3, 8, 10, 16, 18, 21, 26, 32, 35]
+train dataset:
+  MultiFrameModalDataset
+  └ [1] StumpFeatModalDatasetWithMemoization{UInt16, DecisionTree.ModalLogic.Interval2D}	11.73 MBs
+     ├ fmd	1.39 MBs	(shape (7, 8, 7, 8, 29, 8))
+     ├ fmd_m	10.34 MBs	(shape (7, 8, 7, 8, 29, 8, 4), 2903040 nothings)
+     └ fmd_g	0.0 MBs		−
+
+test  dataset:
+  MultiFrameModalDataset
+  └ [1] OntologicalDataset{UInt16, 2, DecisionTree.ModalLogic.Interval2D, 4}	0.01 MBs
+     ├ domain shape	(7, 7, 4, 7)
+     ├ 4 relations	DecisionTree.ModalLogic._IA2DRel{R1, DecisionTree.ModalLogic._IA_A} where R1<:Union{DecisionTree.ModalLogic._RelationGlob, DecisionTree.ModalLogic._RelationId, DecisionTree.ModalLogic._IARel}[⟨A,A⟩, ⟨L,A⟩, ⟨L̅,A⟩, ⟨D,A⟩]
+     └ max_channel_size	(7, 7)
+
+● [ 11/07/2021 15:24:11 ] Computing tree 1 / 1...
+  36.474 ms (241806 allocations: 7.69 MiB)
+Train tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 3
+Modal height:  1
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} A4 ⫺ 19276
+✔ {1} A1 ⫺ 13158
+│✔ {1} A1 ⫺ 20028
+││✔ Painted metal sheets : 3/4 (conf: 0.75)
+││✘ Self-Blocking Bricks : 3/5 (conf: 0.6)
+│✘ {1} ⟨L,A⟩ (A4 ⫹ 29563)
+│ ✔ Bare Soil : 3/6 (conf: 0.5)
+│ ✘ Meadows : 4/4 (conf: 1.0)
+✘ {1} ⟨L,A⟩ (A3 ⫺ 18574)
+ ✔ Asphalt : 4/5 (conf: 0.8)
+ ✘ Shadows : 3/5 (conf: 0.6)
+● [ 11/07/2021 15:24:23 ] Saving tree to file ./gandalf/trees/tree_b92c54de626859f2251d880c96c2cb8e14307d49cdf2237408456b30f338db3a.jld...
+Test tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 3
+Modal height:  1
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} A4 ⫺ 19276
+✔ {1} A1 ⫺ 13158
+│✔ {1} A1 ⫺ 20028
+││✔ Painted metal sheets : 1/1 (conf: 1.0)
+││✘ Self-Blocking Bricks : 0/0 (conf: NaN)
+│✘ {1} ⟨L,A⟩ (A4 ⫹ 29563)
+│ ✔ Bare Soil : 0/3 (conf: 0.0)
+│ ✘ Meadows : 0/1 (conf: 0.0)
+✘ {1} ⟨L,A⟩ (A3 ⫺ 18574)
+ ✔ Asphalt : 0/0 (conf: NaN)
+ ✘ Shadows : 1/2 (conf: 0.5)
+ test size = [(7, 7, 4, 7)]
+ Purity threshold 1.0
+RESULT:	Pavia,3,4,(7,false,"o_ALLiDxA","TestOp")	(loss_function = DecisionTree.util.entropy, min_samples_leaf = 4, min_purity_increase = 0.01, min_loss_at_leaf = 0.3)	(initConditions = DecisionTree._startAtCenter(), useRelationGlob = false)	1.0	|	28.57%	0.0%	0.0%	0.0%	NaN%	100.0%	0.0%	100.0%	0.0%	0.0%	NaN%	NaN%	0.0%	100.0%	NaN%	50.0%	NaN%	||	18.6%	[0.0, 0.0, 0.0, 0.0, 100.0, 0.0, 66.67, 0.0]%	
+  accuracy: 28.57% kappa: 18.6% 
+ 0 0 0 1 0 0 0 0	0.0%		Bare Soil
+ 0 0 0 0 0 0 1 0	0.0%		Bitumen
+ 1 0 0 0 0 0 0 0	0.0%		Gravel
+ 0 0 0 0 0 0 0 0	NaN%		Meadows
+ 0 0 0 0 1 0 0 0	100.0%		Painted metal sheets
+ 1 0 0 0 0 0 0 0	0.0%		Self-Blocking Bricks
+ 0 0 0 0 0 0 1 0	100.0%		Shadows
+ 1 0 0 0 0 0 0 0	0.0%		Trees
+
+overall_acc:	0.2857142857142857
+κ =		0.18604651162790697
+sensitivities:	[0.0, 0.0, 0.0, NaN, 1.0, 0.0, 1.0, 0.0]
+specificities:	[0.5, 1.0, 1.0, 0.8571428571428571, 1.0, 1.0, 0.8333333333333334, 1.0]
+PPVs:		[0.0, NaN, NaN, 0.0, 1.0, NaN, 0.5, NaN]
+NPVs:		[0.75, 0.8571428571428571, 0.8571428571428571, 1.0, 1.0, 0.8571428571428571, 1.0, 0.8571428571428571]
+F1s:		[0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.6666666666666666, 0.0]
+accuracies:	[0.42857142857142855, 0.8571428571428571, 0.8571428571428571, 0.8571428571428571, 1.0, 0.8571428571428571, 0.8571428571428571, 0.8571428571428571]
+mean_accuracy:	0.8214285714285713
+Dataset_slice = (36) -> [2, 5, 12, 14, 19, 24, 25, 31, 34, 4, 7, 9, 16, 18, 21, 26, 29, 36, 3, 6, 10, 15, 20, 23, 27, 32, 35, 1, 8, 11, 13, 17, 22, 28, 30, 33]
+train dataset:
+  MultiFrameModalDataset
+  └ [1] StumpFeatModalDatasetWithMemoization{UInt16, DecisionTree.ModalLogic.Interval2D}	11.73 MBs
+     ├ fmd	1.39 MBs	(shape (7, 8, 7, 8, 29, 8))
+     ├ fmd_m	10.34 MBs	(shape (7, 8, 7, 8, 29, 8, 4), 2901472 nothings)
+     └ fmd_g	0.0 MBs		−
+
+test  dataset:
+  MultiFrameModalDataset
+  └ [1] OntologicalDataset{UInt16, 2, DecisionTree.ModalLogic.Interval2D, 4}	0.01 MBs
+     ├ domain shape	(7, 7, 4, 7)
+     ├ 4 relations	DecisionTree.ModalLogic._IA2DRel{R1, DecisionTree.ModalLogic._IA_A} where R1<:Union{DecisionTree.ModalLogic._RelationGlob, DecisionTree.ModalLogic._RelationId, DecisionTree.ModalLogic._IARel}[⟨A,A⟩, ⟨L,A⟩, ⟨L̅,A⟩, ⟨D,A⟩]
+     └ max_channel_size	(7, 7)
+
+● [ 11/07/2021 15:24:23 ] Computing tree 1 / 1...
+  36.574 ms (242203 allocations: 7.70 MiB)
+Train tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 3
+Modal height:  1
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} A4 ⫺ 29914
+✔ {1} ⟨L,A⟩ (A4 ⫹ 28436)
+│✔ Trees : 3/4 (conf: 0.75)
+│✘ Meadows : 4/6 (conf: 0.6666666666666666)
+✘ {1} A4 ⫺ 19276
+ ✔ {1} A1 ⫺ 13061
+ │✔ Self-Blocking Bricks : 3/5 (conf: 0.6)
+ │✘ Bare Soil : 3/4 (conf: 0.75)
+ ✘ {1} ⟨L,A⟩ (A3 ⫺ 18574)
+  ✔ Asphalt : 4/4 (conf: 1.0)
+  ✘ Bitumen : 3/6 (conf: 0.5)
+● [ 11/07/2021 15:24:35 ] Saving tree to file ./gandalf/trees/tree_30d890cf6a46dafc50ee60f74118c42c5894a49bfcf149b2b195c9ae0b5519ea.jld...
+Test tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 3
+Modal height:  1
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} A4 ⫺ 29914
+✔ {1} ⟨L,A⟩ (A4 ⫹ 28436)
+│✔ Trees : 0/0 (conf: NaN)
+│✘ Meadows : 0/1 (conf: 0.0)
+✘ {1} A4 ⫺ 19276
+ ✔ {1} A1 ⫺ 13061
+ │✔ Self-Blocking Bricks : 1/3 (conf: 0.3333333333333333)
+ │✘ Bare Soil : 1/1 (conf: 1.0)
+ ✘ {1} ⟨L,A⟩ (A3 ⫺ 18574)
+  ✔ Asphalt : 0/1 (conf: 0.0)
+  ✘ Bitumen : 0/1 (conf: 0.0)
+ test size = [(7, 7, 4, 7)]
+ Purity threshold 1.0
+RESULT:	Pavia,3,4,(7,false,"o_ALLiDxA","TestOp")	(loss_function = DecisionTree.util.entropy, min_samples_leaf = 4, min_purity_increase = 0.01, min_loss_at_leaf = 0.3)	(initConditions = DecisionTree._startAtCenter(), useRelationGlob = false)	1.0	|	28.57%	NaN%	100.0%	0.0%	0.0%	NaN%	0.0%	100.0%	0.0%	0.0%	0.0%	100.0%	0.0%	NaN%	0.0%	NaN%	33.33%	NaN%	NaN%	||	20.45%	[0.0, 100.0, 0.0, 0.0, 0.0, 0.0, 50.0, 0.0, 0.0]%	
+  accuracy: 28.57% kappa: 20.45% 
+ 0 0 0 0 0 0 0 0 0	NaN%		Asphalt
+ 0 1 0 0 0 0 0 0 0	100.0%		Bare Soil
+ 1 0 0 0 0 0 0 0 0	0.0%		Bitumen
+ 0 0 0 0 0 0 1 0 0	0.0%		Gravel
+ 0 0 0 0 0 0 0 0 0	NaN%		Meadows
+ 0 0 0 0 0 0 1 0 0	0.0%		Painted metal sheets
+ 0 0 0 0 0 0 1 0 0	100.0%		Self-Blocking Bricks
+ 0 0 1 0 0 0 0 0 0	0.0%		Shadows
+ 0 0 0 0 1 0 0 0 0	0.0%		Trees
+
+overall_acc:	0.2857142857142857
+κ =		0.20454545454545453
+sensitivities:	[NaN, 1.0, 0.0, 0.0, NaN, 0.0, 1.0, 0.0, 0.0]
+specificities:	[0.8571428571428571, 1.0, 0.8333333333333334, 1.0, 0.8571428571428571, 1.0, 0.6666666666666666, 1.0, 1.0]
+PPVs:		[0.0, 1.0, 0.0, NaN, 0.0, NaN, 0.3333333333333333, NaN, NaN]
+NPVs:		[1.0, 1.0, 0.8333333333333334, 0.8571428571428571, 1.0, 0.8571428571428571, 1.0, 0.8571428571428571, 0.8571428571428571]
+F1s:		[0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0]
+accuracies:	[0.8571428571428571, 1.0, 0.7142857142857143, 0.8571428571428571, 0.8571428571428571, 0.8571428571428571, 0.7142857142857143, 0.8571428571428571, 0.8571428571428571]
+mean_accuracy:	0.8412698412698412
+Dataset_slice = (36) -> [4, 8, 9, 13, 17, 21, 27, 31, 36, 2, 6, 10, 15, 18, 22, 25, 32, 33, 1, 5, 11, 14, 20, 23, 28, 30, 35, 3, 7, 12, 16, 19, 24, 26, 29, 34]
+train dataset:
+  MultiFrameModalDataset
+  └ [1] StumpFeatModalDatasetWithMemoization{UInt16, DecisionTree.ModalLogic.Interval2D}	11.73 MBs
+     ├ fmd	1.39 MBs	(shape (7, 8, 7, 8, 29, 8))
+     ├ fmd_m	10.34 MBs	(shape (7, 8, 7, 8, 29, 8, 4), 2903424 nothings)
+     └ fmd_g	0.0 MBs		−
+
+test  dataset:
+  MultiFrameModalDataset
+  └ [1] OntologicalDataset{UInt16, 2, DecisionTree.ModalLogic.Interval2D, 4}	0.01 MBs
+     ├ domain shape	(7, 7, 4, 7)
+     ├ 4 relations	DecisionTree.ModalLogic._IA2DRel{R1, DecisionTree.ModalLogic._IA_A} where R1<:Union{DecisionTree.ModalLogic._RelationGlob, DecisionTree.ModalLogic._RelationId, DecisionTree.ModalLogic._IARel}[⟨A,A⟩, ⟨L,A⟩, ⟨L̅,A⟩, ⟨D,A⟩]
+     └ max_channel_size	(7, 7)
+
+● [ 11/07/2021 15:24:35 ] Computing tree 1 / 1...
+  34.681 ms (237536 allocations: 7.56 MiB)
+Train tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 3
+Modal height:  1
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} A4 ⫺ 22099
+✔ {1} A1 ⫺ 13061
+│✔ Self-Blocking Bricks : 3/6 (conf: 0.5)
+│✘ {1} ⟨L,A⟩ (A4 ⫹ 29563)
+│ ✔ Trees : 3/5 (conf: 0.6)
+│ ✘ Meadows : 4/5 (conf: 0.8)
+✘ {1} A3 ⫺ 18586
+ ✔ Gravel : 3/5 (conf: 0.6)
+ ✘ {1} ⟨L,A⟩ (A3 ⫺ 18574)
+  ✔ Asphalt : 4/4 (conf: 1.0)
+  ✘ Shadows : 3/4 (conf: 0.75)
+● [ 11/07/2021 15:24:47 ] Saving tree to file ./gandalf/trees/tree_b4d2faca0b30fad5c1b5de875426278bc209e3769fffcb5647c65dbe7578c48d.jld...
+Test tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 3
+Modal height:  1
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} A4 ⫺ 22099
+✔ {1} A1 ⫺ 13061
+│✔ Self-Blocking Bricks : 1/3 (conf: 0.3333333333333333)
+│✘ {1} ⟨L,A⟩ (A4 ⫹ 29563)
+│ ✔ Trees : 1/2 (conf: 0.5)
+│ ✘ Meadows : 0/0 (conf: NaN)
+✘ {1} A3 ⫺ 18586
+ ✔ Gravel : 0/0 (conf: NaN)
+ ✘ {1} ⟨L,A⟩ (A3 ⫺ 18574)
+  ✔ Asphalt : 0/0 (conf: NaN)
+  ✘ Shadows : 1/2 (conf: 0.5)
+ test size = [(7, 7, 4, 7)]
+ Purity threshold 1.0
+RESULT:	Pavia,3,4,(7,false,"o_ALLiDxA","TestOp")	(loss_function = DecisionTree.util.entropy, min_samples_leaf = 4, min_purity_increase = 0.01, min_loss_at_leaf = 0.3)	(initConditions = DecisionTree._startAtCenter(), useRelationGlob = false)	1.0	|	42.86%	0.0%	0.0%	0.0%	0.0%	100.0%	100.0%	100.0%	NaN%	NaN%	NaN%	NaN%	33.33%	50.0%	50.0%	||	33.33%	[0.0, 0.0, 0.0, 0.0, 50.0, 66.67, 66.67]%	
+  accuracy: 42.86% kappa: 33.33% 
+ 0 0 0 0 0 0 1	0.0%		Bare Soil
+ 0 0 0 0 0 1 0	0.0%		Bitumen
+ 0 0 0 0 1 0 0	0.0%		Gravel
+ 0 0 0 0 1 0 0	0.0%		Painted metal sheets
+ 0 0 0 0 1 0 0	100.0%		Self-Blocking Bricks
+ 0 0 0 0 0 1 0	100.0%		Shadows
+ 0 0 0 0 0 0 1	100.0%		Trees
+
+overall_acc:	0.42857142857142855
+κ =		0.3333333333333333
+sensitivities:	[0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0]
+specificities:	[1.0, 1.0, 1.0, 1.0, 0.6666666666666666, 0.8333333333333334, 0.8333333333333334]
+PPVs:		[NaN, NaN, NaN, NaN, 0.3333333333333333, 0.5, 0.5]
+NPVs:		[0.8571428571428571, 0.8571428571428571, 0.8571428571428571, 0.8571428571428571, 1.0, 1.0, 1.0]
+F1s:		[0.0, 0.0, 0.0, 0.0, 0.5, 0.6666666666666666, 0.6666666666666666]
+accuracies:	[0.8571428571428571, 0.8571428571428571, 0.8571428571428571, 0.8571428571428571, 0.7142857142857143, 0.8571428571428571, 0.8571428571428571]
+mean_accuracy:	0.8367346938775508
+Dataset_slice = (36) -> [2, 5, 12, 14, 20, 24, 25, 31, 33, 3, 6, 11, 16, 18, 21, 28, 30, 36, 4, 7, 10, 13, 17, 22, 26, 29, 34, 1, 8, 9, 15, 19, 23, 27, 32, 35]
+train dataset:
+  MultiFrameModalDataset
+  └ [1] StumpFeatModalDatasetWithMemoization{UInt16, DecisionTree.ModalLogic.Interval2D}	11.73 MBs
+     ├ fmd	1.39 MBs	(shape (7, 8, 7, 8, 29, 8))
+     ├ fmd_m	10.34 MBs	(shape (7, 8, 7, 8, 29, 8, 4), 2901344 nothings)
+     └ fmd_g	0.0 MBs		−
+
+test  dataset:
+  MultiFrameModalDataset
+  └ [1] OntologicalDataset{UInt16, 2, DecisionTree.ModalLogic.Interval2D, 4}	0.01 MBs
+     ├ domain shape	(7, 7, 4, 7)
+     ├ 4 relations	DecisionTree.ModalLogic._IA2DRel{R1, DecisionTree.ModalLogic._IA_A} where R1<:Union{DecisionTree.ModalLogic._RelationGlob, DecisionTree.ModalLogic._RelationId, DecisionTree.ModalLogic._IARel}[⟨A,A⟩, ⟨L,A⟩, ⟨L̅,A⟩, ⟨D,A⟩]
+     └ max_channel_size	(7, 7)
+
+● [ 11/07/2021 15:24:48 ] Computing tree 1 / 1...
+  36.469 ms (241936 allocations: 7.69 MiB)
+Train tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 3
+Modal height:  1
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} A4 ⫺ 21045
+✔ {1} A2 ⫺ 20355
+│✔ {1} A1 ⫺ 20028
+││✔ Painted metal sheets : 3/4 (conf: 0.75)
+││✘ Self-Blocking Bricks : 3/5 (conf: 0.6)
+│✘ {1} ⟨L,A⟩ (A4 ⫹ 29563)
+│ ✔ Trees : 3/5 (conf: 0.6)
+│ ✘ Meadows : 4/5 (conf: 0.8)
+✘ {1} ⟨L,A⟩ (A3 ⫺ 18574)
+ ✔ Asphalt : 4/5 (conf: 0.8)
+ ✘ Shadows : 3/5 (conf: 0.6)
+● [ 11/07/2021 15:25:00 ] Saving tree to file ./gandalf/trees/tree_f11d73f887eefc355ba389118558992adc5a94a8b365999c07890cf27d26caa6.jld...
+Test tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 3
+Modal height:  1
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} A4 ⫺ 21045
+✔ {1} A2 ⫺ 20355
+│✔ {1} A1 ⫺ 20028
+││✔ Painted metal sheets : 1/1 (conf: 1.0)
+││✘ Self-Blocking Bricks : 1/1 (conf: 1.0)
+│✘ {1} ⟨L,A⟩ (A4 ⫹ 29563)
+│ ✔ Trees : 1/2 (conf: 0.5)
+│ ✘ Meadows : 0/0 (conf: NaN)
+✘ {1} ⟨L,A⟩ (A3 ⫺ 18574)
+ ✔ Asphalt : 0/0 (conf: NaN)
+ ✘ Shadows : 1/3 (conf: 0.3333333333333333)
+ test size = [(7, 7, 4, 7)]
+ Purity threshold 1.0
+RESULT:	Pavia,3,4,(7,false,"o_ALLiDxA","TestOp")	(loss_function = DecisionTree.util.entropy, min_samples_leaf = 4, min_purity_increase = 0.01, min_loss_at_leaf = 0.3)	(initConditions = DecisionTree._startAtCenter(), useRelationGlob = false)	1.0	|	57.14%	0.0%	0.0%	0.0%	100.0%	100.0%	100.0%	100.0%	NaN%	NaN%	NaN%	100.0%	100.0%	33.33%	50.0%	||	50.0%	[0.0, 0.0, 0.0, 100.0, 100.0, 50.0, 66.67]%	
+  accuracy: 57.14% kappa: 50.0% 
+ 0 0 0 0 0 0 1	0.0%		Bare Soil
+ 0 0 0 0 0 1 0	0.0%		Bitumen
+ 0 0 0 0 0 1 0	0.0%		Gravel
+ 0 0 0 1 0 0 0	100.0%		Painted metal sheets
+ 0 0 0 0 1 0 0	100.0%		Self-Blocking Bricks
+ 0 0 0 0 0 1 0	100.0%		Shadows
+ 0 0 0 0 0 0 1	100.0%		Trees
+
+overall_acc:	0.5714285714285714
+κ =		0.49999999999999994
+sensitivities:	[0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]
+specificities:	[1.0, 1.0, 1.0, 1.0, 1.0, 0.6666666666666666, 0.8333333333333334]
+PPVs:		[NaN, NaN, NaN, 1.0, 1.0, 0.3333333333333333, 0.5]
+NPVs:		[0.8571428571428571, 0.8571428571428571, 0.8571428571428571, 1.0, 1.0, 1.0, 1.0]
+F1s:		[0.0, 0.0, 0.0, 1.0, 1.0, 0.5, 0.6666666666666666]
+accuracies:	[0.8571428571428571, 0.8571428571428571, 0.8571428571428571, 1.0, 1.0, 0.7142857142857143, 0.8571428571428571]
+mean_accuracy:	0.8775510204081632
+Dataset_slice = (36) -> [3, 5, 10, 13, 20, 22, 27, 29, 35, 4, 6, 12, 14, 19, 24, 26, 31, 34, 2, 7, 9, 16, 17, 23, 25, 32, 33, 1, 8, 11, 15, 18, 21, 28, 30, 36]
+train dataset:
+  MultiFrameModalDataset
+  └ [1] StumpFeatModalDatasetWithMemoization{UInt16, DecisionTree.ModalLogic.Interval2D}	11.73 MBs
+     ├ fmd	1.39 MBs	(shape (7, 8, 7, 8, 29, 8))
+     ├ fmd_m	10.34 MBs	(shape (7, 8, 7, 8, 29, 8, 4), 2902304 nothings)
+     └ fmd_g	0.0 MBs		−
+
+test  dataset:
+  MultiFrameModalDataset
+  └ [1] OntologicalDataset{UInt16, 2, DecisionTree.ModalLogic.Interval2D, 4}	0.01 MBs
+     ├ domain shape	(7, 7, 4, 7)
+     ├ 4 relations	DecisionTree.ModalLogic._IA2DRel{R1, DecisionTree.ModalLogic._IA_A} where R1<:Union{DecisionTree.ModalLogic._RelationGlob, DecisionTree.ModalLogic._RelationId, DecisionTree.ModalLogic._IARel}[⟨A,A⟩, ⟨L,A⟩, ⟨L̅,A⟩, ⟨D,A⟩]
+     └ max_channel_size	(7, 7)
+
+● [ 11/07/2021 15:25:00 ] Computing tree 1 / 1...
+  36.779 ms (242083 allocations: 7.70 MiB)
+Train tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 3
+Modal height:  1
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} A4 ⫺ 19276
+✔ {1} A2 ⫺ 18453
+│✔ {1} A1 ⫺ 20028
+││✔ Painted metal sheets : 3/4 (conf: 0.75)
+││✘ Self-Blocking Bricks : 3/5 (conf: 0.6)
+│✘ {1} ⟨L,A⟩ (A4 ⫹ 29563)
+│ ✔ Bare Soil : 3/6 (conf: 0.5)
+│ ✘ Meadows : 4/4 (conf: 1.0)
+✘ {1} ⟨L,A⟩ (A3 ⫺ 18574)
+ ✔ Asphalt : 4/4 (conf: 1.0)
+ ✘ Bitumen : 3/6 (conf: 0.5)
+● [ 11/07/2021 15:25:12 ] Saving tree to file ./gandalf/trees/tree_081c7836008258ab4a8446bbca4a43a28a03af290ce4c056ac67860974de95df.jld...
+Test tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 3
+Modal height:  1
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} A4 ⫺ 19276
+✔ {1} A2 ⫺ 18453
+│✔ {1} A1 ⫺ 20028
+││✔ Painted metal sheets : 1/1 (conf: 1.0)
+││✘ Self-Blocking Bricks : 1/2 (conf: 0.5)
+│✘ {1} ⟨L,A⟩ (A4 ⫹ 29563)
+│ ✔ Bare Soil : 0/1 (conf: 0.0)
+│ ✘ Meadows : 0/1 (conf: 0.0)
+✘ {1} ⟨L,A⟩ (A3 ⫺ 18574)
+ ✔ Asphalt : 0/1 (conf: 0.0)
+ ✘ Bitumen : 0/1 (conf: 0.0)
+ test size = [(7, 7, 4, 7)]
+ Purity threshold 1.0
+RESULT:	Pavia,3,4,(7,false,"o_ALLiDxA","TestOp")	(loss_function = DecisionTree.util.entropy, min_samples_leaf = 4, min_purity_increase = 0.01, min_loss_at_leaf = 0.3)	(initConditions = DecisionTree._startAtCenter(), useRelationGlob = false)	1.0	|	28.57%	NaN%	0.0%	0.0%	0.0%	NaN%	100.0%	100.0%	0.0%	0.0%	0.0%	0.0%	0.0%	NaN%	0.0%	100.0%	50.0%	NaN%	NaN%	||	20.45%	[0.0, 0.0, 0.0, 0.0, 0.0, 100.0, 66.67, 0.0, 0.0]%	
+  accuracy: 28.57% kappa: 20.45% 
+ 0 0 0 0 0 0 0 0 0	NaN%		Asphalt
+ 0 0 0 0 1 0 0 0 0	0.0%		Bare Soil
+ 1 0 0 0 0 0 0 0 0	0.0%		Bitumen
+ 0 0 0 0 0 0 1 0 0	0.0%		Gravel
+ 0 0 0 0 0 0 0 0 0	NaN%		Meadows
+ 0 0 0 0 0 1 0 0 0	100.0%		Painted metal sheets
+ 0 0 0 0 0 0 1 0 0	100.0%		Self-Blocking Bricks
+ 0 0 1 0 0 0 0 0 0	0.0%		Shadows
+ 0 1 0 0 0 0 0 0 0	0.0%		Trees
+
+overall_acc:	0.2857142857142857
+κ =		0.20454545454545453
+sensitivities:	[NaN, 0.0, 0.0, 0.0, NaN, 1.0, 1.0, 0.0, 0.0]
+specificities:	[0.8571428571428571, 0.8333333333333334, 0.8333333333333334, 1.0, 0.8571428571428571, 1.0, 0.8333333333333334, 1.0, 1.0]
+PPVs:		[0.0, 0.0, 0.0, NaN, 0.0, 1.0, 0.5, NaN, NaN]
+NPVs:		[1.0, 0.8333333333333334, 0.8333333333333334, 0.8571428571428571, 1.0, 1.0, 1.0, 0.8571428571428571, 0.8571428571428571]
+F1s:		[0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.6666666666666666, 0.0, 0.0]
+accuracies:	[0.8571428571428571, 0.7142857142857143, 0.7142857142857143, 0.8571428571428571, 0.8571428571428571, 1.0, 0.8571428571428571, 0.8571428571428571, 0.8571428571428571]
+mean_accuracy:	0.8412698412698412
+Dataset_slice = (36) -> [4, 8, 11, 14, 17, 21, 26, 29, 36, 1, 5, 12, 15, 18, 22, 25, 31, 33, 2, 6, 9, 13, 19, 24, 27, 32, 35, 3, 7, 10, 16, 20, 23, 28, 30, 34]
+train dataset:
+  MultiFrameModalDataset
+  └ [1] StumpFeatModalDatasetWithMemoization{UInt16, DecisionTree.ModalLogic.Interval2D}	11.73 MBs
+     ├ fmd	1.39 MBs	(shape (7, 8, 7, 8, 29, 8))
+     ├ fmd_m	10.34 MBs	(shape (7, 8, 7, 8, 29, 8, 4), 2901760 nothings)
+     └ fmd_g	0.0 MBs		−
+
+test  dataset:
+  MultiFrameModalDataset
+  └ [1] OntologicalDataset{UInt16, 2, DecisionTree.ModalLogic.Interval2D, 4}	0.01 MBs
+     ├ domain shape	(7, 7, 4, 7)
+     ├ 4 relations	DecisionTree.ModalLogic._IA2DRel{R1, DecisionTree.ModalLogic._IA_A} where R1<:Union{DecisionTree.ModalLogic._RelationGlob, DecisionTree.ModalLogic._RelationId, DecisionTree.ModalLogic._IARel}[⟨A,A⟩, ⟨L,A⟩, ⟨L̅,A⟩, ⟨D,A⟩]
+     └ max_channel_size	(7, 7)
+
+● [ 11/07/2021 15:25:13 ] Computing tree 1 / 1...
+  36.685 ms (242079 allocations: 7.70 MiB)
+Train tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 3
+Modal height:  1
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} A4 ⫺ 19276
+✔ {1} A1 ⫺ 13061
+│✔ {1} A1 ⫺ 20028
+││✔ Painted metal sheets : 3/4 (conf: 0.75)
+││✘ Self-Blocking Bricks : 3/5 (conf: 0.6)
+│✘ {1} ⟨L,A⟩ (A4 ⫹ 29563)
+│ ✔ Trees : 3/5 (conf: 0.6)
+│ ✘ Meadows : 4/5 (conf: 0.8)
+✘ {1} ⟨L,A⟩ (A3 ⫺ 18574)
+ ✔ Asphalt : 4/4 (conf: 1.0)
+ ✘ Bitumen : 3/6 (conf: 0.5)
+● [ 11/07/2021 15:25:24 ] Saving tree to file ./gandalf/trees/tree_c2be22b573f22ab3fa0b1b6f45c3abebb1b8f8277addaba32798927a6a52fd60.jld...
+Test tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 3
+Modal height:  1
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} A4 ⫺ 19276
+✔ {1} A1 ⫺ 13061
+│✔ {1} A1 ⫺ 20028
+││✔ Painted metal sheets : 1/1 (conf: 1.0)
+││✘ Self-Blocking Bricks : 1/1 (conf: 1.0)
+│✘ {1} ⟨L,A⟩ (A4 ⫹ 29563)
+│ ✔ Trees : 1/3 (conf: 0.3333333333333333)
+│ ✘ Meadows : 0/0 (conf: NaN)
+✘ {1} ⟨L,A⟩ (A3 ⫺ 18574)
+ ✔ Asphalt : 0/1 (conf: 0.0)
+ ✘ Bitumen : 0/1 (conf: 0.0)
+ test size = [(7, 7, 4, 7)]
+ Purity threshold 1.0
+RESULT:	Pavia,3,4,(7,false,"o_ALLiDxA","TestOp")	(loss_function = DecisionTree.util.entropy, min_samples_leaf = 4, min_purity_increase = 0.01, min_loss_at_leaf = 0.3)	(initConditions = DecisionTree._startAtCenter(), useRelationGlob = false)	1.0	|	42.86%	NaN%	0.0%	0.0%	0.0%	100.0%	100.0%	0.0%	100.0%	0.0%	NaN%	0.0%	NaN%	100.0%	100.0%	NaN%	33.33%	||	34.88%	[0.0, 0.0, 0.0, 0.0, 100.0, 100.0, 0.0, 50.0]%	
+  accuracy: 42.86% kappa: 34.88% 
+ 0 0 0 0 0 0 0 0	NaN%		Asphalt
+ 0 0 0 0 0 0 0 1	0.0%		Bare Soil
+ 1 0 0 0 0 0 0 0	0.0%		Bitumen
+ 0 0 0 0 0 0 0 1	0.0%		Gravel
+ 0 0 0 0 1 0 0 0	100.0%		Painted metal sheets
+ 0 0 0 0 0 1 0 0	100.0%		Self-Blocking Bricks
+ 0 0 1 0 0 0 0 0	0.0%		Shadows
+ 0 0 0 0 0 0 0 1	100.0%		Trees
+
+overall_acc:	0.42857142857142855
+κ =		0.3488372093023256
+sensitivities:	[NaN, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0]
+specificities:	[0.8571428571428571, 1.0, 0.8333333333333334, 1.0, 1.0, 1.0, 1.0, 0.6666666666666666]
+PPVs:		[0.0, NaN, 0.0, NaN, 1.0, 1.0, NaN, 0.3333333333333333]
+NPVs:		[1.0, 0.8571428571428571, 0.8333333333333334, 0.8571428571428571, 1.0, 1.0, 0.8571428571428571, 1.0]
+F1s:		[0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.5]
+accuracies:	[0.8571428571428571, 0.8571428571428571, 0.7142857142857143, 0.8571428571428571, 1.0, 1.0, 0.8571428571428571, 0.7142857142857143]
+mean_accuracy:	0.8571428571428571
+Dataset_slice = (36) -> [3, 6, 9, 15, 20, 24, 26, 30, 33, 1, 5, 10, 16, 19, 21, 28, 31, 34, 4, 7, 11, 14, 17, 22, 25, 29, 36, 2, 8, 12, 13, 18, 23, 27, 32, 35]
+train dataset:
+  MultiFrameModalDataset
+  └ [1] StumpFeatModalDatasetWithMemoization{UInt16, DecisionTree.ModalLogic.Interval2D}	11.73 MBs
+     ├ fmd	1.39 MBs	(shape (7, 8, 7, 8, 29, 8))
+     ├ fmd_m	10.34 MBs	(shape (7, 8, 7, 8, 29, 8, 4), 2902176 nothings)
+     └ fmd_g	0.0 MBs		−
+
+test  dataset:
+  MultiFrameModalDataset
+  └ [1] OntologicalDataset{UInt16, 2, DecisionTree.ModalLogic.Interval2D, 4}	0.01 MBs
+     ├ domain shape	(7, 7, 4, 7)
+     ├ 4 relations	DecisionTree.ModalLogic._IA2DRel{R1, DecisionTree.ModalLogic._IA_A} where R1<:Union{DecisionTree.ModalLogic._RelationGlob, DecisionTree.ModalLogic._RelationId, DecisionTree.ModalLogic._IARel}[⟨A,A⟩, ⟨L,A⟩, ⟨L̅,A⟩, ⟨D,A⟩]
+     └ max_channel_size	(7, 7)
+
+● [ 11/07/2021 15:25:25 ] Computing tree 1 / 1...
+  37.544 ms (265694 allocations: 9.03 MiB)
+Train tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 3
+Modal height:  2
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} A4 ⫺ 22099
+✔ {1} A1 ⫺ 13158
+│✔ Self-Blocking Bricks : 3/6 (conf: 0.5)
+│✘ {1} ⟨L,A⟩ (A4 ⫹ 29563)
+│ ✔ Trees : 3/5 (conf: 0.6)
+│ ✘ Meadows : 4/5 (conf: 0.8)
+✘ {1} ⟨L,A⟩ (A3 ⫺ 17786)
+ ✔ {1} ⟨L̅,A⟩ (A2 ⫹ 15145)
+ │✔ Asphalt : 4/4 (conf: 1.0)
+ │✘ Gravel : 3/4 (conf: 0.75)
+ ✘ Shadows : 3/5 (conf: 0.6)
+● [ 11/07/2021 15:25:37 ] Saving tree to file ./gandalf/trees/tree_a79ccedde04d72ee9b64efe49a1081720ae30332c8f05ca3736c0fc50de20f85.jld...
+Test tree:
+Decision Tree
+Leaves: 6
+Tot nodes: 11
+Height: 3
+Modal height:  2
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} A4 ⫺ 22099
+✔ {1} A1 ⫺ 13158
+│✔ Self-Blocking Bricks : 0/2 (conf: 0.0)
+│✘ {1} ⟨L,A⟩ (A4 ⫹ 29563)
+│ ✔ Trees : 1/3 (conf: 0.3333333333333333)
+│ ✘ Meadows : 0/0 (conf: NaN)
+✘ {1} ⟨L,A⟩ (A3 ⫺ 17786)
+ ✔ {1} ⟨L̅,A⟩ (A2 ⫹ 15145)
+ │✔ Asphalt : 0/0 (conf: NaN)
+ │✘ Gravel : 0/0 (conf: NaN)
+ ✘ Shadows : 1/2 (conf: 0.5)
+ test size = [(7, 7, 4, 7)]
+ Purity threshold 1.0
+RESULT:	Pavia,3,4,(7,false,"o_ALLiDxA","TestOp")	(loss_function = DecisionTree.util.entropy, min_samples_leaf = 4, min_purity_increase = 0.01, min_loss_at_leaf = 0.3)	(initConditions = DecisionTree._startAtCenter(), useRelationGlob = false)	1.0	|	28.57%	0.0%	0.0%	0.0%	0.0%	0.0%	100.0%	100.0%	NaN%	NaN%	NaN%	NaN%	0.0%	50.0%	33.33%	||	16.67%	[0.0, 0.0, 0.0, 0.0, 0.0, 66.67, 50.0]%	
+  accuracy: 28.57% kappa: 16.67% 
+ 0 0 0 0 0 0 1	0.0%		Bare Soil
+ 0 0 0 0 0 1 0	0.0%		Bitumen
+ 0 0 0 0 1 0 0	0.0%		Gravel
+ 0 0 0 0 1 0 0	0.0%		Painted metal sheets
+ 0 0 0 0 0 0 1	0.0%		Self-Blocking Bricks
+ 0 0 0 0 0 1 0	100.0%		Shadows
+ 0 0 0 0 0 0 1	100.0%		Trees
+
+overall_acc:	0.2857142857142857
+κ =		0.16666666666666666
+sensitivities:	[0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0]
+specificities:	[1.0, 1.0, 1.0, 1.0, 0.6666666666666666, 0.8333333333333334, 0.6666666666666666]
+PPVs:		[NaN, NaN, NaN, NaN, 0.0, 0.5, 0.3333333333333333]
+NPVs:		[0.8571428571428571, 0.8571428571428571, 0.8571428571428571, 0.8571428571428571, 0.8, 1.0, 1.0]
+F1s:		[0.0, 0.0, 0.0, 0.0, 0.0, 0.6666666666666666, 0.5]
+accuracies:	[0.8571428571428571, 0.8571428571428571, 0.8571428571428571, 0.8571428571428571, 0.5714285714285714, 0.8571428571428571, 0.7142857142857143]
+mean_accuracy:	0.7959183673469388
+Iteration "Salinas-A,3,4,(7,false,"o_ALLiDxA","TestOp")"...
+● [ 11/07/2021 15:25:37 ] Computing dataset...
+● [ 11/07/2021 15:25:38 ] Computed dataset in 00:00:00
+● [ 11/07/2021 15:25:38 ] Saving dataset to file ./gandalf/cache/dataset_f08c82a504f10d861267e5bed32aacfbba1cef49947e00bc3e7e55844a3c0d3d.jld...
+Dataseeds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+executing run 'Salinas-A,3,4,(7,false,"o_ALLiDxA","TestOp")'...
+dataset type = Tuple{Array{Int64, 4}, Vector{String}}
+
+train_seed   = 1
+modal_args   = (initConditions = DecisionTree._startAtCenter(), useRelationGlob = false)
+tree_args    = Any[(loss_function = DecisionTree.util.entropy, min_samples_leaf = 4, min_purity_increase = 0.01, min_loss_at_leaf = 0.3)]
+forest_args  = Any[]
+forest_runs  = 5
+
+split_threshold   = 0.8
+data_modal_args   = (test_operators = TestOperator[⫺, ⫹], ontology = Ontology{DecisionTree.ModalLogic.Interval2D}(DecisionTree.ModalLogic._IA2DRel{R1, DecisionTree.ModalLogic._IA_A} where R1<:Union{DecisionTree.ModalLogic._RelationGlob, DecisionTree.ModalLogic._RelationId, DecisionTree.ModalLogic._IARel}[⟨A,A⟩, ⟨L,A⟩, ⟨L̅,A⟩, ⟨D,A⟩]))
+dataset_slices    = (10 dataset_slices)
+
+Frame 1/1
+  69.960 ms (3972639 allocations: 173.30 MiB)
+Dataset_slice = (24) -> [1, 8, 10, 13, 18, 21, 3, 5, 11, 16, 19, 24, 4, 6, 12, 15, 17, 22, 2, 7, 9, 14, 20, 23]
+train dataset:
+  MultiFrameModalDataset
+  └ [1] StumpFeatModalDatasetWithMemoization{UInt16, DecisionTree.ModalLogic.Interval2D}	5.89 MBs
+     ├ fmd	0.72 MBs	(shape (7, 8, 7, 8, 20, 6))
+     ├ fmd_m	5.17 MBs	(shape (7, 8, 7, 8, 20, 6, 4), 1505280 nothings)
+     └ fmd_g	0.0 MBs		−
+
+test  dataset:
+  MultiFrameModalDataset
+  └ [1] OntologicalDataset{UInt16, 2, DecisionTree.ModalLogic.Interval2D, 4}	0.01 MBs
+     ├ domain shape	(7, 7, 3, 4)
+     ├ 4 relations	DecisionTree.ModalLogic._IA2DRel{R1, DecisionTree.ModalLogic._IA_A} where R1<:Union{DecisionTree.ModalLogic._RelationGlob, DecisionTree.ModalLogic._RelationId, DecisionTree.ModalLogic._IARel}[⟨A,A⟩, ⟨L,A⟩, ⟨L̅,A⟩, ⟨D,A⟩]
+     └ max_channel_size	(7, 7)
+
+● [ 11/07/2021 15:25:50 ] Computing tree 1 / 1...
+  20.749 ms (106142 allocations: 3.97 MiB)
+Train tree:
+Decision Tree
+Leaves: 4
+Tot nodes: 7
+Height: 3
+Modal height:  2
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} A2 ⫺ 25445
+✔ Brocoli_green_weeds_1 : 4/7 (conf: 0.5714285714285714)
+✘ {1} ⟨L,A⟩ (A2 ⫺ 20024)
+ ✔ {1} ⟨L̅,A⟩ (A1 ⫺ 2369)
+ │✔ Lettuce_romaine_6wk : 3/4 (conf: 0.75)
+ │✘ Corn_senesced_green_weeds : 3/4 (conf: 0.75)
+ ✘ Lettuce_romaine_4wk : 3/5 (conf: 0.6)
+● [ 11/07/2021 15:26:02 ] Saving tree to file ./gandalf/trees/tree_46c2758cc4f96f7a6028e81a6a5cb13a96c7abdd19b7a3632ca5da59b2e818fd.jld...
+Test tree:
+Decision Tree
+Leaves: 4
+Tot nodes: 7
+Height: 3
+Modal height:  2
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} A2 ⫺ 25445
+✔ Brocoli_green_weeds_1 : 0/0 (conf: NaN)
+✘ {1} ⟨L,A⟩ (A2 ⫺ 20024)
+ ✔ {1} ⟨L̅,A⟩ (A1 ⫺ 2369)
+ │✔ Lettuce_romaine_6wk : 0/3 (conf: 0.0)
+ │✘ Corn_senesced_green_weeds : 0/1 (conf: 0.0)
+ ✘ Lettuce_romaine_4wk : 0/0 (conf: NaN)
+ test size = [(7, 7, 3, 4)]
+ Purity threshold 1.0
+RESULT:	Salinas-A,3,4,(7,false,"o_ALLiDxA","TestOp")	(loss_function = DecisionTree.util.entropy, min_samples_leaf = 4, min_purity_increase = 0.01, min_loss_at_leaf = 0.3)	(initConditions = DecisionTree._startAtCenter(), useRelationGlob = false)	1.0	|	0.0%	NaN%	0.0%	0.0%	0.0%	0.0%	0.0%	NaN%	NaN%	0.0%	NaN%	||	-23.08%	[0.0, 0.0, 0.0, 0.0, 0.0]%	
+  accuracy: 0.0% kappa: -23.08% 
+ 0 0 0 0 0	NaN%		Corn_senesced_green_weeds
+ 0 0 0 1 0	0.0%		Lettuce_romaine_4wk
+ 0 0 0 1 0	0.0%		Lettuce_romaine_5wk
+ 1 0 0 0 0	0.0%		Lettuce_romaine_6wk
+ 0 0 0 1 0	0.0%		Lettuce_romaine_7wk
+
+overall_acc:	0.0
+κ =		-0.23076923076923078
+sensitivities:	[NaN, 0.0, 0.0, 0.0, 0.0]
+specificities:	[0.75, 1.0, 1.0, 0.0, 1.0]
+PPVs:		[0.0, NaN, NaN, 0.0, NaN]
+NPVs:		[1.0, 0.75, 0.75, 0.0, 0.75]
+F1s:		[0.0, 0.0, 0.0, 0.0, 0.0]
+accuracies:	[0.75, 0.75, 0.75, 0.0, 0.75]
+mean_accuracy:	0.6
+Dataset_slice = (24) -> [1, 8, 12, 13, 19, 24, 4, 6, 11, 16, 17, 21, 2, 7, 10, 15, 18, 23, 3, 5, 9, 14, 20, 22]
+train dataset:
+  MultiFrameModalDataset
+  └ [1] StumpFeatModalDatasetWithMemoization{UInt16, DecisionTree.ModalLogic.Interval2D}	5.89 MBs
+     ├ fmd	0.72 MBs	(shape (7, 8, 7, 8, 20, 6))
+     ├ fmd_m	5.17 MBs	(shape (7, 8, 7, 8, 20, 6, 4), 1504176 nothings)
+     └ fmd_g	0.0 MBs		−
+
+test  dataset:
+  MultiFrameModalDataset
+  └ [1] OntologicalDataset{UInt16, 2, DecisionTree.ModalLogic.Interval2D, 4}	0.01 MBs
+     ├ domain shape	(7, 7, 3, 4)
+     ├ 4 relations	DecisionTree.ModalLogic._IA2DRel{R1, DecisionTree.ModalLogic._IA_A} where R1<:Union{DecisionTree.ModalLogic._RelationGlob, DecisionTree.ModalLogic._RelationId, DecisionTree.ModalLogic._IARel}[⟨A,A⟩, ⟨L,A⟩, ⟨L̅,A⟩, ⟨D,A⟩]
+     └ max_channel_size	(7, 7)
+
+● [ 11/07/2021 15:26:02 ] Computing tree 1 / 1...
+  33.067 ms (178576 allocations: 6.96 MiB)
+Train tree:
+Decision Tree
+Leaves: 4
+Tot nodes: 7
+Height: 3
+Modal height:  2
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨L,A⟩ (A2 ⫹ 23160)
+✔ {1} ⟨L̅,A⟩ (A2 ⫺ 21484)
+│✔ Corn_senesced_green_weeds : 4/4 (conf: 1.0)
+│✘ {1} A1 ⫺ 2327
+│ ✔ Lettuce_romaine_5wk : 3/5 (conf: 0.6)
+│ ✘ Lettuce_romaine_6wk : 3/4 (conf: 0.75)
+✘ Brocoli_green_weeds_1 : 4/7 (conf: 0.5714285714285714)
+● [ 11/07/2021 15:26:15 ] Saving tree to file ./gandalf/trees/tree_25d376e749ff7c4b300c0c425b0120674af5e069f6ff13ddb9f628bddc6abbcd.jld...
+Test tree:
+Decision Tree
+Leaves: 4
+Tot nodes: 7
+Height: 3
+Modal height:  2
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨L,A⟩ (A2 ⫹ 23160)
+✔ {1} ⟨L̅,A⟩ (A2 ⫺ 21484)
+│✔ Corn_senesced_green_weeds : 0/0 (conf: NaN)
+│✘ {1} A1 ⫺ 2327
+│ ✔ Lettuce_romaine_5wk : 0/1 (conf: 0.0)
+│ ✘ Lettuce_romaine_6wk : 0/1 (conf: 0.0)
+✘ Brocoli_green_weeds_1 : 0/2 (conf: 0.0)
+ test size = [(7, 7, 3, 4)]
+ Purity threshold 1.0
+RESULT:	Salinas-A,3,4,(7,false,"o_ALLiDxA","TestOp")	(loss_function = DecisionTree.util.entropy, min_samples_leaf = 4, min_purity_increase = 0.01, min_loss_at_leaf = 0.3)	(initConditions = DecisionTree._startAtCenter(), useRelationGlob = false)	1.0	|	0.0%	NaN%	0.0%	0.0%	0.0%	0.0%	0.0%	NaN%	0.0%	0.0%	NaN%	||	-14.29%	[0.0, 0.0, 0.0, 0.0, 0.0]%	
+  accuracy: 0.0% kappa: -14.29% 
+ 0 0 0 0 0	NaN%		Brocoli_green_weeds_1
+ 0 0 1 0 0	0.0%		Lettuce_romaine_4wk
+ 0 0 0 1 0	0.0%		Lettuce_romaine_5wk
+ 1 0 0 0 0	0.0%		Lettuce_romaine_6wk
+ 1 0 0 0 0	0.0%		Lettuce_romaine_7wk
+
+overall_acc:	0.0
+κ =		-0.14285714285714285
+sensitivities:	[NaN, 0.0, 0.0, 0.0, 0.0]
+specificities:	[0.5, 1.0, 0.6666666666666666, 0.6666666666666666, 1.0]
+PPVs:		[0.0, NaN, 0.0, 0.0, NaN]
+NPVs:		[1.0, 0.75, 0.6666666666666666, 0.6666666666666666, 0.75]
+F1s:		[0.0, 0.0, 0.0, 0.0, 0.0]
+accuracies:	[0.5, 0.75, 0.5, 0.5, 0.75]
+mean_accuracy:	0.6
+Dataset_slice = (24) -> [3, 7, 12, 15, 17, 24, 4, 5, 11, 16, 19, 23, 2, 8, 9, 14, 18, 22, 1, 6, 10, 13, 20, 21]
+train dataset:
+  MultiFrameModalDataset
+  └ [1] StumpFeatModalDatasetWithMemoization{UInt16, DecisionTree.ModalLogic.Interval2D}	5.89 MBs
+     ├ fmd	0.72 MBs	(shape (7, 8, 7, 8, 20, 6))
+     ├ fmd_m	5.17 MBs	(shape (7, 8, 7, 8, 20, 6, 4), 1502544 nothings)
+     └ fmd_g	0.0 MBs		−
+
+test  dataset:
+  MultiFrameModalDataset
+  └ [1] OntologicalDataset{UInt16, 2, DecisionTree.ModalLogic.Interval2D, 4}	0.01 MBs
+     ├ domain shape	(7, 7, 3, 4)
+     ├ 4 relations	DecisionTree.ModalLogic._IA2DRel{R1, DecisionTree.ModalLogic._IA_A} where R1<:Union{DecisionTree.ModalLogic._RelationGlob, DecisionTree.ModalLogic._RelationId, DecisionTree.ModalLogic._IARel}[⟨A,A⟩, ⟨L,A⟩, ⟨L̅,A⟩, ⟨D,A⟩]
+     └ max_channel_size	(7, 7)
+
+● [ 11/07/2021 15:26:15 ] Computing tree 1 / 1...
+  32.682 ms (178367 allocations: 6.95 MiB)
+Train tree:
+Decision Tree
+Leaves: 4
+Tot nodes: 7
+Height: 3
+Modal height:  2
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨L,A⟩ (A2 ⫹ 23160)
+✔ {1} ⟨L̅,A⟩ (A2 ⫺ 21484)
+│✔ Corn_senesced_green_weeds : 4/4 (conf: 1.0)
+│✘ {1} A2 ⫹ 19023
+│ ✔ Lettuce_romaine_5wk : 3/5 (conf: 0.6)
+│ ✘ Lettuce_romaine_6wk : 3/4 (conf: 0.75)
+✘ Brocoli_green_weeds_1 : 4/7 (conf: 0.5714285714285714)
+● [ 11/07/2021 15:26:27 ] Saving tree to file ./gandalf/trees/tree_333045e73d59a23dcc80621682600887daef50e3b24aa0063f4f652cbba11d57.jld...
+Test tree:
+Decision Tree
+Leaves: 4
+Tot nodes: 7
+Height: 3
+Modal height:  2
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨L,A⟩ (A2 ⫹ 23160)
+✔ {1} ⟨L̅,A⟩ (A2 ⫺ 21484)
+│✔ Corn_senesced_green_weeds : 0/0 (conf: NaN)
+│✘ {1} A2 ⫹ 19023
+│ ✔ Lettuce_romaine_5wk : 1/2 (conf: 0.5)
+│ ✘ Lettuce_romaine_6wk : 0/0 (conf: NaN)
+✘ Brocoli_green_weeds_1 : 0/2 (conf: 0.0)
+ test size = [(7, 7, 3, 4)]
+ Purity threshold 1.0
+RESULT:	Salinas-A,3,4,(7,false,"o_ALLiDxA","TestOp")	(loss_function = DecisionTree.util.entropy, min_samples_leaf = 4, min_purity_increase = 0.01, min_loss_at_leaf = 0.3)	(initConditions = DecisionTree._startAtCenter(), useRelationGlob = false)	1.0	|	25.0%	NaN%	0.0%	100.0%	0.0%	0.0%	0.0%	NaN%	50.0%	NaN%	NaN%	||	14.29%	[0.0, 0.0, 66.67, 0.0, 0.0]%	
+  accuracy: 25.0% kappa: 14.29% 
+ 0 0 0 0 0	NaN%		Brocoli_green_weeds_1
+ 0 0 1 0 0	0.0%		Lettuce_romaine_4wk
+ 0 0 1 0 0	100.0%		Lettuce_romaine_5wk
+ 1 0 0 0 0	0.0%		Lettuce_romaine_6wk
+ 1 0 0 0 0	0.0%		Lettuce_romaine_7wk
+
+overall_acc:	0.25
+κ =		0.14285714285714285
+sensitivities:	[NaN, 0.0, 1.0, 0.0, 0.0]
+specificities:	[0.5, 1.0, 0.6666666666666666, 1.0, 1.0]
+PPVs:		[0.0, NaN, 0.5, NaN, NaN]
+NPVs:		[1.0, 0.75, 1.0, 0.75, 0.75]
+F1s:		[0.0, 0.0, 0.6666666666666666, 0.0, 0.0]
+accuracies:	[0.5, 0.75, 0.75, 0.75, 0.75]
+mean_accuracy:	0.7
+Dataset_slice = (24) -> [2, 7, 12, 13, 20, 24, 1, 6, 9, 14, 17, 22, 4, 5, 11, 15, 19, 23, 3, 8, 10, 16, 18, 21]
+train dataset:
+  MultiFrameModalDataset
+  └ [1] StumpFeatModalDatasetWithMemoization{UInt16, DecisionTree.ModalLogic.Interval2D}	5.89 MBs
+     ├ fmd	0.72 MBs	(shape (7, 8, 7, 8, 20, 6))
+     ├ fmd_m	5.17 MBs	(shape (7, 8, 7, 8, 20, 6, 4), 1502304 nothings)
+     └ fmd_g	0.0 MBs		−
+
+test  dataset:
+  MultiFrameModalDataset
+  └ [1] OntologicalDataset{UInt16, 2, DecisionTree.ModalLogic.Interval2D, 4}	0.01 MBs
+     ├ domain shape	(7, 7, 3, 4)
+     ├ 4 relations	DecisionTree.ModalLogic._IA2DRel{R1, DecisionTree.ModalLogic._IA_A} where R1<:Union{DecisionTree.ModalLogic._RelationGlob, DecisionTree.ModalLogic._RelationId, DecisionTree.ModalLogic._IARel}[⟨A,A⟩, ⟨L,A⟩, ⟨L̅,A⟩, ⟨D,A⟩]
+     └ max_channel_size	(7, 7)
+
+● [ 11/07/2021 15:26:27 ] Computing tree 1 / 1...
+  15.171 ms (76967 allocations: 2.64 MiB)
+Train tree:
+Decision Tree
+Leaves: 3
+Tot nodes: 5
+Height: 2
+Modal height:  1
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨L̅,A⟩ (A2 ⫺ 25053)
+✔ Brocoli_green_weeds_1 : 4/7 (conf: 0.5714285714285714)
+✘ {1} A3 ⫺ 5179
+ ✔ Lettuce_romaine_5wk : 3/7 (conf: 0.42857142857142855)
+ ✘ Corn_senesced_green_weeds : 3/6 (conf: 0.5)
+● [ 11/07/2021 15:26:39 ] Saving tree to file ./gandalf/trees/tree_c62f1c6f126f3fc4c9afca4d6598c7db3bbb42850093f0a4ecb4ae0d70d09790.jld...
+Test tree:
+Decision Tree
+Leaves: 3
+Tot nodes: 5
+Height: 2
+Modal height:  1
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨L̅,A⟩ (A2 ⫺ 25053)
+✔ Brocoli_green_weeds_1 : 0/1 (conf: 0.0)
+✘ {1} A3 ⫺ 5179
+ ✔ Lettuce_romaine_5wk : 1/2 (conf: 0.5)
+ ✘ Corn_senesced_green_weeds : 0/1 (conf: 0.0)
+ test size = [(7, 7, 3, 4)]
+ Purity threshold 1.0
+RESULT:	Salinas-A,3,4,(7,false,"o_ALLiDxA","TestOp")	(loss_function = DecisionTree.util.entropy, min_samples_leaf = 4, min_purity_increase = 0.01, min_loss_at_leaf = 0.3)	(initConditions = DecisionTree._startAtCenter(), useRelationGlob = false)	1.0	|	25.0%	NaN%	NaN%	0.0%	100.0%	0.0%	0.0%	0.0%	0.0%	NaN%	50.0%	NaN%	NaN%	||	14.29%	[0.0, 0.0, 0.0, 66.67, 0.0, 0.0]%	
+  accuracy: 25.0% kappa: 14.29% 
+ 0 0 0 0 0 0	NaN%		Brocoli_green_weeds_1
+ 0 0 0 0 0 0	NaN%		Corn_senesced_green_weeds
+ 0 0 0 1 0 0	0.0%		Lettuce_romaine_4wk
+ 0 0 0 1 0 0	100.0%		Lettuce_romaine_5wk
+ 0 1 0 0 0 0	0.0%		Lettuce_romaine_6wk
+ 1 0 0 0 0 0	0.0%		Lettuce_romaine_7wk
+
+overall_acc:	0.25
+κ =		0.14285714285714285
+sensitivities:	[NaN, NaN, 0.0, 1.0, 0.0, 0.0]
+specificities:	[0.75, 0.75, 1.0, 0.6666666666666666, 1.0, 1.0]
+PPVs:		[0.0, 0.0, NaN, 0.5, NaN, NaN]
+NPVs:		[1.0, 1.0, 0.75, 1.0, 0.75, 0.75]
+F1s:		[0.0, 0.0, 0.0, 0.6666666666666666, 0.0, 0.0]
+accuracies:	[0.75, 0.75, 0.75, 0.75, 0.75, 0.75]
+mean_accuracy:	0.75
+Dataset_slice = (24) -> [2, 5, 12, 14, 19, 24, 4, 7, 9, 16, 18, 21, 3, 6, 10, 15, 20, 23, 1, 8, 11, 13, 17, 22]
+train dataset:
+  MultiFrameModalDataset
+  └ [1] StumpFeatModalDatasetWithMemoization{UInt16, DecisionTree.ModalLogic.Interval2D}	5.89 MBs
+     ├ fmd	0.72 MBs	(shape (7, 8, 7, 8, 20, 6))
+     ├ fmd_m	5.17 MBs	(shape (7, 8, 7, 8, 20, 6, 4), 1502256 nothings)
+     └ fmd_g	0.0 MBs		−
+
+test  dataset:
+  MultiFrameModalDataset
+  └ [1] OntologicalDataset{UInt16, 2, DecisionTree.ModalLogic.Interval2D, 4}	0.01 MBs
+     ├ domain shape	(7, 7, 3, 4)
+     ├ 4 relations	DecisionTree.ModalLogic._IA2DRel{R1, DecisionTree.ModalLogic._IA_A} where R1<:Union{DecisionTree.ModalLogic._RelationGlob, DecisionTree.ModalLogic._RelationId, DecisionTree.ModalLogic._IARel}[⟨A,A⟩, ⟨L,A⟩, ⟨L̅,A⟩, ⟨D,A⟩]
+     └ max_channel_size	(7, 7)
+
+● [ 11/07/2021 15:26:39 ] Computing tree 1 / 1...
