@@ -621,7 +621,7 @@ function apply_forest(forest::Forest, X::GenericDataset; weight_trees_by::Bool =
 		apply_trees(forest.trees, X)
 	elseif weight_trees_by == :accuracy
 		# TODO: choose HOW to weight a tree... overall_accuracy is just an example (maybe can be parameterized)
-		apply_trees(forest.trees, X, tree_weights = map(cm -> cm.overall_accuracy, forest.cm))
+		apply_trees(forest.trees, X, tree_weights = map(cm -> overall_accuracy(cm), forest.cm))
 	else
 		@error "Unexpected value for weight_trees_by: $(weight_trees_by)"
 	end
