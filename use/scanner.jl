@@ -28,14 +28,8 @@ using Serialization
 import JLD2
 import Dates
 
-function get_hash_sha256(var)::String
-	io = IOBuffer();
-	serialize(io, var)
-	result = bytes2hex(sha256(take!(io)))
-	close(io)
 
-	result
-end
+include("lib.jl")
 
 abstract type Support end
 
@@ -63,31 +57,22 @@ function will_produce_same_forest_with_different_number_of_trees(f1::ForestEvalu
 	true
 end
 
-function human_readable_time(ms::Dates.Millisecond)::String
-	result = ms.value / 1000
-	seconds = round(Int64, result % 60)
-	result /= 60
-	minutes = round(Int64, result % 60)
-	result /= 60
-	hours = round(Int64, result % 24)
-	return string(string(hours; pad=2), ":", string(minutes; pad=2), ":", string(seconds; pad=2))
-end
-
-function checkpoint_stdout(string::String)
-	println("● ", Dates.format(Dates.now(), "[ dd/mm/yyyy HH:MM:SS ] "), string)
-	flush(stdout)
-end
-
 function display_cm_as_row(cm::ConfusionMatrix)
-	"$(round(cm.overall_accuracy*100, digits=2))%\t" *
+	"$(round(overall_accuracy(cm)*100,    digits=2))%\t" *
 	"$(join(round.(cm.sensitivities.*100, digits=2), "%\t"))%\t" *
-	"$(join(round.(cm.PPVs.*100, digits=2), "%\t"))%\t" *
+	"$(join(round.(cm.PPVs.*100,          digits=2), "%\t"))%\t" *
 	"||\t" *
 	# "$(round(cm.mean_accuracy*100, digits=2))%\t" *
 	"$(round(cm.kappa*100, digits=2))%\t" *
 	# "$(round(DecisionTree.macro_F1(cm)*100, digits=2))%\t" *
 	# "$(round.(cm.accuracies.*100, digits=2))%\t" *
 	"$(round.(cm.F1s.*100, digits=2))%\t" *
+	"|||\t" *
+	"$(round(safe_macro_sensitivity(cm)*100,  digits=2))%\t" *
+	"$(round(safe_macro_specificity(cm)*100,  digits=2))%\t" *
+	"$(round(safe_macro_PPV(cm)*100,          digits=2))%\t" *
+	"$(round(safe_macro_NPV(cm)*100,          digits=2))%\t" *
+	"$(round(safe_macro_F1(cm)*100,           digits=2))%\t" *
 	# "$(round.(cm.sensitivities.*100, digits=2))%\t" *
 	# "$(round.(cm.specificities.*100, digits=2))%\t" *
 	# "$(round.(cm.PPVs.*100, digits=2))%\t" *
@@ -98,9 +83,9 @@ function display_cm_as_row(cm::ConfusionMatrix)
 	# "$(round(DecisionTree.macro_weighted_sensitivity(cm)*100, digits=2))%\t" *
 	# # "$(round(DecisionTree.macro_specificity(cm)*100, digits=2))%\t" *
 	# "$(round(DecisionTree.macro_weighted_specificity(cm)*100, digits=2))%\t" *
-	# # "$(round(DecisionTree.mean_PPV(cm)*100, digits=2))%\t" *
+	# # "$(round(DecisionTree.macro_PPV(cm)*100, digits=2))%\t" *
 	# "$(round(DecisionTree.macro_weighted_PPV(cm)*100, digits=2))%\t" *
-	# # "$(round(DecisionTree.mean_NPV(cm)*100, digits=2))%\t" *
+	# # "$(round(DecisionTree.macro_NPV(cm)*100, digits=2))%\t" *
 	# "$(round(DecisionTree.macro_weighted_NPV(cm)*100, digits=2))%\t" *
 	""
 end
@@ -311,7 +296,7 @@ function training_dataset_c(data_modal_args, Xs_train_all, modal_args, save_data
 		end
 		
 		training_dataset = 
-			if save_datasets
+			if save_datasets # TODO Actually, in the case use_training_form == :stump_with_memoization, the dataset must be saved AFTER all runs.
 				@cachefast "training_dataset" data_savedir (use_training_form, X_train_all, features, featsnops, needToComputeRelationGlob) training_dataset_sf_c
 			else
 				training_dataset_sf_c(use_training_form, X_train_all, features, featsnops, needToComputeRelationGlob)
@@ -600,7 +585,7 @@ function exec_scan(
 			T_pruned = prune_tree(T, pruning_purity_threshold)
 			preds = apply_tree(T_pruned, X_test);
 			cm = confusion_matrix(Y_test, preds)
-			# @test cm.overall_accuracy > 0.99
+			# @test overall_accuracy(cm) > 0.99
 
 			println("RESULT:\t$(run_name)\t$(slice_id)\t$(tree_args)\t$(modal_args)\t$(pruning_purity_threshold)\t|\t$(display_cm_as_row(cm))")
 			
@@ -650,11 +635,11 @@ function exec_scan(
 			
 			preds = apply_forest(F, X_test);
 			cm = confusion_matrix(Y_test, preds)
-			# @test cm.overall_accuracy > 0.99
+			# @test overall_accuracy(cm) > 0.99
 
 			println("RESULT:\t$(run_name)\t$(slice_id)\t$(f_args)\t$(modal_args)\t$(display_cm_as_row(cm))")
 
-			# println("  accuracy: ", round(cm.overall_accuracy*100, digits=2), "% kappa: ", round(cm.kappa*100, digits=2), "% ")
+			# println("  accuracy: ", round(overall_accuracy(cm)*100, digits=2), "% kappa: ", round(cm.kappa*100, digits=2), "% ")
 			for (i,row) in enumerate(eachrow(cm.matrix))
 				for val in row
 					print(lpad(val,3," "))
@@ -671,12 +656,12 @@ function exec_scan(
 	end
 
 	go(slice_id, dataset) = begin
-		Ts = []
-		Fs = []
+		Ts   = []
+		Fs   = []
 		Tcms = []
 		Fcms = []
-		Tts = []
-		Fts = []
+		Tts  = []
+		Fts  = []
 
 		for (i_model, this_args) in enumerate(tree_args)
 			checkpoint_stdout("Computing tree $(i_model) / $(length(tree_args))...")
@@ -802,6 +787,8 @@ function exec_scan(
 
 	results_col_sep = "\t"
 
+	base_metrics_names = ["K", "accuracy", "safe_macro_sensitivity", "safe_macro_specificity", "safe_macro_PPV", "safe_macro_NPV", "safe_macro_F1"]
+
 	# If the output files do not exists initilize them
 	print_head(concise_output_file_path, tree_args, forest_args,
 		separator = results_col_sep,
@@ -811,9 +798,10 @@ function exec_scan(
 	)
 	print_head(full_output_file_path,    tree_args, forest_args,
 		separator = results_col_sep,
+		tree_columns = [base_metrics_names..., "t"],
 		forest_columns = [
-			"K",    "sensitivity",    "specificity",    "precision",    "accuracy",    "oob_error",
-			"σ² K", "σ² sensitivity", "σ² specificity", "σ² precision", "σ² accuracy", "σ² oob_error",
+			[base_metrics_names..., "oob_error"]...,
+			["σ² $(n)" for n in [base_metrics_names..., "oob_error"]]...,
 			"t"],
 		columns_before = ["Dataseed", (params_namedtuple |> keys .|> string)...],
 	)

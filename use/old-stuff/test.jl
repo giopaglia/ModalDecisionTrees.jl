@@ -322,7 +322,7 @@ end
 # X_train, Y_train, X_test, Y_test = traintestsplit(simpleDataset(200,n_attributes = 50,rng = my_rng),0.8)
 # model = fit!(DecisionTreeClassifier(pruning_purity_threshold=pruning_purity_threshold), X_train, Y_train)
 # cm = confusion_matrix(Y_test, predict(model, X_test))
-# @test cm.overall_accuracy > 0.99
+# @test overall_accuracy(cm) > 0.99
 
 # for relations in [ModalLogic.RCC8Relations, ModalLogic.IA2DRelations]
 # 	for (X,Y) in Iterators.product(4:6,4:9)

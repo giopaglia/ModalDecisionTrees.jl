@@ -182,9 +182,9 @@ test_operators_dict = Dict(
 	"TestOpGeq" => [TestOpGeq],
 	"TestOp_70" => [TestOpGeq_70, TestOpLeq_70],
 	"TestOp_80" => [TestOpGeq_80, TestOpLeq_80],
-	"TestOp"    => [TestOpGeq, TestOpLeq],
+	"TestOp"    => [TestOpGeq,    TestOpLeq],
 	"TestOpAll" => [
-									TestOpGeq, TestOpLeq,
+									TestOpGeq,    TestOpLeq,
 									TestOpGeq_90, TestOpLeq_90,
 									TestOpGeq_80, TestOpLeq_80,
 									TestOpGeq_70, TestOpLeq_70,

@@ -71,7 +71,7 @@ optimize_forest_computation = true
 
 forest_args = []
 
-for n_trees in [] # [50,100] TODO
+for n_trees in [1] # [50,100] TODO
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
 			push!(forest_args, (
@@ -242,7 +242,7 @@ exec_test_operators = [ "TestOp_80" ]
 test_operators_dict = Dict(
 	"TestOp_70" => [TestOpGeq_70, TestOpLeq_70],
 	"TestOp_80" => [TestOpGeq_80, TestOpLeq_80],
-	"TestOp"    => [TestOpGeq, TestOpLeq],
+	"TestOp"    => [TestOpGeq,    TestOpLeq],
 )
 
 

@@ -286,7 +286,7 @@ function build_forest(
 		pred = apply_trees(trees[index_of_trees_to_test_with], X_slice)
 		cm = confusion_matrix(Y_slice, pred)
 
-		push!(oob_classified, cm.overall_accuracy > 0.5)
+		push!(oob_classified, overall_accuracy(cm) > 0.5)
 	end
 
 	oob_error = 1.0 - (length(findall(oob_classified)) / length(oob_classified))

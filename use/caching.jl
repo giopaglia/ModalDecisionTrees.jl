@@ -84,7 +84,7 @@ macro cache(type, common_cache_dir, args, kwargs, compute_function)
 			_result_value = $(compute_function)($(args)...; $(kwargs)...)
 			_finish_time = (Dates.now() - _started)
 
-			checkpoint_stdout("Computed " * $(type) * " in " * human_readable_time(_finish_time))
+			checkpoint_stdout("Computed " * $(type) * " in " * human_readable_time_s(_finish_time) * " seconds (" * human_readable_time(_finish_time) * ")")
 
 			cache_obj($(type), $(common_cache_dir), _result_value, _hash, string($(args), "_", _info_dict), time_spent = _finish_time)
 			_result_value
@@ -110,7 +110,7 @@ macro cache(type, common_cache_dir, args, compute_function)
 			_result_value = $(compute_function)($(args)...)
 			_finish_time = (Dates.now() - _started)
 
-			checkpoint_stdout("Computed " * $(type) * " in " * human_readable_time(_finish_time))
+			checkpoint_stdout("Computed " * $(type) * " in " * human_readable_time_s(_finish_time) * " seconds (" * human_readable_time(_finish_time) * ")")
 
 			cache_obj($(type), $(common_cache_dir), _result_value, _hash, string($(args)), time_spent = _finish_time)
 			_result_value
@@ -139,7 +139,7 @@ macro cachefast(type, common_cache_dir, args, kwargs, compute_function)
 			_result_value = $(compute_function)($(args)...; $(kwargs)...)
 			_finish_time = (Dates.now() - _started)
 
-			checkpoint_stdout("Computed " * $(type) * " in " * human_readable_time(_finish_time))
+			checkpoint_stdout("Computed " * $(type) * " in " * human_readable_time_s(_finish_time) * " seconds (" * human_readable_time(_finish_time) * ")")
 
 			cache_obj($(type), $(common_cache_dir), _result_value, _hash, string($(args), "_", _info_dict), time_spent = _finish_time, use_serialize = true)
 			_result_value
@@ -165,7 +165,7 @@ macro cachefast(type, common_cache_dir, args, compute_function)
 			_result_value = $(compute_function)($(args)...)
 			_finish_time = (Dates.now() - _started)
 
-			checkpoint_stdout("Computed " * $(type) * " in " * human_readable_time(_finish_time))
+			checkpoint_stdout("Computed " * $(type) * " in " * human_readable_time_s(_finish_time) * " seconds (" * human_readable_time(_finish_time) * ")")
 
 			cache_obj($(type), $(common_cache_dir), _result_value, _hash, string($(args)), time_spent = _finish_time, use_serialize = true)
 			_result_value

@@ -1,6 +1,8 @@
 
 import Dates
 
+include("lib.jl")
+
 ###############################################################################
 ############################ OUTPUT HANDLERS ##################################
 ###############################################################################
@@ -21,16 +23,6 @@ function print_function(func::Core.Function)::String
 	else
 		""
 	end
-end
-
-function human_readable_time(ms::Dates.Millisecond)::String
-	result = ms.value / 1000
-	seconds = round(Int64, result % 60)
-	result /= 60
-	minutes = round(Int64, result % 60)
-	result /= 60
-	hours = round(Int64, result % 24)
-	return string(string(hours; pad=2), ":", string(minutes; pad=2), ":", string(seconds; pad=2))
 end
 
 function get_creation_date_string_format(file_name::String)::String
@@ -55,8 +47,8 @@ function string_head(
 		tree_args::AbstractArray,
 		forest_args::AbstractArray;
 		separator = "\t",
-		tree_columns = ["K", "sensitivity", "specificity", "precision", "accuracy", "t"],
-		forest_columns = ["K", "σ² K", "sensitivity", "σ² sensitivity", "specificity", "σ² specificity", "precision", "σ² precision", "accuracy", "σ² accuracy", "oob_error", "σ² oob_error", "t"],
+		tree_columns,
+		forest_columns,
     columns_before::Union{Integer,Vector{<:AbstractString}} = 1
 	)::String
 	
@@ -127,12 +119,14 @@ function data_to_string(
 	)
 
 	result = start_s
-	result *= string(percent(cm.kappa), alt_separator)
-	result *= string(percent(cm.sensitivities[1]), alt_separator)
-	result *= string(percent(cm.specificities[1]), alt_separator)
-	result *= string(percent(cm.PPVs[1]), alt_separator)
-	result *= string(percent(cm.overall_accuracy), alt_separator)
-	result *= human_readable_time(time)
+	result *= string(percent(kappa(cm)),                  alt_separator)
+	result *= string(percent(overall_accuracy(cm)),       alt_separator)
+	result *= string(percent(safe_macro_sensitivity(cm)), alt_separator)
+	result *= string(percent(safe_macro_specificity(cm)), alt_separator)
+	result *= string(percent(safe_macro_PPV(cm)),         alt_separator)
+	result *= string(percent(safe_macro_NPV(cm)),         alt_separator)
+	result *= string(percent(safe_macro_F1(cm)),          alt_separator)
+	result *= human_readable_time_s(time)
 	result *= end_s
 
 	result
@@ -150,25 +144,29 @@ function data_to_string(
 	) where {S}
 
 	result = start_s
-	result *= string(percent(mean(map(cm->cm.kappa, cms))), alt_separator)
-	result *= string(percent(mean(map(cm->cm.sensitivities[1], cms))), alt_separator)
-	result *= string(percent(mean(map(cm->cm.specificities[1], cms))), alt_separator)
-	result *= string(percent(mean(map(cm->cm.PPVs[1], cms))), alt_separator)
-	result *= string(percent(mean(map(cm->cm.overall_accuracy, cms))), alt_separator)
+	result *= string(percent(mean(map(cm->kappa(cm),                  cms))), alt_separator)
+	result *= string(percent(mean(map(cm->overall_accuracy(cm),       cms))), alt_separator)
+	result *= string(percent(mean(map(cm->safe_macro_sensitivity(cm), cms))), alt_separator)
+	result *= string(percent(mean(map(cm->safe_macro_specificity(cm), cms))), alt_separator)
+	result *= string(percent(mean(map(cm->safe_macro_PPV(cm),         cms))), alt_separator)
+	result *= string(percent(mean(map(cm->safe_macro_NPV(cm),         cms))), alt_separator)
+	result *= string(percent(mean(map(cm->safe_macro_F1(cm),          cms))), alt_separator)
 	result *= string(percent(mean(map(M->M.oob_error, Ms))))
 	result *= end_s
 	result *= separator
 	result *= start_s
-	result *= string(var(map(cm->cm.kappa, cms)), alt_separator)
-	result *= string(var(map(cm->cm.sensitivities[1], cms)), alt_separator)
-	result *= string(var(map(cm->cm.specificities[1], cms)), alt_separator)
-	result *= string(var(map(cm->cm.PPVs[1], cms)), alt_separator)
-	result *= string(var(map(cm->cm.overall_accuracy, cms)), alt_separator)
+	result *= string(var(map(cm->kappa(cm),                  cms)), alt_separator)
+	result *= string(var(map(cm->overall_accuracy(cm),       cms)), alt_separator)
+	result *= string(var(map(cm->safe_macro_sensitivity(cm), cms)), alt_separator)
+	result *= string(var(map(cm->safe_macro_specificity(cm), cms)), alt_separator)
+	result *= string(var(map(cm->safe_macro_PPV(cm),         cms)), alt_separator)
+	result *= string(var(map(cm->safe_macro_NPV(cm),         cms)), alt_separator)
+	result *= string(var(map(cm->safe_macro_F1(cm),          cms)), alt_separator)
 	result *= string(var(map(M->M.oob_error, Ms)))
 	result *= end_s
 	result *= separator
 	result *= start_s
-	result *= human_readable_time(time)
+	result *= human_readable_time_s(time)
 	result *= end_s
 
 	result

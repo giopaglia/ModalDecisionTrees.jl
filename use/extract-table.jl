@@ -23,8 +23,8 @@ seeds = [
 convert_col_name = Dict{String,String}(
     "sensitivity" => "sens",
     "specificity" => "spec",
-    "precision" => "prec",
-    "accuracy" => "acc"
+    "precision"   => "prec",
+    "accuracy"    => "acc",
 )
 
 #seed_dictionary = Dict{String,String}(zip(seeds, "s" * string(i) for i in 1:length(seeds)))

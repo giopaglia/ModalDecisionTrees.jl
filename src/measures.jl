@@ -1,3 +1,21 @@
+export overall_accuracy,
+				kappa,
+				macro_sensitivity,
+				macro_specificity,
+				macro_PPV,
+				macro_NPV,
+				macro_F1,
+				macro_weighted_F1,
+				macro_weighted_sensitivity,
+				macro_weighted_specificity,
+				macro_weighted_PPV,
+				macro_weighted_NPV,
+				safe_macro_sensitivity,
+				safe_macro_specificity,
+				safe_macro_PPV,
+				safe_macro_NPV,
+				safe_macro_F1
+
 # CM[actual,predicted]
 struct ConfusionMatrix
 	classes::Vector
@@ -50,9 +68,9 @@ struct ConfusionMatrix
 		accuracies = (TPs .+ TNs)./ALL
 		mean_accuracy = Statistics.mean(accuracies)
 
-		# https://en.wikipedia.org/wiki/Sensitivity_and_specificity
-		F1s           = TPs./(TPs.+.5*(FPs.+FNs))
 		# https://en.wikipedia.org/wiki/F-score
+		F1s           = TPs./(TPs.+.5*(FPs.+FNs))
+		# https://en.wikipedia.org/wiki/Sensitivity_and_specificity
 		sensitivities = TPs./(TPs.+FNs)
 		specificities = TNs./(TNs.+FPs)
 		PPVs          = TPs./(TPs.+FPs)
@@ -62,17 +80,40 @@ struct ConfusionMatrix
 	end
 end
 
+overall_accuracy(cm::ConfusionMatrix) = cm.overall_accuracy
+kappa(cm::ConfusionMatrix)            = cm.kappa
+
 class_counts(cm::ConfusionMatrix) = sum(cm.matrix,dims=2)
-macro_F1(cm::ConfusionMatrix) = Statistics.mean(cm.F1s)
-macro_weighted_F1(cm::ConfusionMatrix) = Statistics.sum(cm.F1s.*class_counts(cm))./sum(cm.matrix)
+
+# macro_F1(cm::ConfusionMatrix) = Statistics.mean(cm.F1s)
+# macro_sensitivity(cm::ConfusionMatrix) = Statistics.mean(cm.sensitivities)
+# # macro_specificity(cm::ConfusionMatrix) = Statistics.mean(cm.specificities)
+# macro_PPV(cm::ConfusionMatrix) = Statistics.mean(cm.PPVs)
+# macro_NPV(cm::ConfusionMatrix) = Statistics.mean(cm.NPVs)
+
+# macro_weighted_F1(cm::ConfusionMatrix) = Statistics.sum(cm.F1s.*class_counts(cm))./sum(cm.matrix)
+# macro_weighted_sensitivity(cm::ConfusionMatrix) = Statistics.sum(cm.sensitivities.*class_counts(cm))./sum(cm.matrix)
+# # macro_weighted_specificity(cm::ConfusionMatrix) = Statistics.sum(cm.specificities.*class_counts(cm))./sum(cm.matrix)
+# macro_weighted_PPV(cm::ConfusionMatrix) = Statistics.sum(cm.PPVs.*class_counts(cm))./sum(cm.matrix)
+# macro_weighted_NPV(cm::ConfusionMatrix) = Statistics.sum(cm.NPVs.*class_counts(cm))./sum(cm.matrix)
+
 macro_sensitivity(cm::ConfusionMatrix) = Statistics.mean(cm.sensitivities)
-macro_weighted_sensitivity(cm::ConfusionMatrix) = Statistics.sum(cm.sensitivities.*class_counts(cm))./sum(cm.matrix)
 macro_specificity(cm::ConfusionMatrix) = Statistics.mean(cm.specificities)
-macro_weighted_specificity(cm::ConfusionMatrix) = Statistics.sum(cm.specificities.*class_counts(cm))./sum(cm.matrix)
-mean_PPV(cm::ConfusionMatrix) = Statistics.mean(cm.PPVs)
-macro_weighted_PPV(cm::ConfusionMatrix) = Statistics.sum(cm.PPVs.*class_counts(cm))./sum(cm.matrix)
-mean_NPV(cm::ConfusionMatrix) = Statistics.mean(cm.NPVs)
-macro_weighted_NPV(cm::ConfusionMatrix) = Statistics.sum(cm.NPVs.*class_counts(cm))./sum(cm.matrix)
+macro_PPV(cm::ConfusionMatrix)         = Statistics.mean(cm.PPVs)
+macro_NPV(cm::ConfusionMatrix)         = Statistics.mean(cm.NPVs)
+macro_F1(cm::ConfusionMatrix)          = Statistics.mean(cm.F1s)
+
+macro_weighted_F1(cm::ConfusionMatrix) = length(cm.classes) == 2 ? error("macro_weighted_F1 Binary case?") : Statistics.sum(cm.F1s.*class_counts(cm))./sum(cm.matrix)
+macro_weighted_sensitivity(cm::ConfusionMatrix) = length(cm.classes) == 2 ? error("macro_weighted_sensitivity Binary case?") : Statistics.sum(cm.sensitivities.*class_counts(cm))./sum(cm.matrix)
+macro_weighted_specificity(cm::ConfusionMatrix) = length(cm.classes) == 2 ? error("# Binary case?") : Statistics.sum(cm.specificities.*class_counts(cm))./sum(cm.matrix)
+macro_weighted_PPV(cm::ConfusionMatrix) = length(cm.classes) == 2 ? error("macro_weighted_PPV Binary case?") : Statistics.sum(cm.PPVs.*class_counts(cm))./sum(cm.matrix)
+macro_weighted_NPV(cm::ConfusionMatrix) = length(cm.classes) == 2 ? error("macro_weighted_NPV Binary case?") : Statistics.sum(cm.NPVs.*class_counts(cm))./sum(cm.matrix)
+
+safe_macro_sensitivity(cm::ConfusionMatrix) = length(cm.classes) == 2 ? cm.sensitivities[1] : macro_sensitivity(cm)
+safe_macro_specificity(cm::ConfusionMatrix) = length(cm.classes) == 2 ? cm.specificities[1] : macro_specificity(cm)
+safe_macro_PPV(cm::ConfusionMatrix)         = length(cm.classes) == 2 ? cm.PPVs[1]          : macro_PPV(cm)
+safe_macro_NPV(cm::ConfusionMatrix)         = length(cm.classes) == 2 ? cm.NPVs[1]          : macro_NPV(cm)
+safe_macro_F1(cm::ConfusionMatrix)          = length(cm.classes) == 2 ? cm.F1s[1]           : macro_F1(cm)
 
 function show(io::IO, cm::ConfusionMatrix)
 	# print(io, "classes:  ")
@@ -80,7 +121,7 @@ function show(io::IO, cm::ConfusionMatrix)
 
 	max_num_digits = maximum(length(string(val)) for val in cm.matrix)
 
-	println("  accuracy: ", round(cm.overall_accuracy*100, digits=2), "% kappa: ", round(cm.kappa*100, digits=2), "% ")
+	println("  accuracy: ", round(overall_accuracy(cm)*100, digits=2), "% kappa: ", round(cm.kappa*100, digits=2), "% ")
 	for (i,(row,class)) in enumerate(zip(eachrow(cm.matrix),cm.classes))
 		for val in row
 			print(lpad(val,max_num_digits+1," "))
@@ -91,7 +132,7 @@ function show(io::IO, cm::ConfusionMatrix)
 	# print(io, "\nmatrix:   ")
 	# display(cm.matrix)
 	print(io, "\noverall_acc:\t")
-	show(io, cm.overall_accuracy)
+	show(io, overall_accuracy(cm))
 	print(io, "\nκ =\t\t")
 	show(io, cm.kappa)
 	print(io, "\nsensitivities:\t")
