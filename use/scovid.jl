@@ -71,7 +71,7 @@ optimize_forest_computation = true
 
 forest_args = []
 
-for n_trees in [10] # [50,100] TODO
+for n_trees in [] # [50,100] TODO
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
 			push!(forest_args, (
@@ -159,7 +159,7 @@ exec_use_training_form = [:stump, :stump_with_memoization] # TODO
 
 exec_n_tasks = 1:1
 exec_n_versions = 1:1 # 1:3 # 1:3 # TODO
-exec_nbands = [2] # [20,40,60]
+exec_nbands = [2] # [20,40,60] TODO
 
 # max_points = 30
 
