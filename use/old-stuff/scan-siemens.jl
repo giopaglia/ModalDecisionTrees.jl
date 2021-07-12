@@ -119,10 +119,10 @@ exec_nmeans = [5, 10, 15]
 exec_hour = 1:2
 exec_distance = -2:-1:-24
 
-exec_ranges = [exec_nmeans, exec_hour, exec_distance]
+exec_ranges_iterators = [exec_nmeans, exec_hour, exec_distance]
 exec_ranges_names = ["nmeans", "hour", "distance"]
 exec_dicts = load_or_create_execution_progress_dictionary(
-	iteration_progress_json_file_path, exec_ranges, exec_ranges_names
+	iteration_progress_json_file_path, exec_ranges_iterators, exec_ranges_names
 )
 
 # if the output files does not exist initialize it
@@ -148,7 +148,7 @@ for i in exec_runs
 
 	println("DATA SEED: $(dataset_seed)")
 	
-	for params_combination in IterTools.product(exec_ranges...)
+	for params_combination in IterTools.product(exec_ranges_iterators...)
 
 		# Unpack params combination
 		nmeans, hour, distance = params_combination

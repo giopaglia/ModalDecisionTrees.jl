@@ -1,7 +1,7 @@
 
 import JSON
 
-function init_new_history(file_path::String, params_names::Vector{String}, exec_ranges::Vector)
+function init_new_history(file_path::String, params_names::Vector{String}, exec_ranges_iterators::Vector)
 	history = []
 	save_history(file_path, history)
 	import_history(file_path)

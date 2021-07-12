@@ -194,7 +194,7 @@ ontology_dict = Dict(
 exec_n_samples_per_label = 4:4
 exec_n_attributes = 3:3
 
-exec_ranges_dict = (
+exec_ranges = (;
 	windowsize_flattened_ontology_test_operators = exec_windowsize_flattened_ontology_test_operators,
 	n_samples_per_label                          = exec_n_samples_per_label,
 	n_attributes                                 = exec_n_attributes,
@@ -238,9 +238,9 @@ if "-f" in ARGS
 	end
 end
 
-exec_ranges_names, exec_ranges = collect(string.(keys(exec_ranges_dict))), collect(values(exec_ranges_dict))
+exec_ranges_names, exec_ranges_iterators = collect(string.(keys(exec_ranges))), collect(values(exec_ranges))
 history = load_or_create_history(
-	iteration_progress_json_file_path, exec_ranges_names, exec_ranges
+	iteration_progress_json_file_path, exec_ranges_names, exec_ranges_iterators
 )
 
 ################################################################################
@@ -248,7 +248,7 @@ history = load_or_create_history(
 ################################################################################
 ################################################################################
 # TODO actually,no need to recreate the dataset when changing, say, testoperators. Make a distinction between dataset params and run params
-for params_combination in IterTools.product(exec_ranges...)
+for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	# Unpack params combination
 	# params_namedtuple = (zip(Symbol.(exec_ranges_names), params_combination) |> Dict |> namedtuple)
