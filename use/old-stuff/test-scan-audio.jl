@@ -286,8 +286,9 @@ for i in exec_runs
 	for params_combination in IterTools.product(exec_ranges...)
 		# Unpack params combination
 		# TODO actually,no need to recreate the dataset when changing, say, testoperators. Make a distinction between dataset params and run params
-		params_namedtuple = (zip(map(Symbol, exec_ranges_names), params_combination) |> Dict |> namedtuple)
-
+		# params_namedtuple = (zip(map(Symbol, exec_ranges_names), params_combination) |> Dict |> namedtuple)
+		params_namedtuple = (;zip(Symbol.(exec_ranges_names), params_combination)...)
+		
 		# FILTER ITERATIONS
 		if (length(iteration_whitelist) > 0 && !is_whitelisted_test(params_namedtuple, iteration_whitelist)) || is_blacklisted_test(params_namedtuple, iteration_blacklist)
 			continue

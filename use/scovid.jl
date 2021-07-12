@@ -121,8 +121,8 @@ log_level = DecisionTree.DTOverview
 # log_level = DecisionTree.DTDetail
 
 # timing_mode = :none
-# timing_mode = :time
-timing_mode = :btime # TODO
+timing_mode = :time
+# timing_mode = :btime
 
 round_dataset_to_datatype = false
 # round_dataset_to_datatype = UInt8
@@ -159,7 +159,7 @@ exec_use_training_form = [:stump, :stump_with_memoization] # TODO
 
 exec_n_tasks = 1:1
 exec_n_versions = 1:1 # 1:3 # 1:3 # TODO
-exec_nbands = [20] # [20,40,60]
+exec_nbands = [2] # [20,40,60]
 
 # max_points = 30
 
@@ -255,7 +255,6 @@ exec_ranges_dict = (
 	use_full_mfcc     = exec_use_full_mfcc,
 	preprocess_wavs   = exec_preprocess_wavs,
 	test_operators    = exec_test_operators,
-	dataseed          = exec_dataseed,
 )
 
 dataset_function = (
@@ -333,7 +332,8 @@ history = load_or_create_history(
 for params_combination in IterTools.product(exec_ranges...)
 
 	# Unpack params combination
-	params_namedtuple = (zip(Symbol.(exec_ranges_names), params_combination) |> Dict |> namedtuple)
+	# params_namedtuple = (zip(Symbol.(exec_ranges_names), params_combination) |> Dict |> namedtuple)
+	params_namedtuple = (;zip(Symbol.(exec_ranges_names), params_combination)...)
 
 	# FILTER ITERATIONS
 	if (!is_whitelisted_test(params_namedtuple, iteration_whitelist)) || is_blacklisted_test(params_namedtuple, iteration_blacklist)
@@ -344,7 +344,7 @@ for params_combination in IterTools.product(exec_ranges...)
 	##############################################################################
 	##############################################################################
 
-	run_name = join([replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)], ",")
+	run_name = join([replace(string(values(value)), ", " => ",") for value in params_combination], ",")
 
 	# Placed here so we can keep track of which iteration is being skipped
 	print("Iteration \"$(run_name)\"")
@@ -365,7 +365,7 @@ for params_combination in IterTools.product(exec_ranges...)
 	##############################################################################
 	##############################################################################
 	
-	use_training_form, n_task, n_version, nbands, dataset_kwargs, use_full_mfcc, preprocess_wavs, test_operators, dataseed = params_combination
+	use_training_form, n_task, n_version, nbands, dataset_kwargs, use_full_mfcc, preprocess_wavs, test_operators = params_combination
 	
 	cur_audio_kwargs = merge(
 		if use_full_mfcc
@@ -408,7 +408,7 @@ for params_combination in IterTools.product(exec_ranges...)
 	##############################################################################
 	
 	exec_scan(
-		run_name,
+		params_namedtuple,
 		dataset;
 		### Training params
 		train_seed                      =   train_seed,

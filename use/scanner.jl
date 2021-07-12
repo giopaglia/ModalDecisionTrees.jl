@@ -531,7 +531,7 @@ end
 
 
 function exec_scan(
-		run_name                        ::String,
+		params_namedtuple               ::NamedTuple,
 		dataset                         ::Tuple;
 		### Training params
 		train_seed                      = 1,
@@ -772,7 +772,7 @@ function exec_scan(
 		append_in_file(concise_output_file_path, concise_output_string)
 
 		# PRINT FULL
-		full_output_string = string(slice_id, results_col_sep, run_name, results_col_sep)
+		full_output_string = string(slice_id, results_col_sep, join([replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)], results_col_sep), results_col_sep)
 		for j in 1:length(tree_args)
 			full_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j]; start_s = "", end_s = "", alt_separator = results_col_sep))
 			full_output_string *= string(results_col_sep)
@@ -789,26 +789,33 @@ function exec_scan(
 		Ts, Fs, Tcms, Fcms, Tts, Fts
 	end
 	
-
+	run_name = join([replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)], ",")
+	
 	##############################################################################
 	##############################################################################
 	# Output files
 	##############################################################################
 	##############################################################################
 
-	concise_output_file_path = results_dir * "/grouped_in_models.csv"
-	full_output_file_path = results_dir * "/full_columns.csv"
+	concise_output_file_path = results_dir * "/grouped_in_models.tsv"
+	full_output_file_path    = results_dir * "/full_columns.tsv"
 
-	results_col_sep = ";"
+	results_col_sep = "\t"
 
 	# If the output files do not exists initilize them
-	print_head(concise_output_file_path, tree_args, forest_args, separator = results_col_sep, tree_columns = [""], forest_columns = ["", "σ²", "t"], empty_columns_before = 2)
-	print_head(full_output_file_path, tree_args, forest_args, separator = results_col_sep,
+	print_head(concise_output_file_path, tree_args, forest_args,
+		separator = results_col_sep,
+		tree_columns = [""],
+		forest_columns = ["", "σ²", "t"],
+		columns_before = ["Dataseed", "Params-combination"],
+	)
+	print_head(full_output_file_path,    tree_args, forest_args,
+		separator = results_col_sep,
 		forest_columns = [
 			"K",    "sensitivity",    "specificity",    "precision",    "accuracy",    "oob_error",
 			"σ² K", "σ² sensitivity", "σ² specificity", "σ² precision", "σ² accuracy", "σ² oob_error",
 			"t"],
-		empty_columns_before = 2
+		columns_before = ["Dataseed", (params_namedtuple |> keys .|> string)...],
 	)
 
 	##############################################################################

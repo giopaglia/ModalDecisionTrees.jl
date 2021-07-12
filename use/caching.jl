@@ -1,6 +1,6 @@
 import JLD2
 
-_default_table_file_name(type::String) = "$(type)_cached.csv"
+_default_table_file_name(type::String) = "$(type)_cached.tsv"
 _default_jld_file_name(type::String, hash::String) = string(type * "_" * hash * ".jld")
 
 function _infos_to_dict(infos::NamedTuple)::Dict
@@ -13,7 +13,7 @@ end
 cached_obj_exists(type::String, common_cache_dir::String, infos::Dict)::Bool = cached_obj_exists(type, common_cache_dir, get_hash_sha256(infos))
 cached_obj_exists(type::String, common_cache_dir::String, infos::NamedTuple)::Bool = cached_obj_exists(type, common_cache_dir, _infos_to_dict(infos))
 
-function cache_obj(type::String, common_cache_dir::String, obj::Any, hash::String, args_string::String; column_separator::String = ";", time_spent::Dates.Millisecond, use_serialize::Bool = false)
+function cache_obj(type::String, common_cache_dir::String, obj::Any, hash::String, args_string::String; column_separator::String = "\t", time_spent::Dates.Millisecond, use_serialize::Bool = false)
 	total_save_path = common_cache_dir * "/" * _default_jld_file_name(type, hash)
 	mkpath(dirname(total_save_path))
 

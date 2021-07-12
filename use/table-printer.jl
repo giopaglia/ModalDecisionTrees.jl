@@ -54,14 +54,19 @@ end
 function string_head(
 		tree_args::AbstractArray,
 		forest_args::AbstractArray;
-		separator = ";",
+		separator = "\t",
 		tree_columns = ["K", "sensitivity", "specificity", "precision", "accuracy", "t"],
 		forest_columns = ["K", "σ² K", "sensitivity", "σ² sensitivity", "specificity", "σ² specificity", "precision", "σ² precision", "accuracy", "σ² accuracy", "oob_error", "σ² oob_error", "t"],
-    empty_columns_before = 1
+    columns_before::Union{Integer,Vector{<:AbstractString}} = 1
 	)::String
+	
+	if columns_before isa Integer
+		columns_before = fill("", columns_before)
+	end
 
 	result = ""
-	for i in 1:empty_columns_before
+	for str_col in columns_before
+		result *= str_col
 		result *= string(separator)
 	end
 
@@ -117,7 +122,7 @@ function data_to_string(
 		time::Dates.Millisecond;
 		start_s = "(",
 		end_s = ")",
-		separator = ";",
+		separator = "\t",
 		alt_separator = ","
 	)
 
@@ -140,7 +145,7 @@ function data_to_string(
 		time::Dates.Millisecond;
 		start_s = "(",
 		end_s = ")",
-		separator = ";",
+		separator = "\t",
 		alt_separator = ","
 	) where {S}
 
@@ -177,7 +182,7 @@ function extract_model(
 		type::String;
 		n_trees::Union{Nothing,Number} = nothing,
 		keep_header = true,
-		column_separator = ";",
+		column_separator = "\t",
 		exclude_variance = true,
 		exclude_parameters = [ "K", "oob_error", "t" ],
 		secondary_file_name::Union{Nothing,String} = nothing,
@@ -293,13 +298,13 @@ function extract_model(
 	table
 end
 
-function string_table_csv(table::Vector{Vector{Any}}; column_separator = ";")
+function string_table_csv(table::Vector{Vector{Any}}; column_separator = "\t")
 	result = ""
 	for row in table
 		for (i, cell) in enumerate(row)
 			result *= string(cell)
 			if i != length(row)
-				result *= ";"
+				result *= column_separator
 			end
 		end
 		result *= "\n"
