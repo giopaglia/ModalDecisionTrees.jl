@@ -71,7 +71,7 @@ optimize_forest_computation = true
 
 forest_args = []
 
-for n_trees in [] # [50,100] TODO
+for n_trees in [1] # [50,100] TODO
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
 			push!(forest_args, (
@@ -121,8 +121,8 @@ log_level = DecisionTree.DTOverview
 # log_level = DecisionTree.DTDetail
 
 # timing_mode = :none
-# timing_mode = :time
-timing_mode = :btime # TODO
+timing_mode = :time
+# timing_mode = :btime
 
 round_dataset_to_datatype = false
 # round_dataset_to_datatype = UInt8
@@ -242,11 +242,11 @@ exec_test_operators = [ "TestOp_80" ]
 test_operators_dict = Dict(
 	"TestOp_70" => [TestOpGeq_70, TestOpLeq_70],
 	"TestOp_80" => [TestOpGeq_80, TestOpLeq_80],
-	"TestOp"    => [TestOpGeq, TestOpLeq],
+	"TestOp"    => [TestOpGeq,    TestOpLeq],
 )
 
 
-exec_ranges_dict = (
+exec_ranges = (;
 	use_training_form = exec_use_training_form,
 	n_task            = exec_n_tasks,
 	n_version         = exec_n_versions,
@@ -319,9 +319,9 @@ if "-f" in ARGS
 	end
 end
 
-exec_ranges_names, exec_ranges = collect(string.(keys(exec_ranges_dict))), collect(values(exec_ranges_dict))
+exec_ranges_names, exec_ranges_iterators = collect(string.(keys(exec_ranges))), collect(values(exec_ranges))
 history = load_or_create_history(
-	iteration_progress_json_file_path, exec_ranges_names, exec_ranges
+	iteration_progress_json_file_path, exec_ranges_names, exec_ranges_iterators
 )
 
 ################################################################################
@@ -329,10 +329,11 @@ history = load_or_create_history(
 ################################################################################
 ################################################################################
 # TODO actually,no need to recreate the dataset when changing, say, testoperators. Make a distinction between dataset params and run params
-for params_combination in IterTools.product(exec_ranges...)
+for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	# Unpack params combination
-	params_namedtuple = (zip(Symbol.(exec_ranges_names), params_combination) |> Dict |> namedtuple)
+	# params_namedtuple = (zip(Symbol.(exec_ranges_names), params_combination) |> Dict |> namedtuple)
+	params_namedtuple = (;zip(Symbol.(exec_ranges_names), params_combination)...)
 
 	# FILTER ITERATIONS
 	if (!is_whitelisted_test(params_namedtuple, iteration_whitelist)) || is_blacklisted_test(params_namedtuple, iteration_blacklist)
@@ -343,7 +344,7 @@ for params_combination in IterTools.product(exec_ranges...)
 	##############################################################################
 	##############################################################################
 
-	run_name = join([replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)], ",")
+	run_name = join([replace(string(values(value)), ", " => ",") for value in params_combination], ",")
 
 	# Placed here so we can keep track of which iteration is being skipped
 	print("Iteration \"$(run_name)\"")
@@ -366,6 +367,8 @@ for params_combination in IterTools.product(exec_ranges...)
 	
 	use_training_form, n_task, n_version, nbands, dataset_kwargs, use_full_mfcc, preprocess_wavs, test_operators = params_combination
 	
+	test_operators = test_operators_dict[test_operators]
+
 	cur_audio_kwargs = merge(
 		if use_full_mfcc
 			audio_kwargs_full_mfcc
@@ -380,7 +383,7 @@ for params_combination in IterTools.product(exec_ranges...)
 	
 	cur_data_modal_args = merge(data_modal_args,
 		(
-			test_operators = test_operators_dict[test_operators],
+			test_operators = test_operators,
 		)
 	)
 
@@ -407,7 +410,7 @@ for params_combination in IterTools.product(exec_ranges...)
 	##############################################################################
 	
 	exec_scan(
-		run_name,
+		params_namedtuple,
 		dataset;
 		### Training params
 		train_seed                      =   train_seed,

@@ -1,6 +1,6 @@
 import JLD2
 
-_default_table_file_name(type::String) = "$(type)_cached.csv"
+_default_table_file_name(type::String) = "$(type)_cached.tsv"
 _default_jld_file_name(type::String, hash::String) = string(type * "_" * hash * ".jld")
 
 function _infos_to_dict(infos::NamedTuple)::Dict
@@ -13,7 +13,7 @@ end
 cached_obj_exists(type::String, common_cache_dir::String, infos::Dict)::Bool = cached_obj_exists(type, common_cache_dir, get_hash_sha256(infos))
 cached_obj_exists(type::String, common_cache_dir::String, infos::NamedTuple)::Bool = cached_obj_exists(type, common_cache_dir, _infos_to_dict(infos))
 
-function cache_obj(type::String, common_cache_dir::String, obj::Any, hash::String, args_string::String; column_separator::String = ";", time_spent::Dates.Millisecond, use_serialize::Bool = false)
+function cache_obj(type::String, common_cache_dir::String, obj::Any, hash::String, args_string::String; column_separator::String = "\t", time_spent::Dates.Millisecond, use_serialize::Bool = false)
 	total_save_path = common_cache_dir * "/" * _default_jld_file_name(type, hash)
 	mkpath(dirname(total_save_path))
 
@@ -84,7 +84,7 @@ macro cache(type, common_cache_dir, args, kwargs, compute_function)
 			_result_value = $(compute_function)($(args)...; $(kwargs)...)
 			_finish_time = (Dates.now() - _started)
 
-			checkpoint_stdout("Computed " * $(type) * " in " * human_readable_time(_finish_time))
+			checkpoint_stdout("Computed " * $(type) * " in " * human_readable_time_s(_finish_time) * " seconds (" * human_readable_time(_finish_time) * ")")
 
 			cache_obj($(type), $(common_cache_dir), _result_value, _hash, string($(args), "_", _info_dict), time_spent = _finish_time)
 			_result_value
@@ -110,7 +110,7 @@ macro cache(type, common_cache_dir, args, compute_function)
 			_result_value = $(compute_function)($(args)...)
 			_finish_time = (Dates.now() - _started)
 
-			checkpoint_stdout("Computed " * $(type) * " in " * human_readable_time(_finish_time))
+			checkpoint_stdout("Computed " * $(type) * " in " * human_readable_time_s(_finish_time) * " seconds (" * human_readable_time(_finish_time) * ")")
 
 			cache_obj($(type), $(common_cache_dir), _result_value, _hash, string($(args)), time_spent = _finish_time)
 			_result_value
@@ -139,7 +139,7 @@ macro cachefast(type, common_cache_dir, args, kwargs, compute_function)
 			_result_value = $(compute_function)($(args)...; $(kwargs)...)
 			_finish_time = (Dates.now() - _started)
 
-			checkpoint_stdout("Computed " * $(type) * " in " * human_readable_time(_finish_time))
+			checkpoint_stdout("Computed " * $(type) * " in " * human_readable_time_s(_finish_time) * " seconds (" * human_readable_time(_finish_time) * ")")
 
 			cache_obj($(type), $(common_cache_dir), _result_value, _hash, string($(args), "_", _info_dict), time_spent = _finish_time, use_serialize = true)
 			_result_value
@@ -165,7 +165,7 @@ macro cachefast(type, common_cache_dir, args, compute_function)
 			_result_value = $(compute_function)($(args)...)
 			_finish_time = (Dates.now() - _started)
 
-			checkpoint_stdout("Computed " * $(type) * " in " * human_readable_time(_finish_time))
+			checkpoint_stdout("Computed " * $(type) * " in " * human_readable_time_s(_finish_time) * " seconds (" * human_readable_time(_finish_time) * ")")
 
 			cache_obj($(type), $(common_cache_dir), _result_value, _hash, string($(args)), time_spent = _finish_time, use_serialize = true)
 			_result_value

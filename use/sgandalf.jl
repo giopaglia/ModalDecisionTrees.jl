@@ -163,6 +163,14 @@ exec_dataset_name = ["Pavia", "Salinas-A", "PaviaCentre", "IndianPines", "Salina
 # exec_windowsize_flattened_ontology_test_operators = [(3,false,"o_ALLiDxA","TestOp")]
 exec_windowsize_flattened_ontology_test_operators = [(7,false,"o_ALLiDxA","TestOp")]
 
+# exec_windowsize_flattened_ontology_test_operators = Dict(
+#   "single-pixel"  => (1,false,"o_None","TestOpGeq"),
+#   "flattened"     => (3,:flattened,"o_None","TestOpGeq"),
+#   "averaged"      => (3,:averaged,"o_None","TestOpGeq"),
+#   "RCC8"          => (3,false,"o_RCC8","TestOpAll"),
+#   "RCC5"          => (3,false,"o_RCC5","TestOpAll"),
+# )
+
 # https://github.com/JuliaIO/JSON.jl/issues/203
 # https://discourse.julialang.org/t/json-type-serialization/9794
 # TODO: make test operators types serializable
@@ -174,9 +182,9 @@ test_operators_dict = Dict(
 	"TestOpGeq" => [TestOpGeq],
 	"TestOp_70" => [TestOpGeq_70, TestOpLeq_70],
 	"TestOp_80" => [TestOpGeq_80, TestOpLeq_80],
-	"TestOp"    => [TestOpGeq, TestOpLeq],
+	"TestOp"    => [TestOpGeq,    TestOpLeq],
 	"TestOpAll" => [
-									TestOpGeq, TestOpLeq,
+									TestOpGeq,    TestOpLeq,
 									TestOpGeq_90, TestOpLeq_90,
 									TestOpGeq_80, TestOpLeq_80,
 									TestOpGeq_70, TestOpLeq_70,
@@ -194,7 +202,7 @@ ontology_dict = Dict(
 exec_n_samples_per_label = 4:4
 exec_n_attributes = 3:3
 
-exec_ranges_dict = (
+exec_ranges = (;
 	windowsize_flattened_ontology_test_operators = exec_windowsize_flattened_ontology_test_operators,
 	n_samples_per_label                          = exec_n_samples_per_label,
 	n_attributes                                 = exec_n_attributes,
@@ -202,7 +210,7 @@ exec_ranges_dict = (
 )
 
 dataset_function = (
-	(windowsize,flattened,ontology,test_operators),
+	(windowsize,flattened,test_operators),
 	n_samples_per_label,n_attributes,
 		dataset_name)->SampleLandCoverDataset(
 					dataset_name,
@@ -238,9 +246,9 @@ if "-f" in ARGS
 	end
 end
 
-exec_ranges_names, exec_ranges = collect(string.(keys(exec_ranges_dict))), collect(values(exec_ranges_dict))
+exec_ranges_names, exec_ranges_iterators = collect(string.(keys(exec_ranges))), collect(values(exec_ranges))
 history = load_or_create_history(
-	iteration_progress_json_file_path, exec_ranges_names, exec_ranges
+	iteration_progress_json_file_path, exec_ranges_names, exec_ranges_iterators
 )
 
 ################################################################################
@@ -248,11 +256,12 @@ history = load_or_create_history(
 ################################################################################
 ################################################################################
 # TODO actually,no need to recreate the dataset when changing, say, testoperators. Make a distinction between dataset params and run params
-for params_combination in IterTools.product(exec_ranges...)
+for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	# Unpack params combination
-	params_namedtuple = (zip(Symbol.(exec_ranges_names), params_combination) |> Dict |> namedtuple)
-
+	# params_namedtuple = (zip(Symbol.(exec_ranges_names), params_combination) |> Dict |> namedtuple)
+	params_namedtuple = (;zip(Symbol.(exec_ranges_names), params_combination)...)
+	
 	# FILTER ITERATIONS
 	if (!is_whitelisted_test(params_namedtuple, iteration_whitelist)) || is_blacklisted_test(params_namedtuple, iteration_blacklist)
 		continue
@@ -262,7 +271,7 @@ for params_combination in IterTools.product(exec_ranges...)
 	##############################################################################
 	##############################################################################
 
-	run_name = join([replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)], ",")
+	run_name = join([replace(string(values(value)), ", " => ",") for value in params_combination], ",")
 
 	# Placed here so we can keep track of which iteration is being skipped
 	print("Iteration \"$(run_name)\"")
@@ -283,8 +292,16 @@ for params_combination in IterTools.product(exec_ranges...)
 	##############################################################################
 	##############################################################################
 	
-	(windowsize,flattened,ontology,test_operators), n_samples_per_label,n_attributes, dataset_name = params_combination
-	dataset_fun_sub_params = (windowsize,flattened,ontology,test_operators), n_samples_per_label,n_attributes, dataset_name
+	windowsize_flattened_ontology_test_operators, n_samples_per_label,n_attributes, dataset_name = params_combination
+	
+	windowsize_flattened_ontology_test_operators = exec_windowsize_flattened_ontology_test_operators_dict[windowsize_flattened_ontology_test_operators]
+
+	(windowsize,flattened,ontology,test_operators) = windowsize_flattened_ontology_test_operators
+
+	test_operators = test_operators_dict[test_operators]
+	ontology       = ontology_dict[ontology]
+
+	dataset_fun_sub_params = (windowsize,flattened,test_operators), n_samples_per_label,n_attributes, dataset_name
 	
 	# Load Dataset
 	dataset, n_label_samples = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
@@ -292,10 +309,10 @@ for params_combination in IterTools.product(exec_ranges...)
 	cur_modal_args = modal_args
 	cur_data_modal_args = merge(data_modal_args,
 		(
-			test_operators = test_operators_dict[test_operators],
-			ontology = ontology_dict[ontology],
-			)
+		test_operators = test_operators,
+		ontology       = ontology,
 		)
+	)
 
 	## Dataset slices
 	# obtain dataseeds that are were not done before
@@ -309,7 +326,7 @@ for params_combination in IterTools.product(exec_ranges...)
 	##############################################################################
 	
 	exec_scan(
-		run_name,
+		params_namedtuple,
 		dataset;
 		### Training params
 		train_seed                      =   train_seed,

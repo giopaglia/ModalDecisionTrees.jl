@@ -9,7 +9,7 @@ include("table-printer.jl")
 import Statistics
 tables_path = "./tables"
 destination = "./tables"
-primary_file_name = tables_path * "/full_columns.csv"
+primary_file_name = tables_path * "/full_columns.tsv"
 mkpath(tables_path)
 
 seeds = [
@@ -23,8 +23,8 @@ seeds = [
 convert_col_name = Dict{String,String}(
     "sensitivity" => "sens",
     "specificity" => "spec",
-    "precision" => "prec",
-    "accuracy" => "acc"
+    "precision"   => "prec",
+    "accuracy"    => "acc",
 )
 
 #seed_dictionary = Dict{String,String}(zip(seeds, "s" * string(i) for i in 1:length(seeds)))
@@ -316,7 +316,7 @@ RFtuple = table_to_dict(RF)
 Ttable_csv = dict_to_desired_format_table(Ttuple..., use_only_seeds = seeds, beautify_latex = false)
 RFtable_csv = dict_to_desired_format_table(RFtuple..., use_only_seeds = seeds, beautify_latex = false)
 
-write_to_file(destination * "/results.csv", string(
+write_to_file(destination * "/results.tsv", string(
     string_table_csv(Ttable_csv[1]), "\n",
     string_table_csv(RFtable_csv[1]),
 ))

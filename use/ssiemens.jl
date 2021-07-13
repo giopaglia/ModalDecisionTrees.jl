@@ -157,7 +157,7 @@ exec_from_to = [(1,10)]
 # exec_from_to = [(1,120),(1440-120+1,1440)]
 
 
-exec_ranges_dict = (
+exec_ranges = (;
 	from_to                                      = exec_from_to,
 )
 
@@ -186,9 +186,9 @@ if "-f" in ARGS
 	end
 end
 
-exec_ranges_names, exec_ranges = collect(string.(keys(exec_ranges_dict))), collect(values(exec_ranges_dict))
+exec_ranges_names, exec_ranges_iterators = collect(string.(keys(exec_ranges))), collect(values(exec_ranges))
 history = load_or_create_history(
-	iteration_progress_json_file_path, exec_ranges_names, exec_ranges
+	iteration_progress_json_file_path, exec_ranges_names, exec_ranges_iterators
 )
 
 ################################################################################
@@ -196,11 +196,12 @@ history = load_or_create_history(
 ################################################################################
 ################################################################################
 # TODO actually,no need to recreate the dataset when changing, say, testoperators. Make a distinction between dataset params and run params
-for params_combination in IterTools.product(exec_ranges...)
+for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	# Unpack params combination
-	params_namedtuple = (zip(Symbol.(exec_ranges_names), params_combination) |> Dict |> namedtuple)
-
+	# params_namedtuple = (zip(Symbol.(exec_ranges_names), params_combination) |> Dict |> namedtuple)
+	params_namedtuple = (;zip(Symbol.(exec_ranges_names), params_combination)...)
+	
 	# FILTER ITERATIONS
 	if (!is_whitelisted_test(params_namedtuple, iteration_whitelist)) || is_blacklisted_test(params_namedtuple, iteration_blacklist)
 		continue
@@ -210,7 +211,7 @@ for params_combination in IterTools.product(exec_ranges...)
 	##############################################################################
 	##############################################################################
 
-	run_name = join([replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)], ",")
+	run_name = join([replace(string(values(value)), ", " => ",") for value in params_combination], ",")
 
 	# Placed here so we can keep track of which iteration is being skipped
 	print("Iteration \"$(run_name)\"")
@@ -252,7 +253,7 @@ for params_combination in IterTools.product(exec_ranges...)
 	##############################################################################
 	
 	exec_scan(
-		run_name,
+		params_namedtuple,
 		dataset;
 		### Training params
 		train_seed                      =   train_seed,
