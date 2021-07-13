@@ -1,5 +1,7 @@
 remove n_relations()?
 
+save_datasets c'e un errore con resumable
+
 Test with use_ontological_form = true: need to write these for OntologicalDataset
  features(X::FeatModalDataset)          = X.features
  grouped_featsaggrsnops(X::FeatModalDataset) = X.grouped_featsaggrsnops
@@ -53,3 +55,6 @@ consistency checks down the dataset pipeline, modalDatasetIsConsistent_m,_g etc.
 
 
 Create class for labeled datasets, and remove slice_mf_dataset.
+
+
+( JULIA_EXCLUSIVE=1 julia -i -t30 scovid.jl -f 2>&1 | tee scan-covid-t30.out; JULIA_EXCLUSIVE=1 julia -i -t20 scovid.jl -f 2>&1 | tee scan-covid-t20.out; JULIA_EXCLUSIVE=1 julia -i -t16 scovid.jl -f 2>&1 | tee scan-covid-t16.out; JULIA_EXCLUSIVE=1 julia -i -t12 scovid.jl -f 2>&1 | tee scan-covid-t12.out; JULIA_EXCLUSIVE=1 julia -i -t8 scovid.jl -f 2>&1 | tee scan-covid-t8.out; JULIA_EXCLUSIVE=1 julia -i -t4 scovid.jl -f 2>&1 | tee scan-covid-t4.out ) &
