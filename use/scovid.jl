@@ -153,7 +153,7 @@ legacy_gammas_check = false
 ##################################### SCAN #####################################
 ################################################################################
 
-exec_dataseed = 1:10
+exec_dataseed = 1:5 # TODO 10
 
 exec_use_training_form = [:stump, :stump_with_memoization] # TODO
 
@@ -445,3 +445,5 @@ for params_combination in IterTools.product(exec_ranges...)
 end
 
 println("Done!")
+
+exit(0)
