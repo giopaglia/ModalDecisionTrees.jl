@@ -295,7 +295,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	
 	windowsize_flattened_ontology_test_operators, n_samples_per_label,n_attributes, dataset_name = params_combination
 	
-	#windowsize_flattened_ontology_test_operators = exec_windowsize_flattened_ontology_test_operators_dict[windowsize_flattened_ontology_test_operators]
+	# windowsize_flattened_ontology_test_operators = exec_windowsize_flattened_ontology_test_operators_dict[windowsize_flattened_ontology_test_operators]
 
 	(windowsize,flattened,ontology,test_operators) = windowsize_flattened_ontology_test_operators
 
@@ -365,3 +365,5 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 end
 
 println("Done!")
+
+exit(0)

@@ -1,0 +1,1234 @@
+{1} ⟨T̅P̅P̅⟩ (A99 ⫹₇₀ 16319)
+✔ {1} A9 ⫹ 6797
+│✔ Shadows : 80/80 (conf: 1.0)
+│✘ {1} ⟨T̅P̅P̅⟩ (A16 ⫺ 12069)
+│ ✔ {1} ⟨PO⟩ (A72 ⫹ 13159)
+│ │✔ {1} A1 ⫺ 10741
+│ ││✔ Asphalt : 6/6 (conf: 1.0)
+│ ││✘ Asphalt : 3/4 (conf: 0.75)
+│ │✘ Bitumen : 75/78 (conf: 0.9615384615384616)
+│ ✘ {1} ⟨T̅P̅P̅⟩ (A77 ⫺ 14982)
+│  ✔ {1} A1 ⫺₈₀ 9017
+│  │✔ Gravel : 9/9 (conf: 1.0)
+│  │✘ Bitumen : 2/4 (conf: 0.5)
+│  ✘ {1} ⟨PO⟩ (A1 ⫺ 12851)
+│   ✔ {1} ⟨T̅P̅P̅⟩ (A12 ⫹ 10027)
+│   │✔ Gravel : 4/4 (conf: 1.0)
+│   │✘ {1} A2 ⫹ 11454
+│   │ ✔ Bitumen : 2/4 (conf: 0.5)
+│   │ ✘ Asphalt : 14/14 (conf: 1.0)
+│   ✘ Asphalt : 53/53 (conf: 1.0)
+✘ {1} ⟨T̅P̅P̅⟩ (A6 ⫺₇₀ 10721)
+ ✔ {1} A2 ⫺₇₀ 21571
+ │✔ Painted metal sheets : 80/80 (conf: 1.0)
+ │✘ {1} A70 ⫹ 23146
+ │ ✔ {1} ⟨PO⟩ (A1 ⫺ 16101)
+ │ │✔ Gravel : 17/17 (conf: 1.0)
+ │ │✘ {1} ⟨T̅P̅P̅⟩ (A17 ⫺ 14407)
+ │ │ ✔ Self-Blocking Bricks : 52/56 (conf: 0.9285714285714286)
+ │ │ ✘ {1} ⟨PO⟩ (A2 ⫹₆₀ 10513)
+ │ │  ✔ {1} ⟨T̅P̅P̅⟩ (A2 ⫺₆₀ 11296)
+ │ │  │✔ {1} A42 ⫺₈₀ 17112
+ │ │  ││✔ Gravel : 5/5 (conf: 1.0)
+ │ │  ││✘ Self-Blocking Bricks : 5/6 (conf: 0.8333333333333334)
+ │ │  │✘ Self-Blocking Bricks : 16/16 (conf: 1.0)
+ │ │  ✘ {1} ⟨EC⟩ (A4 ⫹ 10800)
+ │ │   ✔ {1} ⟨EC⟩ (A10 ⫺ 13297)
+ │ │   │✔ {1} A1 ⫺ 15873
+ │ │   ││✔ Self-Blocking Bricks : 2/4 (conf: 0.5)
+ │ │   ││✘ Self-Blocking Bricks : 5/5 (conf: 1.0)
+ │ │   │✘ Gravel : 7/7 (conf: 1.0)
+ │ │   ✘ Gravel : 28/28 (conf: 1.0)
+ │ ✘ Bare Soil : 16/16 (conf: 1.0)
+ ✘ {1} ⟨EC⟩ (A59 ⫹ 3587)
+	✔ {1} A73 ⫹ 17112
+	│✔ Trees : 71/71 (conf: 1.0)
+	│✘ {1} ⟨DC⟩ (A25 ⫺ 6896)
+	│ ✔ Trees : 9/9 (conf: 1.0)
+	│ ✘ Meadows : 12/12 (conf: 1.0)
+	✘ {1} ⟨N̅T̅P̅P̅⟩ (A102 ⫺ 21650)
+	 ✔ {1} A33 ⫹ 14021
+	 │✔ {1} A77 ⫺₈₀ 20630
+	 ││✔ Meadows : 47/50 (conf: 0.94)
+	 ││✘ {1} A76 ⫹ 20927
+	 ││ ✔ Meadows : 8/8 (conf: 1.0)
+	 ││ ✘ {1} A1 ⫺ 4548
+	 ││  ✔ Bare Soil : 4/4 (conf: 1.0)
+	 ││  ✘ Bare Soil : 3/4 (conf: 0.75)
+	 │✘ Bare Soil : 10/10 (conf: 1.0)
+	 ✘ {1} ⟨EC⟩ (A83 ⫺ 20491)
+		✔ Bare Soil : 42/44 (conf: 0.9545454545454546)
+		✘ {1} A4 ⫺ 4994
+		 ✔ Meadows : 8/8 (conf: 1.0)
+		 ✘ Bare Soil : 2/4 (conf: 0.5)
+
+{1} ⟨N̅T̅P̅P̅⟩ (A103 ⫹₆₀ 16597)
+✔ {1} A23 ⫺ 4578
+│✔ {1} A18 ⫺₇₀ 12356
+││✔ Bitumen : 68/73 (conf: 0.9315068493150684)
+││✘ {1} A45 ⫺₆₀ 12871
+││ ✔ {1} ⟨NTPP⟩ (A15 ⫺ 11098)
+││ │✔ {1} ⟨EC⟩ (A6 ⫺ 13367)
+││ ││✔ Asphalt : 13/13 (conf: 1.0)
+││ ││✘ {1} A1 ⫺ 9988
+││ ││ ✔ Bitumen : 7/7 (conf: 1.0)
+││ ││ ✘ Bitumen : 3/4 (conf: 0.75)
+││ │✘ Gravel : 16/17 (conf: 0.9411764705882353)
+││ ✘ Asphalt : 61/63 (conf: 0.9682539682539683)
+│✘ Shadows : 80/81 (conf: 0.9876543209876543)
+✘ {1} ⟨N̅T̅P̅P̅⟩ (A6 ⫹₆₀ 11216)
+ ✔ {1} A66 ⫺ 5440
+ │✔ {1} A30 ⫹ 13347
+ ││✔ {1} A102 ⫺ 21650
+ │││✔ {1} A98 ⫺₇₀ 25802
+ ││││✔ Meadows : 26/26 (conf: 1.0)
+ ││││✘ {1} A81 ⫹₈₀ 26159
+ ││││ ✔ {1} A9 ⫹₈₀ 6777
+ ││││ │✔ Meadows : 18/18 (conf: 1.0)
+ ││││ │✘ {1} A1 ⫺ 6322
+ ││││ │ ✔ Meadows : 4/4 (conf: 1.0)
+ ││││ │ ✘ Bare Soil : 3/4 (conf: 0.75)
+ ││││ ✘ Bare Soil : 6/6 (conf: 1.0)
+ │││✘ {1} A83 ⫹ 20421
+ │││ ✔ {1} A1 ⫺ 3191
+ │││ │✔ Meadows : 7/7 (conf: 1.0)
+ │││ │✘ Meadows : 3/4 (conf: 0.75)
+ │││ ✘ Bare Soil : 31/34 (conf: 0.9117647058823529)
+ ││✘ Bare Soil : 24/24 (conf: 1.0)
+ │✘ {1} A72 ⫺ 14229
+ │ ✔ {1} A25 ⫹ 6807
+ │ │✔ Meadows : 18/18 (conf: 1.0)
+ │ │✘ Trees : 9/9 (conf: 1.0)
+ │ ✘ Trees : 71/71 (conf: 1.0)
+ ✘ {1} ⟨EC⟩ (A13 ⫺ 32421)
+	✔ Painted metal sheets : 80/80 (conf: 1.0)
+	✘ {1} A76 ⫺ 23216
+	 ✔ Bare Soil : 15/15 (conf: 1.0)
+	 ✘ {1} ⟨T̅P̅P̅⟩ (A16 ⫺ 14883)
+		✔ {1} ⟨TPP⟩ (A1 ⫹ 11543)
+		│✔ Self-Blocking Bricks : 40/40 (conf: 1.0)
+		│✘ {1} A1 ⫺₇₀ 14883
+		│ ✔ Gravel : 5/5 (conf: 1.0)
+		│ ✘ Self-Blocking Bricks : 5/5 (conf: 1.0)
+		✘ {1} ⟨N̅T̅P̅P̅⟩ (A2 ⫹₈₀ 14645)
+		 ✔ {1} A41 ⫺₆₀ 18975
+		 │✔ Gravel : 13/13 (conf: 1.0)
+		 │✘ {1} A15 ⫹₈₀ 13525
+		 │ ✔ Gravel : 9/9 (conf: 1.0)
+		 │ ✘ {1} A3 ⫹₆₀ 12564
+		 │  ✔ Self-Blocking Bricks : 29/29 (conf: 1.0)
+		 │  ✘ {1} A77 ⫺₈₀ 18678
+		 │   ✔ Self-Blocking Bricks : 5/5 (conf: 1.0)
+		 │   ✘ Gravel : 8/8 (conf: 1.0)
+		 ✘ Gravel : 28/28 (conf: 1.0)
+
+{1} ⟨T̅P̅P̅⟩ (A99 ⫹₇₀ 16319)
+✔ {1} A9 ⫹₇₀ 6054
+│✔ Shadows : 80/80 (conf: 1.0)
+│✘ {1} ⟨PO⟩ (A16 ⫹₇₀ 12078)
+│ ✔ {1} A36 ⫺ 14030
+│ │✔ Gravel : 13/13 (conf: 1.0)
+│ │✘ {1} ⟨DC⟩ (A66 ⫹ 13050)
+│ │ ✔ Asphalt : 59/63 (conf: 0.9365079365079365)
+│ │ ✘ {1} ⟨T̅P̅P̅⟩ (A3 ⫺₈₀ 10117)
+│ │  ✔ Asphalt : 14/14 (conf: 1.0)
+│ │  ✘ {1} ⟨DC⟩ (A26 ⫺ 15160)
+│ │   ✔ Asphalt : 3/4 (conf: 0.75)
+│ │   ✘ Bitumen : 8/8 (conf: 1.0)
+│ ✘ Bitumen : 71/76 (conf: 0.9342105263157895)
+✘ {1} ⟨N̅T̅P̅P̅⟩ (A6 ⫹₇₀ 11355)
+ ✔ {1} A66 ⫺ 5450
+ │✔ {1} A26 ⫹ 12425
+ ││✔ {1} A103 ⫺ 22215
+ │││✔ {1} A31 ⫹ 12039
+ ││││✔ Meadows : 45/47 (conf: 0.9574468085106383)
+ ││││✘ {1} A1 ⫺₈₀ 6143
+ ││││ ✔ Meadows : 3/4 (conf: 0.75)
+ ││││ ✘ Bare Soil : 4/4 (conf: 1.0)
+ │││✘ {1} A83 ⫹ 21779
+ │││ ✔ {1} A85 ⫺₇₀ 18826
+ │││ │✔ Meadows : 14/14 (conf: 1.0)
+ │││ │✘ {1} A3 ⫹ 6936
+ │││ │ ✔ Bare Soil : 9/9 (conf: 1.0)
+ │││ │ ✘ Bare Soil : 2/4 (conf: 0.5)
+ │││ ✘ Bare Soil : 27/28 (conf: 0.9642857142857143)
+ ││✘ Bare Soil : 20/20 (conf: 1.0)
+ │✘ {1} A72 ⫺ 14229
+ │ ✔ {1} A24 ⫹ 6223
+ │ │✔ Meadows : 15/15 (conf: 1.0)
+ │ │✘ Trees : 9/9 (conf: 1.0)
+ │ ✘ Trees : 71/71 (conf: 1.0)
+ ✘ {1} A14 ⫺ 20322
+	✔ Painted metal sheets : 80/80 (conf: 1.0)
+	✘ {1} A76 ⫺ 23216
+	 ✔ Bare Soil : 15/15 (conf: 1.0)
+	 ✘ {1} ⟨N̅T̅P̅P̅⟩ (A15 ⫺₆₀ 13912)
+		✔ {1} A2 ⫺₇₀ 12574
+		│✔ {1} A1 ⫹₈₀ 16082
+		││✔ {1} A2 ⫺₇₀ 12990
+		│││✔ Self-Blocking Bricks : 7/7 (conf: 1.0)
+		│││✘ Gravel : 4/6 (conf: 0.6666666666666666)
+		││✘ Gravel : 8/8 (conf: 1.0)
+		│✘ Self-Blocking Bricks : 45/46 (conf: 0.9782608695652174)
+		✘ {1} ⟨N̅T̅P̅P̅⟩ (A3 ⫺₇₀ 11464)
+		 ✔ Gravel : 32/32 (conf: 1.0)
+		 ✘ {1} ⟨T̅P̅P̅⟩ (A42 ⫹₇₀ 18440)
+			✔ {1} A83 ⫺ 18192
+			│✔ Self-Blocking Bricks : 18/18 (conf: 1.0)
+			│✘ {1} A36 ⫺ 16577
+			│ ✔ Gravel : 6/6 (conf: 1.0)
+			│ ✘ {1} A1 ⫺ 9849
+			│  ✔ Self-Blocking Bricks : 7/7 (conf: 1.0)
+			│  ✘ Gravel : 3/4 (conf: 0.75)
+			✘ Gravel : 8/8 (conf: 1.0)
+
+			Train tree:
+Decision Tree
+Leaves: 29
+Tot nodes: 57
+Height: 9
+Modal height:  6
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨N̅T̅P̅P̅⟩ (A101 ⫹₆₀ 16478)
+✔ {1} A11 ⫺₆₀ 6569
+│✔ {1} A51 ⫺₆₀ 13119
+││✔ {1} ⟨NTPP⟩ (A15 ⫺ 11494)
+│││✔ {1} ⟨N̅T̅P̅P̅⟩ (A78 ⫹₈₀ 17399)
+││││✔ Bitumen : 79/84 (conf: 0.9404761904761905)
+││││✘ Asphalt : 5/6 (conf: 0.8333333333333334)
+│││✘ {1} A24 ⫹ 12623
+│││ ✔ Gravel : 9/9 (conf: 1.0)
+│││ ✘ Asphalt : 4/5 (conf: 0.8)
+││✘ Asphalt : 66/68 (conf: 0.9705882352941176)
+│✘ Shadows : 80/80 (conf: 1.0)
+✘ {1} ⟨N̅T̅P̅P̅⟩ (A7 ⫺₆₀ 10047)
+ ✔ {1} A40 ⫹₇₀ 21601
+ │✔ {1} A16 ⫹₆₀ 14377
+ ││✔ {1} A2 ⫺₇₀ 10860
+ │││✔ Gravel : 44/47 (conf: 0.9361702127659575)
+ │││✘ {1} A27 ⫹₆₀ 16894
+ │││ ✔ {1} A16 ⫹₆₀ 13277
+ │││ │✔ Gravel : 4/6 (conf: 0.6666666666666666)
+ │││ │✘ Self-Blocking Bricks : 15/15 (conf: 1.0)
+ │││ ✘ Gravel : 3/4 (conf: 0.75)
+ ││✘ {1} A48 ⫹ 22344
+ ││ ✔ {1} A16 ⫹₇₀ 15348
+ ││ │✔ {1} A1 ⫺₆₀ 13089
+ ││ ││✔ Gravel : 7/7 (conf: 1.0)
+ ││ ││✘ {1} A1 ⫺₇₀ 9700
+ ││ ││ ✔ Self-Blocking Bricks : 22/22 (conf: 1.0)
+ ││ ││ ✘ {1} A5 ⫺₇₀ 12386
+ ││ ││  ✔ Self-Blocking Bricks : 4/4 (conf: 1.0)
+ ││ ││  ✘ Gravel : 4/4 (conf: 1.0)
+ ││ │✘ Self-Blocking Bricks : 34/34 (conf: 1.0)
+ ││ ✘ Gravel : 6/6 (conf: 1.0)
+ │✘ {1} A1 ⫹ 23632
+ │ ✔ Bare Soil : 14/14 (conf: 1.0)
+ │ ✘ Painted metal sheets : 80/80 (conf: 1.0)
+ ✘ {1} ⟨EC⟩ (A66 ⫹ 5400)
+	✔ {1} ⟨DC⟩ (A72 ⫹ 14506)
+	│✔ Trees : 73/73 (conf: 1.0)
+	│✘ {1} ⟨DC⟩ (A10 ⫺ 4607)
+	│ ✔ Trees : 7/7 (conf: 1.0)
+	│ ✘ Meadows : 14/14 (conf: 1.0)
+	✘ {1} ⟨EC⟩ (A30 ⫺ 13426)
+	 ✔ Bare Soil : 24/24 (conf: 1.0)
+	 ✘ {1} ⟨N̅T̅P̅P̅⟩ (A103 ⫺₇₀ 23562)
+		✔ {1} A31 ⫹ 12039
+		│✔ Meadows : 45/47 (conf: 0.9574468085106383)
+		│✘ Bare Soil : 4/5 (conf: 0.8)
+		✘ {1} ⟨N̅T̅P̅P̅⟩ (A3 ⫹₇₀ 7312)
+		 ✔ {1} A32 ⫹₆₀ 8085
+		 │✔ {1} A25 ⫺ 5509
+		 ││✔ Meadows : 8/8 (conf: 1.0)
+		 ││✘ {1} A1 ⫹₈₀ 7788
+		 ││ ✔ Bare Soil : 2/4 (conf: 0.5)
+		 ││ ✘ Bare Soil : 10/10 (conf: 1.0)
+		 │✘ Bare Soil : 23/23 (conf: 1.0)
+		 ✘ Meadows : 10/10 (conf: 1.0)
+
+
+		 Train tree:
+Decision Tree
+Leaves: 27
+Tot nodes: 53
+Height: 9
+Modal height:  7
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨N̅T̅P̅P̅⟩ (A101 ⫹₆₀ 16478)
+✔ {1} A23 ⫺ 4578
+│✔ {1} A18 ⫺₇₀ 12356
+││✔ Bitumen : 71/75 (conf: 0.9466666666666667)
+││✘ {1} A93 ⫺ 13832
+││ ✔ {1} A2 ⫹ 15219
+││ │✔ Gravel : 10/10 (conf: 1.0)
+││ │✘ Asphalt : 3/4 (conf: 0.75)
+││ ✘ {1} A57 ⫺₇₀ 12217
+││  ✔ {1} A85 ⫹₈₀ 14714
+││  │✔ Bitumen : 8/8 (conf: 1.0)
+││  │✘ Asphalt : 16/17 (conf: 0.9411764705882353)
+││  ✘ Asphalt : 58/59 (conf: 0.9830508474576272)
+│✘ Shadows : 80/81 (conf: 0.9876543209876543)
+✘ {1} ⟨T̅P̅P̅⟩ (A6 ⫺₇₀ 11474)
+ ✔ {1} A1 ⫺ 17637
+ │✔ Painted metal sheets : 80/80 (conf: 1.0)
+ │✘ {1} A72 ⫹₇₀ 22403
+ │ ✔ {1} ⟨T̅P̅P̅⟩ (A17 ⫹₈₀ 14397)
+ │ │✔ {1} A2 ⫹₇₀ 10553
+ │ ││✔ Self-Blocking Bricks : 9/9 (conf: 1.0)
+ │ ││✘ {1} A29 ⫺₇₀ 15616
+ │ ││ ✔ Gravel : 35/35 (conf: 1.0)
+ │ ││ ✘ {1} A83 ⫺₇₀ 17310
+ │ ││  ✔ {1} A23 ⫹ 14784
+ │ ││  │✔ Self-Blocking Bricks : 6/6 (conf: 1.0)
+ │ ││  │✘ Gravel : 3/4 (conf: 0.75)
+ │ ││  ✘ Gravel : 13/13 (conf: 1.0)
+ │ │✘ {1} ⟨EC⟩ (A58 ⫺ 21601)
+ │ │ ✔ {1} ⟨EC⟩ (A85 ⫺ 22403)
+ │ │ │✔ Gravel : 10/10 (conf: 1.0)
+ │ │ │✘ Self-Blocking Bricks : 4/6 (conf: 0.6666666666666666)
+ │ │ ✘ Self-Blocking Bricks : 59/63 (conf: 0.9365079365079365)
+ │ ✘ Bare Soil : 12/12 (conf: 1.0)
+ ✘ {1} ⟨EC⟩ (A54 ⫹ 5043)
+	✔ {1} ⟨DC⟩ (A73 ⫹ 17261)
+	│✔ Trees : 77/78 (conf: 0.9871794871794872)
+	│✘ {1} A6 ⫹ 2764
+	│ ✔ Meadows : 11/11 (conf: 1.0)
+	│ ✘ Trees : 3/4 (conf: 0.75)
+	✘ {1} ⟨EC⟩ (A30 ⫺ 13426)
+	 ✔ Bare Soil : 27/27 (conf: 1.0)
+	 ✘ {1} ⟨EC⟩ (A102 ⫹ 21630)
+		✔ {1} ⟨EC⟩ (A83 ⫺ 20491)
+		│✔ Bare Soil : 30/31 (conf: 0.967741935483871)
+		│✘ {1} A1 ⫹ 4310
+		│ ✔ Bare Soil : 2/4 (conf: 0.5)
+		│ ✘ Meadows : 8/8 (conf: 1.0)
+		✘ {1} ⟨EC⟩ (A82 ⫺ 25663)
+		 ✔ {1} ⟨EC⟩ (A99 ⫹ 24098)
+		 │✔ Bare Soil : 6/7 (conf: 0.8571428571428571)
+		 │✘ Meadows : 32/35 (conf: 0.9142857142857143)
+		 ✘ Meadows : 23/23 (conf: 1.0)
+
+		 Train tree:
+Decision Tree
+Leaves: 30
+Tot nodes: 59
+Height: 8
+Modal height:  6
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨T̅P̅P̅⟩ (A103 ⫹₈₀ 16438)
+✔ {1} A9 ⫹₇₀ 6054
+│✔ Shadows : 80/80 (conf: 1.0)
+│✘ {1} ⟨PO⟩ (A16 ⫹₆₀ 12078)
+│ ✔ {1} ⟨EC⟩ (A76 ⫹ 13486)
+│ │✔ Asphalt : 73/80 (conf: 0.9125)
+│ │✘ {1} ⟨T̅P̅P̅⟩ (A15 ⫺₆₀ 11444)
+│ │ ✔ {1} A1 ⫺₇₀ 10364
+│ │ │✔ Asphalt : 4/4 (conf: 1.0)
+│ │ │✘ Bitumen : 4/5 (conf: 0.8)
+│ │ ✘ Gravel : 13/13 (conf: 1.0)
+│ ✘ Bitumen : 69/74 (conf: 0.9324324324324325)
+✘ {1} ⟨N̅T̅P̅P̅⟩ (A6 ⫹₇₀ 11355)
+ ✔ {1} A66 ⫺ 5450
+ │✔ {1} A30 ⫹ 13347
+ ││✔ {1} A102 ⫺ 21690
+ │││✔ {1} A82 ⫹ 27060
+ ││││✔ Meadows : 39/40 (conf: 0.975)
+ ││││✘ {1} A77 ⫺₇₀ 22136
+ ││││ ✔ {1} A3 ⫺₇₀ 5261
+ ││││ │✔ Bare Soil : 2/4 (conf: 0.5)
+ ││││ │✘ Meadows : 12/12 (conf: 1.0)
+ ││││ ✘ Bare Soil : 6/6 (conf: 1.0)
+ │││✘ {1} A83 ⫹ 20421
+ │││ ✔ {1} A1 ⫹₇₀ 7758
+ │││ │✔ Bare Soil : 2/4 (conf: 0.5)
+ │││ │✘ Meadows : 8/8 (conf: 1.0)
+ │││ ✘ {1} A2 ⫹₈₀ 9056
+ │││  ✔ Bare Soil : 31/32 (conf: 0.96875)
+ │││  ✘ Bare Soil : 3/6 (conf: 0.5)
+ ││✘ Bare Soil : 19/19 (conf: 1.0)
+ │✘ {1} A72 ⫺ 14229
+ │ ✔ {1} A4 ⫹₈₀ 5559
+ │ │✔ Meadows : 13/13 (conf: 1.0)
+ │ │✘ Trees : 9/9 (conf: 1.0)
+ │ ✘ Trees : 71/71 (conf: 1.0)
+ ✘ {1} ⟨EC⟩ (A13 ⫺ 32421)
+	✔ Painted metal sheets : 80/80 (conf: 1.0)
+	✘ {1} A76 ⫺ 23216
+	 ✔ Bare Soil : 16/16 (conf: 1.0)
+	 ✘ {1} ⟨N̅T̅P̅P̅⟩ (A18 ⫹₆₀ 14665)
+		✔ {1} A3 ⫺₆₀ 11484
+		│✔ Gravel : 38/39 (conf: 0.9743589743589743)
+		│✘ {1} A66 ⫹ 19668
+		│ ✔ Self-Blocking Bricks : 13/13 (conf: 1.0)
+		│ ✘ {1} A2 ⫹₈₀ 13010
+		│  ✔ Gravel : 5/5 (conf: 1.0)
+		│  ✘ Self-Blocking Bricks : 3/4 (conf: 0.75)
+		✘ {1} ⟨EC⟩ (A43 ⫺ 21145)
+		 ✔ {1} ⟨T̅P̅P̅⟩ (A26 ⫺ 19401)
+		 │✔ {1} A1 ⫺ 16844
+		 ││✔ Gravel : 3/4 (conf: 0.75)
+		 ││✘ Self-Blocking Bricks : 4/4 (conf: 1.0)
+		 │✘ Gravel : 11/11 (conf: 1.0)
+		 ✘ {1} ⟨N̅T̅P̅P̅⟩ (A1 ⫺₆₀ 13545)
+			✔ {1} A5 ⫺₆₀ 14169
+			│✔ Self-Blocking Bricks : 4/4 (conf: 1.0)
+			│✘ Gravel : 5/5 (conf: 1.0)
+			✘ Self-Blocking Bricks : 54/55 (conf: 0.9818181818181818)
+			Train tree:
+Decision Tree
+Leaves: 28
+Tot nodes: 55
+Height: 11
+Modal height:  7
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨N̅T̅P̅P̅⟩ (A103 ⫹₆₀ 16597)
+✔ {1} A11 ⫺₆₀ 6569
+│✔ {1} A50 ⫺₆₀ 13020
+││✔ {1} A15 ⫹₈₀ 11761
+│││✔ Gravel : 13/14 (conf: 0.9285714285714286)
+│││✘ {1} A79 ⫹ 17588
+│││ ✔ Bitumen : 78/84 (conf: 0.9285714285714286)
+│││ ✘ {1} A14 ⫺ 12029
+│││  ✔ Gravel : 2/4 (conf: 0.5)
+│││  ✘ Asphalt : 8/8 (conf: 1.0)
+││✘ Asphalt : 64/65 (conf: 0.9846153846153847)
+│✘ Shadows : 80/80 (conf: 1.0)
+✘ {1} ⟨N̅T̅P̅P̅⟩ (A5 ⫹₆₀ 11583)
+ ✔ {1} A66 ⫺ 5440
+ │✔ {1} A30 ⫹ 13347
+ ││✔ {1} A102 ⫺ 21967
+ │││✔ {1} A31 ⫹ 11127
+ ││││✔ Meadows : 43/45 (conf: 0.9555555555555556)
+ ││││✘ {1} A6 ⫺ 5450
+ ││││ ✔ {1} A1 ⫺ 5836
+ ││││ │✔ Meadows : 3/4 (conf: 0.75)
+ ││││ │✘ Meadows : 6/6 (conf: 1.0)
+ ││││ ✘ Bare Soil : 5/5 (conf: 1.0)
+ │││✘ {1} A3 ⫹₆₀ 7154
+ │││ ✔ {1} A82 ⫹₈₀ 19490
+ │││ │✔ Meadows : 4/5 (conf: 0.8)
+ │││ │✘ Bare Soil : 35/37 (conf: 0.9459459459459459)
+ │││ ✘ Meadows : 7/7 (conf: 1.0)
+ ││✘ Bare Soil : 24/24 (conf: 1.0)
+ │✘ {1} A72 ⫺ 14229
+ │ ✔ {1} A3 ⫹₈₀ 6272
+ │ │✔ Meadows : 15/15 (conf: 1.0)
+ │ │✘ Trees : 6/6 (conf: 1.0)
+ │ ✘ Trees : 74/74 (conf: 1.0)
+ ✘ {1} ⟨T̅P̅P̅⟩ (A33 ⫺₇₀ 20976)
+	✔ {1} A3 ⫺₇₀ 22730
+	│✔ Painted metal sheets : 80/80 (conf: 1.0)
+	│✘ Bare Soil : 12/13 (conf: 0.9230769230769231)
+	✘ {1} ⟨N̅T̅P̅P̅⟩ (A18 ⫺₆₀ 15517)
+	 ✔ Self-Blocking Bricks : 28/29 (conf: 0.9655172413793104)
+	 ✘ {1} ⟨N̅T̅P̅P̅⟩ (A36 ⫺₇₀ 18321)
+		✔ Gravel : 24/24 (conf: 1.0)
+		✘ {1} ⟨N̅T̅P̅P̅⟩ (A83 ⫹₇₀ 19559)
+		 ✔ {1} A1 ⫺₆₀ 12554
+		 │✔ Gravel : 20/20 (conf: 1.0)
+		 │✘ {1} A16 ⫺₆₀ 13812
+		 │ ✔ Self-Blocking Bricks : 13/13 (conf: 1.0)
+		 │ ✘ {1} A4 ⫺₆₀ 11870
+		 │  ✔ Gravel : 11/11 (conf: 1.0)
+		 │  ✘ {1} ⟨TPP⟩ (A74 ⫺ 19252)
+		 │   ✔ {1} A3 ⫹ 10790
+		 │   │✔ Gravel : 5/5 (conf: 1.0)
+		 │   │✘ Self-Blocking Bricks : 2/4 (conf: 0.5)
+		 │   ✘ Self-Blocking Bricks : 11/12 (conf: 0.9166666666666666)
+		 ✘ Self-Blocking Bricks : 26/26 (conf: 1.0)
+		 Train tree:
+Decision Tree
+Leaves: 29
+Tot nodes: 57
+Height: 9
+Modal height:  7
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨T̅P̅P̅⟩ (A101 ⫹₇₀ 15982)
+✔ {1} ⟨EC⟩ (A50 ⫹ 6916)
+│✔ Shadows : 80/81 (conf: 0.9876543209876543)
+│✘ {1} ⟨T̅P̅P̅⟩ (A16 ⫺ 12069)
+│ ✔ {1} ⟨PO⟩ (A72 ⫹ 13159)
+│ │✔ {1} A1 ⫺ 10562
+│ ││✔ Asphalt : 5/5 (conf: 1.0)
+│ ││✘ Asphalt : 3/4 (conf: 0.75)
+│ │✘ Bitumen : 75/77 (conf: 0.974025974025974)
+│ ✘ {1} ⟨TPP⟩ (A76 ⫹ 13307)
+│  ✔ Asphalt : 65/67 (conf: 0.9701492537313433)
+│  ✘ {1} ⟨EC⟩ (A12 ⫺ 12663)
+│   ✔ Asphalt : 6/7 (conf: 0.8571428571428571)
+│   ✘ Gravel : 14/15 (conf: 0.9333333333333333)
+✘ {1} ⟨N̅T̅P̅P̅⟩ (A6 ⫹₇₀ 11355)
+ ✔ {1} A66 ⫺ 5450
+ │✔ {1} ⟨TPP⟩ (A28 ⫺ 12782)
+ ││✔ Bare Soil : 24/24 (conf: 1.0)
+ ││✘ {1} A102 ⫺ 22750
+ ││ ✔ Meadows : 47/51 (conf: 0.9215686274509803)
+ ││ ✘ {1} A2 ⫹₆₀ 8036
+ ││  ✔ {1} A83 ⫹ 20421
+ ││  │✔ {1} A1 ⫺ 4310
+ ││  ││✔ Meadows : 5/5 (conf: 1.0)
+ ││  ││✘ Bare Soil : 2/4 (conf: 0.5)
+ ││  │✘ Bare Soil : 35/38 (conf: 0.9210526315789473)
+ ││  ✘ Meadows : 8/8 (conf: 1.0)
+ │✘ {1} A72 ⫺ 14387
+ │ ✔ {1} A4 ⫹₈₀ 5559
+ │ │✔ Meadows : 15/15 (conf: 1.0)
+ │ │✘ Trees : 8/8 (conf: 1.0)
+ │ ✘ Trees : 72/72 (conf: 1.0)
+ ✘ {1} ⟨EC⟩ (A10 ⫺ 34383)
+	✔ Painted metal sheets : 79/79 (conf: 1.0)
+	✘ {1} A76 ⫺ 23216
+	 ✔ Bare Soil : 15/15 (conf: 1.0)
+	 ✘ {1} ⟨N̅T̅P̅P̅⟩ (A18 ⫺₆₀ 14506)
+		✔ {1} A1 ⫹₈₀ 15705
+		│✔ Self-Blocking Bricks : 44/45 (conf: 0.9777777777777777)
+		│✘ {1} A2 ⫺₇₀ 12574
+		│ ✔ {1} A1 ⫹ 18083
+		│ │✔ Gravel : 7/7 (conf: 1.0)
+		│ │✘ Gravel : 3/4 (conf: 0.75)
+		│ ✘ Self-Blocking Bricks : 6/6 (conf: 1.0)
+		✘ {1} ⟨EC⟩ (A57 ⫹ 15864)
+		 ✔ {1} ⟨EC⟩ (A80 ⫹ 16379)
+		 │✔ {1} A81 ⫺ 16062
+		 ││✔ Gravel : 4/4 (conf: 1.0)
+		 ││✘ Self-Blocking Bricks : 4/4 (conf: 1.0)
+		 │✘ Self-Blocking Bricks : 17/17 (conf: 1.0)
+		 ✘ {1} ⟨T̅P̅P̅⟩ (A3 ⫹₈₀ 11920)
+			✔ {1} ⟨EC⟩ (A83 ⫹ 17598)
+			│✔ Gravel : 12/12 (conf: 1.0)
+			│✘ {1} A1 ⫹ 10374
+			│ ✔ Self-Blocking Bricks : 2/4 (conf: 0.5)
+			│ ✘ Self-Blocking Bricks : 6/6 (conf: 1.0)
+			✘ Gravel : 36/36 (conf: 1.0)
+			Train tree:
+Decision Tree
+Leaves: 28
+Tot nodes: 55
+Height: 9
+Modal height:  6
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨T̅P̅P̅⟩ (A101 ⫹₆₀ 16042)
+✔ {1} ⟨EC⟩ (A56 ⫹ 5678)
+│✔ Shadows : 80/81 (conf: 0.9876543209876543)
+│✘ {1} ⟨T̅P̅P̅⟩ (A16 ⫺ 12069)
+│ ✔ {1} A5 ⫹₈₀ 13198
+│ │✔ Bitumen : 70/70 (conf: 1.0)
+│ │✘ {1} ⟨EC⟩ (A16 ⫹ 11821)
+│ │ ✔ Asphalt : 12/12 (conf: 1.0)
+│ │ ✘ Bitumen : 6/7 (conf: 0.8571428571428571)
+│ ✘ {1} ⟨EC⟩ (A42 ⫹ 12217)
+│  ✔ Asphalt : 63/67 (conf: 0.9402985074626866)
+│  ✘ {1} A11 ⫺₇₀ 11543
+│   ✔ Asphalt : 5/6 (conf: 0.8333333333333334)
+│   ✘ Gravel : 15/15 (conf: 1.0)
+✘ {1} ⟨N̅T̅P̅P̅⟩ (A6 ⫹₇₀ 11355)
+ ✔ {1} A57 ⫺ 4617
+ │✔ {1} A30 ⫹ 13347
+ ││✔ {1} A103 ⫺ 22106
+ │││✔ {1} A20 ⫹ 9453
+ ││││✔ Meadows : 48/50 (conf: 0.96)
+ ││││✘ Bare Soil : 3/4 (conf: 0.75)
+ │││✘ {1} A83 ⫹ 20421
+ │││ ✔ {1} A1 ⫹₆₀ 6946
+ │││ │✔ Bare Soil : 2/4 (conf: 0.5)
+ │││ │✘ Meadows : 11/11 (conf: 1.0)
+ │││ ✘ {1} ⟨NTPP⟩ (A75 ⫺ 19272)
+ │││  ✔ {1} ⟨EC⟩ (A76 ⫺ 21274)
+ │││  │✔ Bare Soil : 5/5 (conf: 1.0)
+ │││  │✘ Meadows : 4/4 (conf: 1.0)
+ │││  ✘ Bare Soil : 30/30 (conf: 1.0)
+ ││✘ Bare Soil : 21/21 (conf: 1.0)
+ │✘ {1} A72 ⫺ 14387
+ │ ✔ {1} A25 ⫹ 6807
+ │ │✔ Meadows : 14/14 (conf: 1.0)
+ │ │✘ Trees : 7/7 (conf: 1.0)
+ │ ✘ Trees : 73/73 (conf: 1.0)
+ ✘ {1} ⟨EC⟩ (A10 ⫺ 33927)
+	✔ Painted metal sheets : 79/79 (conf: 1.0)
+	✘ {1} A76 ⫺ 23216
+	 ✔ Bare Soil : 17/17 (conf: 1.0)
+	 ✘ {1} ⟨T̅P̅P̅⟩ (A17 ⫹₈₀ 14486)
+		✔ {1} A3 ⫺₆₀ 11534
+		│✔ {1} ⟨TPP⟩ (A30 ⫺ 16835)
+		││✔ Gravel : 36/36 (conf: 1.0)
+		││✘ {1} ⟨TPP⟩ (A83 ⫺ 18430)
+		││ ✔ {1} A1 ⫺ 15824
+		││ │✔ Self-Blocking Bricks : 2/4 (conf: 0.5)
+		││ │✘ Self-Blocking Bricks : 7/7 (conf: 1.0)
+		││ ✘ Gravel : 10/10 (conf: 1.0)
+		│✘ {1} A98 ⫺ 17568
+		│ ✔ Self-Blocking Bricks : 15/15 (conf: 1.0)
+		│ ✘ Self-Blocking Bricks : 2/4 (conf: 0.5)
+		✘ {1} ⟨N̅T̅P̅P̅⟩ (A1 ⫹₇₀ 16131)
+		 ✔ Self-Blocking Bricks : 54/59 (conf: 0.9152542372881356)
+		 ✘ Gravel : 8/8 (conf: 1.0)
+		 Train tree:
+Decision Tree
+Leaves: 27
+Tot nodes: 53
+Height: 10
+Modal height:  8
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨P̅P̅⟩ (A103 ⫹₈₀ 16438)
+✔ {1} A9 ⫹₇₀ 6054
+│✔ Shadows : 80/80 (conf: 1.0)
+│✘ {1} ⟨PO⟩ (A16 ⫹₆₀ 12078)
+│ ✔ {1} ⟨DR⟩ (A76 ⫹ 13486)
+│ │✔ Asphalt : 71/77 (conf: 0.922077922077922)
+│ │✘ {1} ⟨P̅P̅⟩ (A10 ⫺ 11266)
+│ │ ✔ Asphalt : 6/6 (conf: 1.0)
+│ │ ✘ Gravel : 15/15 (conf: 1.0)
+│ ✘ {1} A94 ⫹₈₀ 16498
+│  ✔ Bitumen : 74/75 (conf: 0.9866666666666667)
+│  ✘ Gravel : 3/5 (conf: 0.6)
+✘ {1} ⟨P̅P̅⟩ (A5 ⫺₇₀ 11207)
+ ✔ {1} A35 ⫹₈₀ 20927
+ │✔ {1} ⟨P̅P̅⟩ (A24 ⫺₈₀ 16736)
+ ││✔ Self-Blocking Bricks : 32/33 (conf: 0.9696969696969697)
+ ││✘ {1} ⟨P̅P̅⟩ (A44 ⫺₈₀ 19371)
+ ││ ✔ Gravel : 20/20 (conf: 1.0)
+ ││ ✘ {1} ⟨P̅P̅⟩ (A83 ⫺₆₀ 19688)
+ ││  ✔ Self-Blocking Bricks : 23/24 (conf: 0.9583333333333334)
+ ││  ✘ {1} ⟨PO⟩ (A2 ⫹₆₀ 10424)
+ ││   ✔ Self-Blocking Bricks : 11/12 (conf: 0.9166666666666666)
+ ││   ✘ {1} ⟨PO⟩ (A63 ⫺ 19084)
+ ││    ✔ Gravel : 21/21 (conf: 1.0)
+ ││    ✘ {1} ⟨PO⟩ (A84 ⫺ 18787)
+ ││     ✔ Self-Blocking Bricks : 12/12 (conf: 1.0)
+ ││     ✘ {1} A85 ⫹ 17687
+ ││      ✔ Self-Blocking Bricks : 2/4 (conf: 0.5)
+ ││      ✘ Gravel : 17/17 (conf: 1.0)
+ │✘ {1} A2 ⫺₇₀ 21571
+ │ ✔ Painted metal sheets : 80/80 (conf: 1.0)
+ │ ✘ Bare Soil : 12/12 (conf: 1.0)
+ ✘ {1} ⟨DR⟩ (A66 ⫹ 5400)
+	✔ {1} A73 ⫹ 17112
+	│✔ Trees : 70/70 (conf: 1.0)
+	│✘ {1} ⟨DR⟩ (A25 ⫺ 6896)
+	│ ✔ Trees : 10/10 (conf: 1.0)
+	│ ✘ Meadows : 14/14 (conf: 1.0)
+	✘ {1} ⟨DR⟩ (A28 ⫺ 12901)
+	 ✔ Bare Soil : 25/25 (conf: 1.0)
+	 ✘ {1} ⟨P̅P̅⟩ (A75 ⫹₇₀ 20233)
+		✔ {1} ⟨DR⟩ (A83 ⫺ 20491)
+		│✔ {1} A85 ⫹ 21482
+		││✔ Bare Soil : 30/30 (conf: 1.0)
+		││✘ {1} A83 ⫺ 24781
+		││ ✔ {1} A5 ⫺ 5826
+		││ │✔ Bare Soil : 6/6 (conf: 1.0)
+		││ │✘ Meadows : 3/4 (conf: 0.75)
+		││ ✘ Meadows : 11/12 (conf: 0.9166666666666666)
+		│✘ {1} A1 ⫺₇₀ 6946
+		│ ✔ Meadows : 10/10 (conf: 1.0)
+		│ ✘ Bare Soil : 2/4 (conf: 0.5)
+		✘ Meadows : 40/42 (conf: 0.9523809523809523)
+
+		Train tree:
+Decision Tree
+Leaves: 32
+Tot nodes: 63
+Height: 10
+Modal height:  7
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨P̅P̅⟩ (A99 ⫹₇₀ 16319)
+✔ {1} A9 ⫹ 6797
+│✔ Shadows : 80/80 (conf: 1.0)
+│✘ {1} ⟨P̅P̅⟩ (A16 ⫺ 12069)
+│ ✔ {1} ⟨PO⟩ (A72 ⫹ 13159)
+│ │✔ {1} A1 ⫺ 10741
+│ ││✔ Asphalt : 6/6 (conf: 1.0)
+│ ││✘ Asphalt : 3/4 (conf: 0.75)
+│ │✘ Bitumen : 75/78 (conf: 0.9615384615384616)
+│ ✘ {1} ⟨P̅P̅⟩ (A77 ⫺ 14982)
+│  ✔ {1} A1 ⫺₈₀ 9017
+│  │✔ Gravel : 9/9 (conf: 1.0)
+│  │✘ Bitumen : 2/4 (conf: 0.5)
+│  ✘ {1} ⟨PO⟩ (A1 ⫺ 12851)
+│   ✔ {1} ⟨DR⟩ (A8 ⫺ 11444)
+│   │✔ {1} A2 ⫹ 9185
+│   ││✔ Bitumen : 2/4 (conf: 0.5)
+│   ││✘ Asphalt : 14/14 (conf: 1.0)
+│   │✘ Gravel : 4/4 (conf: 1.0)
+│   ✘ Asphalt : 53/53 (conf: 1.0)
+✘ {1} ⟨P̅P̅⟩ (A6 ⫺₇₀ 10721)
+ ✔ {1} A2 ⫺₇₀ 21571
+ │✔ Painted metal sheets : 80/80 (conf: 1.0)
+ │✘ {1} A70 ⫹ 23146
+ │ ✔ {1} ⟨PO⟩ (A1 ⫺ 16101)
+ │ │✔ Gravel : 17/17 (conf: 1.0)
+ │ │✘ {1} ⟨P̅P̅⟩ (A17 ⫺ 14407)
+ │ │ ✔ Self-Blocking Bricks : 52/56 (conf: 0.9285714285714286)
+ │ │ ✘ {1} ⟨PO⟩ (A2 ⫹₆₀ 10513)
+ │ │  ✔ {1} ⟨P̅P̅⟩ (A2 ⫺₆₀ 11296)
+ │ │  │✔ {1} A42 ⫺₈₀ 17112
+ │ │  ││✔ Gravel : 5/5 (conf: 1.0)
+ │ │  ││✘ Self-Blocking Bricks : 5/6 (conf: 0.8333333333333334)
+ │ │  │✘ Self-Blocking Bricks : 16/16 (conf: 1.0)
+ │ │  ✘ {1} ⟨DR⟩ (A4 ⫹ 10800)
+ │ │   ✔ {1} ⟨P̅P̅⟩ (A11 ⫺₆₀ 13178)
+ │ │   │✔ {1} A1 ⫹ 14328
+ │ │   ││✔ Self-Blocking Bricks : 2/4 (conf: 0.5)
+ │ │   ││✘ Self-Blocking Bricks : 5/5 (conf: 1.0)
+ │ │   │✘ Gravel : 7/7 (conf: 1.0)
+ │ │   ✘ Gravel : 28/28 (conf: 1.0)
+ │ ✘ Bare Soil : 16/16 (conf: 1.0)
+ ✘ {1} ⟨DR⟩ (A59 ⫹ 3587)
+	✔ {1} A73 ⫹ 17112
+	│✔ Trees : 71/71 (conf: 1.0)
+	│✘ {1} ⟨DR⟩ (A6 ⫹ 2745)
+	│ ✔ Meadows : 12/12 (conf: 1.0)
+	│ ✘ Trees : 9/9 (conf: 1.0)
+	✘ {1} ⟨DR⟩ (A102 ⫹ 21630)
+	 ✔ {1} ⟨P̅P̅⟩ (A83 ⫺₆₀ 19976)
+	 │✔ Bare Soil : 40/41 (conf: 0.975609756097561)
+	 │✘ {1} A3 ⫹ 2319
+	 │ ✔ Bare Soil : 3/4 (conf: 0.75)
+	 │ ✘ Meadows : 10/10 (conf: 1.0)
+	 ✘ {1} ⟨DR⟩ (A33 ⫺ 14060)
+		✔ Bare Soil : 10/10 (conf: 1.0)
+		✘ {1} A74 ⫺ 18529
+		 ✔ Meadows : 47/50 (conf: 0.94)
+		 ✘ {1} ⟨DR⟩ (A82 ⫺ 25088)
+			✔ {1} A1 ⫺ 8937
+			│✔ Bare Soil : 3/4 (conf: 0.75)
+			│✘ Bare Soil : 5/5 (conf: 1.0)
+			✘ Meadows : 8/8 (conf: 1.0)
+
+			Train tree:
+Decision Tree
+Leaves: 33
+Tot nodes: 65
+Height: 9
+Modal height:  8
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨P̅P̅⟩ (A101 ⫹₆₀ 16042)
+✔ {1} ⟨DR⟩ (A56 ⫹ 5678)
+│✔ Shadows : 80/81 (conf: 0.9876543209876543)
+│✘ {1} ⟨P̅P̅⟩ (A16 ⫺ 12069)
+│ ✔ {1} A5 ⫹₈₀ 13198
+│ │✔ Bitumen : 70/71 (conf: 0.9859154929577465)
+│ │✘ {1} ⟨PO⟩ (A60 ⫹₇₀ 14377)
+│ │ ✔ Asphalt : 12/12 (conf: 1.0)
+│ │ ✘ Bitumen : 6/7 (conf: 0.8571428571428571)
+│ ✘ {1} ⟨DR⟩ (A42 ⫹ 12217)
+│  ✔ {1} ⟨P̅P̅⟩ (A59 ⫺₈₀ 13585)
+│  │✔ {1} A85 ⫹ 15576
+│  ││✔ Bitumen : 4/4 (conf: 1.0)
+│  ││✘ Asphalt : 6/6 (conf: 1.0)
+│  │✘ Asphalt : 55/56 (conf: 0.9821428571428571)
+│  ✘ {1} A11 ⫺₇₀ 11543
+│   ✔ Asphalt : 6/6 (conf: 1.0)
+│   ✘ Gravel : 16/16 (conf: 1.0)
+✘ {1} ⟨P̅P̅⟩ (A20 ⫺₈₀ 12614)
+ ✔ {1} A3 ⫺₇₀ 22730
+ │✔ Painted metal sheets : 79/79 (conf: 1.0)
+ │✘ {1} A70 ⫹ 23146
+ │ ✔ {1} ⟨P̅P̅⟩ (A16 ⫹₈₀ 14367)
+ │ │✔ {1} ⟨P̅P̅⟩ (A2 ⫹₈₀ 11425)
+ │ ││✔ Self-Blocking Bricks : 12/12 (conf: 1.0)
+ │ ││✘ {1} A30 ⫺ 15675
+ │ ││ ✔ Gravel : 34/34 (conf: 1.0)
+ │ ││ ✘ {1} ⟨P̅P̅⟩ (A12 ⫺₈₀ 12871)
+ │ ││  ✔ Self-Blocking Bricks : 5/5 (conf: 1.0)
+ │ ││  ✘ {1} ⟨PP⟩ (A13 ⫹ 11008)
+ │ ││   ✔ Self-Blocking Bricks : 3/5 (conf: 0.6)
+ │ ││   ✘ Gravel : 13/13 (conf: 1.0)
+ │ │✘ {1} A2 ⫹₆₀ 12851
+ │ │ ✔ Self-Blocking Bricks : 46/47 (conf: 0.9787234042553191)
+ │ │ ✘ {1} A16 ⫺ 15120
+ │ │  ✔ {1} ⟨DR⟩ (A2 ⫺ 16775)
+ │ │  │✔ Gravel : 4/5 (conf: 0.8)
+ │ │  │✘ Self-Blocking Bricks : 13/13 (conf: 1.0)
+ │ │  ✘ Gravel : 8/8 (conf: 1.0)
+ │ ✘ Bare Soil : 18/18 (conf: 1.0)
+ ✘ {1} ⟨DR⟩ (A66 ⫹ 5400)
+	✔ {1} A73 ⫹ 17112
+	│✔ Trees : 71/71 (conf: 1.0)
+	│✘ {1} ⟨DR⟩ (A25 ⫺ 7104)
+	│ ✔ Trees : 9/9 (conf: 1.0)
+	│ ✘ Meadows : 18/18 (conf: 1.0)
+	✘ {1} ⟨DR⟩ (A30 ⫺ 13426)
+	 ✔ Bare Soil : 21/21 (conf: 1.0)
+	 ✘ {1} ⟨DR⟩ (A102 ⫹ 21630)
+		✔ {1} ⟨P̅P̅⟩ (A83 ⫺₈₀ 19966)
+		│✔ Bare Soil : 29/31 (conf: 0.9354838709677419)
+		│✘ {1} A1 ⫹ 3864
+		│ ✔ Bare Soil : 2/4 (conf: 0.5)
+		│ ✘ Meadows : 9/9 (conf: 1.0)
+		✘ {1} ⟨DR⟩ (A98 ⫹ 25376)
+		 ✔ {1} ⟨DR⟩ (A83 ⫺ 25118)
+		 │✔ {1} ⟨P̅P̅⟩ (A3 ⫹ 5569)
+		 ││✔ {1} A1 ⫺ 8383
+		 │││✔ Bare Soil : 2/4 (conf: 0.5)
+		 │││✘ Meadows : 8/8 (conf: 1.0)
+		 ││✘ {1} A1 ⫺ 7729
+		 ││ ✔ Bare Soil : 5/5 (conf: 1.0)
+		 ││ ✘ Bare Soil : 3/4 (conf: 0.75)
+		 │✘ Meadows : 17/17 (conf: 1.0)
+		 ✘ Meadows : 21/21 (conf: 1.0)
+
+		 Train tree:
+Decision Tree
+Leaves: 30
+Tot nodes: 59
+Height: 9
+Modal height:  8
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨P̅P̅⟩ (A99 ⫹₇₀ 16319)
+✔ {1} A9 ⫹₇₀ 6054
+│✔ Shadows : 80/80 (conf: 1.0)
+│✘ {1} ⟨PO⟩ (A16 ⫹₇₀ 12078)
+│ ✔ {1} A36 ⫺ 14030
+│ │✔ Gravel : 13/13 (conf: 1.0)
+│ │✘ {1} ⟨P̅P̅⟩ (A40 ⫹₇₀ 11405)
+│ │ ✔ Asphalt : 49/49 (conf: 1.0)
+│ │ ✘ {1} ⟨DR⟩ (A15 ⫺ 11018)
+│ │  ✔ {1} ⟨PO⟩ (A3 ⫹ 9750)
+│ │  │✔ {1} ⟨DR⟩ (A10 ⫺ 13436)
+│ │  ││✔ Asphalt : 6/7 (conf: 0.8571428571428571)
+│ │  ││✘ Bitumen : 8/8 (conf: 1.0)
+│ │  │✘ Asphalt : 21/21 (conf: 1.0)
+│ │  ✘ Gravel : 4/4 (conf: 1.0)
+│ ✘ Bitumen : 71/76 (conf: 0.9342105263157895)
+✘ {1} ⟨P̅P̅⟩ (A5 ⫺₇₀ 11207)
+ ✔ {1} A1 ⫺ 17637
+ │✔ Painted metal sheets : 80/80 (conf: 1.0)
+ │✘ {1} A70 ⫹ 23146
+ │ ✔ {1} ⟨P̅P̅⟩ (A16 ⫹₈₀ 14377)
+ │ │✔ {1} ⟨PO⟩ (A3 ⫹₆₀ 11137)
+ │ ││✔ {1} A77 ⫺ 19906
+ │ │││✔ {1} A1 ⫺ 10325
+ │ ││││✔ Gravel : 3/4 (conf: 0.75)
+ │ ││││✘ Gravel : 5/5 (conf: 1.0)
+ │ │││✘ {1} ⟨P̅P̅⟩ (A83 ⫺₆₀ 18014)
+ │ │││ ✔ Self-Blocking Bricks : 18/18 (conf: 1.0)
+ │ │││ ✘ Gravel : 4/6 (conf: 0.6666666666666666)
+ │ ││✘ Gravel : 34/34 (conf: 1.0)
+ │ │✘ {1} A3 ⫹₈₀ 15368
+ │ │ ✔ {1} A18 ⫺₆₀ 15794
+ │ │ │✔ Self-Blocking Bricks : 36/36 (conf: 1.0)
+ │ │ │✘ {1} A6 ⫹₇₀ 13614
+ │ │ │ ✔ Self-Blocking Bricks : 21/22 (conf: 0.9545454545454546)
+ │ │ │ ✘ {1} A1 ⫺ 13238
+ │ │ │  ✔ Gravel : 6/6 (conf: 1.0)
+ │ │ │  ✘ Gravel : 3/4 (conf: 0.75)
+ │ │ ✘ Gravel : 6/6 (conf: 1.0)
+ │ ✘ Bare Soil : 13/13 (conf: 1.0)
+ ✘ {1} ⟨DR⟩ (A66 ⫹ 5400)
+	✔ {1} A74 ⫹ 19976
+	│✔ Trees : 72/72 (conf: 1.0)
+	│✘ {1} ⟨DR⟩ (A24 ⫺ 6312)
+	│ ✔ Trees : 8/8 (conf: 1.0)
+	│ ✘ Meadows : 15/15 (conf: 1.0)
+	✘ {1} ⟨DR⟩ (A26 ⫺ 12505)
+	 ✔ Bare Soil : 22/23 (conf: 0.9565217391304348)
+	 ✘ {1} ⟨P̅P̅⟩ (A99 ⫹₈₀ 24543)
+		✔ {1} ⟨PP⟩ (A80 ⫺ 23523)
+		│✔ Bare Soil : 17/17 (conf: 1.0)
+		│✘ {1} ⟨DR⟩ (A102 ⫹ 20907)
+		│ ✔ {1} A83 ⫺ 18469
+		│ │✔ {1} ⟨DR⟩ (A1 ⫺ 11652)
+		│ ││✔ Meadows : 4/6 (conf: 0.6666666666666666)
+		│ ││✘ Bare Soil : 23/23 (conf: 1.0)
+		│ │✘ Meadows : 6/6 (conf: 1.0)
+		│ ✘ Meadows : 16/16 (conf: 1.0)
+		✘ Meadows : 39/42 (conf: 0.9285714285714286)
+
+		Train tree:
+Decision Tree
+Leaves: 32
+Tot nodes: 63
+Height: 9
+Modal height:  8
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨P̅P̅⟩ (A99 ⫹₇₀ 16270)
+✔ {1} ⟨DR⟩ (A56 ⫹ 5678)
+│✔ Shadows : 80/81 (conf: 0.9876543209876543)
+│✘ {1} ⟨P̅P̅⟩ (A16 ⫺ 12069)
+│ ✔ {1} A4 ⫹₈₀ 13882
+│ │✔ Bitumen : 76/79 (conf: 0.9620253164556962)
+│ │✘ Asphalt : 8/8 (conf: 1.0)
+│ ✘ {1} ⟨DR⟩ (A76 ⫹ 13040)
+│  ✔ Asphalt : 62/63 (conf: 0.9841269841269841)
+│  ✘ {1} ⟨PP⟩ (A16 ⫺ 11652)
+│   ✔ {1} A9 ⫹ 10662
+│   │✔ Bitumen : 4/4 (conf: 1.0)
+│   │✘ {1} A1 ⫹ 11048
+│   │ ✔ Asphalt : 6/6 (conf: 1.0)
+│   │ ✘ Gravel : 2/4 (conf: 0.5)
+│   ✘ Gravel : 10/10 (conf: 1.0)
+✘ {1} ⟨P̅P̅⟩ (A6 ⫺₇₀ 11474)
+ ✔ {1} A34 ⫹ 20421
+ │✔ {1} A17 ⫹₈₀ 14437
+ ││✔ {1} A3 ⫺₇₀ 11296
+ │││✔ Gravel : 43/45 (conf: 0.9555555555555556)
+ │││✘ {1} A7 ⫹ 12861
+ │││ ✔ Self-Blocking Bricks : 12/12 (conf: 1.0)
+ │││ ✘ {1} A1 ⫹₆₀ 10870
+ │││  ✔ Gravel : 5/5 (conf: 1.0)
+ │││  ✘ Self-Blocking Bricks : 3/4 (conf: 0.75)
+ ││✘ {1} ⟨P̅P̅⟩ (A75 ⫹₈₀ 21214)
+ ││ ✔ {1} ⟨PO⟩ (A98 ⫺₆₀ 19232)
+ ││ │✔ Self-Blocking Bricks : 51/51 (conf: 1.0)
+ ││ │✘ {1} A1 ⫺₇₀ 14110
+ ││ │ ✔ Gravel : 8/8 (conf: 1.0)
+ ││ │ ✘ {1} A1 ⫺ 10652
+ ││ │  ✔ Self-Blocking Bricks : 7/7 (conf: 1.0)
+ ││ │  ✘ Self-Blocking Bricks : 3/4 (conf: 0.75)
+ ││ ✘ Gravel : 8/8 (conf: 1.0)
+ │✘ {1} A2 ⫺₇₀ 21571
+ │ ✔ Painted metal sheets : 79/79 (conf: 1.0)
+ │ ✘ {1} A2 ⫹ 14516
+ │  ✔ Bare Soil : 14/14 (conf: 1.0)
+ │  ✘ Self-Blocking Bricks : 2/4 (conf: 0.5)
+ ✘ {1} ⟨DR⟩ (A66 ⫹ 5400)
+	✔ {1} ⟨DR⟩ (A72 ⫹ 14506)
+	│✔ Trees : 73/73 (conf: 1.0)
+	│✘ {1} ⟨DR⟩ (A10 ⫺ 4607)
+	│ ✔ Trees : 7/7 (conf: 1.0)
+	│ ✘ Meadows : 14/14 (conf: 1.0)
+	✘ {1} ⟨DR⟩ (A30 ⫺ 13426)
+	 ✔ Bare Soil : 23/23 (conf: 1.0)
+	 ✘ {1} ⟨DR⟩ (A99 ⫹ 21204)
+		✔ {1} ⟨P̅P̅⟩ (A83 ⫺₆₀ 19976)
+		│✔ Bare Soil : 25/26 (conf: 0.9615384615384616)
+		│✘ {1} A4 ⫺ 6619
+		│ ✔ Meadows : 11/11 (conf: 1.0)
+		│ ✘ Bare Soil : 4/4 (conf: 1.0)
+		✘ {1} ⟨DR⟩ (A4 ⫹ 2953)
+		 ✔ Meadows : 20/20 (conf: 1.0)
+		 ✘ {1} ⟨DR⟩ (A6 ⫹ 5410)
+			✔ {1} A31 ⫺ 10364
+			│✔ Bare Soil : 7/7 (conf: 1.0)
+			│✘ {1} ⟨P̅P̅⟩ (A69 ⫺₆₀ 13297)
+			│ ✔ Meadows : 17/17 (conf: 1.0)
+			│ ✘ Bare Soil : 5/6 (conf: 0.8333333333333334)
+			✘ Meadows : 16/16 (conf: 1.0)
+
+			Train tree:
+Decision Tree
+Leaves: 27
+Tot nodes: 53
+Height: 7
+Modal height:  7
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨P̅P̅⟩ (A99 ⫹₇₀ 16270)
+✔ {1} ⟨DR⟩ (A56 ⫹ 5678)
+│✔ Shadows : 80/81 (conf: 0.9876543209876543)
+│✘ {1} ⟨PO⟩ (A16 ⫹₆₀ 12078)
+│ ✔ {1} ⟨DR⟩ (A102 ⫹ 13832)
+│ │✔ {1} ⟨PP⟩ (A103 ⫺ 13743)
+│ ││✔ {1} ⟨DR⟩ (A35 ⫺ 14377)
+│ │││✔ {1} A1 ⫺ 12891
+│ ││││✔ Asphalt : 3/4 (conf: 0.75)
+│ ││││✘ Asphalt : 4/4 (conf: 1.0)
+│ │││✘ {1} A1 ⫺ 10424
+│ │││ ✔ Bitumen : 5/5 (conf: 1.0)
+│ │││ ✘ Bitumen : 3/4 (conf: 0.75)
+│ ││✘ Asphalt : 64/65 (conf: 0.9846153846153847)
+│ │✘ {1} A86 ⫺ 15507
+│ │ ✔ Gravel : 12/12 (conf: 1.0)
+│ │ ✘ Asphalt : 4/5 (conf: 0.8)
+│ ✘ Bitumen : 71/76 (conf: 0.9342105263157895)
+✘ {1} ⟨P̅P̅⟩ (A6 ⫺₇₀ 11474)
+ ✔ {1} A1 ⫺ 17637
+ │✔ Painted metal sheets : 79/79 (conf: 1.0)
+ │✘ {1} A72 ⫹₇₀ 22403
+ │ ✔ {1} ⟨P̅P̅⟩ (A17 ⫹₈₀ 14397)
+ │ │✔ {1} ⟨PP⟩ (A31 ⫹ 14298)
+ │ ││✔ {1} ⟨P̅P̅⟩ (A3 ⫺₈₀ 11286)
+ │ │││✔ Gravel : 4/6 (conf: 0.6666666666666666)
+ │ │││✘ Self-Blocking Bricks : 11/11 (conf: 1.0)
+ │ ││✘ Gravel : 45/48 (conf: 0.9375)
+ │ │✘ {1} ⟨DR⟩ (A58 ⫺ 21601)
+ │ │ ✔ {1} ⟨DR⟩ (A85 ⫺ 22403)
+ │ │ │✔ Gravel : 10/10 (conf: 1.0)
+ │ │ │✘ Self-Blocking Bricks : 4/6 (conf: 0.6666666666666666)
+ │ │ ✘ Self-Blocking Bricks : 59/63 (conf: 0.9365079365079365)
+ │ ✘ Bare Soil : 12/12 (conf: 1.0)
+ ✘ {1} ⟨DR⟩ (A54 ⫹ 5043)
+	✔ {1} ⟨DR⟩ (A73 ⫹ 17261)
+	│✔ Trees : 77/78 (conf: 0.9871794871794872)
+	│✘ {1} A6 ⫹ 2764
+	│ ✔ Meadows : 11/11 (conf: 1.0)
+	│ ✘ Trees : 3/4 (conf: 0.75)
+	✘ {1} ⟨DR⟩ (A30 ⫺ 13426)
+	 ✔ Bare Soil : 27/28 (conf: 0.9642857142857143)
+	 ✘ {1} ⟨DR⟩ (A102 ⫹ 21630)
+		✔ {1} ⟨P̅P̅⟩ (A83 ⫺₈₀ 19976)
+		│✔ Bare Soil : 29/30 (conf: 0.9666666666666667)
+		│✘ {1} A1 ⫹ 3864
+		│ ✔ Bare Soil : 3/4 (conf: 0.75)
+		│ ✘ Meadows : 9/9 (conf: 1.0)
+		✘ {1} ⟨DR⟩ (A82 ⫺ 25663)
+		 ✔ {1} ⟨P̅P̅⟩ (A89 ⫹₇₀ 25475)
+		 │✔ Bare Soil : 6/7 (conf: 0.8571428571428571)
+		 │✘ Meadows : 32/35 (conf: 0.9142857142857143)
+		 ✘ Meadows : 23/23 (conf: 1.0)
+		 Train tree:
+Decision Tree
+Leaves: 28
+Tot nodes: 55
+Height: 9
+Modal height:  8
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨P̅P̅⟩ (A103 ⫹₈₀ 16438)
+✔ {1} A9 ⫹₇₀ 6054
+│✔ Shadows : 80/80 (conf: 1.0)
+│✘ {1} ⟨PO⟩ (A16 ⫹₆₀ 12078)
+│ ✔ {1} ⟨DR⟩ (A76 ⫹ 13486)
+│ │✔ Asphalt : 73/80 (conf: 0.9125)
+│ │✘ {1} ⟨P̅P̅⟩ (A15 ⫺₆₀ 11444)
+│ │ ✔ {1} A1 ⫺₇₀ 10364
+│ │ │✔ Asphalt : 4/4 (conf: 1.0)
+│ │ │✘ Bitumen : 4/5 (conf: 0.8)
+│ │ ✘ Gravel : 13/13 (conf: 1.0)
+│ ✘ Bitumen : 69/74 (conf: 0.9324324324324325)
+✘ {1} ⟨P̅P̅⟩ (A5 ⫺₇₀ 11207)
+ ✔ {1} A2 ⫺₇₀ 21571
+ │✔ Painted metal sheets : 80/80 (conf: 1.0)
+ │✘ {1} A72 ⫹₇₀ 22403
+ │ ✔ {1} A17 ⫹₈₀ 14437
+ │ │✔ {1} A3 ⫺₇₀ 11018
+ │ ││✔ {1} ⟨PO⟩ (A5 ⫹₆₀ 11811)
+ │ │││✔ {1} ⟨P̅P̅⟩ (A11 ⫹₇₀ 13228)
+ │ ││││✔ Gravel : 10/10 (conf: 1.0)
+ │ ││││✘ Self-Blocking Bricks : 5/5 (conf: 1.0)
+ │ │││✘ Gravel : 37/37 (conf: 1.0)
+ │ ││✘ Self-Blocking Bricks : 13/14 (conf: 0.9285714285714286)
+ │ │✘ {1} ⟨DR⟩ (A9 ⫺ 17716)
+ │ │ ✔ Gravel : 8/8 (conf: 1.0)
+ │ │ ✘ {1} ⟨P̅P̅⟩ (A5 ⫺₇₀ 13812)
+ │ │  ✔ {1} ⟨PO⟩ (A22 ⫺₆₀ 16835)
+ │ │  │✔ Self-Blocking Bricks : 22/22 (conf: 1.0)
+ │ │  │✘ {1} A39 ⫺₆₀ 18648
+ │ │  │ ✔ Gravel : 7/7 (conf: 1.0)
+ │ │  │ ✘ Self-Blocking Bricks : 5/6 (conf: 0.8333333333333334)
+ │ │  ✘ Self-Blocking Bricks : 34/34 (conf: 1.0)
+ │ ✘ Bare Soil : 14/14 (conf: 1.0)
+ ✘ {1} ⟨DR⟩ (A66 ⫹ 5400)
+	✔ {1} A73 ⫹ 17112
+	│✔ Trees : 72/72 (conf: 1.0)
+	│✘ {1} ⟨DR⟩ (A5 ⫺ 5608)
+	│ ✔ Trees : 8/8 (conf: 1.0)
+	│ ✘ Meadows : 13/13 (conf: 1.0)
+	✘ {1} ⟨DR⟩ (A30 ⫺ 13426)
+	 ✔ Bare Soil : 21/22 (conf: 0.9545454545454546)
+	 ✘ {1} ⟨DR⟩ (A102 ⫹ 21670)
+		✔ {1} ⟨P̅P̅⟩ (A83 ⫺₈₀ 19966)
+		│✔ Bare Soil : 34/37 (conf: 0.918918918918919)
+		│✘ {1} A1 ⫹ 3805
+		│ ✔ Bare Soil : 2/4 (conf: 0.5)
+		│ ✘ Meadows : 9/9 (conf: 1.0)
+		✘ {1} ⟨DR⟩ (A82 ⫺ 27169)
+		 ✔ {1} ⟨P̅P̅⟩ (A96 ⫹₇₀ 26446)
+		 │✔ Bare Soil : 6/6 (conf: 1.0)
+		 │✘ {1} ⟨PO⟩ (A75 ⫹₇₀ 21630)
+		 │ ✔ Bare Soil : 2/4 (conf: 0.5)
+		 │ ✘ Meadows : 12/12 (conf: 1.0)
+		 ✘ Meadows : 39/40 (conf: 0.975)
+
+		 Train tree:
+Decision Tree
+Leaves: 30
+Tot nodes: 59
+Height: 8
+Modal height:  7
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨P̅P̅⟩ (A102 ⫹₆₀ 16141)
+✔ {1} ⟨DR⟩ (A56 ⫹ 5678)
+│✔ Shadows : 80/81 (conf: 0.9876543209876543)
+│✘ {1} ⟨PO⟩ (A16 ⫹ 12078)
+│ ✔ {1} ⟨DR⟩ (A86 ⫹ 14922)
+│ │✔ {1} ⟨PO⟩ (A83 ⫹ 13079)
+│ ││✔ Asphalt : 59/60 (conf: 0.9833333333333333)
+│ ││✘ {1} ⟨DR⟩ (A99 ⫺ 16498)
+│ ││ ✔ Asphalt : 14/14 (conf: 1.0)
+│ ││ ✘ {1} A1 ⫺ 14387
+│ ││  ✔ Asphalt : 3/4 (conf: 0.75)
+│ ││  ✘ Bitumen : 10/10 (conf: 1.0)
+│ │✘ Gravel : 12/12 (conf: 1.0)
+│ ✘ Bitumen : 70/75 (conf: 0.9333333333333333)
+✘ {1} ⟨P̅P̅⟩ (A5 ⫺₇₀ 11623)
+ ✔ {1} A35 ⫹₈₀ 20927
+ │✔ {1} A17 ⫹₈₀ 14536
+ ││✔ {1} ⟨PO⟩ (A43 ⫺ 18182)
+ │││✔ Gravel : 34/34 (conf: 1.0)
+ │││✘ {1} ⟨PP⟩ (A83 ⫺ 18370)
+ │││ ✔ {1} A9 ⫹ 12841
+ │││ │✔ Self-Blocking Bricks : 16/16 (conf: 1.0)
+ │││ │✘ Self-Blocking Bricks : 2/4 (conf: 0.5)
+ │││ ✘ Gravel : 12/12 (conf: 1.0)
+ ││✘ {1} ⟨P̅P̅⟩ (A1 ⫺₈₀ 13089)
+ ││ ✔ {1} A24 ⫹₆₀ 16934
+ ││ │✔ Gravel : 13/14 (conf: 0.9285714285714286)
+ ││ │✘ {1} A1 ⫺ 13386
+ ││ │ ✔ Self-Blocking Bricks : 6/6 (conf: 1.0)
+ ││ │ ✘ Self-Blocking Bricks : 3/4 (conf: 0.75)
+ ││ ✘ Self-Blocking Bricks : 52/54 (conf: 0.9629629629629629)
+ │✘ {1} A3 ⫺₇₀ 22730
+ │ ✔ Painted metal sheets : 79/79 (conf: 1.0)
+ │ ✘ Bare Soil : 13/14 (conf: 0.9285714285714286)
+ ✘ {1} ⟨DR⟩ (A66 ⫹ 5400)
+	✔ {1} A74 ⫹ 19976
+	│✔ Trees : 74/74 (conf: 1.0)
+	│✘ {1} ⟨DR⟩ (A25 ⫺ 6896)
+	│ ✔ Trees : 6/6 (conf: 1.0)
+	│ ✘ Meadows : 15/15 (conf: 1.0)
+	✘ {1} ⟨DR⟩ (A30 ⫺ 13436)
+	 ✔ Bare Soil : 23/23 (conf: 1.0)
+	 ✘ {1} ⟨DR⟩ (A102 ⫹ 21928)
+		✔ {1} ⟨DR⟩ (A83 ⫺ 20491)
+		│✔ {1} A85 ⫹ 21264
+		││✔ Bare Soil : 28/28 (conf: 1.0)
+		││✘ {1} A83 ⫹ 21224
+		││ ✔ Meadows : 4/4 (conf: 1.0)
+		││ ✘ Bare Soil : 5/5 (conf: 1.0)
+		│✘ {1} A3 ⫺ 7124
+		│ ✔ Meadows : 7/7 (conf: 1.0)
+		│ ✘ Bare Soil : 2/4 (conf: 0.5)
+		✘ {1} ⟨DR⟩ (A31 ⫺ 11137)
+		 ✔ {1} ⟨DR⟩ (A6 ⫹ 5321)
+		 │✔ Bare Soil : 6/6 (conf: 1.0)
+		 │✘ {1} A1 ⫺ 10790
+		 │ ✔ Meadows : 6/6 (conf: 1.0)
+		 │ ✘ Meadows : 3/4 (conf: 0.75)
+		 ✘ Meadows : 43/45 (conf: 0.9555555555555556)
+
+		 Train tree:
+Decision Tree
+Leaves: 27
+Tot nodes: 53
+Height: 8
+Modal height:  7
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨P̅P̅⟩ (A101 ⫹₇₀ 15982)
+✔ {1} ⟨DR⟩ (A50 ⫹ 6916)
+│✔ Shadows : 80/81 (conf: 0.9876543209876543)
+│✘ {1} ⟨P̅P̅⟩ (A16 ⫺ 12069)
+│ ✔ {1} ⟨PO⟩ (A72 ⫹ 13159)
+│ │✔ {1} A1 ⫺ 10562
+│ ││✔ Asphalt : 5/5 (conf: 1.0)
+│ ││✘ Asphalt : 3/4 (conf: 0.75)
+│ │✘ Bitumen : 75/77 (conf: 0.974025974025974)
+│ ✘ {1} ⟨PP⟩ (A76 ⫹ 13307)
+│  ✔ Asphalt : 65/67 (conf: 0.9701492537313433)
+│  ✘ {1} ⟨DR⟩ (A12 ⫺ 12663)
+│   ✔ Asphalt : 6/7 (conf: 0.8571428571428571)
+│   ✘ Gravel : 14/15 (conf: 0.9333333333333333)
+✘ {1} ⟨P̅P̅⟩ (A6 ⫺₇₀ 11474)
+ ✔ {1} A2 ⫺₇₀ 21571
+ │✔ Painted metal sheets : 79/79 (conf: 1.0)
+ │✘ {1} A72 ⫹₇₀ 22403
+ │ ✔ {1} ⟨P̅P̅⟩ (A16 ⫹₈₀ 14377)
+ │ │✔ {1} ⟨PO⟩ (A3 ⫹₆₀ 11514)
+ │ ││✔ {1} ⟨PO⟩ (A17 ⫺ 14209)
+ │ │││✔ Self-Blocking Bricks : 14/15 (conf: 0.9333333333333333)
+ │ │││✘ {1} ⟨DR⟩ (A29 ⫹ 13525)
+ │ │││ ✔ Self-Blocking Bricks : 5/7 (conf: 0.7142857142857143)
+ │ │││ ✘ Gravel : 16/16 (conf: 1.0)
+ │ ││✘ Gravel : 30/30 (conf: 1.0)
+ │ │✘ {1} ⟨P̅P̅⟩ (A1 ⫺₇₀ 15309)
+ │ │ ✔ Gravel : 8/8 (conf: 1.0)
+ │ │ ✘ {1} A55 ⫹₇₀ 20699
+ │ │  ✔ Self-Blocking Bricks : 59/62 (conf: 0.9516129032258065)
+ │ │  ✘ Gravel : 5/6 (conf: 0.8333333333333334)
+ │ ✘ Bare Soil : 13/13 (conf: 1.0)
+ ✘ {1} ⟨DR⟩ (A66 ⫹ 5400)
+	✔ {1} A73 ⫹ 17112
+	│✔ Trees : 72/72 (conf: 1.0)
+	│✘ {1} ⟨DR⟩ (A4 ⫺ 6936)
+	│ ✔ Trees : 8/8 (conf: 1.0)
+	│ ✘ Meadows : 15/15 (conf: 1.0)
+	✘ {1} ⟨DR⟩ (A28 ⫺ 12782)
+	 ✔ Bare Soil : 26/27 (conf: 0.9629629629629629)
+	 ✘ {1} ⟨DR⟩ (A102 ⫹ 21630)
+		✔ {1} ⟨P̅P̅⟩ (A83 ⫺₈₀ 19738)
+		│✔ Bare Soil : 28/30 (conf: 0.9333333333333333)
+		│✘ {1} A1 ⫺ 9046
+		│ ✔ Meadows : 7/7 (conf: 1.0)
+		│ ✘ Bare Soil : 3/4 (conf: 0.75)
+		✘ {1} A75 ⫺ 21680
+		 ✔ Meadows : 27/27 (conf: 1.0)
+		 ✘ {1} ⟨DR⟩ (A81 ⫺ 26446)
+			✔ {1} ⟨DR⟩ (A77 ⫹ 21799)
+			│✔ Bare Soil : 7/7 (conf: 1.0)
+			│✘ Meadows : 3/4 (conf: 0.75)
+			✘ Meadows : 25/27 (conf: 0.9259259259259259)
+			Train tree:
+Decision Tree
+Leaves: 27
+Tot nodes: 53
+Height: 8
+Modal height:  6
+worldTypes: DataType[DecisionTree.ModalLogic.Interval2D]
+initConditions: [DecisionTree._startAtCenter()]
+{1} ⟨P̅P̅⟩ (A101 ⫹₆₀ 16042)
+✔ {1} ⟨DR⟩ (A56 ⫹ 5678)
+│✔ Shadows : 80/81 (conf: 0.9876543209876543)
+│✘ {1} ⟨P̅P̅⟩ (A16 ⫺ 12069)
+│ ✔ {1} A5 ⫹₈₀ 13198
+│ │✔ Bitumen : 70/70 (conf: 1.0)
+│ │✘ {1} ⟨DR⟩ (A16 ⫹ 11821)
+│ │ ✔ Asphalt : 12/12 (conf: 1.0)
+│ │ ✘ Bitumen : 6/7 (conf: 0.8571428571428571)
+│ ✘ {1} ⟨DR⟩ (A42 ⫹ 12217)
+│  ✔ Asphalt : 63/67 (conf: 0.9402985074626866)
+│  ✘ {1} A11 ⫺₇₀ 11543
+│   ✔ Asphalt : 5/6 (conf: 0.8333333333333334)
+│   ✘ Gravel : 15/15 (conf: 1.0)
+✘ {1} ⟨P̅P̅⟩ (A5 ⫺₇₀ 11207)
+ ✔ {1} A3 ⫺₇₀ 22730
+ │✔ Painted metal sheets : 79/79 (conf: 1.0)
+ │✘ {1} A72 ⫹₇₀ 22403
+ │ ✔ {1} A17 ⫹₈₀ 14486
+ │ │✔ {1} ⟨PP⟩ (A38 ⫺ 18539)
+ │ ││✔ Gravel : 33/34 (conf: 0.9705882352941176)
+ │ ││✘ {1} ⟨PO⟩ (A83 ⫺ 18162)
+ │ ││ ✔ Self-Blocking Bricks : 18/19 (conf: 0.9473684210526315)
+ │ ││ ✘ {1} ⟨PP⟩ (A5 ⫺ 13644)
+ │ ││  ✔ Gravel : 13/13 (conf: 1.0)
+ │ ││  ✘ Self-Blocking Bricks : 4/7 (conf: 0.5714285714285714)
+ │ │✘ {1} ⟨P̅P̅⟩ (A1 ⫺₇₀ 15447)
+ │ │ ✔ Gravel : 7/7 (conf: 1.0)
+ │ │ ✘ {1} A42 ⫹₇₀ 20431
+ │ │  ✔ Self-Blocking Bricks : 55/58 (conf: 0.9482758620689655)
+ │ │  ✘ Gravel : 3/4 (conf: 0.75)
+ │ ✘ Bare Soil : 15/15 (conf: 1.0)
+ ✘ {1} ⟨DR⟩ (A57 ⫹ 4558)
+	✔ {1} ⟨DR⟩ (A72 ⫹ 14209)
+	│✔ Trees : 73/73 (conf: 1.0)
+	│✘ {1} ⟨DR⟩ (A25 ⫺ 7104)
+	│ ✔ Trees : 7/7 (conf: 1.0)
+	│ ✘ Meadows : 14/14 (conf: 1.0)
+	✘ {1} ⟨DR⟩ (A30 ⫺ 13426)
+	 ✔ Bare Soil : 23/24 (conf: 0.9583333333333334)
+	 ✘ {1} ⟨DR⟩ (A103 ⫹ 22017)
+		✔ {1} ⟨DR⟩ (A83 ⫺ 20491)
+		│✔ {1} A85 ⫹ 21264
+		││✔ Bare Soil : 28/28 (conf: 1.0)
+		││✘ {1} A83 ⫹ 21224
+		││ ✔ Meadows : 4/4 (conf: 1.0)
+		││ ✘ Bare Soil : 6/6 (conf: 1.0)
+		│✘ {1} A3 ⫹ 2229
+		│ ✔ Bare Soil : 2/4 (conf: 0.5)
+		│ ✘ Meadows : 11/11 (conf: 1.0)
+		✘ {1} ⟨DR⟩ (A37 ⫺ 12841)
+		 ✔ Bare Soil : 4/6 (conf: 0.6666666666666666)
+		 ✘ Meadows : 47/49 (conf: 0.9591836734693877)
