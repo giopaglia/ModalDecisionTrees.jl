@@ -164,7 +164,7 @@ exec_n_task_use_aug = [
 	(2, false),
 	(3, false),
 ]
-exec_n_versions = 1:1 # 1:3 # 1:3 # TODO
+exec_n_versions = 3:3 # 1:3 # 1:3 # TODO
 
 exec_nbands = [2] # [20,40,60] TODO
 

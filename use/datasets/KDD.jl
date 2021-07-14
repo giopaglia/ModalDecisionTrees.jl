@@ -19,7 +19,8 @@
 # - v3: USING COUGH + BREATH
 
 function KDDDataset_not_stratified((n_task,n_version),
-		audio_kwargs; ma_size = 1,
+		audio_kwargs;
+		ma_size = 1,
 		ma_step = 1,
 		max_points = -1,
 		use_full_mfcc = false,
@@ -92,18 +93,6 @@ function KDDDataset_not_stratified((n_task,n_version),
 	function readFiles(folders, subfolder, file_suffix, file_prefix)
 		files_map = JSON.parsefile(kdd_data_dir * "files.json")
 		# println(folders)
-		# https://stackoverflow.com/questions/59562325/moving-average-in-julia
-		moving_average(vs::AbstractArray{T,1},n,st=1) where {T} = [sum(@view vs[i:(i+n-1)])/n for i in 1:st:(length(vs)-(n-1))]
-		moving_average(vs::AbstractArray{T,2},n,st=1) where {T} = mapslices((x)->(@views moving_average(x,n,st)), vs, dims=2)
-		# (sum(w) for w in partition(1:9, 3, 2))
-		# moving_average_np(vs,num_out_points,st) = moving_average(vs,length(vs)-num_out_points*st+1,st)
-		# moving_average_np(vs,num_out_points,o) = (w = length(vs)-num_out_points*(1-o/w)+1; moving_average(vs,w,1-o/w))
-		# moving_average_np(vs,t,o) = begin
-		# 	N = length(vs);
-		# 	s = floor(Int, (N+1)/(t+(1/(1-o))))
-		# 	w = ceil(Int, s/(1-o))
-		# 	# moving_average(vs,w,1-ceil(Int, o/w))
-		# end
 		n_samples = 0
 		# timeseries = Vector{Vector{Array{Float64, 2}}}[]
 		timeseries = []
@@ -155,12 +144,12 @@ function KDDDataset_not_stratified((n_task,n_version),
 					# 	@warn "Instance with NaN values was ignored"
 					# 	continue
 					# end
-					ts = moving_average(ts, ma_size, ma_step)
 					# Drop first point
-					ts = @views ts[:,2:end]
+					ts = @views ts[2:end,:]
+					ts = moving_average(ts, ma_size, ma_step)
 					# println(size(ts))
-					if max_points != -1 && size(ts,2)>max_points
-						ts = ts[:,1:max_points]
+					if max_points != -1 && size(ts,1)>max_points
+						ts = ts[1:max_points,:]
 					end
 					# println(size(ts))
 					# readline()
@@ -198,7 +187,7 @@ function KDDDataset_not_stratified((n_task,n_version),
 
 		# print(size(pos))
 		# print(size(neg))
-		timeseries = [[p' for p in pos]..., [n' for n in neg]...]
+		timeseries = [[p for p in pos]..., [n for n in neg]...]
 		# print(size(timeseries))
 		# print(size(timeseries[1]))
 		# Y = [ones(Int, length(pos))..., zeros(Int, length(neg))...]

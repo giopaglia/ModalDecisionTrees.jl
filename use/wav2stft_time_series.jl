@@ -101,9 +101,9 @@ function wav2stft_time_series(filepath, kwargs; preprocess_sample::AbstractVecto
 	# window_f = hamming
 
 	ts = if use_full_mfcc
-		mfcc(samps, sr; kwargs...)[1]'
+		mfcc(samps, sr; kwargs...)[1]
 	else
-		my_stft(samps, sr; kwargs...)
+		my_stft(samps, sr; kwargs...)'
 	end
 	# print(size(ts))
 	ts
