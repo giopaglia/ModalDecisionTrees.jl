@@ -1461,7 +1461,7 @@ function modal_step(
 
 		if satisfied == true
 			worlds = new_worlds
-		else 
+		else
 			# If none of the neighboring worlds satisfies the decision, then 
 			#  the new set is left unchanged
 		end

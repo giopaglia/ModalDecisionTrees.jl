@@ -339,13 +339,14 @@ KDDDataset_not_stratified((n_task,n_version),
 		max_points = -1,
 		use_full_mfcc = false,
 		preprocess_wavs = [],
+		use_augmentation_data = true,
 		# rng = Random.GLOBAL_RNG :: Random.AbstractRNG
 	) = begin
 	@assert n_task in [1,2,3] "KDDDataset: invalid n_task: {$n_task}"
 	@assert n_version in [1,2,3] "KDDDataset: invalid n_version: {$n_version}"
 
 	kdd_data_dir = data_dir * "KDD/"
-
+	
 	task_to_folders = [
 		[
 			["covidandroidnocough", "covidandroidwithcough", "covidwebnocough", "covidwebwithcough"],
@@ -364,6 +365,31 @@ KDDDataset_not_stratified((n_task,n_version),
 		],
 	]
 
+	has_subfolder_structure = ["asthmawebwithcough", "covidwebnocough", "covidwebwithcough", "healthywebnosymp", "healthywebwithcough"]
+
+	files_to_ignore = [
+		# Missing
+		"asthmawebwithcough/2020-04-07-18_49_21_155697/audio_file_breathe.wav_aug_amp1.wav",
+		# Ignore to square up
+		"asthmawebwithcough/2020-04-07-18_49_21_155697/audio_file_cough.wav_aug_amp1.wav"
+	]
+
+	has_augmentation_data = [
+		"healthyandroidwithcough",
+		"healthywebwithcough",
+		"asthmaandroidwithcough",
+		"asthmawebwithcough",
+	]
+	augmentation_file_suffixes = [
+		"",
+		"_aug_amp1.wav",
+		"_aug_amp2.wav",
+		"_aug_noise1.wav",
+		"_aug_noise2.wav",
+		"_aug_pitchspeed1.wav",
+		"_aug_pitchspeed2.wav",
+	]
+
 	cough = ("cough","cough","cough_")
 	breath = ("breath","breathe","breaths_")
 	dir_infos =
@@ -380,6 +406,7 @@ KDDDataset_not_stratified((n_task,n_version),
 	
 	function readFiles(folders, subfolder, file_suffix, file_prefix)
 		files_map = JSON.parsefile(kdd_data_dir * "files.json")
+		# println(folders)
 		# https://stackoverflow.com/questions/59562325/moving-average-in-julia
 		moving_average(vs::AbstractArray{T,1},n,st=1) where {T} = [sum(@view vs[i:(i+n-1)])/n for i in 1:st:(length(vs)-(n-1))]
 		moving_average(vs::AbstractArray{T,2},n,st=1) where {T} = mapslices((x)->(@views moving_average(x,n,st)), vs, dims=2)
@@ -396,23 +423,46 @@ KDDDataset_not_stratified((n_task,n_version),
 		# timeseries = Vector{Vector{Array{Float64, 2}}}[]
 		timeseries = []
 		for folder in folders
-			cur_folder_timeseries = Vector{Vector{Array{Float64, 2}}}(undef, length(files_map[folder]))
+
+			# Groups of filepaths
+			file_paths = files_map[folder]
+			
+			# Correct with augmentated data (if present)
+			file_paths = 
+				if use_augmentation_data && folder in has_augmentation_data && ! (folder in has_subfolder_structure)
+					map((file_path_arr)->["$(file_path)$(suff)" for suff in augmentation_file_suffixes for file_path in file_path_arr], file_paths)
+				else
+					file_paths
+				end
+
+			cur_folder_timeseries = Vector{Vector{Array{Float64, 2}}}(undef, length(file_paths))
 
 			# collect is necessary because the threads macro only supports arrays
 			# https://stackoverflow.com/questions/57633477/multi-threading-julia-shows-error-with-enumerate-iterator
-			Threads.@threads for (i_samples, samples) in collect(enumerate(files_map[folder]))
-			# for (i_samples, samples) in collect(enumerate(files_map[folder]))
+			Threads.@threads for (i_samples, samples) in collect(enumerate(file_paths))
+
+				# Correct with augmentated data (if present)
 				samples = 
-					if folder in ["asthmawebwithcough", "covidwebnocough", "covidwebwithcough", "healthywebnosymp", "healthywebwithcough"]
-						map((subfoldname)->"$folder/$subfoldname/audio_file_$(file_suffix).wav", samples)
+					if folder in has_subfolder_structure
+						samples = map((subfoldname)->"$folder/$subfoldname/audio_file_$(file_suffix).wav", samples)
+						if use_augmentation_data && folder in has_augmentation_data
+							samples = ["$(file_path)$(suff)" for suff in augmentation_file_suffixes for file_path in samples]
+						end
+						samples
 					else
+						# println(samples)
 						filter!((filename)->startswith(filename,file_prefix), samples)
 						map((filename)->"$folder/$subfolder/$filename", samples)
 					end
+				# println(samples)
+
+				# Filter out files that are known to be missing
+				filter!((filename)->! (filename in files_to_ignore), samples)
 
 				cur_file_timeseries = Vector{Array{Float64, 2}}(undef, length(samples))
 				valid_i_filenames = []
 				for (i_filename, filename) in collect(enumerate(samples))
+					# println(filename)
 					filepath = kdd_data_dir * "$filename"
 					ts = wav2stft_time_series(filepath, audio_kwargs; preprocess_sample = preprocess_wavs, use_full_mfcc = use_full_mfcc)
 					# Ignore instances with NaN (careful! this may leave with just a few instances)
