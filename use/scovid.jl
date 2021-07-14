@@ -155,10 +155,17 @@ legacy_gammas_check = false
 
 exec_dataseed = 1:10
 
-exec_use_training_form = [:stump, :stump_with_memoization] # TODO
+exec_use_training_form = [:stump_with_memoization] # TODO
 
-exec_n_tasks = 1:1
+exec_n_task_use_aug = [
+	(1, false),
+	(2, true),
+	(3, true),
+	(2, false),
+	(3, false),
+]
 exec_n_versions = 1:1 # 1:3 # 1:3 # TODO
+
 exec_nbands = [2] # [20,40,60] TODO
 
 # max_points = 30
@@ -248,7 +255,7 @@ test_operators_dict = Dict(
 
 exec_ranges = (;
 	use_training_form = exec_use_training_form,
-	n_task            = exec_n_tasks,
+	n_task_use_aug    = exec_n_task_use_aug,
 	n_version         = exec_n_versions,
 	nbands            = exec_nbands,
 	dataset_kwargs    = exec_dataset_kwargs,
@@ -258,7 +265,7 @@ exec_ranges = (;
 )
 
 dataset_function = (
-	(n_task,
+	((n_task,use_aug),
 		n_version,
 		cur_audio_kwargs,
 		dataset_kwargs,
@@ -268,6 +275,7 @@ dataset_function = (
 		(n_task,n_version),
 		cur_audio_kwargs;
 		dataset_kwargs...,
+		use_augmentation_data = use_aug,
 		preprocess_wavs = cur_preprocess_wavs,
 		use_full_mfcc = use_full_mfcc
 	)
@@ -365,7 +373,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	##############################################################################
 	
-	use_training_form, n_task, n_version, nbands, dataset_kwargs, use_full_mfcc, preprocess_wavs, test_operators = params_combination
+	use_training_form, n_task_use_aug, n_version, nbands, dataset_kwargs, use_full_mfcc, preprocess_wavs, test_operators = params_combination
 	
 	test_operators = test_operators_dict[test_operators]
 
@@ -388,7 +396,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	)
 
 	dataset_fun_sub_params = (
-			n_task,
+			n_task_use_aug,
 			n_version,
 			cur_audio_kwargs,
 			dataset_kwargs,
