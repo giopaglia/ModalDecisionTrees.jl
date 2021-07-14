@@ -364,3 +364,4 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 end
 
 println("Done!")
+exit(0)
