@@ -119,9 +119,9 @@ log_level = DecisionTree.DTOverview
 # log_level = DecisionTree.DTDebug
 # log_level = DecisionTree.DTDetail
 
-# timing_mode = :none
+timing_mode = :none
 # timing_mode = :time
-timing_mode = :btime
+# timing_mode = :btime
 
 # round_dataset_to_datatype = false
 # round_dataset_to_datatype = UInt8
@@ -138,8 +138,8 @@ split_threshold = 0.8
 
 # use_training_form = :dimensional
 # use_training_form = :fmd
-use_training_form = :stump
-# use_training_form = :stump_with_memoization
+# use_training_form = :stump
+use_training_form = :stump_with_memoization
 
 test_flattened = false
 test_averaged  = false
