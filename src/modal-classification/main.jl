@@ -24,34 +24,34 @@ end
 ########################## Matricial Dataset ###################################
 ################################################################################
 
-# # Build models on (multi-dimensional) arrays
-function build_stump(
-	bare_dataset  :: MatricialDataset{T,D},
-	labels        :: AbstractVector{String},
-	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
-	ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
-	kwargs...) where {T, D, U}
-	build_stump(OntologicalDataset{T,D-2}(ontology, bare_dataset), labels, weights; kwargs...)
-end
+# # # Build models on (multi-dimensional) arrays
+# function build_stump(
+# 	bare_dataset  :: MatricialDataset{T,D},
+# 	labels        :: AbstractVector{String},
+# 	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
+# 	ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
+# 	kwargs...) where {T, D, U}
+# 	build_stump(OntologicalDataset{T,D-2}(bare_dataset, ontology, TODO...), labels, weights; kwargs...)
+# end
 
-function build_tree(
-	bare_dataset  :: MatricialDataset{T,D},
-	labels        :: AbstractVector{String},
-	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
-	ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
-	kwargs...) where {T, D, U}
-	build_tree(OntologicalDataset{T,D-2}(ontology, bare_dataset), labels, weights; kwargs...)
-end
+# function build_tree(
+# 	bare_dataset  :: MatricialDataset{T,D},
+# 	labels        :: AbstractVector{String},
+# 	weights       :: Union{Nothing,AbstractVector{U}} = nothing;
+# 	ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
+# 	kwargs...) where {T, D, U}
+# 	build_tree(OntologicalDataset{T,D-2}(bare_dataset, ontology, TODO...), labels, weights; kwargs...)
+# end
 
-function build_forest(
-	bare_dataset  :: MatricialDataset{T,D};
-	labels        :: AbstractVector{String},
-	# weights       :: Union{Nothing,AbstractVector{U}} = nothing TODO
-	ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
-	kwargs...) where {T, D, U}
-	# build_forest(OntologicalDataset{T,D-2}(ontology,bare_dataset), labels, weights; kwargs...)
-	build_forest(OntologicalDataset{T,D-2}(ontology, bare_dataset), labels; kwargs...)
-end
+# function build_forest(
+# 	bare_dataset  :: MatricialDataset{T,D};
+# 	labels        :: AbstractVector{String},
+# 	# weights       :: Union{Nothing,AbstractVector{U}} = nothing TODO
+# 	ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
+# 	kwargs...) where {T, D, U}
+# 	# build_forest(OntologicalDataset{T,D-2}(ontology,bare_dataset), labels, weights; kwargs...)
+# 	build_forest(OntologicalDataset{T,D-2}(bare_dataset, ontology, TODO...), labels; kwargs...)
+# end
 
 ################################################################################
 ########################## Modal Dataset #######################################
