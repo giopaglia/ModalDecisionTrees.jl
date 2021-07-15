@@ -253,48 +253,112 @@ get_gamma(X::MatricialDataset, i_instance::Integer, w::AbstractWorld, feature::F
 
 @computed struct OntologicalDataset{T, N, WorldType} <: AbstractModalDataset{T, WorldType}
 	
-	ontology  :: Ontology{WorldType}
-	
 	# Core data
-	domain    :: MatricialDataset{T,N+1+1}
+	domain                  :: MatricialDataset{T,N+1+1}
 	
-	function OntologicalDataset(ontology::Ontology{WorldType}, domain::MatricialDataset{T,D}) where {T, N, D, WorldType<:AbstractWorld}
-		OntologicalDataset{T}(ontology, domain)
+	# Relations
+	ontology                :: Ontology{WorldType} # Union{Nothing,}
+	
+	# Features
+	features                :: AbstractVector{FeatureTypeFun} # AbstractVector{<:FeatureTypeFun} # Union{Nothing,}
+
+	# Test operators associated with each feature, grouped by their respective aggregator
+	grouped_featsaggrsnops  :: AbstractVector # TODO currently cannot use full type (probably due to @computed) # AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}} # Union{Nothing,}
+
+	# function OntologicalDataset(domain::MatricialDataset{T,D}, WorldType::Type{<:AbstractWorld}) where {T, D}
+	# 	N = D-1-1
+	# 	new{T,N,WorldType}(domain, nothing, nothing, nothing)
+	# 	# new{T,D-1-1,WorldType}(domain, nothing, nothing, nothing)
+	# end
+
+	# function OntologicalDataset(domain::MatricialDataset{T,D}, WorldType::Type{<:AbstractWorld}) where {T, D}
+	# 	OntologicalDataset{T,D-1-1,WorldType}(domain, nothing)
+	# end
+
+	# function OntologicalDataset{T, N, WorldType}(domain::MatricialDataset{T,D}, not::Nothing) where {T, N, D, WorldType<:AbstractWorld}
+	# 	OntologicalDataset{T, N, WorldType}(domain, not, not, not)
+	# end
+
+	# function OntologicalDataset{T, N, WorldType}(
+	# 	domain::MatricialDataset{T,D},
+	# 	ontology::Nothing,
+	# 	features::Nothing,
+	# 	grouped_featsaggrsnops::Nothing
+	# ) where {T, N, D, WorldType<:AbstractWorld}
+	# 	@assert D == (N+1+1) "ERROR! Dimensionality mismatch: can't instantiate OntologicalDataset{$(T), $(N)} with MatricialDataset{$(T),$(D)}"
+	# 	OntologicalDataset{T, N, WorldType}(domain, ontology, features, grouped_featsaggrsnops)
+	# end
+
+	function OntologicalDataset(
+		domain::MatricialDataset{T,D},
+		ontology::Ontology{WorldType},
+		features::AbstractVector{<:FeatureTypeFun},
+		grouped_featsaggrsnops_or_featsnops, # AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}}
+	) where {T, D, WorldType<:AbstractWorld}
+		OntologicalDataset{T}(domain, ontology, features, grouped_featsaggrsnops_or_featsnops)
 	end
 
-	function OntologicalDataset{T}(ontology::Ontology{WorldType}, domain::MatricialDataset{T,D}) where {T, D, WorldType<:AbstractWorld}
-		OntologicalDataset{T, D-1-1}(ontology, domain)
+	function OntologicalDataset{T}(
+		domain::MatricialDataset{T,D},
+		ontology::Ontology{WorldType},
+		features::AbstractVector{<:FeatureTypeFun},
+		grouped_featsaggrsnops_or_featsnops, # AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}}
+	) where {T, D, WorldType<:AbstractWorld}
+		OntologicalDataset{T, D-1-1}(domain, ontology, features, grouped_featsaggrsnops_or_featsnops)
 	end
 
-	function OntologicalDataset{T, N}(ontology::Ontology{WorldType}, domain::MatricialDataset{T,D}) where {T, N, D, WorldType<:AbstractWorld}
-		@assert D == (N+1+1) "ERROR! Dimensionality mismatch: can't instantiate OntologicalDataset{$(T), $(N)} with MatricialDataset{$(T),$(D)}"
-		OntologicalDataset{T, D-1-1, WorldType}(ontology, domain)
+	function OntologicalDataset{T, N}(
+		domain::MatricialDataset{T,D},
+		ontology::Ontology{WorldType},
+		features::AbstractVector{<:FeatureTypeFun},
+		grouped_featsaggrsnops_or_featsnops, # AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}}
+	) where {T, N, D, WorldType<:AbstractWorld}
+		OntologicalDataset{T, N, WorldType}(domain, ontology, features, grouped_featsaggrsnops_or_featsnops)
 	end
 	
-	function OntologicalDataset{T, N, WorldType}(ontology::Ontology{WorldType}, domain::MatricialDataset{T,D}) where {T, N, D, WorldType<:AbstractWorld}
+	function OntologicalDataset{T, N, WorldType}(
+		domain::MatricialDataset{T,D},
+		ontology::Ontology{WorldType},
+		features::AbstractVector{<:FeatureTypeFun},
+		grouped_featsnops  :: AbstractVector{<:AbstractVector{<:TestOperatorFun}},
+	) where {T, N, D, WorldType<:AbstractWorld}
+
+		grouped_featsaggrsnops = grouped_featsnops2grouped_featsaggrsnops(grouped_featsnops)
+		
+		OntologicalDataset{T, N, WorldType}(domain, ontology, features, grouped_featsaggrsnops)
+	end
+	function OntologicalDataset{T, N, WorldType}(
+		domain::MatricialDataset{T,D},
+		ontology::Ontology{WorldType},
+		features::AbstractVector{<:FeatureTypeFun},
+		grouped_featsaggrsnops::AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}}
+	) where {T, N, D, WorldType<:AbstractWorld}
 
 		@assert n_samples(domain) > 0 "Can't instantiate OntologicalDataset{$(T), $(N), $(WorldType)} with no instance. (domain's type $(typeof(domain)))"
 		@assert N == worldTypeDimensionality(WorldType) "ERROR! Dimensionality mismatch: can't interpret WorldType $(WorldType) (dimensionality = $(worldTypeDimensionality(WorldType)) on MatricialDataset of dimensionality = $(N)"
 		@assert D == (N+1+1) "ERROR! Dimensionality mismatch: can't instantiate OntologicalDataset{$(T), $(N)} with MatricialDataset{$(T),$(D)}"
-		
-		# Type unstable?
+		@assert length(features) == length(grouped_featsaggrsnops) "Can't instantiate OntologicalDataset{$(T), $(N), $(WorldType)} with mismatching length(features) == length(grouped_featsaggrsnops): $(length(features)) != $(length(grouped_featsaggrsnops))"
+		@assert length(grouped_featsaggrsnops) > 0 && sum(length.(grouped_featsaggrsnops)) > 0 && sum(vcat([[length(test_ops) for test_ops in aggrs] for aggrs in grouped_featsaggrsnops]...)) > 0 "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with no test operator: $(grouped_featsaggrsnops)"
+
 		# if prod(channel_size(domain)) == 1
-		# 	ontology = strip_ontology(ontology)
-		# 	WorldType = world_type(strip_ontology)
+		# 	TODO throw warning
 		# end
 		
-		new{T, N, WorldType}(ontology, domain)
+		new{T, N, WorldType}(domain, ontology, features, grouped_featsaggrsnops)
 	end
 end
-
-# TODO define getindex?
 
 relations(X::OntologicalDataset)        = X.ontology.relationSet
 size(X::OntologicalDataset)             = size(X.domain)
 n_samples(X::OntologicalDataset)        = n_samples(X.domain)
 n_attributes(X::OntologicalDataset)     = n_attributes(X.domain)
 n_relations(X::OntologicalDataset)      = length(relations(X))
-world_type(d::OntologicalDataset{T,N,WT})    where {T,N,WT<:AbstractWorld} = WT
+world_type(X::OntologicalDataset{T,N,WT})    where {T,N,WT<:AbstractWorld} = WT
+
+features(X::OntologicalDataset)               = X.features
+grouped_featsaggrsnops(X::OntologicalDataset) = X.grouped_featsaggrsnops
+n_features(X::OntologicalDataset)             = length(X.features)
+# getindex(X::OntologicalDataset, args::Vararg) = getindex(X.domain[...], args...)
 
 initws_function(X::OntologicalDataset{T, N, WorldType},  i_instance) where {T, N, WorldType} =
 	(iC)->initWorldSet(iC, WorldType, inst_channel_size(getInstance(X, i_instance)))
@@ -306,10 +370,11 @@ length(X::OntologicalDataset)                = n_samples(X)
 Base.iterate(X::OntologicalDataset, state=1) = state > length(X) ? nothing : (getInstance(X, state), state+1) # Base.iterate(X.domain, state=state)
 channel_size(X::OntologicalDataset)          = channel_size(X.domain)
 
-getInstance(d::OntologicalDataset, args::Vararg)     = getInstance(d.domain, args...)
-getChannel(d::OntologicalDataset,   args::Vararg)    = getChannel(d.domain, args...)
+getInstance(X::OntologicalDataset, args::Vararg)     = getInstance(X.domain, args...)
+getChannel(X::OntologicalDataset,   args::Vararg)    = getChannel(X.domain, args...)
 
-slice_dataset(d::OntologicalDataset, inds::AbstractVector{<:Integer}; args...)    = OntologicalDataset(d.ontology, slice_dataset(d.domain, inds; args...))
+slice_dataset(X::OntologicalDataset, inds::AbstractVector{<:Integer}; args...)    =
+	OntologicalDataset(slice_dataset(X.domain, inds; args...), X.ontology, X.features, X.grouped_featsaggrsnops)
 
 
 display_structure(X::OntologicalDataset; indent::Integer = 0) = begin
@@ -346,7 +411,7 @@ struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 	# Feature
 	features           :: AbstractVector{<:FeatureTypeFun}
 
-	# Test operators associated with each feature
+	# Test operators associated with each feature, grouped by their respective aggregator
 	grouped_featsaggrsnops  :: AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}}
 
 	FeatModalDataset(
@@ -395,10 +460,8 @@ struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 
 	FeatModalDataset(
 		X                  :: OntologicalDataset{T, N, WorldType},
-		features           :: AbstractVector{<:FeatureTypeFun},
-		grouped_featsaggrsnops_or_featsnops, #  :: AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}},
 	) where {T, N, WorldType<:AbstractWorld} = begin
-		fwd = FeaturedWorldDataset(X, features);
+		fwd = FeaturedWorldDataset(X);
 
 		# TODO optimize this! When the underlying MatricialDataset is an AbstractArray, this is going to be an array of a single function.
 		# How to achievi this? Think about it.
@@ -406,7 +469,7 @@ struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 		acc_functions = [acc_function(X,  i_instance) for i_instance in 1:n_samples(X)]
 		accrepr_functions = [accrepr_function(X,  i_instance) for i_instance in 1:n_samples(X)]
 
-		FeatModalDataset(fwd, relations(X), initws_functions, acc_functions, accrepr_functions, features, grouped_featsaggrsnops_or_featsnops)
+		FeatModalDataset(fwd, relations(X), initws_functions, acc_functions, accrepr_functions, features(X), grouped_featsaggrsnops(X))
 	end
 
 end
@@ -623,23 +686,19 @@ struct StumpFeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 	end
 
 	function StumpFeatModalDataset(
-		X                   :: OntologicalDataset{T, N, WorldType},
-		features            :: AbstractVector{<:FeatureTypeFun},
-		grouped_featsnops   :: AbstractVector{<:AbstractVector{<:TestOperatorFun}};
+		X                   :: OntologicalDataset{T, N, WorldType};
 		computeRelationGlob :: Bool = false,
 	) where {T, N, WorldType<:AbstractWorld}
-		StumpFeatModalDataset{T, WorldType}(X, features, grouped_featsnops, computeRelationGlob = computeRelationGlob)
+		StumpFeatModalDataset{T, WorldType}(X, computeRelationGlob = computeRelationGlob)
 	end
 
 	function StumpFeatModalDataset{T, WorldType}(
-		X                   :: OntologicalDataset{T, N, WorldType},
-		features            :: AbstractVector{<:FeatureTypeFun},
-		grouped_featsnops   :: AbstractVector{<:AbstractVector{<:TestOperatorFun}};
+		X                   :: OntologicalDataset{T, N, WorldType};
 		computeRelationGlob :: Bool = false,
 	) where {T, N, WorldType<:AbstractWorld}
 
 		# Compute modal dataset propositions
-		fmd = FeatModalDataset(X, features, grouped_featsnops);
+		fmd = FeatModalDataset(X);
 
 		StumpFeatModalDataset{T, WorldType}(fmd, computeRelationGlob = computeRelationGlob)
 
@@ -721,23 +780,19 @@ mutable struct StumpFeatModalDatasetWithMemoization{T, WorldType} <: AbstractMod
 	end
 
 	function StumpFeatModalDatasetWithMemoization(
-		X                   :: OntologicalDataset{T, N, WorldType},
-		features            :: AbstractVector{<:FeatureTypeFun},
-		grouped_featsnops   :: AbstractVector{<:AbstractVector{<:TestOperatorFun}};
+		X                   :: OntologicalDataset{T, N, WorldType};
 		computeRelationGlob :: Bool = false,
 	) where {T, N, WorldType<:AbstractWorld}
-		StumpFeatModalDatasetWithMemoization{T, WorldType}(X, features, grouped_featsnops, computeRelationGlob = computeRelationGlob)
+		StumpFeatModalDatasetWithMemoization{T, WorldType}(X, computeRelationGlob = computeRelationGlob)
 	end
 
 	function StumpFeatModalDatasetWithMemoization{T, WorldType}(
-		X                   :: OntologicalDataset{T, N, WorldType},
-		features            :: AbstractVector{<:FeatureTypeFun},
-		grouped_featsnops   :: AbstractVector{<:AbstractVector{<:TestOperatorFun}};
+		X                   :: OntologicalDataset{T, N, WorldType};
 		computeRelationGlob :: Bool = false,
 	) where {T, N, WorldType<:AbstractWorld}
 
 		# Compute modal dataset propositions
-		fmd = FeatModalDataset(X, features, grouped_featsnops);
+		fmd = FeatModalDataset(X);
 
 		StumpFeatModalDatasetWithMemoization{T, WorldType}(fmd, computeRelationGlob = computeRelationGlob)
 
