@@ -4,8 +4,10 @@ include("runner.jl")
 global_logger(ConsoleLogger(stderr, DecisionTree.DTOverview))
 # global_logger(ConsoleLogger(stderr, DecisionTree.DTDebug))
 # global_logger(ConsoleLogger(stderr, DecisionTree.DTDetail))
-X = OntologicalDataset{Int64,1}(Ontology{ModalLogic.Interval}(ModalLogic.IARelations),
-	reshape(1:(15*2*10) |> collect,15,2,10))
+X = OntologicalDataset{Int64,1}(
+	reshape(1:(15*2*10) |> collect,15,2,10),
+	Ontology{ModalLogic.Interval}(ModalLogic.IARelations)
+)
 
 ################################################################################
 ################################################################################

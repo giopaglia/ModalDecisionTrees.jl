@@ -71,7 +71,7 @@ optimize_forest_computation = true
 
 forest_args = []
 
-for n_trees in [1] # [50,100] TODO
+for n_trees in [] # [50,100] TODO
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
 			push!(forest_args, (
@@ -155,29 +155,28 @@ legacy_gammas_check = false
 
 exec_dataseed = 1:10
 
+# exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization] # TODO
 
 exec_n_task_use_aug = [
 	(1, false),
-	(2, true),
-	(3, true),
-	(2, false),
-	(3, false),
+	# (2, true),
+	# (3, true),
+	# (2, false),
+	# (3, false),
 ]
-exec_n_versions = 3:3 # 1:3 # 1:3 # TODO
+exec_n_versions = 1:1 # 1:3 # 1:3 # TODO
 
 exec_nbands = [2] # [20,40,60] TODO
 
-# max_points = 30
-
 exec_dataset_kwargs =   [( # TODO
-							max_points = 10,
+							max_points = 5,
 							ma_size = 45,
 							ma_step = 30,
-						),(
-							max_points = 20,
-							ma_size = 45,
-							ma_step = 30,
+						# ),(
+						# 	max_points = 20,
+						# 	ma_size = 45,
+						# 	ma_step = 30,
 						# ),(
 						# 	max_points = 30,
 						# 	ma_size = 45,

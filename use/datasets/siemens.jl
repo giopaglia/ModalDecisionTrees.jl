@@ -263,7 +263,7 @@ end
 
 
 
-function sample(ds::ClassificationDataset,
+function cd_sample(ds::ClassificationDataset,
 		range::Union{UnitRange{Int},Nothing};
 		invert::Bool=false)
 
@@ -300,7 +300,7 @@ function sample(ds::ClassificationDataset,
 	return ClassificationDataset([ModalFrame(timeseries_df)], CategoricalArray(output_classes))
 end
 
-function sample(ds::ClassificationDataset,
+function cd_sample(ds::ClassificationDataset,
 	percentage::Float64; 
 	seed::Int=1,
 	bias::Float64=0.0, # bias to uniform

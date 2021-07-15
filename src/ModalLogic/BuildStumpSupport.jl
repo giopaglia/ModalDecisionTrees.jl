@@ -5,12 +5,13 @@
 # 	) where {T, N, WorldType<:AbstractWorld} = FeaturedWorldDataset{T, WorldType}(X, features)
 
 Base.@propagate_inbounds function FeaturedWorldDataset(
-		X::OntologicalDataset,
-		features::AbstractVector{<:FeatureTypeFun}
+		X::OntologicalDataset
 	)
 
 	@logmsg DTOverview "OntologicalDataset -> FeatModalDataset"
 
+	features = X.features
+	
 	n_instances = n_samples(X)
 	n_features = length(features)
 	
