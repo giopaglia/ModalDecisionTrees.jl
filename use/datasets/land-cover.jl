@@ -30,17 +30,23 @@ PaviaDataset() = begin
 end
 
 SampleLandCoverDataset(dataset::String,
-												n_samples_per_label::Int,
-												sample_size::Union{Int,NTuple{2,Int}}
+												n_samples_per_label::Integer,
+												window_size::Union{Integer,NTuple{2,Integer}}
 												;
+												pad_window_size::Union{Integer,NTuple{2,Integer}} = window_size,
 												stratify = true,
-												n_attributes::Int = -1,
+												n_attributes::Integer = -1,
 												flattened::Union{Bool,Symbol} = false,
 												rng = Random.GLOBAL_RNG :: Random.AbstractRNG) = begin
-	if sample_size isa Int
-		sample_size = (sample_size, sample_size)
+	if window_size isa Integer
+		window_size = (window_size, window_size)
 	end
-	@assert isodd(sample_size[1]) && isodd(sample_size[2])
+	if pad_window_size isa Integer
+		pad_window_size = (pad_window_size, pad_window_size)
+	end
+	@assert pad_window_size[1] >= window_size[1] && pad_window_size[2] >= window_size[2]
+
+	@assert isodd(window_size[1]) && isodd(window_size[2])
 	(Xmap, Ymap), class_labels_map = 	if dataset == "IndianPines"
 									IndianPinesDataset(),["Alfalfa", "Corn-notill", "Corn-mintill", "Corn", "Grass-pasture", "Grass-trees", "Grass-pasture-mowed", "Hay-windrowed", "Oats", "Soybean-notill", "Soybean-mintill", "Soybean-clean", "Wheat", "Woods", "Buildings-Grass-Trees-Drives", "Stone-Steel-Towers"]
 								elseif dataset == "Salinas"
@@ -101,38 +107,46 @@ SampleLandCoverDataset(dataset::String,
 
 	X,Y = size(Xmap)[1], size(Xmap)[2]
 	tot_attributes = size(Xmap)[3]
-	inputs = Array{eltype(Xmap),4}(undef, sample_size[1], sample_size[2], n_samples, tot_attributes)
+	inputs = Array{eltype(Xmap),4}(undef, window_size[1], window_size[2], n_samples, tot_attributes)
 	labels = Vector{eltype(Ymap)}(undef, n_samples)
 	sampled_class_counts = Dict(y=>0 for y in existingLabels)
+
+	x_pad, y_pad = floor(Int,window_size[1]/2), floor(Int,window_size[2]/2)
+	x_dummypad, y_dummypad = floor(Int,pad_window_size[1]/2), floor(Int,pad_window_size[2]/2)
+
+	# println(1+x_dummypad, ":", (X-x_dummypad))
+	# println(1+y_dummypad, ":", (Y-y_dummypad))
 
 	already_sampled = fill(false, X, Y)
 	for i in 1:n_samples
 		# print(i)
-		while (x = rand(rng, 1:(X-sample_size[1])+1);
-					y = rand(rng, 1:(Y-sample_size[2])+1);
-					exLabel = Ymap[x+floor(Int,sample_size[1]/2),y+floor(Int,sample_size[2]/2)];
-					exLabel == 0 || class_is_to_ignore[exLabel] || already_sampled[x,y] || sampled_class_counts[exLabel] == n_samples_per_label
-					)
+		while (
+			x = rand(rng, 1+x_dummypad:(X-x_dummypad));
+			y = rand(rng, 1+y_dummypad:(Y-y_dummypad));
+			exLabel = Ymap[x,y];
+			exLabel == 0 || class_is_to_ignore[exLabel] || already_sampled[x,y] || sampled_class_counts[exLabel] == n_samples_per_label
+		)
 		end
-		# print( Xmap[x:x+sample_size[1]-1,y:y+sample_size[2]-1,:] )
+		# print( Xmap[x:x+window_size[1]-1,y:y+window_size[2]-1,:] )
 		# print( size(inputs[:,:,i,:]) )
 		# readline()
 		# print(label)
 		# print(sampled_class_counts)
 		# println(x,y)
-		# println(x,x+sample_size[1]-1)
-		# println(y,y+sample_size[2]-1)
+		# println(x,x+window_size[1]-1)
+		# println(y,y+window_size[2]-1)
 		# println(already_sampled[x,y])
 		# readline()
 
-		inputs[:,:,i,:] .= Xmap[x:x+sample_size[1]-1,y:y+sample_size[2]-1,:]
+		inputs[:,:,i,:] .= Xmap[x-x_pad:x+x_pad, y-y_pad:y+y_pad, :]
 		already_sampled[x,y] = true
-		labels[i] = findfirst(x->x==exLabel, existingLabels)
+		labels[i] = findfirst(l->l==exLabel, existingLabels)
 		sampled_class_counts[exLabel] += 1
 		# readline()
 	end
+
 	if n_attributes != -1
-		# new_inputs = Array{eltype(Xmap),4}(undef, sample_size[1], sample_size[2], n_samples, n_attributes)
+		# new_inputs = Array{eltype(Xmap),4}(undef, window_size[1], window_size[2], n_samples, n_attributes)
 		n_attributes
 		inputs = inputs[:,:,:,1:floor(Int, tot_attributes/n_attributes):tot_attributes]
 		# new_inputs[:,:,:,:] = inputs[:,:,:,:]

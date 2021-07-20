@@ -21,6 +21,8 @@ data_savedir = results_dir * "/cache"
 tree_savedir = results_dir * "/trees"
 
 dry_run = false
+# dry_run = true
+# dry_run = :dataset_only
 
 # save_datasets = true
 save_datasets = false
@@ -155,13 +157,26 @@ legacy_gammas_check = false
 exec_dataseed = 1:10
 
 # exec_dataset_name = ["Salinas", "Salinas-A", "PaviaCentre", "IndianPines", "Pavia"]
-exec_dataset_name = ["Pavia"] # , "Salinas-A", "PaviaCentre", "IndianPines", "Salinas"]
+exec_dataset_name = ["Pavia", "Salinas-A", "PaviaCentre", "IndianPines", "Salinas"]
+# exec_dataset_name = ["Pavia"] # , "Salinas-A", "PaviaCentre", "IndianPines", "Salinas"]
 
 # exec_windowsize_flattened_ontology_test_operators = [(1,false,"o_None","TestOpGeq"),(3,:flattened,"o_None","TestOpGeq"),(3,:averaged,"o_None","TestOpGeq"),(3,false,"o_RCC8","TestOpAll"),(3,false,"o_RCC5","TestOpAll")]
-# exec_windowsize_flattened_ontology_test_operators = [(1,false,"o_None","TestOpGeq"),(3,:flattened,"o_None","TestOpGeq"),(3,:averaged,"o_None","TestOpGeq"),(3,false,"o_RCC8","TestOp"),(3,false,"o_RCC5","TestOp")]
+exec_windowsize_flattened_ontology_test_operators = [
+	((1,7),false,"o_None","TestOpGeq"),
+	((3,7),:flattened,"o_None","TestOpGeq"),
+	# ((3,7),:averaged,"o_None","TestOpGeq"),
+	((3,7),false,"o_RCC8","TestOp"),
+	((3,7),false,"o_RCC5","TestOp"),
+	# ((3,7),false,"o_RCC8","TestOpAll"),
+	# ((3,7),false,"o_RCC5","TestOpAll"),
+]
 # exec_windowsize_flattened_ontology_test_operators = [(3,:averaged,"o_None","TestOpGeq")]
-#exec_windowsize_flattened_ontology_test_operators = [(5,false,"o_RCC8","TestOpAll"),(7,false,"o_RCC8","TestOpAll"),(9,false,"o_RCC8","TestOpAll")]
-exec_windowsize_flattened_ontology_test_operators = [(5,false,"o_RCC8","TestOp"),(7,false,"o_RCC8","TestOp"),(9,false,"o_RCC8","TestOp")]
+#exec_windowsize_flattened_ontology_test_operators = [
+# 	(5,false,"o_RCC8","TestOpAll"),
+# 	(7,false,"o_RCC8","TestOpAll"),
+# 	(9,false,"o_RCC8","TestOpAll")
+# ]
+# exec_windowsize_flattened_ontology_test_operators = [(5,false,"o_RCC8","TestOp"),(7,false,"o_RCC8","TestOp"),(9,false,"o_RCC8","TestOp")]
 # exec_windowsize_flattened_ontology_test_operators = [(3,false,"o_ALLiDxA","TestOp")]
 # exec_windowsize_flattened_ontology_test_operators = [(7,false,"o_ALLiDxA","TestOp")]
 
@@ -201,6 +216,7 @@ ontology_dict = Dict(
 	"o_None"    => OneWorldOntology,
 )
 
+# exec_n_samples_per_label = 2:2
 exec_n_samples_per_label = 100:100
 exec_n_attributes = -1:-1
 
@@ -217,7 +233,8 @@ dataset_function = (
 		dataset_name)->SampleLandCoverDataset(
 					dataset_name,
 					n_samples_per_label,
-					windowsize,
+					windowsize[1];
+					pad_window_size = windowsize[2],
 					stratify = false,
 					# stratify = true,
 					flattened = flattened,
@@ -286,7 +303,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		println("...")
 	end
 
-	if dry_run
+	if dry_run == true
 		continue
 	end
 
@@ -307,6 +324,10 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	
 	# Load Dataset
 	dataset, n_label_samples = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
+
+	if dry_run == :dataset_only
+		continue
+	end
 
 	cur_modal_args = modal_args
 	cur_data_modal_args = merge(data_modal_args,
