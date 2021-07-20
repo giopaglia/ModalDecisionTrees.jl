@@ -119,9 +119,9 @@ log_level = DecisionTree.DTOverview
 # log_level = DecisionTree.DTDebug
 # log_level = DecisionTree.DTDetail
 
-# timing_mode = :none
-# timing_mode = :time
-timing_mode = :btime
+#timing_mode = :none
+timing_mode = :time
+#timing_mode = :btime
 
 # round_dataset_to_datatype = false
 # round_dataset_to_datatype = UInt8
@@ -160,7 +160,8 @@ exec_dataset_name = ["Pavia"] # , "Salinas-A", "PaviaCentre", "IndianPines", "Sa
 # exec_windowsize_flattened_ontology_test_operators = [(1,false,"o_None","TestOpGeq"),(3,:flattened,"o_None","TestOpGeq"),(3,:averaged,"o_None","TestOpGeq"),(3,false,"o_RCC8","TestOpAll"),(3,false,"o_RCC5","TestOpAll")]
 # exec_windowsize_flattened_ontology_test_operators = [(1,false,"o_None","TestOpGeq"),(3,:flattened,"o_None","TestOpGeq"),(3,:averaged,"o_None","TestOpGeq"),(3,false,"o_RCC8","TestOp"),(3,false,"o_RCC5","TestOp")]
 # exec_windowsize_flattened_ontology_test_operators = [(3,:averaged,"o_None","TestOpGeq")]
-exec_windowsize_flattened_ontology_test_operators = [(5,false,"o_RCC8","TestOpAll"),(7,false,"o_RCC8","TestOpAll"),(9,false,"o_RCC8","TestOpAll")]
+#exec_windowsize_flattened_ontology_test_operators = [(5,false,"o_RCC8","TestOpAll"),(7,false,"o_RCC8","TestOpAll"),(9,false,"o_RCC8","TestOpAll")]
+exec_windowsize_flattened_ontology_test_operators = [(5,false,"o_RCC8","TestOp"),(7,false,"o_RCC8","TestOp"),(9,false,"o_RCC8","TestOp")]
 # exec_windowsize_flattened_ontology_test_operators = [(3,false,"o_ALLiDxA","TestOp")]
 # exec_windowsize_flattened_ontology_test_operators = [(7,false,"o_ALLiDxA","TestOp")]
 
