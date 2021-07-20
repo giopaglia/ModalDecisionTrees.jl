@@ -21,7 +21,7 @@ export AbstractWorld, AbstractRelation,
 				world_type, world_types # TODO maybe remove this function?
 				# enumAccessibles, enumAccRepr
 
-# Fix
+# Fix (not needed in Julia 1.7, see https://github.com/JuliaLang/julia/issues/34674 )
 Base.keys(g::Base.Generator) = g.iter
 
 # Abstract classes for world & relations
