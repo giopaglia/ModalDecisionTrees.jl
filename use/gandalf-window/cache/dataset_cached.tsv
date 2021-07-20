@@ -1,0 +1,5 @@
+TIMESTAMP	FILE NAME	COMP TIME	ARGS	
+13/07/2021 17:06:36	dataset_28a22f23cd1b7e8c406caee917a6e8a5e5b142deda8bdf4c3f4124dbf1566fd2.jld	00:00:05	((5, false, TestOperator[⫺, ⫹, ⫺₉₀, ⫹₉₀, ⫺₈₀, ⫹₈₀, ⫺₇₀, ⫹₇₀, ⫺₆₀, ⫹₆₀]), 100, -1, "Pavia")	
+14/07/2021 10:44:11	dataset_645b3706e0235f77d670f84d1dc4289fe68eb83f7a5018421aebf600713eec6b.jld	00:00:05	((5, false, TestOperator[⫺, ⫹]), 100, -1, "Pavia")	
+15/07/2021 07:20:27	dataset_fac23151d67713cba3c14706365d9a792dcbb6b0a3f5713f7f4aead38a85cd8b.jld	00:00:06	((7, false, TestOperator[⫺, ⫹]), 100, -1, "Pavia")	
+20/07/2021 14:54:55	dataset_dbdcbeea3815d6365d4125c5341b849595b95c6fe22e52791e471f4d9a72b349.jld	00:00:01	((9, false, TestOperator[⫺, ⫹]), 100, -1, "Pavia")	

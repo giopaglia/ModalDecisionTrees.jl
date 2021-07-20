@@ -153,7 +153,7 @@ legacy_gammas_check = false
 ##################################### SCAN #####################################
 ################################################################################
 
-exec_dataseed = 1:10
+exec_dataseed = 1:5 # TODO 10
 
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization] # TODO
@@ -166,11 +166,14 @@ exec_n_task_use_aug = [
 	# (3, false),
 ]
 exec_n_versions = 1:1 # 1:3 # 1:3 # TODO
-
-exec_nbands = [2] # [20,40,60] TODO
+exec_nbands = [20,40] # [20,40,60] TODO
 
 exec_dataset_kwargs =   [( # TODO
-							max_points = 5,
+						#	max_points = 10,
+						#	ma_size = 45,
+						#	ma_step = 30,
+						#),(
+							max_points = 20,
 							ma_size = 45,
 							ma_step = 30,
 						# ),(
@@ -455,4 +458,5 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 end
 
 println("Done!")
+
 exit(0)
