@@ -1,24 +1,19 @@
-non-precompute_gammas, that is, allow training directly on Ontological Dataset
+- hybrid memoization: use memoization only x% of the times.
+- enable learning in implicit form (allow training directly on Ontological Dataset) and study the parallelization
+- introduce post pruning (improve pre-pruning/post-pruning against a dataset and introduce validation/test set distinction)
+- Lookahead: two levels
+- Add dataset infos in result: shape, e tempi di calcolo del dataset.
+- Save confusion matrices... (be careful of random forests with their oob error...)
+- Think: need to support categoricals...?
+- Remove n_relations()?
 
-Aggiungere tempi di calcolo del dataset!
-
-salvare le confusion matrices... attenzione alle foreste...
-
-
-Bisogna trattare i categorici!!!
-
-remove n_relations()?
+- Highlight difference between channel_size and max_channel_size
 
 Nota: save_datasets c'e un errore con resumable
 
 ☐	Optimize: TODO add enumAccReprAggr for relationAll, and for all worldtypes and relations
 ☐	Ottimizza gli enumAccessibles e i enumAccessibles per i sets.
 ☐	remove ch_readWorld in favor of inst_readWorld. In general, remove all gamma infrastructure.
-
-julia -t30 scan-gandalf.jl > results-gandalf/scan.out 2> results-gandalf/scan.err &
-julia -t30 scan-gandalf.jl -f > results-gandalf/scan.out 2> results-gandalf/scan.err &
-
-channel_size/max_channel_size
 
 TODO Prova anche quel map(aggr->aggr...)
 
@@ -33,14 +28,8 @@ let perform_consistency_check be an argument (split_consistency_satisfied_check)
 _split!: Also write test_condition this for OntologicalDataset and cross check
 TODO add consistency_step_data and remove occurrences of "gamma"
 
-Scrivi i apply_tree per MultiFrameOntologicalDataset e MultiFrameFeatModalDataset e verifica che funzioni tutto.
-
 
 computePropositionalThreshold, computeModalThreshold, test_decision seem to do similar things. Maybe uniform their style and naming
-
-
-Add test_flattened and test_averaged parameters to runner.jl, that evaluate the same models on a propositional dataset
-
 
 
 
