@@ -5,6 +5,7 @@
 - Add dataset infos in result: shape, e tempi di calcolo del dataset.
 - Save confusion matrices... (be careful of random forests with their oob error...)
 - Think: need to support categoricals...?
+- Try running with: --compile=min -O0, and then with -O3
 - Remove n_relations()?
 
 - Highlight difference between channel_size and max_channel_size
