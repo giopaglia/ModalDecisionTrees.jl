@@ -197,6 +197,7 @@ function KDDDataset_not_stratified((n_task,n_version),
 
 		# println([size(ts, 1) for ts in timeseries])
 		max_timepoints = maximum(size(ts, 1) for ts in timeseries)
+		println("max_timepoints: $(max_timepoints)")
 		n_unique_freqs = unique(size(ts, 2) for ts in timeseries)
 		@assert length(n_unique_freqs) == 1 "KDDDataset: length(n_unique_freqs) != 1: {$n_unique_freqs} != 1"
 		n_unique_freqs = n_unique_freqs[1]

@@ -563,8 +563,7 @@ function exec_scan(
 		callback                        :: Function = identity,
 	)
 
-	go_tree(slice_id, dataset, tree_args, rng) = begin
-		(X_train,Y_train), (X_test,Y_test) = dataset
+	go_tree(slice_id, X_train, Y_train, X_test, Y_test, tree_args, rng) = begin
 		started = Dates.now()
 		T =
 			if timing_mode == :none
@@ -613,8 +612,7 @@ function exec_scan(
 		return (T, cm, Tt);
 	end
 
-	go_forest(slice_id, dataset, f_args, rng; prebuilt_model::Union{Nothing,AbstractVector{Forest{S}}} = nothing) where {S} = begin
-		(X_train,Y_train), (X_test,Y_test) = dataset
+	go_forest(slice_id, X_train, Y_train, X_test, Y_test, f_args, rng; prebuilt_model::Union{Nothing,AbstractVector{Forest{S}}} = nothing) where {S} = begin
 		Fs, Ft = 
 			if isnothing(prebuilt_model)
 				started = Dates.now()
@@ -671,7 +669,8 @@ function exec_scan(
 		return (Fs, cms, Ft);
 	end
 
-	go(slice_id, dataset) = begin
+	go(slice_id, X_train, Y_train, X_test, Y_test) = begin
+
 		Ts   = []
 		Fs   = []
 		Tcms = []
@@ -681,7 +680,7 @@ function exec_scan(
 
 		for (i_model, this_args) in enumerate(tree_args)
 			checkpoint_stdout("Computing tree $(i_model) / $(length(tree_args))...")
-			this_T, this_Tcm, this_Tt = go_tree(slice_id, dataset, this_args, Random.MersenneTwister(train_seed))
+			this_T, this_Tcm, this_Tt = go_tree(slice_id, X_train, Y_train, X_test, Y_test, this_args, Random.MersenneTwister(train_seed))
 			push!(Ts, this_T)
 			push!(Tcms, this_Tcm)
 			push!(Tts, this_Tt)
@@ -728,7 +727,7 @@ function exec_scan(
 					model = model.f
 				end
 
-				forest_supports_build_order[i].f, forest_supports_build_order[i].cm, forest_supports_build_order[i].time = go_forest(slice_id, dataset, f.f_args, Random.MersenneTwister(train_seed), prebuilt_model = model)
+				forest_supports_build_order[i].f, forest_supports_build_order[i].cm, forest_supports_build_order[i].time = go_forest(slice_id, X_train, Y_train, X_test, Y_test, f.f_args, Random.MersenneTwister(train_seed), prebuilt_model = model)
 			end
 
 			# put resulting forests in vector in the order the user gave them
@@ -746,7 +745,7 @@ function exec_scan(
 		else
 			for (i_forest, f_args) in enumerate(forest_args)
 				checkpoint_stdout("Computing Random Forest $(i_forest) / $(length(forest_args))...")
-				this_F, this_Fcm, this_Ft = go_forest(slice_id, dataset, f_args, Random.MersenneTwister(train_seed))
+				this_F, this_Fcm, this_Ft = go_forest(slice_id, X_train, Y_train, X_test, Y_test, f_args, Random.MersenneTwister(train_seed))
 				push!(Fs, this_F)
 				push!(Fcms, this_Fcm)
 				push!(Fts, this_Ft)
@@ -898,18 +897,16 @@ function exec_scan(
 			# TODO
 			# if test_flattened == true
 			# 	# Flatten 
-			# 	(X_train,Y_train), (X_test,Y_test) = dataset
 			# 	X_train = ...
 			# 	X_test = ...
-			# 	flat_dataset = (X_train,Y_train), (X_test,Y_test)
-			# 	push!(rets, go(flat_dataset))
+			# 	push!(rets, go(slice_id, X_train, Y_train, X_test, Y_test))
 			# end
 			# test_averaged ...
 
-			push!(rets, go(slice_id, dataset))
+			push!(rets, go(slice_id, X_train, Y_train, X_test, Y_test))
 			
 			# try
-			# go(slice_id, dataset)
+			# go(slice_id, X_train, Y_train, X_test, Y_test)
 			# catch e
 			# 	println("exec_run: An error occurred!")
 			# 	println(e)

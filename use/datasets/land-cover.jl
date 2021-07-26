@@ -1,43 +1,47 @@
+using ImageFiltering
 
-IndianPinesDataset() = begin
+function IndianPinesDataset()
 	X = matread(data_dir * "indian-pines/Indian_pines_corrected.mat")["indian_pines_corrected"]
 	Y = matread(data_dir * "indian-pines/Indian_pines_gt.mat")["indian_pines_gt"]
 	(X, Y) = map(((x)->round.(Int,x)), (X, Y))
 end
 
-SalinasDataset() = begin
+function SalinasDataset()
 	X = matread(data_dir * "salinas/Salinas_corrected.mat")["salinas_corrected"]
 	Y = matread(data_dir * "salinas/Salinas_gt.mat")["salinas_gt"]
 	(X, Y) = map(((x)->round.(Int,x)), (X, Y))
 end
 
-SalinasADataset() = begin
+function SalinasADataset()
 	X = matread(data_dir * "salinas-A/SalinasA_corrected.mat")["salinasA_corrected"]
 	Y = matread(data_dir * "salinas-A/SalinasA_gt.mat")["salinasA_gt"]
 	(X, Y) = map(((x)->round.(Int,x)), (X, Y))
 end
 
-PaviaCentreDataset() = begin
+function PaviaCentreDataset()
 	X = matread(data_dir * "paviaC/Pavia.mat")["pavia"]
 	Y = matread(data_dir * "paviaC/Pavia_gt.mat")["pavia_gt"]
 	(X, Y) = map(((x)->round.(Int,x)), (X, Y))
 end
 
-PaviaDataset() = begin
+function PaviaDataset()
 	X = matread(data_dir * "paviaU/PaviaU.mat")["paviaU"]
 	Y = matread(data_dir * "paviaU/PaviaU_gt.mat")["paviaU_gt"]
 	(X, Y) = map(((x)->round.(Int,x)), (X, Y))
 end
 
-SampleLandCoverDataset(dataset::String,
-												n_samples_per_label::Integer,
-												window_size::Union{Integer,NTuple{2,Integer}}
-												;
-												pad_window_size::Union{Integer,NTuple{2,Integer}} = window_size,
-												stratify = true,
-												n_attributes::Integer = -1,
-												flattened::Union{Bool,Symbol} = false,
-												rng = Random.GLOBAL_RNG :: Random.AbstractRNG) = begin
+function SampleLandCoverDataset(
+	dataset::String,
+	n_samples_per_label::Integer,
+	window_size::Union{Integer,NTuple{2,Integer}}
+	;
+	pad_window_size::Union{Integer,NTuple{2,Integer}} = window_size,
+	stratify = true,
+	n_attributes::Integer = -1,
+	flattened::Union{Bool,Symbol} = false,
+	apply_filter::Union{Bool,Tuple} = false,
+	rng = Random.GLOBAL_RNG :: Random.AbstractRNG
+)
 	if window_size isa Integer
 		window_size = (window_size, window_size)
 	end
@@ -145,6 +149,11 @@ SampleLandCoverDataset(dataset::String,
 		# readline()
 	end
 
+	if (sum(already_sampled) != n_samples)
+		error("ERROR! Sampling failed! $(n_samples) $(sum(already_sampled))")
+	end
+	# println(labels)
+
 	if n_attributes != -1
 		# new_inputs = Array{eltype(Xmap),4}(undef, window_size[1], window_size[2], n_samples, n_attributes)
 		n_attributes
@@ -153,10 +162,15 @@ SampleLandCoverDataset(dataset::String,
 		# inputs = new_inputs
 	end
 
-	if (sum(already_sampled) != n_samples)
-		error("ERROR! Sampling failed! $(n_samples) $(sum(already_sampled))")
+	if apply_filter != false
+		if apply_filter[1] == "avg"
+			k = apply_filter[2]
+			inputs = imfilter(inputs, ones(k,k,1,1)/9, Inner())
+			@assert size(inputs)[1:2] == (window_size[1]-k+1, window_size[2]-k+1)
+		else
+			error("Unexpected value for apply_filter: $(apply_filter)")
+		end
 	end
-	# println(labels)
 
 	sp = sortperm(labels)
 	labels = labels[sp]

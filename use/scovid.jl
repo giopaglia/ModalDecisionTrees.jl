@@ -20,8 +20,9 @@ iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir = results_dir * "/cache"
 tree_savedir = results_dir * "/trees"
 
-dry_run = false
+# dry_run = false
 # dry_run = true
+dry_run = :dataset_only
 
 # save_datasets = true
 save_datasets = false
@@ -42,8 +43,8 @@ tree_args = [
 #	)
 ]
 
-for loss_function in [DecisionTree.util.entropy]
-	for min_samples_leaf in [2] # [1,2]
+for loss_function in [DecisionTree.util.entropy, DecisionTree.util.gini]
+	for min_samples_leaf in [2,4] # [1,2]
 		for min_purity_increase in [0.01] # [0.01, 0.001]
 			for min_loss_at_leaf in [0.2, 0.6] # [0.4, 0.6]
 				push!(tree_args, 
@@ -71,7 +72,7 @@ optimize_forest_computation = true
 
 forest_args = []
 
-for n_trees in [] # [50,100] TODO
+for n_trees in [50,100]
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
 			push!(forest_args, (
@@ -153,43 +154,50 @@ legacy_gammas_check = false
 ##################################### SCAN #####################################
 ################################################################################
 
-exec_dataseed = 1:5 # TODO 10
+exec_dataseed = 1:10
 
 # exec_use_training_form = [:dimensional]
-exec_use_training_form = [:stump_with_memoization] # TODO
+exec_use_training_form = [:stump_with_memoization]
 
 exec_n_task_use_aug = [
 	(1, false),
-	# (2, true),
-	# (3, true),
-	# (2, false),
-	# (3, false),
+	(2, true),
+	(3, true),
+	(2, false),
+	(3, false),
 ]
-exec_n_versions = 1:1 # 1:3 # 1:3 # TODO
-exec_nbands = [20,40] # [20,40,60] TODO
+exec_n_versions = 1:3
+exec_nbands = [40] # [20,40,60]
 
 exec_dataset_kwargs =   [( # TODO
 						#	max_points = 10,
 						#	ma_size = 45,
 						#	ma_step = 30,
-						#),(
-							max_points = 20,
-							ma_size = 45,
-							ma_step = 30,
-						# ),(
-						# 	max_points = 20,
+						#),(max_points = 20,
+							# ma_size = 45,
+							# ma_step = 30,
+						# ),(max_points = 20,
 						# 	ma_size = 45,
 						# 	ma_step = 30,
-						# ),(
-						# 	max_points = 30,
+						# ),(max_points = 30,
 						# 	ma_size = 45,
 						# 	ma_step = 30,
-						# ),(
-						# 	max_points = 30,
-						# 	ma_size = 75,
-						# 	ma_step = 50,
-						# ),(
-						# 	max_points = 50,
+						# ),(# max_points = 30,
+							ma_size = 120,
+							ma_step = 100,
+						),(# max_points = 30,
+						# 	ma_size = 120,
+						# 	ma_step = 80,
+						# ),(# max_points = 30,
+							ma_size = 100,
+							ma_step = 75,
+						),(# max_points = 30,
+						# 	ma_size = 90,
+						# 	ma_step = 60,
+						# ),(# max_points = 30,
+							ma_size = 75,
+							ma_step = 50,
+						# ),(# max_points = 50,
 						# 	ma_size = 45,
 						# 	ma_step = 30,
 						)
@@ -367,7 +375,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		println("...")
 	end
 
-	if dry_run
+	if dry_run == true
 		continue
 	end
 
@@ -407,6 +415,10 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	# Load Dataset
 	dataset, n_label_samples = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
+
+	if dry_run == :dataset_only
+		continue
+	end
 
 	## Dataset slices
 	# obtain dataseeds that are were not done before

@@ -156,37 +156,27 @@ legacy_gammas_check = false
 
 exec_dataseed = 1:10
 
-# exec_dataset_name = ["Salinas", "Salinas-A", "PaviaCentre", "IndianPines", "Pavia"]
 exec_dataset_name = ["Pavia", "Salinas-A", "PaviaCentre", "IndianPines", "Salinas"]
-# exec_dataset_name = ["Pavia"] # , "Salinas-A", "PaviaCentre", "IndianPines", "Salinas"]
 
-# exec_windowsize_flattened_ontology_test_operators = [(1,false,"o_None","TestOpGeq"),(3,:flattened,"o_None","TestOpGeq"),(3,:averaged,"o_None","TestOpGeq"),(3,false,"o_RCC8","TestOpAll"),(3,false,"o_RCC5","TestOpAll")]
 exec_windowsize_flattened_ontology_test_operators = [
-	((1,7),false,"o_None","TestOpGeq"),
-	((3,7),:flattened,"o_None","TestOpGeq"),
-	# ((3,7),:averaged,"o_None","TestOpGeq"),
-	((3,7),false,"o_RCC8","TestOp"),
-	((3,7),false,"o_RCC5","TestOp"),
+	# ((1,7),false,"o_None","TestOpGeq"),
+	# ((3,7),:flattened,"o_None","TestOpGeq"),
+	# # ((3,7),:averaged,"o_None","TestOpGeq"),
+	# # ((3,7),false,"o_RCC8","TestOp"),
+	# # ((3,7),false,"o_RCC5","TestOp"),
 	# ((3,7),false,"o_RCC8","TestOpAll"),
 	# ((3,7),false,"o_RCC5","TestOpAll"),
+	#
+	# ((1,7),false,false,"o_None","TestOpGeq"),
+	# ((3,7),false,:flattened,"o_None","TestOpGeq"),
+	# ((3,7),false,false,"o_RCC8","TestOpAll"),
+	# ((3,7),false,false,"o_RCC5","TestOpAll"),
+	#
+	((5,7),("avg", 3),:flattened,"o_None","TestOpGeq"),
+	((5,7),("avg", 3),false,"o_RCC8","TestOpAll"),
+	((5,7),("avg", 3),false,"o_RCC5","TestOpAll"),
 ]
-# exec_windowsize_flattened_ontology_test_operators = [(3,:averaged,"o_None","TestOpGeq")]
-#exec_windowsize_flattened_ontology_test_operators = [
-# 	(5,false,"o_RCC8","TestOpAll"),
-# 	(7,false,"o_RCC8","TestOpAll"),
-# 	(9,false,"o_RCC8","TestOpAll")
-# ]
 # exec_windowsize_flattened_ontology_test_operators = [(5,false,"o_RCC8","TestOp"),(7,false,"o_RCC8","TestOp"),(9,false,"o_RCC8","TestOp")]
-# exec_windowsize_flattened_ontology_test_operators = [(3,false,"o_ALLiDxA","TestOp")]
-# exec_windowsize_flattened_ontology_test_operators = [(7,false,"o_ALLiDxA","TestOp")]
-
-# exec_windowsize_flattened_ontology_test_operators = Dict(
-#   "single-pixel"  => (1,false,"o_None","TestOpGeq"),
-#   "flattened"     => (3,:flattened,"o_None","TestOpGeq"),
-#   "averaged"      => (3,:averaged,"o_None","TestOpGeq"),
-#   "RCC8"          => (3,false,"o_RCC8","TestOpAll"),
-#   "RCC5"          => (3,false,"o_RCC5","TestOpAll"),
-# )
 
 # https://github.com/JuliaIO/JSON.jl/issues/203
 # https://discourse.julialang.org/t/json-type-serialization/9794
@@ -228,19 +218,18 @@ exec_ranges = (;
 )
 
 dataset_function = (
-	(windowsize,flattened,test_operators),
+	(windowsize,apply_filter,flattened,test_operators),
 	n_samples_per_label,n_attributes,
 		dataset_name)->SampleLandCoverDataset(
 					dataset_name,
 					n_samples_per_label,
 					windowsize[1];
 					pad_window_size = windowsize[2],
-					stratify = false,
-					# stratify = true,
-					flattened = flattened,
-					n_attributes = n_attributes,
-					# rng = dataset_rng)
-					rng = copy(main_rng))
+					stratify        = false,
+					flattened       = flattened,
+					apply_filter    = apply_filter,
+					n_attributes    = n_attributes,
+					rng             = copy(main_rng))
 
 ################################################################################
 ################################### SCAN FILTERS ###############################
@@ -315,12 +304,12 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	
 	# windowsize_flattened_ontology_test_operators = exec_windowsize_flattened_ontology_test_operators_dict[windowsize_flattened_ontology_test_operators]
 
-	(windowsize,flattened,ontology,test_operators) = windowsize_flattened_ontology_test_operators
+	(windowsize,apply_filter,flattened,ontology,test_operators) = windowsize_flattened_ontology_test_operators
 
 	test_operators = test_operators_dict[test_operators]
 	ontology       = ontology_dict[ontology]
 
-	dataset_fun_sub_params = (windowsize,flattened,test_operators), n_samples_per_label,n_attributes, dataset_name
+	dataset_fun_sub_params = (windowsize,apply_filter,flattened,test_operators), n_samples_per_label,n_attributes, dataset_name
 	
 	# Load Dataset
 	dataset, n_label_samples = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
