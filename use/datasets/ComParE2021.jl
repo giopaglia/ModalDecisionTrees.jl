@@ -89,10 +89,6 @@ function ComParE2021Dataset(;
 		# readline()
 	end
 
-	println("max_ts_length         = (max = $(StatsBase.maximum(max_ts_length)), min = $(StatsBase.minimum(max_ts_length)), mean = $(StatsBase.mean(max_ts_length)), std = $(StatsBase.std(max_ts_length)))")
-	println("max_ts_with_ma_length = (max = $(StatsBase.maximum(max_ts_with_ma_length)), min = $(StatsBase.minimum(max_ts_with_ma_length)), mean = $(StatsBase.mean(max_ts_with_ma_length)), std = $(StatsBase.std(max_ts_with_ma_length)))")
-	println("max_ts_cut_length     = (max = $(StatsBase.maximum(max_ts_cut_length)), min = $(StatsBase.minimum(max_ts_cut_length)), mean = $(StatsBase.mean(max_ts_cut_length)), std = $(StatsBase.std(max_ts_cut_length)))")
-
 	max_timepoints = maximum(size(ts, 1) for ts in timeseries)
 	n_unique_freqs = unique(size(ts, 2) for ts in timeseries)
 	@assert length(n_unique_freqs) == 1 "KDDDataset: length(n_unique_freqs) != 1: {$n_unique_freqs} != 1"
@@ -108,6 +104,12 @@ function ComParE2021Dataset(;
 	end
 
 	class_counts = [class_counts[label] for label in class_names] |> Tuple
+	
+	println("max_ts_length         = (max = $(StatsBase.maximum(max_ts_length)), min = $(StatsBase.minimum(max_ts_length)), mean = $(StatsBase.mean(max_ts_length)), std = $(StatsBase.std(max_ts_length)))")
+	println("max_ts_with_ma_length = (max = $(StatsBase.maximum(max_ts_with_ma_length)), min = $(StatsBase.minimum(max_ts_with_ma_length)), mean = $(StatsBase.mean(max_ts_with_ma_length)), std = $(StatsBase.std(max_ts_with_ma_length)))")
+	println("max_ts_cut_length     = (max = $(StatsBase.maximum(max_ts_cut_length)), min = $(StatsBase.minimum(max_ts_cut_length)), mean = $(StatsBase.mean(max_ts_cut_length)), std = $(StatsBase.std(max_ts_cut_length)))")
+
+	println("Class counts: $(class_counts); # points: $(max_timepoints)")
 
 	(X, labels), class_counts;
 end

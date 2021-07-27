@@ -20,8 +20,11 @@ function print_function(func::Core.Function)::String
 		"sqrt"
 	elseif func === DecisionTree.util.entropy
 		"entropy"
+	elseif func === DecisionTree.util.gini
+		"gini"
 	else
-		""
+		# ""
+		string(func)
 	end
 end
 
