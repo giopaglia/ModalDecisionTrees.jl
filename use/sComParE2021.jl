@@ -105,8 +105,8 @@ modal_args = (;
 )
 
 data_modal_args = (;
-	ontology = getIntervalOntologyOfDim(Val(1)),
-	# ontology = getIntervalOntologyOfDim(Val(2)),
+	# ontology = getIntervalOntologyOfDim(Val(1)),
+	ontology = getIntervalOntologyOfDim(Val(2)),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A]),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A, ModalLogic.IA_L, ModalLogic.IA_Li, ModalLogic.IA_D]),
 )
@@ -412,7 +412,6 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		cur_preprocess_wavs,
 		use_full_mfcc,
 	)
-	print(dataset_fun_sub_params)
 
 	# Load Dataset
 	# dataset_function(dataset_fun_sub_params...)
