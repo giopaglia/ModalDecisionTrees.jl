@@ -18,7 +18,7 @@ results_dir = "./covid"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir = results_dir * "/cache"
-tree_savedir = results_dir * "/trees"
+model_savedir = results_dir * "/trees"
 
 # dry_run = false
 # dry_run = true
@@ -124,6 +124,7 @@ log_level = DecisionTree.DTOverview
 # timing_mode = :none
 timing_mode = :time
 # timing_mode = :btime
+#timing_mode = :profile
 
 round_dataset_to_datatype = false
 # round_dataset_to_datatype = UInt8
@@ -453,7 +454,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		### Run params
 		results_dir                     =   results_dir,
 		data_savedir                    =   data_savedir,
-		tree_savedir                    =   tree_savedir,
+		model_savedir                    =   model_savedir,
 		legacy_gammas_check             =   legacy_gammas_check,
 		log_level                       =   log_level,
 		timing_mode                     =   timing_mode,

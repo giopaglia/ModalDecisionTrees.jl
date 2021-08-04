@@ -268,6 +268,8 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 			if use_form == :dimensional
 				if timing_mode == :none
 					OntologicalDataset(X, data_modal_args.ontology, features, featsnops);
+				# elseif timing_mode == :profile
+					# @profile OntologicalDataset(X, data_modal_args.ontology, features, featsnops);
 				elseif timing_mode == :time
 					@time OntologicalDataset(X, data_modal_args.ontology, features, featsnops);
 				elseif timing_mode == :btime
@@ -280,6 +282,8 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 				if use_form == :fmd
 					if timing_mode == :none
 						FeatModalDataset(X);
+					# elseif timing_mode == :profile
+						# @profile FeatModalDataset(X);
 					elseif timing_mode == :time
 						@time FeatModalDataset(X);
 					elseif timing_mode == :btime
@@ -288,6 +292,8 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 				elseif use_form == :stump
 					if timing_mode == :none
 						StumpFeatModalDataset(X, computeRelationGlob = needToComputeRelationGlob);
+					# elseif timing_mode == :profile
+						# @profile StumpFeatModalDataset(X, computeRelationGlob = needToComputeRelationGlob);
 					elseif timing_mode == :time
 						@time StumpFeatModalDataset(X, computeRelationGlob = needToComputeRelationGlob);
 					elseif timing_mode == :btime
@@ -296,6 +302,8 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 				elseif use_form == :stump_with_memoization
 					if timing_mode == :none
 						StumpFeatModalDatasetWithMemoization(X, computeRelationGlob = needToComputeRelationGlob);
+					# elseif timing_mode == :profile
+						# @profile StumpFeatModalDatasetWithMemoization(X, computeRelationGlob = needToComputeRelationGlob);
 					elseif timing_mode == :time
 						@time StumpFeatModalDatasetWithMemoization(X, computeRelationGlob = needToComputeRelationGlob);
 					elseif timing_mode == :btime
@@ -340,6 +348,8 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 			gammas_c(X,test_operators,relationSet,relationId_id,inUseRelation_ids) = begin
 				if timing_mode == :none
 					DecisionTree.computeGammas(X,test_operators,relationSet,relationId_id,inUseRelation_ids);
+				# elseif timing_mode == :profile
+					# @profile DecisionTree.computeGammas(X,test_operators,relationSet,relationId_id,inUseRelation_ids);
 				elseif timing_mode == :time
 					@time DecisionTree.computeGammas(X,test_operators,relationSet,relationId_id,inUseRelation_ids);
 				elseif timing_mode == :btime
@@ -553,7 +563,7 @@ function exec_scan(
 		### Run params
 		results_dir                     ::String,
 		data_savedir                    ::Union{String,Nothing} = nothing,
-		tree_savedir                    ::Union{String,Nothing} = nothing,
+		model_savedir                   ::Union{String,Nothing} = nothing,
 		legacy_gammas_check             = false,
 		log_level                       = DecisionTree.DTOverview,
 		timing_mode                     ::Symbol = :time,
@@ -562,12 +572,16 @@ function exec_scan(
 		skip_training                   :: Bool = false,
 		callback                        :: Function = identity,
 	)
-
+	
+	@assert timing_mode in [:none, :profile, :time, :btime] "Unknown timing_mode!"
+	
 	go_tree(slice_id, X_train, Y_train, X_test, Y_test, tree_args, rng) = begin
 		started = Dates.now()
 		T =
 			if timing_mode == :none
 				build_tree(X_train, Y_train; tree_args..., modal_args..., rng = rng)
+			# elseif timing_mode == :profile
+				# @profile build_tree(X_train, Y_train; tree_args..., modal_args..., rng = rng)
 			elseif timing_mode == :time
 				@time build_tree(X_train, Y_train; tree_args..., modal_args..., rng = rng)
 			elseif timing_mode == :btime
@@ -577,13 +591,14 @@ function exec_scan(
 		println("Train tree:")
 		print(T)
 
-		if !isnothing(tree_savedir)
+		model_save_path = ""
+		if !isnothing(model_savedir)
 			tree_hash = get_hash_sha256(T)
-			total_save_path = tree_savedir * "/tree_" * tree_hash * ".jld"
-			mkpath(dirname(total_save_path))
+			model_save_path = model_savedir * "/tree_" * tree_hash * ".jld"
+			mkpath(dirname(model_save_path))
 
-			checkpoint_stdout("Saving tree to file $(total_save_path)...")
-			JLD2.@save total_save_path T
+			checkpoint_stdout("Saving tree to file $(model_save_path)...")
+			JLD2.@save model_save_path T
 		end
 
 		# If not fulltraining
@@ -602,7 +617,7 @@ function exec_scan(
 			cm = confusion_matrix(Y_test, preds)
 			# @test overall_accuracy(cm) > 0.99
 
-			println("RESULT:\t$(run_name)\t$(slice_id)\t$(tree_args)\t$(modal_args)\t$(pruning_purity_threshold)\t|\t$(display_cm_as_row(cm))")
+			println("RESULT:\t$(run_name)\t$(slice_id)\t$(tree_args)\t$(modal_args)\t$(pruning_purity_threshold)\t|\t$(display_cm_as_row(cm))\t$(model_save_path)")
 			
 			println(cm)
 			# @show cm
@@ -619,6 +634,8 @@ function exec_scan(
 				[
 					if timing_mode == :none
 						build_forest(X_train, Y_train; f_args..., modal_args..., rng = rng);
+					# elseif timing_mode == :profile
+						# @profile build_forest(X_train, Y_train; f_args..., modal_args..., rng = rng);
 					elseif timing_mode == :time
 						@time build_forest(X_train, Y_train; f_args..., modal_args..., rng = rng);
 					elseif timing_mode == :btime
@@ -651,7 +668,17 @@ function exec_scan(
 			cm = confusion_matrix(Y_test, preds)
 			# @test overall_accuracy(cm) > 0.99
 
-			println("RESULT:\t$(run_name)\t$(slice_id)\t$(f_args)\t$(modal_args)\t$(display_cm_as_row(cm))")
+			model_save_path = ""
+			if !isnothing(model_savedir)
+				rf_hash = get_hash_sha256(F)
+				model_save_path = model_savedir * "/rf_" * rf_hash * ".jld"
+				mkpath(dirname(model_save_path))
+
+				checkpoint_stdout("Saving random_forest to file $(model_save_path)...")
+				JLD2.@save model_save_path F
+			end
+
+			println("RESULT:\t$(run_name)\t$(slice_id)\t$(f_args)\t$(modal_args)\t$(display_cm_as_row(cm))\t$(model_save_path)")
 
 			# println("  accuracy: ", round(overall_accuracy(cm)*100, digits=2), "% kappa: ", round(cm.kappa*100, digits=2), "% ")
 			for (i,row) in enumerate(eachrow(cm.matrix))
@@ -854,7 +881,7 @@ function exec_scan(
 	# println("round_dataset_to_datatype   = ", round_dataset_to_datatype)
 	# println("use_training_form   = ", use_training_form)
 	# println("data_savedir   = ", data_savedir)
-	# println("tree_savedir   = ", tree_savedir)
+	# println("model_savedir   = ", model_savedir)
 	# println("legacy_gammas_check   = ", legacy_gammas_check)
 	# println("log_level   = ", log_level)
 	# println("timing_mode   = ", timing_mode)

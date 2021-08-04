@@ -14,16 +14,19 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./siemens"
+results_dir = "./MTSC"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir = results_dir * "/cache"
 model_savedir = results_dir * "/trees"
 
 dry_run = false
+# dry_run = true
+# dry_run = :dataset_only
 
-# save_datasets = false
-save_datasets = true
+# save_datasets = true
+save_datasets = false
+
 skip_training = false
 
 ################################################################################
@@ -41,9 +44,9 @@ tree_args = [
 ]
 
 for loss_function in [DecisionTree.util.entropy]
-	for min_samples_leaf in [1] # [1,2]
-		for min_purity_increase in [0.01, 0.001]
-			for min_loss_at_leaf in [0.4, 0.6]
+	for min_samples_leaf in [2,4] # [1,2]
+		for min_purity_increase in [0.01] # [0.01, 0.001]
+			for min_loss_at_leaf in [0.2, 0.6] # [0.4, 0.6]
 				push!(tree_args, 
 					(
 						loss_function       = loss_function,
@@ -69,23 +72,23 @@ optimize_forest_computation = true
 
 forest_args = []
 
-# for n_trees in [50,100]
-# 	for n_subfeatures in [half_f]
-# 		for n_subrelations in [id_f]
-# 			push!(forest_args, (
-# 				n_subfeatures       = n_subfeatures,
-# 				n_trees             = n_trees,
-# 				partial_sampling    = 1.0,
-# 				n_subrelations      = n_subrelations,
-# 				# Optimization arguments for trees in a forest (no pruning is performed)
-# 				loss_function = DecisionTree.util.entropy,
-# 				min_samples_leaf = 1,
-# 				min_purity_increase = 0.0,
-# 				min_loss_at_leaf = 0.0,
-# 			))
-# 		end
-# 	end
-# end
+for n_trees in [] # [50,100]
+	for n_subfeatures in [] # [half_f]
+		for n_subrelations in [] # [id_f]
+			push!(forest_args, (
+				n_subfeatures       = n_subfeatures,
+				n_trees             = n_trees,
+				partial_sampling    = 1.0,
+				n_subrelations      = n_subrelations,
+				# Optimization arguments for trees in a forest (no pruning is performed)
+				loss_function       = DecisionTree.util.entropy,
+				min_samples_leaf    = 1,
+				min_purity_increase = 0.0,
+				min_loss_at_leaf    = 0.0,
+			))
+		end
+	end
+end
 
 
 println(" $(length(forest_args)) forests " * (length(forest_args) > 0 ? "(repeated $(forest_runs) times)" : ""))
@@ -103,9 +106,9 @@ modal_args = (;
 
 data_modal_args = (;
 	ontology = getIntervalOntologyOfDim(Val(1)),
+	# ontology = getIntervalOntologyOfDim(Val(2)),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A]),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A, ModalLogic.IA_L, ModalLogic.IA_Li, ModalLogic.IA_D]),
-	test_operators = [TestOpGeq_80, TestOpLeq_80],
 )
 
 
@@ -131,44 +134,99 @@ round_dataset_to_datatype = false
 # round_dataset_to_datatype = Float32
 # round_dataset_to_datatype = Float64
 
-split_threshold = 0.8
+# train_split_threshold = nothing
+train_split_threshold = 0.8
+
+# split_threshold = 0.8
 # split_threshold = 1.0
-# split_threshold = false
+split_threshold = false
 
 # use_training_form = :dimensional
 # use_training_form = :fmd
 # use_training_form = :stump
-use_training_form = :stump_with_memoization
+# use_training_form = :stump_with_memoization
 
 test_flattened = false
 test_averaged  = false
 
-legacy_gammas_check = false # true
+legacy_gammas_check = false
+# legacy_gammas_check = true
 
 
 ################################################################################
 ##################################### SCAN #####################################
 ################################################################################
 
-exec_dataseed = 1:10
+# exec_dataseed = 1:1
+exec_dataseed = [nothing]
 
-exec_from_to = [(1,10)]
-# exec_from_to = [(1,120)]
-# exec_from_to = [(1,120),(1440-120+1,1440)]
+# exec_use_training_form = [:dimensional]
+exec_use_training_form = [:stump_with_memoization]
 
+# https://github.com/JuliaIO/JSON.jl/issues/203
+# https://discourse.julialang.org/t/json-type-serialization/9794
+# TODO: make test operators types serializable
+# exec_test_operators = [ "TestOp" ]
+exec_test_operators = [ "TestOp_80" ]
 
-exec_ranges = (;
-	from_to                                      = exec_from_to,
+test_operators_dict = Dict(
+	"TestOp_70" => [TestOpGeq_70, TestOpLeq_70],
+	"TestOp_80" => [TestOpGeq_80, TestOpLeq_80],
+	"TestOp_90" => [TestOpGeq_90, TestOpLeq_90],
+	"TestOp"    => [TestOpGeq,    TestOpLeq],
 )
 
-dataset_function = (from,to)->SiemensJuneDataset_not_stratified(from, to)
+exec_dataset_name = [
+	"FingerMovements",
+	"Libras",
+	"LSST",
+	"NATOPS",
+	"RacketSports",
+]
+exec_n_chunks = [5]
+# exec_n_chunks = [60]
+
+exec_ranges = (;
+	use_training_form    = exec_use_training_form  ,
+	test_operators       = exec_test_operators     ,
+	dataset_name         = exec_dataset_name       ,
+	n_chunks             = exec_n_chunks           ,
+)
+
+
+dataset_function =
+	(dataset_name, n_chunks)->
+	Multivariate_arffDataset(dataset_name; n_chunks = n_chunks)
 
 ################################################################################
 ################################### SCAN FILTERS ###############################
 ################################################################################
 
 # TODO let iteration_white/blacklist a decision function and not a "in-array" condition?
-iteration_whitelist = []
+iteration_whitelist = [
+	# TASK 1
+	# (
+	# 	n_version = 1,
+	# 	nbands = 40,
+	# 	dataset_kwargs = (max_points = 30, ma_size = 75, ma_step = 50),
+	# ),
+	# (
+	# 	n_version = 1,
+	# 	nbands = 60,
+	# 	dataset_kwargs = (max_points = 30, ma_size = 75, ma_step = 50),
+	# ),
+	# # TASK 2
+	# (
+	# 	n_version = 2,
+	# 	nbands = 20,
+	# 	dataset_kwargs = (max_points = 30, ma_size = 45, ma_step = 30),
+	# ),
+	# (
+	# 	n_version = 2,
+	# 	nbands = 40,
+	# 	dataset_kwargs = (max_points = 30, ma_size = 45, ma_step = 30),
+	# )
+]
 
 iteration_blacklist = []
 
@@ -201,7 +259,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	# Unpack params combination
 	# params_namedtuple = (zip(Symbol.(exec_ranges_names), params_combination) |> Dict |> namedtuple)
 	params_namedtuple = (;zip(Symbol.(exec_ranges_names), params_combination)...)
-	
+
 	# FILTER ITERATIONS
 	if (!is_whitelisted_test(params_namedtuple, iteration_whitelist)) || is_blacklisted_test(params_namedtuple, iteration_blacklist)
 		continue
@@ -224,7 +282,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		println("...")
 	end
 
-	if dry_run
+	if dry_run == true
 		continue
 	end
 
@@ -232,21 +290,39 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	##############################################################################
 	
-	(from,to), = params_combination
-	dataset_fun_sub_params = (from,to)
+	use_training_form,
+	test_operators,
+	dataset_name,
+	n_chunks = params_combination
 	
-	# Load Dataset
-	dataset, n_label_samples = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
+	test_operators = test_operators_dict[test_operators]
 
 	cur_modal_args = modal_args
-	cur_data_modal_args = data_modal_args
+	
+	cur_data_modal_args = merge(data_modal_args,
+		(
+			test_operators = test_operators,
+		)
+	)
+
+	dataset_fun_sub_params = (
+		dataset_name, n_chunks
+	)
+
+	# Load Dataset
+	# dataset_function(dataset_fun_sub_params...)
+	dataset, n_label_samples = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
 
 	## Dataset slices
 	# obtain dataseeds that are were not done before
 	todo_dataseeds = filter((dataseed)->!iteration_in_history(history, (params_namedtuple, dataseed)), exec_dataseed)
-	dataset_slices = [(dataseed,balanced_dataset_slice(n_label_samples, dataseed)) for dataseed in todo_dataseeds]
+	dataset_slices = [(dataseed, balanced_dataset_slice(n_label_samples, dataseed; split_threshold = train_split_threshold)) for dataseed in todo_dataseeds]
 
 	println("Dataseeds = $(todo_dataseeds)")
+
+	if dry_run == :dataset_only
+		continue
+	end
 
 	##############################################################################
 	##############################################################################
@@ -274,7 +350,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		### Run params
 		results_dir                     =   results_dir,
 		data_savedir                    =   data_savedir,
-		model_savedir                    =   model_savedir,
+		model_savedir                   =   model_savedir,
 		legacy_gammas_check             =   legacy_gammas_check,
 		log_level                       =   log_level,
 		timing_mode                     =   timing_mode,
@@ -291,3 +367,5 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 end
 
 println("Done!")
+
+exit(0)

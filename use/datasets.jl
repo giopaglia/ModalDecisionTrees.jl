@@ -24,7 +24,7 @@ moving_average(vs::AbstractArray{T,2},n,st=1) where {T} = mapslices((x)->(@views
 # end
 
 
-include("datasets/siemens.jl")
+include("datasets/Multivariate_arff.jl")
 include("datasets/KDD.jl")
 include("datasets/land-cover.jl")
 include("datasets/ComParE2021.jl")

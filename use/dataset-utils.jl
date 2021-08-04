@@ -84,15 +84,28 @@ mapArrayToDataType(type::Type{<:AbstractFloat}, array::AbstractArray{<:Real}) = 
 	type.(array)
 end
 
-balanced_dataset_slice(n_label_samples::NTuple{N,Integer}, dataseed::Integer) where N = begin
-	dataset_rng = Random.MersenneTwister(dataseed)
-	n_per_class = minimum(n_label_samples)
-	dataset_slice = Array{Int64,2}(undef, length(n_label_samples), n_per_class)
-	c = 0
-	for i in 1:length(n_label_samples)
-		# dataset_slice[i,:] .= sort(c .+ Random.randperm(dataset_rng, n_label_samples[i])[1:n_per_class])
-		dataset_slice[i,:] .= c .+ Random.randperm(dataset_rng, n_label_samples[i])[1:n_per_class]
-		c += n_label_samples[i]
+balanced_dataset_slice(n_label_samples::NTuple{N,Integer}, dataseed::Union{Nothing,Integer}; split_threshold::Union{Nothing,Float64} = nothing) where N = begin
+	n_instances = sum(n_label_samples)
+	if !isnothing(dataseed)
+		dataset_rng = Random.MersenneTwister(dataseed)
+		
+		n_classes = length(n_label_samples)
+
+		n_per_class = if isnothing(split_threshold)
+			minimum(n_label_samples)
+		else
+			floor(Int, (split_threshold*n_instances)/n_classes)
+		end
+
+		dataset_slice = Array{Int64,2}(undef, n_classes, n_per_class)
+		c = 0
+		for i in 1:n_classes
+			# dataset_slice[i,:] .= sort(c .+ Random.randperm(dataset_rng, n_label_samples[i])[1:n_per_class])
+			dataset_slice[i,:] .= c .+ Random.randperm(dataset_rng, n_label_samples[i])[1:n_per_class]
+			c += n_label_samples[i]
+		end
+		dataset_slice = dataset_slice[:]
+	else
+		1:n_instances
 	end
-	dataset_slice = dataset_slice[:]
 end
