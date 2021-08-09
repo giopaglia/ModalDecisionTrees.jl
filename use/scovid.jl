@@ -14,7 +14,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./covid"
+results_dir = "./covid-pt2"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir = results_dir * "/cache"
@@ -167,7 +167,8 @@ exec_n_task_use_aug = [
 	(2, false),
 	(3, false),
 ]
-exec_n_versions = 1:3
+# exec_n_versions = 1:3
+exec_n_versions = [2,3]
 exec_nbands = [40] # [20,40,60]
 
 exec_dataset_kwargs =   [( # TODO
@@ -184,15 +185,15 @@ exec_dataset_kwargs =   [( # TODO
 						# 	ma_size = 45,
 						# 	ma_step = 30,
 						# ),(# max_points = 30,
-							ma_size = 120,
-							ma_step = 100,
-						),(# max_points = 30,
 						# 	ma_size = 120,
-						# 	ma_step = 80,
+						# 	ma_step = 100,
 						# ),(# max_points = 30,
-							ma_size = 100,
-							ma_step = 75,
-						),(# max_points = 30,
+						# # 	ma_size = 120,
+						# # 	ma_step = 80,
+						# # ),(# max_points = 30,
+						# 	ma_size = 100,
+						# 	ma_step = 75,
+						# ),(# max_points = 30,
 						# 	ma_size = 90,
 						# 	ma_step = 60,
 						# ),(# max_points = 30,

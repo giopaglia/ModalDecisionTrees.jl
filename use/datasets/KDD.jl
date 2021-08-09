@@ -180,7 +180,7 @@ function KDDDataset_not_stratified((n_task,n_version),
 		#neg = neg[Random.randperm(rng, length(neg))[1:n_per_class]]
 
 		#println("Balanced -> {$n_per_class}+{$n_per_class}")
-
+a
 		# Stratify
 		# timeseries = vec(hcat(pos,neg)')
 		# Y = vec(hcat(ones(Int,length(pos)),zeros(Int,length(neg)))')

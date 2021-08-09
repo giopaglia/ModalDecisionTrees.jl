@@ -454,7 +454,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		### Run params
 		results_dir                     =   results_dir,
 		data_savedir                    =   data_savedir,
-		model_savedir                    =   model_savedir,
+		model_savedir                   =   model_savedir,
 		legacy_gammas_check             =   legacy_gammas_check,
 		log_level                       =   log_level,
 		timing_mode                     =   timing_mode,

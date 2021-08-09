@@ -1,5 +1,3 @@
-- hybrid memoization: use memoization only x% of the times.
-- enable learning in implicit form (allow training directly on Ontological Dataset) and study the parallelization
 - introduce post pruning (improve pre-pruning/post-pruning against a dataset and introduce validation/test set distinction)
 - Lookahead: two levels
 - Add dataset infos in result: shape, e tempi di calcolo del dataset.
