@@ -1102,6 +1102,18 @@ end
 # 	# end
 # end
 
+# TODO scan this value for an example problem and different number of threads
+
+using Random
+rng = Random.default_rng()
+
+cfnls_max = 0.8
+# cfnls_k = 5.9
+cfnls_k = 30
+coin_flip_no_look_StumpFeatModalDatasetWithMemoization_value = cfnls_max*cfnls_k/((Threads.nthreads())-1+cfnls_k)
+coin_flip_no_look_StumpFeatModalDatasetWithMemoization() = (rand(rng) >= coin_flip_no_look_StumpFeatModalDatasetWithMemoization_value)
+# coin_flip_no_look_StumpFeatModalDatasetWithMemoization() = false
+
 get_modal_gamma(
 		X::StumpFeatModalDatasetWithMemoization{T,WorldType},
 		i_instance::Integer,
@@ -1112,14 +1124,16 @@ get_modal_gamma(
 	i_relation = find_relation_id(X, relation)
 	aggregator = existential_aggregator(test_operator)
 	i_featsnaggr = find_featsnaggr_id(X, feature, aggregator)
-	if !isnothing(X.fmd_m[i_instance, w, i_featsnaggr, i_relation])
-		X.fmd_m[i_instance, w, i_featsnaggr, i_relation]
-	else
+	if false
+	# if coin_flip_no_look_StumpFeatModalDatasetWithMemoization()
+			|| isnothing(X.fmd_m[i_instance, w, i_featsnaggr, i_relation])
 		i_feature = find_feature_id(X, feature)
 		cur_fwd_slice = modalDatasetChannelSlice(X.fmd.fwd, i_instance, i_feature)
 		accessible_worlds = accrepr_function(X.fmd, i_instance)(feature, aggregator, w, relation)
 		gamma = computeModalThreshold(cur_fwd_slice, accessible_worlds, aggregator)
 		FMDStumpSupportSet(X.fmd_m, w, i_instance, i_featsnaggr, i_relation, gamma)
+	else
+		X.fmd_m[i_instance, w, i_featsnaggr, i_relation]
 	end
 end
 
@@ -1169,13 +1183,15 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
 				for (i_aggr,(i_featsnaggr,aggregator)) in enumerate(aggregators_with_ids)
 					for w in worlds
 						gamma = 
-							if !isnothing(X.fmd_m[i_instance, w, i_featsnaggr, i_relation])
-								X.fmd_m[i_instance, w, i_featsnaggr, i_relation]
-							else
+							if false
+							# if coin_flip_no_look_StumpFeatModalDatasetWithMemoization()
+								|| isnothing(X.fmd_m[i_instance, w, i_featsnaggr, i_relation])
 								cur_fwd_slice = modalDatasetChannelSlice(X.fmd.fwd, i_instance, i_feature)
 								accessible_worlds = accrepr_function(X.fmd, i_instance)(feature, aggregator, w, relation)
 								gamma = computeModalThreshold(cur_fwd_slice, accessible_worlds, aggregator)
 								FMDStumpSupportSet(X.fmd_m, w, i_instance, i_featsnaggr, i_relation, gamma)
+							else
+								X.fmd_m[i_instance, w, i_featsnaggr, i_relation]
 							end
 						thresholds[i_aggr,instance_id] = aggregator_to_binary(aggregator)(gamma, thresholds[i_aggr,instance_id])
 					end
