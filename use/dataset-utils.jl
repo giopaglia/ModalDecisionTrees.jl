@@ -312,25 +312,26 @@ balanced_dataset_slice(dataset::NamedTuple{(:train_n_test,:only_training)}, data
 
 		c = 0
 		
-		N1N2_from_a_perm = c .+ Random.randperm(rng, an)[1:(N2_from_a+N1_from_a)]
-		@assert length(N1N2_from_a_perm) == (N2_from_a+N1_from_a)
-		c += an
-		N2_from_a_perm = N1N2_from_a_perm[1:N2_from_a]
-		N1_from_a_perm = N1N2_from_a_perm[(N2_from_a+1):(N2_from_a+N1_from_a)]
-		
 		P1P2_from_a_perm = c .+ Random.randperm(rng, ap)[1:(P2_from_a+P1_from_a)]
 		@assert length(P1P2_from_a_perm) == (P2_from_a+P1_from_a)
 		c += ap
 		P2_from_a_perm = P1P2_from_a_perm[1:P2_from_a]
 		P1_from_a_perm = P1P2_from_a_perm[(P2_from_a+1):(P2_from_a+P1_from_a)]
 
-		N1_from_t_perm = c .+ Random.randperm(rng, tn)[1:N1_from_t]
-		@assert length(N1_from_t_perm) == N1_from_t
-		c += tn
+		N1N2_from_a_perm = c .+ Random.randperm(rng, an)[1:(N2_from_a+N1_from_a)]
+		@assert length(N1N2_from_a_perm) == (N2_from_a+N1_from_a)
+		c += an
+		N2_from_a_perm = N1N2_from_a_perm[1:N2_from_a]
+		N1_from_a_perm = N1N2_from_a_perm[(N2_from_a+1):(N2_from_a+N1_from_a)]
+		
 		P1_from_t_perm = c .+ Random.randperm(rng, tp)[1:P1_from_t]
 		@assert length(P1_from_t_perm) == P1_from_t
 		c += tp
 
+		N1_from_t_perm = c .+ Random.randperm(rng, tn)[1:N1_from_t]
+		@assert length(N1_from_t_perm) == N1_from_t
+		c += tn
+		
 		N1_idx = vcat(N1_from_t_perm, N1_from_a_perm)
 		P1_idx = vcat(P1_from_t_perm, P1_from_a_perm)
 		N2_idx = N2_from_a_perm
@@ -361,9 +362,9 @@ balanced_dataset_slice(dataset::NamedTuple{(:train_n_test,:only_training)}, data
 	linearized_dataset, dataset_slices
 end
 
-function concat_labeled_datasets(d1::Tuple{AbstractVector{<:GenericDataset},AbstractVector}, d2::Tuple{AbstractVector{<:GenericDataset},AbstractVector})
-	X = map(concat_datasets, d1[1], d2[1])
-	Y = vcat(d1[2], d2[2])
+function concat_labeled_datasets((X1, Y1)::Tuple{AbstractVector{<:GenericDataset},AbstractVector}, (X2, Y2)::Tuple{AbstractVector{<:GenericDataset},AbstractVector})
+	X = map(concat_datasets, X1, X2)
+	Y = vcat(Y1, Y2)
 	(X, Y)
 end
 

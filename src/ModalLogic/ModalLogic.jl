@@ -1105,13 +1105,13 @@ end
 # TODO scan this value for an example problem and different number of threads
 
 using Random
-rng = Random.default_rng()
+coin_flip_memoiz_rng = Random.default_rng()
 
 cfnls_max = 0.8
 # cfnls_k = 5.9
 cfnls_k = 30
 coin_flip_no_look_StumpFeatModalDatasetWithMemoization_value = cfnls_max*cfnls_k/((Threads.nthreads())-1+cfnls_k)
-coin_flip_no_look_StumpFeatModalDatasetWithMemoization() = (rand(rng) >= coin_flip_no_look_StumpFeatModalDatasetWithMemoization_value)
+coin_flip_no_look_StumpFeatModalDatasetWithMemoization() = (rand(coin_flip_memoiz_rng) >= coin_flip_no_look_StumpFeatModalDatasetWithMemoization_value)
 # coin_flip_no_look_StumpFeatModalDatasetWithMemoization() = false
 
 get_modal_gamma(
