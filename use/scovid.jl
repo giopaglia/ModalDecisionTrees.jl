@@ -29,6 +29,8 @@ save_datasets = false
 
 skip_training = false
 
+perform_consistency_check = false
+
 ################################################################################
 ##################################### TREES ####################################
 ################################################################################
@@ -53,6 +55,7 @@ for loss_function in [DecisionTree.util.entropy]
 						min_samples_leaf    = min_samples_leaf,
 						min_purity_increase = min_purity_increase,
 						min_loss_at_leaf    = min_loss_at_leaf,
+						perform_consistency_check = perform_consistency_check,
 					)
 				)
 			end
@@ -85,6 +88,7 @@ for n_trees in [50,100]
 				min_samples_leaf    = 1,
 				min_purity_increase = 0.0,
 				min_loss_at_leaf    = 0.0,
+				perform_consistency_check = perform_consistency_check,
 			))
 		end
 	end
