@@ -43,10 +43,10 @@ tree_args = [
 #	)
 ]
 
-for loss_function in [DecisionTree.util.entropy, DecisionTree.util.gini]
-	for min_samples_leaf in [2,4] # [1,2]
+for loss_function in [DecisionTree.util.entropy]
+	for min_samples_leaf in [4] # [1,2]
 		for min_purity_increase in [0.01] # [0.01, 0.001]
-			for min_loss_at_leaf in [0.2, 0.6] # [0.4, 0.6]
+			for min_loss_at_leaf in [0.4, 0.6] # [0.4, 0.6]
 				push!(tree_args, 
 					(
 						loss_function       = loss_function,
@@ -165,11 +165,11 @@ max_sample_rate = 16000
 exec_use_training_form = [:stump_with_memoization]
 
 exec_n_task_use_aug = [
-	# (1, false),
+	(1, false),
 	(2, true),
 	(3, true),
-	# (2, false),
-	# (3, false),
+	(2, false),
+	(3, false),
 ]
 exec_n_versions = 1:3
 exec_nbands = [40] # [20,40,60]
@@ -190,7 +190,7 @@ exec_dataset_kwargs =   [( # TODO
 						# ),(# max_points = 30,
 							ma_size = 120,
 							ma_step = 100,
-						),(# max_points = 30,
+						# ),(# max_points = 30,
 						# 	ma_size = 120,
 						# 	ma_step = 80,
 						# ),(# max_points = 30,
@@ -200,8 +200,8 @@ exec_dataset_kwargs =   [( # TODO
 						# 	ma_size = 90,
 						# 	ma_step = 60,
 						# ),(# max_points = 30,
-							ma_size = 75,
-							ma_step = 50,
+							# ma_size = 75,
+							# ma_step = 50,
 						# ),(# max_points = 50,
 						# 	ma_size = 45,
 						# 	ma_step = 30,
