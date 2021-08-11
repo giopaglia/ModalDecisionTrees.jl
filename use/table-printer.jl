@@ -129,6 +129,7 @@ function data_to_string(
 	result *= string(percent(safe_macro_PPV(cm)),         alt_separator)
 	result *= string(percent(safe_macro_NPV(cm)),         alt_separator)
 	result *= string(percent(safe_macro_F1(cm)),          alt_separator)
+	result *= string(num_nodes(M),                        alt_separator)
 	result *= human_readable_time_s(time)
 	result *= end_s
 

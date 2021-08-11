@@ -17,12 +17,12 @@ train_seed = 1
 results_dir = "./covid-august"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
-data_savedir = results_dir * "/cache"
+data_savedir  = results_dir * "/cache"
 model_savedir = results_dir * "/trees"
 
-dry_run = false
+# dry_run = false
 # dry_run = true
-# dry_run = :dataset_only
+dry_run = :dataset_only
 
 # save_datasets = true
 save_datasets = false

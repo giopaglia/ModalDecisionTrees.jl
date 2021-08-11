@@ -231,7 +231,7 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 		# TODO generalize
 		
 		features = FeatureTypeFun[]
-		
+
 		for i_attr in 1:n_attributes(X)
 			for test_operator in data_modal_args.test_operators
 				if test_operator == TestOpGeq
@@ -840,7 +840,7 @@ function exec_scan(
 	)
 	print_head(full_output_file_path,    tree_args, forest_args,
 		separator = results_col_sep,
-		tree_columns = [base_metrics_names..., "t"],
+		tree_columns = [base_metrics_names..., "n_nodes", "t"],
 		forest_columns = [
 			[base_metrics_names..., "oob_error"]...,
 			["σ² $(n)" for n in [base_metrics_names..., "oob_error"]]...,
