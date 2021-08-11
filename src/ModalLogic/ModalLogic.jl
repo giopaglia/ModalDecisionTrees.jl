@@ -1124,9 +1124,9 @@ get_modal_gamma(
 	i_relation = find_relation_id(X, relation)
 	aggregator = existential_aggregator(test_operator)
 	i_featsnaggr = find_featsnaggr_id(X, feature, aggregator)
-	if false
-	# if coin_flip_no_look_StumpFeatModalDatasetWithMemoization()
-			|| isnothing(X.fmd_m[i_instance, w, i_featsnaggr, i_relation])
+	# if coin_flip_no_look_StumpFeatModalDatasetWithMemoization() || 
+	if false || 
+			isnothing(X.fmd_m[i_instance, w, i_featsnaggr, i_relation])
 		i_feature = find_feature_id(X, feature)
 		cur_fwd_slice = modalDatasetChannelSlice(X.fmd.fwd, i_instance, i_feature)
 		accessible_worlds = accrepr_function(X.fmd, i_instance)(feature, aggregator, w, relation)
@@ -1183,9 +1183,9 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
 				for (i_aggr,(i_featsnaggr,aggregator)) in enumerate(aggregators_with_ids)
 					for w in worlds
 						gamma = 
-							if false
-							# if coin_flip_no_look_StumpFeatModalDatasetWithMemoization()
-								|| isnothing(X.fmd_m[i_instance, w, i_featsnaggr, i_relation])
+							# if coin_flip_no_look_StumpFeatModalDatasetWithMemoization() || 
+							if false || 
+								isnothing(X.fmd_m[i_instance, w, i_featsnaggr, i_relation])
 								cur_fwd_slice = modalDatasetChannelSlice(X.fmd.fwd, i_instance, i_feature)
 								accessible_worlds = accrepr_function(X.fmd, i_instance)(feature, aggregator, w, relation)
 								gamma = computeModalThreshold(cur_fwd_slice, accessible_worlds, aggregator)
