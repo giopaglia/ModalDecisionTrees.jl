@@ -231,7 +231,7 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 		# TODO generalize
 		
 		features = FeatureTypeFun[]
-
+		
 		for i_attr in 1:n_attributes(X)
 			for test_operator in data_modal_args.test_operators
 				if test_operator == TestOpGeq
