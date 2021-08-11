@@ -157,15 +157,19 @@ legacy_gammas_check = false
 
 exec_dataseed = 1:10
 
+# max_sample_rate = 48000
+max_sample_rate = 16000
+# max_sample_rate = 8000
+
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization]
 
 exec_n_task_use_aug = [
-	(1, false),
+	# (1, false),
 	(2, true),
 	(3, true),
-	(2, false),
-	(3, false),
+	# (2, false),
+	# (3, false),
 ]
 exec_n_versions = 1:3
 exec_nbands = [40] # [20,40,60]
@@ -215,6 +219,7 @@ audio_kwargs_partial_mfcc = (
 	dither = false,                   # [false, true]
 	# bwidth = 1.0,                   # 
 	# minfreq = 0.0,
+	maxfreq = max_sample_rate/2, # Fix this
 	# maxfreq = (sr)->(sr/2),
 	# usecmp = false,
 )
@@ -228,6 +233,7 @@ audio_kwargs_full_mfcc = (
 	preemph=0.97,
 	dither=false,
 	minfreq=0.0,
+	maxfreq = max_sample_rate/2, # Fix this
 	# maxfreq=sr/2,
 	nbands=20,
 	bwidth=1.0,
