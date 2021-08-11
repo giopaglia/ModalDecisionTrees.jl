@@ -58,7 +58,7 @@ include("measures.jl")
 
 abstract type _initCondition end
 struct _startWithRelationGlob  <: _initCondition end; const startWithRelationGlob  = _startWithRelationGlob();
-struct _startAtCenter         <: _initCondition end; const startAtCenter         = _startAtCenter();
+struct _startAtCenter          <: _initCondition end; const startAtCenter          = _startAtCenter();
 struct _startAtWorld{wT<:AbstractWorld} <: _initCondition w::wT end;
 
 initWorldSet(initConditions::AbstractVector{<:_initCondition}, worldTypes::AbstractVector{<:Type#={<:AbstractWorld}=#}, args::Vararg) =
