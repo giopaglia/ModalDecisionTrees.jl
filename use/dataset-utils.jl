@@ -338,8 +338,8 @@ balanced_dataset_slice(dataset::NamedTuple{(:train_n_test,:only_training)}, data
 
 		println()
 		println("dataseed: [$(dataseed)]")
-		println(length(N1_idx), " ", N1_idx)
-		println(length(P1_idx), " ", P1_idx)
+		println("$(length(N1_from_t_perm)) + $(length(N1_from_a_perm)) = $(length(N1_idx)) ", N1_idx)
+		println("$(length(P1_from_t_perm)) + $(length(P1_from_a_perm)) = $(length(P1_idx)) ", P1_idx)
 		println(length(N2_idx), " ", N2_idx)
 		println(length(P2_idx), " ", P2_idx)
 		
