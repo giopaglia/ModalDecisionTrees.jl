@@ -706,7 +706,7 @@ function exec_scan(
 		Fts  = []
 
 		for (i_model, this_args) in enumerate(tree_args)
-			checkpoint_stdout("Computing tree $(i_model) / $(length(tree_args))...")
+			checkpoint_stdout("Computing tree $(i_model) / $(length(tree_args))...\n$(this_args)")
 			this_T, this_Tcm, this_Tt = go_tree(slice_id, X_train, Y_train, X_test, Y_test, this_args, Random.MersenneTwister(train_seed))
 			push!(Ts, this_T)
 			push!(Tcms, this_Tcm)
@@ -753,6 +753,7 @@ function exec_scan(
 				while isa(model, ForestEvaluationSupport)
 					model = model.f
 				end
+				checkpoint_stdout("$(f.f_args)")
 
 				forest_supports_build_order[i].f, forest_supports_build_order[i].cm, forest_supports_build_order[i].time = go_forest(slice_id, X_train, Y_train, X_test, Y_test, f.f_args, Random.MersenneTwister(train_seed), prebuilt_model = model)
 			end
@@ -770,9 +771,9 @@ function exec_scan(
 				push!(Fts, f.time)
 			end
 		else
-			for (i_forest, f_args) in enumerate(forest_args)
-				checkpoint_stdout("Computing Random Forest $(i_forest) / $(length(forest_args))...")
-				this_F, this_Fcm, this_Ft = go_forest(slice_id, X_train, Y_train, X_test, Y_test, f_args, Random.MersenneTwister(train_seed))
+			for (i_forest, this_args) in enumerate(forest_args)
+				checkpoint_stdout("Computing Random Forest $(i_forest) / $(length(forest_args))...\n$(this_args)")
+				this_F, this_Fcm, this_Ft = go_forest(slice_id, X_train, Y_train, X_test, Y_test, this_args, Random.MersenneTwister(train_seed))
 				push!(Fs, this_F)
 				push!(Fcms, this_Fcm)
 				push!(Fts, this_Ft)
