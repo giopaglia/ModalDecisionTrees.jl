@@ -209,11 +209,12 @@ include("modal-classification/main.jl")
 num_nodes(leaf::DTLeaf) = 1
 num_nodes(tree::DTInternal) = 1 + num_nodes(tree.left) + num_nodes(tree.right)
 num_nodes(t::DTree) = num_nodes(t.root)
+num_nodes(f::Forest) = sum(num_nodes.(f.trees))
 
 length(leaf::DTLeaf) = 1
 length(tree::DTInternal) = length(tree.left) + length(tree.right)
 length(t::DTree) = length(t.root)
-length(forest::Forest) = length(forest.trees)
+length(f::Forest) = length(f.trees)
 
 # Height
 height(leaf::DTLeaf) = 0
