@@ -114,7 +114,8 @@ end
 function data_to_string(
 		M::DTree,
 		cm::ConfusionMatrix,
-		time::Dates.Millisecond;
+		time::Dates.Millisecond,
+		hash::AbstractString;
 		start_s = "(",
 		end_s = ")",
 		separator = "\t",
@@ -130,6 +131,7 @@ function data_to_string(
 	result *= string(percent(safe_macro_NPV(cm)),         alt_separator)
 	result *= string(percent(safe_macro_F1(cm)),          alt_separator)
 	result *= string(num_nodes(M),                        alt_separator)
+	result *= string(hash, alt_separator)
 	result *= human_readable_time_s(time)
 	result *= end_s
 
@@ -140,7 +142,8 @@ end
 function data_to_string(
 		Ms::AbstractVector{Forest{S}},
 		cms::AbstractVector{ConfusionMatrix},
-		time::Dates.Millisecond;
+		time::Dates.Millisecond,
+		hash::AbstractString;
 		start_s = "(",
 		end_s = ")",
 		separator = "\t",
@@ -156,6 +159,7 @@ function data_to_string(
 	result *= string(percent(mean(map(cm->safe_macro_NPV(cm),         cms))), alt_separator)
 	result *= string(percent(mean(map(cm->safe_macro_F1(cm),          cms))), alt_separator)
 	result *= string(percent(mean(map(M->M.oob_error, Ms))))
+	result *= string(percent(mean(num_nodes(Ms))),                    alt_separator)
 	result *= end_s
 	result *= separator
 	result *= start_s
@@ -167,10 +171,12 @@ function data_to_string(
 	result *= string(var(map(cm->safe_macro_NPV(cm),         cms)), alt_separator)
 	result *= string(var(map(cm->safe_macro_F1(cm),          cms)), alt_separator)
 	result *= string(var(map(M->M.oob_error, Ms)))
+	result *= string(var(num_nodes(Ms)),                              alt_separator)
 	result *= end_s
 	result *= separator
 	result *= start_s
 	result *= human_readable_time_s(time)
+	result *= string(hash, alt_separator)
 	result *= end_s
 
 	result

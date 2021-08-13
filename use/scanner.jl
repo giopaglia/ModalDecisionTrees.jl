@@ -37,9 +37,10 @@ mutable struct ForestEvaluationSupport <: Support
 	f::Union{Nothing,Support,AbstractVector{Forest{S}}} where {S}
 	f_args::NamedTuple{T, N} where {T, N}
 	cm::Union{Nothing,AbstractVector{<:ConfusionMatrix}}
+	hash::AbstractString
 	time::Dates.Millisecond
 	enqueued::Bool
-	ForestEvaluationSupport(f_args) = new(nothing, f_args, nothing, Dates.Millisecond(0), false)
+	ForestEvaluationSupport(f_args) = new(nothing, f_args, nothing, "", Dates.Millisecond(0), false)
 end
 
 function will_produce_same_forest_with_different_number_of_trees(f1::ForestEvaluationSupport, f2::ForestEvaluationSupport)
@@ -592,8 +593,8 @@ function exec_scan(
 		print(T)
 
 		model_save_path = ""
+		tree_hash = get_hash_sha256(T)
 		if !isnothing(model_savedir)
-			tree_hash = get_hash_sha256(T)
 			model_save_path = model_savedir * "/tree_" * tree_hash * ".jld"
 			mkpath(dirname(model_save_path))
 
@@ -624,7 +625,7 @@ function exec_scan(
 
 			# println("nodes: ($(num_nodes(T_pruned)), height: $(height(T_pruned)))")
 		end
-		return (T, cm, Tt);
+		return (T, cm, Tt, string(tree_hash));
 	end
 
 	go_forest(slice_id, X_train, Y_train, X_test, Y_test, f_args, rng; prebuilt_model::Union{Nothing,AbstractVector{Forest{S}}} = nothing) where {S} = begin
@@ -661,6 +662,7 @@ function exec_scan(
 		end
 		
 		cms = ConfusionMatrix[]
+		hashes = []
 		for F in Fs
 			println(" test size = $(size(X_test))")
 			
@@ -669,9 +671,10 @@ function exec_scan(
 			# @test overall_accuracy(cm) > 0.99
 
 			model_save_path = ""
+			hash = get_hash_sha256(F)
+			push!(hashes, hash)
 			if !isnothing(model_savedir)
-				rf_hash = get_hash_sha256(F)
-				model_save_path = model_savedir * "/rf_" * rf_hash * ".jld"
+				model_save_path = model_savedir * "/rf_" * hash * ".jld"
 				mkpath(dirname(model_save_path))
 
 				checkpoint_stdout("Saving random_forest to file $(model_save_path)...")
@@ -693,7 +696,7 @@ function exec_scan(
 			push!(cms, cm)
 		end
 
-		return (Fs, cms, Ft);
+		return (Fs, cms, Ft, string(tuple(hashes)));
 	end
 
 	go(slice_id, X_train, Y_train, X_test, Y_test) = begin
@@ -704,13 +707,16 @@ function exec_scan(
 		Fcms = []
 		Tts  = []
 		Fts  = []
+		Thashs  = []
+		Fhashs  = []
 
 		for (i_model, this_args) in enumerate(tree_args)
 			checkpoint_stdout("Computing tree $(i_model) / $(length(tree_args))...\n$(this_args)")
-			this_T, this_Tcm, this_Tt = go_tree(slice_id, X_train, Y_train, X_test, Y_test, this_args, Random.MersenneTwister(train_seed))
+			this_T, this_Tcm, this_Tt, this_Thash = go_tree(slice_id, X_train, Y_train, X_test, Y_test, this_args, Random.MersenneTwister(train_seed))
 			push!(Ts, this_T)
 			push!(Tcms, this_Tcm)
 			push!(Tts, this_Tt)
+			push!(Thashs, this_Thash)
 		end
 
 		if optimize_forest_computation
@@ -755,7 +761,7 @@ function exec_scan(
 				end
 				checkpoint_stdout("$(f.f_args)")
 
-				forest_supports_build_order[i].f, forest_supports_build_order[i].cm, forest_supports_build_order[i].time = go_forest(slice_id, X_train, Y_train, X_test, Y_test, f.f_args, Random.MersenneTwister(train_seed), prebuilt_model = model)
+				forest_supports_build_order[i].f, forest_supports_build_order[i].cm, forest_supports_build_order[i].time, forest_supports_build_order[i].hash = go_forest(slice_id, X_train, Y_train, X_test, Y_test, f.f_args, Random.MersenneTwister(train_seed), prebuilt_model = model)
 			end
 
 			# put resulting forests in vector in the order the user gave them
@@ -769,14 +775,16 @@ function exec_scan(
 				push!(Fs, f.f)
 				push!(Fcms, f.cm)
 				push!(Fts, f.time)
+				push!(Fhashs, f.hash)
 			end
 		else
 			for (i_forest, this_args) in enumerate(forest_args)
 				checkpoint_stdout("Computing Random Forest $(i_forest) / $(length(forest_args))...\n$(this_args)")
-				this_F, this_Fcm, this_Ft = go_forest(slice_id, X_train, Y_train, X_test, Y_test, this_args, Random.MersenneTwister(train_seed))
+				this_F, this_Fcm, this_Ft, this_hashes = go_forest(slice_id, X_train, Y_train, X_test, Y_test, this_args, Random.MersenneTwister(train_seed))
 				push!(Fs, this_F)
 				push!(Fcms, this_Fcm)
 				push!(Fts, this_Ft)
+				push!(Fhashs, this_hashes)
 			end
 		end
 
@@ -789,11 +797,11 @@ function exec_scan(
 		# PRINT CONCISE
 		concise_output_string = string(slice_id, results_col_sep, run_name, results_col_sep)
 		for j in 1:length(tree_args)
-			concise_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j]; alt_separator=", ", separator = results_col_sep))
+			concise_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j], Thashs[j]; alt_separator=", ", separator = results_col_sep))
 			concise_output_string *= string(results_col_sep)
 		end
 		for j in 1:length(forest_args)
-			concise_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j]; alt_separator=", ", separator = results_col_sep))
+			concise_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j], Fhashs[j]; alt_separator=", ", separator = results_col_sep))
 			concise_output_string *= string(results_col_sep)
 		end
 		concise_output_string *= string("\n")
@@ -802,11 +810,11 @@ function exec_scan(
 		# PRINT FULL
 		full_output_string = string(slice_id, results_col_sep, join([replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)], results_col_sep), results_col_sep)
 		for j in 1:length(tree_args)
-			full_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j]; start_s = "", end_s = "", alt_separator = results_col_sep))
+			full_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j], Thashs[j]; start_s = "", end_s = "", alt_separator = results_col_sep))
 			full_output_string *= string(results_col_sep)
 		end
 		for j in 1:length(forest_args)
-			full_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j]; start_s = "", end_s = "", alt_separator = results_col_sep))
+			full_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j], Fhashs[j]; start_s = "", end_s = "", alt_separator = results_col_sep))
 			full_output_string *= string(results_col_sep)
 		end
 		full_output_string *= string("\n")
@@ -839,13 +847,12 @@ function exec_scan(
 		forest_columns = ["", "σ²", "t"],
 		columns_before = ["Dataseed", "Params-combination"],
 	)
-	print_head(full_output_file_path,    tree_args, forest_args,
+	print_head(full_output_file_path, tree_args, forest_args,
 		separator = results_col_sep,
-		tree_columns = [base_metrics_names..., "n_nodes", "t"],
+		tree_columns = [base_metrics_names..., "n_nodes", "t", "hash"],
 		forest_columns = [
-			[base_metrics_names..., "oob_error"]...,
-			["σ² $(n)" for n in [base_metrics_names..., "oob_error"]]...,
-			"t"],
+			[base_metrics_names..., "oob_error", "n_nodes"]...,
+			["σ² $(n)" for n in [base_metrics_names..., "oob_error", "n_nodes"]]..., "t", "hash"],
 		columns_before = ["Dataseed", (params_namedtuple |> keys .|> string)...],
 	)
 
