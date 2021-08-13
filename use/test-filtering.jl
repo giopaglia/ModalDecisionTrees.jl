@@ -7,7 +7,7 @@ using Plots
 
 gr()
 
-function multibandpass_digitalfilter(vec::Vector{Tuple{T, T}}, fs::Real, window_f::Function; nbands::Integer = 60)::AbstractVector where T
+function multibandpass_digitalfilter(vec::AbstractVector{Tuple{<:T, <:T}}, fs::Real, window_f::Function; nbands::Integer = 40)::AbstractVector where T
     result_filter = zeros(T, nbands)
     @simd for t in vec
         result_filter += digitalfilter(Filters.Bandpass(t..., fs = fs), FIRWindow(window_f(nbands)))
@@ -15,7 +15,7 @@ function multibandpass_digitalfilter(vec::Vector{Tuple{T, T}}, fs::Real, window_
     result_filter
 end
 
-function multibandpass_digitalfilter(selected_bands::Vector{Int}, fs::Real, window_f::Function; nbands::Integer = 60, lower_freq = 0)::AbstractVector
+function multibandpass_digitalfilter(selected_bands::AbstractVector{<:Int}, fs::Real, window_f::Function; nbands::Integer = 40, lower_freq = 0)::AbstractVector
     higher_freq = fs * 0.5
     band_width = (higher_freq - lower_freq) / nbands
 
@@ -28,12 +28,12 @@ end
 
 function draw_audio_anim(
         audio_files    :: Vector{String};
-        outfile        :: String = homedir() * "/gif.gif",
+        outfile        :: String = pwd() * "/gif.gif",
         size           :: Tuple{Int64,Int64} = (1000, 400),
         fps            :: Int64 = 60,
         selected_range :: Union{UnitRange{Int64},Tuple{Number,Number},Symbol} = :whole
     )
-    function draw_wav(points::Vector{Float64}, fs::Number; func = plot)
+    function draw_wav(points::AbstractVector{<:Float64}, fs::Number; func = plot)
         func(
             collect(0:(length(points) - 1)),
             points,
@@ -101,7 +101,7 @@ function draw_audio_anim(
 end
 
 # SETTINGS
-outpath = homedir()
+outpath = pwd()
 
 inputfile_healthy = "../datasets/KDD/healthyandroidwithcough/cough/cough_9me0RMtVww_1586943699308.wav_aug_noise1.wav"
 outfile_healthy = "filtered_healthy.wav"
@@ -119,26 +119,28 @@ mkv_filtered = outpath * "/" * "filtered.mkv"
 original_copy_healty = outpath * "/" * "original_healthy.wav"
 original_copy_covid = outpath * "/" * "original_covid.wav"
 
-# # READ INPUT
-# samps_healthy, sr_healthy, nbits_healthy = wavread(inputfile_healthy)
-# samps_healthy = merge_channels(samps_healthy)
+# if ! (isfile(original_copy_healty) && isfile(original_copy_covid))
+	# READ INPUT
+	samps_healthy, sr_healthy, nbits_healthy = wavread(inputfile_healthy)
+	samps_healthy = merge_channels(samps_healthy)
 
-# samps_covid, sr_covid, nbits_covid = wavread(inputfile_covid)
-# samps_covid = merge_channels(samps_covid)
+	samps_covid, sr_covid, nbits_covid = wavread(inputfile_covid)
+	samps_covid = merge_channels(samps_covid)
 
-# # COMPUTE
-# filter_healthy = multibandpass_digitalfilter([ 48, 19, 39, 27 ], sr_healthy, hamming, nbands = 60)
-# filtered_healthy = filt(filter_healthy, samps_healthy)
+	# COMPUTE
+	filter_healthy = multibandpass_digitalfilter(32:36, sr_healthy, hamming, nbands = 40)
+	filtered_healthy = filt(filter_healthy, samps_healthy)
 
-# filter_covid = multibandpass_digitalfilter([ 48, 19, 39, 27 ], sr_covid, hamming, nbands = 60)
-# filtered_covid = filt(filter_covid, samps_covid)
+	filter_covid = multibandpass_digitalfilter(32:36, sr_covid, hamming, nbands = 40)
+	filtered_covid = filt(filter_covid, samps_covid)
 
-# # OUTPUT
-# cp(inputfile_healthy, original_copy_healty; force = true)
-# wavwrite(filtered_healthy, totaloutpath_healthy; Fs = sr_healthy)#, nbits = nbits_healthy)
+	# OUTPUT
+	cp(inputfile_healthy, original_copy_healty; force = true)
+	wavwrite(filtered_healthy, totaloutpath_healthy; Fs = sr_healthy)#, nbits = nbits_healthy)
 
-# cp(inputfile_covid, original_copy_covid; force = true)
-# wavwrite(filtered_covid, totaloutpath_covid; Fs = sr_covid)#, nbits = nbits_covid)
+	cp(inputfile_covid, original_copy_covid; force = true)
+	wavwrite(filtered_covid, totaloutpath_covid; Fs = sr_covid)#, nbits = nbits_covid)
+# end
 
 draw_audio_anim(
     [ original_copy_covid, totaloutpath_covid ],
