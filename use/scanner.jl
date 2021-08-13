@@ -569,6 +569,7 @@ function exec_scan(
 		log_level                       = DecisionTree.DTOverview,
 		timing_mode                     ::Symbol = :time,
 		### Misc
+		best_rule_params                = [(t=.8, min_confidence=0.6, min_support=0.1), (t=.65, min_confidence=0.6, min_support=0.1)],
 		save_datasets                   :: Bool = false,
 		skip_training                   :: Bool = false,
 		callback                        :: Function = identity,
@@ -603,11 +604,14 @@ function exec_scan(
 		end
 
 		# If not fulltraining
-		if split_threshold != 1.0
-			println("Test tree:")
-			print_apply_tree(T, X_test, Y_test)
-		end
-
+		T_test =
+			if split_threshold != 1.0
+				println("Test tree:")
+				print_apply_tree(T, X_test, Y_test)
+			else
+				print_apply_tree(T, X_test, Y_test; update_majority = true, do_print = false)
+			end
+		
 		println(" test size = $(size(X_test))")
 		cm = nothing
 		for pruning_purity_threshold in sort(unique([(Float64.(tree_post_pruning_purity_thresh))...,1.0]))
@@ -625,7 +629,7 @@ function exec_scan(
 
 			# println("nodes: ($(num_nodes(T_pruned)), height: $(height(T_pruned)))")
 		end
-		return (T, cm, Tt, string(tree_hash));
+		return (T_test, cm, Tt, string(tree_hash));
 	end
 
 	go_forest(slice_id, X_train, Y_train, X_test, Y_test, f_args, rng; prebuilt_model::Union{Nothing,AbstractVector{Forest{S}}} = nothing) where {S} = begin
@@ -696,7 +700,7 @@ function exec_scan(
 			push!(cms, cm)
 		end
 
-		return (Fs, cms, Ft, string(tuple(hashes)));
+		return (Fs, cms, Ft, string(Tuple(hashes)));
 	end
 
 	go(slice_id, X_train, Y_train, X_test, Y_test) = begin
@@ -797,11 +801,11 @@ function exec_scan(
 		# PRINT CONCISE
 		concise_output_string = string(slice_id, results_col_sep, run_name, results_col_sep)
 		for j in 1:length(tree_args)
-			concise_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j], Thashs[j]; alt_separator=", ", separator = results_col_sep))
+			concise_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j], Thashs[j]; alt_separator=", ", separator = results_col_sep, best_rule_params = best_rule_params))
 			concise_output_string *= string(results_col_sep)
 		end
 		for j in 1:length(forest_args)
-			concise_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j], Fhashs[j]; alt_separator=", ", separator = results_col_sep))
+			concise_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j], Fhashs[j]; alt_separator=", ", separator = results_col_sep, best_rule_params = best_rule_params))
 			concise_output_string *= string(results_col_sep)
 		end
 		concise_output_string *= string("\n")
@@ -849,7 +853,7 @@ function exec_scan(
 	)
 	print_head(full_output_file_path, tree_args, forest_args,
 		separator = results_col_sep,
-		tree_columns = [base_metrics_names..., "n_nodes", "t", "hash"],
+		tree_columns = [base_metrics_names..., "n_nodes", ["best_rule_p $(best_rule_p)" for best_rule_p in best_rule_params]..., "t", "hash"],
 		forest_columns = [
 			[base_metrics_names..., "oob_error", "n_nodes"]...,
 			["σ² $(n)" for n in [base_metrics_names..., "oob_error", "n_nodes"]]..., "t", "hash"],
