@@ -887,6 +887,7 @@ function exec_scan(
 	# println("forest_args  = ", length(forest_args), " × some forest_args structure")
 	println()
 	println("split_threshold   = ", split_threshold)
+	println("best_rule_params  = ", best_rule_params)
 	println("data_modal_args   = ", data_modal_args)
 	println("dataset_slices    = ($(length(dataset_slices)) dataset_slices)")
 
