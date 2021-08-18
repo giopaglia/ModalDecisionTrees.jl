@@ -47,9 +47,9 @@ function ComParE2021Dataset(;
 	timeseries = Vector{Array{Float64, 2}}(undef, nrow(records))
 	labels = Vector{String}(undef, nrow(records))
 
-	max_ts_length         = []
-	max_ts_with_ma_length = []
-	max_ts_cut_length     = []
+	ts_lengths         = []
+	ts_with_ma_lengths = []
+	ts_cut_lengths     = []
 
 	# println(records |> typeof)
 	# println(eachrow(records))
@@ -66,7 +66,7 @@ function ComParE2021Dataset(;
 
 		ts = wav2stft_time_series(filepath, audio_kwargs; preprocess_sample = preprocess_wavs, use_full_mfcc = use_full_mfcc)
 
-		push!(max_ts_length, size(ts,1))
+		push!(ts_lengths, size(ts,1))
 
 		# display(ts)
 		# ts = @views ts[:,2:end]
@@ -74,7 +74,7 @@ function ComParE2021Dataset(;
 		ts = moving_average(ts, ma_size, ma_step)
 		# display(ts)
 
-		push!(max_ts_with_ma_length, size(ts,1))
+		push!(ts_with_ma_lengths, size(ts,1))
 
 		if max_points != -1 && size(ts,1)>max_points
 			ts = ts[1:max_points,:]
@@ -82,7 +82,7 @@ function ComParE2021Dataset(;
 		# display(ts)
 		# display(size(ts,1))
 		
-		push!(max_ts_cut_length, size(ts,1))
+		push!(ts_cut_lengths, size(ts,1))
 		
 		timeseries[i_record] = ts
 		labels[i_record] = label
@@ -105,9 +105,9 @@ function ComParE2021Dataset(;
 
 	class_counts = [class_counts[label] for label in class_names] |> Tuple
 	
-	println("max_ts_length         = (max = $(StatsBase.maximum(max_ts_length)), min = $(StatsBase.minimum(max_ts_length)), mean = $(StatsBase.mean(max_ts_length)), std = $(StatsBase.std(max_ts_length)))")
-	println("max_ts_with_ma_length = (max = $(StatsBase.maximum(max_ts_with_ma_length)), min = $(StatsBase.minimum(max_ts_with_ma_length)), mean = $(StatsBase.mean(max_ts_with_ma_length)), std = $(StatsBase.std(max_ts_with_ma_length)))")
-	println("max_ts_cut_length     = (max = $(StatsBase.maximum(max_ts_cut_length)), min = $(StatsBase.minimum(max_ts_cut_length)), mean = $(StatsBase.mean(max_ts_cut_length)), std = $(StatsBase.std(max_ts_cut_length)))")
+	println("ts_lengths         = (max = $(StatsBase.maximum(ts_lengths)        ), min = $(StatsBase.minimum(ts_lengths)        ), mean = $(StatsBase.mean(ts_lengths)        ), std = $(StatsBase.std(ts_lengths)))")
+	println("ts_with_ma_lengths = (max = $(StatsBase.maximum(ts_with_ma_lengths)), min = $(StatsBase.minimum(ts_with_ma_lengths)), mean = $(StatsBase.mean(ts_with_ma_lengths)), std = $(StatsBase.std(ts_with_ma_lengths)))")
+	println("ts_cut_lengths     = (max = $(StatsBase.maximum(ts_cut_lengths)    ), min = $(StatsBase.minimum(ts_cut_lengths)    ), mean = $(StatsBase.mean(ts_cut_lengths)    ), std = $(StatsBase.std(ts_cut_lengths)))")
 
 	println("Class counts: $(class_counts); # points: $(max_timepoints)")
 

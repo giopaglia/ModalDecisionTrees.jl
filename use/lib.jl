@@ -1,3 +1,7 @@
+using SHA
+using Serialization
+import JLD2
+import Dates
 
 function get_hash_sha256(var)::String
 	io = IOBuffer();

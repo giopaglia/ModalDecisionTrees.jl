@@ -134,8 +134,8 @@ round_dataset_to_datatype = false
 # round_dataset_to_datatype = Float32
 # round_dataset_to_datatype = Float64
 
-# train_split_threshold = nothing
-train_split_threshold = 0.8
+# samples_per_class_share = nothing
+samples_per_class_share = 0.8
 
 # split_threshold = 0.8
 # split_threshold = 1.0
@@ -316,7 +316,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	## Dataset slices
 	# obtain dataseeds that are were not done before
 	todo_dataseeds = filter((dataseed)->!iteration_in_history(history, (params_namedtuple, dataseed)), exec_dataseed)
-	dataset_slices = [(dataseed, balanced_dataset_slice(n_label_samples, dataseed; split_threshold = train_split_threshold)) for dataseed in todo_dataseeds]
+	dataset_slices = [(dataseed, balanced_dataset_slice(n_label_samples, dataseed; samples_per_class_share = samples_per_class_share)) for dataseed in todo_dataseeds]
 
 	println("Dataseeds = $(todo_dataseeds)")
 
