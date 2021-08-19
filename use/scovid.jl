@@ -14,15 +14,15 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./covid-august"
+results_dir = "./covid-august-v2"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/cache"
 model_savedir = results_dir * "/trees"
 
-# dry_run = false
-# dry_run = true
-dry_run = :dataset_only
+dry_run = false
+#dry_run = true
+#dry_run = :dataset_only
 
 # save_datasets = true
 save_datasets = false
@@ -46,9 +46,9 @@ tree_args = [
 ]
 
 for loss_function in [DecisionTree.util.entropy]
-	for min_samples_leaf in [4] # [1,2]
+	for min_samples_leaf in [2,4] # [1,2]
 		for min_purity_increase in [0.01] # [0.01, 0.001]
-			for min_loss_at_leaf in [0.4, 0.6] # [0.4, 0.6]
+			for min_loss_at_leaf in [0.6, 0.7, 0.8] # [0.4, 0.6]
 				push!(tree_args, 
 					(
 						loss_function       = loss_function,
@@ -78,10 +78,11 @@ forest_args = []
 for n_trees in [50,100]
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
+                    for partial_sampling in [0.7, 1.0]
 			push!(forest_args, (
 				n_subfeatures       = n_subfeatures,
 				n_trees             = n_trees,
-				partial_sampling    = 1.0,
+				partial_sampling    = partial_sampling,
 				n_subrelations      = n_subrelations,
 				# Optimization arguments for trees in a forest (no pruning is performed)
 				loss_function       = DecisionTree.util.entropy,
@@ -90,7 +91,8 @@ for n_trees in [50,100]
 				min_loss_at_leaf    = 0.0,
 				perform_consistency_check = perform_consistency_check,
 			))
-		end
+		    end
+                end
 	end
 end
 
@@ -172,8 +174,8 @@ exec_n_task_use_aug = [
 	(1, false),
 	(2, true),
 	(3, true),
-	(2, false),
-	(3, false),
+	#(2, false),
+	#(3, false),
 ]
 exec_n_versions = 1:3
 exec_nbands = [40] # [20,40,60]
@@ -192,14 +194,14 @@ exec_dataset_kwargs =   [( # TODO
 						# 	ma_size = 45,
 						# 	ma_step = 30,
 						# ),(# max_points = 30,
-							ma_size = 120,
-							ma_step = 100,
+						#	ma_size = 120,
+						#	ma_step = 100,
 						# ),(# max_points = 30,
 						# 	ma_size = 120,
 						# 	ma_step = 80,
 						# ),(# max_points = 30,
-						# 	ma_size = 100,
-						# 	ma_step = 75,
+						 	ma_size = 100,
+						 	ma_step = 75,
 						# ),(# max_points = 30,
 						# 	ma_size = 90,
 						# 	ma_step = 60,
@@ -256,9 +258,9 @@ wav_preprocessors = Dict(
 )
 
 exec_preprocess_wavs = [
-	# ["Normalize"],
+	["Normalize"],
 	[],
-#	["NG", "Normalize"]
+	["NG", "Normalize"]
 ]
 
 # https://github.com/JuliaIO/JSON.jl/issues/203

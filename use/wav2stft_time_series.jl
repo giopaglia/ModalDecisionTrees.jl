@@ -89,9 +89,15 @@ function wav2stft_time_series(filepath, kwargs; preprocess_sample::AbstractVecto
 	for pps in preprocess_sample
 		pps(samps)
 	end
-
-	@assert maximum(abs, samps) > 0.0 "ERROR: File $(filepath) has max peak 0!"
-	@assert !any(isnan.(samps)) "ERROR: File $(filepath) has a NaN value!"
+        
+	if ! (maximum(abs, samps) > 0.0)
+                println("ERROR: File $(filepath) has max peak 0!")
+            return nothing
+        end
+	if any(isnan.(samps))
+                println("ERROR: File $(filepath) has a NaN value!")
+            return nothing
+        end
 
 	# wintime = 0.025 # ms
 	# steptime = 0.010 # ms
