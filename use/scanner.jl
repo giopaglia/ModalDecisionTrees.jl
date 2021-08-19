@@ -805,7 +805,7 @@ function exec_scan(
 			concise_output_string *= string(results_col_sep)
 		end
 		for j in 1:length(forest_args)
-			concise_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j], Fhashs[j]; alt_separator=", ", separator = results_col_sep, best_rule_params = best_rule_params))
+			concise_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j], Fhashs[j]; alt_separator=", ", separator = results_col_sep))
 			concise_output_string *= string(results_col_sep)
 		end
 		concise_output_string *= string("\n")
@@ -814,7 +814,7 @@ function exec_scan(
 		# PRINT FULL
 		full_output_string = string(slice_id, results_col_sep, join([replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)], results_col_sep), results_col_sep)
 		for j in 1:length(tree_args)
-			full_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j], Thashs[j]; start_s = "", end_s = "", alt_separator = results_col_sep))
+			full_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j], Thashs[j]; start_s = "", end_s = "", alt_separator = results_col_sep, best_rule_params = best_rule_params))
 			full_output_string *= string(results_col_sep)
 		end
 		for j in 1:length(forest_args)
