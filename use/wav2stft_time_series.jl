@@ -128,3 +128,17 @@ function normalize!(sample::AbstractVector; level::Float64 = 1.0)
 	apply_padd!(val::Float64) = clamp((val/max_peak) * level, -1.0, 1.0)
 	sample .= apply_padd!.(sample)
 end
+
+function trim!(sample::AbstractVector; level::Float64 = 0.0)
+	before = 1
+	after = length(sample)
+	while abs(sample[before]) <= level
+		before = before + 1
+	end
+	while abs(sample[after]) <= level
+		after = after - 1
+	end
+	splice!(sample, (after+1):length(sample))
+	splice!(sample, 1:(before-1))
+	sample
+end
