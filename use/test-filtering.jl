@@ -1,5 +1,11 @@
 
+import Dates
+using FileIO
+
 include("wav-filtering.jl")
+include("datasets.jl")
+include("lib.jl")
+include("caching.jl")
 
 # TODO: find out if A1 is the highest or the lowest frequency in MFCC
 
@@ -8,7 +14,9 @@ gr()
 
 # SETTINGS
 outpath = "filtering-results"
+cache_dir = outpath * "/cache"
 if !isdir(outpath) mkpath(outpath) end
+if !isdir(cache_dir) mkpath(cache_dir) end
 
 selected_range = :whole
 
@@ -39,25 +47,74 @@ nbands = 40
 animation_fps = 30
 features_colors = [ RGB(1 - (1 * (i/(nbands - 1))), 0, 1 * (i/(nbands - 1))) for i in 0:(nbands-1) ]
 
+# # DATASET SETTINGS
+# max_sample_rate = 16_000
+
+# n_task = 2
+# n_version = 2
+# use_aug = false
+# use_full_mfcc = false
+# audio_kwargs = (
+#     wintime = 0.025,
+#     steptime = 0.010,
+#     fbtype = :mel,                     
+#     window_f = DSP.hamming,
+#     pre_emphasis = 0.97,
+#     nbands = nbands,
+#     sumpower = false,
+#     dither = false,
+#     maxfreq = max_sample_rate/2,
+# )
+# dataset_kwargs = (
+#     ma_size = 120,
+#     ma_step = 100
+# )
+# preprocess_wavs = []
+
+# dataset_func_params = (
+#     (n_task,n_version),
+#     audio_kwargs
+# )
+# dataset_func_kwparams = (
+#     dataset_kwargs...,
+#     use_augmentation_data = use_aug,
+#     preprocess_wavs = preprocess_wavs,
+#     use_full_mfcc = use_full_mfcc
+# )
+
+# # TREE SETTINGS
+# tree_path = "covid-august/trees"
+# tree_hash = "d5cce8625a82b7c1e5360a4d055175425302db80dc57e55695e32d4d782c6ac5"
+
+# # TEST APPLY_TREE_TO_WAV
+# tree = JLD2.load(tree_path * "/tree_$(tree_hash).jld")["T"]
+# dataset = @cache "dataset" cache_dir dataset_func_params dataset_func_kwparams KDDDataset_not_stratified
+
+# ds, (n_pos, n_neg) = dataset
+# X, Y = ds
+
+# apply_tree_to_datasets_wavs(tree, X, fill("FAKE_PATH", length(Y)), Y)
+# exit()
+
 # READ INPUT
 samps_healthy, sr_healthy, nbits_healthy = wavread(inputfile_healthy)
 samps_healthy = merge_channels(samps_healthy)
 noise_gate!(samps_healthy)
-trim!(samps_healthy)
+trim_wav!(samps_healthy)
 
 samps_covid, sr_covid, nbits_covid = wavread(inputfile_covid)
 samps_covid = merge_channels(samps_covid)
 noise_gate!(samps_covid)
-trim!(samps_covid)
+trim_wav!(samps_covid)
 
 # COMPUTE
-filter_healthy = multibandpass_digitalfilter_mel(selected_features, sr_healthy, hamming, nbands = nbands)
+filter_healthy = multibandpass_digitalfilter_mel(selected_features, sr_healthy, hamming; nbands = nbands)
 filtered_healthy = filt(filter_healthy, samps_healthy)
 
-filter_covid = multibandpass_digitalfilter_mel(selected_features, sr_covid, hamming, nbands = nbands)
+filter_covid = multibandpass_digitalfilter_mel(selected_features, sr_covid, hamming; nbands = nbands)
 filtered_covid = filt(filter_covid, samps_covid)
 
-single_band_filters = [ multibandpass_digitalfilter_mel([ feat ], sr_covid, hamming, nbands = nbands) for feat in selected_features ]
+single_band_filters = [ multibandpass_digitalfilter_mel([ feat ], sr_covid, hamming; nbands = nbands) for feat in selected_features ]
 single_band_wavs = [ (feat, totaloutpath_covid_single_band(feat), filt(single_band_filters[i], samps_covid)) for (i, feat) in enumerate(selected_features) ]
 
 # OUTPUT

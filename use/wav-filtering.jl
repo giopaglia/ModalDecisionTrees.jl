@@ -1,11 +1,17 @@
 
 include("wav2stft_time_series.jl")
+include("local.jl")
 
 # using DSP: filt
 # using Weave
+import Pkg
+Pkg.activate("..")
+
+using DecisionTree
+using DecisionTree.ModalLogic
+
 using Plots
 using MFCC: hz2mel, mel2hz
-# using ..DecisionTree
 
 MFCC.mel2hz(f::AbstractFloat, htk=false)  = mel2hz([f], htk)[1]
 
@@ -44,35 +50,75 @@ plotfilter(filter::Filters.Filter; kwargs...) = plotfilter(digitalfilter(filter,
 plotfilter!(filter::Filters.Filter; args...) = plotfilter(filter; args..., plotfunc = plot!)
 plotfilter!(filter; args...)                 = plotfilter(filter; args..., plotfunc = plot!)
 
-function multibandpass_digitalfilter(vec::Vector{Tuple{T, T}}, fs::Real, window_f::Function; nbands::Integer = 60, nwin = nbands)::AbstractVector where T
+function multibandpass_digitalfilter(
+        vec::Vector{Tuple{T, T}},
+        fs::Real,
+        window_f::Function;
+        nbands::Integer = 60,
+        nwin = nbands,
+        weights::Vector{F} where F <:AbstractFloat = fill(1., length(vec))
+    )::AbstractVector where T
+
+    @assert length(weights) == length(vec) "length(weights) != length(vec): $(length(weights)) != $(length(vec))"
+
     result_filter = zeros(T, nbands)
+    i = 1
     @simd for t in vec
-        result_filter += digitalfilter(Filters.Bandpass(t..., fs = fs), FIRWindow(window_f(nwin)))
+        result_filter += digitalfilter(Filters.Bandpass(t..., fs = fs), FIRWindow(window_f(nwin))) * weights[i]
+        i=i+1
     end
     result_filter
 end
 
-function multibandpass_digitalfilter(selected_bands::Vector{Int}, fs::Real, window_f::Function; nbands::Integer = 60, lower_freq = 0, higher_freq = fs / 2, nwin = nbands)::AbstractVector
+function multibandpass_digitalfilter(
+        selected_bands::Vector{Int},
+        fs::Real,
+        window_f::Function;
+        nbands::Integer = 60,
+        lower_freq = 0,
+        higher_freq = fs / 2,
+        nwin = nbands,
+        weights::Vector{F} where F <:AbstractFloat = fill(1., length(selected_bands))
+    )::AbstractVector
+
+    @assert length(weights) == length(selected_bands) "length(weights) != length(selected_bands): $(length(weights)) != $(length(selected_bands))"
+
     band_width = (higher_freq - lower_freq) / nbands
 
     result_filter = zeros(Float64, nbands)
+    i = 1
     @simd for b in selected_bands
-        result_filter += digitalfilter(Filters.Bandpass(b * band_width, ((b+1) * band_width) - 1, fs = fs), FIRWindow(window_f(nwin)))
+        result_filter += digitalfilter(Filters.Bandpass(b * band_width, ((b+1) * band_width) - 1, fs = fs), FIRWindow(window_f(nwin))) * weights
+        i=i+1
     end
     result_filter
 end
 
-function multibandpass_digitalfilter_mel(selected_bands::Vector{Int}, fs::Real, window_f::Function; nbands::Integer = 60, lower_freq = 0, higher_freq = hz2mel(fs / 2), nwin = nbands)::AbstractVector
+function multibandpass_digitalfilter_mel(
+        selected_bands::Vector{Int},
+        fs::Real,
+        window_f::Function;
+        nbands::Integer = 60,
+        lower_freq = 0,
+        higher_freq = hz2mel(fs / 2),
+        nwin = nbands,
+        weights::Vector{F} where F <:AbstractFloat = fill(1., length(selected_bands))
+    )::AbstractVector
+
+    @assert length(weights) == length(selected_bands) "length(weights) != length(selected_bands): $(length(weights)) != $(length(selected_bands))"
+
     correct_selected_bands = selected_bands .- 1
     band_width = (higher_freq - lower_freq) / nbands
 
     result_filter = zeros(Float64, nbands)
+    i = 1
     @simd for b in correct_selected_bands
         result_filter += digitalfilter(Filters.Bandpass(
             mel2hz(max(b * band_width, eps(Float64))),
             mel2hz(((b+1) * band_width)),
             fs = fs
-        ), FIRWindow(window_f((nwin))))
+        ), FIRWindow(window_f((nwin)))) * weights[i]
+        i=i+1
     end
     result_filter
 end
@@ -202,53 +248,131 @@ function draw_audio_anim(audio_files::Vector{String}; kwargs...)
     draw_audio_anim(converted_input; kwargs...)
 end
 
-# struct DecisionPathNode
-#     taken         :: Bool
-#     feature       :: ModalLogic.FeatureTypeFun
-#     test_operator :: TestOperatorFun
-#     threshold     :: T where T
-#     # TODO: add here info about the world(s)
-# end
+struct DecisionPathNode
+    taken         :: Bool
+    feature       :: ModalLogic.FeatureTypeFun
+    test_operator :: TestOperatorFun
+    threshold     :: T where T
+    # TODO: add here info about the world(s)
+end
 
-# const DecisionPath = Vector{DecisionPathNode}
+const DecisionPath = Vector{DecisionPathNode}
 
-# mutable struct InstancePathInTree
-#     file_name    :: String
-#     label        :: String
-#     tree         :: DTree{S} where S
-#     predicted    :: Union{Nothing,String}
-#     path         :: Path
-#     dataset_info :: Any
-# end
+mutable struct InstancePathInTree{S}
+    file_name    :: String
+    label        :: S
+    tree         :: Union{Nothing,DTree{T}} where T
+    predicted    :: Union{Nothing,S}
+    path         :: DecisionPath
+    dataset_info :: Any
+    InstancePathInTree{S}(file_name::String, label::S) where S = new(file_name, label, nothing, nothing, [], ())
+    InstancePathInTree{S}(file_name::String, label::S, dataset_info) where S = new(file_name, label, nothing, nothing, [], dataset_info)
+    InstancePathInTree{S}(file_name::String, label::S, tree::DTree) where S = new(file_name, label, tree, nothing, [], ())
+    InstancePathInTree{S}(file_name::String, label::S, tree::DTree, dataset_info) where S = new(file_name, label, tree, nothing, [], dataset_info)
+end
 
-# get_path_in_tree(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, path::DecisionPath)::DecisionPath = path
-# function get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, path::DecisionPath = [])::DecisionPath
-#     satisfied = true
-# 	(satisfied,new_worlds) =
-# 		ModalLogic.modal_step(
-# 						get_frame(X, tree.i_frame),
-# 						i_instance,
-# 						worlds[tree.i_frame],
-# 						tree.relation,
-# 						tree.feature,
-# 						tree.test_operator,
-# 						tree.threshold)
+is_correctly_classified(inst::InstancePathInTree)::Bool = inst.label === inst.predicted
 
-#     # TODO: add here info about the worlds that generated the decision
-#     push!(path, DecisionPathNode(satisfied, tree.feature, tree.test_operator, tree.threshold))
+get_path_in_tree(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, path::DecisionPath)::DecisionPath = path
+function get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, path::DecisionPath = [])::DecisionPath
+    satisfied = true
+	(satisfied,new_worlds) =
+		ModalLogic.modal_step(
+						get_frame(X, tree.i_frame),
+						i_instance,
+						worlds[tree.i_frame],
+						tree.relation,
+						tree.feature,
+						tree.test_operator,
+						tree.threshold)
 
-# 	worlds[tree.i_frame] = new_worlds
-# 	get_path_in_tree((satisfied ? tree.left : tree.right), X, i_instance, worlds)
-# end
-# function get_path_in_tree(tree::DTree{S}, X::GenericDataset)::Vector{DecisionPath} where {S}
-# 	n_instances = n_samples(X)
-# 	paths = Vector{AbstractVector}(undef, n_instances)
-# 	for i_instance in 1:n_instances
-# 		worlds = inst_init_world_sets(X, tree, i_instance)
-# 		paths[i_instance] = apply_tree(tree.root, X, i_instance, worlds)
-# 	end
-# 	paths
-# end
+    # TODO: add here info about the worlds that generated the decision
+    push!(path, DecisionPathNode(satisfied, tree.feature, tree.test_operator, tree.threshold))
+
+	worlds[tree.i_frame] = new_worlds
+	get_path_in_tree((satisfied ? tree.left : tree.right), X, i_instance, worlds)
+end
+function get_path_in_tree(tree::DTree{S}, X::GenericDataset)::Vector{DecisionPath} where {S}
+	n_instances = n_samples(X)
+    println("instances: ", n_instances)
+	paths = Vector{AbstractVector}(undef, n_instances)
+	for i_instance in 1:n_instances
+		worlds = DecisionTree.inst_init_world_sets(X, tree, i_instance)
+		paths[i_instance] = apply_tree(tree.root, X, i_instance, worlds)
+	end
+	paths
+end
+
+function apply_tree_to_datasets_wavs(
+        tree::DTree{S},
+        dataset::GenericDataset,
+        wav_paths::Vector{String},
+        labels::Vector{S};
+        filter_kwargs = (),
+        window_f::Function = hamming,
+        destination_dir::String = "filtering-results/filtered"
+    ) where {S}
+
+    n_instances = n_samples(dataset[1])
+
+    @assert n_instances == length(wav_paths) "dataset and wav_paths length mismatch! $(n_instances) != $(length(wav_paths))"
+    @assert n_instances == length(labels) "dataset and labels length mismatch! $(n_instances) != $(length(labels))"
+
+    println("Applying tree:")
+    DecisionTree.print_tree(tree)
+
+    results = Vector{InstancePathInTree}(undef, n_instances)
+    predictions = apply_tree(tree, dataset)
+    paths = get_path_in_tree(tree, dataset)
+
+    # Threads.@threads 
+    for i in 1:1
+        results[i] = InstancePathInTree{S}(wav_paths[i], labels[i], tree)
+        
+        curr_inst = ModalLogic.getInstance(dataset, 1)
+        results[i].predicted = predictions[i]
+        results[i].path = paths[i]
+    end
+
+    println("ALL GOOD!")
+    return
+    # TODO: test from here 'till the end
+
+    originals = Vector{AbstractVector}(undef, n_instances)
+    samplerates = Vector{Number}(undef, n_instances)
+    for i in 1:n_instances
+        originals[i], samplerates[i] = wavread(wav_paths[i])
+    end
+    
+    filtered = Vector{AbstractVector}(undef, n_instances)
+    # Threads.@threads 
+    for i in 1:n_instances
+        # TODO: use path + worlds to generate dynamic filters
+        if !is_correctly_classified(results[i])
+            println("Skipping file $(wav_paths[i]) because it was not correctly predicted...")
+            continue
+        end
+        n_features = length(results[i].path)
+        bands = Vector{Int64}(undef, n_features)
+        weights = Vector{AbstractFloat}(undef, n_features)
+        for j in 1:n_features
+            # TODO: here goes the logic interpretation of the tree
+            bands[j] = results[i].path[j].feature
+            weights[j] = 1.
+        end
+        filter = multibandpass_digitalfilter_mel(bands, samplerates[i], window_f; weights = weights, filter_kwargs...)
+        filtered[i] = filt(filter, originals[i])
+    end
+
+    mkpath(destination_dir)
+    data_dir = abspath(data_dir)
+    for i in 1:n_instances
+        save_path = abspath(replace(wav_paths[i], data_dir => ""))
+        wavwrite(filtered[i], save_path; Fs = samplerates[i])
+    end
+
+    results
+end
 
 # TODO: implement this function for real (it is just a draft for now...)
 # function apply_dynfilter!(
