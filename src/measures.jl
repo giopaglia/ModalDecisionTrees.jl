@@ -85,6 +85,33 @@ kappa(cm::ConfusionMatrix)            = cm.kappa
 
 class_counts(cm::ConfusionMatrix) = sum(cm.matrix,dims=2)
 
+
+# Useful arcticles: 
+# - https://towardsdatascience.com/a-tale-of-two-macro-f1s-8811ddcf8f04
+# - https://towardsdatascience.com/multi-class-metrics-made-simple-part-i-precision-and-recall-9250280bddc2
+# - https://towardsdatascience.com/multi-class-metrics-made-simple-part-ii-the-f1-score-ebe8b2c2ca1
+# - https://www.datascienceblog.net/post/machine-learning/performance-measures-multi-class-problems/
+# - https://towardsdatascience.com/multi-class-metrics-made-simple-the-kappa-score-aka-cohens-kappa-coefficient-bdea137af09c
+
+# NOTES:
+"""
+macro-accuracy  = mean accuracy  = avg. accuracy (AA or MA)
+macro-precision = mean precision = avg. of precisions
+macro-recall    = mean recall    = avg. of recalls
+
+macro-F1     = avg of F1 score of each class (sklearn uses this one)
+micro-F1     = F1 score calculated using the global precision and global recall
+Note: a second 2nd definition of macro-F1, less used = F1 score calculated using macro-precision and macro-recall (avg. of recalls)
+
+rules:
+-	micro-F1 = micro-precision = micro-recall = overall accuracy
+- overall accuracy = (weighted) macro-recall (thus, if the test set is perfectly balanced: overall accuracy = macro-recall)
+
+Note:
+- The flaw of F1-score (and accuracy?) is that they give equal weight to precision and recall
+- "the relative importance assigned to precision and recall should be an aspect of the problem" - David Hand
+"""
+
 # macro_F1(cm::ConfusionMatrix) = Statistics.mean(cm.F1s)
 # macro_sensitivity(cm::ConfusionMatrix) = Statistics.mean(cm.sensitivities)
 # # macro_specificity(cm::ConfusionMatrix) = Statistics.mean(cm.specificities)
