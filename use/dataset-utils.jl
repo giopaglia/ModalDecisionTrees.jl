@@ -362,9 +362,21 @@ balanced_dataset_slice(dataset::NamedTuple{(:train_n_test,:only_training)}, data
 	linearized_dataset, dataset_slices
 end
 
+# Multi-frame dataset with labels and instance-ids
+function concat_labeled_datasets((X1, Y1, f1)::Tuple{AbstractVector{<:GenericDataset},AbstractVector,AbstractVector}, (X2, Y2, f2)::Tuple{AbstractVector{<:GenericDataset},AbstractVector,AbstractVector})
+	X = concat_datasets(X1, X2)
+	Y = vcat(Y1, Y2)
+	f = map(x->Iterators.flatten(x)|>collect, zip(f1,f2))
+	(X, Y, f)
+end
+
+# Multi-frame dataset with labels
 function concat_labeled_datasets((X1, Y1)::Tuple{AbstractVector{<:GenericDataset},AbstractVector}, (X2, Y2)::Tuple{AbstractVector{<:GenericDataset},AbstractVector})
-	X = map(concat_datasets, X1, X2)
+	X = concat_datasets(X1, X2)
 	Y = vcat(Y1, Y2)
 	(X, Y)
 end
+
+# Multi-frame dataset
+concat_datasets(X1::AbstractVector{<:GenericDataset}, X2::AbstractVector{<:GenericDataset}) = map(concat_datasets, X1, X2)
 
