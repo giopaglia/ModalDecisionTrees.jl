@@ -140,30 +140,33 @@ function KDDDataset_not_stratified((n_task,n_version),
 				# Filter out files that are known to be missing
 				filter!((filename)->! (filename in files_to_ignore), samples)
 
-				cur_file_timeseries = Vector{Array{Float64, 2}}(undef, length(samples))
+				cur_file_timeseries = Array{Float64, 2}[]
 				valid_i_filenames = []
 				for (i_filename, filename) in collect(enumerate(samples))
 					# println(filename)
 					filepath = kdd_data_dir * "$filename"
 					ts = wav2stft_time_series(filepath, audio_kwargs; preprocess_sample = preprocess_wavs, use_full_mfcc = use_full_mfcc)
-					# Ignore instances with NaN (careful! this may leave with just a few instances)
-					# if any(isnan.(ts))
-					# 	@warn "Instance with NaN values was ignored"
-					# 	continue
-					# end
-					# Drop first point
-					ts = @views ts[2:end,:]
-					ts = moving_average(ts, ma_size, ma_step)
-					# println(size(ts))
-					if max_points != -1 && size(ts,1)>max_points
-						ts = ts[1:max_points,:]
+
+					if !isnothing(ts)
+						# Ignore instances with NaN (careful! this may leave with just a few instances)
+						# if any(isnan.(ts))
+						# 	@warn "Instance with NaN values was ignored"
+						# 	continue
+						# end
+						# Drop first point
+						ts = @views ts[2:end,:]
+						ts = moving_average(ts, ma_size, ma_step)
+						# println(size(ts))
+						if max_points != -1 && size(ts,1)>max_points
+							ts = ts[1:max_points,:]
+						end
+						# println(size(ts))
+						# readline()
+						# println(size(wav2stft_time_series(filepath, audio_kwargs)))
+						push!(cur_file_timeseries, ts)
+						push!(valid_i_filenames, i_filename)
+						n_samples += 1
 					end
-					# println(size(ts))
-					# readline()
-					# println(size(wav2stft_time_series(filepath, audio_kwargs)))
-					cur_file_timeseries[i_filename] = ts
-					push!(valid_i_filenames, i_filename)
-					n_samples += 1
 				end
 				cur_folder_timeseries[i_samples] = cur_file_timeseries[valid_i_filenames]
 				# break
