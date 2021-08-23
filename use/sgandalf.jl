@@ -166,7 +166,7 @@ exec_dataset_name = ["Pavia", "Salinas-A", "PaviaCentre", "IndianPines", "Salina
 exec_windowsize_flattened_ontology_test_operators = [
 	# ((1,7),false,"o_None","TestOpGeq"),
 	# ((3,7),:flattened,"o_None","TestOpGeq"),
-	((3,7),:averaged,"o_None","TestOpGeq"),
+	((3,7),false,:averaged,"o_None","TestOpGeq"),
 	# # ((3,7),false,"o_RCC8","TestOp"),
 	# # ((3,7),false,"o_RCC5","TestOp"),
 	# ((3,7),false,"o_RCC8","TestOpAll"),

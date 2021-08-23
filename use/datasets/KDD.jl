@@ -140,31 +140,54 @@ function KDDDataset_not_stratified((n_task,n_version),
 				# Filter out files that are known to be missing
 				filter!((filename)->! (filename in files_to_ignore), samples)
 
-				cur_file_timeseries = Vector{Array{Float64, 2}}(undef, length(samples))
+				cur_file_timeseries = Array{Float64, 2}[]
 				valid_i_filenames = []
 				for (i_filename, filename) in collect(enumerate(samples))
 					# println(filename)
 					filepath = kdd_data_dir * "$filename"
 					ts = wav2stft_time_series(filepath, audio_kwargs; preprocess_sample = preprocess_wavs, use_full_mfcc = use_full_mfcc)
-					# Ignore instances with NaN (careful! this may leave with just a few instances)
-					# if any(isnan.(ts))
-					# 	@warn "Instance with NaN values was ignored"
-					# 	continue
-					# end
-					# Drop first point
-					ts = @views ts[2:end,:]
-					ts = moving_average(ts, ma_size, ma_step)
-					# println(size(ts))
-					if max_points != -1 && size(ts,1)>max_points
-						ts = ts[1:max_points,:]
+
+					if !isnothing(ts) && ! (
+                                        (n_version == 2 ||
+                                        n_version == 3) &&
+                                        preprocess_wavs ==
+                                        [noise_gate!, normalize!] &&
+                                        any(endswith.(filepath,
+                                        [
+                                        "healthywebnosymp/2020-04-07-12_07_01_639904/audio_file_breathe.wav",
+                                        "healthywebnosymp/2020-04-07-12_07_01_639904/audio_file_cough.wav",
+                                        "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_breathe.wav",
+                                        "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav",
+                                        "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_breathe.wav_aug_pitchspeed1.wav",
+                                        "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_pitchspeed1.wav",
+                                        "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_breathe.wav_aug_pitchspeed2.wav",
+                                        "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_pitchspeed2.wav",
+                                        "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_breathe.wav_aug_pitchspeed1.wav",
+                                        "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_pitchspeed1.wav",
+                                        "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_breathe.wav_aug_pitchspeed2.wav",
+                                        "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_pitchspeed2.wav",
+                                        ])))
+						# Ignore instances with NaN (careful! this may leave with just a few instances)
+						# if any(isnan.(ts))
+						# 	@warn "Instance with NaN values was ignored"
+						# 	continue
+						# end
+						# Drop first point
+						ts = @views ts[2:end,:]
+						ts = moving_average(ts, ma_size, ma_step)
+						# println(size(ts))
+						if max_points != -1 && size(ts,1)>max_points
+							ts = ts[1:max_points,:]
+						end
+						# println(size(ts))
+						# readline()
+						# println(size(wav2stft_time_series(filepath, audio_kwargs)))
+						push!(cur_file_timeseries, ts)
+						push!(valid_i_filenames, i_filename)
+						n_samples += 1
 					end
-					# println(size(ts))
-					# readline()
-					# println(size(wav2stft_time_series(filepath, audio_kwargs)))
-					cur_file_timeseries[i_filename] = ts
-					push!(valid_i_filenames, i_filename)
-					n_samples += 1
 				end
+
 				cur_folder_timeseries[i_samples] = cur_file_timeseries[valid_i_filenames]
 				# break
 			end
@@ -300,31 +323,54 @@ function KDDDataset_not_stratified((n_task,n_version),
 				# println("$(length(aug_samples)) aug_samples: $(aug_samples)")
 
 				loadSamples(s) = begin
-					cur_file_timeseries = Vector{Array{Float64, 2}}(undef, length(s))
+					cur_file_timeseries = Array{Float64, 2}[]
 					valid_i_filenames = []
 					# Threads.@threads (TODO right now can't because of GLPK when using augmentation data)
 					for (i_filename, filename) in collect(enumerate(s))
 						# println(filename)
 						filepath = kdd_data_dir * "$filename"
 						ts = wav2stft_time_series(filepath, audio_kwargs; preprocess_sample = preprocess_wavs, use_full_mfcc = use_full_mfcc)
-						# Ignore instances with NaN (careful! this may leave with just a few instances)
-						# if any(isnan.(ts))
-						# 	@warn "Instance with NaN values was ignored"
-						# 	continue
-						# end
-						# Drop first point
-						ts = @views ts[2:end,:]
-						ts = moving_average(ts, ma_size, ma_step)
-						# println(size(ts))
-						if max_points != -1 && size(ts,1)>max_points
-							ts = ts[1:max_points,:]
+					
+						if !isnothing(ts) && ! (
+                                                (n_version == 2 ||
+                                                n_version == 3) &&
+                                                preprocess_wavs ==
+                                                [noise_gate!,
+                                                normalize!] &&
+                                                any(endswith.(filepath,
+                                                [
+                                        "healthywebnosymp/2020-04-07-12_07_01_639904/audio_file_breathe.wav",
+                                        "healthywebnosymp/2020-04-07-12_07_01_639904/audio_file_cough.wav",
+                                        "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_breathe.wav",
+                                        "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav",
+                                        "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_breathe.wav_aug_pitchspeed1.wav",
+                                        "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_pitchspeed1.wav",
+                                        "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_breathe.wav_aug_pitchspeed2.wav",
+                                        "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_pitchspeed2.wav",
+                                        "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_breathe.wav_aug_pitchspeed1.wav",
+                                        "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_pitchspeed1.wav",
+                                        "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_breathe.wav_aug_pitchspeed2.wav",
+                                        "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_pitchspeed2.wav",
+                                        ])))
+							# Ignore instances with NaN (careful! this may leave with just a few instances)
+							# if any(isnan.(ts))
+							# 	@warn "Instance with NaN values was ignored"
+							# 	continue
+							# end
+							# Drop first point
+							ts = @views ts[2:end,:]
+							ts = moving_average(ts, ma_size, ma_step)
+							# println(size(ts))
+							if max_points != -1 && size(ts,1)>max_points
+								ts = ts[1:max_points,:]
+							end
+							# println(size(ts))
+							# readline()
+							# println(size(wav2stft_time_series(filepath, audio_kwargs)))
+							push!(cur_file_timeseries, ts)
+							push!(valid_i_filenames, i_filename)
+							n_samples += 1
 						end
-						# println(size(ts))
-						# readline()
-						# println(size(wav2stft_time_series(filepath, audio_kwargs)))
-						cur_file_timeseries[i_filename] = ts
-						push!(valid_i_filenames, i_filename)
-						n_samples += 1
 					end
 					cur_file_timeseries[sort(valid_i_filenames)]
 				end
