@@ -1257,9 +1257,9 @@ n_relations(X::MultiFrameModalDataset, i_frame::Integer) = n_relations(X.frames[
 world_type(X::MultiFrameModalDataset, i_frame::Integer) = world_type(X.frames[i_frame])
 world_types(X::MultiFrameModalDataset) = world_type.(X.frames) # convert(Vector{<:Type{<:AbstractWorld}}, world_type.(X.frames))
 
-getInstance(X::MultiFrameModalDataset,  i_frame::Integer, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...)
-# slice_dataset(X::MultiFrameModalDataset, i_frame::Integer, inds::AbstractVector{<:Integer}, args::Vararg)  = slice_dataset(X.frames[i], inds; args...)
-getChannel(X::MultiFrameModalDataset,   i_frame::Integer, idx_i::Integer, idx_f::Integer, args::Vararg)  = getChannel(X.frames[i], idx_i, idx_f, args...)
+getInstance(X::MultiFrameModalDataset,  i_frame::Integer, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i_frame], idx_i, args...)
+# slice_dataset(X::MultiFrameModalDataset, i_frame::Integer, inds::AbstractVector{<:Integer}, args::Vararg)  = slice_dataset(X.frames[i_frame], inds; args...)
+getChannel(X::MultiFrameModalDataset,   i_frame::Integer, idx_i::Integer, idx_f::Integer, args::Vararg)  = getChannel(X.frames[i_frame], idx_i, idx_f, args...)
 
 # getInstance(X::MultiFrameModalDataset, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...) # TODO should slice across the frames!
 slice_dataset(X::MultiFrameModalDataset, inds::AbstractVector{<:Integer}; args...) =
