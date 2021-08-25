@@ -6,6 +6,7 @@ include("wav-filtering.jl")
 include("datasets.jl")
 include("lib.jl")
 include("caching.jl")
+include("scanner.jl")
 
 # TODO: find out if A1 is the highest or the lowest frequency in MFCC
 
@@ -47,54 +48,69 @@ nbands = 40
 animation_fps = 30
 features_colors = [ RGB(1 - (1 * (i/(nbands - 1))), 0, 1 * (i/(nbands - 1))) for i in 0:(nbands-1) ]
 
-# # DATASET SETTINGS
-# max_sample_rate = 16_000
+# DATASET SETTINGS
+max_sample_rate = 16_000
 
-# n_task = 2
-# n_version = 2
-# use_aug = false
-# use_full_mfcc = false
-# audio_kwargs = (
-#     wintime = 0.025,
-#     steptime = 0.010,
-#     fbtype = :mel,                     
-#     window_f = DSP.hamming,
-#     pre_emphasis = 0.97,
-#     nbands = nbands,
-#     sumpower = false,
-#     dither = false,
-#     maxfreq = max_sample_rate/2,
-# )
-# dataset_kwargs = (
-#     ma_size = 120,
-#     ma_step = 100
-# )
-# preprocess_wavs = []
+n_task = 2
+n_version = 2
+use_aug = false
+use_full_mfcc = false
+audio_kwargs = (
+    wintime = 0.025,
+    steptime = 0.010,
+    fbtype = :mel,                     
+    window_f = DSP.hamming,
+    pre_emphasis = 0.97,
+    nbands = nbands,
+    sumpower = false,
+    dither = false,
+    maxfreq = max_sample_rate/2,
+)
+dataset_kwargs = (
+    ma_size = 120,
+    ma_step = 100
+)
+preprocess_wavs = []
 
-# dataset_func_params = (
-#     (n_task,n_version),
-#     audio_kwargs
-# )
-# dataset_func_kwparams = (
-#     dataset_kwargs...,
-#     use_augmentation_data = use_aug,
-#     preprocess_wavs = preprocess_wavs,
-#     use_full_mfcc = use_full_mfcc
-# )
+dataset_func_params = (
+    (n_task,n_version),
+    audio_kwargs
+)
+dataset_func_kwparams = (
+    dataset_kwargs...,
+    return_filepaths = true,
+    use_augmentation_data = use_aug,
+    preprocess_wavs = preprocess_wavs,
+    use_full_mfcc = use_full_mfcc
+)
 
-# # TREE SETTINGS
-# tree_path = "covid-august/trees"
-# tree_hash = "d5cce8625a82b7c1e5360a4d055175425302db80dc57e55695e32d4d782c6ac5"
+modal_args = (;
+	initConditions = DecisionTree.startWithRelationGlob,
+	useRelationGlob = false,
+)
 
-# # TEST APPLY_TREE_TO_WAV
-# tree = JLD2.load(tree_path * "/tree_$(tree_hash).jld")["T"]
-# dataset = @cache "dataset" cache_dir dataset_func_params dataset_func_kwparams KDDDataset_not_stratified
+data_modal_args = (;
+	ontology = getIntervalOntologyOfDim(Val(1)),
+    test_operators = [TestOpGeq_80, TestOpLeq_80]
+)
 
-# ds, (n_pos, n_neg) = dataset
-# X, Y = ds
+save_datasets = true
+dataset_form = :stump_with_memoization
+data_savedir = cache_dir
+timing_mode = :none
 
-# apply_tree_to_datasets_wavs(tree, X, fill("FAKE_PATH", length(Y)), Y)
-# exit()
+# TREE SETTINGS
+tree_path = "covid-august/trees"
+tree_hash = "d5cce8625a82b7c1e5360a4d055175425302db80dc57e55695e32d4d782c6ac5"
+
+# TEST APPLY_TREE_TO_WAV
+tree = JLD2.load(tree_path * "/tree_$(tree_hash).jld")["T"]
+
+(X, Y, filepaths), (n_pos, n_neg) = @cache "dataset" cache_dir dataset_func_params dataset_func_kwparams KDDDataset_not_stratified
+X_modal = X_dataset_c("test", data_modal_args, X, modal_args, save_datasets, dataset_form, false)
+
+apply_tree_to_datasets_wavs(tree_hash, tree, X_modal, filepaths[1], Y; filter_kwargs = (nbands = nbands,))
+exit()
 
 # READ INPUT
 samps_healthy, sr_healthy, nbits_healthy = wavread(inputfile_healthy)

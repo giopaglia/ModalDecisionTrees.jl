@@ -273,8 +273,8 @@ end
 
 is_correctly_classified(inst::InstancePathInTree)::Bool = inst.label === inst.predicted
 
-get_path_in_tree(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, path::DecisionPath)::DecisionPath = path
-function get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, path::DecisionPath = [])::DecisionPath
+get_path_in_tree(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, path::DecisionPath = DecisionPath())::DecisionPath = return path
+function get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, path::DecisionPath = DecisionPath())::DecisionPath
     satisfied = true
 	(satisfied,new_worlds) =
 		ModalLogic.modal_step(
@@ -295,15 +295,16 @@ end
 function get_path_in_tree(tree::DTree{S}, X::GenericDataset)::Vector{DecisionPath} where {S}
 	n_instances = n_samples(X)
     println("instances: ", n_instances)
-	paths = Vector{AbstractVector}(undef, n_instances)
+	paths = fill(DecisionPath(), n_instances)
 	for i_instance in 1:n_instances
 		worlds = DecisionTree.inst_init_world_sets(X, tree, i_instance)
-		paths[i_instance] = apply_tree(tree.root, X, i_instance, worlds)
+		get_path_in_tree(tree.root, X, i_instance, worlds, paths[i_instance])
 	end
 	paths
 end
 
 function apply_tree_to_datasets_wavs(
+        tree_hash::String,
         tree::DTree{S},
         dataset::GenericDataset,
         wav_paths::Vector{String},
@@ -313,43 +314,37 @@ function apply_tree_to_datasets_wavs(
         destination_dir::String = "filtering-results/filtered"
     ) where {S}
 
-    n_instances = n_samples(dataset[1])
+    n_instances = n_samples(dataset)
 
     @assert n_instances == length(wav_paths) "dataset and wav_paths length mismatch! $(n_instances) != $(length(wav_paths))"
     @assert n_instances == length(labels) "dataset and labels length mismatch! $(n_instances) != $(length(labels))"
 
-    println("Applying tree:")
-    DecisionTree.print_tree(tree)
+    if dataset isa MultiFrameModalDataset
+        @assert n_frames(dataset) == 1 "MultiFrameModalDataset with more than one frame is still not supported! n_frames(dataset): $(n_frames(dataset))"
+    end
 
     results = Vector{InstancePathInTree}(undef, n_instances)
     predictions = apply_tree(tree, dataset)
     paths = get_path_in_tree(tree, dataset)
-
-    # Threads.@threads 
-    for i in 1:1
+    Threads.@threads for i in 1:n_instances
         results[i] = InstancePathInTree{S}(wav_paths[i], labels[i], tree)
         
-        curr_inst = ModalLogic.getInstance(dataset, 1)
         results[i].predicted = predictions[i]
         results[i].path = paths[i]
     end
 
-    println("ALL GOOD!")
-    return
-    # TODO: test from here 'till the end
-
-    originals = Vector{AbstractVector}(undef, n_instances)
+    originals = Vector{Vector{Float64}}(undef, n_instances)
     samplerates = Vector{Number}(undef, n_instances)
-    for i in 1:n_instances
-        originals[i], samplerates[i] = wavread(wav_paths[i])
+    Threads.@threads for i in 1:n_instances
+        curr_orig, samplerates[i] = wavread(wav_paths[i])
+        originals[i] = merge_channels(curr_orig)
     end
     
-    filtered = Vector{AbstractVector}(undef, n_instances)
-    # Threads.@threads 
-    for i in 1:n_instances
+    filtered = Vector{Vector{Float64}}(undef, n_instances)
+    Threads.@threads for i in 1:n_instances
         # TODO: use path + worlds to generate dynamic filters
         if !is_correctly_classified(results[i])
-            println("Skipping file $(wav_paths[i]) because it was not correctly predicted...")
+            println("Skipping file $(wav_paths[i]) because it was not correctly classified...")
             continue
         end
         n_features = length(results[i].path)
@@ -357,18 +352,28 @@ function apply_tree_to_datasets_wavs(
         weights = Vector{AbstractFloat}(undef, n_features)
         for j in 1:n_features
             # TODO: here goes the logic interpretation of the tree
-            bands[j] = results[i].path[j].feature
+            bands[j] = results[i].path[j].feature.i_attribute
             weights[j] = 1.
         end
+        println("Applying filter to file $(wav_paths[i]) with bands $(string(bands))...")
         filter = multibandpass_digitalfilter_mel(bands, samplerates[i], window_f; weights = weights, filter_kwargs...)
         filtered[i] = filt(filter, originals[i])
     end
 
-    mkpath(destination_dir)
-    data_dir = abspath(data_dir)
-    for i in 1:n_instances
-        save_path = abspath(replace(wav_paths[i], data_dir => ""))
-        wavwrite(filtered[i], save_path; Fs = samplerates[i])
+    real_destination = destination_dir * "/" * tree_hash
+    mkpath(real_destination)
+    Threads.@threads for i in 1:n_instances
+        if !is_correctly_classified(results[i])
+            println("Skipping file $(wav_paths[i]) because it was not correctly classified...")
+            continue
+        end
+        save_path = wav_paths[i]
+        while startswith(save_path, "../")
+            save_path = replace(save_path, "../" => "")
+        end
+        mkpath(dirname(real_destination * "/" * save_path))
+        println("Saving filtered file $(real_destination * "/" * save_path)...")
+        wavwrite(filtered[i], real_destination * "/" * save_path; Fs = samplerates[i])
     end
 
     results
