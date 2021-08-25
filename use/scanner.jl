@@ -208,7 +208,7 @@ include("dataset-utils.jl")
 	end
 end
 
-
+# TODO: decouple X_dataset_c from 'timing_mode` and 'data_savedir`
 function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_datasets, use_form, legacy_gammas_check)
 
 	WorldType = world_type(data_modal_args.ontology)
