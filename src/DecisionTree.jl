@@ -7,6 +7,7 @@ using DelimitedFiles
 using LinearAlgebra
 import Random
 using Statistics
+using StatsBase
 
 using Logging
 using Logging: @logmsg
@@ -230,49 +231,94 @@ modal_height(leaf::DTLeaf) = 0
 modal_height(tree::DTInternal) = (is_modal_node(tree) ? 1 : 0) + max(modal_height(tree.left), modal_height(tree.right))
 modal_height(t::DTree) = modal_height(t.root)
 
-function print_tree(leaf::DTLeaf, depth=-1, indent=0, indent_guides=[]; n_tot_inst = false)
+function print_tree(leaf::DTLeaf, depth=-1, indent=0, indent_guides=[]; n_tot_inst = nothing, rel_confidence_class_counts = nothing)
 	matches = findall(leaf.values .== leaf.majority)
 
 	n_correct = length(matches)
 	n_inst = length(leaf.values)
-
 	confidence = n_correct/n_inst
+
+	metrics_str = "conf: $(confidence)"
 	
-	metrics = "conf: $(confidence)"
-	
-	if n_tot_inst != false
-		support = n_inst/n_tot_inst
-		metrics *= ", supp = $(support)"
-		# lift = ...
-		# metrics *= ", lift = $(lift)"
-		# conv = ...
-		# metrics *= ", conv = $(conv)"
+	if !isnothing(rel_confidence_class_counts)
+		if !isnothing(n_tot_inst)
+			@assert n_tot_inst == sum(values(rel_confidence_class_counts)) "n_tot_inst != sum(values(rel_confidence_class_counts)): $(n_tot_inst) $(sum(values(rel_confidence_class_counts))) sum($(values(rel_confidence_class_counts)))"
+		else
+			n_tot_inst = sum(values(rel_confidence_class_counts))
+		end
 	end
 
-	println("$(leaf.majority) : $(n_correct)/$(n_inst) ($(metrics))")
+
+	if !isnothing(rel_confidence_class_counts)
+		cur_class_counts = countmap(leaf.values)
+		# println(cur_class_counts)
+		# println(rel_confidence_class_counts)
+		rel_tot_inst = sum([(haskey(cur_class_counts, class) ? cur_class_counts[class] : 0)/rel_confidence_class_counts[class] for class in keys(rel_confidence_class_counts)])
+		# "rel_conf: $(n_correct/rel_confidence_class_counts[leaf.majority])"
+		class = leaf.majority
+
+		if !isnothing(n_tot_inst)
+			class_support = rel_confidence_class_counts[class]/n_tot_inst
+			metrics_str *= ", lift: $(confidence/class_support)"
+		end
+
+		metrics_str *= ", rel_conf: $(((haskey(cur_class_counts, class) ? cur_class_counts[class] : 0)/rel_confidence_class_counts[class])/rel_tot_inst)"
+	end
+
+	if !isnothing(n_tot_inst)
+		support = n_inst/n_tot_inst
+		metrics_str *= ", supp = $(support)"
+		# lift = ...
+		# metrics_str *= ", lift = $(lift)"
+		# conv = ...
+		# metrics_str *= ", conv = $(conv)"
+	end
+
+	if !isnothing(rel_confidence_class_counts) && !isnothing(n_tot_inst)
+		metrics_str *= ", conv: $((1-class_support)/(1-confidence))"
+	end
+
+	println("$(leaf.majority) : $(n_correct)/$(n_inst) ($(metrics_str))")
 end
 
-function print_tree(tree::DTInternal, depth=-1, indent=0, indent_guides=[]; n_tot_inst = false)
+function print_tree(tree::DTInternal, depth=-1, indent=0, indent_guides=[]; n_tot_inst = nothing, rel_confidence_class_counts = nothing)
 	if depth == indent
 		println()
 		return
 	end
 
+	if !isnothing(rel_confidence_class_counts)
+		if !isnothing(n_tot_inst)
+			@assert n_tot_inst == sum(values(rel_confidence_class_counts)) "n_tot_inst != sum(values(rel_confidence_class_counts)): $(n_tot_inst) $(sum(values(rel_confidence_class_counts))) sum($(values(rel_confidence_class_counts)))"
+		else
+			n_tot_inst = sum(values(rel_confidence_class_counts))
+		end
+	end
+	
 	println(display_decision(tree))
 	# indent_str = " " ^ indent
 	indent_str = reduce(*, [i == 1 ? "│" : " " for i in indent_guides])
 	# print(indent_str * "╭✔")
 	print(indent_str * "✔ ")
-	print_tree(tree.left, depth, indent + 1, [indent_guides..., 1], n_tot_inst = n_tot_inst)
+	print_tree(tree.left, depth, indent + 1, [indent_guides..., 1]; n_tot_inst = n_tot_inst, rel_confidence_class_counts)
 	# print(indent_str * "╰✘")
 	print(indent_str * "✘ ")
-	print_tree(tree.right, depth, indent + 1, [indent_guides..., 0], n_tot_inst = n_tot_inst)
+	print_tree(tree.right, depth, indent + 1, [indent_guides..., 0]; n_tot_inst = n_tot_inst, rel_confidence_class_counts)
 end
 
-function print_tree(tree::DTree; n_tot_inst = false)
+function print_tree(tree::DTree; n_tot_inst = nothing, rel_confidence_class_counts = nothing)
 	println("worldTypes: $(tree.worldTypes)")
 	println("initConditions: $(tree.initConditions)")
-	print_tree(tree.root, n_tot_inst = n_tot_inst)
+
+	if !isnothing(rel_confidence_class_counts)
+		if !isnothing(n_tot_inst)
+			@assert n_tot_inst == sum(values(rel_confidence_class_counts)) "n_tot_inst != sum(values(rel_confidence_class_counts)): $(n_tot_inst) $(sum(values(rel_confidence_class_counts))) sum($(values(rel_confidence_class_counts)))"
+		else
+			n_tot_inst = sum(values(rel_confidence_class_counts))
+		end
+	end
+	
+	print_tree(tree.root, n_tot_inst = n_tot_inst, rel_confidence_class_counts = rel_confidence_class_counts)
 end
 
 function show(io::IO, leaf::DTLeaf)
@@ -500,15 +546,15 @@ function print_apply_tree(tree::DTInternal{T, S}, X::MultiFrameModalDataset, i_i
 	)
 end
 
-function print_apply_tree(tree::DTree{S}, X::GenericDataset, Y::Vector{S}; reset_leaves = true, update_majority = false, do_print = true) where {S}
+function print_apply_tree(tree::DTree{S}, X::GenericDataset, Y::Vector{S}; reset_leaves = true, update_majority = false, do_print = true, print_relative_confidence = false) where {S}
 	# Reset 
 	tree = (reset_leaves ? _empty_tree_leaves(tree) : tree)
-	
+
 	# Propagate instances down the tree
 	for i_instance in 1:n_samples(X)
 
 		worlds = inst_init_world_sets(X, tree, i_instance)
-		
+
 		tree = DTree(
 			print_apply_tree(tree.root, X, i_instance, worlds, Y[i_instance], update_majority = update_majority),
 			tree.worldTypes,
@@ -516,7 +562,12 @@ function print_apply_tree(tree::DTree{S}, X::GenericDataset, Y::Vector{S}; reset
 		)
 	end
 	if do_print
-		print(tree)
+		if print_relative_confidence
+			print_tree(tree; rel_confidence_class_counts = countmap(Y))
+		else
+			print_tree(tree)
+		end
+		# print(tree)
 	end
 	return tree
 end
@@ -530,8 +581,8 @@ n_samples(leaf::DTLeaf) = length(leaf.values)
 n_samples(tree::DTInternal) = n_samples(tree.left) + n_samples(tree.right)
 n_samples(tree::DTree) = n_samples(tree.root)
 
-function tree_walk_metrics(leaf::DTLeaf; n_tot_inst = false, best_rule_params = [])
-	if n_tot_inst == false
+function tree_walk_metrics(leaf::DTLeaf; n_tot_inst = nothing, best_rule_params = [])
+	if isnothing(n_tot_inst)
 		n_tot_inst = n_samples(leaf)
 	end
 	
@@ -548,7 +599,7 @@ function tree_walk_metrics(leaf::DTLeaf; n_tot_inst = false, best_rule_params = 
 	metrics["avg_confidence"] = confidence
 	metrics["best_confidence"] = confidence
 	
-	if n_tot_inst != false
+	if !isnothing(n_tot_inst)
 		support = n_inst/n_tot_inst
 		metrics["avg_support"] = support
 		metrics["support"] = support
@@ -568,8 +619,8 @@ function tree_walk_metrics(leaf::DTLeaf; n_tot_inst = false, best_rule_params = 
 	metrics
 end
 
-function tree_walk_metrics(tree::DTInternal; n_tot_inst = false, best_rule_params = [])
-	if n_tot_inst == false
+function tree_walk_metrics(tree::DTInternal; n_tot_inst = nothing, best_rule_params = [])
+	if isnothing(n_tot_inst)
 		n_tot_inst = n_samples(tree)
 	end
 	metrics_l = tree_walk_metrics(tree.left;  n_tot_inst = n_tot_inst, best_rule_params = best_rule_params)
@@ -601,7 +652,7 @@ function tree_walk_metrics(tree::DTInternal; n_tot_inst = false, best_rule_param
 	metrics["best_confidence"] = max(metrics_l["best_confidence"], metrics_r["best_confidence"])
 	
 	# Support of the current node
-	if n_tot_inst != false
+	if !isnothing(n_tot_inst)
 		metrics["support"] = (metrics_l["n_instances"] + metrics_r["n_instances"])/n_tot_inst
 	
 		# Best support of the best-support path passing through the node

@@ -105,10 +105,12 @@ dataset_function = (
 		(n_task,n_version),
 		cur_audio_kwargs;
 		dataset_kwargs...,
-		use_augmentation_data = use_aug,
 		preprocess_wavs = cur_preprocess_wavs,
 		use_full_mfcc = use_full_mfcc,
 		return_filepaths = true,
+		# use_augmentation_data = false,
+		# force_monolithic_dataset = true,
+		use_augmentation_data = use_aug,
 		force_monolithic_dataset = :train_n_test,
 	)
 )
@@ -163,16 +165,16 @@ dataset_to_trees = [
 		cur_preprocess_wavs,
 		use_full_mfcc,
 	), [
-	"5d55e2939bf4cfe3486a6f0684b39182e2743d8408f9fe6f2bfdde2aad5a752b",
-	"3a228177284b56b21162b380a870902a084f0f4de3fee66a9fe167faddcb84ea",
-	"27ae9963f29c56d9a227eaf22627b64401518742a2f53d944ccf0207e335f67d",
-	"da51d66c6d064d666049137fdff5f0ea2182a6208a3b19cc7e9d2c3c576cb5af",
-	"55cf86c487e4ecea2a921b244d1a86636ea3a75ac24ffa96bc54f46f24f12163",
-	"970f0d21b6624959c22d67ee99038eb17981fdaf1be181e648cd400ad680987a",
-	"2eb6209b99fa2e75bfc0d6bc27ca59fcbdb13594f77819901b9277d0ffbd9035",
-	"b0b0afb6a6eb2b7ebb2023aa459c901a60b77b08357b9512191411b79552b93f",
-	"0364adc2159fa25f440cab268faa2c03e2dc11b8408884392dead7fd92b8f868",
-	"a37fd5c4441cdbd96f5200b0ff39fbbe554172b28ac678c04f25d926f0e7d744",
+	# "5d55e2939bf4cfe3486a6f0684b39182e2743d8408f9fe6f2bfdde2aad5a752b",
+	# "3a228177284b56b21162b380a870902a084f0f4de3fee66a9fe167faddcb84ea",
+	# "27ae9963f29c56d9a227eaf22627b64401518742a2f53d944ccf0207e335f67d",
+	# "da51d66c6d064d666049137fdff5f0ea2182a6208a3b19cc7e9d2c3c576cb5af",
+	# "55cf86c487e4ecea2a921b244d1a86636ea3a75ac24ffa96bc54f46f24f12163",
+	# "970f0d21b6624959c22d67ee99038eb17981fdaf1be181e648cd400ad680987a",
+	# "2eb6209b99fa2e75bfc0d6bc27ca59fcbdb13594f77819901b9277d0ffbd9035",
+	# "b0b0afb6a6eb2b7ebb2023aa459c901a60b77b08357b9512191411b79552b93f",
+	# "0364adc2159fa25f440cab268faa2c03e2dc11b8408884392dead7fd92b8f868",
+	# "a37fd5c4441cdbd96f5200b0ff39fbbe554172b28ac678c04f25d926f0e7d744",
 
 	]), ((
 		(3,true),
@@ -206,10 +208,10 @@ dataset_to_trees = [
 		cur_preprocess_wavs,
 		use_full_mfcc,
 	), [
-	"1a38a8a876927761c496115ff3120b64d2e0111b6aeaac5ae8dd9965ce68dff0",
-	"3cdbb1e510193eda537fa001aed51f6efddd70b9c7ff25f5c0544b3c45aa0cc9",
-	"8a23e17e2904e44683d1c4e276eda0210edc4fbeca66e0154ec566a8589a40d7",
-	"22208529c86258f070daa630cdcd21926012d9a77dae302309d6659492344b40",
+	# "1a38a8a876927761c496115ff3120b64d2e0111b6aeaac5ae8dd9965ce68dff0",
+	# "3cdbb1e510193eda537fa001aed51f6efddd70b9c7ff25f5c0544b3c45aa0cc9",
+	# "8a23e17e2904e44683d1c4e276eda0210edc4fbeca66e0154ec566a8589a40d7",
+	# "22208529c86258f070daa630cdcd21926012d9a77dae302309d6659492344b40",
 
 	])
 ]
@@ -263,6 +265,10 @@ end
 # For each tree
 for (dataset_fun_sub_params,trees) in dataset_to_trees
 	
+	if length(trees) == 0
+		continue
+	end
+	
 	println()
 	println()
 	println()
@@ -294,12 +300,14 @@ for (dataset_fun_sub_params,trees) in dataset_to_trees
 		cm = confusion_matrix(Y, preds)
 
 		println()
-		println(cm)
 
-		regenerated_tree = print_apply_tree(T, X, Y)
+		# regenerated_tree = print_apply_tree(T, X, Y)
+		regenerated_tree = print_apply_tree(T, X, Y; print_relative_confidence = true)
+
+		println(cm)
 		
 		# readline()
 		# print_tree(regenerated_tree)
 	end
-	readline()
+	# readline()
 end
