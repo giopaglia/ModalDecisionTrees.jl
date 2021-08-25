@@ -503,12 +503,12 @@ end
 function print_apply_tree(tree::DTree{S}, X::GenericDataset, Y::Vector{S}; reset_leaves = true, update_majority = false, do_print = true) where {S}
 	# Reset 
 	tree = (reset_leaves ? _empty_tree_leaves(tree) : tree)
-
+	
 	# Propagate instances down the tree
 	for i_instance in 1:n_samples(X)
 
 		worlds = inst_init_world_sets(X, tree, i_instance)
-
+		
 		tree = DTree(
 			print_apply_tree(tree.root, X, i_instance, worlds, Y[i_instance], update_majority = update_majority),
 			tree.worldTypes,
