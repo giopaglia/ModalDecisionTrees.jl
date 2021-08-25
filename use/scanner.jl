@@ -213,7 +213,7 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 
 	WorldType = world_type(data_modal_args.ontology)
 
-	X_all_frames = AbstractModalDataset{<:Real,<:AbstractWorld}[]
+	Xs = MultiFrameModalDataset()
 
 	# Compute stump for each frame
 	for (i_frame, X) in enumerate(X_all)
@@ -496,9 +496,9 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 		########################################################################
 		########################################################################
 		
-		push!(X_all_frames, X_frame)
+		push_frame!(Xs, X_frame)
 	end
-	MultiFrameModalDataset(X_all_frames)
+	Xs
 end
 
 # This function transforms bare MatricialDatasets into modal datasets in the form of ontological or featmodal dataset

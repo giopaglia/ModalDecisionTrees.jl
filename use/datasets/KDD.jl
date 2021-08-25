@@ -96,7 +96,7 @@ function KDDDataset_not_stratified((n_task,n_version),
 	##############################################################################
 	##############################################################################
 	##############################################################################
-	n_samples = 0
+	# n_samples = 0
 	
 	loadSamples(samples_filepaths, return_filepaths) = begin
 		cur_file_timeseries =
@@ -153,12 +153,22 @@ function KDDDataset_not_stratified((n_task,n_version),
 						# println(size(wav2stft_time_series(filepath, audio_kwargs)))
 						ts
 					end
-				n_samples += 1
+				# n_samples += 1
 			end
 		end
 		[cur_file_timeseries[i] for i in 1:length(cur_file_timeseries)]
 	end
 
+	compute_X(max_timepoints, n_unique_freqs, timeseries, expected_length) = begin
+		@assert expected_length == length(timeseries)
+		X = zeros((max_timepoints, n_unique_freqs, length(timeseries)))
+		for (i,ts) in enumerate(timeseries)
+			# println(size(ts))
+			X[1:size(ts, 1),:,i] = ts
+		end
+		X
+	end
+	
 	##############################################################################
 	##############################################################################
 	##############################################################################
@@ -253,16 +263,13 @@ function KDDDataset_not_stratified((n_task,n_version),
 		n_unique_freqs = unique(size(ts, 2) for ts in timeseries)
 		@assert length(n_unique_freqs) == 1 "KDDDataset: length(n_unique_freqs) != 1: {$n_unique_freqs} != 1"
 		n_unique_freqs = n_unique_freqs[1]
-		X = zeros((max_timepoints, n_unique_freqs, length(timeseries)))
-		for (i,ts) in enumerate(timeseries)
-			# println(size(ts))
-			X[1:size(ts, 1),:,i] = ts
-		end
 		
+		X = compute_X(max_timepoints, n_unique_freqs, timeseries, length(Y))
+
 		if return_filepaths
-			((X,Y,timeseries_filepaths), length(pos), length(neg))
+			((X, Y, timeseries_filepaths), (length(pos), length(neg)))
 		else
-			((X,Y), length(pos), length(neg))
+			((X, Y), (length(pos), length(neg)))
 		end
 	end
 
@@ -373,7 +380,7 @@ function KDDDataset_not_stratified((n_task,n_version),
 		# Y = vec(hcat(ones(Int,length(pos)),zeros(Int,length(neg)))')
 
 		# println(typeof(pos))
-		timeseries     = [pos..., neg...]
+		timeseries     = [pos...,     neg...]
 		timeseries_aug = [pos_aug..., neg_aug...]
 		# println(typeof(timeseries))
 		# println(typeof([[p for p in pos]...,     [n for n in neg]...]))
@@ -384,13 +391,13 @@ function KDDDataset_not_stratified((n_task,n_version),
 		# print(size(timeseries[1]))
 		# Y = [ones(Int, length(pos))..., zeros(Int, length(neg))...]
 		# Y = [zeros(Int, length(pos))..., ones(Int, length(neg))...]
-		Y = String[fill(class_labels[1], length(pos))..., fill(class_labels[2], length(neg))...]
+		Y     = String[fill(class_labels[1], length(pos))...,     fill(class_labels[2], length(neg))...]
 		Y_aug = String[fill(class_labels[1], length(pos_aug))..., fill(class_labels[2], length(neg_aug))...]
 		# print(size(Y))
 
 		# println([size(ts, 1) for ts in timeseries])
 		max_timepoints = maximum(size(ts, 1) for ts in [timeseries..., timeseries_aug...])
-		n_unique_freqs = unique(size(ts, 2) for ts in [timeseries..., timeseries_aug...])
+		n_unique_freqs = unique(size(ts,  2) for ts in [timeseries..., timeseries_aug...])
 		@assert length(n_unique_freqs) == 1 "KDDDataset: length(n_unique_freqs) != 1: {$n_unique_freqs} != 1"
 		n_unique_freqs = n_unique_freqs[1]
 		
@@ -402,42 +409,37 @@ function KDDDataset_not_stratified((n_task,n_version),
 		class_counts_aug = (length(pos_aug), length(neg_aug))
 		println("Class counts: $(class_counts); Aug class counts: $(class_counts_aug); # points: $(max_timepoints)")
 
-		compute_X(max_timepoints, n_unique_freqs, timeseries, expected_length) = begin
-			@assert expected_length == length(timeseries)
-			@assert expected_length == length(timeseries)
-			X = zeros((max_timepoints, n_unique_freqs, length(timeseries)))
-			for (i,ts) in enumerate(timeseries)
-				# println(size(ts))
-				X[1:size(ts, 1),:,i] = ts
-			end
-			X
-		end
-		
 		X     = compute_X(max_timepoints, n_unique_freqs, timeseries,     sum(class_counts))
 		X_aug = compute_X(max_timepoints, n_unique_freqs, timeseries_aug, sum(class_counts_aug))
 		
+		@assert n_samples(X)     == length(Y)     "$(n_samples(X))     != $(length(Y))"
+		@assert n_samples(X_aug) == length(Y_aug) "$(n_samples(X_aug)) != $(length(Y_aug))"
+
 		if return_filepaths
+			@assert n_samples(X)     == length(timeseries_filepaths)     "$(n_samples(X))     != $(length(timeseries_filepaths))"
+			@assert n_samples(X_aug) == length(timeseries_aug_filepaths) "$(n_samples(X_aug)) != $(length(timeseries_aug_filepaths))"
 			# ((X,Y,timeseries_filepaths), length(pos), length(neg))
 			(
-				train_n_test  = ((X,    Y    , timeseries_filepaths),     class_counts),
-				only_training = ((X_aug,Y_aug, timeseries_aug_filepaths), class_counts_aug),
+				train_n_test  = ((X,     Y    , timeseries_filepaths),     class_counts),
+				only_training = ((X_aug, Y_aug, timeseries_aug_filepaths), class_counts_aug),
 			)
 		else
 			# ((X,Y), length(pos), length(neg))
 			(
-				train_n_test  = ((X,    Y),     class_counts),
-				only_training = ((X_aug,Y_aug), class_counts_aug),
+				train_n_test  = ((X,     Y),     class_counts),
+				only_training = ((X_aug, Y_aug), class_counts_aug),
 			)
 		end
 	end
 
-	datasets = Vector(undef, length(dir_infos))
-	n_pos    = Vector(undef, length(dir_infos))
-	n_neg    = Vector(undef, length(dir_infos))
-
 	if !use_augmentation_data # TODO remove this obsolete OLD code (now keeping for retro-compatibility)
+
+		datasets = Vector(undef, length(dir_infos))
+		n_pos    = Vector(undef, length(dir_infos))
+		n_neg    = Vector(undef, length(dir_infos))
+
 		for (i, dir_info) in enumerate(dir_infos)
-			datasets[i],n_pos[i],n_neg[i] = getTimeSeries_no_aug((folders_Y, folders_N), dir_info, return_filepaths)
+			datasets[i], (n_pos[i], n_neg[i]) = getTimeSeries_no_aug((folders_Y, folders_N), dir_info, return_filepaths)
 			@assert datasets[1][2] == datasets[i][2] "mismatching classes:\n\tY1 = $(datasets[1][2])\n\tY2 = $(datasets[i][2])"
 			@assert n_pos[1] == n_pos[i] "n_pos mismatching class count across frames:\n\tn_pos[1] = $(n_pos[1]) != n_pos[i] = $(n_pos[i]))"
 			@assert n_neg[1] == n_neg[i] "n_neg mismatching class count across frames:\n\tn_neg[1] = $(n_neg[1]) != n_neg[i] = $(n_neg[i]))"
@@ -450,6 +452,10 @@ function KDDDataset_not_stratified((n_task,n_version),
 		end
 
 	else
+
+		datasets = Vector(undef, length(dir_infos))
+		n_pos    = Vector(undef, length(dir_infos))
+		n_neg    = Vector(undef, length(dir_infos))
 		
 		datasets_aug = Vector(undef, length(dir_infos))
 		n_pos_aug    = Vector(undef, length(dir_infos))
@@ -458,8 +464,8 @@ function KDDDataset_not_stratified((n_task,n_version),
 		for (i, dir_info) in enumerate(dir_infos)
 			cur_frame_dataset = getTimeSeries((folders_Y, folders_N), dir_info, return_filepaths)
 			
-			datasets[i],     (n_pos[i],     n_neg[i])     = cur_frame_dataset.train_n_test
-			datasets_aug[i], (n_pos_aug[i], n_neg_aug[i]) = cur_frame_dataset.only_training
+			datasets[i],     (n_pos[i],     n_neg[i])     = deepcopy(cur_frame_dataset.train_n_test)
+			datasets_aug[i], (n_pos_aug[i], n_neg_aug[i]) = deepcopy(cur_frame_dataset.only_training)
 
 			@assert datasets[1][2] == datasets[i][2] "mismatching classes:\n\tdatasets[1][2] = $(datasets[1][2])\n\tdatasets[i][2] = $(datasets[i][2])"
 			@assert n_pos[1] == n_pos[i] "n_pos mismatching class count across frames:\n\tn_pos[1] = $(n_pos[1]) != n_pos[i] = $(n_pos[i]))"
@@ -485,8 +491,22 @@ function KDDDataset_not_stratified((n_task,n_version),
 				))
 			end
 
-		if force_monolithic_dataset
+		# println()
+		# println(typeof(d.train_n_test[1]))
+		# println(size.(d.train_n_test[1][1]))
+		# println(size(d.train_n_test[1][2]))
+		# println(size.(d.train_n_test[1][3]))
+
+		# println()
+		# println(typeof(d.only_training[1]))
+		# println(size.(d.only_training[1][1]))
+		# println(size(d.only_training[1][2]))
+		# println(size.(d.only_training[1][3]))
+
+		if force_monolithic_dataset == true
 			d = (concat_labeled_datasets(d.train_n_test[1], d.only_training[1]), (d.train_n_test[2] .+ d.only_training[2]))
+		elseif force_monolithic_dataset == :train_n_test
+			d = d.train_n_test
 		end
 
 		d
