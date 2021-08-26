@@ -253,16 +253,16 @@ function print_tree(leaf::DTLeaf, depth=-1, indent=0, indent_guides=[]; n_tot_in
 		cur_class_counts = countmap(leaf.values)
 		# println(cur_class_counts)
 		# println(rel_confidence_class_counts)
-		rel_tot_inst = sum([(haskey(cur_class_counts, class) ? cur_class_counts[class] : 0)/rel_confidence_class_counts[class] for class in keys(rel_confidence_class_counts)])
+		rel_tot_inst = sum([(haskey(cur_class_counts, class) ? cur_class_counts[class] : 0)/(haskey(rel_confidence_class_counts, class) ? rel_confidence_class_counts[class] : 0) for class in keys(rel_confidence_class_counts)])
 		# "rel_conf: $(n_correct/rel_confidence_class_counts[leaf.majority])"
 		class = leaf.majority
 
 		if !isnothing(n_tot_inst)
-			class_support = rel_confidence_class_counts[class]/n_tot_inst
+			class_support = (haskey(rel_confidence_class_counts, class) ? rel_confidence_class_counts[class] : 0)/n_tot_inst
 			metrics_str *= ", lift: $(confidence/class_support)"
 		end
 
-		metrics_str *= ", rel_conf: $(((haskey(cur_class_counts, class) ? cur_class_counts[class] : 0)/rel_confidence_class_counts[class])/rel_tot_inst)"
+		metrics_str *= ", rel_conf: $((haskey(cur_class_counts, class) ? cur_class_counts[class] : 0)/(haskey(rel_confidence_class_counts, class) ? rel_confidence_class_counts[class] : 0))/rel_tot_inst)"
 	end
 
 	if !isnothing(n_tot_inst)
