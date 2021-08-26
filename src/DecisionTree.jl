@@ -26,6 +26,7 @@ export DTNode, DTLeaf, DTInternal,
 				build_forest, apply_forest, apply_trees,
 				print_tree, prune_tree, apply_tree, print_forest,
 				print_apply_tree,
+				tree_walk_metrics,
 				ConfusionMatrix, confusion_matrix, mean_squared_error, R2, load_data,
 				#
 				startWithRelationGlob, startAtCenter,
@@ -49,6 +50,9 @@ export DecisionTreeClassifier,
 
 include("ModalLogic/ModalLogic.jl")
 using .ModalLogic
+
+import .ModalLogic: n_samples
+
 include("gammas.jl")
 # include("modalDataset.jl")
 include("measures.jl")
@@ -58,7 +62,7 @@ include("measures.jl")
 
 abstract type _initCondition end
 struct _startWithRelationGlob  <: _initCondition end; const startWithRelationGlob  = _startWithRelationGlob();
-struct _startAtCenter         <: _initCondition end; const startAtCenter         = _startAtCenter();
+struct _startAtCenter          <: _initCondition end; const startAtCenter          = _startAtCenter();
 struct _startAtWorld{wT<:AbstractWorld} <: _initCondition w::wT end;
 
 initWorldSet(initConditions::AbstractVector{<:_initCondition}, worldTypes::AbstractVector{<:Type#={<:AbstractWorld}=#}, args::Vararg) =
@@ -209,11 +213,12 @@ include("modal-classification/main.jl")
 num_nodes(leaf::DTLeaf) = 1
 num_nodes(tree::DTInternal) = 1 + num_nodes(tree.left) + num_nodes(tree.right)
 num_nodes(t::DTree) = num_nodes(t.root)
+num_nodes(f::Forest) = sum(num_nodes.(f.trees))
 
 length(leaf::DTLeaf) = 1
 length(tree::DTInternal) = length(tree.left) + length(tree.right)
 length(t::DTree) = length(t.root)
-length(forest::Forest) = length(forest.trees)
+length(f::Forest) = length(f.trees)
 
 # Height
 height(leaf::DTLeaf) = 0
@@ -228,7 +233,7 @@ modal_height(t::DTree) = modal_height(t.root)
 function print_tree(leaf::DTLeaf, depth=-1, indent=0, indent_guides=[]; n_tot_inst = false)
 	matches = findall(leaf.values .== leaf.majority)
 
-	n_correct =length(matches)
+	n_correct = length(matches)
 	n_inst = length(leaf.values)
 
 	confidence = n_correct/n_inst
@@ -453,7 +458,7 @@ function _empty_tree_leaves(tree::DTree)
 end
 
 function print_apply_tree(leaf::DTLeaf{S}, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, class::S; update_majority = false) where {S}
-	vals = S[ leaf.values..., class ]
+	vals = S[ leaf.values..., class ] # Note: this works when leaves are reset
 
 	majority = 
 	if update_majority
@@ -495,28 +500,123 @@ function print_apply_tree(tree::DTInternal{T, S}, X::MultiFrameModalDataset, i_i
 	)
 end
 
-function print_apply_tree(tree::DTree{S}, X::GenericDataset, Y::Vector{S}; reset_leaves = true, update_majority = false) where {S}
+function print_apply_tree(tree::DTree{S}, X::GenericDataset, Y::Vector{S}; reset_leaves = true, update_majority = false, do_print = true) where {S}
 	# Reset 
 	tree = (reset_leaves ? _empty_tree_leaves(tree) : tree)
-
+	
 	# Propagate instances down the tree
 	for i_instance in 1:n_samples(X)
 
 		worlds = inst_init_world_sets(X, tree, i_instance)
-
+		
 		tree = DTree(
 			print_apply_tree(tree.root, X, i_instance, worlds, Y[i_instance], update_majority = update_majority),
 			tree.worldTypes,
 			tree.initConditions
 		)
 	end
-	print(tree)
+	if do_print
+		print(tree)
+	end
 	return tree
 end
 
 # function print_apply_tree(tree::DTNode{T, S}, X::MatricialDataset{T,D}, Y::Vector{S}; reset_leaves = true, update_majority = false) where {S, T, D}
 # 	return print_apply_tree(DTree(tree, [world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2)))], [startWithRelationGlob]), X, Y, reset_leaves = reset_leaves, update_majority = update_majority)
 # end
+
+
+n_samples(leaf::DTLeaf) = length(leaf.values)
+n_samples(tree::DTInternal) = n_samples(tree.left) + n_samples(tree.right)
+n_samples(tree::DTree) = n_samples(tree.root)
+
+function tree_walk_metrics(leaf::DTLeaf; n_tot_inst = false, best_rule_params = [])
+	if n_tot_inst == false
+		n_tot_inst = n_samples(leaf)
+	end
+	
+	matches = findall(leaf.values .== leaf.majority)
+
+	n_correct = length(matches)
+	n_inst = length(leaf.values)
+
+	metrics = Dict()
+	confidence = n_correct/n_inst
+	
+	metrics["n_instances"] = n_inst
+	metrics["n_correct"] = n_correct
+	metrics["avg_confidence"] = confidence
+	metrics["best_confidence"] = confidence
+	
+	if n_tot_inst != false
+		support = n_inst/n_tot_inst
+		metrics["avg_support"] = support
+		metrics["support"] = support
+		metrics["best_support"] = support
+
+		for best_rule_p in best_rule_params
+			if (haskey(best_rule_p, :min_confidence) && best_rule_p.min_confidence > metrics["best_confidence"]) ||
+				(haskey(best_rule_p, :min_support) && best_rule_p.min_support > metrics["best_support"])
+				metrics["best_rule_t=$(best_rule_p)"] = -Inf
+			else
+				metrics["best_rule_t=$(best_rule_p)"] = metrics["best_confidence"] * best_rule_p.t + metrics["best_support"] * (1-best_rule_p.t)
+			end
+		end
+	end
+
+
+	metrics
+end
+
+function tree_walk_metrics(tree::DTInternal; n_tot_inst = false, best_rule_params = [])
+	if n_tot_inst == false
+		n_tot_inst = n_samples(tree)
+	end
+	metrics_l = tree_walk_metrics(tree.left;  n_tot_inst = n_tot_inst, best_rule_params = best_rule_params)
+	metrics_r = tree_walk_metrics(tree.right; n_tot_inst = n_tot_inst, best_rule_params = best_rule_params)
+
+	metrics = Dict()
+
+	# Number of instances passing through the node
+	metrics["n_instances"] =
+		metrics_l["n_instances"] + metrics_r["n_instances"]
+
+	# Number of correct instances passing through the node
+	metrics["n_correct"] =
+		metrics_l["n_correct"] + metrics_r["n_correct"]
+	
+	# Average confidence of the subtree
+	metrics["avg_confidence"] =
+		(metrics_l["n_instances"] * metrics_l["avg_confidence"] +
+		metrics_r["n_instances"] * metrics_r["avg_confidence"]) /
+			(metrics_l["n_instances"] + metrics_r["n_instances"])
+	
+	# Average support of the subtree (Note to self: weird...?)
+	metrics["avg_support"] =
+		(metrics_l["n_instances"] * metrics_l["avg_support"] +
+		metrics_r["n_instances"] * metrics_r["avg_support"]) /
+			(metrics_l["n_instances"] + metrics_r["n_instances"])
+	
+	# Best confidence of the best-confidence path passing through the node
+	metrics["best_confidence"] = max(metrics_l["best_confidence"], metrics_r["best_confidence"])
+	
+	# Support of the current node
+	if n_tot_inst != false
+		metrics["support"] = (metrics_l["n_instances"] + metrics_r["n_instances"])/n_tot_inst
+	
+		# Best support of the best-support path passing through the node
+		metrics["best_support"] = max(metrics_l["best_support"], metrics_r["best_support"])
+		
+		# Best rule (confidence and support) passing through the node
+		for best_rule_p in best_rule_params
+			metrics["best_rule_t=$(best_rule_p)"] = max(metrics_l["best_rule_t=$(best_rule_p)"], metrics_r["best_rule_t=$(best_rule_p)"])
+		end
+	end
+
+	metrics
+end
+
+tree_walk_metrics(tree::DTree; kwargs...) = tree_walk_metrics(tree.root; kwargs...)
 
 
 #=
