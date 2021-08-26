@@ -14,20 +14,22 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./covid-pt2"
+results_dir = "./covid-august-v2"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
-data_savedir = results_dir * "/cache"
+data_savedir  = results_dir * "/cache"
 model_savedir = results_dir * "/trees"
 
-# dry_run = false
-# dry_run = true
-dry_run = :dataset_only
+dry_run = false
+#dry_run = true
+#dry_run = :dataset_only
 
 # save_datasets = true
 save_datasets = false
 
 skip_training = false
+
+perform_consistency_check = false
 
 ################################################################################
 ##################################### TREES ####################################
@@ -43,16 +45,17 @@ tree_args = [
 #	)
 ]
 
-for loss_function in [DecisionTree.util.entropy, DecisionTree.util.gini]
+for loss_function in [DecisionTree.util.entropy]
 	for min_samples_leaf in [2,4] # [1,2]
 		for min_purity_increase in [0.01] # [0.01, 0.001]
-			for min_loss_at_leaf in [0.2, 0.6] # [0.4, 0.6]
+			for min_loss_at_leaf in [0.6, 0.7, 0.8] # [0.4, 0.6]
 				push!(tree_args, 
 					(
 						loss_function       = loss_function,
 						min_samples_leaf    = min_samples_leaf,
 						min_purity_increase = min_purity_increase,
 						min_loss_at_leaf    = min_loss_at_leaf,
+						perform_consistency_check = perform_consistency_check,
 					)
 				)
 			end
@@ -75,18 +78,21 @@ forest_args = []
 for n_trees in [50,100]
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
+                    for partial_sampling in [0.7, 1.0]
 			push!(forest_args, (
 				n_subfeatures       = n_subfeatures,
 				n_trees             = n_trees,
-				partial_sampling    = 1.0,
+				partial_sampling    = partial_sampling,
 				n_subrelations      = n_subrelations,
 				# Optimization arguments for trees in a forest (no pruning is performed)
 				loss_function       = DecisionTree.util.entropy,
 				min_samples_leaf    = 1,
 				min_purity_increase = 0.0,
 				min_loss_at_leaf    = 0.0,
+				perform_consistency_check = perform_consistency_check,
 			))
-		end
+		    end
+                end
 	end
 end
 
@@ -157,6 +163,10 @@ legacy_gammas_check = false
 
 exec_dataseed = 1:10
 
+# max_sample_rate = 48000
+max_sample_rate = 16000
+# max_sample_rate = 8000
+
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization]
 
@@ -164,11 +174,10 @@ exec_n_task_use_aug = [
 	(1, false),
 	(2, true),
 	(3, true),
-	(2, false),
-	(3, false),
+	#(2, false),
+	#(3, false),
 ]
-# exec_n_versions = 1:3
-exec_n_versions = [2,3]
+exec_n_versions = 1:3
 exec_nbands = [40] # [20,40,60]
 
 exec_dataset_kwargs =   [( # TODO
@@ -185,20 +194,20 @@ exec_dataset_kwargs =   [( # TODO
 						# 	ma_size = 45,
 						# 	ma_step = 30,
 						# ),(# max_points = 30,
-						# 	ma_size = 120,
-						# 	ma_step = 100,
+						#	ma_size = 120,
+						#	ma_step = 100,
 						# ),(# max_points = 30,
-						# # 	ma_size = 120,
-						# # 	ma_step = 80,
-						# # ),(# max_points = 30,
-						# 	ma_size = 100,
-						# 	ma_step = 75,
+						# 	ma_size = 120,
+						# 	ma_step = 80,
+						# ),(# max_points = 30,
+						 	ma_size = 100,
+						 	ma_step = 75,
 						# ),(# max_points = 30,
 						# 	ma_size = 90,
 						# 	ma_step = 60,
 						# ),(# max_points = 30,
-							ma_size = 75,
-							ma_step = 50,
+							# ma_size = 75,
+							# ma_step = 50,
 						# ),(# max_points = 50,
 						# 	ma_size = 45,
 						# 	ma_step = 30,
@@ -216,6 +225,7 @@ audio_kwargs_partial_mfcc = (
 	dither = false,                   # [false, true]
 	# bwidth = 1.0,                   # 
 	# minfreq = 0.0,
+	maxfreq = max_sample_rate/2, # Fix this
 	# maxfreq = (sr)->(sr/2),
 	# usecmp = false,
 )
@@ -229,6 +239,7 @@ audio_kwargs_full_mfcc = (
 	preemph=0.97,
 	dither=false,
 	minfreq=0.0,
+	maxfreq = max_sample_rate/2, # Fix this
 	# maxfreq=sr/2,
 	nbands=20,
 	bwidth=1.0,
@@ -247,9 +258,9 @@ wav_preprocessors = Dict(
 )
 
 exec_preprocess_wavs = [
-	# ["Normalize"],
+	["Normalize"],
 	[],
-#	["NG", "Normalize"]
+	["NG", "Normalize"]
 ]
 
 # https://github.com/JuliaIO/JSON.jl/issues/203
@@ -416,18 +427,25 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			use_full_mfcc,)	
 
 	# Load Dataset
-	dataset, n_label_samples = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
-
-	if dry_run == :dataset_only
-		continue
-	end
+	dataset = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
 
 	## Dataset slices
 	# obtain dataseeds that are were not done before
 	todo_dataseeds = filter((dataseed)->!iteration_in_history(history, (params_namedtuple, dataseed)), exec_dataseed)
-	dataset_slices = [(dataseed,balanced_dataset_slice(n_label_samples, dataseed)) for dataseed in todo_dataseeds]
+
+	linearized_dataset, dataset_slices = 
+		if dataset isa NamedTuple{(:train_n_test,:only_training)}
+			balanced_dataset_slice(dataset, todo_dataseeds, split_threshold)
+		else
+			balanced_dataset_slice(dataset, todo_dataseeds)
+		end
+	dataset_slices = collect(zip(todo_dataseeds, dataset_slices))
 
 	println("Dataseeds = $(todo_dataseeds)")
+
+	if dry_run == :dataset_only
+		continue
+	end
 
 	##############################################################################
 	##############################################################################
@@ -435,7 +453,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	
 	exec_scan(
 		params_namedtuple,
-		dataset;
+		linearized_dataset;
 		### Training params
 		train_seed                      =   train_seed,
 		modal_args                      =   cur_modal_args,
@@ -455,7 +473,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		### Run params
 		results_dir                     =   results_dir,
 		data_savedir                    =   data_savedir,
-		model_savedir                    =   model_savedir,
+		model_savedir                   =   model_savedir,
 		legacy_gammas_check             =   legacy_gammas_check,
 		log_level                       =   log_level,
 		timing_mode                     =   timing_mode,

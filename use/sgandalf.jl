@@ -14,7 +14,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./gandalf"
+results_dir = "./gandalf-avg"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir = results_dir * "/cache"
@@ -28,6 +28,8 @@ dry_run = false
 save_datasets = false
 
 skip_training = false
+
+perform_consistency_check = false
 
 ################################################################################
 ##################################### TREES ####################################
@@ -53,6 +55,7 @@ for loss_function in [DecisionTree.util.entropy]
 						min_samples_leaf    = min_samples_leaf,
 						min_purity_increase = min_purity_increase,
 						min_loss_at_leaf    = min_loss_at_leaf,
+						perform_consistency_check = perform_consistency_check,
 					)
 				)
 			end
@@ -85,6 +88,7 @@ forest_args = []
 # 				min_samples_leaf = 1,
 # 				min_purity_increase = 0.0,
 # 				min_loss_at_leaf = 0.0,
+# 				perform_consistency_check = perform_consistency_check,
 # 			))
 # 		end
 # 	end
@@ -162,7 +166,7 @@ exec_dataset_name = ["Pavia", "Salinas-A", "PaviaCentre", "IndianPines", "Salina
 exec_windowsize_flattened_ontology_test_operators = [
 	# ((1,7),false,"o_None","TestOpGeq"),
 	# ((3,7),:flattened,"o_None","TestOpGeq"),
-	# # ((3,7),:averaged,"o_None","TestOpGeq"),
+	((3,7),false,:averaged,"o_None","TestOpGeq"),
 	# # ((3,7),false,"o_RCC8","TestOp"),
 	# # ((3,7),false,"o_RCC5","TestOp"),
 	# ((3,7),false,"o_RCC8","TestOpAll"),

@@ -89,9 +89,15 @@ function wav2stft_time_series(filepath, kwargs; preprocess_sample::AbstractVecto
 	for pps in preprocess_sample
 		pps(samps)
 	end
-
-	@assert maximum(abs, samps) > 0.0 "ERROR: File $(filepath) has max peak 0!"
-	@assert !any(isnan.(samps)) "ERROR: File $(filepath) has a NaN value!"
+        
+	if ! (maximum(abs, samps) > 0.0)
+                println("ERROR: File $(filepath) has max peak 0!")
+            return nothing
+        end
+	if any(isnan.(samps))
+                println("ERROR: File $(filepath) has a NaN value!")
+            return nothing
+        end
 
 	# wintime = 0.025 # ms
 	# steptime = 0.010 # ms
@@ -127,4 +133,18 @@ function normalize!(sample::AbstractVector; level::Float64 = 1.0)
 	max_peak = maximum(abs, sample)
 	apply_padd!(val::Float64) = clamp((val/max_peak) * level, -1.0, 1.0)
 	sample .= apply_padd!.(sample)
+end
+
+function trim_wav!(sample::AbstractVector; level::Float64 = 0.0)
+	before = 1
+	after = length(sample)
+	while abs(sample[before]) <= level
+		before = before + 1
+	end
+	while abs(sample[after]) <= level
+		after = after - 1
+	end
+	splice!(sample, (after+1):length(sample))
+	splice!(sample, 1:(before-1))
+	sample
 end

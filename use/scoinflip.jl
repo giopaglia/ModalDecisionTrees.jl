@@ -14,7 +14,8 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./MTSC"
+# TODO results_dir = "./covid-august"
+results_dir = "./covid-test-coinflip+memoiz"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir = results_dir * "/cache"
@@ -43,22 +44,22 @@ tree_args = [
 #	)
 ]
 
-for loss_function in [DecisionTree.util.entropy]
-	for min_samples_leaf in [2,4] # [1,2]
-		for min_purity_increase in [0.01] # [0.01, 0.001]
-			for min_loss_at_leaf in [0.2, 0.6] # [0.4, 0.6]
-				push!(tree_args, 
-					(
-						loss_function       = loss_function,
-						min_samples_leaf    = min_samples_leaf,
-						min_purity_increase = min_purity_increase,
-						min_loss_at_leaf    = min_loss_at_leaf,
-					)
-				)
-			end
-		end
-	end
-end
+# for loss_function in [DecisionTree.util.entropy, DecisionTree.util.gini]
+# 	for min_samples_leaf in [2,4] # [1,2]
+# 		for min_purity_increase in [0.01] # [0.01, 0.001]
+# 			for min_loss_at_leaf in [0.2, 0.6] # [0.4, 0.6]
+# 				push!(tree_args, 
+# 					(
+# 						loss_function       = loss_function,
+# 						min_samples_leaf    = min_samples_leaf,
+# 						min_purity_increase = min_purity_increase,
+# 						min_loss_at_leaf    = min_loss_at_leaf,
+# 					)
+# 				)
+# 			end
+# 		end
+# 	end
+# end
 
 println(" $(length(tree_args)) trees")
 
@@ -72,9 +73,9 @@ optimize_forest_computation = true
 
 forest_args = []
 
-for n_trees in [] # [50,100]
-	for n_subfeatures in [] # [half_f]
-		for n_subrelations in [] # [id_f]
+for n_trees in [20]
+	for n_subfeatures in [half_f]
+		for n_subrelations in [id_f]
 			push!(forest_args, (
 				n_subfeatures       = n_subfeatures,
 				n_trees             = n_trees,
@@ -124,6 +125,7 @@ log_level = DecisionTree.DTOverview
 # timing_mode = :none
 timing_mode = :time
 # timing_mode = :btime
+#timing_mode = :profile
 
 round_dataset_to_datatype = false
 # round_dataset_to_datatype = UInt8
@@ -134,12 +136,9 @@ round_dataset_to_datatype = false
 # round_dataset_to_datatype = Float32
 # round_dataset_to_datatype = Float64
 
-# samples_per_class_share = nothing
-samples_per_class_share = 0.8
-
-# split_threshold = 0.8
+split_threshold = 0.8
 # split_threshold = 1.0
-split_threshold = false
+# split_threshold = false
 
 # use_training_form = :dimensional
 # use_training_form = :fmd
@@ -157,11 +156,101 @@ legacy_gammas_check = false
 ##################################### SCAN #####################################
 ################################################################################
 
-# exec_dataseed = 1:1
-exec_dataseed = [nothing]
+exec_dataseed = 1:10
 
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization]
+
+exec_n_task_use_aug = [
+	(1, false),
+	# (2, true),
+	# (3, true),
+	# (2, false),
+	# (3, false),
+]
+exec_n_versions = [1]
+exec_nbands = [20] # [20,40,60]
+
+exec_dataset_kwargs =   [( # TODO
+						#	max_points = 10,
+						#	ma_size = 45,
+						#	ma_step = 30,
+						#),(max_points = 20,
+							# ma_size = 45,
+							# ma_step = 30,
+						# ),(max_points = 20,
+						# 	ma_size = 45,
+						# 	ma_step = 30,
+						# ),(max_points = 30,
+						# 	ma_size = 45,
+						# 	ma_step = 30,
+						# ),(# max_points = 30,
+							ma_size = 240,
+							ma_step = 200,
+						# ),(# max_points = 30,
+						# 	ma_size = 120,
+						# 	ma_step = 80,
+						# ),(# max_points = 30,
+						# 	ma_size = 100,
+						# 	ma_step = 75,
+						# ),(# max_points = 30,
+						# 	ma_size = 90,
+						# 	ma_step = 60,
+						# ),(# max_points = 30,
+							# ma_size = 75,
+							# ma_step = 50,
+						# ),(# max_points = 50,
+						# 	ma_size = 45,
+						# 	ma_step = 30,
+						)
+						]
+
+audio_kwargs_partial_mfcc = (
+	wintime = 0.025, # in ms          # 0.020-0.040
+	steptime = 0.010, # in ms         # 0.010-0.015
+	fbtype = :mel,                    # [:mel, :htkmel, :fcmel]
+	window_f = DSP.hamming, # [DSP.hamming, (nwin)->DSP.tukey(nwin, 0.25)]
+	pre_emphasis = 0.97,              # any, 0 (no pre_emphasis)
+	nbands = 40,                      # any, (also try 20)
+	sumpower = false,                 # [false, true]
+	dither = false,                   # [false, true]
+	# bwidth = 1.0,                   # 
+	# minfreq = 0.0,
+	# maxfreq = (sr)->(sr/2),
+	# usecmp = false,
+)
+
+audio_kwargs_full_mfcc = (
+	wintime=0.025,
+	steptime=0.01,
+	numcep=13,
+	lifterexp=-22,
+	sumpower=false,
+	preemph=0.97,
+	dither=false,
+	minfreq=0.0,
+	# maxfreq=sr/2,
+	nbands=20,
+	bwidth=1.0,
+	dcttype=3,
+	fbtype=:htkmel,
+	usecmp=false,
+	modelorder=0
+)
+
+exec_use_full_mfcc = [false]
+
+
+wav_preprocessors = Dict(
+	"NG" => noise_gate!,
+	"Normalize" => normalize!,
+)
+
+exec_preprocess_wavs = [
+	# ["Normalize"],
+	[],
+#	["NG", "Normalize"]
+]
 
 # https://github.com/JuliaIO/JSON.jl/issues/203
 # https://discourse.julialang.org/t/json-type-serialization/9794
@@ -172,31 +261,37 @@ exec_test_operators = [ "TestOp_80" ]
 test_operators_dict = Dict(
 	"TestOp_70" => [TestOpGeq_70, TestOpLeq_70],
 	"TestOp_80" => [TestOpGeq_80, TestOpLeq_80],
-	"TestOp_90" => [TestOpGeq_90, TestOpLeq_90],
 	"TestOp"    => [TestOpGeq,    TestOpLeq],
 )
 
-exec_dataset_name = [
-	"FingerMovements",
-	"Libras",
-	"LSST",
-	"NATOPS",
-	"RacketSports",
-]
-exec_n_chunks = [5]
-# exec_n_chunks = [60]
 
 exec_ranges = (;
-	use_training_form    = exec_use_training_form  ,
-	test_operators       = exec_test_operators     ,
-	dataset_name         = exec_dataset_name       ,
-	n_chunks             = exec_n_chunks           ,
+	use_training_form = exec_use_training_form,
+	n_task_use_aug    = exec_n_task_use_aug,
+	n_version         = exec_n_versions,
+	nbands            = exec_nbands,
+	dataset_kwargs    = exec_dataset_kwargs,
+	use_full_mfcc     = exec_use_full_mfcc,
+	preprocess_wavs   = exec_preprocess_wavs,
+	test_operators    = exec_test_operators,
 )
 
-
-dataset_function =
-	(dataset_name, n_chunks)->
-	Multivariate_arffDataset(dataset_name; n_chunks = n_chunks)
+dataset_function = (
+	((n_task,use_aug),
+		n_version,
+		cur_audio_kwargs,
+		dataset_kwargs,
+		cur_preprocess_wavs,
+		use_full_mfcc,)->
+	KDDDataset_not_stratified(
+		(n_task,n_version),
+		cur_audio_kwargs;
+		dataset_kwargs...,
+		use_augmentation_data = use_aug,
+		preprocess_wavs = cur_preprocess_wavs,
+		use_full_mfcc = use_full_mfcc
+	)
+)
 
 ################################################################################
 ################################### SCAN FILTERS ###############################
@@ -290,12 +385,19 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	##############################################################################
 	
-	use_training_form,
-	test_operators,
-	dataset_name,
-	n_chunks = params_combination
+	use_training_form, n_task_use_aug, n_version, nbands, dataset_kwargs, use_full_mfcc, preprocess_wavs, test_operators = params_combination
 	
 	test_operators = test_operators_dict[test_operators]
+
+	cur_audio_kwargs = merge(
+		if use_full_mfcc
+			audio_kwargs_full_mfcc
+		else
+			audio_kwargs_partial_mfcc
+		end
+		, (nbands=nbands,))
+
+	cur_preprocess_wavs = [ wav_preprocessors[k] for k in preprocess_wavs ]
 
 	cur_modal_args = modal_args
 	
@@ -306,17 +408,27 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	)
 
 	dataset_fun_sub_params = (
-		dataset_name, n_chunks
-	)
+			n_task_use_aug,
+			n_version,
+			cur_audio_kwargs,
+			dataset_kwargs,
+			cur_preprocess_wavs,
+			use_full_mfcc,)	
 
 	# Load Dataset
-	# dataset_function(dataset_fun_sub_params...)
-	dataset, n_label_samples = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
+	dataset = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
 
 	## Dataset slices
 	# obtain dataseeds that are were not done before
 	todo_dataseeds = filter((dataseed)->!iteration_in_history(history, (params_namedtuple, dataseed)), exec_dataseed)
-	dataset_slices = [(dataseed, balanced_dataset_slice(n_label_samples, dataseed; samples_per_class_share = samples_per_class_share)) for dataseed in todo_dataseeds]
+
+	linearized_dataset, dataset_slices = 
+		if dataset isa NamedTuple{(:train_n_test,:only_training)}
+			balanced_dataset_slice(dataset, todo_dataseeds, split_threshold)
+		else
+			balanced_dataset_slice(dataset, todo_dataseeds)
+		end
+	dataset_slices = collect(zip(todo_dataseeds, dataset_slices))
 
 	println("Dataseeds = $(todo_dataseeds)")
 
@@ -330,7 +442,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	
 	exec_scan(
 		params_namedtuple,
-		dataset;
+		linearized_dataset;
 		### Training params
 		train_seed                      =   train_seed,
 		modal_args                      =   cur_modal_args,

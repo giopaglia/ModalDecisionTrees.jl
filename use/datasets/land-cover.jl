@@ -165,7 +165,7 @@ function SampleLandCoverDataset(
 	if apply_filter != false
 		if apply_filter[1] == "avg"
 			k = apply_filter[2]
-			inputs = imfilter(inputs, ones(k,k,1,1)/9, Inner())
+			inputs = parent(imfilter(inputs, ones(k,k,1,1)/9, Inner()))
 			@assert size(inputs)[1:2] == (window_size[1]-k+1, window_size[2]-k+1)
 		else
 			error("Unexpected value for apply_filter: $(apply_filter)")
