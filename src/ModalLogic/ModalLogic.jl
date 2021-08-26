@@ -149,7 +149,7 @@ include("featureTypes.jl")
 
 export n_samples, n_attributes, n_features, n_relations,
 				channel_size, max_channel_size,
-				n_frames, frames, get_frame,
+				n_frames, frames, get_frame, push_frame!,
 				display_structure,
 				get_gamma, test_decision,
 				##############################
@@ -1226,18 +1226,22 @@ struct MultiFrameModalDataset
 	frames  :: AbstractVector{<:AbstractModalDataset}
 	# function MultiFrameModalDataset(Xs::AbstractVector{<:AbstractModalDataset{<:T, <:AbstractWorld}}) where {T}
 	# function MultiFrameModalDataset(Xs::AbstractVector{<:AbstractModalDataset{T, <:AbstractWorld}}) where {T}
-	function MultiFrameModalDataset(Xs::AbstractVector{<:AbstractModalDataset{<:Real, <:AbstractWorld}})
+	function MultiFrameModalDataset(Xs::AbstractVector{<:AbstractModalDataset})
 		@assert length(Xs) > 0 && length(unique(n_samples.(Xs))) == 1 "Can't create an empty MultiFrameModalDataset or with mismatching number of samples (n_frames: $(length(Xs)), frame_sizes: $(n_samples.(Xs)))."
 		new(Xs)
 	end
-	function MultiFrameModalDataset(X::AbstractModalDataset{<:Real, <:AbstractWorld})
+	function MultiFrameModalDataset(X::AbstractModalDataset)
 		new([X])
+	end
+	function MultiFrameModalDataset()
+		new(AbstractModalDataset[])
 	end
 end
 
 # TODO: test all these methods
 size(X::MultiFrameModalDataset) = map(size, X.frames)
 get_frame(X::MultiFrameModalDataset, i) = X.frames[i]
+push_frame!(X::MultiFrameModalDataset, f::AbstractModalDataset) = push!(X.frames, f)
 n_frames(X::MultiFrameModalDataset)             = length(X.frames)
 n_samples(X::MultiFrameModalDataset)            = n_samples(X.frames[1]) # n_frames(X) > 0 ? n_samples(X.frames[1]) : 0
 length(X::MultiFrameModalDataset)               = n_samples(X)
