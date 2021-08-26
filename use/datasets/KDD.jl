@@ -492,12 +492,14 @@ function KDDDataset_not_stratified((n_task,n_version),
 			end
 
 		# println()
+		# println("train_n_test")
 		# println(typeof(d.train_n_test[1]))
 		# println(size.(d.train_n_test[1][1]))
 		# println(size(d.train_n_test[1][2]))
 		# println(size.(d.train_n_test[1][3]))
 
 		# println()
+		# println("only_training")
 		# println(typeof(d.only_training[1]))
 		# println(size.(d.only_training[1][1]))
 		# println(size(d.only_training[1][2]))

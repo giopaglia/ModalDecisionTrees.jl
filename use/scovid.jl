@@ -14,15 +14,15 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./covid-august-v2"
+results_dir = "./covid-august-v3"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/cache"
 model_savedir = results_dir * "/trees"
 
-dry_run = false
+# dry_run = false
 #dry_run = true
-#dry_run = :dataset_only
+dry_run = :dataset_only
 
 # save_datasets = true
 save_datasets = false
@@ -78,7 +78,7 @@ forest_args = []
 for n_trees in [50,100]
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
-                    for partial_sampling in [0.7, 1.0]
+      for partial_sampling in [0.7, 1.0]
 			push!(forest_args, (
 				n_subfeatures       = n_subfeatures,
 				n_trees             = n_trees,
@@ -92,7 +92,7 @@ for n_trees in [50,100]
 				perform_consistency_check = perform_consistency_check,
 			))
 		    end
-                end
+    end
 	end
 end
 
