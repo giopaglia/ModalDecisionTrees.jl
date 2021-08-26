@@ -149,9 +149,11 @@ include("featureTypes.jl")
 
 export n_samples, n_attributes, n_features, n_relations,
 				channel_size, max_channel_size,
-				n_frames, frames, get_frame,
+				n_frames, frames, get_frame, push_frame!,
 				display_structure,
 				get_gamma, test_decision,
+				##############################
+				concat_datasets,
 				##############################
 				relations,
 				initws_function,
@@ -230,6 +232,9 @@ getInstanceAttribute(inst::MatricialInstance{T,1},      idx::Integer) where T = 
 getInstanceAttribute(inst::MatricialInstance{T,2},      idx::Integer) where T = @views inst[:,    idx]::MatricialChannel{T,1} # N=1
 getInstanceAttribute(inst::MatricialInstance{T,3},      idx::Integer) where T = @views inst[:, :, idx]::MatricialChannel{T,2} # N=2
 
+concat_datasets(d1::MatricialDataset{T,3}, d2::MatricialDataset{T,3}) where {T} = cat(d1, d2; dims=3)
+concat_datasets(d1::MatricialDataset{T,4}, d2::MatricialDataset{T,4}) where {T} = cat(d1, d2; dims=4)
+concat_datasets(d1::MatricialDataset{T,5}, d2::MatricialDataset{T,5}) where {T} = cat(d1, d2; dims=5)
 
 # TODO maybe using views can improve performances
 # @computed getChannel(X::OntologicalDataset{T,N}, idxs::AbstractVector{Integer}, attribute::Integer) where T = X[idxs, attribute, fill(:, N)...]::AbstractArray{T,N-1}
@@ -1097,6 +1102,18 @@ end
 # 	# end
 # end
 
+# TODO scan this value for an example problem and different number of threads
+
+using Random
+coin_flip_memoiz_rng = Random.default_rng()
+
+cfnls_max = 0.8
+# cfnls_k = 5.9
+cfnls_k = 30
+coin_flip_no_look_StumpFeatModalDatasetWithMemoization_value = cfnls_max*cfnls_k/((Threads.nthreads())-1+cfnls_k)
+coin_flip_no_look_StumpFeatModalDatasetWithMemoization() = (rand(coin_flip_memoiz_rng) >= coin_flip_no_look_StumpFeatModalDatasetWithMemoization_value)
+# coin_flip_no_look_StumpFeatModalDatasetWithMemoization() = false
+
 get_modal_gamma(
 		X::StumpFeatModalDatasetWithMemoization{T,WorldType},
 		i_instance::Integer,
@@ -1107,14 +1124,16 @@ get_modal_gamma(
 	i_relation = find_relation_id(X, relation)
 	aggregator = existential_aggregator(test_operator)
 	i_featsnaggr = find_featsnaggr_id(X, feature, aggregator)
-	if !isnothing(X.fmd_m[i_instance, w, i_featsnaggr, i_relation])
-		X.fmd_m[i_instance, w, i_featsnaggr, i_relation]
-	else
+	# if coin_flip_no_look_StumpFeatModalDatasetWithMemoization() || 
+	if false || 
+			isnothing(X.fmd_m[i_instance, w, i_featsnaggr, i_relation])
 		i_feature = find_feature_id(X, feature)
 		cur_fwd_slice = modalDatasetChannelSlice(X.fmd.fwd, i_instance, i_feature)
 		accessible_worlds = accrepr_function(X.fmd, i_instance)(feature, aggregator, w, relation)
 		gamma = computeModalThreshold(cur_fwd_slice, accessible_worlds, aggregator)
 		FMDStumpSupportSet(X.fmd_m, w, i_instance, i_featsnaggr, i_relation, gamma)
+	else
+		X.fmd_m[i_instance, w, i_featsnaggr, i_relation]
 	end
 end
 
@@ -1164,13 +1183,15 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
 				for (i_aggr,(i_featsnaggr,aggregator)) in enumerate(aggregators_with_ids)
 					for w in worlds
 						gamma = 
-							if !isnothing(X.fmd_m[i_instance, w, i_featsnaggr, i_relation])
-								X.fmd_m[i_instance, w, i_featsnaggr, i_relation]
-							else
+							# if coin_flip_no_look_StumpFeatModalDatasetWithMemoization() || 
+							if false || 
+								isnothing(X.fmd_m[i_instance, w, i_featsnaggr, i_relation])
 								cur_fwd_slice = modalDatasetChannelSlice(X.fmd.fwd, i_instance, i_feature)
 								accessible_worlds = accrepr_function(X.fmd, i_instance)(feature, aggregator, w, relation)
 								gamma = computeModalThreshold(cur_fwd_slice, accessible_worlds, aggregator)
 								FMDStumpSupportSet(X.fmd_m, w, i_instance, i_featsnaggr, i_relation, gamma)
+							else
+								X.fmd_m[i_instance, w, i_featsnaggr, i_relation]
 							end
 						thresholds[i_aggr,instance_id] = aggregator_to_binary(aggregator)(gamma, thresholds[i_aggr,instance_id])
 					end
@@ -1205,18 +1226,22 @@ struct MultiFrameModalDataset
 	frames  :: AbstractVector{<:AbstractModalDataset}
 	# function MultiFrameModalDataset(Xs::AbstractVector{<:AbstractModalDataset{<:T, <:AbstractWorld}}) where {T}
 	# function MultiFrameModalDataset(Xs::AbstractVector{<:AbstractModalDataset{T, <:AbstractWorld}}) where {T}
-	function MultiFrameModalDataset(Xs::AbstractVector{<:AbstractModalDataset{<:Real, <:AbstractWorld}})
+	function MultiFrameModalDataset(Xs::AbstractVector{<:AbstractModalDataset})
 		@assert length(Xs) > 0 && length(unique(n_samples.(Xs))) == 1 "Can't create an empty MultiFrameModalDataset or with mismatching number of samples (n_frames: $(length(Xs)), frame_sizes: $(n_samples.(Xs)))."
 		new(Xs)
 	end
-	function MultiFrameModalDataset(X::AbstractModalDataset{<:Real, <:AbstractWorld})
+	function MultiFrameModalDataset(X::AbstractModalDataset)
 		new([X])
+	end
+	function MultiFrameModalDataset()
+		new(AbstractModalDataset[])
 	end
 end
 
 # TODO: test all these methods
 size(X::MultiFrameModalDataset) = map(size, X.frames)
 get_frame(X::MultiFrameModalDataset, i) = X.frames[i]
+push_frame!(X::MultiFrameModalDataset, f::AbstractModalDataset) = push!(X.frames, f)
 n_frames(X::MultiFrameModalDataset)             = length(X.frames)
 n_samples(X::MultiFrameModalDataset)            = n_samples(X.frames[1]) # n_frames(X) > 0 ? n_samples(X.frames[1]) : 0
 length(X::MultiFrameModalDataset)               = n_samples(X)
@@ -1232,9 +1257,9 @@ n_relations(X::MultiFrameModalDataset, i_frame::Integer) = n_relations(X.frames[
 world_type(X::MultiFrameModalDataset, i_frame::Integer) = world_type(X.frames[i_frame])
 world_types(X::MultiFrameModalDataset) = world_type.(X.frames) # convert(Vector{<:Type{<:AbstractWorld}}, world_type.(X.frames))
 
-getInstance(X::MultiFrameModalDataset,  i_frame::Integer, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...)
-# slice_dataset(X::MultiFrameModalDataset, i_frame::Integer, inds::AbstractVector{<:Integer}, args::Vararg)  = slice_dataset(X.frames[i], inds; args...)
-getChannel(X::MultiFrameModalDataset,   i_frame::Integer, idx_i::Integer, idx_f::Integer, args::Vararg)  = getChannel(X.frames[i], idx_i, idx_f, args...)
+getInstance(X::MultiFrameModalDataset,  i_frame::Integer, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i_frame], idx_i, args...)
+# slice_dataset(X::MultiFrameModalDataset, i_frame::Integer, inds::AbstractVector{<:Integer}, args::Vararg)  = slice_dataset(X.frames[i_frame], inds; args...)
+getChannel(X::MultiFrameModalDataset,   i_frame::Integer, idx_i::Integer, idx_f::Integer, args::Vararg)  = getChannel(X.frames[i_frame], idx_i, idx_f, args...)
 
 # getInstance(X::MultiFrameModalDataset, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...) # TODO should slice across the frames!
 slice_dataset(X::MultiFrameModalDataset, inds::AbstractVector{<:Integer}; args...) =

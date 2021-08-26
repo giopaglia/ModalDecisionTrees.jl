@@ -744,6 +744,8 @@ module treeclassifier
 		# Transform labels to categorical form
 		labels, Y_ = util.assign(Y)
 		# print(labels, Y_)
+		# println("countmap: ")
+		# println(StatsBase.countmap(Y_))
 
 		# Call core learning function
 		root, indX = _fit(
