@@ -4,8 +4,6 @@ using FileIO
 
 include("wav-filtering.jl")
 
-# TODO: find out if A1 is the highest or the lowest frequency in MFCC
-
 gr()
 # gaston() # this uses GNUPLOT but led to some problem generating the gif
 
