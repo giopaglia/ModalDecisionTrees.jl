@@ -43,7 +43,7 @@ animation_fps = 30
 features_colors = [ RGB(1 - (1 * (i/(nbands - 1))), 0, 1 * (i/(nbands - 1))) for i in 0:(nbands-1) ]
 
 # DATASET SETTINGS
-max_sample_rate = 16_000
+max_sample_rate = 8_000
 
 n_task = 2
 n_version = 1
@@ -98,83 +98,85 @@ timing_mode = :none
 tree_path = "covid-august/trees"
 tree_hash = "d5cce8625a82b7c1e5360a4d055175425302db80dc57e55695e32d4d782c6ac5"
 
-# TEST APPLY_TREE_TO_WAV
-tree = JLD2.load(tree_path * "/tree_$(tree_hash).jld")["T"]
+now() = draw_mel_filters_graph(8000, triang; nbands = 40)
 
-(X, Y, filepaths), (n_pos, n_neg) = @cache "dataset" cache_dir dataset_func_params dataset_func_kwparams KDDDataset_not_stratified
-X_modal = X_dataset_c("test", data_modal_args, X, modal_args, save_datasets, dataset_form, false)
+# # TEST APPLY_TREE_TO_WAV
+# tree = JLD2.load(tree_path * "/tree_$(tree_hash).jld")["T"]
 
-apply_tree_to_datasets_wavs(tree_hash, tree, X_modal, filepaths[1], Y; filter_kwargs = (nbands = nbands,), remove_from_path = "../datasets/KDD/")
-exit()
-# READ INPUT
-samps_healthy, sr_healthy, nbits_healthy = wavread(inputfile_healthy)
-samps_healthy = merge_channels(samps_healthy)
-noise_gate!(samps_healthy)
-trim_wav!(samps_healthy)
+# (X, Y, filepaths), (n_pos, n_neg) = @cache "dataset" cache_dir dataset_func_params dataset_func_kwparams KDDDataset_not_stratified
+# X_modal = X_dataset_c("test", data_modal_args, X, modal_args, save_datasets, dataset_form, false)
 
-samps_covid, sr_covid, nbits_covid = wavread(inputfile_covid)
-samps_covid = merge_channels(samps_covid)
-noise_gate!(samps_covid)
-trim_wav!(samps_covid)
+# apply_tree_to_datasets_wavs(tree_hash, tree, X_modal, filepaths[1], Y; filter_kwargs = (nbands = nbands, maxfreq = max_sample_rate / 2), remove_from_path = "../datasets/KDD/")
 
-# COMPUTE
-filter_healthy = multibandpass_digitalfilter_mel(selected_features, sr_healthy, hamming; nbands = nbands)
-filtered_healthy = filt(filter_healthy, samps_healthy)
+# # READ INPUT
+# samps_healthy, sr_healthy, nbits_healthy = wavread(inputfile_healthy)
+# samps_healthy = merge_channels(samps_healthy)
+# noise_gate!(samps_healthy)
+# trim_wav!(samps_healthy)
 
-filter_covid = multibandpass_digitalfilter_mel(selected_features, sr_covid, hamming; nbands = nbands)
-filtered_covid = filt(filter_covid, samps_covid)
+# samps_covid, sr_covid, nbits_covid = wavread(inputfile_covid)
+# samps_covid = merge_channels(samps_covid)
+# noise_gate!(samps_covid)
+# trim_wav!(samps_covid)
 
-single_band_filters = [ multibandpass_digitalfilter_mel([ feat ], sr_covid, hamming; nbands = nbands) for feat in selected_features ]
-single_band_wavs = [ (feat, totaloutpath_covid_single_band(feat), filt(single_band_filters[i], samps_covid)) for (i, feat) in enumerate(selected_features) ]
+# # COMPUTE
+# filter_healthy = multibandpass_digitalfilter_mel(selected_features, sr_healthy, hamming; nbands = nbands)
+# filtered_healthy = filt(filter_healthy, samps_healthy)
 
-# OUTPUT
-print("Copying original healthy WAV to $(original_copy_healty)...")
-wavwrite(samps_healthy, original_copy_healty; Fs = sr_healthy)
-println(" done")
-print("Generating filtered healthy WAV to $(totaloutpath_healthy)...")
-wavwrite(filtered_healthy, totaloutpath_healthy; Fs = sr_healthy)
-println(" done")
+# filter_covid = multibandpass_digitalfilter_mel(selected_features, sr_covid, hamming; nbands = nbands)
+# filtered_covid = filt(filter_covid, samps_covid)
 
-print("Copying original covid WAV to $(original_copy_covid)...")
-wavwrite(samps_covid, original_copy_covid; Fs = sr_covid)
-println(" done")
-print("Generating filtered covid WAV to $(totaloutpath_covid)...")
-wavwrite(filtered_covid, totaloutpath_covid; Fs = sr_covid)
-println(" done")
-# No need to write in files the single_band_wavs samples
-# for (feat, path, wav) in single_band_wavs
-#     print("Generating filtered covid WAV to $(path)...")
-#     wavwrite(wav, path; Fs = sr_covid)
+# single_band_filters = [ multibandpass_digitalfilter_mel([ feat ], sr_covid, hamming; nbands = nbands) for feat in selected_features ]
+# single_band_wavs = [ (feat, totaloutpath_covid_single_band(feat), filt(single_band_filters[i], samps_covid)) for (i, feat) in enumerate(selected_features) ]
+
+# # OUTPUT
+# print("Copying original healthy WAV to $(original_copy_healty)...")
+# wavwrite(samps_healthy, original_copy_healty; Fs = sr_healthy)
+# println(" done")
+# print("Generating filtered healthy WAV to $(totaloutpath_healthy)...")
+# wavwrite(filtered_healthy, totaloutpath_healthy; Fs = sr_healthy)
+# println(" done")
+
+# print("Copying original covid WAV to $(original_copy_covid)...")
+# wavwrite(samps_covid, original_copy_covid; Fs = sr_covid)
+# println(" done")
+# print("Generating filtered covid WAV to $(totaloutpath_covid)...")
+# wavwrite(filtered_covid, totaloutpath_covid; Fs = sr_covid)
+# println(" done")
+# # No need to write in files the single_band_wavs samples
+# # for (feat, path, wav) in single_band_wavs
+# #     print("Generating filtered covid WAV to $(path)...")
+# #     wavwrite(wav, path; Fs = sr_covid)
+# #     println(" done")
+# # end
+
+# # GENERATE SPECTROGRAM
+# hm_orig = draw_spectrogram(samps_covid, sr_covid; title = "Original")
+# hm_filt = draw_spectrogram(filtered_covid, sr_covid; title = "Filtered")
+# plot(hm_orig, hm_filt, layout = (1, 2))
+# savefig(heatmap_png_path)
+
+# # GENERATE GIF
+# draw_audio_anim(
+#     [ (samps_covid, sr_covid), [ (single_band_wavs[i][3], sr_covid) for i in 1:length(single_band_wavs) ]... ],
+#     labels = [ "Original", [ string("A", single_band_wavs[i][1]) for i in 1:length(single_band_wavs) ]... ],
+#     colors = [ RGB(.3, .3, 1), features_colors[selected_features]...],
+#     outfile = gifout,
+#     fps = animation_fps,
+#     selected_range = selected_range
+# )
+
+# # GENERATE VIDEOS
+# try
+#     # TODO: actually Plots can generate the video directly using mp4 instead of gif at the bottom of the body of function draw_audio_anim
+#     print("Generating videos in $(outpath)...")
+#     run(pipeline(`ffmpeg -i $gifout -i $original_copy_covid -y -c:a copy -c:v $video_codec $mkv_original`, stdout = ffmpeg_output_file, stderr = ffmpeg_error_output_file))
+#     run(pipeline(`ffmpeg -i $gifout -i $totaloutpath_covid -y -c:a copy -c:v $video_codec $mkv_filtered`, stdout = ffmpeg_output_file, stderr = ffmpeg_error_output_file))
 #     println(" done")
+# catch
+#     println(" fail")
+#     if ffmpeg_error_output_file != stderr
+#         println("Look at file $(ffmpeg_error_output_file) to understand what went wrong!")
+#     end
+#     error("unable to generate video automatially: is ffmpeg installed?")
 # end
-
-# GENERATE SPECTROGRAM
-hm_orig = draw_spectrogram(samps_covid, sr_covid; title = "Original")
-hm_filt = draw_spectrogram(filtered_covid, sr_covid; title = "Filtered")
-plot(hm_orig, hm_filt, layout = (1, 2))
-savefig(heatmap_png_path)
-
-# GENERATE GIF
-draw_audio_anim(
-    [ (samps_covid, sr_covid), [ (single_band_wavs[i][3], sr_covid) for i in 1:length(single_band_wavs) ]... ],
-    labels = [ "Original", [ string("A", single_band_wavs[i][1]) for i in 1:length(single_band_wavs) ]... ],
-    colors = [ RGB(.3, .3, 1), features_colors[selected_features]...],
-    outfile = gifout,
-    fps = animation_fps,
-    selected_range = selected_range
-)
-
-# GENERATE VIDEOS
-try
-    # TODO: actually Plots can generate the video directly using mp4 instead of gif at the bottom of the body of function draw_audio_anim
-    print("Generating videos in $(outpath)...")
-    run(pipeline(`ffmpeg -i $gifout -i $original_copy_covid -y -c:a copy -c:v $video_codec $mkv_original`, stdout = ffmpeg_output_file, stderr = ffmpeg_error_output_file))
-    run(pipeline(`ffmpeg -i $gifout -i $totaloutpath_covid -y -c:a copy -c:v $video_codec $mkv_filtered`, stdout = ffmpeg_output_file, stderr = ffmpeg_error_output_file))
-    println(" done")
-catch
-    println(" fail")
-    if ffmpeg_error_output_file != stderr
-        println("Look at file $(ffmpeg_error_output_file) to understand what went wrong!")
-    end
-    error("unable to generate video automatially: is ffmpeg installed?")
-end

@@ -79,15 +79,15 @@ function multibandpass_digitalfilter(
         fs::Real,
         window_f::Function;
         nbands::Integer = 60,
-        lower_freq = 0,
-        higher_freq = fs / 2,
+        minfreq = 0.0,
+        maxfreq = fs / 2,
         nwin = nbands,
         weights::Vector{F} where F <:AbstractFloat = fill(1., length(selected_bands))
     )::AbstractVector
 
     @assert length(weights) == length(selected_bands) "length(weights) != length(selected_bands): $(length(weights)) != $(length(selected_bands))"
 
-    band_width = (higher_freq - lower_freq) / nbands
+    band_width = (maxfreq - minfreq) / nbands
 
     result_filter = zeros(Float64, nbands)
     i = 1
@@ -98,37 +98,69 @@ function multibandpass_digitalfilter(
     result_filter
 end
 
+struct MelBand
+    left  :: Real
+    right :: Real
+    peak  :: Real
+    MelBand(left::Real, right::Real, peak::Real) = new(max(eps(Float64), left), right, peak)
+end
+
+struct MelScale
+    nbands :: Int
+    bands  :: Vector{MelBand}
+    MelScale(nbands::Int) = new(nbands, Vector{MelBand}(undef, nbands))
+    MelScale(nbands::Int, bands::Vector{MelBand}) = begin
+        @assert length(bands) == nbands "nbands != length(bands): $(nbands) != $(length(bands))"
+        new(nbands, bands)
+    end
+    MelScale(bands::Vector{MelBand}) = new(length(bands), bands)
+end
+
+import Base: getindex, setindex!, length
+
+length(scale::MelScale)::Int = length(scale.bands)
+getindex(scale::MelScale, idx::Int)::MelBand = scale.bands[idx]
+setindex!(scale::MelScale, band::MelBand, idx::Int)::MelBand = scale.bands[idx] = band
+
+function melbands(nbands::Int, minfreq::Real = 0.0, maxfreq::Real = 8_000.0; htkmel = false)::Vector{Float64}
+    minmel = hz2mel(minfreq, htkmel)
+    maxmel = hz2mel(maxfreq, htkmel)
+    mel2hz(minmel .+ collect(0:(nbands+1)) / (nbands+1) * (maxmel-minmel), htkmel)
+end
+function get_mel_bands(nbands::Int, minfreq::Real = 0.0, maxfreq::Real = 8_000.0; htkmel = false)::MelScale
+    bands = melbands(nbands, minfreq, maxfreq; htkmel = htkmel)
+    MelScale(nbands, [ MelBand(bands[i], bands[i+2], bands[i+1]) for i in 1:(length(bands)-2) ])
+end
+
+function digitalfilter_mel(band::MelBand, fs::Real, window_f::Function = hamming; nwin = 60)
+    digitalfilter(Filters.Bandpass(band.peak, band.right, fs = fs), FIRWindow(window_f(nwin)))
+end
+
 function multibandpass_digitalfilter_mel(
         selected_bands::Vector{Int},
         fs::Real,
         window_f::Function;
         nbands::Integer = 60,
-        lower_freq = 0,
-        higher_freq = hz2mel(fs / 2),
-        nwin = nbands,
+        minfreq::Real = 0.0,
+        maxfreq::Real = fs / 2,
+        nwin::Int = nbands,
         weights::Vector{F} where F <:AbstractFloat = fill(1., length(selected_bands))
     )::AbstractVector
 
     @assert length(weights) == length(selected_bands) "length(weights) != length(selected_bands): $(length(weights)) != $(length(selected_bands))"
 
-    correct_selected_bands = selected_bands .- 1
-    band_width = (higher_freq - lower_freq) / nbands
-
     result_filter = zeros(Float64, nbands)
+    scale = get_mel_bands(nbands, minfreq, maxfreq)
     i = 1
-    @simd for b in correct_selected_bands
-        result_filter += digitalfilter(Filters.Bandpass(
-            mel2hz(max(b * band_width, eps(Float64))),
-            mel2hz(((b+1) * band_width)),
-            fs = fs
-        ), FIRWindow(window_f((nwin)))) * weights[i]
+    @simd for b in selected_bands
+        result_filter += digitalfilter_mel(scale[b], fs, window_f, nwin = nwin) * weights[i]
         i=i+1
     end
     result_filter
 end
 
-function draw_mel_filters_graph(fs::Real, window_f::Function; nbands::Integer = 60, lower_freq = 0, higher_freq = hz2mel(fs / 2))
-    filters = [ multibandpass_digitalfilter_mel([i], fs, window_f; nbands = nbands, lower_freq = lower_freq, higher_freq = higher_freq) for i in 1:nbands ]
+function draw_mel_filters_graph(fs::Real, window_f::Function; nbands::Integer = 60, minfreq = 0.0, maxfreq = fs / 2)
+    filters = [ multibandpass_digitalfilter_mel([i], fs, window_f; nbands = nbands, minfreq = minfreq, maxfreq = maxfreq) for i in 1:nbands ]
     plotfilter(filters[1]; samplerate = fs)
     for i in 2:(length(filters)-1)
         plotfilter!(filters[i]; samplerate = fs)
@@ -407,10 +439,28 @@ function apply_tree_to_datasets_wavs(
         weights = Vector{AbstractFloat}(undef, n_features)
         for j in 1:n_features
             # TODO: here goes the logic interpretation of the tree
+            weights[j] =
+                if ((isequal(results[i].path[j].test_operator, >=) || isequal(results[i].path[j].test_operator, >)) && results[i].path[j].taken) ||
+                   ((isequal(results[i].path[j].test_operator, <=) || isequal(results[i].path[j].test_operator, <)) && !results[i].path[j].taken)
+                    if results[i].path[j].threshold <= 1
+                        # > than low
+                        0.5
+                    else
+                        # > than high
+                        1.0
+                    end
+                else
+                    if results[i].path[j].threshold <= 1
+                        # < than low
+                        0.25
+                    else
+                        # < than high
+                        0.5
+                    end
+                end
             bands[j] = results[i].path[j].feature.i_attribute
-            weights[j] = 1.
         end
-        println("Applying filter to file $(wav_paths[i]) with bands $(string(bands))...")
+        println("Applying filter to file $(wav_paths[i]) with bands $(string(collect(zip(bands, weights))))...")
         filter = multibandpass_digitalfilter_mel(bands, samplerates[i], window_f; weights = weights, filter_kwargs...)
         filtered[i] = filt(filter, originals[i])
     end
