@@ -3,10 +3,6 @@ import Dates
 using FileIO
 
 include("wav-filtering.jl")
-include("datasets.jl")
-include("lib.jl")
-include("caching.jl")
-include("scanner.jl")
 
 # TODO: find out if A1 is the highest or the lowest frequency in MFCC
 
@@ -52,8 +48,8 @@ features_colors = [ RGB(1 - (1 * (i/(nbands - 1))), 0, 1 * (i/(nbands - 1))) for
 max_sample_rate = 16_000
 
 n_task = 2
-n_version = 2
-use_aug = false
+n_version = 1
+use_aug = true
 use_full_mfcc = false
 audio_kwargs = (
     wintime = 0.025,
@@ -81,7 +77,8 @@ dataset_func_kwparams = (
     return_filepaths = true,
     use_augmentation_data = use_aug,
     preprocess_wavs = preprocess_wavs,
-    use_full_mfcc = use_full_mfcc
+    use_full_mfcc = use_full_mfcc,
+    force_monolithic_dataset = :train_n_test
 )
 
 modal_args = (;
@@ -109,9 +106,8 @@ tree = JLD2.load(tree_path * "/tree_$(tree_hash).jld")["T"]
 (X, Y, filepaths), (n_pos, n_neg) = @cache "dataset" cache_dir dataset_func_params dataset_func_kwparams KDDDataset_not_stratified
 X_modal = X_dataset_c("test", data_modal_args, X, modal_args, save_datasets, dataset_form, false)
 
-apply_tree_to_datasets_wavs(tree_hash, tree, X_modal, filepaths[1], Y; filter_kwargs = (nbands = nbands,))
+apply_tree_to_datasets_wavs(tree_hash, tree, X_modal, filepaths[1], Y; filter_kwargs = (nbands = nbands,), remove_from_path = "../datasets/KDD/")
 exit()
-
 # READ INPUT
 samps_healthy, sr_healthy, nbits_healthy = wavread(inputfile_healthy)
 samps_healthy = merge_channels(samps_healthy)
@@ -155,18 +151,8 @@ println(" done")
 # end
 
 # GENERATE SPECTROGRAM
-spectrogram_plot_options = (xguide = "Time (s)", yguide = "Frequency (Hz)", ylims = (0, sr_covid / 2), clims = (-150, 0), background_color_inside = :black, size = (1600, 900))
-
-n_orig = length(samps_covid)
-nw_orig = round(Int64, n_orig / 50)
-spec_covid_original = spectrogram(samps_covid, nw_orig, round(Int64, nw_orig/2); fs = sr_covid)
-hm_orig = heatmap(spec_covid_original.time, spec_covid_original.freq, pow2db.(spec_covid_original.power); title = "Original", spectrogram_plot_options...)
-
-n_filt = length(samps_covid)
-nw_filt = round(Int64, n_filt / 50)
-spec_covid_filtered = spectrogram(filtered_covid, nw_filt, round(Int64, nw_filt/2); fs = sr_covid)
-hm_filt = heatmap(spec_covid_filtered.time, spec_covid_filtered.freq, pow2db.(spec_covid_filtered.power); title = "Filtered", spectrogram_plot_options...)
-
+hm_orig = draw_spectrogram(samps_covid, sr_covid; title = "Original")
+hm_filt = draw_spectrogram(filtered_covid, sr_covid; title = "Filtered")
 plot(hm_orig, hm_filt, layout = (1, 2))
 savefig(heatmap_png_path)
 

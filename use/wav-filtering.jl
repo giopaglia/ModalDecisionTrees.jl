@@ -1,11 +1,15 @@
 
+include("scanner.jl")
+# include("datasets.jl")
+# include("lib.jl")
+# include("caching.jl")
 include("wav2stft_time_series.jl")
 include("local.jl")
 
 # using DSP: filt
 # using Weave
-import Pkg
-Pkg.activate("..")
+# import Pkg
+# Pkg.activate("..")
 
 using DecisionTree
 using DecisionTree.ModalLogic
@@ -248,6 +252,20 @@ function draw_audio_anim(audio_files::Vector{String}; kwargs...)
     draw_audio_anim(converted_input; kwargs...)
 end
 
+function draw_spectrogram(
+        samples::Vector{T},
+        fs::Real;
+        gran::Int = 50,
+        title::String = "",
+        clims = (-150, 0),
+        spectrogram_plot_options = ()
+    ) where T <: AbstractFloat
+    nw_orig::Int = round(Int64, length(samples) / gran)
+
+    spec = spectrogram(samples, nw_orig, round(Int64, nw_orig/2); fs = fs)
+    heatmap(spec.time, spec.freq, pow2db.(spec.power); title = title, xguide = "Time (s)", yguide = "Frequency (Hz)", ylims = (0, fs / 2), clims = clims, background_color_inside = :black, size = (1600, 900), spectrogram_plot_options...)
+end
+
 struct DecisionPathNode
     taken         :: Bool
     feature       :: ModalLogic.FeatureTypeFun
@@ -273,8 +291,8 @@ end
 
 is_correctly_classified(inst::InstancePathInTree)::Bool = inst.label === inst.predicted
 
-get_path_in_tree(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, path::DecisionPath = DecisionPath())::DecisionPath = return path
-function get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, path::DecisionPath = DecisionPath())::DecisionPath
+get_path_in_tree(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, paths::Vector{DecisionPath} = Vector(DecisionPath()))::Vector{DecisionPath} = return paths
+function get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, paths::Vector{DecisionPath} = Vector(DecisionPath()))::Vector{DecisionPath}
     satisfied = true
 	(satisfied,new_worlds) =
 		ModalLogic.modal_step(
@@ -287,20 +305,47 @@ function get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_instanc
 						tree.threshold)
 
     # TODO: add here info about the worlds that generated the decision
-    push!(path, DecisionPathNode(satisfied, tree.feature, tree.test_operator, tree.threshold))
+    push!(paths[i_instance], DecisionPathNode(satisfied, tree.feature, tree.test_operator, tree.threshold))
 
 	worlds[tree.i_frame] = new_worlds
-	get_path_in_tree((satisfied ? tree.left : tree.right), X, i_instance, worlds)
+	get_path_in_tree((satisfied ? tree.left : tree.right), X, i_instance, worlds, paths)
 end
 function get_path_in_tree(tree::DTree{S}, X::GenericDataset)::Vector{DecisionPath} where {S}
 	n_instances = n_samples(X)
-    println("instances: ", n_instances)
-	paths = fill(DecisionPath(), n_instances)
+	paths::Vector{DecisionPath} = fill([], n_instances)
 	for i_instance in 1:n_instances
 		worlds = DecisionTree.inst_init_world_sets(X, tree, i_instance)
-		get_path_in_tree(tree.root, X, i_instance, worlds, paths[i_instance])
+		get_path_in_tree(tree.root, X, i_instance, worlds, paths)
 	end
 	paths
+end
+
+function get_internalnode_dirname(node::DTInternal)::String
+    replace(DecisionTree.display_decision(node), " " => "_")
+end
+
+mk_tree_path(leaf::DTLeaf; path::String = "") = touch(path * "/" * string(leaf.majority) * ".txt")
+function mk_tree_path(node::DTInternal; path::String = "")
+    dir_name = get_internalnode_dirname(node)
+    mkpath(path * "/Y_" * dir_name)
+    mkpath(path * "/N_" * dir_name)
+    mk_tree_path(node.left; path = path * "/Y_" * dir_name)
+    mk_tree_path(node.right; path = path * "/N_" * dir_name)
+end
+function mk_tree_path(tree_hash::String, tree::DTree; path::String = "filtering-results/filtered")
+    mkpath(path * "/" * tree_hash)
+    mk_tree_path(tree.root; path = path * "/" * tree_hash)
+end
+
+function get_tree_path_as_dirpath(tree_hash::String, tree::DTree, decpath::DecisionPath; path::String = "filtering-results/filtered")::String
+    current = tree.root
+    result = path * "/" * tree_hash
+    for node in decpath
+        if current isa DTLeaf break end
+        result *= "/" * (node.taken ? "Y" : "N") * "_" * get_internalnode_dirname(current)
+        current = node.taken ? current.left : current.right
+    end
+    result
 end
 
 function apply_tree_to_datasets_wavs(
@@ -309,12 +354,22 @@ function apply_tree_to_datasets_wavs(
         dataset::GenericDataset,
         wav_paths::Vector{String},
         labels::Vector{S};
+        postprocess_wavs =        [ trim_wav!,      normalize! ],
+        postprocess_wavs_kwargs = [ (level = 0.0,), (level = 1.0,) ],
         filter_kwargs = (),
         window_f::Function = hamming,
-        destination_dir::String = "filtering-results/filtered"
+        use_original_dataset_filesystem_tree::Bool = false,
+        destination_dir::String = "filtering-results/filtered",
+        remove_from_path::String = "",
+        generate_spectrogram::Bool = true
     ) where {S}
 
     n_instances = n_samples(dataset)
+
+    println()
+    println("Applying tree $(tree_hash):")
+    print_tree(tree)
+    println()
 
     @assert n_instances == length(wav_paths) "dataset and wav_paths length mismatch! $(n_instances) != $(length(wav_paths))"
     @assert n_instances == length(labels) "dataset and labels length mismatch! $(n_instances) != $(length(labels))"
@@ -360,20 +415,46 @@ function apply_tree_to_datasets_wavs(
         filtered[i] = filt(filter, originals[i])
     end
 
+    mk_tree_path(tree_hash, tree; path = destination_dir)
+
     real_destination = destination_dir * "/" * tree_hash
     mkpath(real_destination)
+    heatmap_png_path = Vector{String}(undef, n_instances)
     Threads.@threads for i in 1:n_instances
         if !is_correctly_classified(results[i])
             println("Skipping file $(wav_paths[i]) because it was not correctly classified...")
             continue
         end
-        save_path = wav_paths[i]
-        while startswith(save_path, "../")
-            save_path = replace(save_path, "../" => "")
+        save_path = replace(wav_paths[i], remove_from_path => "")
+        if use_original_dataset_filesystem_tree
+            while startswith(save_path, "../")
+                save_path = replace(save_path, "../" => "")
+            end
+            save_dir = real_destination
+        else
+            save_dir = get_tree_path_as_dirpath(tree_hash, tree, results[i].path; path = destination_dir)
         end
-        mkpath(dirname(real_destination * "/" * save_path))
-        println("Saving filtered file $(real_destination * "/" * save_path)...")
-        wavwrite(filtered[i], real_destination * "/" * save_path; Fs = samplerates[i])
+        filtered_file_path = save_dir * "/" * replace(save_path, ".wav" => ".filt.wav")
+        original_file_path = save_dir * "/" * replace(save_path, ".wav" => ".orig.wav")
+        heatmap_png_path[i] = save_dir * "/" * replace(save_path, ".wav" => ".spectrogram.png")
+        mkpath(dirname(filtered_file_path))
+        for (i_pp, pp) in enumerate(postprocess_wavs)
+            pp(filtered[i]; (postprocess_wavs_kwargs[i_pp])...)
+            pp(originals[i]; (postprocess_wavs_kwargs[i_pp])...)
+        end
+        println("Saving filtered file $(filtered_file_path)...")
+        wavwrite(filtered[i], filtered_file_path; Fs = samplerates[i])
+        wavwrite(originals[i], original_file_path; Fs = samplerates[i])
+    end
+
+    if generate_spectrogram
+        for i in 1:n_instances
+            if !is_correctly_classified(results[i]) continue end
+            hm_filt = draw_spectrogram(filtered[i], samplerates[i]; title = "Filtered")
+            hm_orig = draw_spectrogram(originals[i], samplerates[i]; title = "Original")
+            plot(hm_orig, hm_filt, layout = (1, 2))
+            savefig(heatmap_png_path[i])
+        end
     end
 
     results
