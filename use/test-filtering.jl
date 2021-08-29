@@ -98,15 +98,31 @@ timing_mode = :none
 tree_path = "covid-august/trees"
 tree_hash = "d5cce8625a82b7c1e5360a4d055175425302db80dc57e55695e32d4d782c6ac5"
 
-now() = draw_mel_filters_graph(8000, triang; nbands = 40)
+# TEST APPLY_TREE_TO_WAV
+tree = JLD2.load(tree_path * "/tree_$(tree_hash).jld")["T"]
 
-# # TEST APPLY_TREE_TO_WAV
-# tree = JLD2.load(tree_path * "/tree_$(tree_hash).jld")["T"]
+(X, Y, filepaths), (n_pos, n_neg) = @cache "dataset" cache_dir dataset_func_params dataset_func_kwparams KDDDataset_not_stratified
+X_modal = X_dataset_c("test", data_modal_args, X, modal_args, save_datasets, dataset_form, false)
 
-# (X, Y, filepaths), (n_pos, n_neg) = @cache "dataset" cache_dir dataset_func_params dataset_func_kwparams KDDDataset_not_stratified
-# X_modal = X_dataset_c("test", data_modal_args, X, modal_args, save_datasets, dataset_form, false)
+apply_tree_to_datasets_wavs(tree_hash, tree, X_modal, filepaths[1], Y; filter_kwargs = (nbands = nbands, maxfreq = max_sample_rate / 2), remove_from_path = "../datasets/KDD/")
 
-# apply_tree_to_datasets_wavs(tree_hash, tree, X_modal, filepaths[1], Y; filter_kwargs = (nbands = nbands, maxfreq = max_sample_rate / 2), remove_from_path = "../datasets/KDD/")
+# DRAW MEL-FILTERS
+d40_8000 = draw_synthetic_mel_filters_graph(; nbands = 40, minfreq = 0.0, maxfreq = 8_000.0 / 2)
+d60_8000 = draw_synthetic_mel_filters_graph(; nbands = 60, minfreq = 0.0, maxfreq = 8_000.0 / 2)
+d40_16000 = draw_synthetic_mel_filters_graph(; nbands = 40, minfreq = 0.0, maxfreq = 16_000.0 / 2)
+d60_16000 = draw_synthetic_mel_filters_graph(; nbands = 60, minfreq = 0.0, maxfreq = 16_000.0 / 2)
+savefig(d40_8000, outpath * "/" * "synthetic_filters_40_8000.png")
+savefig(d60_8000, outpath * "/" * "synthetic_filters_60_8000.png")
+savefig(d40_16000, outpath * "/" * "synthetic_filters_40_16000.png")
+savefig(d60_16000, outpath * "/" * "synthetic_filters_60_16000.png")
+real_d40_8000 = draw_mel_filters_graph(8_000.0, triang; nbands = 40)
+real_d60_8000 = draw_mel_filters_graph(8_000.0, triang; nbands = 60)
+real_d40_16000 = draw_mel_filters_graph(16_000.0, triang; nbands = 40)
+real_d60_16000 = draw_mel_filters_graph(16_000.0, triang; nbands = 60)
+savefig(real_d40_8000, outpath * "/" * "real_filters_40_8000.png")
+savefig(real_d60_8000, outpath * "/" * "real_filters_60_8000.png")
+savefig(real_d40_16000, outpath * "/" * "real_filters_40_16000.png")
+savefig(real_d60_16000, outpath * "/" * "real_filters_60_16000.png")
 
 # # READ INPUT
 # samps_healthy, sr_healthy, nbits_healthy = wavread(inputfile_healthy)

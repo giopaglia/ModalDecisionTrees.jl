@@ -129,10 +129,10 @@ function melbands(nbands::Int, minfreq::Real = 0.0, maxfreq::Real = 8_000.0; htk
 end
 function get_mel_bands(nbands::Int, minfreq::Real = 0.0, maxfreq::Real = 8_000.0; htkmel = false)::MelScale
     bands = melbands(nbands, minfreq, maxfreq; htkmel = htkmel)
-    MelScale(nbands, [ MelBand(bands[i], bands[i+2], bands[i+1]) for i in 1:(length(bands)-2) ])
+    MelScale(nbands, [ MelBand(bands[i], bands[i+2] >= maxfreq ? bands[i+2] - 0.0000001 : bands[i+2], bands[i+1]) for i in 1:(length(bands)-2) ])
 end
 
-function digitalfilter_mel(band::MelBand, fs::Real, window_f::Function = hamming; nwin = 60)
+function digitalfilter_mel(band::MelBand, fs::Real, window_f::Function = triang; nwin = 60)
     digitalfilter(Filters.Bandpass(band.peak, band.right, fs = fs), FIRWindow(window_f(nwin)))
 end
 
@@ -160,13 +160,31 @@ function multibandpass_digitalfilter_mel(
 end
 
 function draw_mel_filters_graph(fs::Real, window_f::Function; nbands::Integer = 60, minfreq = 0.0, maxfreq = fs / 2)
-    filters = [ multibandpass_digitalfilter_mel([i], fs, window_f; nbands = nbands, minfreq = minfreq, maxfreq = maxfreq) for i in 1:nbands ]
+    scale = get_mel_bands(nbands, minfreq, maxfreq)
+    filters = [ digitalfilter_mel(scale[i], fs, window_f; nwin = nbands) for i in 1:nbands ]
     plotfilter(filters[1]; samplerate = fs)
     for i in 2:(length(filters)-1)
         plotfilter!(filters[i]; samplerate = fs)
     end
     # last call to plot has to "return" from function otherwise the graph will not be displayed
     plotfilter!(filters[end]; samplerate = fs)
+end
+
+function plot_band(band::MelBand; minfreq::Real = 0.0, maxfreq::Real = 8_000.0, ylims = (0.0, 1.0), show_freq = true, plot_func = plot)
+    common_args = (ylims = ylims, xlims = (minfreq, maxfreq), xguide = "Frequency (Hz)", yguide = "Amplitude", leg = false)
+    texts = ["", show_freq ? text(string(round(Int64, band.peak)), font(pointsize = 8)) : "", ""]
+    plot_func([band.left, band.peak, band.right], [ylims[1], ylims[2], ylims[1]]; annotationfontsize = 8, texts = texts, size = (1920, 1080), common_args...)
+end
+plot_band!(band::MelBand; kwargs...) = plot_band(band; plot_func = plot!, kwargs...)
+
+function draw_synthetic_mel_filters_graph(; nbands::Integer = 60, minfreq::Real = 0.0, maxfreq::Real = 8_000.0)
+    scale = get_mel_bands(nbands, minfreq, maxfreq)
+    plot_band(scale[1]; minfreq = minfreq, maxfreq = maxfreq)
+    for i in 2:(length(scale)-1)
+        plot_band!(scale[i]; minfreq = minfreq, maxfreq = maxfreq)
+    end
+    # last call to plot has to "return" from function otherwise the graph will not be displayed
+    plot_band!(scale[length(scale)]; minfreq = minfreq, maxfreq = maxfreq)
 end
 
 timerange2points(range::Tuple{T, T} where T <:Number, fs::Real)::UnitRange{Int64} = max(1, round(Int64, range[1] * fs)):round(Int64, range[2] * fs)
@@ -389,7 +407,7 @@ function apply_tree_to_datasets_wavs(
         postprocess_wavs =        [ trim_wav!,      normalize! ],
         postprocess_wavs_kwargs = [ (level = 0.0,), (level = 1.0,) ],
         filter_kwargs = (),
-        window_f::Function = hamming,
+        window_f::Function = triang,
         use_original_dataset_filesystem_tree::Bool = false,
         destination_dir::String = "filtering-results/filtered",
         remove_from_path::String = "",
