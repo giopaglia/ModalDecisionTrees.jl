@@ -19,6 +19,10 @@ using MFCC: hz2mel, mel2hz
 
 MFCC.mel2hz(f::AbstractFloat, htk=false)  = mel2hz([f], htk)[1]
 
+"""
+Calculate frequency response
+"""
+# https://weavejl.mpastell.com/stable/examples/FIR_design.pdf
 function FIRfreqz(b::Array; w = range(0, stop=π, length=1024))::Array{ComplexF32}
     n = length(w)
     h = Array{ComplexF32}(undef, n)
@@ -33,6 +37,9 @@ function FIRfreqz(b::Array; w = range(0, stop=π, length=1024))::Array{ComplexF3
     h
 end
 
+"""
+Plot the frequency and impulse response
+"""
 function plotfilter(
         filter;
         samplerate = 100,
@@ -40,14 +47,14 @@ function plotfilter(
         ylims::Union{Nothing,Tuple{Real,Real}} = (-24, 0),
         plotfunc = plot
     )
-    
+
     w = range(0, stop=π, length=1024)
     h = FIRfreqz(filter; w = w)
     ws = w / π * (samplerate / 2)
     if xlims[2] == 0
         xlims = (xlims[1], maximum(ws))
     end
-    plotfunc(ws, amp2db.(abs.(h)), xlabel="Frequency (Hz)", ylabel="Magnitude (db)", xlims = xlims, ylims = ylims, leg = false)
+    plotfunc(ws, amp2db.(abs.(h)), xlabel="Frequency (Hz)", ylabel="Magnitude (db)", xlims = xlims, ylims = ylims, leg = false, size = (1920, 1080))
 end
 plotfilter(filter::Filters.Filter; kwargs...) = plotfilter(digitalfilter(filter, firwindow); kwargs...)
 
@@ -73,7 +80,6 @@ function multibandpass_digitalfilter(
     end
     result_filter
 end
-
 function multibandpass_digitalfilter(
         selected_bands::Vector{Int},
         fs::Real,
@@ -89,10 +95,12 @@ function multibandpass_digitalfilter(
 
     band_width = (maxfreq - minfreq) / nbands
 
-    result_filter = zeros(Float64, nbands)
+    result_filter = zeros(Float64, nwin)
     i = 1
     @simd for b in selected_bands
-        result_filter += digitalfilter(Filters.Bandpass(b * band_width, ((b+1) * band_width) - 1, fs = fs), FIRWindow(window_f(nwin))) * weights
+        l = b * band_width
+        r = ((b+1) * band_width) - 1
+        result_filter += digitalfilter(Filters.Bandpass(l <= 0 ? eps(typof(l)) : l, r >= maxfreq ? r - 0.000001 : r, fs = fs), FIRWindow(window_f(nwin))) * weights
         i=i+1
     end
     result_filter
@@ -132,8 +140,8 @@ function get_mel_bands(nbands::Int, minfreq::Real = 0.0, maxfreq::Real = 8_000.0
     MelScale(nbands, [ MelBand(bands[i], bands[i+2] >= maxfreq ? bands[i+2] - 0.0000001 : bands[i+2], bands[i+1]) for i in 1:(length(bands)-2) ])
 end
 
-function digitalfilter_mel(band::MelBand, fs::Real, window_f::Function = triang; nwin = 60)
-    digitalfilter(Filters.Bandpass(band.peak, band.right, fs = fs), FIRWindow(window_f(nwin)))
+function digitalfilter_mel(band::MelBand, fs::Real, window_f::Function = triang; nwin = 60, filter_type = Filters.Bandpass)
+    digitalfilter(filter_type(band.left, band.right, fs = fs), FIRWindow(window_f(nwin)))
 end
 
 function multibandpass_digitalfilter_mel(
@@ -149,7 +157,7 @@ function multibandpass_digitalfilter_mel(
 
     @assert length(weights) == length(selected_bands) "length(weights) != length(selected_bands): $(length(weights)) != $(length(selected_bands))"
 
-    result_filter = zeros(Float64, nbands)
+    result_filter = zeros(Float64, nwin)
     scale = get_mel_bands(nbands, minfreq, maxfreq)
     i = 1
     @simd for b in selected_bands
@@ -308,12 +316,21 @@ function draw_spectrogram(
         gran::Int = 50,
         title::String = "",
         clims = (-150, 0),
-        spectrogram_plot_options = ()
+        spectrogram_plot_options = (),
+        melbands = (draw = false, nbands = 60, minfreq = 0.0, maxfreq = fs / 2, htkmel = false)
     ) where T <: AbstractFloat
     nw_orig::Int = round(Int64, length(samples) / gran)
 
     spec = spectrogram(samples, nw_orig, round(Int64, nw_orig/2); fs = fs)
-    heatmap(spec.time, spec.freq, pow2db.(spec.power); title = title, xguide = "Time (s)", yguide = "Frequency (Hz)", ylims = (0, fs / 2), clims = clims, background_color_inside = :black, size = (1600, 900), spectrogram_plot_options...)
+    hm = heatmap(spec.time, spec.freq, pow2db.(spec.power); title = title, xguide = "Time (s)", yguide = "Frequency (Hz)", ylims = (0, fs / 2), clims = clims, background_color_inside = :black, size = (1600, 900), leg = false, spectrogram_plot_options...)
+    if melbands[:draw]
+        bands = get_mel_bands(melbands[:nbands], melbands[:minfreq], melbands[:maxfreq]; htkmel = melbands[:htkmel])
+        yticks!(hm, push!([ bands[i].peak for i in 1:melbands[:nbands] ], melbands[:maxfreq]), push!([ string("A", i) for i in 1:melbands[:nbands] ], string(melbands[:maxfreq])))
+        for i in 1:melbands[:nbands]
+            hline!(hm, [ bands[i].left ], line = (1, :white), leg = false)
+        end
+    end
+    hm
 end
 
 struct DecisionPathNode
