@@ -104,7 +104,16 @@ tree = JLD2.load(tree_path * "/tree_$(tree_hash).jld")["T"]
 (X, Y, filepaths), (n_pos, n_neg) = @cache "dataset" cache_dir dataset_func_params dataset_func_kwparams KDDDataset_not_stratified
 X_modal = X_dataset_c("test", data_modal_args, X, modal_args, save_datasets, dataset_form, false)
 
-apply_tree_to_datasets_wavs(tree_hash, tree, X_modal, filepaths[1], Y; filter_kwargs = (nbands = nbands, maxfreq = max_sample_rate / 2), remove_from_path = "../datasets/KDD/")
+apply_tree_to_datasets_wavs(
+        tree_hash,
+        tree,
+        X_modal,
+        filepaths[1],
+        Y;
+        filter_kwargs = (nbands = nbands, maxfreq = max_sample_rate / 2),
+        remove_from_path = "../datasets/KDD/",
+        draw_anim_for_instances = [ findfirst(isequal("../datasets/KDD/healthyandroidwithcough/cough/cough_9me0RMtVww_1586943699308.wav"), filepaths[1]) ]
+    )
 
 # # DRAW MEL-FILTERS
 # d40_8000 = draw_synthetic_mel_filters_graph(; nbands = 40, minfreq = 0.0, maxfreq = 8_000.0 / 2)

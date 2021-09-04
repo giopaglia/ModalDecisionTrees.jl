@@ -213,7 +213,7 @@ function draw_audio_anim(
         colors         :: Union{Vector{Symbol},Vector{RGB{Float64}}} = fill(:auto, length(audio_files)),
         outfile        :: String = homedir() * "/gif.gif",
         size           :: Tuple{Int64,Int64} = (1000, 150 * length(audio_files)),
-        fps            :: Int64 = 60,
+        fps            :: Int64 = 30,
         # selected_range:
         # - 1:1000 means from point 1 to point 1000
         # - (1.1, 2.3) means from time 1.1 to time 2.3 (in seconds)
@@ -237,7 +237,7 @@ function draw_audio_anim(
             tick_direction = :none,
             linecolor = color,
             fillcolor = color,
-            default_plot_margins...,
+            # default_plot_margins..., # TODO: figure out why this is not suitable for this recipe
             size = size
         )
     end
@@ -439,7 +439,8 @@ function apply_tree_to_datasets_wavs(
         destination_dir::String = "filtering-results/filtered",
         remove_from_path::String = "",
         save_single_band_tracks::Bool = true,
-        generate_spectrogram::Bool = true
+        generate_spectrogram::Bool = true,
+        draw_anim_for_instances::Vector{Int} = []
     ) where {S}
 
     n_instances = n_samples(dataset)
@@ -566,12 +567,22 @@ function apply_tree_to_datasets_wavs(
                 single_band_tracks[i][j] = (feat, one_band_sample)
             end
         end
+        nbands = filter_kwargs[:nbands]
+        features_colors = [ RGB(1 - (1 * (i/(nbands - 1))), 0, 1 * (i/(nbands - 1))) for i in 0:(nbands-1) ]
         for i in 1:n_instances
             if !is_correctly_classified(results[i]) continue end
             for (feat, samples) in single_band_tracks[i]
                 save_path = replace(heatmap_png_path[i], ".spectrogram.png" => ".A$(feat).wav")
                 println("Saving single band track to file $(save_path)...")
                 wavwrite(samples, save_path; Fs = samplerates[i])
+            end
+            if i in draw_anim_for_instances
+                draw_audio_anim(
+                    [ (originals[i], samplerates[i]), (filtered[i], samplerates[i]), [ (single_band_tracks[i][j][2], samplerates[i]) for j in 1:length(single_band_tracks[i]) ]... ],
+                    labels = [ "Original", "Filtered", [ string("A", single_band_tracks[i][j][1]) for j in 1:length(single_band_tracks[i]) ]... ],
+                    colors = [ RGB(.3, .3, 1), RGB(1, .3, .3), features_colors[ [ b[1] for b in single_band_tracks[i] ] ]...],
+                    outfile = replace(heatmap_png_path[i], ".spectrogram.png" => ".anim.gif")
+                )
             end
         end
     end
