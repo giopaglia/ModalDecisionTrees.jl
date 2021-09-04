@@ -239,7 +239,7 @@ wav_preprocessors = Dict(
 exec_preprocess_wavs = [
 	# ["Normalize"],
 	[],
-#	["NG", "Normalize"]
+	["NG", "Normalize"]
 ]
 
 # https://github.com/JuliaIO/JSON.jl/issues/203
@@ -255,10 +255,13 @@ test_operators_dict = Dict(
 )
 
 
-exec__2D_or_3D = [true] # , false]
+exec__2D_or_3D = [true, false]
+
+exec_include_static_data = [false] #, true]
 
 exec_ranges = (;
 	_2D_or_3D            = exec__2D_or_3D          ,
+	include_static_data  = exec_include_static_data,
 	dataset_kwargs       = exec_dataset_kwargs     ,
 	preprocess_wavs      = exec_preprocess_wavs    ,
 	use_full_mfcc        = exec_use_full_mfcc      ,
@@ -270,6 +273,7 @@ exec_ranges = (;
 
 dataset_function =
 	(_2D_or_3D,
+		include_static_data,
 		cur_audio_kwargs,
 		dataset_kwargs,
 		cur_preprocess_wavs,
@@ -278,7 +282,7 @@ dataset_function =
 		subchallenge = "CCS",
 		use_lowSR = true,
 		mode = :development,
-		include_static_data = false,
+		include_static_data = include_static_data,
 		treat_as_single_attribute_2D_context = _2D_or_3D,
 		#
 		audio_kwargs = cur_audio_kwargs,
@@ -380,6 +384,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	
 	_2D_or_3D,
+	include_static_data,
 	dataset_kwargs,
 	preprocess_wavs,
 	use_full_mfcc,
@@ -407,6 +412,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	dataset_fun_sub_params = (
 		_2D_or_3D,
+		include_static_data,
 		cur_audio_kwargs,
 		dataset_kwargs,
 		cur_preprocess_wavs,
