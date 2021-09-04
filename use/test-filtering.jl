@@ -106,93 +106,93 @@ X_modal = X_dataset_c("test", data_modal_args, X, modal_args, save_datasets, dat
 
 apply_tree_to_datasets_wavs(tree_hash, tree, X_modal, filepaths[1], Y; filter_kwargs = (nbands = nbands, maxfreq = max_sample_rate / 2), remove_from_path = "../datasets/KDD/")
 
-# DRAW MEL-FILTERS
-d40_8000 = draw_synthetic_mel_filters_graph(; nbands = 40, minfreq = 0.0, maxfreq = 8_000.0 / 2)
-d60_8000 = draw_synthetic_mel_filters_graph(; nbands = 60, minfreq = 0.0, maxfreq = 8_000.0 / 2)
-d40_16000 = draw_synthetic_mel_filters_graph(; nbands = 40, minfreq = 0.0, maxfreq = 16_000.0 / 2)
-d60_16000 = draw_synthetic_mel_filters_graph(; nbands = 60, minfreq = 0.0, maxfreq = 16_000.0 / 2)
-savefig(d40_8000, outpath * "/" * "synthetic_filters_40_8000.png")
-savefig(d60_8000, outpath * "/" * "synthetic_filters_60_8000.png")
-savefig(d40_16000, outpath * "/" * "synthetic_filters_40_16000.png")
-savefig(d60_16000, outpath * "/" * "synthetic_filters_60_16000.png")
-real_d40_8000 = draw_mel_filters_graph(8_000.0, triang; nbands = 40)
-real_d60_8000 = draw_mel_filters_graph(8_000.0, triang; nbands = 60)
-real_d40_16000 = draw_mel_filters_graph(16_000.0, triang; nbands = 40)
-real_d60_16000 = draw_mel_filters_graph(16_000.0, triang; nbands = 60)
-savefig(real_d40_8000, outpath * "/" * "real_filters_40_8000.png")
-savefig(real_d60_8000, outpath * "/" * "real_filters_60_8000.png")
-savefig(real_d40_16000, outpath * "/" * "real_filters_40_16000.png")
-savefig(real_d60_16000, outpath * "/" * "real_filters_60_16000.png")
+# # DRAW MEL-FILTERS
+# d40_8000 = draw_synthetic_mel_filters_graph(; nbands = 40, minfreq = 0.0, maxfreq = 8_000.0 / 2)
+# d60_8000 = draw_synthetic_mel_filters_graph(; nbands = 60, minfreq = 0.0, maxfreq = 8_000.0 / 2)
+# d40_16000 = draw_synthetic_mel_filters_graph(; nbands = 40, minfreq = 0.0, maxfreq = 16_000.0 / 2)
+# d60_16000 = draw_synthetic_mel_filters_graph(; nbands = 60, minfreq = 0.0, maxfreq = 16_000.0 / 2)
+# savefig(d40_8000, outpath * "/" * "synthetic_filters_40_8000.png")
+# savefig(d60_8000, outpath * "/" * "synthetic_filters_60_8000.png")
+# savefig(d40_16000, outpath * "/" * "synthetic_filters_40_16000.png")
+# savefig(d60_16000, outpath * "/" * "synthetic_filters_60_16000.png")
+# real_d40_8000 = draw_mel_filters_graph(8_000.0, triang; nbands = 40)
+# real_d60_8000 = draw_mel_filters_graph(8_000.0, triang; nbands = 60)
+# real_d40_16000 = draw_mel_filters_graph(16_000.0, triang; nbands = 40)
+# real_d60_16000 = draw_mel_filters_graph(16_000.0, triang; nbands = 60)
+# savefig(real_d40_8000, outpath * "/" * "real_filters_40_8000.png")
+# savefig(real_d60_8000, outpath * "/" * "real_filters_60_8000.png")
+# savefig(real_d40_16000, outpath * "/" * "real_filters_40_16000.png")
+# savefig(real_d60_16000, outpath * "/" * "real_filters_60_16000.png")
 
-# READ INPUT
-samps_healthy, sr_healthy, nbits_healthy = wavread(inputfile_healthy)
-samps_healthy = merge_channels(samps_healthy)
-noise_gate!(samps_healthy)
-trim_wav!(samps_healthy)
+# # READ INPUT
+# samps_healthy, sr_healthy, nbits_healthy = wavread(inputfile_healthy)
+# samps_healthy = merge_channels(samps_healthy)
+# noise_gate!(samps_healthy)
+# trim_wav!(samps_healthy)
 
-samps_covid, sr_covid, nbits_covid = wavread(inputfile_covid)
-samps_covid = merge_channels(samps_covid)
-noise_gate!(samps_covid)
-trim_wav!(samps_covid)
+# samps_covid, sr_covid, nbits_covid = wavread(inputfile_covid)
+# samps_covid = merge_channels(samps_covid)
+# noise_gate!(samps_covid)
+# trim_wav!(samps_covid)
 
-# COMPUTE
-filter_healthy = multibandpass_digitalfilter_mel(selected_features, sr_healthy, hamming; nbands = nbands)
-filtered_healthy = filt(filter_healthy, samps_healthy)
+# # COMPUTE
+# filter_healthy = multibandpass_digitalfilter_mel(selected_features, sr_healthy, hamming; nbands = nbands)
+# filtered_healthy = filt(filter_healthy, samps_healthy)
 
-filter_covid = multibandpass_digitalfilter_mel(selected_features, sr_covid, hamming; nbands = nbands)
-filtered_covid = filt(filter_covid, samps_covid)
+# filter_covid = multibandpass_digitalfilter_mel(selected_features, sr_covid, hamming; nbands = nbands)
+# filtered_covid = filt(filter_covid, samps_covid)
 
-single_band_filters = [ multibandpass_digitalfilter_mel([ feat ], sr_covid, hamming; nbands = nbands) for feat in selected_features ]
-single_band_wavs = [ (feat, totaloutpath_covid_single_band(feat), filt(single_band_filters[i], samps_covid)) for (i, feat) in enumerate(selected_features) ]
+# single_band_filters = [ multibandpass_digitalfilter_mel([ feat ], sr_covid, hamming; nbands = nbands) for feat in selected_features ]
+# single_band_wavs = [ (feat, totaloutpath_covid_single_band(feat), filt(single_band_filters[i], samps_covid)) for (i, feat) in enumerate(selected_features) ]
 
-# OUTPUT
-print("Copying original healthy WAV to $(original_copy_healty)...")
-wavwrite(samps_healthy, original_copy_healty; Fs = sr_healthy)
-println(" done")
-print("Generating filtered healthy WAV to $(totaloutpath_healthy)...")
-wavwrite(filtered_healthy, totaloutpath_healthy; Fs = sr_healthy)
-println(" done")
+# # OUTPUT
+# print("Copying original healthy WAV to $(original_copy_healty)...")
+# wavwrite(samps_healthy, original_copy_healty; Fs = sr_healthy)
+# println(" done")
+# print("Generating filtered healthy WAV to $(totaloutpath_healthy)...")
+# wavwrite(filtered_healthy, totaloutpath_healthy; Fs = sr_healthy)
+# println(" done")
 
-print("Copying original covid WAV to $(original_copy_covid)...")
-wavwrite(samps_covid, original_copy_covid; Fs = sr_covid)
-println(" done")
-print("Generating filtered covid WAV to $(totaloutpath_covid)...")
-wavwrite(filtered_covid, totaloutpath_covid; Fs = sr_covid)
-println(" done")
-# No need to write in files the single_band_wavs samples
-# for (feat, path, wav) in single_band_wavs
-#     print("Generating filtered covid WAV to $(path)...")
-#     wavwrite(wav, path; Fs = sr_covid)
+# print("Copying original covid WAV to $(original_copy_covid)...")
+# wavwrite(samps_covid, original_copy_covid; Fs = sr_covid)
+# println(" done")
+# print("Generating filtered covid WAV to $(totaloutpath_covid)...")
+# wavwrite(filtered_covid, totaloutpath_covid; Fs = sr_covid)
+# println(" done")
+# # No need to write in files the single_band_wavs samples
+# # for (feat, path, wav) in single_band_wavs
+# #     print("Generating filtered covid WAV to $(path)...")
+# #     wavwrite(wav, path; Fs = sr_covid)
+# #     println(" done")
+# # end
+
+# # GENERATE SPECTROGRAM
+# hm_orig = draw_spectrogram(samps_covid, sr_covid; title = "Original", melbands = (draw = true, nbands = 40, minfreq = 0.0, maxfreq = sr_covid / 2, htkmel = false))
+# hm_filt = draw_spectrogram(filtered_covid, sr_covid; title = "Filtered", melbands = (draw = true, nbands = 40, minfreq = 0.0, maxfreq = sr_covid / 2, htkmel = false))
+# plot(hm_orig, hm_filt, layout = (1, 2))
+# savefig(heatmap_png_path)
+
+# # GENERATE GIF
+# draw_audio_anim(
+#     [ (samps_covid, sr_covid), (filtered_covid, sr_covid), [ (single_band_wavs[i][3], sr_covid) for i in 1:length(single_band_wavs) ]... ],
+#     labels = [ "Original", "Filtered", [ string("A", single_band_wavs[i][1]) for i in 1:length(single_band_wavs) ]... ],
+#     colors = [ RGB(.3, .3, 1), RGB(1, .3, .3), features_colors[selected_features]...],
+#     outfile = gifout,
+#     fps = animation_fps,
+#     selected_range = selected_range
+# )
+
+# # GENERATE VIDEOS
+# try
+#     # TODO: actually Plots can generate the video directly using mp4 instead of gif at the bottom of the body of function draw_audio_anim
+#     print("Generating videos in $(outpath)...")
+#     run(pipeline(`ffmpeg -i $gifout -i $original_copy_covid -y -c:a copy -c:v $video_codec $mkv_original`, stdout = ffmpeg_output_file, stderr = ffmpeg_error_output_file))
+#     run(pipeline(`ffmpeg -i $gifout -i $totaloutpath_covid -y -c:a copy -c:v $video_codec $mkv_filtered`, stdout = ffmpeg_output_file, stderr = ffmpeg_error_output_file))
 #     println(" done")
+# catch
+#     println(" fail")
+#     if ffmpeg_error_output_file != stderr
+#         println("Look at file $(ffmpeg_error_output_file) to understand what went wrong!")
+#     end
+#     error("unable to generate video automatially: is ffmpeg installed?")
 # end
-
-# GENERATE SPECTROGRAM
-hm_orig = draw_spectrogram(samps_covid, sr_covid; title = "Original", melbands = (draw = true, nbands = 40, minfreq = 0.0, maxfreq = sr_covid / 2, htkmel = false))
-hm_filt = draw_spectrogram(filtered_covid, sr_covid; title = "Filtered", melbands = (draw = true, nbands = 40, minfreq = 0.0, maxfreq = sr_covid / 2, htkmel = false))
-plot(hm_orig, hm_filt, layout = (1, 2))
-savefig(heatmap_png_path)
-
-# GENERATE GIF
-draw_audio_anim(
-    [ (samps_covid, sr_covid), [ (single_band_wavs[i][3], sr_covid) for i in 1:length(single_band_wavs) ]... ],
-    labels = [ "Original", [ string("A", single_band_wavs[i][1]) for i in 1:length(single_band_wavs) ]... ],
-    colors = [ RGB(.3, .3, 1), features_colors[selected_features]...],
-    outfile = gifout,
-    fps = animation_fps,
-    selected_range = selected_range
-)
-
-# GENERATE VIDEOS
-try
-    # TODO: actually Plots can generate the video directly using mp4 instead of gif at the bottom of the body of function draw_audio_anim
-    print("Generating videos in $(outpath)...")
-    run(pipeline(`ffmpeg -i $gifout -i $original_copy_covid -y -c:a copy -c:v $video_codec $mkv_original`, stdout = ffmpeg_output_file, stderr = ffmpeg_error_output_file))
-    run(pipeline(`ffmpeg -i $gifout -i $totaloutpath_covid -y -c:a copy -c:v $video_codec $mkv_filtered`, stdout = ffmpeg_output_file, stderr = ffmpeg_error_output_file))
-    println(" done")
-catch
-    println(" fail")
-    if ffmpeg_error_output_file != stderr
-        println("Look at file $(ffmpeg_error_output_file) to understand what went wrong!")
-    end
-    error("unable to generate video automatially: is ffmpeg installed?")
-end

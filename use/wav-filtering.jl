@@ -16,8 +16,17 @@ using DecisionTree.ModalLogic
 
 using Plots
 using MFCC: hz2mel, mel2hz
+using Plots.Measures
 
 MFCC.mel2hz(f::AbstractFloat, htk=false)  = mel2hz([f], htk)[1]
+
+default_plot_size = (1920, 1080)
+default_plot_margins = (
+    left_margin = 15mm,
+    right_margin = 15mm,
+    top_margin = 15mm,
+    bottom_margin = 15mm
+)
 
 """
 Calculate frequency response
@@ -54,7 +63,7 @@ function plotfilter(
     if xlims[2] == 0
         xlims = (xlims[1], maximum(ws))
     end
-    plotfunc(ws, amp2db.(abs.(h)), xlabel="Frequency (Hz)", ylabel="Magnitude (db)", xlims = xlims, ylims = ylims, leg = false, size = (1920, 1080))
+    plotfunc(ws, amp2db.(abs.(h)), xlabel="Frequency (Hz)", ylabel="Magnitude (db)", xlims = xlims, ylims = ylims, leg = false, size = default_plot_size, default_plot_margins...)
 end
 plotfilter(filter::Filters.Filter; kwargs...) = plotfilter(digitalfilter(filter, firwindow); kwargs...)
 
@@ -181,7 +190,7 @@ end
 function plot_band(band::MelBand; minfreq::Real = 0.0, maxfreq::Real = 8_000.0, ylims = (0.0, 1.0), show_freq = true, plot_func = plot)
     common_args = (ylims = ylims, xlims = (minfreq, maxfreq), xguide = "Frequency (Hz)", yguide = "Amplitude", leg = false)
     texts = ["", show_freq ? text(string(round(Int64, band.peak)), font(pointsize = 8)) : "", ""]
-    plot_func([band.left, band.peak, band.right], [ylims[1], ylims[2], ylims[1]]; annotationfontsize = 8, texts = texts, size = (1920, 1080), common_args...)
+    plot_func([band.left, band.peak, band.right], [ylims[1], ylims[2], ylims[1]]; annotationfontsize = 8, texts = texts, size = default_plot_size, common_args..., default_plot_margins...)
 end
 plot_band!(band::MelBand; kwargs...) = plot_band(band; plot_func = plot!, kwargs...)
 
@@ -228,6 +237,7 @@ function draw_audio_anim(
             tick_direction = :none,
             linecolor = color,
             fillcolor = color,
+            default_plot_margins...,
             size = size
         )
     end
@@ -315,14 +325,14 @@ function draw_spectrogram(
         fs::Real;
         gran::Int = 50,
         title::String = "",
-        clims = (-150, 0),
+        clims = (-100, 0),
         spectrogram_plot_options = (),
         melbands = (draw = false, nbands = 60, minfreq = 0.0, maxfreq = fs / 2, htkmel = false)
     ) where T <: AbstractFloat
     nw_orig::Int = round(Int64, length(samples) / gran)
 
     spec = spectrogram(samples, nw_orig, round(Int64, nw_orig/2); fs = fs)
-    hm = heatmap(spec.time, spec.freq, pow2db.(spec.power); title = title, xguide = "Time (s)", yguide = "Frequency (Hz)", ylims = (0, fs / 2), clims = clims, background_color_inside = :black, size = (1600, 900), leg = false, spectrogram_plot_options...)
+    hm = heatmap(spec.time, spec.freq, pow2db.(spec.power); title = title, xguide = "Time (s)", yguide = "Frequency (Hz)", ylims = (0, fs / 2), clims = clims, background_color_inside = :black, size = default_plot_size, leg = true, default_plot_margins..., spectrogram_plot_options...)
     if melbands[:draw]
         bands = get_mel_bands(melbands[:nbands], melbands[:minfreq], melbands[:maxfreq]; htkmel = melbands[:htkmel])
         yticks!(hm, push!([ bands[i].peak for i in 1:melbands[:nbands] ], melbands[:maxfreq]), push!([ string("A", i) for i in 1:melbands[:nbands] ], string(melbands[:maxfreq])))
@@ -428,6 +438,7 @@ function apply_tree_to_datasets_wavs(
         use_original_dataset_filesystem_tree::Bool = false,
         destination_dir::String = "filtering-results/filtered",
         remove_from_path::String = "",
+        save_single_band_tracks::Bool = true,
         generate_spectrogram::Bool = true
     ) where {S}
 
@@ -461,7 +472,7 @@ function apply_tree_to_datasets_wavs(
         curr_orig, samplerates[i] = wavread(wav_paths[i])
         originals[i] = merge_channels(curr_orig)
     end
-    
+
     filtered = Vector{Vector{Float64}}(undef, n_instances)
     Threads.@threads for i in 1:n_instances
         # TODO: use path + worlds to generate dynamic filters
@@ -539,6 +550,29 @@ function apply_tree_to_datasets_wavs(
             hm_orig = draw_spectrogram(originals[i], samplerates[i]; title = "Original")
             plot(hm_orig, hm_filt, layout = (1, 2))
             savefig(heatmap_png_path[i])
+        end
+    end
+
+    single_band_tracks = Vector{Vector{Tuple{Int64,Vector{Float64}}}}(undef, n_instances)
+    if save_single_band_tracks
+        println("Generating single band tracks...")
+        for i in 1:n_instances
+            if !is_correctly_classified(results[i]) continue end
+            single_band_tracks[i] = Vector{Tuple{Int64,Vector{Float64}}}(undef, length(results[i].path))
+            n_features = length(results[i].path)
+            for j in 1:n_features
+                feat = results[i].path[j].feature.i_attribute
+                one_band_sample = filt(multibandpass_digitalfilter_mel([feat], samplerates[i], window_f; filter_kwargs...), originals[i])
+                single_band_tracks[i][j] = (feat, one_band_sample)
+            end
+        end
+        for i in 1:n_instances
+            if !is_correctly_classified(results[i]) continue end
+            for (feat, samples) in single_band_tracks[i]
+                save_path = replace(heatmap_png_path[i], ".spectrogram.png" => ".A$(feat).wav")
+                println("Saving single band track to file $(save_path)...")
+                wavwrite(samples, save_path; Fs = samplerates[i])
+            end
         end
     end
 
