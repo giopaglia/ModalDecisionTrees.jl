@@ -14,7 +14,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./ComParE2021"
+results_dir = "./ComParE2021-september"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir = results_dir * "/cache"
@@ -46,7 +46,7 @@ tree_args = [
 for loss_function in [DecisionTree.util.entropy, DecisionTree.util.gini]
 	for min_samples_leaf in [2,4] # [1,2]
 		for min_purity_increase in [0.01] # [0.01, 0.001]
-			for min_loss_at_leaf in [0.2, 0.6] # [0.4, 0.6]
+			for min_loss_at_leaf in [0.4, 0.5, 0.6] # [0.4, 0.6]
 				push!(tree_args, 
 					(
 						loss_function       = loss_function,
@@ -105,8 +105,8 @@ modal_args = (;
 )
 
 data_modal_args = (;
-	# ontology = getIntervalOntologyOfDim(Val(1)),
-	ontology = getIntervalOntologyOfDim(Val(2)),
+	ontology = getIntervalOntologyOfDim(Val(1)),
+	# ontology = getIntervalOntologyOfDim(Val(2)),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A]),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A, ModalLogic.IA_L, ModalLogic.IA_Li, ModalLogic.IA_D]),
 )
@@ -187,8 +187,8 @@ exec_dataset_kwargs =   [( # TODO
 						# 	ma_size = 90,
 						# 	ma_step = 60,
 						# ),(# max_points = 30,
-							ma_size = 75,
-							ma_step = 50,
+							# ma_size = 75,
+							# ma_step = 50,
 						# ),(# max_points = 50,
 						# 	ma_size = 45,
 						# 	ma_step = 30,
