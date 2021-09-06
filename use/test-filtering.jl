@@ -111,8 +111,8 @@ apply_tree_to_datasets_wavs(
         filepaths[1],
         Y;
         filter_kwargs = (nbands = nbands, maxfreq = max_sample_rate / 2),
-        remove_from_path = "../datasets/KDD/",
-        draw_anim_for_instances = [ findfirst(isequal("../datasets/KDD/healthyandroidwithcough/cough/cough_9me0RMtVww_1586943699308.wav"), filepaths[1]) ]
+        remove_from_path = "../datasets/KDD/"
+#        draw_anim_for_instances = [ findfirst(isequal("../datasets/KDD/healthyandroidwithcough/cough/cough_9me0RMtVww_1586943699308.wav"), filepaths[1]) ]
     )
 
 # # DRAW MEL-FILTERS

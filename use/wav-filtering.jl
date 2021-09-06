@@ -17,6 +17,7 @@ using DecisionTree.ModalLogic
 using Plots
 using MFCC: hz2mel, mel2hz
 using Plots.Measures
+using JSON
 
 MFCC.mel2hz(f::AbstractFloat, htk=false)  = mel2hz([f], htk)[1]
 
@@ -440,7 +441,9 @@ function apply_tree_to_datasets_wavs(
         remove_from_path::String = "",
         save_single_band_tracks::Bool = true,
         generate_spectrogram::Bool = true,
-        draw_anim_for_instances::Vector{Int} = []
+        draw_anim_for_instances::Vector{Int64} = Vector{Int64}(),
+        generate_json::Bool = true,
+        json_file_name::String = "files.json"
     ) where {S}
 
     n_instances = n_samples(dataset)
@@ -456,6 +459,8 @@ function apply_tree_to_datasets_wavs(
     if dataset isa MultiFrameModalDataset
         @assert n_frames(dataset) == 1 "MultiFrameModalDataset with more than one frame is still not supported! n_frames(dataset): $(n_frames(dataset))"
     end
+
+    json_archive = Dict{String, Vector{String}}()
 
     results = Vector{InstancePathInTree}(undef, n_instances)
     predictions = apply_tree(tree, dataset)
@@ -478,6 +483,7 @@ function apply_tree_to_datasets_wavs(
     Threads.@threads for i in 1:n_instances
         # TODO: use path + worlds to generate dynamic filters
         if !is_correctly_classified(results[i])
+            # TODO: handle not correctly classified instances
             println("Skipping file $(wav_paths[i]) because it was not correctly classified...")
             continue
         end
@@ -517,6 +523,7 @@ function apply_tree_to_datasets_wavs(
     real_destination = destination_dir * "/" * tree_hash
     mkpath(real_destination)
     heatmap_png_path = Vector{String}(undef, n_instances)
+    json_lock = Threads.Condition()
     Threads.@threads for i in 1:n_instances
         if !is_correctly_classified(results[i])
             println("Skipping file $(wav_paths[i]) because it was not correctly classified...")
@@ -542,6 +549,24 @@ function apply_tree_to_datasets_wavs(
         println("Saving filtered file $(filtered_file_path)...")
         wavwrite(filtered[i], filtered_file_path; Fs = samplerates[i])
         wavwrite(originals[i], original_file_path; Fs = samplerates[i])
+        if generate_json
+            if !haskey(json_archive, string(results[i].label))
+                json_archive[string(results[i].label)] = []
+            end
+            Threads.lock(json_lock)
+            push!(json_archive[string(results[i].label)], filtered_file_path)
+            Threads.unlock(json_lock)
+        end
+    end
+
+    if generate_json
+        try
+            f = open(real_destination * "/" * json_file_name, "w")
+            write(f, JSON.json(json_archive))
+            close(f)
+        catch
+            println(stderr, "Unable to write file $(real_destination * "/" * json_file_name)")
+        end
     end
 
     if generate_spectrogram
