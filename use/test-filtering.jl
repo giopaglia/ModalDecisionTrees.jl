@@ -25,13 +25,8 @@ totaloutpath_covid = outpath * "/" * outfile_covid
 outfile_covid_single_band(feat::Int64) = string("A", feat, "_filtered_covid.wav")
 totaloutpath_covid_single_band(feat::Int64) = string(outpath, "/", outfile_covid_single_band(feat))
 
-video_codec = "libx265"
 gifout = outpath * "/" * "gif.gif"
 heatmap_png_path = outpath * "/" * "spectrogram.png"
-mkv_original = outpath * "/" * "original.mkv"
-mkv_filtered = outpath * "/" * "filtered.mkv"
-ffmpeg_output_file = outpath * "/ffmpeg-video-generation.out" # stdout
-ffmpeg_error_output_file = ffmpeg_output_file # stderr
 
 original_copy_healty = outpath * "/" * "original_healthy.wav"
 original_copy_covid = outpath * "/" * "original_covid.wav"
@@ -99,21 +94,21 @@ tree_path = "covid-august/trees"
 tree_hash = "d5cce8625a82b7c1e5360a4d055175425302db80dc57e55695e32d4d782c6ac5"
 
 # TEST APPLY_TREE_TO_WAV
-tree = JLD2.load(tree_path * "/tree_$(tree_hash).jld")["T"]
+# tree = JLD2.load(tree_path * "/tree_$(tree_hash).jld")["T"]
 
-(X, Y, filepaths), (n_pos, n_neg) = @cache "dataset" cache_dir dataset_func_params dataset_func_kwparams KDDDataset_not_stratified
-X_modal = X_dataset_c("test", data_modal_args, X, modal_args, save_datasets, dataset_form, false)
+# (X, Y, filepaths), (n_pos, n_neg) = @cache "dataset" cache_dir dataset_func_params dataset_func_kwparams KDDDataset_not_stratified
+# X_modal = X_dataset_c("test", data_modal_args, X, modal_args, save_datasets, dataset_form, false)
 
-apply_tree_to_datasets_wavs(
-        tree_hash,
-        tree,
-        X_modal,
-        filepaths[1],
-        Y;
-        filter_kwargs = (nbands = nbands, maxfreq = max_sample_rate / 2),
-        remove_from_path = "../datasets/KDD/"
-#        draw_anim_for_instances = [ findfirst(isequal("../datasets/KDD/healthyandroidwithcough/cough/cough_9me0RMtVww_1586943699308.wav"), filepaths[1]) ]
-    )
+# apply_tree_to_datasets_wavs(
+#         tree_hash,
+#         tree,
+#         X_modal,
+#         filepaths[1],
+#         Y;
+#         filter_kwargs = (nbands = nbands, maxfreq = max_sample_rate / 2),
+#         remove_from_path = "../datasets/KDD/"
+# #        draw_anim_for_instances = [ findfirst(isequal("../datasets/KDD/healthyandroidwithcough/cough/cough_9me0RMtVww_1586943699308.wav"), filepaths[1]) ]
+#     )
 
 # # DRAW MEL-FILTERS
 # d40_8000 = draw_synthetic_mel_filters_graph(; nbands = 40, minfreq = 0.0, maxfreq = 8_000.0 / 2)
@@ -192,16 +187,4 @@ apply_tree_to_datasets_wavs(
 # )
 
 # # GENERATE VIDEOS
-# try
-#     # TODO: actually Plots can generate the video directly using mp4 instead of gif at the bottom of the body of function draw_audio_anim
-#     print("Generating videos in $(outpath)...")
-#     run(pipeline(`ffmpeg -i $gifout -i $original_copy_covid -y -c:a copy -c:v $video_codec $mkv_original`, stdout = ffmpeg_output_file, stderr = ffmpeg_error_output_file))
-#     run(pipeline(`ffmpeg -i $gifout -i $totaloutpath_covid -y -c:a copy -c:v $video_codec $mkv_filtered`, stdout = ffmpeg_output_file, stderr = ffmpeg_error_output_file))
-#     println(" done")
-# catch
-#     println(" fail")
-#     if ffmpeg_error_output_file != stderr
-#         println("Look at file $(ffmpeg_error_output_file) to understand what went wrong!")
-#     end
-#     error("unable to generate video automatially: is ffmpeg installed?")
-# end
+# generate_video(gifout, [ original_copy_covid, totaloutpath_covid ])

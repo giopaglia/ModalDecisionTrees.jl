@@ -653,3 +653,69 @@ end
 
 #     new_track
 # end
+
+function generate_video(
+        gif                      :: String,
+        wavs                     :: Vector{String};
+        outpath                  :: Union{String,Nothing}    = nothing,
+        ffmpeg_output_file       :: Union{String,IO,Nothing} = nothing,
+        ffmpeg_error_output_file :: Union{String,IO,Nothing} = nothing,
+        video_codec              :: String                   = "libx265",
+        output_ext               :: String                   = "mkv"
+    )
+
+    @assert isfile(gif) "File $(gif) does not exist."
+    for w in wavs
+        @assert isfile(w) "File $(w) does not exist."
+    end
+
+    if !isnothing(outpath)
+        try
+            mkpath(outpath)
+        catch
+            error("Unable to create directory $(outpat)")
+        end
+    end
+
+    try
+        for w in wavs
+            total_output_path = isnothing(outpath) ?
+            replace(w, ".wav" => "." * output_ext) :
+            outpat[i] * "/" * replace(basename(w), ".wav" => "." * output_ext)
+            
+            ffmpeg_output_file_manually_open = false
+            ffmpeg_error_output_file_manually_open = false
+
+            tmp_ffmpeg_output_file = ffmpeg_output_file
+            tmp_ffmpeg_error_output_file = ffmpeg_error_output_file
+            if isnothing(tmp_ffmpeg_output_file)
+                tmp_ffmpeg_output_file = relpath(total_output_path) * "ffmpeg.out"
+            end
+            if tmp_ffmpeg_output_file isa String
+                tmp_ffmpeg_output_file = open(tmp_ffmpeg_output_file, "a+")
+                ffmpeg_output_file_manually_open = true
+            end
+
+            if isnothing(tmp_ffmpeg_error_output_file)
+                tmp_ffmpeg_error_output_file = tmp_ffmpeg_output_file
+            end
+            if tmp_ffmpeg_error_output_file isa String
+                tmp_ffmpeg_error_output_file = open(tmp_ffmpeg_error_output_file, "a+")
+                ffmpeg_error_output_file_manually_open = true
+            end
+
+            print("Generating video in $(total_output_path)...")
+            run(pipeline(`ffmpeg -i $gif -i $w -y -c:a copy -c:v $video_codec $total_output_path`, stdout = tmp_ffmpeg_output_file, stderr = tmp_ffmpeg_error_output_file, append = true))
+            println(" done")
+            
+            if ffmpeg_output_file_manually_open close(tmp_ffmpeg_output_file) end
+            if ffmpeg_error_output_file_manually_open close(tmp_ffmpeg_error_output_file) end
+        end
+    catch
+        println(" fail")
+        if ffmpeg_error_output_file != stderr
+            println("Look at file $(ffmpeg_error_output_file) to understand what went wrong!")
+        end
+        error("unable to generate video: is ffmpeg installed?")
+    end
+end
