@@ -209,7 +209,7 @@ timerange2points(range::Tuple{T, T} where T <:Number, fs::Real)::UnitRange{Int64
 
 function draw_audio_anim(
         # TODO: figure out a way to generalize this Float64 and Float32 without getting error...
-        audio_files    :: Vector{Tuple{Vector{Float64},Float32}};
+        audio_files    :: Vector{Tuple{Vector{T1},T2}} where {T1<:AbstractFloat, T2<:AbstractFloat};
         labels         :: Vector{String} = fill("", length(audio_files)),
         colors         :: Union{Vector{Symbol},Vector{RGB{Float64}}} = fill(:auto, length(audio_files)),
         outfile        :: String = homedir() * "/gif.gif",
@@ -238,7 +238,6 @@ function draw_audio_anim(
             tick_direction = :none,
             linecolor = color,
             fillcolor = color,
-            # default_plot_margins..., # TODO: figure out why this is not suitable for this recipe
             size = size
         )
     end
@@ -434,7 +433,7 @@ function apply_tree_to_datasets_wavs(
         labels::Vector{S};
         postprocess_wavs =        [ trim_wav!,      normalize! ],
         postprocess_wavs_kwargs = [ (level = 0.0,), (level = 1.0,) ],
-        filter_kwargs = (),
+        filter_kwargs = (nbands = 40,),
         window_f::Function = triang,
         use_original_dataset_filesystem_tree::Bool = false,
         destination_dir::String = "filtering-results/filtered",
@@ -442,6 +441,9 @@ function apply_tree_to_datasets_wavs(
         save_single_band_tracks::Bool = true,
         generate_spectrogram::Bool = true,
         draw_anim_for_instances::Vector{Int64} = Vector{Int64}(),
+        anim_kwargs = (fps = 30,),
+        generate_video_from_gif::Bool = true,
+        video_kwargs = (output_ext = "mkv",),
         generate_json::Bool = true,
         json_file_name::String = "files.json"
     ) where {S}
@@ -452,9 +454,17 @@ function apply_tree_to_datasets_wavs(
     println("Applying tree $(tree_hash):")
     print_tree(tree)
     println()
+    print_apply_tree(tree, dataset, labels)
+    println()
+
+    if length(postprocess_wavs) == 0
+        empty!(postprocess_wavs_kwargs)
+    end
 
     @assert n_instances == length(wav_paths) "dataset and wav_paths length mismatch! $(n_instances) != $(length(wav_paths))"
     @assert n_instances == length(labels) "dataset and labels length mismatch! $(n_instances) != $(length(labels))"
+
+    @assert length(postprocess_wavs) == length(postprocess_wavs_kwargs) "length(postprocess_wavs) != length(postprocess_wavs_kwargs): $(length(postprocess_wavs)) != $(length(postprocess_wavs_kwargs))"
 
     if dataset isa MultiFrameModalDataset
         @assert n_frames(dataset) == 1 "MultiFrameModalDataset with more than one frame is still not supported! n_frames(dataset): $(n_frames(dataset))"
@@ -491,7 +501,6 @@ function apply_tree_to_datasets_wavs(
         bands = Vector{Int64}(undef, n_features)
         weights = Vector{AbstractFloat}(undef, n_features)
         for j in 1:n_features
-            # TODO: here goes the logic interpretation of the tree
             weights[j] =
                 if ((isequal(results[i].path[j].test_operator, >=) || isequal(results[i].path[j].test_operator, >)) && results[i].path[j].taken) ||
                    ((isequal(results[i].path[j].test_operator, <=) || isequal(results[i].path[j].test_operator, <)) && !results[i].path[j].taken)
@@ -602,12 +611,19 @@ function apply_tree_to_datasets_wavs(
                 wavwrite(samples, save_path; Fs = samplerates[i])
             end
             if i in draw_anim_for_instances
+                gifout = replace(heatmap_png_path[i], ".spectrogram.png" => ".anim.gif")
                 draw_audio_anim(
-                    [ (originals[i], samplerates[i]), (filtered[i], samplerates[i]), [ (single_band_tracks[i][j][2], samplerates[i]) for j in 1:length(single_band_tracks[i]) ]... ],
+                    [ (originals[i], samplerates[i]), (filtered[i], samplerates[i]), [ (single_band_tracks[i][j][2], samplerates[i]) for j in 1:length(single_band_tracks[i]) ]... ];
                     labels = [ "Original", "Filtered", [ string("A", single_band_tracks[i][j][1]) for j in 1:length(single_band_tracks[i]) ]... ],
                     colors = [ RGB(.3, .3, 1), RGB(1, .3, .3), features_colors[ [ b[1] for b in single_band_tracks[i] ] ]...],
-                    outfile = replace(heatmap_png_path[i], ".spectrogram.png" => ".anim.gif")
+                    outfile = gifout,
+                    anim_kwargs...
                 )
+                if generate_video_from_gif
+                    orig = replace(gifout, ".anim.gif" => ".orig.wav")
+                    filt = replace(gifout, ".anim.gif" => ".filt.wav")
+                    generate_video(gifout, [ orig, filt ]; video_kwargs...)
+                end
             end
         end
     end
@@ -680,19 +696,19 @@ function generate_video(
     try
         for w in wavs
             total_output_path = isnothing(outpath) ?
-            replace(w, ".wav" => "." * output_ext) :
-            outpat[i] * "/" * replace(basename(w), ".wav" => "." * output_ext)
+                replace(w, ".wav" => "." * output_ext) :
+                outpat[i] * "/" * replace(basename(w), ".wav" => "." * output_ext)
             
             ffmpeg_output_file_manually_open = false
             ffmpeg_error_output_file_manually_open = false
 
-            tmp_ffmpeg_output_file = ffmpeg_output_file
-            tmp_ffmpeg_error_output_file = ffmpeg_error_output_file
+            tmp_ffmpeg_output_file::Union{String,IO,Nothing} = ffmpeg_output_file
+            tmp_ffmpeg_error_output_file::Union{String,IO,Nothing} = ffmpeg_error_output_file
             if isnothing(tmp_ffmpeg_output_file)
-                tmp_ffmpeg_output_file = relpath(total_output_path) * "ffmpeg.out"
+                tmp_ffmpeg_output_file = relpath(total_output_path) * "-ffmpeg.out"
             end
             if tmp_ffmpeg_output_file isa String
-                tmp_ffmpeg_output_file = open(tmp_ffmpeg_output_file, "a+")
+                tmp_ffmpeg_output_file = open(tmp_ffmpeg_output_file, "w+")
                 ffmpeg_output_file_manually_open = true
             end
 
@@ -700,12 +716,12 @@ function generate_video(
                 tmp_ffmpeg_error_output_file = tmp_ffmpeg_output_file
             end
             if tmp_ffmpeg_error_output_file isa String
-                tmp_ffmpeg_error_output_file = open(tmp_ffmpeg_error_output_file, "a+")
+                tmp_ffmpeg_error_output_file = open(tmp_ffmpeg_error_output_file, "w+")
                 ffmpeg_error_output_file_manually_open = true
             end
 
             print("Generating video in $(total_output_path)...")
-            run(pipeline(`ffmpeg -i $gif -i $w -y -c:a copy -c:v $video_codec $total_output_path`, stdout = tmp_ffmpeg_output_file, stderr = tmp_ffmpeg_error_output_file, append = true))
+            run(pipeline(`ffmpeg -i $gif -i $w -y -c:a copy -c:v $video_codec $total_output_path`, stdout = tmp_ffmpeg_output_file, stderr = tmp_ffmpeg_error_output_file))
             println(" done")
             
             if ffmpeg_output_file_manually_open close(tmp_ffmpeg_output_file) end
