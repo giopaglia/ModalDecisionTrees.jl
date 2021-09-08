@@ -506,6 +506,7 @@ function KDDDataset_not_stratified((n_task,n_version),
 		# println(size.(d.only_training[1][3]))
 
 		if force_monolithic_dataset == true
+			error("TODO account for class ordering when using concat_labeled_datasets")
 			d = (concat_labeled_datasets(d.train_n_test[1], d.only_training[1]), (d.train_n_test[2] .+ d.only_training[2]))
 		elseif force_monolithic_dataset == :train_n_test
 			d = d.train_n_test

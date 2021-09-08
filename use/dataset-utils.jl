@@ -1,4 +1,4 @@
-import DecisionTree.ModalLogic: concat_datasets
+import DecisionTree.ModalLogic: concat_datasets, slice_dataset
 
 # TODO note that these splitting functions simply cut the dataset in two,
 #  and they don't necessarily produce balanced cuts. To produce balanced cuts,
@@ -31,19 +31,15 @@ function traintestsplit((X,Y)::Tuple{GenericDataset,AbstractVector}, split_thres
 	if length(unique(Y)) == 2 && is_balanced
 		spl = isodd(spl) ? (spl-1) : spl
 	end
-	X_train = ModalLogic.slice_dataset(X, 1:spl; return_view = return_view)
+	X_train = slice_dataset(X, 1:spl; return_view = return_view)
 	Y_train = Y[1:spl]
-	X_test  = ModalLogic.slice_dataset(X, spl+1:num_instances; return_view = return_view)
+	X_test  = slice_dataset(X, spl+1:num_instances; return_view = return_view)
 	Y_test  = Y[spl+1:end]
 	(X_train,Y_train), (X_test,Y_test)
 end
 
-function slice_labeled_dataset((Xs,Y)::Tuple{AbstractVector{<:GenericDataset},AbstractVector}, dataset_slice::AbstractVector)
-	(map(X->ModalLogic.slice_dataset(X, dataset_slice), Xs; return_view = return_view), Y[dataset_slice])
-end
-
 # function slice_dataset((X,Y)::Tuple{MatricialDataset,AbstractVector}, dataset_slice::AbstractVector; return_view = false)
-# 	(ModalLogic.slice_dataset(X, dataset_slice; return_view = return_view), Y[dataset_slice])
+# 	(slice_dataset(X, dataset_slice; return_view = return_view), Y[dataset_slice])
 # end
 
 # Scale and round dataset to fit into a certain datatype's range:
@@ -382,6 +378,31 @@ function concat_labeled_datasets((X1, Y1)::Tuple{AbstractVector{<:GenericDataset
 	Y = vcat(Y1, Y2)
 	(X, Y)
 end
+
+# Multi-frame dataset with labels
+function concat_labeled_datasets((X1, Y1)::Tuple{AbstractVector{U},AbstractVector{T}}, (X2, Y2)::Tuple{AbstractVector{U},AbstractVector{T}}, (class_counts1, class_counts2)::Tuple{NTuple{N,Integer}, NTuple{N,Integer}}) where {T, U<:GenericDataset, N}
+	X = U[slice_dataset(X1_frame, Integer[]) for X1_frame in X1]
+	Y = T[]
+	count1, count2 = 1, 1
+	for (cur_class_count1, cur_class_count2) in zip(class_counts1, class_counts2)
+		cur_X1  = slice_multiframe_dataset(X1, count1:count1+cur_class_count1-1)
+		cur_X2  = slice_multiframe_dataset(X2, count2:count2+cur_class_count2-1)
+		cur_X12 = concat_datasets(cur_X1, cur_X2)
+		X = concat_datasets(X, cur_X12)
+		Y = vcat(Y, Y1[count1:count1+cur_class_count1-1], Y2[count2:count2+cur_class_count2-1])
+
+		count1 += cur_class_count1
+		count2 += cur_class_count2
+	end
+	(X, Y)
+end
+
+# function slice_labeled_dataset((Xs,Y)::Tuple{AbstractVector{<:GenericDataset},AbstractVector}, dataset_slice::AbstractVector)
+# 	(slice_multiframe_dataset(Xs, dataset_slice), Y[dataset_slice])
+# end
+
+slice_multiframe_dataset(Xs, dataset_slice) = map(X->slice_dataset(X, dataset_slice; return_view = false), Xs)
+
 
 # Multi-frame dataset
 concat_datasets(X1::AbstractVector{<:GenericDataset}, X2::AbstractVector{<:GenericDataset}) = map(concat_datasets, X1, X2)

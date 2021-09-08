@@ -29,6 +29,8 @@ save_datasets = false
 
 skip_training = false
 
+perform_consistency_check = false
+
 ################################################################################
 ##################################### TREES ####################################
 ################################################################################
@@ -49,10 +51,11 @@ for loss_function in [DecisionTree.util.entropy]
 			for min_loss_at_leaf in [0.2, 0.6] # [0.4, 0.6]
 				push!(tree_args, 
 					(
-						loss_function       = loss_function,
-						min_samples_leaf    = min_samples_leaf,
-						min_purity_increase = min_purity_increase,
-						min_loss_at_leaf    = min_loss_at_leaf,
+						loss_function             = loss_function,
+						min_samples_leaf          = min_samples_leaf,
+						min_purity_increase       = min_purity_increase,
+						min_loss_at_leaf          = min_loss_at_leaf,
+						perform_consistency_check = perform_consistency_check,
 					)
 				)
 			end
@@ -85,6 +88,7 @@ for n_trees in [] # [50,100]
 				min_samples_leaf    = 1,
 				min_purity_increase = 0.0,
 				min_loss_at_leaf    = 0.0,
+				perform_consistency_check = perform_consistency_check,
 			))
 		end
 	end
@@ -105,7 +109,8 @@ modal_args = (;
 )
 
 data_modal_args = (;
-	ontology = getIntervalOntologyOfDim(Val(1)),
+	# ontology = ModalLogic.OneWorldOntology,
+	# ontology = getIntervalOntologyOfDim(Val(1)),
 	# ontology = getIntervalOntologyOfDim(Val(2)),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A]),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A, ModalLogic.IA_L, ModalLogic.IA_Li, ModalLogic.IA_D]),
@@ -134,12 +139,12 @@ round_dataset_to_datatype = false
 # round_dataset_to_datatype = Float32
 # round_dataset_to_datatype = Float64
 
-# samples_per_class_share = nothing
-samples_per_class_share = 0.8
+samples_per_class_share = nothing
+# samples_per_class_share = 0.8
 
-# split_threshold = 0.8
+split_threshold = 0.8
 # split_threshold = 1.0
-split_threshold = false
+# split_threshold = false
 
 # use_training_form = :dimensional
 # use_training_form = :fmd
@@ -157,8 +162,8 @@ legacy_gammas_check = false
 ##################################### SCAN #####################################
 ################################################################################
 
-# exec_dataseed = 1:1
-exec_dataseed = [nothing]
+exec_dataseed = 1:10
+# exec_dataseed = [nothing]
 
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization]
@@ -183,20 +188,32 @@ exec_dataset_name = [
 	"NATOPS",
 	"RacketSports",
 ]
-exec_n_chunks = [5]
+
+exec_flatten_ontology = [(false,"interval"),(true,"one_world")]
+
+ontology_dict = Dict(
+	"one_world" => ModalLogic.OneWorldOntology,
+	"interval"  => getIntervalOntologyOfDim(Val(1)),
+)
+
+
+exec_n_chunks = [missing]
 # exec_n_chunks = [60]
 
 exec_ranges = (;
 	use_training_form    = exec_use_training_form  ,
 	test_operators       = exec_test_operators     ,
 	dataset_name         = exec_dataset_name       ,
+	flatten_ontology     = exec_flatten_ontology   ,
 	n_chunks             = exec_n_chunks           ,
 )
 
 
-dataset_function =
-	(dataset_name, n_chunks)->
-	Multivariate_arffDataset(dataset_name; n_chunks = n_chunks)
+dataset_function = 
+	(dataset_name, n_chunks, flatten)->
+	(
+		Multivariate_arffDataset(dataset_name; n_chunks = n_chunks, join_train_n_test = true, flatten = flatten)
+	)
 
 ################################################################################
 ################################### SCAN FILTERS ###############################
@@ -293,20 +310,23 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	use_training_form,
 	test_operators,
 	dataset_name,
+	(flatten,ontology),
 	n_chunks = params_combination
 	
 	test_operators = test_operators_dict[test_operators]
+	ontology = ontology_dict[ontology]
 
 	cur_modal_args = modal_args
 	
 	cur_data_modal_args = merge(data_modal_args,
 		(
 			test_operators = test_operators,
+			ontology = ontology,
 		)
 	)
 
 	dataset_fun_sub_params = (
-		dataset_name, n_chunks
+		dataset_name, n_chunks, flatten
 	)
 
 	# Load Dataset

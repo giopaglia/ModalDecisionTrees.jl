@@ -65,7 +65,7 @@ end
 size(mf::ModalFrame) = (nrow(mf.data),)
 getindex(mf::ModalFrame, i::Int) = mf.views[i]
 
-struct ClassificationDataset
+mutable struct ClassificationDataset
 	ldim::Int
 	hdim::Int
 	frames::Vector{ModalFrame}
@@ -148,12 +148,108 @@ end
 
 # TODO
 # possible test: all([auslan.instances[i].rows[1][attr] === auslan.frames[1].data[i,attr] for i in 1:length(auslan.instances) for attr in attributes(auslan, 1)])
-function transform!(ds::ClassificationDataset, f::Function, fid::Int; kwargs...)
+function transform!(ds::ClassificationDataset, fn::Function, fid::Int; kwargs...)
 	for attr in attributes(ds, fid)
 		for i in 1:nrow(ds.frames[fid].data)
-			ds.frames[fid].data[i,attr] = f(ds.frames[fid].data[i,attr]; kwargs...)
+			ds.frames[fid].data[i,attr] = fn(ds.frames[fid].data[i,attr]; kwargs...)
 		end
 	end
+	return ds
+end
+
+# TODO (?)
+# now it overrides the given frame, but in the future, for each f ∈ fns
+# should create a different frame
+function transform!(ds::ClassificationDataset, fid::Int, fns, kwargs)
+	d = Dict()
+	for (fnid, fn) in enumerate(fns)
+		for attr in attributes(ds, fid)
+			# for i in 1:nrow(ds.frames[fid].data)
+			new_attr_name = string(attr, "_", String(Symbol(kwargs[fnid][:f])))
+			# the value of each key (attribute) is an array of arrays, whose size is
+			# equal to the number of instances times the size of the length of the array
+			# returned by the function (fn)
+			d[new_attr_name] = [fn(ds.frames[fid].data[i,attr]; kwargs[fnid]...) for i in 1:nrow(ds.frames[fid].data)]
+			# end
+		end
+	end
+	df = DataFrame(d)
+
+	mf = ModalFrame(df)
+
+	modal_frames = ModalFrame[]
+
+	for i in 1:length(ds.frames)
+		# push the other unchanged modal frames
+		if i != fid
+			push!(modal_frames, ds.frames[i])
+		# push the newly created modal frame
+		else
+			push!(modal_frames, mf)
+		end
+	end
+
+	new_ds = ClassificationDataset(modal_frames, ds.classes)
+
+	# TODO: ugly to see, but it works
+	ds.classes = new_ds.classes
+	ds.domains = new_ds.domains
+	ds.frames = new_ds.frames
+	ds.hdim = new_ds.hdim
+	ds.instances = new_ds.instances
+	ds.ldim = new_ds.ldim
+	ds.unique_classes = new_ds.unique_classes
+
+	return ds
+end
+
+# julia> MRBC.train.frames[1].data[1,:A1]
+# 2-element Vector{Float64}:
+#  -3.4729
+#  -1.7941
+# [v for inst in eachrow(MRBC.train.frames[1].data) for v in inst[:A1][1]]
+
+# MRBC.train.frames[1][1] == MRBC.train.instances[1].rows[1] ==> true
+# assumption: works only if the instances have the same length (N)
+function flatten!(ds::ClassificationDataset, fid::Int) 
+	N = length(ds.instances[1], fid) # aforementioned assumption
+	@show N
+	d = Dict()
+	for attr in attributes(ds, fid)
+		for i in 1:N
+			new_attr_name = string(attr, "_", i)
+			# for new_attr_name set its value: an array having the i-th value of each instance
+			d[new_attr_name] = [v for inst in eachrow(ds.frames[1].data) for v in inst[attr][i]]
+		end
+	end
+
+	df = DataFrame(d)
+
+	mf = ModalFrame(df)
+
+	modal_frames = ModalFrame[]
+
+	for i in 1:length(ds.frames)
+		# push the other unchanged modal frames
+		if i != fid
+			push!(modal_frames, ds.frames[i])
+		# push the newly created modal frame
+		else
+			push!(modal_frames, mf)
+		end
+	end
+
+	new_ds = ClassificationDataset(modal_frames, ds.classes)
+
+	# TODO: ugly to see, but it works
+	ds.classes = new_ds.classes
+	ds.domains = new_ds.domains
+	ds.frames = new_ds.frames
+	ds.hdim = new_ds.hdim
+	ds.instances = new_ds.instances
+	ds.ldim = new_ds.ldim
+	ds.unique_classes = new_ds.unique_classes
+
 	return ds
 end
 
@@ -348,15 +444,6 @@ function sample(ds::ClassificationDataset,
 	return ClassificationDataset([ModalFrame(timeseries_df)], CategoricalArray(output_classes))
 end
 
-# function window_slice(x::AbstractArray{T} where T<:Real;
-# 	from::Union{Missing,Int}=missing,
-# 	to::Union{Missing,Int}=missing)
-# 	ismissing(from) && ismissing(to) && return x
-# 	ismissing(to) && return x[from:end]
-# 	ismissing(from) && return x[1:to]
-# 	return x[from:to]
-# end
-
 function paa(x::AbstractArray{T} where T <: Real;
 		n_chunks::Union{Missing,Int}=missing,
 		f::Function=mean,
@@ -383,8 +470,9 @@ end
 
 # Multivariate_arff("LSST")
 # Multivariate_arff("FingerMovements")
+# TODO different n_chunks for different frames
 
-function Multivariate_arffDataset(dataset_name; n_chunks = missing)
+function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n_test = false, flatten = false)
 
 	ds_train = readARFF(data_dir * "Multivariate_arff/$(dataset_name)/$(dataset_name)_TRAIN.arff");
 	ds_test  = readARFF(data_dir * "Multivariate_arff/$(dataset_name)/$(dataset_name)_TEST.arff");
@@ -392,12 +480,31 @@ function Multivariate_arffDataset(dataset_name; n_chunks = missing)
 	for fid in length(ds_train.frames)
 		transform!(ds_train, paa, fid; n_chunks = n_chunks);
 		transform!(ds_test,  paa, fid; n_chunks = n_chunks);
+
+		# TODO more transformations
+		# transform!(ds_train, fid, [paa,paa], [(;n_chunks=2, f=mean),(;n_chunks=2, f=StatsBase.var)])
+		# transform!(ds_test,  fid, [paa,paa], [(;n_chunks=2, f=mean),(;n_chunks=2, f=StatsBase.var)])
+	end
+
+	if flatten
+		for fid in length(ds_train.frames)
+			flatten!(ds_train, fid)
+			flatten!(ds_test,  fid)
+		end
 	end
 
 	(X_train, Y_train), n_label_samples_train = ClassificationDataset2RunnerDataset(ds_train)
-	(X_test,  Y_test),  _                     = ClassificationDataset2RunnerDataset(ds_test)
+	(X_test,  Y_test),  n_label_samples_test  = ClassificationDataset2RunnerDataset(ds_test)
 
-	((X_train, Y_train), (X_test,  Y_test)), n_label_samples_train
+	# println(countmap(Y_train))
+	# println(countmap(Y_test))
+	# println(countmap([Y_train..., Y_test...]))
+
+	if join_train_n_test
+		concat_labeled_datasets((X_train, Y_train), (X_test,  Y_test), (n_label_samples_train, n_label_samples_test)), (n_label_samples_train .+ n_label_samples_test)
+	else
+		((X_train, Y_train), (X_test,  Y_test)), n_label_samples_train
+	end
 end
 
 ################################################################################
@@ -470,8 +577,8 @@ function readARFF(p::String)
 		end
 
 		# for i in eachrow(df)
-		# 	println(typeof(i))
-		# 	break
+		#   println(typeof(i))
+		#   break
 		# end
 		p = sortperm(eachrow(df), by=x->classes[rownumber(x)])
 
@@ -540,8 +647,16 @@ function ModalFrame2MatricialDataset(f::ModalFrame)
 	for (i_instance,instance) in enumerate(instances)
 		for (i_feature,channel) in enumerate(instance)
 			# println(length(channel))
-			X[:, i_feature, i_instance] .= channel
-			# TODO X[[(:) for i in max_inst_size] i_feature, i_instance] .= channel
+			if length(max_inst_size) == 0
+				X[i_feature, i_instance] = channel
+			elseif length(max_inst_size) == 1
+				X[:, i_feature, i_instance] .= channel
+			elseif length(max_inst_size) == 2
+				X[:, :, i_feature, i_instance] .= channel
+			else
+				error("length(max_inst_size) = $(length(max_inst_size))")
+			end
+			# X[[(:) for i in max_inst_size]..., i_feature, i_instance] .= channel
 		end
 	end
 	X
