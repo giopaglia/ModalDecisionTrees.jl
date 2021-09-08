@@ -14,7 +14,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./ComParE2021"
+results_dir = "./ComParE2021-september"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir = results_dir * "/cache"
@@ -46,7 +46,7 @@ tree_args = [
 for loss_function in [DecisionTree.util.entropy, DecisionTree.util.gini]
 	for min_samples_leaf in [2,4] # [1,2]
 		for min_purity_increase in [0.01] # [0.01, 0.001]
-			for min_loss_at_leaf in [0.2, 0.6] # [0.4, 0.6]
+			for min_loss_at_leaf in [0.4, 0.5, 0.6] # [0.4, 0.6]
 				push!(tree_args, 
 					(
 						loss_function       = loss_function,
@@ -105,8 +105,8 @@ modal_args = (;
 )
 
 data_modal_args = (;
-	# ontology = getIntervalOntologyOfDim(Val(1)),
-	ontology = getIntervalOntologyOfDim(Val(2)),
+	ontology = getIntervalOntologyOfDim(Val(1)),
+	# ontology = getIntervalOntologyOfDim(Val(2)),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A]),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A, ModalLogic.IA_L, ModalLogic.IA_Li, ModalLogic.IA_D]),
 )
@@ -187,8 +187,8 @@ exec_dataset_kwargs =   [( # TODO
 						# 	ma_size = 90,
 						# 	ma_step = 60,
 						# ),(# max_points = 30,
-							ma_size = 75,
-							ma_step = 50,
+							# ma_size = 75,
+							# ma_step = 50,
 						# ),(# max_points = 50,
 						# 	ma_size = 45,
 						# 	ma_step = 30,
@@ -239,7 +239,7 @@ wav_preprocessors = Dict(
 exec_preprocess_wavs = [
 	# ["Normalize"],
 	[],
-#	["NG", "Normalize"]
+	["NG", "Normalize"]
 ]
 
 # https://github.com/JuliaIO/JSON.jl/issues/203
@@ -255,10 +255,13 @@ test_operators_dict = Dict(
 )
 
 
-exec__2D_or_3D = [true] # , false]
+exec__2D_or_3D = [true, false]
+
+exec_include_static_data = [false] #, true]
 
 exec_ranges = (;
 	_2D_or_3D            = exec__2D_or_3D          ,
+	include_static_data  = exec_include_static_data,
 	dataset_kwargs       = exec_dataset_kwargs     ,
 	preprocess_wavs      = exec_preprocess_wavs    ,
 	use_full_mfcc        = exec_use_full_mfcc      ,
@@ -270,6 +273,7 @@ exec_ranges = (;
 
 dataset_function =
 	(_2D_or_3D,
+		include_static_data,
 		cur_audio_kwargs,
 		dataset_kwargs,
 		cur_preprocess_wavs,
@@ -278,7 +282,7 @@ dataset_function =
 		subchallenge = "CCS",
 		use_lowSR = true,
 		mode = :development,
-		include_static_data = false,
+		include_static_data = include_static_data,
 		treat_as_single_attribute_2D_context = _2D_or_3D,
 		#
 		audio_kwargs = cur_audio_kwargs,
@@ -380,6 +384,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	
 	_2D_or_3D,
+	include_static_data,
 	dataset_kwargs,
 	preprocess_wavs,
 	use_full_mfcc,
@@ -407,6 +412,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	dataset_fun_sub_params = (
 		_2D_or_3D,
+		include_static_data,
 		cur_audio_kwargs,
 		dataset_kwargs,
 		cur_preprocess_wavs,

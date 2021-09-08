@@ -153,5 +153,6 @@ function trim_wav!(sample::AbstractVector; level::Float64 = 0.0)
 	if before != 1
 		splice!(sample, 1:(before-1))
 	end
+
 	sample
 end

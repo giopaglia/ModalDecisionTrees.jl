@@ -43,7 +43,11 @@ function string_tree_head(tree_args)::String
 end
 
 function string_forest_head(forest_args)::String
+    if haskey(forest_args, :partial_sampling)
+	string("RF($(forest_args.partial_sampling),$(forest_args.n_trees),$(print_function(forest_args.n_subfeatures)),$(print_function(forest_args.n_subrelations)))")
+    else
 	string("RF($(forest_args.n_trees),$(print_function(forest_args.n_subfeatures)),$(print_function(forest_args.n_subrelations)))")
+    end
 end
 
 function string_head(
