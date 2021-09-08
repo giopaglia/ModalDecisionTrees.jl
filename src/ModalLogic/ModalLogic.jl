@@ -232,6 +232,7 @@ getInstanceAttribute(inst::MatricialInstance{T,1},      idx::Integer) where T = 
 getInstanceAttribute(inst::MatricialInstance{T,2},      idx::Integer) where T = @views inst[:,    idx]::MatricialChannel{T,1} # N=1
 getInstanceAttribute(inst::MatricialInstance{T,3},      idx::Integer) where T = @views inst[:, :, idx]::MatricialChannel{T,2} # N=2
 
+concat_datasets(d1::MatricialDataset{T,2}, d2::MatricialDataset{T,2}) where {T} = cat(d1, d2; dims=2)
 concat_datasets(d1::MatricialDataset{T,3}, d2::MatricialDataset{T,3}) where {T} = cat(d1, d2; dims=3)
 concat_datasets(d1::MatricialDataset{T,4}, d2::MatricialDataset{T,4}) where {T} = cat(d1, d2; dims=4)
 concat_datasets(d1::MatricialDataset{T,5}, d2::MatricialDataset{T,5}) where {T} = cat(d1, d2; dims=5)
