@@ -20,9 +20,9 @@ iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir = results_dir * "/cache"
 model_savedir = results_dir * "/trees"
 
-# dry_run = false
+dry_run = false
 # dry_run = true
-dry_run = :dataset_only
+# dry_run = :dataset_only
 
 # save_datasets = true
 save_datasets = false
@@ -178,13 +178,13 @@ exec_dataset_kwargs =   [( # TODO
 						# ),(# max_points = 30,
 							ma_size = 120,
 							ma_step = 100,
-						),(# max_points = 30,
+						#),(# max_points = 30,
 						# 	ma_size = 120,
 						# 	ma_step = 80,
 						# ),(# max_points = 30,
-							ma_size = 100,
-							ma_step = 75,
-						),(# max_points = 30,
+						#	ma_size = 100,
+						#	ma_step = 75,
+						#),(# max_points = 30,
 						# 	ma_size = 90,
 						# 	ma_step = 60,
 						# ),(# max_points = 30,
@@ -256,7 +256,7 @@ test_operators_dict = Dict(
 )
 
 
-exec__2D_or_3D = [true, false]
+exec__2D_or_3D = [false] # , false]
 
 exec_include_static_data = [false] #, true]
 
