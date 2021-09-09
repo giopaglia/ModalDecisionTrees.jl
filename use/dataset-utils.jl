@@ -407,3 +407,4 @@ slice_multiframe_dataset(Xs, dataset_slice) = map(X->slice_dataset(X, dataset_sl
 # Multi-frame dataset
 concat_datasets(X1::AbstractVector{<:GenericDataset}, X2::AbstractVector{<:GenericDataset}) = map(concat_datasets, X1, X2)
 
+dataset_has_nonevalues(Xs::AbstractVector{<:GenericDataset}) = any([dataset_has_nonevalues(X) for X in Xs])

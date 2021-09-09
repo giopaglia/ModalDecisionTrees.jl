@@ -514,6 +514,9 @@ function buildModalDatasets(X_train, X_test, data_modal_args, modal_args, use_tr
 		X_test = [X_test]
 	end
 	
+	@assert !dataset_has_nonevalues(X_train) "dataset_has_nonevalues(X_train)"
+	@assert !dataset_has_nonevalues(X_test)  "dataset_has_nonevalues(X_test)"
+
 	WorldType = world_type(data_modal_args.ontology)
 
 	# The test dataset is kept in its ontological form

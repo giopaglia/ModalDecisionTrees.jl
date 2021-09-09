@@ -224,10 +224,11 @@ function ComParE2021Dataset(;
 	end
 
 	if include_static_data
-		X_static = zeros((length(static_data[1]), length(static_data)))
+		# TODO this "1," is needed because we currently can't handle different frames with different ontologies
+		X_static = zeros((1, length(static_data[1]), length(static_data)))
 		for (i,features) in enumerate(static_data)
 			# println(size(ts))
-			X_static[:,i] .= features
+			X_static[1,:,i] .= features
 		end
 	end
 
