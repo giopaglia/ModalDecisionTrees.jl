@@ -87,9 +87,7 @@ version = "2.6.3"
 
 [[Cairo]]
 deps = ["Cairo_jll", "Colors", "Glib_jll", "Graphics", "Libdl", "Pango_jll"]
-git-tree-sha1 = "84675bc6957a64cfcfc40b9bb464eb24e01b3c1b"
-repo-rev = "master"
-repo-url = "https://github.com/JuliaGraphics/Cairo.jl.git"
+git-tree-sha1 = "d0b3f8b4ad16cb0a2988c6788646a5e6a17b6b1b"
 uuid = "159f3aea-2a34-519c-b102-8c37f9878175"
 version = "1.0.5"
 
@@ -110,6 +108,14 @@ deps = ["CustomUnitRanges", "OffsetArrays"]
 git-tree-sha1 = "a0f80a09780eed9b1d106a1bf62041c2efc995bc"
 uuid = "aafaddc9-749c-510e-ac4f-586e18779b91"
 version = "0.2.2"
+
+[[Catch22]]
+deps = ["Colors", "DelimitedFiles", "DimensionalData", "Libdl", "LinearAlgebra", "ProgressLogging", "Requires", "Statistics", "StatsBase", "catch22_jll"]
+git-tree-sha1 = "6b0aa3eee35286098c174269db5ab44f9f0eaee0"
+repo-rev = "main"
+repo-url = "https://github.com/brendanjohnharris/Catch22.jl.git"
+uuid = "acdeb78f-3d39-4310-8fdf-6d75c17c6d5a"
+version = "0.1.0"
 
 [[CategoricalArrays]]
 deps = ["DataAPI", "Future", "JSON", "Missings", "Printf", "RecipesBase", "Statistics", "StructTypes", "Unicode"]
@@ -198,6 +204,12 @@ git-tree-sha1 = "c77875b634a10dee1b3701c92f993bf8dc1dee02"
 uuid = "459fdd68-db75-56b8-8c15-d717a790f88e"
 version = "0.1.0"
 
+[[ConstructionBase]]
+deps = ["LinearAlgebra"]
+git-tree-sha1 = "f74e9d5388b8620b4cee35d4c5a618dd4dc547f4"
+uuid = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
+version = "1.3.0"
+
 [[Contour]]
 deps = ["StaticArrays"]
 git-tree-sha1 = "9f02045d934dc030edad45944ea80dbd1f0ebea7"
@@ -261,6 +273,12 @@ deps = ["NaNMath", "Random", "SpecialFunctions"]
 git-tree-sha1 = "214c3fcac57755cfda163d91c58893a8723f93e9"
 uuid = "b552c78f-8df3-52c6-915a-8e097449b14b"
 version = "1.0.2"
+
+[[DimensionalData]]
+deps = ["Adapt", "ConstructionBase", "Dates", "LinearAlgebra", "Random", "RecipesBase", "SparseArrays", "Statistics", "Tables"]
+git-tree-sha1 = "f2b37d98e710bff7a9242c96bc35352f86d3c4a3"
+uuid = "0703355e-b756-11e9-17c0-8b28908087d0"
+version = "0.17.14"
 
 [[Distributed]]
 deps = ["Random", "Serialization", "Sockets"]
@@ -946,6 +964,12 @@ uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 deps = ["Printf"]
 uuid = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
 
+[[ProgressLogging]]
+deps = ["Logging", "SHA", "UUIDs"]
+git-tree-sha1 = "80d919dee55b9c50e8d9e2da5eeafff3fe58b539"
+uuid = "33c8b6b6-d38a-422a-b730-caa89a2f386c"
+version = "0.1.4"
+
 [[ProtoBuf]]
 git-tree-sha1 = "51b74991da46594fb411a715e7e092bef50b99ff"
 uuid = "3349acd9-ac6a-5e09-bcdb-63829b23a429"
@@ -1239,6 +1263,12 @@ deps = ["MacroTools"]
 git-tree-sha1 = "9e7a1e8ca60b742e508a315c17eef5211e7fbfd7"
 uuid = "700de1a5-db45-46bc-99cf-38207098b444"
 version = "0.2.1"
+
+[[catch22_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "edcdace4d89aebe5e8d42e5d73052a31e84db921"
+uuid = "8a07c0c5-99ad-56cb-bc82-72eed1bb61ce"
+version = "0.2.1+0"
 
 [[libass_jll]]
 deps = ["Artifacts", "Bzip2_jll", "FreeType2_jll", "FriBidi_jll", "HarfBuzz_jll", "JLLWrappers", "Libdl", "Pkg", "Zlib_jll"]
