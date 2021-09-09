@@ -20,14 +20,16 @@ iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir = results_dir * "/cache"
 model_savedir = results_dir * "/trees"
 
-dry_run = false
+# dry_run = false
+dry_run = :dataset_only
 # dry_run = true
-# dry_run = :dataset_only
 
 # save_datasets = true
 save_datasets = false
 
 skip_training = false
+
+perform_consistency_check = false
 
 ################################################################################
 ##################################### TREES ####################################
@@ -54,6 +56,7 @@ for (loss_function, min_loss_at_leaf) in [(DecisionTree.util.entropy, 0.6), (Dec
 						min_samples_leaf    = min_samples_leaf,
 						min_purity_increase = min_purity_increase,
 						min_loss_at_leaf    = min_loss_at_leaf,
+						perform_consistency_check = perform_consistency_check,
 					)
 				)
 			# end
@@ -76,17 +79,20 @@ forest_args = []
 for n_trees in [50,100]
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
-			push!(forest_args, (
-				n_subfeatures       = n_subfeatures,
-				n_trees             = n_trees,
-				partial_sampling    = 1.0,
-				n_subrelations      = n_subrelations,
-				# Optimization arguments for trees in a forest (no pruning is performed)
-				loss_function       = DecisionTree.util.entropy,
-				min_samples_leaf    = 1,
-				min_purity_increase = 0.0,
-				min_loss_at_leaf    = 0.0,
-			))
+      for partial_sampling in [0.7]
+				push!(forest_args, (
+					n_subfeatures       = n_subfeatures,
+					n_trees             = n_trees,
+					partial_sampling    = partial_sampling,
+					n_subrelations      = n_subrelations,
+					# Optimization arguments for trees in a forest (no pruning is performed)
+					loss_function       = DecisionTree.util.entropy,
+					min_samples_leaf    = 1,
+					min_purity_increase = 0.0,
+					min_loss_at_leaf    = 0.0,
+					perform_consistency_check = perform_consistency_check,
+				))
+			end
 		end
 	end
 end
@@ -157,6 +163,11 @@ legacy_gammas_check = false
 
 exec_dataseed = 1:10
 
+# max_sample_rate = 48000
+max_sample_rate = 16000
+# max_sample_rate = 8000
+
+
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization]
 
@@ -207,6 +218,7 @@ audio_kwargs_partial_mfcc = (
 	dither = false,                   # [false, true]
 	# bwidth = 1.0,                   # 
 	# minfreq = 0.0,
+	maxfreq = max_sample_rate/2, # Fix this
 	# maxfreq = (sr)->(sr/2),
 	# usecmp = false,
 )
@@ -220,6 +232,7 @@ audio_kwargs_full_mfcc = (
 	preemph=0.97,
 	dither=false,
 	minfreq=0.0,
+	maxfreq = max_sample_rate/2, # Fix this
 	# maxfreq=sr/2,
 	nbands=20,
 	bwidth=1.0,
@@ -238,7 +251,7 @@ wav_preprocessors = Dict(
 )
 
 exec_preprocess_wavs = [
-	["NG", "Normalize"]
+	["NG", "Normalize"],
 	["Normalize"],
 	[],
 ]
@@ -258,11 +271,14 @@ test_operators_dict = Dict(
 
 exec__2D_or_3D = [false] # , false]
 
-exec_include_static_data = [false] #, true]
+exec_include_static_data = [true, false] #, true]
+
+exec_use_lowSR = [true, false]
 
 exec_ranges = (;
 	_2D_or_3D            = exec__2D_or_3D          ,
 	include_static_data  = exec_include_static_data,
+	use_lowSR            = exec_use_lowSR          ,
 	dataset_kwargs       = exec_dataset_kwargs     ,
 	preprocess_wavs      = exec_preprocess_wavs    ,
 	use_full_mfcc        = exec_use_full_mfcc      ,
@@ -276,12 +292,13 @@ dataset_function =
 	(_2D_or_3D,
 		include_static_data,
 		cur_audio_kwargs,
+		use_lowSR,
 		dataset_kwargs,
 		cur_preprocess_wavs,
 		use_full_mfcc,)->
 	ComParE2021Dataset(;
 		subchallenge = "CCS",
-		use_lowSR = true,
+		use_lowSR = use_lowSR,
 		mode = :development,
 		include_static_data = include_static_data,
 		treat_as_single_attribute_2D_context = _2D_or_3D,
@@ -386,6 +403,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	
 	_2D_or_3D,
 	include_static_data,
+	use_lowSR,
 	dataset_kwargs,
 	preprocess_wavs,
 	use_full_mfcc,
@@ -415,6 +433,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		_2D_or_3D,
 		include_static_data,
 		cur_audio_kwargs,
+		use_lowSR,
 		dataset_kwargs,
 		cur_preprocess_wavs,
 		use_full_mfcc,
