@@ -142,9 +142,9 @@ round_dataset_to_datatype = false
 samples_per_class_share = nothing
 # samples_per_class_share = 0.8
 
-split_threshold = 0.8
+# split_threshold = 0.8
 # split_threshold = 1.0
-# split_threshold = false
+split_threshold = false
 
 # use_training_form = :dimensional
 # use_training_form = :fmd
@@ -162,8 +162,8 @@ legacy_gammas_check = false
 ##################################### SCAN #####################################
 ################################################################################
 
-exec_dataseed = 1:10
-# exec_dataseed = [nothing]
+# exec_dataseed = 1:1
+exec_dataseed = [nothing]
 
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization]
@@ -182,11 +182,21 @@ test_operators_dict = Dict(
 )
 
 exec_dataset_name = [
-	"FingerMovements",
-	"Libras",
-	"LSST",
-	"NATOPS",
-	"RacketSports",
+	# "FingerMovements",
+	# "Libras",
+	# "LSST",
+	# "NATOPS",
+	# "RacketSports",
+
+	AtrialFibrillation,
+	Cricket,
+	EthanolConcentration,
+	HandMovementDirection,
+	Heartbeat,
+	MotorImagery,
+	SelfRegulationSCP1,
+	SelfRegulationSCP2,
+	StandWalkJump,
 ]
 
 exec_flatten_ontology = [(false,"interval"),(true,"one_world")]
@@ -197,7 +207,7 @@ ontology_dict = Dict(
 )
 
 
-exec_n_chunks = [missing]
+exec_n_chunks = [30]
 # exec_n_chunks = [60]
 
 exec_ranges = (;
@@ -212,7 +222,7 @@ exec_ranges = (;
 dataset_function = 
 	(dataset_name, n_chunks, flatten)->
 	(
-		Multivariate_arffDataset(dataset_name; n_chunks = n_chunks, join_train_n_test = true, flatten = flatten)
+		Multivariate_arffDataset(dataset_name; n_chunks = n_chunks, join_train_n_test = false, flatten = flatten, use_catch22 = true)
 	)
 
 ################################################################################
