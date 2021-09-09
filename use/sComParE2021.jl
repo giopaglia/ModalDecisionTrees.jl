@@ -14,7 +14,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./ComParE2021-september"
+results_dir = "./ComParE2021-september-v2"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir = results_dir * "/cache"
@@ -43,10 +43,11 @@ tree_args = [
 #	)
 ]
 
-for loss_function in [DecisionTree.util.entropy, DecisionTree.util.gini]
+# for loss_function in [DecisionTree.util.entropy]
+for (loss_function, min_loss_at_leaf) in [(DecisionTree.util.entropy, 0.6), (DecisionTree.util.entropy, 0.7), (DecisionTree.util.gini, 0.3), (DecisionTree.util.gini, 0.4)]
 	for min_samples_leaf in [2,4] # [1,2]
 		for min_purity_increase in [0.01] # [0.01, 0.001]
-			for min_loss_at_leaf in [0.4, 0.5, 0.6] # [0.4, 0.6]
+			# for min_loss_at_leaf in [0.4, 0.5, 0.6] # [0.4, 0.6]
 				push!(tree_args, 
 					(
 						loss_function       = loss_function,
@@ -55,7 +56,7 @@ for loss_function in [DecisionTree.util.entropy, DecisionTree.util.gini]
 						min_loss_at_leaf    = min_loss_at_leaf,
 					)
 				)
-			end
+			# end
 		end
 	end
 end
@@ -237,9 +238,9 @@ wav_preprocessors = Dict(
 )
 
 exec_preprocess_wavs = [
-	# ["Normalize"],
-	[],
 	["NG", "Normalize"]
+	["Normalize"],
+	[],
 ]
 
 # https://github.com/JuliaIO/JSON.jl/issues/203
