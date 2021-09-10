@@ -16,7 +16,7 @@ using BenchmarkTools # TODO only need this when testing and using @btime
 export AbstractWorld, AbstractRelation,
 				Ontology,
 				AbstractWorldSet, WorldSet,
-				display_decision,
+				display_decision, display_decision_inverse,
 				RelationGlob, RelationNone, RelationId,
 				world_type, world_types # TODO maybe remove this function?
 				# enumAccessibles, enumAccRepr
@@ -1292,11 +1292,11 @@ end
 include("testOperators.jl")
 
 
-display_propositional_decision(feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number) =
-	"$(feature) $(test_operator) $(threshold)"
+display_propositional_decision(feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number; threshold_display_method::Function = x -> x) =
+	"$(feature) $(test_operator) $(threshold_display_method(threshold))"
 
-display_decision(relation::AbstractRelation, feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number) = begin
-	propositional_decision = display_propositional_decision(feature, test_operator, threshold)
+display_decision(relation::AbstractRelation, feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number; threshold_display_method::Function = x -> x) = begin
+	propositional_decision = display_propositional_decision(feature, test_operator, threshold; threshold_display_method = threshold_display_method)
 	if relation != RelationId
 		"$(display_existential_relation(relation)) ($propositional_decision)"
 	else
@@ -1304,24 +1304,67 @@ display_decision(relation::AbstractRelation, feature::FeatureTypeFun, test_opera
 	end
 end
 
-display_decision(i_frame::Integer, relation::AbstractRelation, feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number) = begin
-	"{$i_frame} $(display_decision(relation, feature, test_operator, threshold))"
+display_decision(i_frame::Integer, relation::AbstractRelation, feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number; threshold_display_method::Function = x -> x) = begin
+	"{$i_frame} $(display_decision(relation, feature, test_operator, threshold; threshold_display_method = threshold_display_method))"
 end
 
 # TODO reason about shortened features
 
-display_propositional_decision(feature::AttributeMinimumFeatureType, test_operator::typeof(≥), threshold::Number) =
-	"A$(feature.i_attribute) ⫺ $(threshold)"
+display_propositional_decision(feature::AttributeMinimumFeatureType, test_operator::typeof(≥), threshold::Number; threshold_display_method::Function = x -> x) =
+	"A$(feature.i_attribute) ⫺ $(threshold_display_method(threshold))"
 
-display_propositional_decision(feature::AttributeMaximumFeatureType, test_operator::typeof(≤), threshold::Number) =
-	"A$(feature.i_attribute) ⫹ $(threshold)"
+display_propositional_decision(feature::AttributeMaximumFeatureType, test_operator::typeof(≤), threshold::Number; threshold_display_method::Function = x -> x) =
+	"A$(feature.i_attribute) ⫹ $(threshold_display_method(threshold))"
 
 
-display_propositional_decision(feature::AttributeSoftMinimumFeatureType, test_operator::typeof(≥), threshold::Number) =
-	"A$(feature.i_attribute) $("⫺" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold)"
+display_propositional_decision(feature::AttributeSoftMinimumFeatureType, test_operator::typeof(≥), threshold::Number; threshold_display_method::Function = x -> x) =
+	"A$(feature.i_attribute) $("⫺" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
 
-display_propositional_decision(feature::AttributeSoftMaximumFeatureType, test_operator::typeof(≤), threshold::Number) =
-	"A$(feature.i_attribute) $("⫹" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold)"
+display_propositional_decision(feature::AttributeSoftMaximumFeatureType, test_operator::typeof(≤), threshold::Number; threshold_display_method::Function = x -> x) =
+	"A$(feature.i_attribute) $("⫹" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
+
+################################################################################
+
+display_propositional_decision_inverse(feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number; threshold_display_method::Function = x -> x) = begin
+	i_t_op = if isequal(test_operator, >=)
+		<
+	elseif isequal(test_operator, >)
+		<=
+	elseif isequal(test_operator, <=)
+		>
+	elseif isequal(test_operator, <)
+		>=
+	end
+	"$(feature) $(i_t_op) $(threshold_display_method(threshold))"
+end
+
+display_decision_inverse(relation::AbstractRelation, feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number; threshold_display_method::Function = x -> x) = begin
+	propositional_decision_inverse = display_propositional_decision_inverse(feature, test_operator, threshold; threshold_display_method = threshold_display_method)
+	if relation != RelationId
+		"[$(display_rel_short(relation))] ($propositional_decision_inverse)"
+	else
+		"$propositional_decision_inverse"
+	end
+end
+
+display_decision_inverse(i_frame::Integer, relation::AbstractRelation, feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number; threshold_display_method::Function = x -> x) = begin
+	"{$i_frame} $(display_decision_inverse(relation, feature, test_operator, threshold; threshold_display_method = threshold_display_method))"
+end
+
+# TODO reason about shortened features
+
+display_propositional_decision_inverse(feature::AttributeMinimumFeatureType, test_operator::typeof(≥), threshold::Number; threshold_display_method::Function = x -> x) =
+	"A$(feature.i_attribute) < $(threshold_display_method(threshold))"
+
+display_propositional_decision_inverse(feature::AttributeMaximumFeatureType, test_operator::typeof(≤), threshold::Number; threshold_display_method::Function = x -> x) =
+	"A$(feature.i_attribute) > $(threshold_display_method(threshold))"
+
+
+display_propositional_decision_inverse(feature::AttributeSoftMinimumFeatureType, test_operator::typeof(≥), threshold::Number; threshold_display_method::Function = x -> x) =
+	"A$(feature.i_attribute) $("<" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
+
+display_propositional_decision_inverse(feature::AttributeSoftMaximumFeatureType, test_operator::typeof(≤), threshold::Number; threshold_display_method::Function = x -> x) =
+	"A$(feature.i_attribute) $(">" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
 
 ################################################################################
 ################################################################################
