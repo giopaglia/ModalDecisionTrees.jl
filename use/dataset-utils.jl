@@ -372,6 +372,10 @@ function concat_labeled_datasets((X1, Y1, f1)::Tuple{AbstractVector{<:GenericDat
 	(X, Y, f)
 end
 
+# Single-frame dataset with labels
+concat_labeled_datasets((X1, Y1)::Tuple{GenericDataset,AbstractVector}, (X2, Y2)::Tuple{GenericDataset,AbstractVector}) = 
+	concat_labeled_datasets(([X1], Y1), ([X2], Y2))
+
 # Multi-frame dataset with labels
 function concat_labeled_datasets((X1, Y1)::Tuple{AbstractVector{<:GenericDataset},AbstractVector}, (X2, Y2)::Tuple{AbstractVector{<:GenericDataset},AbstractVector})
 	X = concat_datasets(X1, X2)

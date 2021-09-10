@@ -20,9 +20,9 @@ iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir = results_dir * "/cache"
 model_savedir = results_dir * "/trees"
 
-dry_run = false
+# dry_run = false
 # dry_run = true
-# dry_run = :dataset_only
+dry_run = :dataset_only
 
 # save_datasets = true
 save_datasets = false
@@ -181,15 +181,18 @@ test_operators_dict = Dict(
 	"TestOp"    => [TestOpGeq,    TestOpLeq],
 )
 
-exec_dataset_name = [
-	"FingerMovements",
-	"Libras",
-	"LSST",
-	"NATOPS",
-	"RacketSports",
+exec_dataset_name_mode = [
+	("FingerMovements",false),
+	("FingerMovements",:horizontal_3f),
+	("FingerMovements",:vertical_4f),
+	("FingerMovements",:uniform),
+	("Libras",false),
+	("LSST",false),
+	("NATOPS",false),
+	("RacketSports",false),
 ]
 
-exec_flatten_ontology = [(false,"interval"),(true,"one_world")]
+exec_flatten_ontology = [(false,"interval")] # ,(true,"one_world")]
 
 ontology_dict = Dict(
 	"one_world" => ModalLogic.OneWorldOntology,
@@ -203,16 +206,16 @@ exec_n_chunks = [missing]
 exec_ranges = (;
 	use_training_form    = exec_use_training_form  ,
 	test_operators       = exec_test_operators     ,
-	dataset_name         = exec_dataset_name       ,
+	dataset_name_mode    = exec_dataset_name_mode  ,
 	flatten_ontology     = exec_flatten_ontology   ,
 	n_chunks             = exec_n_chunks           ,
 )
 
 
 dataset_function = 
-	(dataset_name, n_chunks, flatten)->
+	(dataset_name, mode, n_chunks, flatten)->
 	(
-		Multivariate_arffDataset(dataset_name; n_chunks = n_chunks, join_train_n_test = true, flatten = flatten)
+		Multivariate_arffDataset(dataset_name; n_chunks = n_chunks, join_train_n_test = true, flatten = flatten, mode = mode)
 	)
 
 ################################################################################
@@ -309,7 +312,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	
 	use_training_form,
 	test_operators,
-	dataset_name,
+	(dataset_name,mode),
 	(flatten,ontology),
 	n_chunks = params_combination
 	
@@ -326,7 +329,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	)
 
 	dataset_fun_sub_params = (
-		dataset_name, n_chunks, flatten
+		dataset_name, mode, n_chunks, flatten
 	)
 
 	# Load Dataset

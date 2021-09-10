@@ -25,6 +25,7 @@ using DataStructures
 
 using SHA
 using Serialization
+using FileIO
 import JLD2
 import Dates
 
@@ -539,7 +540,7 @@ function buildModalDatasets(X_train, X_test, data_modal_args, modal_args, use_tr
 		end
 		
 		# println("X_train:")
-		# println("  " * display_structure(X_train; indent = 2))
+		# println("  " * display_structure(X_train; indent_str = "  "))
 
 	X_train, X_test
 end
@@ -922,10 +923,10 @@ function exec_scan(
 		
 
 		println("train dataset:")
-		println("  " * display_structure(X_train; indent = 2))
+		println("  " * display_structure(X_train; indent_str = "  "))
 
 		println("test  dataset:")
-		println("  " * display_structure(X_test; indent = 2))
+		println("  " * display_structure(X_test; indent_str = "  "))
 
 		if !skip_training
 			# readline()

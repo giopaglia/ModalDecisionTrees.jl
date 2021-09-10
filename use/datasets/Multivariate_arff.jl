@@ -472,7 +472,7 @@ end
 # Multivariate_arff("FingerMovements")
 # TODO different n_chunks for different frames
 
-function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n_test = false, flatten = false)
+function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n_test = false, flatten = false, mode = false)
 
 	ds_train = readARFF(data_dir * "Multivariate_arff/$(dataset_name)/$(dataset_name)_TRAIN.arff");
 	ds_test  = readARFF(data_dir * "Multivariate_arff/$(dataset_name)/$(dataset_name)_TEST.arff");
@@ -486,6 +486,8 @@ function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n
 		# transform!(ds_test,  fid, [paa,paa], [(;n_chunks=2, f=mean),(;n_chunks=2, f=StatsBase.var)])
 	end
 
+	@assert !(flatten == true && mode != false) "flatten=$(flatten), mode=$(mode)"
+
 	if flatten
 		for fid in length(ds_train.frames)
 			flatten!(ds_train, fid)
@@ -496,14 +498,65 @@ function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n
 	(X_train, Y_train), n_label_samples_train = ClassificationDataset2RunnerDataset(ds_train)
 	(X_test,  Y_test),  n_label_samples_test  = ClassificationDataset2RunnerDataset(ds_test)
 
+	if mode != false
+		if dataset_name == "FingerMovements"
+			# FingerMovements
+			#        F3     F1     Fz     F2     F4
+			# FC5    FC3    FC1    FCz    FC2    FC4    FC6
+			# C5     C3     C1     Cz     C2     C4     C6
+			# CP5    CP3    CP1    CPz    CP2    CP4    CP6
+			#               O1            O2
+
+			transform_f =
+				if mode == :horizontal_3f
+					(X)->begin
+						@assert size(X, 2) == (5+3*7+2) "size(X, 1) != (5+3*7+2). size(X) = $(size(X))"
+						# a = reshape(collect(1:210),(21,5,2))
+						# reshape(a,(7,3,5,2))
+						[X[:,1:5,:], X[:,27:28,:], reshape(X[:,6:26,:], (size(X,1),7,3,size(X,3)))]
+					end
+				elseif mode == :vertical_4f
+					(X)->begin
+						@assert size(X, 2) == (5+3*7+2) "size(X, 1) != (5+3*7+2). size(X) = $(size(X))"
+						[X[:,(6:7:20),:], X[:,(12:7:27),:], X[:,27:28,:], reshape(X[:,[(1:5)..., (7:11)..., (14:18)..., (21:25)...],:], (size(X,1),5,4,size(X,3)))]
+					end
+				elseif mode == :uniform
+					(X)->begin
+						@assert size(X, 2) == (5+3*7+2) "size(X, 1) != (5+3*7+2). size(X) = $(size(X))"
+						new_X = zeros((size(X,1), 7, 5, size(X,3)))
+						new_X[:,2:6,1,:,:] = X[:,1:5,:,:]
+						new_X[:,1:7,2,:,:] = X[:,6:12,:,:]
+						new_X[:,1:7,3,:,:] = X[:,13:19,:,:]
+						new_X[:,1:7,4,:,:] = X[:,20:26,:,:]
+						new_X[:,3,  5,:,:] = X[:,27,:,:]
+						new_X[:,5,  5,:,:] = X[:,28,:,:]
+						[new_X]
+					end
+				else
+					error("mode = $(mode)")
+				end
+			# TODO
+			@assert length(X_train) == 1
+			@assert length(X_test) == 1
+			
+			X_train, X_test = transform_f(X_train[1]), transform_f(X_test[1])
+		else
+			error("Unknown dataset_name ($(dataset_name)) for mode = $(mode)")
+		end
+	end
+
 	# println(countmap(Y_train))
 	# println(countmap(Y_test))
 	# println(countmap([Y_train..., Y_test...]))
 
-	if join_train_n_test
+	if join_train_n_test == true
 		concat_labeled_datasets((X_train, Y_train), (X_test,  Y_test), (n_label_samples_train, n_label_samples_test)), (n_label_samples_train .+ n_label_samples_test)
-	else
+	elseif join_train_n_test == false
 		((X_train, Y_train), (X_test,  Y_test)), n_label_samples_train
+	elseif join_train_n_test == :only_training
+		(X_train, Y_train), n_label_samples_train
+	elseif join_train_n_test == :only_testing
+		(X_test,  Y_test), n_label_samples_test
 	end
 end
 
