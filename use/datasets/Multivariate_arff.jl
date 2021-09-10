@@ -498,51 +498,53 @@ function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n
 	(X_train, Y_train), n_label_samples_train = ClassificationDataset2RunnerDataset(ds_train)
 	(X_test,  Y_test),  n_label_samples_test  = ClassificationDataset2RunnerDataset(ds_test)
 
-	if mode != false
-		if dataset_name == "FingerMovements"
-			# FingerMovements
-			#        F3     F1     Fz     F2     F4
-			# FC5    FC3    FC1    FCz    FC2    FC4    FC6
-			# C5     C3     C1     Cz     C2     C4     C6
-			# CP5    CP3    CP1    CPz    CP2    CP4    CP6
-			#               O1            O2
+	if dataset_name == "FingerMovements"
+		# FingerMovements
+		#        F3     F1     Fz     F2     F4
+		# FC5    FC3    FC1    FCz    FC2    FC4    FC6
+		# C5     C3     C1     Cz     C2     C4     C6
+		# CP5    CP3    CP1    CPz    CP2    CP4    CP6
+		#               O1            O2
 
-			transform_f =
-				if mode == :horizontal_3f
-					(X)->begin
-						@assert size(X, 2) == (5+3*7+2) "size(X, 1) != (5+3*7+2). size(X) = $(size(X))"
-						# a = reshape(collect(1:210),(21,5,2))
-						# reshape(a,(7,3,5,2))
-						[X[:,1:5,:], X[:,27:28,:], reshape(X[:,6:26,:], (size(X,1),7,3,size(X,3)))]
-					end
-				elseif mode == :vertical_4f
-					(X)->begin
-						@assert size(X, 2) == (5+3*7+2) "size(X, 1) != (5+3*7+2). size(X) = $(size(X))"
-						[X[:,(6:7:20),:], X[:,(12:7:27),:], X[:,27:28,:], reshape(X[:,[(1:5)..., (7:11)..., (14:18)..., (21:25)...],:], (size(X,1),5,4,size(X,3)))]
-					end
-				elseif mode == :uniform
-					(X)->begin
-						@assert size(X, 2) == (5+3*7+2) "size(X, 1) != (5+3*7+2). size(X) = $(size(X))"
-						new_X = zeros((size(X,1), 7, 5, size(X,3)))
-						new_X[:,2:6,1,:,:] = X[:,1:5,:,:]
-						new_X[:,1:7,2,:,:] = X[:,6:12,:,:]
-						new_X[:,1:7,3,:,:] = X[:,13:19,:,:]
-						new_X[:,1:7,4,:,:] = X[:,20:26,:,:]
-						new_X[:,3,  5,:,:] = X[:,27,:,:]
-						new_X[:,5,  5,:,:] = X[:,28,:,:]
-						[new_X]
-					end
-				else
-					error("mode = $(mode)")
+		add_dim(X::Array) = reshape(X, (1,size(X)...))
+
+		transform_f =
+			if mode == false
+				(X)->[add_dim(X)]
+			elseif mode == :horizontal_3f
+				(X)->begin
+					@assert size(X, 2) == (5+3*7+2) "size(X, 1) != (5+3*7+2). size(X) = $(size(X))"
+					# a = reshape(collect(1:210),(21,5,2))
+					# reshape(a,(7,3,5,2))
+					[add_dim(X[:,1:5,:]), add_dim(X[:,27:28,:]), reshape(X[:,6:26,:], (size(X,1),7,3,size(X,3)))]
 				end
-			# TODO
-			@assert length(X_train) == 1
-			@assert length(X_test) == 1
-			
-			X_train, X_test = transform_f(X_train[1]), transform_f(X_test[1])
-		else
-			error("Unknown dataset_name ($(dataset_name)) for mode = $(mode)")
-		end
+			elseif mode == :vertical_4f
+				(X)->begin
+					@assert size(X, 2) == (5+3*7+2) "size(X, 1) != (5+3*7+2). size(X) = $(size(X))"
+					[add_dim(X[:,(6:7:20),:]), add_dim(X[:,(12:7:27),:]), add_dim(X[:,27:28,:]), reshape(X[:,[(1:5)..., (7:11)..., (14:18)..., (21:25)...],:], (size(X,1),5,4,size(X,3)))]
+				end
+			elseif mode == :uniform
+				(X)->begin
+					@assert size(X, 2) == (5+3*7+2) "size(X, 1) != (5+3*7+2). size(X) = $(size(X))"
+					new_X = zeros((size(X,1), 7, 5, size(X,3)))
+					new_X[:,2:6,1,:,:] = X[:,1:5,:,:]
+					new_X[:,1:7,2,:,:] = X[:,6:12,:,:]
+					new_X[:,1:7,3,:,:] = X[:,13:19,:,:]
+					new_X[:,1:7,4,:,:] = X[:,20:26,:,:]
+					new_X[:,3,  5,:,:] = X[:,27,:,:]
+					new_X[:,5,  5,:,:] = X[:,28,:,:]
+					[new_X]
+				end
+			else
+				error("dataset_name = $(dataset_name), mode = $(mode)")
+			end
+		# TODO
+		@assert length(X_train) == 1
+		@assert length(X_test) == 1
+		
+		X_train, X_test = transform_f(X_train[1]), transform_f(X_test[1])
+	# else
+	# 	error("Unknown dataset_name ($(dataset_name)) for mode = $(mode)")
 	end
 
 	# println(countmap(Y_train))
