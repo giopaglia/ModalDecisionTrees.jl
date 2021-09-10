@@ -14,7 +14,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./MTSC"
+results_dir = "./MTSC-FingerMovements3D"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir = results_dir * "/cache"
@@ -186,17 +186,18 @@ exec_dataset_name_mode = [
 	("FingerMovements",:horizontal_3f),
 	("FingerMovements",:vertical_4f),
 	("FingerMovements",:uniform),
-	("Libras",false),
-	("LSST",false),
-	("NATOPS",false),
-	("RacketSports",false),
+	#("Libras",false),
+	#("LSST",false),
+	#("NATOPS",false),
+	#("RacketSports",false),
 ]
 
-exec_flatten_ontology = [(false,"interval")] # ,(true,"one_world")]
+exec_flatten_ontology = [(false,"interval2D")] # ,(true,"one_world")]
 
 ontology_dict = Dict(
 	"one_world" => ModalLogic.OneWorldOntology,
 	"interval"  => getIntervalOntologyOfDim(Val(1)),
+	"interval2D"  => getIntervalOntologyOfDim(Val(2)),
 )
 
 
