@@ -154,6 +154,7 @@ export n_samples, n_attributes, n_features, n_relations,
 				get_gamma, test_decision,
 				##############################
 				concat_datasets,
+				dataset_has_nonevalues,
 				##############################
 				relations,
 				initws_function,
@@ -232,7 +233,7 @@ getInstanceAttribute(inst::MatricialInstance{T,1},      idx::Integer) where T = 
 getInstanceAttribute(inst::MatricialInstance{T,2},      idx::Integer) where T = @views inst[:,    idx]::MatricialChannel{T,1} # N=1
 getInstanceAttribute(inst::MatricialInstance{T,3},      idx::Integer) where T = @views inst[:, :, idx]::MatricialChannel{T,2} # N=2
 
-dataset_has_nonevalues(d::MatricialDataset) = nothing in d || NaN in d || missing in d
+dataset_has_nonevalues(d::MatricialDataset) = nothing in d || NaN in d || any(ismissing.(d))
 
 concat_datasets(d1::MatricialDataset{T,2}, d2::MatricialDataset{T,2}) where {T} = cat(d1, d2; dims=2)
 concat_datasets(d1::MatricialDataset{T,3}, d2::MatricialDataset{T,3}) where {T} = cat(d1, d2; dims=3)
@@ -385,11 +386,11 @@ slice_dataset(X::OntologicalDataset, inds::AbstractVector{<:Integer}; args...)  
 	OntologicalDataset(slice_dataset(X.domain, inds; args...), X.ontology, X.features, X.grouped_featsaggrsnops)
 
 
-display_structure(X::OntologicalDataset; indent::Integer = 0) = begin
+display_structure(X::OntologicalDataset; indent_str = "") = begin
 	out = "$(typeof(X))\t$(Base.summarysize(X) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
-	out *= repeat(' ', indent) * "├ domain shape\t$(Base.size(X.domain))\n"
-	out *= repeat(' ', indent) * "├ $(length(relations(X))) relations\t$(relations(X))\n"
-	out *= repeat(' ', indent) * "└ max_channel_size\t$(max_channel_size(X))"
+	out *= indent_str * "├ domain shape\t$(Base.size(X.domain))\n"
+	out *= indent_str * "├ $(length(relations(X))) relations\t$(relations(X))\n"
+	out *= indent_str * "└ max_channel_size\t$(max_channel_size(X))"
 	out
 end
 
@@ -841,11 +842,11 @@ slice_dataset(X::StumpFeatModalDatasetWithOrWithoutMemoization, inds::AbstractVe
 		X.featsnaggrs,
 		X.grouped_featsnaggrs)
 
-display_structure(X::StumpFeatModalDataset; indent::Integer = 0) = begin
+display_structure(X::StumpFeatModalDataset; indent_str = "") = begin
 	out = "$(typeof(X))\t$((Base.summarysize(X.fmd) + Base.summarysize(X.fmd_m) + Base.summarysize(X.fmd_g)) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
-	out *= repeat(' ', indent) * "├ fmd\t$(Base.summarysize(X.fmd) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t(shape $(Base.size(X.fmd)))\n"
-	out *= repeat(' ', indent) * "├ fmd_m\t$(Base.summarysize(X.fmd_m) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t(shape $(Base.size(X.fmd_m)))\n"
-	out *= repeat(' ', indent) * "└ fmd_g\t$(Base.summarysize(X.fmd_g) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t"
+	out *= indent_str * "├ fmd\t$(Base.summarysize(X.fmd) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t(shape $(Base.size(X.fmd)))\n"
+	out *= indent_str * "├ fmd_m\t$(Base.summarysize(X.fmd_m) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t(shape $(Base.size(X.fmd_m)))\n"
+	out *= indent_str * "└ fmd_g\t$(Base.summarysize(X.fmd_g) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t"
 	if !isnothing(X.fmd_g)
 		out *= "\t(shape $(Base.size(X.fmd_g)))"
 	else
@@ -1066,16 +1067,16 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
 end
 
 
-display_structure(X::StumpFeatModalDatasetWithMemoization; indent::Integer = 0) = begin
+display_structure(X::StumpFeatModalDatasetWithMemoization; indent_str = "") = begin
 	out = "$(typeof(X))\t$((Base.summarysize(X.fmd) + Base.summarysize(X.fmd_m) + Base.summarysize(X.fmd_g)) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
-	out *= repeat(' ', indent) * "├ fmd\t$(Base.summarysize(X.fmd) / 1024 / 1024 |> x->round(x, digits=2)) MBs"
+	out *= indent_str * "├ fmd\t$(Base.summarysize(X.fmd) / 1024 / 1024 |> x->round(x, digits=2)) MBs"
 		out *= "\t(shape $(Base.size(X.fmd.fwd)))\n"
 		# out *= "\t(shape $(Base.size(X.fmd.fwd)), $(n_nothing) nothings, $((1-(n_nothing    / size(X.fmd)))*100)%)\n"
 	# TODO n_nothing_m = count_nothings(X.fmd_m)
 	n_nothing_m = count(isnothing, X.fmd_m.d)
-	out *= repeat(' ', indent) * "├ fmd_m\t$(Base.summarysize(X.fmd_m) / 1024 / 1024 |> x->round(x, digits=2)) MBs"
+	out *= indent_str * "├ fmd_m\t$(Base.summarysize(X.fmd_m) / 1024 / 1024 |> x->round(x, digits=2)) MBs"
 		out *= "\t(shape $(Base.size(X.fmd_m)), $(n_nothing_m) nothings)\n" # , $((1-(n_nothing_m  / n_v(X.fmd_m)))*100)%)\n"
-	out *= repeat(' ', indent) * "└ fmd_g\t$(Base.summarysize(X.fmd_g) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t"
+	out *= indent_str * "└ fmd_g\t$(Base.summarysize(X.fmd_g) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t"
 	if !isnothing(X.fmd_g)
 		# n_nothing_g = count(isnothing, X.fmd_g)
 		# out *= "\t(shape $(Base.size(X.fmd_g)), $(n_nothing_g) nothings, $((1-(n_nothing_g  / size(X.fmd_g)))*100)%)"
@@ -1272,17 +1273,17 @@ slice_dataset(X::MultiFrameModalDataset, inds::AbstractVector{<:Integer}; args..
 const SingleFrameGenericDataset{T} = Union{MatricialDataset{T},OntologicalDataset{T},AbstractModalDataset{T}}
 const GenericDataset = Union{SingleFrameGenericDataset,MultiFrameModalDataset}
 
-display_structure(Xs::MultiFrameModalDataset; indent::Integer = 0) = begin
+display_structure(Xs::MultiFrameModalDataset; indent_str = "") = begin
 	out = "$(typeof(Xs))" # * "\t\t\t$(Base.summarysize(Xs) / 1024 / 1024 |> x->round(x, digits=2)) MBs"
 	for (i_frame, X) in enumerate(frames(Xs))
 		if i_frame == n_frames(Xs)
-			out *= "\n" * repeat(' ', indent) * "└ "
+			out *= "\n$(indent_str)└ "
 		else
-			out *= "\n" * repeat(' ', indent) * "├ "
+			out *= "\n$(indent_str)├ "
 		end
 		out *= "[$(i_frame)] "
 		# \t\t\t$(Base.summarysize(X) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t(world_type: $(world_type(X)))"
-		out *= display_structure(X; indent = indent+3) * "\n"
+		out *= display_structure(X; indent_str = indent_str * (i_frame == n_frames(Xs) ? "   " : "│  ")) * "\n"
 	end
 	out
 end

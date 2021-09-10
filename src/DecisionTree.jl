@@ -8,6 +8,7 @@ using LinearAlgebra
 import Random
 using Statistics
 using StatsBase
+using Printf
 
 using Logging
 using Logging: @logmsg
@@ -238,7 +239,7 @@ function print_tree(leaf::DTLeaf, depth=-1, indent=0, indent_guides=[]; n_tot_in
 	n_inst = length(leaf.values)
 	confidence = n_correct/n_inst
 
-	metrics_str = "conf: $(confidence)"
+	metrics_str = "conf: $(@sprintf "%.4f" confidence)"
 	
 	if !isnothing(rel_confidence_class_counts)
 		if !isnothing(n_tot_inst)
@@ -259,23 +260,21 @@ function print_tree(leaf::DTLeaf, depth=-1, indent=0, indent_guides=[]; n_tot_in
 
 		if !isnothing(n_tot_inst)
 			class_support = (haskey(rel_confidence_class_counts, class) ? rel_confidence_class_counts[class] : 0)/n_tot_inst
-			metrics_str *= ", lift: $(confidence/class_support)"
+			lift = confidence/class_support
+			metrics_str *= ", lift: $(@sprintf "%.2f" lift)"
 		end
-
-		metrics_str *= ", rel_conf: $((haskey(cur_class_counts, class) ? cur_class_counts[class] : 0)/(haskey(rel_confidence_class_counts, class) ? rel_confidence_class_counts[class] : 0))/rel_tot_inst)"
+		rel_conf = ((haskey(cur_class_counts, class) ? cur_class_counts[class] : 0)/(haskey(rel_confidence_class_counts, class) ? rel_confidence_class_counts[class] : 0))/rel_tot_inst
+		metrics_str *= ", rel_conf: $(@sprintf "%.4f" rel_conf)"
 	end
 
 	if !isnothing(n_tot_inst)
 		support = n_inst/n_tot_inst
-		metrics_str *= ", supp = $(support)"
-		# lift = ...
-		# metrics_str *= ", lift = $(lift)"
-		# conv = ...
-		# metrics_str *= ", conv = $(conv)"
+		metrics_str *= ", supp = $(@sprintf "%.4f" support)"
 	end
 
 	if !isnothing(rel_confidence_class_counts) && !isnothing(n_tot_inst)
-		metrics_str *= ", conv: $((1-class_support)/(1-confidence))"
+		conv = (1-class_support)/(1-confidence)
+		metrics_str *= ", conv: $(@sprintf "%.4f" conv)"
 	end
 
 	println("$(leaf.majority) : $(n_correct)/$(n_inst) ($(metrics_str))")
@@ -533,6 +532,11 @@ end
 function print_apply_tree(tree::DTInternal{T, S}, X::MultiFrameModalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, class::S; update_majority = false) where {T, S}
 	
 	(satisfied,new_worlds) = ModalLogic.modal_step(get_frame(X, tree.i_frame), i_instance, worlds[tree.i_frame], tree.relation, tree.feature, tree.test_operator, tree.threshold)
+	
+	# if satisfied
+	# 	println("new_worlds: $(new_worlds)")
+	# end
+	
 	worlds[tree.i_frame] = new_worlds
 
 	DTInternal(
