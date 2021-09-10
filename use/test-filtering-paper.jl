@@ -27,8 +27,8 @@ tree_configs = [
 ]
 
 for tree_config in tree_configs
-    # max_sample_rate = 8_000
-    max_sample_rate = 16000
+    max_sample_rate = 8_000
+
     tree_hash, tree, n_task, n_version, nbands, preprocess_wavs, max_points, ma_size, ma_step = tree_config
 
     audio_kwargs = (
@@ -83,7 +83,7 @@ for tree_config in tree_configs
             Y;
             postprocess_wavs = [],
             postprocess_wavs_kwargs = [],
-            filter_kwargs = (nbands = nbands,),#, maxfreq = max_sample_rate / 2),
+            filter_kwargs = (nbands = nbands, maxfreq = max_sample_rate / 2),
             remove_from_path = "../datasets/KDD/",
             destination_dir = filtered_destination_dir,
     #        draw_anim_for_instances = [ findfirst(isequal("../datasets/KDD/healthyandroidwithcough/cough/cough_9me0RMtVww_1586943699308.wav"), filepaths[1]) ]

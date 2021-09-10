@@ -489,6 +489,11 @@ function apply_tree_to_datasets_wavs(
         originals[i] = merge_channels(curr_orig)
     end
 
+    if :maxfreq in keys(filter_kwargs)
+        min_sr = minimum(samplerates)
+        @assert (min_sr / 2) >= filter_kwargs[:maxfreq] "maxfreq ($(filter_kwargs[:maxfreq])) is too high: lower samplerate in dataset is $min_sr (Nyquist freq: $(min_sr / 2))"
+    end
+
     filtered = Vector{Vector{Float64}}(undef, n_instances)
     Threads.@threads for i in 1:n_instances
         # TODO: use path + worlds to generate dynamic filters
@@ -501,8 +506,7 @@ function apply_tree_to_datasets_wavs(
         bands = Vector{Int64}(undef, n_features)
         weights = Vector{AbstractFloat}(undef, n_features)
         for j in 1:n_features
-            weights[j] =
-            	1.0
+            weights[j] = 1.0
                 # if ((isequal(results[i].path[j].test_operator, >=) || isequal(results[i].path[j].test_operator, >)) && results[i].path[j].taken) ||
                 #    ((isequal(results[i].path[j].test_operator, <=) || isequal(results[i].path[j].test_operator, <)) && !results[i].path[j].taken)
                 #     if results[i].path[j].threshold <= 1
