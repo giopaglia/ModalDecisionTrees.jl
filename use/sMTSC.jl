@@ -21,8 +21,8 @@ data_savedir = results_dir * "/cache"
 model_savedir = results_dir * "/trees"
 
 # dry_run = false
-# dry_run = true
-dry_run = :dataset_only
+# dry_run = :dataset_only
+dry_run = true
 
 # save_datasets = true
 save_datasets = false
@@ -48,7 +48,7 @@ tree_args = [
 for loss_function in [DecisionTree.util.entropy]
 	for min_samples_leaf in [2,4] # [1,2]
 		for min_purity_increase in [0.01] # [0.01, 0.001]
-			for min_loss_at_leaf in [0.2, 0.6] # [0.4, 0.6]
+			for min_loss_at_leaf in [0.2, 0.4, 0.6] # [0.4, 0.6]
 				push!(tree_args, 
 					(
 						loss_function             = loss_function,
@@ -75,9 +75,9 @@ optimize_forest_computation = true
 
 forest_args = []
 
-for n_trees in [] # [50,100]
-	for n_subfeatures in [] # [half_f]
-		for n_subrelations in [] # [id_f]
+for n_trees in [50,100]
+	for n_subfeatures in [half_f]
+		for n_subrelations in [id_f]
 			push!(forest_args, (
 				n_subfeatures       = n_subfeatures,
 				n_trees             = n_trees,
@@ -200,7 +200,7 @@ ontology_dict = Dict(
 )
 
 
-exec_n_chunks = [missing]
+exec_n_chunks = [5, 10, 15]
 # exec_n_chunks = [60]
 
 exec_ranges = (;
