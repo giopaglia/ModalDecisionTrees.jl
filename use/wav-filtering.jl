@@ -502,24 +502,25 @@ function apply_tree_to_datasets_wavs(
         weights = Vector{AbstractFloat}(undef, n_features)
         for j in 1:n_features
             weights[j] =
-                if ((isequal(results[i].path[j].test_operator, >=) || isequal(results[i].path[j].test_operator, >)) && results[i].path[j].taken) ||
-                   ((isequal(results[i].path[j].test_operator, <=) || isequal(results[i].path[j].test_operator, <)) && !results[i].path[j].taken)
-                    if results[i].path[j].threshold <= 1
-                        # > than low
-                        0.5
-                    else
-                        # > than high
-                        1.0
-                    end
-                else
-                    if results[i].path[j].threshold <= 1
-                        # < than low
-                        0.25
-                    else
-                        # < than high
-                        0.5
-                    end
-                end
+            	1.0
+                # if ((isequal(results[i].path[j].test_operator, >=) || isequal(results[i].path[j].test_operator, >)) && results[i].path[j].taken) ||
+                #    ((isequal(results[i].path[j].test_operator, <=) || isequal(results[i].path[j].test_operator, <)) && !results[i].path[j].taken)
+                #     if results[i].path[j].threshold <= 1
+                #         # > than low
+                #         0.5
+                #     else
+                #         # > than high
+                #         1.0
+                #     end
+                # else
+                #     if results[i].path[j].threshold <= 1
+                #         # < than low
+                #         0.25
+                #     else
+                #         # < than high
+                #         0.5
+                #     end
+                # end
             bands[j] = results[i].path[j].feature.i_attribute
         end
         println("Applying filter to file $(wav_paths[i]) with bands $(string(collect(zip(bands, weights))))...")
