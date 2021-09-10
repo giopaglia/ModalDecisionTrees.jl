@@ -1,2 +1,0 @@
-TIMESTAMP	FILE NAME	COMP TIME	ARGS	
-12/07/2021 22:16:59	dataset_86ac77a9b8e40780f5f917e49d2b00cb01860e1269993f6c085d0ff2eb0940e2.jld	00:01:31	(1, 1, (wintime = 0.025, steptime = 0.01, fbtype = :mel, window_f = DSP.Windows.hamming, pre_emphasis = 0.97, nbands = 2, sumpower = false, dither = false), (max_points = 10, ma_size = 45, ma_step = 30), Any[], false)	

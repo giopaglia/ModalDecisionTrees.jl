@@ -1,4 +1,4 @@
-import DecisionTree.ModalLogic: concat_datasets, slice_dataset
+import DecisionTree.ModalLogic: concat_datasets, slice_dataset, dataset_has_nonevalues
 
 # TODO note that these splitting functions simply cut the dataset in two,
 #  and they don't necessarily produce balanced cuts. To produce balanced cuts,
@@ -371,6 +371,10 @@ function concat_labeled_datasets((X1, Y1, f1)::Tuple{AbstractVector{<:GenericDat
 	# println(size.(f2))
 	(X, Y, f)
 end
+
+# Single-frame dataset with labels
+concat_labeled_datasets((X1, Y1)::Tuple{GenericDataset,AbstractVector}, (X2, Y2)::Tuple{GenericDataset,AbstractVector}) = 
+	concat_labeled_datasets(([X1], Y1), ([X2], Y2))
 
 # Multi-frame dataset with labels
 function concat_labeled_datasets((X1, Y1)::Tuple{AbstractVector{<:GenericDataset},AbstractVector}, (X2, Y2)::Tuple{AbstractVector{<:GenericDataset},AbstractVector})

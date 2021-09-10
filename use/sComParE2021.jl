@@ -16,12 +16,14 @@ train_seed = 1
 
 results_dir = "./ComParE2021-september-v2"
 
-iteration_progress_json_file_path = results_dir * "/progress.json"
-data_savedir = results_dir * "/cache"
-model_savedir = results_dir * "/trees"
+iteration_progress_json_file_path =  "$(results_dir)/progress.json"
+data_savedir    = "$(results_dir)/cache"
+trees_directory = "$(results_dir)/trees"
+
 
 # dry_run = false
-dry_run = :dataset_only
+# dry_run = :dataset_only
+dry_run = :model_study
 # dry_run = true
 
 # save_datasets = true
@@ -112,7 +114,7 @@ modal_args = (;
 )
 
 data_modal_args = (;
-	ontology = getIntervalOntologyOfDim(Val(1)),
+	# ontology = getIntervalOntologyOfDim(Val(1)),
 	# ontology = getIntervalOntologyOfDim(Val(2)),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A]),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A, ModalLogic.IA_L, ModalLogic.IA_Li, ModalLogic.IA_D]),
@@ -269,14 +271,20 @@ test_operators_dict = Dict(
 )
 
 
-exec__2D_or_3D = [false] # , false]
+exec__2D_or_3D_ontology = [(false,"Interval")] # , (true,"Interval2D")]
+
+ontology_dict = Dict(
+	"OneWorld"    => ModalLogic.OneWorldOntology,
+	"Interval"    => getIntervalOntologyOfDim(Val(1)),
+	"Interval2D"  => getIntervalOntologyOfDim(Val(2)),
+)
 
 exec_include_static_data = [true, false] #, true]
 
 exec_use_lowSR = [true, false]
 
 exec_ranges = (;
-	_2D_or_3D            = exec__2D_or_3D          ,
+	_2D_or_3D_ontology   = exec__2D_or_3D_ontology ,
 	include_static_data  = exec_include_static_data,
 	use_lowSR            = exec_use_lowSR          ,
 	dataset_kwargs       = exec_dataset_kwargs     ,
@@ -295,11 +303,11 @@ dataset_function =
 		use_lowSR,
 		dataset_kwargs,
 		cur_preprocess_wavs,
-		use_full_mfcc,)->
+		use_full_mfcc; mode = :development)->
 	ComParE2021Dataset(;
 		subchallenge = "CCS",
 		use_lowSR = use_lowSR,
-		mode = :development,
+		mode = mode,
 		include_static_data = include_static_data,
 		treat_as_single_attribute_2D_context = _2D_or_3D,
 		#
@@ -341,12 +349,64 @@ iteration_whitelist = [
 
 iteration_blacklist = []
 
+
+models_to_study = Dict([
+	# ("926c7c1e917236847f99e052f4785eae737f210094891863866bb7afe45eb732",
+
+	(
+		(false,"Interval"),true,true,(ma_size = 120, ma_step = 100),["NG","Normalize"],false,"stump_with_memoization",40,"TestOp_80"
+	) => [
+	"tree_133e11b8405703a7e9bb988fa6e8e117dddbee4d28279c2cc3eea77a50df506c",
+	"tree_ba85456f353973bc747807a5fabc672389c6840bd9faa311bea7288a266072c1",
+	"rf_6daa56e0812a6c8ed2553ccba3a84730dd36491a18f958824236f68a2b584dc5",
+	]
+])
+
+models_to_study = Dict(JSON.json(k) => v for (k,v) in models_to_study)
+
+MakeOntologicalDataset(Xs, test_operators, ontology) = begin
+	MultiFrameModalDataset([
+		begin
+			features = FeatureTypeFun[]
+
+			for i_attr in 1:n_attributes(X)
+				for test_operator in test_operators
+					if test_operator == TestOpGeq
+						push!(features, ModalLogic.AttributeMinimumFeatureType(i_attr))
+					elseif test_operator == TestOpLeq
+						push!(features, ModalLogic.AttributeMaximumFeatureType(i_attr))
+					elseif test_operator isa _TestOpGeqSoft
+						push!(features, ModalLogic.AttributeSoftMinimumFeatureType(i_attr, test_operator.alpha))
+					elseif test_operator isa _TestOpLeqSoft
+						push!(features, ModalLogic.AttributeSoftMaximumFeatureType(i_attr, test_operator.alpha))
+					else
+						error("Unknown test_operator type: $(test_operator), $(typeof(test_operator))")
+					end
+				end
+			end
+
+			featsnops = Vector{<:TestOperatorFun}[
+				if any(map(t->isa(feature,t), [AttributeMinimumFeatureType, AttributeSoftMinimumFeatureType]))
+					[≥]
+				elseif any(map(t->isa(feature,t), [AttributeMaximumFeatureType, AttributeSoftMaximumFeatureType]))
+					[≤]
+				else
+					error("Unknown feature type: $(feature), $(typeof(feature))")
+					[≥, ≤]
+				end for feature in features
+			]
+
+			OntologicalDataset(X, ontology, features, featsnops)
+		end for X in Xs])
+end
+
 ################################################################################
 ################################################################################
 ################################################################################
 ################################################################################
 
 mkpath(results_dir)
+mkpath(trees_directory)
 
 if "-f" in ARGS
 	if isfile(iteration_progress_json_file_path)
@@ -401,14 +461,17 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	##############################################################################
 	
-	_2D_or_3D,
+	(_2D_or_3D,ontology),
 	include_static_data,
 	use_lowSR,
 	dataset_kwargs,
 	preprocess_wavs,
 	use_full_mfcc,
-	use_training_form, nbands, test_operators = params_combination
+	use_training_form,
+	nbands,
+	test_operators = params_combination
 	
+	ontology = ontology_dict[ontology]
 	test_operators = test_operators_dict[test_operators]
 
 	cur_audio_kwargs = merge(
@@ -425,6 +488,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	
 	cur_data_modal_args = merge(data_modal_args,
 		(
+			ontology       = ontology,
 			test_operators = test_operators,
 		)
 	)
@@ -438,6 +502,88 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		cur_preprocess_wavs,
 		use_full_mfcc,
 	)
+
+	if dry_run == :model_study
+		# println(JSON.json(params_combination))
+		# println(models_to_study)
+		# println(keys(models_to_study))
+		if JSON.json(params_combination) in keys(models_to_study)
+			
+			trees = models_to_study[JSON.json(params_combination)]
+			
+			println()
+			println()
+			println("Study models for $(params_combination): $(trees)")
+
+			if length(trees) == 0
+				continue
+			end
+			
+			println("dataset_fun_sub_params: $(dataset_fun_sub_params)")
+
+			# @assert dataset_fun_sub_params isa String
+			
+			# dataset_fun_sub_params = merge(dataset_fun_sub_params, (; mode = :testing))
+
+			datasets = [
+				(mode,if dataset_fun_sub_params isa Tuple
+					dataset = dataset_function(dataset_fun_sub_params...; mode = mode)
+					# dataset = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
+					(X, Y), (n_pos, n_neg) = dataset
+					# elseif dataset_fun_sub_params isa String
+					# 	# load_cached_obj("dataset", data_savedir, dataset_fun_sub_params)
+					# 	dataset = Serialization.deserialize("$(data_savedir)/dataset_$(dataset_fun_sub_params).jld").train_n_test
+					# 	println(typeof(dataset))
+					# 	(X, Y), (n_pos, n_neg) = dataset
+					# 	(X, Y, nothing), (n_pos, n_neg)
+
+					# TODO should not need these at test time. Instead, extend functions so that one can use a MatricialDataset instead of an OntologicalDataset
+					X = MakeOntologicalDataset(X, test_operators, ontology)
+					# println(length(Y))
+					# println((n_pos, n_neg))
+
+					println(display_structure(X))
+					# println(Y)
+					dataset = (X, Y), (n_pos, n_neg)
+					dataset
+				else
+					error(typeof(dataset_fun_sub_params))
+				end) for mode in [:testing, :development]
+			]
+
+			for tree_hash in trees
+
+				println()
+				println()
+				println("Loading tree: $(tree_hash)...")
+				
+				T = load("$(trees_directory)/$(tree_hash).jld")["T"]
+
+				# print_tree(tree, n_tot_inst = 226)
+				println()
+				println("Original tree (training):")
+				print_tree(T)
+
+				for (mode,dataset) in datasets
+					(X, Y), (n_pos, n_neg) = dataset
+
+					println()
+
+					# regenerated_tree = print_apply_tree(T, X, Y)
+					println()
+					println("Regenerated tree ($(mode)):")
+					regenerated_tree = print_apply_tree(T, X, Y; print_relative_confidence = true)
+
+					preds = apply_tree(T, X);
+					cm = confusion_matrix(Y, preds)
+					println(cm)
+					
+					# readline()
+					# print_tree(regenerated_tree)
+				end
+			end
+		end
+	end
 
 	# Load Dataset
 	# dataset_function(dataset_fun_sub_params...)
@@ -458,41 +604,43 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	##############################################################################
 	
-	exec_scan(
-		params_namedtuple,
-		dataset;
-		### Training params
-		train_seed                      =   train_seed,
-		modal_args                      =   cur_modal_args,
-		tree_args                       =   tree_args,
-		tree_post_pruning_purity_thresh =   [],
-		forest_args                     =   forest_args,
-		forest_runs                     =   forest_runs,
-		optimize_forest_computation     =   optimize_forest_computation,
-		test_flattened                  =   test_flattened,
-		test_averaged                   =   test_averaged,
-		### Dataset params
-		split_threshold                 =   split_threshold,
-		data_modal_args                 =   cur_data_modal_args,
-		dataset_slices                  =   dataset_slices,
-		round_dataset_to_datatype       =   round_dataset_to_datatype,
-		use_training_form               =   use_training_form,
-		### Run params
-		results_dir                     =   results_dir,
-		data_savedir                    =   data_savedir,
-		model_savedir                   =   model_savedir,
-		legacy_gammas_check             =   legacy_gammas_check,
-		log_level                       =   log_level,
-		timing_mode                     =   timing_mode,
-		### Misc
-		save_datasets                   =   save_datasets,
-		skip_training                   =   skip_training,
-		callback                        =   (dataseed)->begin
-			# Add this step to the "history" of already computed iteration
-			push_iteration_to_history!(history, (params_namedtuple, dataseed))
-			save_history(iteration_progress_json_file_path, history)
-		end
-	);
+	if dry_run == true
+		exec_scan(
+			params_namedtuple,
+			dataset;
+			### Training params
+			train_seed                      =   train_seed,
+			modal_args                      =   cur_modal_args,
+			tree_args                       =   tree_args,
+			tree_post_pruning_purity_thresh =   [],
+			forest_args                     =   forest_args,
+			forest_runs                     =   forest_runs,
+			optimize_forest_computation     =   optimize_forest_computation,
+			test_flattened                  =   test_flattened,
+			test_averaged                   =   test_averaged,
+			### Dataset params
+			split_threshold                 =   split_threshold,
+			data_modal_args                 =   cur_data_modal_args,
+			dataset_slices                  =   dataset_slices,
+			round_dataset_to_datatype       =   round_dataset_to_datatype,
+			use_training_form               =   use_training_form,
+			### Run params
+			results_dir                     =   results_dir,
+			data_savedir                    =   data_savedir,
+			model_savedir                   =   model_savedir,
+			legacy_gammas_check             =   legacy_gammas_check,
+			log_level                       =   log_level,
+			timing_mode                     =   timing_mode,
+			### Misc
+			save_datasets                   =   save_datasets,
+			skip_training                   =   skip_training,
+			callback                        =   (dataseed)->begin
+				# Add this step to the "history" of already computed iteration
+				push_iteration_to_history!(history, (params_namedtuple, dataseed))
+				save_history(iteration_progress_json_file_path, history)
+			end
+		);
+	end
 
 end
 
