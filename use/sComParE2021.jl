@@ -21,9 +21,9 @@ data_savedir    = "$(results_dir)/cache"
 trees_directory = "$(results_dir)/trees"
 
 
-# dry_run = false
-# dry_run = :dataset_only
-dry_run = :model_study
+dry_run = false
+#dry_run = :dataset_only
+#dry_run = :model_study
 # dry_run = true
 
 # save_datasets = true
