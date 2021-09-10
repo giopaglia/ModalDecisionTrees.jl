@@ -20,9 +20,9 @@ iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/cache"
 model_savedir = results_dir * "/trees"
 
-# dry_run = false
+dry_run = false
 #dry_run = true
-dry_run = :dataset_only
+#dry_run = :dataset_only
 
 # save_datasets = true
 save_datasets = false
@@ -177,7 +177,7 @@ exec_n_task_use_aug = [
 	#(2, false),
 	#(3, false),
 ]
-exec_n_versions = [2,1,3] #1:3
+exec_n_versions = [3] #1:3
 exec_nbands = [40] # [20,40,60]
 
 exec_dataset_kwargs =   [(
@@ -254,6 +254,7 @@ exec_use_full_mfcc = [false]
 
 
 wav_preprocessors = Dict(
+	"NoOp" => identity,
 	"NG" => noise_gate!,
 	"Trim" => trim_wav!,
 	"Normalize" => normalize!,
@@ -261,7 +262,7 @@ wav_preprocessors = Dict(
 
 exec_preprocess_wavs = [
 	["Normalize"],
-	[],
+	["NoOp"],
 	["NG", "Normalize"],
 	# ["NG", "Trim", "Normalize"],
 ]

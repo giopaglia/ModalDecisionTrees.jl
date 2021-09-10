@@ -1,4 +1,4 @@
-import DecisionTree.ModalLogic: concat_datasets, slice_dataset
+import DecisionTree.ModalLogic: concat_datasets, slice_dataset, dataset_has_nonevalues
 
 # TODO note that these splitting functions simply cut the dataset in two,
 #  and they don't necessarily produce balanced cuts. To produce balanced cuts,
