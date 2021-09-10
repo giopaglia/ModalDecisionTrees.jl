@@ -135,7 +135,8 @@ struct DTInternal{T, S}
 	end
 end
 
-display_decision(tree::DTInternal) = ModalLogic.display_decision(tree.i_frame, tree.relation, tree.feature, tree.test_operator, tree.threshold)
+display_decision(tree::DTInternal; threshold_display_method::Function = x -> x) = ModalLogic.display_decision(tree.i_frame, tree.relation, tree.feature, tree.test_operator, tree.threshold; threshold_display_method = threshold_display_method)
+display_decision_inverse(tree::DTInternal; threshold_display_method::Function = x -> x) = ModalLogic.display_decision_inverse(tree.i_frame, tree.relation, tree.feature, tree.test_operator, tree.threshold; threshold_display_method = threshold_display_method)
 
 # Decision node/tree # TODO figure out, maybe this has to be abstract and to supertype DTLeaf and DTInternal
 const DTNode{T, S} = Union{DTLeaf{S}, DTInternal{T, S}}
@@ -231,7 +232,7 @@ modal_height(leaf::DTLeaf) = 0
 modal_height(tree::DTInternal) = (is_modal_node(tree) ? 1 : 0) + max(modal_height(tree.left), modal_height(tree.right))
 modal_height(t::DTree) = modal_height(t.root)
 
-function print_tree(leaf::DTLeaf, depth=-1, indent=0, indent_guides=[]; n_tot_inst = nothing, rel_confidence_class_counts = nothing)
+function print_tree(io::IO, leaf::DTLeaf, depth=-1, indent=0, indent_guides=[]; n_tot_inst = nothing, rel_confidence_class_counts = nothing)
 	matches = findall(leaf.values .== leaf.majority)
 
 	n_correct = length(matches)
@@ -251,8 +252,8 @@ function print_tree(leaf::DTLeaf, depth=-1, indent=0, indent_guides=[]; n_tot_in
 
 	if !isnothing(rel_confidence_class_counts)
 		cur_class_counts = countmap(leaf.values)
-		# println(cur_class_counts)
-		# println(rel_confidence_class_counts)
+		# println(io, cur_class_counts)
+		# println(io, rel_confidence_class_counts)
 		rel_tot_inst = sum([(haskey(cur_class_counts, class) ? cur_class_counts[class] : 0)/(haskey(rel_confidence_class_counts, class) ? rel_confidence_class_counts[class] : 0) for class in keys(rel_confidence_class_counts)])
 		# "rel_conf: $(n_correct/rel_confidence_class_counts[leaf.majority])"
 		class = leaf.majority
@@ -278,12 +279,13 @@ function print_tree(leaf::DTLeaf, depth=-1, indent=0, indent_guides=[]; n_tot_in
 		metrics_str *= ", conv: $((1-class_support)/(1-confidence))"
 	end
 
-	println("$(leaf.majority) : $(n_correct)/$(n_inst) ($(metrics_str))")
+	println(io, "$(leaf.majority) : $(n_correct)/$(n_inst) ($(metrics_str))")
 end
+print_tree(leaf::DTLeaf, depth=-1, indent=0, indent_guides=[]; kwargs...) = print_tree(stdout, leaf, depth, indent, indent_guides; kwargs...)
 
-function print_tree(tree::DTInternal, depth=-1, indent=0, indent_guides=[]; n_tot_inst = nothing, rel_confidence_class_counts = nothing)
+function print_tree(io::IO, tree::DTInternal, depth=-1, indent=0, indent_guides=[]; n_tot_inst = nothing, rel_confidence_class_counts = nothing)
 	if depth == indent
-		println()
+		println(io, "")
 		return
 	end
 
@@ -295,20 +297,21 @@ function print_tree(tree::DTInternal, depth=-1, indent=0, indent_guides=[]; n_to
 		end
 	end
 	
-	println(display_decision(tree))
+	println(io, display_decision(tree))
 	# indent_str = " " ^ indent
 	indent_str = reduce(*, [i == 1 ? "│" : " " for i in indent_guides])
-	# print(indent_str * "╭✔")
-	print(indent_str * "✔ ")
-	print_tree(tree.left, depth, indent + 1, [indent_guides..., 1]; n_tot_inst = n_tot_inst, rel_confidence_class_counts)
-	# print(indent_str * "╰✘")
-	print(indent_str * "✘ ")
-	print_tree(tree.right, depth, indent + 1, [indent_guides..., 0]; n_tot_inst = n_tot_inst, rel_confidence_class_counts)
+	# print(io, indent_str * "╭✔")
+	print(io, indent_str * "✔ ")
+	print_tree(io, tree.left, depth, indent + 1, [indent_guides..., 1]; n_tot_inst = n_tot_inst, rel_confidence_class_counts)
+	# print(io, indent_str * "╰✘")
+	print(io, indent_str * "✘ ")
+	print_tree(io, tree.right, depth, indent + 1, [indent_guides..., 0]; n_tot_inst = n_tot_inst, rel_confidence_class_counts)
 end
+print_tree(tree::DTInternal, depth=-1, indent=0, indent_guides=[]; kwargs...) = print_tree(stdout, tree, depth, indent, indent_guides; kwargs...)
 
-function print_tree(tree::DTree; n_tot_inst = nothing, rel_confidence_class_counts = nothing)
-	println("worldTypes: $(tree.worldTypes)")
-	println("initConditions: $(tree.initConditions)")
+function print_tree(io::IO, tree::DTree; n_tot_inst = nothing, rel_confidence_class_counts = nothing)
+	println(io, "worldTypes: $(tree.worldTypes)")
+	println(io, "initConditions: $(tree.initConditions)")
 
 	if !isnothing(rel_confidence_class_counts)
 		if !isnothing(n_tot_inst)
@@ -318,14 +321,15 @@ function print_tree(tree::DTree; n_tot_inst = nothing, rel_confidence_class_coun
 		end
 	end
 	
-	print_tree(tree.root, n_tot_inst = n_tot_inst, rel_confidence_class_counts = rel_confidence_class_counts)
+	print_tree(io, tree.root, n_tot_inst = n_tot_inst, rel_confidence_class_counts = rel_confidence_class_counts)
 end
+print_tree(tree::DTree; kwargs...) = print_tree(stdout, tree; kwargs...)
 
 function show(io::IO, leaf::DTLeaf)
 	println(io, "Decision Leaf")
 	println(io, "Majority: $(leaf.majority)")
 	println(io, "Samples:  $(length(leaf.values))")
-	print_tree(leaf)
+	print_tree(io, leaf)
 end
 
 function show(io::IO, tree::DTInternal)
@@ -335,7 +339,7 @@ function show(io::IO, tree::DTInternal)
 	println(io, "Tot nodes: $(num_nodes(tree))")
 	println(io, "Height: $(height(tree))")
 	println(io, "Modal height:  $(modal_height(tree))")
-	print_tree(tree)
+	print_tree(io, tree)
 end
 
 function show(io::IO, tree::DTree)
@@ -344,17 +348,18 @@ function show(io::IO, tree::DTree)
 	println(io, "Tot nodes: $(num_nodes(tree))")
 	println(io, "Height: $(height(tree))")
 	println(io, "Modal height:  $(modal_height(tree))")
-	print_tree(tree)
+	print_tree(io, tree)
 end
 
 
-function print_forest(forest::Forest)
+function print_forest(io::IO, forest::Forest)
 	n_trees = length(forest)
 	for i in 1:n_trees
-		println("Tree $(i) / $(n_trees)")
-		print_tree(forest.trees[i])
+		println(io, "Tree $(i) / $(n_trees)")
+		print_tree(io, forest.trees[i])
 	end
 end
+print_forest(forest::Forest) = print_forest(stdout, forest::Forest)
 
 function show(io::IO, forest::Forest)
 	println(io, "Forest")
@@ -362,7 +367,7 @@ function show(io::IO, forest::Forest)
 	println(io, "Out-Of-Bag Error: $(forest.oob_error)")
 	println(io, "ConfusionMatrix: $(forest.cm)")
 	println(io, "Trees:")
-	print_forest(forest)
+	print_forest(io, forest)
 end
 
 
@@ -546,7 +551,7 @@ function print_apply_tree(tree::DTInternal{T, S}, X::MultiFrameModalDataset, i_i
 	)
 end
 
-function print_apply_tree(tree::DTree{S}, X::GenericDataset, Y::Vector{S}; reset_leaves = true, update_majority = false, do_print = true, print_relative_confidence = false) where {S}
+function print_apply_tree(io::IO, tree::DTree{S}, X::GenericDataset, Y::Vector{S}; reset_leaves = true, update_majority = false, do_print = true, print_relative_confidence = false) where {S}
 	# Reset 
 	tree = (reset_leaves ? _empty_tree_leaves(tree) : tree)
 
@@ -563,14 +568,15 @@ function print_apply_tree(tree::DTree{S}, X::GenericDataset, Y::Vector{S}; reset
 	end
 	if do_print
 		if print_relative_confidence
-			print_tree(tree; rel_confidence_class_counts = countmap(Y))
+			print_tree(io, tree; rel_confidence_class_counts = countmap(Y))
 		else
-			print_tree(tree)
+			print_tree(io, tree)
 		end
 		# print(tree)
 	end
 	return tree
 end
+print_apply_tree(tree::DTree{S}, X::GenericDataset, Y::Vector{S}; kwargs...) where {S} = print_apply_tree(stdout, tree, X, Y; kwargs...)
 
 # function print_apply_tree(tree::DTNode{T, S}, X::MatricialDataset{T,D}, Y::Vector{S}; reset_leaves = true, update_majority = false) where {S, T, D}
 # 	return print_apply_tree(DTree(tree, [world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2)))], [startWithRelationGlob]), X, Y, reset_leaves = reset_leaves, update_majority = update_majority)
@@ -778,5 +784,251 @@ function apply_forest(forest::Forest, X::GenericDataset; weight_trees_by::Bool =
 	end
 end
 
+################################################################################
+# Print tree latex
+################################################################################
+
+default_conversion_dict_latex = Dict{String, String}(
+    "τ" => "\\tau ",
+    "⫹" => "\\leq ",
+    "⫺" => "\\geq ",
+    "⟨" => "\\langle ",
+    "⟩" => "\\rangle ",
+    "A̅" => "\\overline{A}",
+    "L̅" => "\\overline{L}",
+    "B̅" => "\\overline{B}",
+    "E̅" => "\\overline{E}",
+    "D̅" => "\\overline{D}",
+    "O̅" => "\\overline{O}",
+)
+
+const NodeCoord = Tuple{Number,Number}
+
+import Base: +, -
+
++(coord1::NodeCoord, coord2::NodeCoord)::NodeCoord = (coord1[1] + coord2[1], coord1[2] + coord2[2])
+-(coord1::NodeCoord, coord2::NodeCoord)::NodeCoord = (coord1[1] - coord2[1], coord1[2] - coord2[2])
+
+function _attr_to_latex(str::String)::String
+	matched = match(r"\bA[0-9]+\b", str)
+	if !isnothing(matched)
+		str = replace(str, matched.match => "A_{" * replace(matched.match, "A" => "") * "}")
+	end
+	str
+end
+
+function _latex_string(
+		obj::Any;
+		conversion_dict::Dict{String,String} = default_conversion_dict_latex,
+		add_dollars::Bool = true,
+		show_test_operator_alpha::Bool = true,
+		show_frame_number::Bool = true
+	)::String
+
+	subscript_replace = Dict{String,String}(
+		"₀" => "0",
+		"₁" => "1",
+		"₂" => "2",
+		"₃" => "3",
+		"₄" => "4",
+		"₅" => "5",
+		"₆" => "6",
+		"₇" => "7",
+		"₈" => "8",
+		"₉" => "9",
+		"ₑ" => "e",
+		"․" => ".",
+		"․" => ".",
+		"₋" => "-"
+	)
+
+	result = string(obj)
+	if !show_test_operator_alpha
+		for k in keys(subscript_replace)
+			result = replace(result, k => "")
+		end
+	end
+
+	# WARN: assumption: Global relation is actually Later
+	result = replace(result, "G" => "L")
+
+	if show_frame_number
+		# Escape {frame}
+		result = replace(result, "{" => "\\{", count = 1)
+		result = replace(result, "}" => "\\}", count = 1)
+	else
+		# Remove {frame}
+		matched = match(r"^\{[0-9]+\}", result)
+		if !isnothing(matched)
+			result = replace(result, matched.match => "", count = 1)
+		end
+	end
+
+	result = _attr_to_latex(result)
+
+	subscript_num_regex = Regex("\\b[" * join(keys(subscript_replace)) * "]+\\b")
+	matched = match(subscript_num_regex, result)
+	while !isnothing(matched)
+		m = matched.match
+		for (k, v) in subscript_replace
+			m = replace(m, k => v)
+		end
+		result = replace(result, matched.match => "_{" * m * "}")
+		matched = match(subscript_num_regex, result)
+	end
+
+    for (k, v) in conversion_dict
+        result = replace(result, k => v)
+    end
+
+	if add_dollars
+        result = "\$" * result * "\$"
+		if result == "\$\$"
+			result = ""
+		end
+    end
+
+    result
+end
+
+_node_content(leaf::DTLeaf; kwargs...)::String = _latex_string(leaf.majority; kwargs...)
+_node_content(node::DTInternal; kwargs...)::String = ""
+
+
+function _print_tree_latex(
+        leaf                      :: DTLeaf,
+        previous_node_index       :: String,
+        previous_node_position    :: NodeCoord,
+        space_unit                :: NodeCoord,
+		nodes_margin              :: NodeCoord,
+        conversion_dict           :: Dict{String,String},
+        add_dollars               :: Bool,
+		print_test_operator_alpha :: Bool,
+		show_frame_number         :: Bool,
+		t_display_func            :: Function,
+		nodes_script_size         :: Symbol,
+		edges_script_size         :: Symbol
+    )::String
+    ""
+end
+function _print_tree_latex(
+        node                      :: DTInternal,
+        previous_node_index       :: String,
+        previous_node_position    :: NodeCoord,
+        space_unit                :: NodeCoord,
+		nodes_margin              :: NodeCoord,
+        conversion_dict           :: Dict{String,String},
+        add_dollars               :: Bool,
+		print_test_operator_alpha :: Bool,
+		show_frame_number         :: Bool,
+		t_display_func            :: Function,
+		nodes_script_size         :: Symbol,
+		edges_script_size         :: Symbol
+    )::String
+
+    # use tree height to determine the horizontal-spacing between the nodes
+    h = height(node)
+
+    # TODO: calculate proper position
+    left_node_pos = previous_node_position + (-abs(space_unit[1])*h, -abs(space_unit[2])) + (-abs(nodes_margin[1]), -abs(nodes_margin[2]))
+    right_node_pos = previous_node_position + (abs(space_unit[1])*h, -abs(space_unit[2])) + (abs(nodes_margin[1]), -abs(nodes_margin[2]))
+
+	result = "\\" * string(nodes_script_size) * "\n"
+    # add left node
+    result *= "\\node ($(previous_node_index)0) at $left_node_pos {$(_node_content(node.left; conversion_dict = conversion_dict, add_dollars = add_dollars))};\n"
+    # add right node
+    result *= "\\node ($(previous_node_index)1) at $right_node_pos {$(_node_content(node.right; conversion_dict = conversion_dict, add_dollars = add_dollars))};\n"
+
+	result *= "\\" * string(edges_script_size) * "\n"
+    # add left edge
+    result *= "\\path ($previous_node_index) edge[sloped,above] node {$(_latex_string(display_decision(node; threshold_display_method = t_display_func); conversion_dict = conversion_dict, add_dollars = add_dollars, show_test_operator_alpha = print_test_operator_alpha, show_frame_number = show_frame_number))} ($(previous_node_index)0);\n"
+    # add right edge
+    result *= "\\path ($previous_node_index) edge[sloped,above] node {$(_latex_string(display_decision_inverse(node; threshold_display_method = t_display_func); conversion_dict = conversion_dict, add_dollars = add_dollars, show_test_operator_alpha = print_test_operator_alpha, show_frame_number = show_frame_number))} ($(previous_node_index)1);\n"
+    # recursive calls
+    result *= _print_tree_latex(node.left, previous_node_index * "0", left_node_pos, space_unit, nodes_margin, conversion_dict, add_dollars, print_test_operator_alpha, show_frame_number, t_display_func, nodes_script_size, edges_script_size)
+    result *= _print_tree_latex(node.right, previous_node_index * "1", right_node_pos, space_unit, nodes_margin, conversion_dict, add_dollars, print_test_operator_alpha, show_frame_number, t_display_func, nodes_script_size, edges_script_size)
+
+    result
+end
+# :Huge         = \Huge
+# :huge         = \huge
+# :LARGE        = \LARGE
+# :Large        = \Large
+# :large        = \large
+# :normalsize   = \normalsize
+# :small        = \small
+# :footnotesize = \footnotesize
+# :scriptsize   = \scriptsize
+# :tiny         = \tiny
+function print_tree_latex(
+        tree                               :: DTree;
+        tree_name                          :: String                             = "τ",
+        conversion_dict                    :: Union{Nothing,Dict{String,String}} = nothing,
+		first_node_idx                     :: String                             = "0",
+        first_node_position                :: NodeCoord                          = (0, 0),
+		space_unit                         :: NodeCoord                          = (0.5, 2.0),
+        nodes_margin                       :: NodeCoord                          = (1.8, 0),
+		merge_conversion_dict_with_default :: Bool                               = true,
+        wrap_in_tikzpicture_block          :: Bool                               = true,
+        add_dollars                        :: Bool                               = true,
+		print_test_operator_alpha          :: Bool                               = true,
+		show_frame_number                  :: Bool                               = true,
+
+		threshold_scale_factor             :: Integer                            = 0,
+		threshold_show_decimals            :: Union{Symbol,Integer}              = :all,
+
+		tree_name_script_size              :: Symbol                             = :large,
+		nodes_script_size                  :: Symbol                             = :normalsize,
+		edges_script_size                  :: Symbol                             = :footnotesize
+    )::String
+
+	function threshold_display_func(threshold::Number, scale_factor::Integer, show_decimals::Union{Symbol,Integer})::Number
+		result = threshold * (10^scale_factor)
+		if isa(show_decimals, Integer)
+			result = round(result, digits = show_decimals)
+		end
+		result
+	end
+
+    if merge_conversion_dict_with_default
+        if isnothing(conversion_dict)
+            conversion_dict = deepcopy(default_conversion_dict_latex)
+        else
+            merge!(conversion_dict, default_conversion_dict_latex)
+        end
+    else
+        if isnothing(conversion_dict)
+            conversion_dict = Dict{String,String}()
+        end
+    end
+
+	print_tree_comment = replace(string(tree), "\n" => "\n% ")
+
+	result = "\$\$\n"
+	result *= "% " * tree_name * "\n% " * print_tree_comment * "\n"
+    result *= wrap_in_tikzpicture_block ? "\\begin{tikzpicture}\n" : ""
+	result *= "\\" * string(tree_name_script_size) * "\n"
+    result *= "\\node ($first_node_idx) at $first_node_position [above] {$(_latex_string(tree_name; conversion_dict = conversion_dict, add_dollars = add_dollars))};\n"
+    result *= _print_tree_latex(
+		tree.root,
+		first_node_idx,
+		first_node_position,
+		space_unit,
+		nodes_margin,
+		conversion_dict,
+		add_dollars,
+		print_test_operator_alpha,
+		show_frame_number,
+		x -> threshold_display_func(x, threshold_scale_factor, threshold_show_decimals),
+		nodes_script_size,
+		edges_script_size
+	)
+    result *= wrap_in_tikzpicture_block ? "\\end{tikzpicture}\n" : ""
+	result *= "\$\$\n"
+
+	result
+end
+
+export print_tree_latex
 
 end # module
