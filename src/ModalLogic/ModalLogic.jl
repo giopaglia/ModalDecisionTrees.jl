@@ -154,7 +154,8 @@ export n_samples, n_attributes, n_features, n_relations,
 				get_gamma, test_decision,
 				##############################
 				concat_datasets,
-				##############################
+				dataset_has_nonevalues,
+                                ##############################
 				relations,
 				initws_function,
 				acc_function,
@@ -232,7 +233,7 @@ getInstanceAttribute(inst::MatricialInstance{T,1},      idx::Integer) where T = 
 getInstanceAttribute(inst::MatricialInstance{T,2},      idx::Integer) where T = @views inst[:,    idx]::MatricialChannel{T,1} # N=1
 getInstanceAttribute(inst::MatricialInstance{T,3},      idx::Integer) where T = @views inst[:, :, idx]::MatricialChannel{T,2} # N=2
 
-dataset_has_nonevalues(d::MatricialDataset) = nothing in d || NaN in d || missing in d
+dataset_has_nonevalues(d::MatricialDataset) = nothing in d || NaN in d || any(ismissing.(d))
 
 concat_datasets(d1::MatricialDataset{T,2}, d2::MatricialDataset{T,2}) where {T} = cat(d1, d2; dims=2)
 concat_datasets(d1::MatricialDataset{T,3}, d2::MatricialDataset{T,3}) where {T} = cat(d1, d2; dims=3)
