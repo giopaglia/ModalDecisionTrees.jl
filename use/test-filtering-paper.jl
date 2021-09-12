@@ -18,16 +18,22 @@ dataset_form = :stump_with_memoization
 data_savedir = cache_dir
 timing_mode = :none
 filtered_destination_dir = outpath * "/filtered"
+max_sample_rate = nothing
 
 # TREES
-tree_configs = [ 
-    (tree_hash = "τ1", tree = τ1, n_task = 1, n_version = 1, nbands = 60, preprocess_wavs = [ normalize! ], max_points = 30, ma_size = 75, ma_step = 50), 
-    (tree_hash = "τ2", tree = τ2, n_task = 1, n_version = 1, nbands = 40, preprocess_wavs = [], max_points = 30, ma_size = 75, ma_step = 50), 
+tree_configs = [
+    # (tree_hash = "τ1", tree = τ1, n_task = 1, n_version = 1, nbands = 60, preprocess_wavs = [ normalize! ], max_points = 30, ma_size = 75, ma_step = 50), 
+    # (tree_hash = "τ2", tree = τ2, n_task = 1, n_version = 1, nbands = 40, preprocess_wavs = [], max_points = 30, ma_size = 75, ma_step = 50), 
     (tree_hash = "τ3", tree = τ3, n_task = 1, n_version = 2, nbands = 40, preprocess_wavs = [], max_points = 30, ma_size = 45, ma_step = 30)
 ]
 
+selected_wavs = [
+    "../datasets/KDD/covidandroidnocough/breath/breaths_8PmvbJ4U3o_1588144326476.wav",
+    "../datasets/KDD/healthyandroidnosymp/breath/breaths_VN8n8tjozE_1589473637538.wav"
+]
+
 for tree_config in tree_configs
-    max_sample_rate = 8_000
+    global max_sample_rate = 8_000
 
     tree_hash, tree, n_task, n_version, nbands, preprocess_wavs, max_points, ma_size, ma_step = tree_config
 
@@ -75,18 +81,24 @@ for tree_config in tree_configs
     (X, Y, filepaths), (n_pos, n_neg) = @cache "dataset" cache_dir dataset_func_params dataset_func_kwparams KDDDataset_not_stratified
     X_modal = X_dataset_c("test", data_modal_args, X, modal_args, save_datasets, dataset_form, false)
 
+    draw_anim_for_instances::Vector{Int64} = filter(x -> isa(x, Integer), [ findfirst(isequal(p), filepaths[1]) for p in selected_wavs ])
+
     apply_tree_to_datasets_wavs(
-            tree_hash,
+            tree_hash * (isnothing(max_sample_rate) ? "-no-maxfreq" : "-maxfreq-" * string(round(Int64, max_sample_rate / 2))),
             tree,
             X_modal,
             filepaths[1],
             Y;
+            only_files = selected_wavs,
             postprocess_wavs = [],
             postprocess_wavs_kwargs = [],
             filter_kwargs = (nbands = nbands, maxfreq = max_sample_rate / 2),
             remove_from_path = "../datasets/KDD/",
+            spectrograms_kwargs = (melbands = (draw = true, nbands = nbands, maxfreq = max_sample_rate / 2), spectrogram_plot_options = (ylims = (0, max_sample_rate / 2),)),
             destination_dir = filtered_destination_dir,
-    #        draw_anim_for_instances = [ findfirst(isequal("../datasets/KDD/healthyandroidwithcough/cough/cough_9me0RMtVww_1586943699308.wav"), filepaths[1]) ]
+            anim_kwargs = (fps = 1,),
+            normalize_before_draw_anim = true,
+            draw_anim_for_instances = draw_anim_for_instances
         )
 end
 

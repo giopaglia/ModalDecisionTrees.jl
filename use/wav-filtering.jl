@@ -208,19 +208,20 @@ end
 timerange2points(range::Tuple{T, T} where T <:Number, fs::Real)::UnitRange{Int64} = max(1, round(Int64, range[1] * fs)):round(Int64, range[2] * fs)
 
 function draw_audio_anim(
-        # TODO: figure out a way to generalize this Float64 and Float32 without getting error...
-        audio_files    :: Vector{Tuple{Vector{T1},T2}} where {T1<:AbstractFloat, T2<:AbstractFloat};
-        labels         :: Vector{String} = fill("", length(audio_files)),
-        colors         :: Union{Vector{Symbol},Vector{RGB{Float64}}} = fill(:auto, length(audio_files)),
-        outfile        :: String = homedir() * "/gif.gif",
-        size           :: Tuple{Int64,Int64} = (1000, 150 * length(audio_files)),
-        fps            :: Int64 = 30,
+        audio_files               :: Vector{Tuple{Vector{T1},T2}} where {T1<:AbstractFloat, T2<:AbstractFloat};
+        labels                    :: Vector{String}                                      = fill("", length(audio_files)),
+        colors                    :: Union{Vector{Symbol},Vector{RGB{Float64}}}          = fill(:auto, length(audio_files)),
+        outfile                   :: String                                              = homedir() * "/gif.gif",
+        size                      :: Tuple{Int64,Int64}                                  = (1000, 150 * length(audio_files)),
+        fps                       :: Int64                                               = 30,
+        resample_at_rate          :: Real                                                = 8000.0, # 0 for "no resample"
+        reset_canvas_every_frames :: Integer                                             = 50,
         # selected_range:
         # - 1:1000 means from point 1 to point 1000
         # - (1.1, 2.3) means from time 1.1 to time 2.3 (in seconds)
         # - :whole means "do not slice"
-        selected_range :: Union{UnitRange{Int64},Tuple{Number,Number},Symbol} = :whole,
-        single_graph   :: Bool = false
+        selected_range            :: Union{UnitRange{Int64},Tuple{Number,Number},Symbol} = :whole,
+        single_graph              :: Bool                                                = false
     )
     function draw_wav(points::Vector{Float64}, fs::Number; color = :auto, title = "", func = plot)
         func(
@@ -253,7 +254,15 @@ function draw_audio_anim(
         push!(fss, f[2])
     end
 
-    @assert length(unique(fss)) == 1 "Inconsistent bitrate across multiple files"
+    if resample_at_rate > 0
+        Threads.@threads for i in 1:length(wavs)
+            if fss[i] == resample_at_rate continue end
+            wavs[i] = resample(wavs[i], resample_at_rate / fss[i])
+        end
+        fss .= resample_at_rate
+    end
+
+    @assert length(unique(fss)) == 1 "Inconsistent bitrate across multiple files (try using resample keyword argument)"
     @assert length(unique([x -> length(x) for wav in wavs])) == 1 "Inconsistent length across multiple files"
 
     if selected_range isa Tuple
@@ -290,12 +299,17 @@ function draw_audio_anim(
         end
     end
 
+    plts_orig = deepcopy(plts)
     anim = @animate for f in 1:total_frames
         println("Processing frame $(f) / $(total_frames)")
         if f != 1
-            Threads.@threads for p in 1:length(plts)
-                # Make previous vline invisible
-                plts[p].series_list[end][:linealpha] = 0.0
+            if f % reset_canvas_every_frames == 0
+                plts = deepcopy(plts_orig)
+            else
+                Threads.@threads for p in 1:length(plts)
+                    # Make previous vline invisible
+                    plts[p].series_list[end][:linealpha] = 0.0
+                end
             end
         end
         #Threads.@threads 
@@ -311,7 +325,7 @@ end
 function draw_audio_anim(audio_files::Vector{String}; kwargs...)
     @assert length(audio_files) > 0 "No audio file provided"
 
-    converted_input = []
+    converted_input::Vector{Tuple{Vector{Float64},Float64}} = []
     for f in audio_files
         wav, fs = wavread(f)
         push!(converted_input, (merge_channels(wav), fs))
@@ -331,13 +345,23 @@ function draw_spectrogram(
     ) where T <: AbstractFloat
     nw_orig::Int = round(Int64, length(samples) / gran)
 
+    default_melbands = (draw = false, nbands = 60, minfreq = 0.0, maxfreq = fs / 2, htkmel = false)
+    melbands = merge(default_melbands, melbands)
+
+    default_heatmap_kwargs = (xguide = "Time (s)", yguide = "Frequency (Hz)", ylims = (0, fs / 2),  background_color_inside = :black, size = default_plot_size, leg = true, )
+    total_heatmpat_kwargs = merge(default_heatmap_kwargs, default_plot_margins)
+    total_heatmpat_kwargs = merge(total_heatmpat_kwargs, spectrogram_plot_options)
+
     spec = spectrogram(samples, nw_orig, round(Int64, nw_orig/2); fs = fs)
-    hm = heatmap(spec.time, spec.freq, pow2db.(spec.power); title = title, xguide = "Time (s)", yguide = "Frequency (Hz)", ylims = (0, fs / 2), clims = clims, background_color_inside = :black, size = default_plot_size, leg = true, default_plot_margins..., spectrogram_plot_options...)
+    hm = heatmap(spec.time, spec.freq, pow2db.(spec.power); title = title, clims = clims, total_heatmpat_kwargs...)
     if melbands[:draw]
         bands = get_mel_bands(melbands[:nbands], melbands[:minfreq], melbands[:maxfreq]; htkmel = melbands[:htkmel])
-        yticks!(hm, push!([ bands[i].peak for i in 1:melbands[:nbands] ], melbands[:maxfreq]), push!([ string("A", i) for i in 1:melbands[:nbands] ], string(melbands[:maxfreq])))
+        yticks!(hm, push!([ bands[i].peak for i in 1:melbands[:nbands] ], melbands[:maxfreq]), push!([ string("A", i) for i in 1:melbands[:nbands] ], string(round(Int64, melbands[:maxfreq]))))
         for i in 1:melbands[:nbands]
             hline!(hm, [ bands[i].left ], line = (1, :white), leg = false)
+            if i == melbands[:nbands]
+                hline!(hm, [ bands[i].peak ], line = (1, :white), leg = false)
+            end
         end
     end
     hm
@@ -426,26 +450,31 @@ function get_tree_path_as_dirpath(tree_hash::String, tree::DTree, decpath::Decis
 end
 
 function apply_tree_to_datasets_wavs(
-        tree_hash::String,
-        tree::DTree{S},
-        dataset::GenericDataset,
-        wav_paths::Vector{String},
-        labels::Vector{S};
-        postprocess_wavs =        [ trim_wav!,      normalize! ],
-        postprocess_wavs_kwargs = [ (level = 0.0,), (level = 1.0,) ],
-        filter_kwargs = (nbands = 40,),
-        window_f::Function = triang,
-        use_original_dataset_filesystem_tree::Bool = false,
-        destination_dir::String = "filtering-results/filtered",
-        remove_from_path::String = "",
-        save_single_band_tracks::Bool = true,
-        generate_spectrogram::Bool = true,
-        draw_anim_for_instances::Vector{Int64} = Vector{Int64}(),
-        anim_kwargs = (fps = 30,),
-        generate_video_from_gif::Bool = true,
-        video_kwargs = (output_ext = "mkv",),
-        generate_json::Bool = true,
-        json_file_name::String = "files.json"
+        tree_hash                             :: String,
+        tree                                  :: DTree{S},
+        dataset                               :: GenericDataset,
+        wav_paths                             :: Vector{String},
+        labels                                :: Vector{S};
+        only_files                            :: Vector{S} = [],
+        files_already_generated               :: Bool = false,
+        postprocess_wavs                       = [ trim_wav!,      normalize! ],
+        postprocess_wavs_kwargs                = [ (level = 0.0,), (level = 1.0,) ],
+        filter_kwargs                          = (nbands = 40,),
+        window_f                              :: Function = triang,
+        use_original_dataset_filesystem_tree  :: Bool = false,
+        destination_dir                       :: String = "filtering-results/filtered",
+        remove_from_path                      :: String = "",
+        save_single_band_tracks               :: Bool = true,
+        generate_spectrogram                  :: Bool = true,
+        spectrograms_kwargs                    = (),
+        draw_anim_for_instances               :: Vector{Int64} = Vector{Int64}(),
+        anim_kwargs                            = (fps = 30,),
+        normalize_before_draw_anim            :: Bool = false,
+        generate_video_from_gif               :: Bool = true,
+        video_kwargs                           = (output_ext = "mkv",),
+        generate_json                         :: Bool = true,
+        json_file_name                        :: String = "files.json",
+        verbose                               :: Bool = false
     ) where {S}
 
     n_instances = n_samples(dataset)
@@ -497,9 +526,13 @@ function apply_tree_to_datasets_wavs(
     filtered = Vector{Vector{Float64}}(undef, n_instances)
     Threads.@threads for i in 1:n_instances
         # TODO: use path + worlds to generate dynamic filters
+        if length(only_files) > 0 && !(wav_paths[i] in only_files)
+            if verbose println("Skipping file $(wav_paths[i]) because it is not in the list...") end
+            continue
+        end
         if !is_correctly_classified(results[i])
             # TODO: handle not correctly classified instances
-            println("Skipping file $(wav_paths[i]) because it was not correctly classified...")
+            if verbose println("Skipping file $(wav_paths[i]) because it was not correctly classified...") end
             continue
         end
         n_features = length(results[i].path)
@@ -539,8 +572,12 @@ function apply_tree_to_datasets_wavs(
     heatmap_png_path = Vector{String}(undef, n_instances)
     json_lock = Threads.Condition()
     Threads.@threads for i in 1:n_instances
+        if length(only_files) > 0 && !(wav_paths[i] in only_files)
+            if verbose println("Skipping file $(wav_paths[i]) because it is not in the list...") end
+            continue
+        end
         if !is_correctly_classified(results[i])
-            println("Skipping file $(wav_paths[i]) because it was not correctly classified...")
+            if verbose println("Skipping file $(wav_paths[i]) because it was not correctly classified...") end
             continue
         end
         save_path = replace(wav_paths[i], remove_from_path => "")
@@ -560,6 +597,9 @@ function apply_tree_to_datasets_wavs(
             pp(filtered[i]; (postprocess_wavs_kwargs[i_pp])...)
             pp(originals[i]; (postprocess_wavs_kwargs[i_pp])...)
         end
+        if files_already_generated
+            continue
+        end
         println("Saving filtered file $(filtered_file_path)...")
         wavwrite(filtered[i], filtered_file_path; Fs = samplerates[i])
         wavwrite(originals[i], original_file_path; Fs = samplerates[i])
@@ -573,8 +613,9 @@ function apply_tree_to_datasets_wavs(
         end
     end
 
-    if generate_json
+    if generate_json && !files_already_generated
         try
+            # TODO: handle "only_files" situation
             f = open(real_destination * "/" * json_file_name, "w")
             write(f, JSON.json(json_archive))
             close(f)
@@ -584,10 +625,13 @@ function apply_tree_to_datasets_wavs(
     end
 
     if generate_spectrogram
+        println("Generating spectrograms...")
         for i in 1:n_instances
+            if length(only_files) > 0 && !(wav_paths[i] in only_files) continue end
             if !is_correctly_classified(results[i]) continue end
-            hm_filt = draw_spectrogram(filtered[i], samplerates[i]; title = "Filtered")
-            hm_orig = draw_spectrogram(originals[i], samplerates[i]; title = "Original")
+            println("Generating spectrogram $(heatmap_png_path[i])...")
+            hm_filt = draw_spectrogram(filtered[i], samplerates[i]; title = "Filtered", spectrograms_kwargs...)
+            hm_orig = draw_spectrogram(originals[i], samplerates[i]; title = "Original", spectrograms_kwargs...)
             plot(hm_orig, hm_filt, layout = (1, 2))
             savefig(heatmap_png_path[i])
         end
@@ -597,6 +641,7 @@ function apply_tree_to_datasets_wavs(
     if save_single_band_tracks
         println("Generating single band tracks...")
         for i in 1:n_instances
+            if length(only_files) > 0 && !(wav_paths[i] in only_files) continue end
             if !is_correctly_classified(results[i]) continue end
             single_band_tracks[i] = Vector{Tuple{Int64,Vector{Float64}}}(undef, length(results[i].path))
             n_features = length(results[i].path)
@@ -609,6 +654,7 @@ function apply_tree_to_datasets_wavs(
         nbands = filter_kwargs[:nbands]
         features_colors = [ RGB(1 - (1 * (i/(nbands - 1))), 0, 1 * (i/(nbands - 1))) for i in 0:(nbands-1) ]
         for i in 1:n_instances
+            if length(only_files) > 0 && !(wav_paths[i] in only_files) continue end
             if !is_correctly_classified(results[i]) continue end
             for (feat, samples) in single_band_tracks[i]
                 save_path = replace(heatmap_png_path[i], ".spectrogram.png" => ".A$(feat).wav")
@@ -617,8 +663,19 @@ function apply_tree_to_datasets_wavs(
             end
             if i in draw_anim_for_instances
                 gifout = replace(heatmap_png_path[i], ".spectrogram.png" => ".anim.gif")
+                wws = 
+                    if normalize_before_draw_anim
+                        orig_norm = normalize!(deepcopy(originals[i]))
+                        norm_rate = maximum(abs, orig_norm) / maximum(abs, originals[i])
+                        collect(zip(
+                            [ orig_norm, filtered[i] * norm_rate, [single_band_tracks[i][j][2] * norm_rate for j in 1:length(single_band_tracks[i])]... ],
+                            fill(samplerates[i], 2 + length(single_band_tracks[i]))
+                        ))
+                    else
+                        [ (originals[i], samplerates[i]), (filtered[i], samplerates[i]), [ (single_band_tracks[i][j][2], samplerates[i]) for j in 1:length(single_band_tracks[i]) ]... ]
+                    end
                 draw_audio_anim(
-                    [ (originals[i], samplerates[i]), (filtered[i], samplerates[i]), [ (single_band_tracks[i][j][2], samplerates[i]) for j in 1:length(single_band_tracks[i]) ]... ];
+                    wws;
                     labels = [ "Original", "Filtered", [ string("A", single_band_tracks[i][j][1]) for j in 1:length(single_band_tracks[i]) ]... ],
                     colors = [ RGB(.3, .3, 1), RGB(1, .3, .3), features_colors[ [ b[1] for b in single_band_tracks[i] ] ]...],
                     outfile = gifout,
