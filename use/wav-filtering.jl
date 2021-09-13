@@ -523,6 +523,10 @@ function apply_tree_to_datasets_wavs(
         @assert (min_sr / 2) >= filter_kwargs[:maxfreq] "maxfreq ($(filter_kwargs[:maxfreq])) is too high: lower samplerate in dataset is $min_sr (Nyquist freq: $(min_sr / 2))"
     end
 
+    #############################################################
+    ########## FILTER USING TREE FEATURES #######################
+    #############################################################
+
     filtered = Vector{Vector{Float64}}(undef, n_instances)
     Threads.@threads for i in 1:n_instances
         # TODO: use path + worlds to generate dynamic filters
@@ -564,6 +568,10 @@ function apply_tree_to_datasets_wavs(
         filter = multibandpass_digitalfilter_mel(bands, samplerates[i], window_f; weights = weights, filter_kwargs...)
         filtered[i] = filt(filter, originals[i])
     end
+
+    #############################################################
+    ######## APPLY POST-PROCESS AND SAVE FILTERED ###############
+    #############################################################
 
     mk_tree_path(tree_hash, tree; path = destination_dir)
 
@@ -613,6 +621,10 @@ function apply_tree_to_datasets_wavs(
         end
     end
 
+    #############################################################
+    ######## GENERATE JSON WITH FILTERED WAV PATHS ##############
+    #############################################################
+
     if generate_json && !files_already_generated
         try
             # TODO: handle "only_files" situation
@@ -623,6 +635,10 @@ function apply_tree_to_datasets_wavs(
             println(stderr, "Unable to write file $(real_destination * "/" * json_file_name)")
         end
     end
+
+    #############################################################
+    ################ GENERATE SPECTROGRAMS ######################
+    #############################################################
 
     if generate_spectrogram
         println("Generating spectrograms...")
@@ -636,6 +652,10 @@ function apply_tree_to_datasets_wavs(
             savefig(heatmap_png_path[i])
         end
     end
+
+    #############################################################
+    ########### SIGNLE BANDS, ANIMATION AND VIDEO ###############
+    #############################################################
 
     single_band_tracks = Vector{Vector{Tuple{Int64,Vector{Float64}}}}(undef, n_instances)
     if save_single_band_tracks
