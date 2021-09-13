@@ -359,11 +359,11 @@ function draw_spectrogram(
     melbands = merge(default_melbands, melbands)
 
     default_heatmap_kwargs = (xguide = "Time (s)", yguide = "Frequency (Hz)", ylims = (0, fs / 2),  background_color_inside = :black, size = default_plot_size, leg = true, )
-    total_heatmpat_kwargs = merge(default_heatmap_kwargs, default_plot_margins)
-    total_heatmpat_kwargs = merge(total_heatmpat_kwargs, spectrogram_plot_options)
+    total_heatmap_kwargs = merge(default_heatmap_kwargs, default_plot_margins)
+    total_heatmap_kwargs = merge(total_heatmap_kwargs, spectrogram_plot_options)
 
     spec = spectrogram(samples, nw_orig, round(Int64, nw_orig/2); fs = fs)
-    hm = heatmap(spec.time, spec.freq, pow2db.(spec.power); title = title, clims = clims, total_heatmpat_kwargs...)
+    hm = heatmap(spec.time, spec.freq, pow2db.(spec.power); title = title, clims = clims, total_heatmap_kwargs...)
     if melbands[:draw]
         bands = get_mel_bands(melbands[:nbands], melbands[:minfreq], melbands[:maxfreq]; htkmel = melbands[:htkmel])
         yticks!(hm, push!([ bands[i].peak for i in 1:melbands[:nbands] ], melbands[:maxfreq]), push!([ string("A", i) for i in 1:melbands[:nbands] ], string(round(Int64, melbands[:maxfreq]))))
@@ -375,6 +375,12 @@ function draw_spectrogram(
         end
     end
     hm
+end
+function draw_spectrogram(filepath::String; kwargs...)
+    samp, sr = wavread(filepath)
+    samp = merge_channels(samp)
+
+    draw_spectrogram(samp, sr; kwargs...)
 end
 
 struct DecisionPathNode
@@ -772,16 +778,22 @@ end
 function generate_video(
         gif                      :: String,
         wavs                     :: Vector{String};
-        outpath                  :: Union{String,Nothing}    = nothing,
-        ffmpeg_output_file       :: Union{String,IO,Nothing} = nothing,
-        ffmpeg_error_output_file :: Union{String,IO,Nothing} = nothing,
-        video_codec              :: String                   = "libx265",
-        output_ext               :: String                   = "mkv"
+        outpath                  :: Union{String,Nothing}        = nothing,
+        outputfile_name          :: Union{String,Nothing}        = nothing,
+        ffmpeg_output_file       :: Union{String,IO,Nothing}     = nothing,
+        ffmpeg_error_output_file :: Union{String,IO,Nothing}     = nothing,
+        video_codec              :: String                       = "libx265",
+        output_ext               :: String                       = "mkv",
+        additional_ffmpeg_args   :: Union{Vector{String},String} = []
     )
 
     @assert isfile(gif) "File $(gif) does not exist."
     for w in wavs
         @assert isfile(w) "File $(w) does not exist."
+    end
+
+    if !isnothing(outputfile_name) && endswith(outputfile_name, "." * output_ext)
+        outputfile_name = replace(outputfile_name, "." * output_ext => "")
     end
 
     if !isnothing(outpath)
@@ -792,12 +804,22 @@ function generate_video(
         end
     end
 
+    if additional_ffmpeg_args isa String
+        additional_ffmpeg_args = convert.(String, split(additional_ffmpeg_args, ' '; keepempty = false))
+    end
+
     try
         for w in wavs
             total_output_path = isnothing(outpath) ?
-                replace(w, ".wav" => "." * output_ext) :
-                outpat[i] * "/" * replace(basename(w), ".wav" => "." * output_ext)
-            
+                (isnothing(outputfile_name) ?
+                    replace(w, ".wav" => "." * output_ext) :
+                    outputfile_name * "." * output_ext
+                ) :
+                outpath * "/" * (isnothing(outputfile_name) ?
+                    replace(basename(w), ".wav" => "." * output_ext) :
+                    outputfile_name * "." * output_ext
+                )
+
             ffmpeg_output_file_manually_open = false
             ffmpeg_error_output_file_manually_open = false
 
@@ -820,7 +842,7 @@ function generate_video(
             end
 
             print("Generating video in $(total_output_path)...")
-            run(pipeline(`ffmpeg -i $gif -i $w -y -c:a copy -c:v $video_codec $total_output_path`, stdout = tmp_ffmpeg_output_file, stderr = tmp_ffmpeg_error_output_file))
+            run(pipeline(`ffmpeg -i $gif -i $w -y -c:a copy -c:v $video_codec $additional_ffmpeg_args $total_output_path`, stdout = tmp_ffmpeg_output_file, stderr = tmp_ffmpeg_error_output_file))
             println(" done")
             
             if ffmpeg_output_file_manually_open close(tmp_ffmpeg_output_file) end
