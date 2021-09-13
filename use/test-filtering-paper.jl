@@ -83,12 +83,19 @@ for tree_config in tree_configs
 
     draw_anim_for_instances::Vector{Int64} = filter(x -> isa(x, Integer), [ findfirst(isequal(p), filepaths[1]) for p in selected_wavs ])
 
+    Xslice, Yslice, filepaths_slice, draw_insts = 
+        if length(draw_anim_for_instances) > 0
+            ModalLogic.slice_dataset(X_modal, draw_anim_for_instances), Y[draw_anim_for_instances], [ filepaths[1][draw_anim_for_instances] ], collect(1:length(draw_anim_for_instances))
+        else
+            X_modal, Y, filepaths, draw_anim_for_instances
+        end
+
     apply_tree_to_datasets_wavs(
             tree_hash * (isnothing(max_sample_rate) ? "-no-maxfreq" : "-maxfreq-" * string(round(Int64, max_sample_rate / 2))),
             tree,
-            X_modal,
-            filepaths[1],
-            Y;
+            Xslice,
+            filepaths_slice[1],
+            Yslice;
             only_files = selected_wavs,
             postprocess_wavs = [],
             postprocess_wavs_kwargs = [],
@@ -98,7 +105,7 @@ for tree_config in tree_configs
             destination_dir = filtered_destination_dir,
             anim_kwargs = (fps = 1,),
             normalize_before_draw_anim = true,
-            draw_anim_for_instances = draw_anim_for_instances
+            draw_anim_for_instances = draw_insts
         )
 end
 
