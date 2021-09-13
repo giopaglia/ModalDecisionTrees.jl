@@ -21,6 +21,16 @@ using JSON
 
 MFCC.mel2hz(f::AbstractFloat, htk=false)  = mel2hz([f], htk)[1]
 
+function printprogress(io::Base.TTY, string::String)
+    print(io, "\033[2K\033[1000D" * string)
+end
+function printprogress(io::IO, string::String)
+    println(io, string)
+end
+function printprogress(string::String)
+    printprogress(stdout, string)
+end
+
 default_plot_size = (1920, 1080)
 default_plot_margins = (
     left_margin = 15mm,
@@ -301,7 +311,7 @@ function draw_audio_anim(
 
     plts_orig = deepcopy(plts)
     anim = @animate for f in 1:total_frames
-        println("Processing frame $(f) / $(total_frames)")
+        printprogress("Processing frame $(f) / $(total_frames)")
         if f != 1
             if f % reset_canvas_every_frames == 0
                 plts = deepcopy(plts_orig)
@@ -312,12 +322,12 @@ function draw_audio_anim(
                 end
             end
         end
-        #Threads.@threads 
         for p in 1:length(plts)
             vline!(plts[p], [ (f-1) * step ], line = (:black, 1))
         end
         plot(plts..., layout = (length(wavs), 1))
     end
+    printprogress("Completed all frames ($(total_frames))\n")
 
     gif(anim, outfile, fps = fps)
 end
@@ -455,6 +465,7 @@ function apply_tree_to_datasets_wavs(
         dataset                               :: GenericDataset,
         wav_paths                             :: Vector{String},
         labels                                :: Vector{S};
+        mode                                  :: Symbol = :bandpass, # :emphasize
         only_files                            :: Vector{S} = [],
         files_already_generated               :: Bool = false,
         postprocess_wavs                       = [ trim_wav!,      normalize! ],
@@ -476,6 +487,11 @@ function apply_tree_to_datasets_wavs(
         json_file_name                        :: String = "files.json",
         verbose                               :: Bool = false
     ) where {S}
+
+    @assert mode in [ :bandpass, :emphasize ] "Got unsupported mode Symbol $(mode). It can be $([ :bandpass, :emphasize ])."
+    if mode == :emphasize
+        @warn "The value :emphasize for 'mode` is still experimental!"
+    end
 
     n_instances = n_samples(dataset)
 
@@ -543,25 +559,26 @@ function apply_tree_to_datasets_wavs(
         bands = Vector{Int64}(undef, n_features)
         weights = Vector{AbstractFloat}(undef, n_features)
         for j in 1:n_features
-            weights[j] = 1.0
-                # if ((isequal(results[i].path[j].test_operator, >=) || isequal(results[i].path[j].test_operator, >)) && results[i].path[j].taken) ||
-                #    ((isequal(results[i].path[j].test_operator, <=) || isequal(results[i].path[j].test_operator, <)) && !results[i].path[j].taken)
-                #     if results[i].path[j].threshold <= 1
-                #         # > than low
-                #         0.5
-                #     else
-                #         # > than high
-                #         1.0
-                #     end
-                # else
-                #     if results[i].path[j].threshold <= 1
-                #         # < than low
-                #         0.25
-                #     else
-                #         # < than high
-                #         0.5
-                #     end
-                # end
+            if mode == :bandpass
+                weights[j] = 1.0
+            elseif mode == :emphasize
+                # TODO: set a proper way to choose the threshold
+                # TODO: real behaviour to emphasizes
+                if (in(results[i].path[j].test_operator, [ >, >= ]) && results[i].path[j].taken) ||
+                   (in(results[i].path[j].test_operator, [ <, <= ]) && !results[i].path[j].taken)
+                    if results[i].path[j].threshold <= 1 # > than low
+                        0.5
+                    else # > than high
+                        1.0
+                    end
+                else
+                    if results[i].path[j].threshold <= 1 # < than low
+                        0.25
+                    else # < than high
+                        0.5
+                    end
+                end
+            end
             bands[j] = results[i].path[j].feature.i_attribute
         end
         println("Applying filter to file $(wav_paths[i]) with bands $(string(collect(zip(bands, weights))))...")
