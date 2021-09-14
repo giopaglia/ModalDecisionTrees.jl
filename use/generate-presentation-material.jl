@@ -37,9 +37,10 @@ spectrogram_plot_options = (ylims = (0, max_sample_rate / 2), left_margin = spec
 
 # VIDEO
 video_codec = "libx264"
-video_output_extension = "mkv"
-additional_ffmpeg_args = "-crf 0 -preset ultrafast -pix_fmt yuv422p"
-
+video_output_extension = "mp4"
+audio_codec = "libmp3lame"
+additional_ffmpeg_args_v = "-crf 0 -preset ultrafast -pix_fmt yuv422p"
+additional_ffmpeg_args_a = "-b:a 320k"
 
 
 ###########################
@@ -121,39 +122,43 @@ for inst in (pos, neg)
     A38_samp .*= norm_rate
 
     # 1) original's video
-    draw_audio_anim(
-        [ (orig_norm, original_sr) ];
-        outfile = inst.output.gif_original_path,
-        colors = [ RGB(0.3, 0.3, 1) ],
-        resample_at_rate = max_sample_rate,
-        fps = anim_fps
-    )
+    # draw_audio_anim(
+    #     [ (orig_norm, original_sr) ];
+    #     outfile = inst.output.gif_original_path,
+    #     colors = [ RGB(0.3, 0.3, 1) ],
+    #     resample_at_rate = max_sample_rate,
+    #     fps = anim_fps
+    # )
     generate_video(
         inst.output.gif_original_path,
         [ inst.input.wav_orig ];
         outpath = dirname(inst.output.vid_original_path),
         outputfile_name = basename(inst.output.vid_original_path),
         video_codec = video_codec,
+        audio_codec = audio_codec,
         output_ext = video_output_extension,
-        additional_ffmpeg_args = additional_ffmpeg_args
+        additional_ffmpeg_args_v = additional_ffmpeg_args_v,
+        additional_ffmpeg_args_a = additional_ffmpeg_args_a,
     )
     # 2) filtered videos
-    draw_audio_anim(
-        [ (A38_samp, original_sr) ];
-        labels = [ "Filtered " * inst.string ],
-        outfile = inst.output.gif_filtered_path,
-        colors = [ RGB(1, 0.3, 0.3), RGB(0.1, 0.1, 1), RGB(0.2, 0.2, 1) ],
-        resample_at_rate = max_sample_rate,
-        fps = anim_fps
-    )
+    # draw_audio_anim(
+    #     [ (A38_samp, original_sr) ];
+    #     labels = [ "Filtered " * inst.string ],
+    #     outfile = inst.output.gif_filtered_path,
+    #     colors = [ RGB(1, 0.3, 0.3), RGB(0.1, 0.1, 1), RGB(0.2, 0.2, 1) ],
+    #     resample_at_rate = max_sample_rate,
+    #     fps = anim_fps
+    # )
     generate_video(
         inst.output.gif_filtered_path,
         [ inst.input.wav_A38 ];
         outpath = dirname(inst.output.vid_filtered_path),
         outputfile_name = basename(inst.output.vid_filtered_path),
         video_codec = video_codec,
+        audio_codec = audio_codec,
         output_ext = video_output_extension,
-        additional_ffmpeg_args = additional_ffmpeg_args
+        additional_ffmpeg_args_v = additional_ffmpeg_args_v,
+        additional_ffmpeg_args_a = additional_ffmpeg_args_a,
     )
     # 3.0) spectrograms
     # spec_dict[inst.id * "_original"] = draw_spectrogram(
@@ -182,27 +187,27 @@ for inst in (pos, neg)
     #     melbands = (draw = true, nbands = nbands, maxfreq = max_sample_rate / 2)
     # )
     # 3.2) spectrograms just A32 A38
-    spec_dict[inst.id * "_original_just_band"] = draw_spectrogram(
-        orig_norm, original_sr;
-        title = "Original " * inst.string,
-        spectrogram_plot_options = spectrogram_plot_options
-    )
-    spec_dict[inst.id * "_filtered_just_band"] = draw_spectrogram(
-        filtered_samp, original_sr;
-        title = "Filtered " * inst.string,
-        spectrogram_plot_options = spectrogram_plot_options
-    )
+    # spec_dict[inst.id * "_original_just_band"] = draw_spectrogram(
+    #     orig_norm, original_sr;
+    #     title = "Original " * inst.string,
+    #     spectrogram_plot_options = spectrogram_plot_options
+    # )
+    # spec_dict[inst.id * "_filtered_just_band"] = draw_spectrogram(
+    #     filtered_samp, original_sr;
+    #     title = "Filtered " * inst.string,
+    #     spectrogram_plot_options = spectrogram_plot_options
+    # )
 
-    melscale = get_mel_bands(nbands, 0.0, max_sample_rate / 2)
-    mA32, mA38 = melscale[32], melscale[38]
+    # melscale = get_mel_bands(nbands, 0.0, max_sample_rate / 2)
+    # mA32, mA38 = melscale[32], melscale[38]
 
-    freqs = Vector{Float64}([ 0.0, mA32.peak, mA38.peak, (max_sample_rate/2) ])
-    labels = Vector{String}([ "0", "A32\n" * string(round(Int64, mA32.peak)), "A38\n" * string(round(Int64, mA38.peak)), string(round(Int64, max_sample_rate/2)) ])
-    yticks!(spec_dict[inst.id * "_original_just_band"], freqs, labels)
-    yticks!(spec_dict[inst.id * "_filtered_just_band"], freqs, labels)
+    # freqs = Vector{Float64}([ 0.0, mA32.peak, mA38.peak, (max_sample_rate/2) ])
+    # labels = Vector{String}([ "0", "A32\n" * string(round(Int64, mA32.peak)), "A38\n" * string(round(Int64, mA38.peak)), string(round(Int64, max_sample_rate/2)) ])
+    # yticks!(spec_dict[inst.id * "_original_just_band"], freqs, labels)
+    # yticks!(spec_dict[inst.id * "_filtered_just_band"], freqs, labels)
 
-    for band in (mA32, mA38) hline!(spec_dict[inst.id * "_original_just_band"], [ band.left, band.right ], line = (1, :white), leg = false) end
-    for band in (mA32, mA38) hline!(spec_dict[inst.id * "_filtered_just_band"], [ band.left, band.right ], line = (1, :white), leg = false) end
+    # for band in (mA32, mA38) hline!(spec_dict[inst.id * "_original_just_band"], [ band.left, band.right ], line = (1, :white), leg = false) end
+    # for band in (mA32, mA38) hline!(spec_dict[inst.id * "_filtered_just_band"], [ band.left, band.right ], line = (1, :white), leg = false) end
 end
 
 # 5.1) compose spectrograms mosaic
@@ -224,19 +229,19 @@ end
 # savefig(replace(spectrogram_path, ".png" => ".normalized.png"))
 
 # 5.3) compose just A32 and A38 spectrograms mosaic
-plts = (
-    spec_dict[pos_id * "_original_just_band"], spec_dict[pos_id * "_filtered_just_band"],
-    spec_dict[neg_id * "_original_just_band"], spec_dict[neg_id * "_filtered_just_band"]
-)
+# plts = (
+#     spec_dict[pos_id * "_original_just_band"], spec_dict[pos_id * "_filtered_just_band"],
+#     spec_dict[neg_id * "_original_just_band"], spec_dict[neg_id * "_filtered_just_band"]
+# )
 
-plot(plts..., layout = (2, 2), size = spec_mosaic_size)
-savefig(replace(spectrogram_path, ".png" => ".just.A32.A38.png"))
+# plot(plts..., layout = (2, 2), size = spec_mosaic_size)
+# savefig(replace(spectrogram_path, ".png" => ".just.A32.A38.png"))
 
 # 6) generate example tex file
 orig_ratio = 1000 / 150
 filt_ratio = 1000 / 150
 
-selected_width = 400 # normal article body A4 is ~426pt
+selected_width = 325 # normal article body A4 is ~426pt
 width_measure_unit = "pt"
 
 dim_string_orig = "width=$(selected_width)$(width_measure_unit),height=$(selected_width/filt_ratio)$(width_measure_unit)"
@@ -272,14 +277,14 @@ close(f)
 cd(presentation_total_output)
 
 # 7) extract first frame from gifs to use it as poster
-for f in map(basename, [ pos.output.gif_original_path, neg.output.gif_original_path, pos.output.gif_filtered_path, neg.output.gif_filtered_path ])
-    o = replace(f, ".gif" => ".png")
-    try
-        run(`convert "$f[0]" $o`)
-    catch
-        error("An error occurred while extracting posters from gifs")
-    end
-end
+# for f in map(basename, [ pos.output.gif_original_path, neg.output.gif_original_path, pos.output.gif_filtered_path, neg.output.gif_filtered_path ])
+#     o = replace(f, ".gif" => ".png")
+#     try
+#         run(`convert "$f[0]" $o`)
+#     catch
+#         error("An error occurred while extracting posters from gifs")
+#     end
+# end
 
 println("DONE!")
 

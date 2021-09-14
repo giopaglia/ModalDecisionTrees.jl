@@ -783,8 +783,10 @@ function generate_video(
         ffmpeg_output_file       :: Union{String,IO,Nothing}     = nothing,
         ffmpeg_error_output_file :: Union{String,IO,Nothing}     = nothing,
         video_codec              :: String                       = "libx265",
+        audio_codec              :: String                       = "copy",
         output_ext               :: String                       = "mkv",
-        additional_ffmpeg_args   :: Union{Vector{String},String} = []
+        additional_ffmpeg_args_v :: Union{Vector{String},String} = [],
+        additional_ffmpeg_args_a :: Union{Vector{String},String} = []
     )
 
     @assert isfile(gif) "File $(gif) does not exist."
@@ -804,8 +806,12 @@ function generate_video(
         end
     end
 
-    if additional_ffmpeg_args isa String
-        additional_ffmpeg_args = convert.(String, split(additional_ffmpeg_args, ' '; keepempty = false))
+    if additional_ffmpeg_args_v isa String
+        additional_ffmpeg_args_v = convert.(String, split(additional_ffmpeg_args_v, ' '; keepempty = false))
+    end
+
+    if additional_ffmpeg_args_a isa String
+        additional_ffmpeg_args_a = convert.(String, split(additional_ffmpeg_args_a, ' '; keepempty = false))
     end
 
     try
@@ -842,7 +848,7 @@ function generate_video(
             end
 
             print("Generating video in $(total_output_path)...")
-            run(pipeline(`ffmpeg -i $gif -i $w -y -c:a copy -c:v $video_codec $additional_ffmpeg_args $total_output_path`, stdout = tmp_ffmpeg_output_file, stderr = tmp_ffmpeg_error_output_file))
+            run(pipeline(`ffmpeg -i $gif -i $w -y -c:a $audio_codec $additional_ffmpeg_args_a -c:v $video_codec $additional_ffmpeg_args_v $total_output_path`, stdout = tmp_ffmpeg_output_file, stderr = tmp_ffmpeg_error_output_file))
             println(" done")
             
             if ffmpeg_output_file_manually_open close(tmp_ffmpeg_output_file) end
