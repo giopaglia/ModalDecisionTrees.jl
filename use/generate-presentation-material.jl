@@ -27,7 +27,7 @@ max_sample_rate = 8_000
 nbands = 40
 
 # ANIM
-anim_fps = 15 # TODO: 30
+anim_fps = 30
 
 # SPECTROGRAMS
 spectrogram_path = presentation_total_output * "/" * "spectrograms.png"
@@ -139,8 +139,8 @@ for inst in (pos, neg)
     )
     # 2) filtered videos
     draw_audio_anim(
-        [ (filtered_samp, original_sr), (A32_samp, original_sr), (A38_samp, original_sr) ];
-        labels = [ "Filtered " * inst.string, "A32", "A38" ],
+        [ (A38_samp, original_sr) ];
+        labels = [ "Filtered " * inst.string ],
         outfile = inst.output.gif_filtered_path,
         colors = [ RGB(1, 0.3, 0.3), RGB(0.1, 0.1, 1), RGB(0.2, 0.2, 1) ],
         resample_at_rate = max_sample_rate,
@@ -156,39 +156,39 @@ for inst in (pos, neg)
         additional_ffmpeg_args = additional_ffmpeg_args
     )
     # 3.0) spectrograms
-    spec_dict[inst.id * "_original"] = draw_spectrogram(
-        inst.input.wav_orig;
-        title = "Original " * inst.string,
-        spectrogram_plot_options = spectrogram_plot_options,
-        melbands = (draw = true, nbands = nbands, maxfreq = max_sample_rate / 2)
-    )
-    spec_dict[inst.id * "_filtered"] = draw_spectrogram(
-        inst.input.wav_filt;
-        title = "Filtered " * inst.string,
-        spectrogram_plot_options = spectrogram_plot_options,
-        melbands = (draw = true, nbands = nbands, maxfreq = max_sample_rate / 2)
-    )
+    # spec_dict[inst.id * "_original"] = draw_spectrogram(
+    #     inst.input.wav_orig;
+    #     title = "Original " * inst.string,
+    #     spectrogram_plot_options = spectrogram_plot_options,
+    #     melbands = (draw = true, nbands = nbands, maxfreq = max_sample_rate / 2)
+    # )
+    # spec_dict[inst.id * "_filtered"] = draw_spectrogram(
+    #     inst.input.wav_filt;
+    #     title = "Filtered " * inst.string,
+    #     spectrogram_plot_options = spectrogram_plot_options,
+    #     melbands = (draw = true, nbands = nbands, maxfreq = max_sample_rate / 2)
+    # )
     # 3.1) spectrograms normalized
-    spec_dict[inst.id * "_original_normalized"] = draw_spectrogram(
-        orig_norm, original_sr;
-        title = "Original " * inst.string,
-        spectrogram_plot_options = spectrogram_plot_options,
-        melbands = (draw = true, nbands = nbands, maxfreq = max_sample_rate / 2)
-    )
-    spec_dict[inst.id * "_filtered_normalized"] = draw_spectrogram(
-        filtered_samp, original_sr;
-        title = "Filtered " * inst.string,
-        spectrogram_plot_options = spectrogram_plot_options,
-        melbands = (draw = true, nbands = nbands, maxfreq = max_sample_rate / 2)
-    )
+    # spec_dict[inst.id * "_original_normalized"] = draw_spectrogram(
+    #     orig_norm, original_sr;
+    #     title = "Original " * inst.string,
+    #     spectrogram_plot_options = spectrogram_plot_options,
+    #     melbands = (draw = true, nbands = nbands, maxfreq = max_sample_rate / 2)
+    # )
+    # spec_dict[inst.id * "_filtered_normalized"] = draw_spectrogram(
+    #     filtered_samp, original_sr;
+    #     title = "Filtered " * inst.string,
+    #     spectrogram_plot_options = spectrogram_plot_options,
+    #     melbands = (draw = true, nbands = nbands, maxfreq = max_sample_rate / 2)
+    # )
     # 3.2) spectrograms just A32 A38
     spec_dict[inst.id * "_original_just_band"] = draw_spectrogram(
-        inst.input.wav_orig;
+        orig_norm, original_sr;
         title = "Original " * inst.string,
         spectrogram_plot_options = spectrogram_plot_options
     )
     spec_dict[inst.id * "_filtered_just_band"] = draw_spectrogram(
-        inst.input.wav_filt;
+        filtered_samp, original_sr;
         title = "Filtered " * inst.string,
         spectrogram_plot_options = spectrogram_plot_options
     )
@@ -206,22 +206,22 @@ for inst in (pos, neg)
 end
 
 # 5.1) compose spectrograms mosaic
-plts = (
-    spec_dict[pos_id * "_original"], spec_dict[pos_id * "_filtered"],
-    spec_dict[neg_id * "_original"], spec_dict[neg_id * "_filtered"]
-)
+# plts = (
+#     spec_dict[pos_id * "_original"], spec_dict[pos_id * "_filtered"],
+#     spec_dict[neg_id * "_original"], spec_dict[neg_id * "_filtered"]
+# )
 
-plot(plts..., layout = (2, 2), size = spec_mosaic_size)
-savefig(spectrogram_path)
+# plot(plts..., layout = (2, 2), size = spec_mosaic_size)
+# savefig(spectrogram_path)
 
 # 5.2) compose normalized spectrograms mosaic
-plts = (
-    spec_dict[pos_id * "_original_normalized"], spec_dict[pos_id * "_filtered_normalized"],
-    spec_dict[neg_id * "_original_normalized"], spec_dict[neg_id * "_filtered_normalized"]
-)
+# plts = (
+#     spec_dict[pos_id * "_original_normalized"], spec_dict[pos_id * "_filtered_normalized"],
+#     spec_dict[neg_id * "_original_normalized"], spec_dict[neg_id * "_filtered_normalized"]
+# )
 
-plot(plts..., layout = (2, 2), size = spec_mosaic_size)
-savefig(replace(spectrogram_path, ".png" => ".normalized.png"))
+# plot(plts..., layout = (2, 2), size = spec_mosaic_size)
+# savefig(replace(spectrogram_path, ".png" => ".normalized.png"))
 
 # 5.3) compose just A32 and A38 spectrograms mosaic
 plts = (
@@ -234,7 +234,7 @@ savefig(replace(spectrogram_path, ".png" => ".just.A32.A38.png"))
 
 # 6) generate example tex file
 orig_ratio = 1000 / 150
-filt_ratio = 1000 / 450
+filt_ratio = 1000 / 150
 
 selected_width = 400 # normal article body A4 is ~426pt
 width_measure_unit = "pt"
@@ -255,6 +255,10 @@ main_tex_content = """
 \\movie[showcontrols=true]{\\includegraphics[$(dim_string_filt)]{$(replace(basename(neg.output.gif_original_path), ".gif" => ".png"))}}{$(basename(neg.output.vid_original_path))}
 \\movie[showcontrols=true]{\\includegraphics[$(dim_string_orig)]{$(replace(basename(pos.output.gif_filtered_path), ".gif" => ".png"))}}{$(basename(pos.output.vid_filtered_path))}
 \\movie[showcontrols=true]{\\includegraphics[$(dim_string_orig)]{$(replace(basename(neg.output.gif_filtered_path), ".gif" => ".png"))}}{$(basename(neg.output.vid_filtered_path))}
+\\newpage
+\\resizebox{\\textwidth}{!}{\\includegraphics{$(basename(spectrogram_path))}}
+\\resizebox{\\textwidth}{!}{\\includegraphics{$(basename(replace(spectrogram_path, ".png" => ".normalized.png")))}}
+\\resizebox{\\textwidth}{!}{\\includegraphics{$(basename(replace(spectrogram_path, ".png" => ".just.A32.A38.png")))}}
 
 \\end{document}
 """
