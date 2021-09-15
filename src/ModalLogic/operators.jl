@@ -97,6 +97,15 @@ lesser_than_operator(x::S,  y::S)    where {S} =  <(x,y)  # <
 greater_eq_than_operator(x::S, y::S) where {S} =  ≥(x,y)  # ≥
 lesser_eq_than_operator(x::S, y::S)  where {S} =  ≤(x,y)  # ≤
 
+
+test_operator_inverse(::typeof(≥))  = <
+test_operator_inverse(::typeof(≤))  = >
+test_operator_inverse(::typeof(<))  = ≥
+test_operator_inverse(::typeof(>))  = ≤
+test_operator_inverse(::typeof(==)) = !=
+test_operator_inverse(::typeof(!=)) = ==
+
+
 existential_aggregator(::typeof(equality_operator))        = ∪
 existential_aggregator(::typeof(greater_than_operator))    = maximum
 existential_aggregator(::typeof(lesser_than_operator))     = minimum
