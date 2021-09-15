@@ -388,7 +388,7 @@ struct DecisionPathNode
     feature       :: ModalLogic.FeatureTypeFun
     test_operator :: TestOperatorFun
     threshold     :: T where T
-    # TODO: add here info about the world(s)
+    worlds        :: AbstractWorldSet
 end
 
 const DecisionPath = Vector{DecisionPathNode}
@@ -421,8 +421,7 @@ function get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_instanc
 						tree.test_operator,
 						tree.threshold)
 
-    # TODO: add here info about the worlds that generated the decision
-    push!(paths[i_instance], DecisionPathNode(satisfied, tree.feature, tree.test_operator, tree.threshold))
+    push!(paths[i_instance], DecisionPathNode(satisfied, tree.feature, tree.test_operator, tree.threshold, new_worlds))
 
 	worlds[tree.i_frame] = new_worlds
 	get_path_in_tree((satisfied ? tree.left : tree.right), X, i_instance, worlds, paths)
@@ -737,43 +736,43 @@ function apply_tree_to_datasets_wavs(
 end
 
 # TODO: implement this function for real (it is just a draft for now...)
-# function apply_dynfilter!(
-#         dynamic_filter::Matrix{Integer},
-#         sample::AbstractVector{T};
-#         samplerate = 16000,
-#         wintime = 0.025,
-#         steptime = 0.01,
-#         window_f::Function
-#     )::Vector{T} where {T <: Real}
+function apply_dynfilter!(
+        dynamic_filter      :: Matrix{Integer},
+        sample              :: AbstractVector{T};
+        samplerate          :: Real = 8_000.0,
+        wintime             :: Real = 0.025,
+        steptime            :: Real = 0.01,
+        window_f            :: Function = triang
+    )::Vector{T} where {T <: Real}
 
-#     nbands = size(dynamic_filter, 2)
-#     ntimechunks = ntimechunks
-#     nwin = round(Integer, wintime * sr)
-#     nstep = round(Integer, steptime * sr)
+    nbands = size(dynamic_filter, 2)
+    ntimechunks = ntimechunks
+    nwin = round(Integer, wintime * sr)
+    nstep = round(Integer, steptime * sr)
 
-#     window = window_f(nwin)
+    window = window_f(nwin)
 
-#     winsize = (samplerate / 2) / nwin
+    winsize = (samplerate / 2) / nwin
 
-#     # init filters
-#     filters = [ digitalfilter(Filters.Bandpass((i-1) * winsize, (i * winsize) - 1, fs = samplerate), window) for i in 1:nbands ]
+    # init filters
+    filters = [ digitalfilter(Filters.Bandpass((i-1) * winsize, (i * winsize) - 1, fs = samplerate), window) for i in 1:nbands ]
 
-#     # combine filters to generate EQs
-#     slice_filters = Vector{Vector{Float64}}(undef, ntimechunks)
-#     for i in 1:ntimechunks
-#         step_filters = (@view filters[findall(isequal(1), dynamic_filter[i])])
-#         slice_filters[i] = maximum.(collect(zip(step_filters...)))
-#     end
+    # combine filters to generate EQs
+    slice_filters = Vector{Vector{Float64}}(undef, ntimechunks)
+    for i in 1:ntimechunks
+        step_filters = (@view filters[findall(isequal(1), dynamic_filter[i])])
+        slice_filters[i] = maximum.(collect(zip(step_filters...)))
+    end
 
-#     # write filtered time chunks to new_track
-#     new_track = Vector{T}(undef, length(sample) - 1)
-#     time_chunk_length = length(sample) / ntimechunks
-#     for i in 1:ntimechunks
-#         new_track[i:(i*time_chunk_length) - 1] = filt(slice_filters[i], sample[i:(i*time_chunk_length) - 1])
-#     end
+    # write filtered time chunks to new_track
+    new_track = Vector{T}(undef, length(sample) - 1)
+    time_chunk_length = length(sample) / ntimechunks
+    for i in 1:ntimechunks
+        new_track[i:(i*time_chunk_length) - 1] = filt(slice_filters[i], sample[i:(i*time_chunk_length) - 1])
+    end
 
-#     new_track
-# end
+    new_track
+end
 
 function generate_video(
         gif                      :: String,
