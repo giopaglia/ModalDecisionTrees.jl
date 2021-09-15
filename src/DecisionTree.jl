@@ -792,6 +792,10 @@ default_conversion_dict_latex = Dict{String, String}(
     "τ" => "\\tau ",
     "⫹" => "\\leq ",
     "⫺" => "\\geq ",
+    "⪳" => "\\preceqq ",
+    "⪴" => "\\succeqq ",
+    "⪵" => "\\precneqq ",
+    "⪶" => "\\succneqq ",
     "⟨" => "\\langle ",
     "⟩" => "\\rangle ",
     "A̅" => "\\overline{A}",
@@ -896,13 +900,13 @@ _node_content(node::DTInternal; kwargs...)::String = ""
 
 
 function _print_tree_latex(
-        leaf                      :: DTLeaf,
-        previous_node_index       :: String,
-        previous_node_position    :: NodeCoord,
-        space_unit                :: NodeCoord,
+    leaf                      :: DTLeaf,
+    previous_node_index       :: String,
+    previous_node_position    :: NodeCoord,
+    space_unit                :: NodeCoord,
 		nodes_margin              :: NodeCoord,
-        conversion_dict           :: Dict{String,String},
-        add_dollars               :: Bool,
+    conversion_dict           :: Dict{String,String},
+    add_dollars               :: Bool,
 		print_test_operator_alpha :: Bool,
 		show_frame_number         :: Bool,
 		t_display_func            :: Function,
@@ -912,13 +916,13 @@ function _print_tree_latex(
     ""
 end
 function _print_tree_latex(
-        node                      :: DTInternal,
-        previous_node_index       :: String,
-        previous_node_position    :: NodeCoord,
-        space_unit                :: NodeCoord,
+		node                      :: DTInternal,
+		previous_node_index       :: String,
+		previous_node_position    :: NodeCoord,
+		space_unit                :: NodeCoord,
 		nodes_margin              :: NodeCoord,
-        conversion_dict           :: Dict{String,String},
-        add_dollars               :: Bool,
+		conversion_dict           :: Dict{String,String},
+		add_dollars               :: Bool,
 		print_test_operator_alpha :: Bool,
 		show_frame_number         :: Bool,
 		t_display_func            :: Function,
@@ -961,16 +965,16 @@ end
 # :scriptsize   = \scriptsize
 # :tiny         = \tiny
 function print_tree_latex(
-        tree                               :: DTree;
-        tree_name                          :: String                             = "τ",
-        conversion_dict                    :: Union{Nothing,Dict{String,String}} = nothing,
+		tree                               :: DTree;
+		tree_name                          :: String                             = "τ",
+		conversion_dict                    :: Union{Nothing,Dict{String,String}} = nothing,
 		first_node_idx                     :: String                             = "0",
-        first_node_position                :: NodeCoord                          = (0, 0),
+		first_node_position                :: NodeCoord                          = (0, 0),
 		space_unit                         :: NodeCoord                          = (0.5, 2.0),
-        nodes_margin                       :: NodeCoord                          = (1.8, 0),
+		nodes_margin                       :: NodeCoord                          = (1.8, 0),
 		merge_conversion_dict_with_default :: Bool                               = true,
-        wrap_in_tikzpicture_block          :: Bool                               = true,
-        add_dollars                        :: Bool                               = true,
+		wrap_in_tikzpicture_block          :: Bool                               = true,
+		add_dollars                        :: Bool                               = true,
 		print_test_operator_alpha          :: Bool                               = true,
 		show_frame_number                  :: Bool                               = true,
 
@@ -1004,10 +1008,12 @@ function print_tree_latex(
 
 	print_tree_comment = replace(string(tree), "\n" => "\n% ")
 
-	result = "\$\$\n"
-	result *= "% " * tree_name * "\n% " * print_tree_comment * "\n"
-    result *= wrap_in_tikzpicture_block ? "\\begin{tikzpicture}\n" : ""
-	result *= "\\" * string(tree_name_script_size) * "\n"
+		result = "\$\$\n"
+		result *= "% packages needed: tikz, amssymb, newtxmath\n"
+		result *= "% " * tree_name * "\n"
+		result *= "% " * print_tree_comment * "\n"
+		result *= wrap_in_tikzpicture_block ? "\\begin{tikzpicture}\n" : ""
+		result *= "\\" * string(tree_name_script_size) * "\n"
     result *= "\\node ($first_node_idx) at $first_node_position [above] {$(_latex_string(tree_name; conversion_dict = conversion_dict, add_dollars = add_dollars))};\n"
     result *= _print_tree_latex(
 		tree.root,
