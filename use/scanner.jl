@@ -581,6 +581,61 @@ function exec_scan(
 	
 	@assert timing_mode in [:none, :profile, :time, :btime] "Unknown timing_mode!"
 	
+	run_name = join([replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)], ",")
+	
+	##############################################################################
+	##############################################################################
+	# Output files
+	##############################################################################
+	##############################################################################
+
+	concise_output_file_path = results_dir * "/grouped_in_models.tsv"
+	full_output_file_path    = results_dir * "/full_columns.tsv"
+
+	results_col_sep = "\t"
+
+	base_metrics_names = [
+		"K",
+		"accuracy",
+		"macro_sensitivity",
+		"safe_macro_sensitivity",
+		"safe_macro_specificity",
+		"safe_macro_PPV",
+		"safe_macro_NPV",
+		"safe_macro_F1"
+	]
+
+	# TODO restore best_rule_params
+	# tree_columns = [base_metrics_names..., "n_nodes", ["best_rule_p $(best_rule_p)" for best_rule_p in best_rule_params]..., "t", "hash"]
+	tree_columns = [base_metrics_names..., "n_nodes"]
+	forest_columns = [base_metrics_names..., "oob_error", "n_nodes"]
+	
+	all_tree_columns = [tree_columns..., "t", "hash"]
+	all_forest_columns = [
+		forest_columns...,
+		["σ² $(n)" for n in forest_columns]...,
+		"t", "hash"
+	]
+
+	# If the output files do not exists initilize them
+	print_head(concise_output_file_path, tree_args, forest_args,
+		separator = results_col_sep,
+		tree_columns = [""],
+		forest_columns = ["", "σ²", "t"],
+		columns_before = ["Dataseed", "Params-combination"],
+	)
+	print_head(full_output_file_path, tree_args, forest_args,
+		separator = results_col_sep,
+		tree_columns = all_tree_columns,
+		forest_columns = all_forest_columns,
+		columns_before = ["Dataseed", (params_namedtuple |> keys .|> string)...],
+	)
+
+	##############################################################################
+	##############################################################################
+	##############################################################################
+	##############################################################################
+
 	go_tree(slice_id, X_train, Y_train, X_test, Y_test, tree_args, rng) = begin
 		started = Dates.now()
 		T =
@@ -805,11 +860,18 @@ function exec_scan(
 		# PRINT CONCISE
 		concise_output_string = string(slice_id, results_col_sep, run_name, results_col_sep)
 		for j in 1:length(tree_args)
-			concise_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j], Thashs[j]; alt_separator=", ", separator = results_col_sep, best_rule_params = best_rule_params))
+			concise_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j], Thashs[j], tree_columns;
+				alt_separator=", ",
+				separator = results_col_sep,
+				# best_rule_params = best_rule_params,
+				))
 			concise_output_string *= string(results_col_sep)
 		end
 		for j in 1:length(forest_args)
-			concise_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j], Fhashs[j]; alt_separator=", ", separator = results_col_sep))
+			concise_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j], Fhashs[j], forest_columns;
+				alt_separator=", ",
+				separator = results_col_sep,
+				))
 			concise_output_string *= string(results_col_sep)
 		end
 		concise_output_string *= string("\n")
@@ -818,11 +880,18 @@ function exec_scan(
 		# PRINT FULL
 		full_output_string = string(slice_id, results_col_sep, join([replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)], results_col_sep), results_col_sep)
 		for j in 1:length(tree_args)
-			full_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j], Thashs[j]; start_s = "", end_s = "", alt_separator = results_col_sep, best_rule_params = best_rule_params))
+			full_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j], Thashs[j], tree_columns;
+				start_s = "", end_s = "",
+				alt_separator = results_col_sep,
+				# best_rule_params = best_rule_params,
+				))
 			full_output_string *= string(results_col_sep)
 		end
 		for j in 1:length(forest_args)
-			full_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j], Fhashs[j]; start_s = "", end_s = "", alt_separator = results_col_sep))
+			full_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j], Fhashs[j], forest_columns;
+				start_s = "", end_s = "",
+				alt_separator = results_col_sep,
+				))
 			full_output_string *= string(results_col_sep)
 		end
 		full_output_string *= string("\n")
@@ -833,37 +902,6 @@ function exec_scan(
 		Ts, Fs, Tcms, Fcms, Tts, Fts
 	end
 	
-	run_name = join([replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)], ",")
-	
-	##############################################################################
-	##############################################################################
-	# Output files
-	##############################################################################
-	##############################################################################
-
-	concise_output_file_path = results_dir * "/grouped_in_models.tsv"
-	full_output_file_path    = results_dir * "/full_columns.tsv"
-
-	results_col_sep = "\t"
-
-	base_metrics_names = ["K", "accuracy", "safe_macro_sensitivity", "safe_macro_specificity", "safe_macro_PPV", "safe_macro_NPV", "safe_macro_F1"]
-
-	# If the output files do not exists initilize them
-	print_head(concise_output_file_path, tree_args, forest_args,
-		separator = results_col_sep,
-		tree_columns = [""],
-		forest_columns = ["", "σ²", "t"],
-		columns_before = ["Dataseed", "Params-combination"],
-	)
-	print_head(full_output_file_path, tree_args, forest_args,
-		separator = results_col_sep,
-		tree_columns = [base_metrics_names..., "n_nodes", ["best_rule_p $(best_rule_p)" for best_rule_p in best_rule_params]..., "t", "hash"],
-		forest_columns = [
-			[base_metrics_names..., "oob_error", "n_nodes"]...,
-			["σ² $(n)" for n in [base_metrics_names..., "oob_error", "n_nodes"]]..., "t", "hash"],
-		columns_before = ["Dataseed", (params_namedtuple |> keys .|> string)...],
-	)
-
 	##############################################################################
 	##############################################################################
 	##############################################################################
@@ -891,7 +929,7 @@ function exec_scan(
 	# println("forest_args  = ", length(forest_args), " × some forest_args structure")
 	println()
 	println("split_threshold   = ", split_threshold)
-	println("best_rule_params  = ", best_rule_params)
+	# println("best_rule_params  = ", best_rule_params) TODO restore
 	println("data_modal_args   = ", data_modal_args)
 	println("dataset_slices    = ($(length(dataset_slices)) dataset_slices)")
 

@@ -506,7 +506,10 @@ function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n
 		# CP5    CP3    CP1    CPz    CP2    CP4    CP6
 		#               O1            O2
 
+		# Pad with one dimension (TODO remove, this is only because the code currently only supports multi-frame with same ontology)
 		add_dim(X::Array) = reshape(X, (1,size(X)...))
+		# Add singleton dimension for a single feature
+		add_feat_dim(X::Array) = reshape(X, (size(X)[begin:end-1]...,1,size(X)[end]))
 
 		transform_f =
 			if mode == false
@@ -516,23 +519,23 @@ function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n
 					@assert size(X, 2) == (5+3*7+2) "size(X, 1) != (5+3*7+2). size(X) = $(size(X))"
 					# a = reshape(collect(1:210),(21,5,2))
 					# reshape(a,(7,3,5,2))
-					[add_dim(X[:,1:5,:]), add_dim(X[:,27:28,:]), reshape(X[:,6:26,:], (size(X,1),7,3,size(X,3)))]
+					[add_dim(add_feat_dim(X[:,1:5,:])), add_dim(add_feat_dim(X[:,27:28,:])), reshape(X[:,6:26,:], (size(X,1),7,3,1,size(X,3)))]
 				end
 			elseif mode == :vertical_4f
 				(X)->begin
 					@assert size(X, 2) == (5+3*7+2) "size(X, 1) != (5+3*7+2). size(X) = $(size(X))"
-					[add_dim(X[:,(6:7:20),:]), add_dim(X[:,(12:7:27),:]), add_dim(X[:,27:28,:]), reshape(X[:,[(1:5)..., (7:11)..., (14:18)..., (21:25)...],:], (size(X,1),5,4,size(X,3)))]
+					[add_dim(add_feat_dim(X[:,(6:7:20),:])), add_dim(add_feat_dim(X[:,(12:7:27),:])), add_dim(add_feat_dim(X[:,27:28,:])), reshape(X[:,[(1:5)..., (7:11)..., (14:18)..., (21:25)...],:], (size(X,1),5,4,1,size(X,3)))]
 				end
 			elseif mode == :uniform
 				(X)->begin
 					@assert size(X, 2) == (5+3*7+2) "size(X, 1) != (5+3*7+2). size(X) = $(size(X))"
-					new_X = zeros((size(X,1), 7, 5, size(X,3)))
-					new_X[:,2:6,1,:,:] = X[:,1:5,:,:]
-					new_X[:,1:7,2,:,:] = X[:,6:12,:,:]
-					new_X[:,1:7,3,:,:] = X[:,13:19,:,:]
-					new_X[:,1:7,4,:,:] = X[:,20:26,:,:]
-					new_X[:,3,  5,:,:] = X[:,27,:,:]
-					new_X[:,5,  5,:,:] = X[:,28,:,:]
+					new_X = zeros((size(X,1), 7, 5, 1, size(X,3)))
+					new_X[:,2:6,1,:,1,:] = X[:,1:5,:,:]
+					new_X[:,1:7,2,:,1,:] = X[:,6:12,:,:]
+					new_X[:,1:7,3,:,1,:] = X[:,13:19,:,:]
+					new_X[:,1:7,4,:,1,:] = X[:,20:26,:,:]
+					new_X[:,3,  5,:,1,:] = X[:,27,:,:]
+					new_X[:,5,  5,:,1,:] = X[:,28,:,:]
 					[new_X]
 				end
 			else

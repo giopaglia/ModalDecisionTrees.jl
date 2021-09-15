@@ -124,6 +124,7 @@ Note:
 # macro_weighted_PPV(cm::ConfusionMatrix) = Statistics.sum(cm.PPVs.*class_counts(cm))./sum(cm.matrix)
 # macro_weighted_NPV(cm::ConfusionMatrix) = Statistics.sum(cm.NPVs.*class_counts(cm))./sum(cm.matrix)
 
+# macro_sensitivity, also called unweighted average recall (UAR)
 macro_sensitivity(cm::ConfusionMatrix) = Statistics.mean(cm.sensitivities)
 macro_specificity(cm::ConfusionMatrix) = Statistics.mean(cm.specificities)
 macro_PPV(cm::ConfusionMatrix)         = Statistics.mean(cm.PPVs)

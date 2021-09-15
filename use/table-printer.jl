@@ -119,28 +119,46 @@ function data_to_string(
 		M::DTree,
 		cm::ConfusionMatrix,
 		time::Dates.Millisecond,
-		hash::AbstractString;
+		hash::AbstractString,
+		columns::AbstractVector;
 		start_s = "(",
 		end_s = ")",
 		separator = "\t",
 		alt_separator = ",",
-		best_rule_params = [(t=.8, min_confidence=0.6, min_support=0.1), (t=.65, min_confidence=0.6, min_support=0.1)],
+		# best_rule_params = [(t=.8, min_confidence=0.6, min_support=0.1), (t=.65, min_confidence=0.6, min_support=0.1)],
 	)
 
 	result = start_s
-	result *= string(percent(kappa(cm)),                  alt_separator)
-	result *= string(percent(overall_accuracy(cm)),       alt_separator)
-	result *= string(percent(safe_macro_sensitivity(cm)), alt_separator)
-	result *= string(percent(safe_macro_specificity(cm)), alt_separator)
-	result *= string(percent(safe_macro_PPV(cm)),         alt_separator)
-	result *= string(percent(safe_macro_NPV(cm)),         alt_separator)
-	result *= string(percent(safe_macro_F1(cm)),          alt_separator)
-	result *= string(num_nodes(M),                        alt_separator)
-	
-	m = tree_walk_metrics(M; best_rule_params = best_rule_params)
-	for best_rule_p in best_rule_params
-		result *= string(m["best_rule_t=$(best_rule_p)"], alt_separator)
+	for (i_col,column) in enumerate(columns)
+		result *= string(
+			if column == "K"
+				percent(kappa(cm))                  
+			elseif column == "accuracy"
+				percent(overall_accuracy(cm)) 
+			elseif column == "macro_sensitivity"      
+				percent(macro_sensitivity(cm)) 
+			elseif column == "safe_macro_sensitivity"      
+				percent(safe_macro_sensitivity(cm)) 
+			elseif column == "safe_macro_specificity"
+				percent(safe_macro_specificity(cm)) 
+			elseif column == "safe_macro_PPV"
+				percent(safe_macro_PPV(cm))         
+			elseif column == "safe_macro_NPV"
+				percent(safe_macro_NPV(cm))         
+			elseif column == "safe_macro_F1"
+				percent(safe_macro_F1(cm))          
+			elseif column == "n_nodes"
+				num_nodes(M)
+			else
+				"??? $(column) ???"
+		end, alt_separator) # (i_col == length(columns) ? "", alt_separator))
+
+		# m = tree_walk_metrics(M; best_rule_params = best_rule_params)
+		# for best_rule_p in best_rule_params
+		# 	result *= string(m["best_rule_t=$(best_rule_p)"], alt_separator)
+		# end
 	end
+	
 	result *= string(human_readable_time_s(time), alt_separator)
 	result *= string(hash)
 	result *= end_s
@@ -153,35 +171,71 @@ function data_to_string(
 		Ms::AbstractVector{Forest{S}},
 		cms::AbstractVector{ConfusionMatrix},
 		time::Dates.Millisecond,
-		hash::AbstractString;
+		hash::AbstractString,
+		columns::AbstractVector;
 		start_s = "(",
 		end_s = ")",
 		separator = "\t",
-		alt_separator = ","
+		alt_separator = ",",
 	) where {S}
 
 	result = start_s
-	result *= string(percent(mean(map(cm->kappa(cm),                  cms))), alt_separator)
-	result *= string(percent(mean(map(cm->overall_accuracy(cm),       cms))), alt_separator)
-	result *= string(percent(mean(map(cm->safe_macro_sensitivity(cm), cms))), alt_separator)
-	result *= string(percent(mean(map(cm->safe_macro_specificity(cm), cms))), alt_separator)
-	result *= string(percent(mean(map(cm->safe_macro_PPV(cm),         cms))), alt_separator)
-	result *= string(percent(mean(map(cm->safe_macro_NPV(cm),         cms))), alt_separator)
-	result *= string(percent(mean(map(cm->safe_macro_F1(cm),          cms))), alt_separator)
-	result *= string(percent(mean(map(M->M.oob_error, Ms))),                    alt_separator)
-	result *= string(percent(mean(num_nodes.(Ms))))
+
+	for (i_col,column) in enumerate(columns)
+		result *= string(
+			if column == "K"
+				percent(mean(map(cm->kappa(cm),                  cms)))
+			elseif column == "accuracy"
+				percent(mean(map(cm->overall_accuracy(cm),       cms)))
+			elseif column == "macro_sensitivity"      
+				percent(mean(map(cm->macro_sensitivity(cm),      cms)))
+			elseif column == "safe_macro_sensitivity"      
+				percent(mean(map(cm->safe_macro_sensitivity(cm), cms)))
+			elseif column == "safe_macro_specificity"
+				percent(mean(map(cm->safe_macro_specificity(cm), cms)))
+			elseif column == "safe_macro_PPV"
+				percent(mean(map(cm->safe_macro_PPV(cm),         cms)))
+			elseif column == "safe_macro_NPV"
+				percent(mean(map(cm->safe_macro_NPV(cm),         cms)))
+			elseif column == "safe_macro_F1"
+				percent(mean(map(cm->safe_macro_F1(cm),          cms)))
+			elseif column == "n_nodes"
+				percent(mean(num_nodes.(Ms)))
+			elseif column == "oob_error"
+				percent(mean(map(M->M.oob_error, Ms)))
+			else
+				"??? $(column) ???"
+		end, (i_col == length(columns) ? "", alt_separator)))
+	end
 	result *= end_s
 	result *= separator
 	result *= start_s
-	result *= string(var(map(cm->kappa(cm),                  cms)), alt_separator)
-	result *= string(var(map(cm->overall_accuracy(cm),       cms)), alt_separator)
-	result *= string(var(map(cm->safe_macro_sensitivity(cm), cms)), alt_separator)
-	result *= string(var(map(cm->safe_macro_specificity(cm), cms)), alt_separator)
-	result *= string(var(map(cm->safe_macro_PPV(cm),         cms)), alt_separator)
-	result *= string(var(map(cm->safe_macro_NPV(cm),         cms)), alt_separator)
-	result *= string(var(map(cm->safe_macro_F1(cm),          cms)), alt_separator)
-	result *= string(var(map(M->M.oob_error, Ms)),                              alt_separator)
-	result *= string(var(num_nodes.(Ms)))
+	for (i_col,column) in enumerate(columns)
+		result *= string(
+			if column == "K"
+				percent(var(map(cm->kappa(cm),                  cms)))
+			elseif column == "accuracy"
+				percent(var(map(cm->overall_accuracy(cm),       cms)))
+			elseif column == "macro_sensitivity"      
+				percent(var(map(cm->macro_sensitivity(cm),      cms)))
+			elseif column == "safe_macro_sensitivity"      
+				percent(var(map(cm->safe_macro_sensitivity(cm), cms)))
+			elseif column == "safe_macro_specificity"
+				percent(var(map(cm->safe_macro_specificity(cm), cms)))
+			elseif column == "safe_macro_PPV"
+				percent(var(map(cm->safe_macro_PPV(cm),         cms)))
+			elseif column == "safe_macro_NPV"
+				percent(var(map(cm->safe_macro_NPV(cm),         cms)))
+			elseif column == "safe_macro_F1"
+				percent(var(map(cm->safe_macro_F1(cm),          cms)))
+			elseif column == "n_nodes"
+				percent(var(num_nodes.(Ms)))
+			elseif column == "oob_error"
+				percent(var(map(M->M.oob_error, Ms)))
+			else
+				"??? $(column) ???"
+		end, (i_col == length(columns) ? "", alt_separator)))
+	end
 	result *= end_s
 	result *= separator
 	result *= start_s
