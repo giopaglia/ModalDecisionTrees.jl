@@ -26,6 +26,7 @@ export DTNode, DTLeaf, DTInternal,
 				num_nodes, height, modal_height,
 				build_stump, build_tree,
 				build_forest, apply_forest, apply_trees,
+				apply_model, print_model, print_apply_model,
 				print_tree, prune_tree, apply_tree, print_forest,
 				print_apply_tree,
 				tree_walk_metrics,
@@ -231,6 +232,14 @@ height(t::DTree) = height(t.root)
 modal_height(leaf::DTLeaf) = 0
 modal_height(tree::DTInternal) = (is_modal_node(tree) ? 1 : 0) + max(modal_height(tree.left), modal_height(tree.right))
 modal_height(t::DTree) = modal_height(t.root)
+
+print_model(tree::DTree;    kwargs...) = print_tree(tree;     kwargs...)
+print_model(forest::Forest; kwargs...) = print_forest(forest; kwargs...)
+
+apply_model(tree::DTree,    args...; kwargs...) = apply_tree(tree,     args...; kwargs...)
+apply_model(forest::Forest, args...; kwargs...) = apply_forest(forest, args...; kwargs...)
+
+print_apply_model(tree::DTree, args...; kwargs...) = print_apply_tree(tree, args...; kwargs...)
 
 function print_tree(leaf::DTLeaf, depth=-1, indent=0, indent_guides=[]; n_tot_inst = nothing, rel_confidence_class_counts = nothing)
 	matches = findall(leaf.values .== leaf.majority)
@@ -536,7 +545,7 @@ function print_apply_tree(tree::DTInternal{T, S}, X::MultiFrameModalDataset, i_i
 	# if satisfied
 	# 	println("new_worlds: $(new_worlds)")
 	# end
-	
+
 	worlds[tree.i_frame] = new_worlds
 
 	DTInternal(
