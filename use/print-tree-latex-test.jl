@@ -14,6 +14,8 @@ main_tex_file = "main.tex"
 main_tex_content = """
 \\documentclass{article}
 \\usepackage{tikz}
+\\usepackage{amssymb}
+\\usepackage{newtxmath}
 
 \\begin{document}
 
@@ -34,11 +36,11 @@ main_tex_content = """
 
 mkpath(print_tree_latex_out_dir)
 
-if !isfile(print_tree_latex_out_dir * "/" * main_tex_file)
+# if !isfile(print_tree_latex_out_dir * "/" * main_tex_file)
     f = open(print_tree_latex_out_dir * "/" * main_tex_file, "w+")
     write(f, main_tex_content)
     close(f)
-end
+# end
 
 # OPTIONS
 
