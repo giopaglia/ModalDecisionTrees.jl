@@ -471,7 +471,7 @@ function apply_tree_to_datasets_wavs(
         wav_paths                             :: Vector{String},
         labels                                :: Vector{S};
         mode                                  :: Symbol = :bandpass, # :emphasize
-        only_files                            :: Vector{S} = [],
+        only_files                            :: Vector{String} = Vector{String}(),
         files_already_generated               :: Bool = false,
         postprocess_wavs                       = [ trim_wav!,      normalize! ],
         postprocess_wavs_kwargs                = [ (level = 0.0,), (level = 1.0,) ],
