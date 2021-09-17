@@ -161,7 +161,7 @@ function get_mel_bands(nbands::Int, minfreq::Real = 0.0, maxfreq::Real = 8_000.0
 end
 
 function digitalfilter_mel(band::MelBand, fs::Real, window_f::Function = triang; nwin = 60, filter_type = Filters.Bandpass)
-    digitalfilter(filter_type(band.left, band.right, fs = fs), FIRWindow(window_f(nwin)))
+    digitalfilter(filter_type(band.left, band.right, fs = fs), FIRWindow(; transitionwidth = 0.1, attenuation = 160))
 end
 
 function multibandpass_digitalfilter_mel(
@@ -177,11 +177,15 @@ function multibandpass_digitalfilter_mel(
 
     @assert length(weights) == length(selected_bands) "length(weights) != length(selected_bands): $(length(weights)) != $(length(selected_bands))"
 
-    result_filter = zeros(Float64, nwin)
+    result_filter = nothing#zeros(Float64, nwin)
     scale = get_mel_bands(nbands, minfreq, maxfreq)
     i = 1
     @simd for b in selected_bands
-        result_filter += digitalfilter_mel(scale[b], fs, window_f, nwin = nwin) * weights[i]
+        if isnothing(result_filter)
+            result_filter = digitalfilter_mel(scale[b], fs, window_f, nwin = nwin) * weights[i]
+        else
+            result_filter += digitalfilter_mel(scale[b], fs, window_f, nwin = nwin) * weights[i]
+        end
         i=i+1
     end
     result_filter
@@ -470,6 +474,7 @@ function apply_tree_to_datasets_wavs(
         dataset                               :: GenericDataset,
         wav_paths                             :: Vector{String},
         labels                                :: Vector{S};
+        filter_type                           :: Symbol = :static, # :dynamic
         mode                                  :: Symbol = :bandpass, # :emphasize
         only_files                            :: Vector{String} = Vector{String}(),
         files_already_generated               :: Bool = false,
@@ -494,8 +499,14 @@ function apply_tree_to_datasets_wavs(
     ) where {S}
 
     @assert mode in [ :bandpass, :emphasize ] "Got unsupported mode Symbol $(mode). It can be $([ :bandpass, :emphasize ])."
+    @assert filter_type in [ :dynamic, :static ] "Got unsupported filter_type Symbol $(filter_type). It can be $([ :dynamic, :static ])."
+
+    # TODO:
     if mode == :emphasize
         @warn "The value :emphasize for 'mode` is still experimental!"
+    end
+    if filter_type == :dynamic
+        @warn "The value :emphasize for 'filter_type` is still experimental!"
     end
 
     n_instances = n_samples(dataset)
@@ -550,7 +561,6 @@ function apply_tree_to_datasets_wavs(
 
     filtered = Vector{Vector{Float64}}(undef, n_instances)
     Threads.@threads for i in 1:n_instances
-        # TODO: use path + worlds to generate dynamic filters
         if length(only_files) > 0 && !(wav_paths[i] in only_files)
             if verbose println("Skipping file $(wav_paths[i]) because it is not in the list...") end
             continue
@@ -587,8 +597,16 @@ function apply_tree_to_datasets_wavs(
             bands[j] = results[i].path[j].feature.i_attribute
         end
         println("Applying filter to file $(wav_paths[i]) with bands $(string(collect(zip(bands, weights))))...")
+        # TODO: add here support for dynamic filter
+        # if filter_type == :dynamic
         filter = multibandpass_digitalfilter_mel(bands, samplerates[i], window_f; weights = weights, filter_kwargs...)
         filtered[i] = filt(filter, originals[i])
+        # elseif filter_type == :static
+        #     filter = multibandpass_digitalfilter_mel(bands, samplerates[i], window_f; weights = weights, filter_kwargs...)
+        #     filtered[i] = filt(filter, originals[i])
+        # else
+            # assert should be performed prior this point
+        # end
     end
 
     #############################################################
@@ -735,44 +753,56 @@ function apply_tree_to_datasets_wavs(
     results
 end
 
-# TODO: implement this function for real (it is just a draft for now...)
-function apply_dynfilter!(
-        dynamic_filter      :: Matrix{Integer},
-        sample              :: AbstractVector{T};
-        samplerate          :: Real = 8_000.0,
-        wintime             :: Real = 0.025,
-        steptime            :: Real = 0.01,
-        window_f            :: Function = triang
-    )::Vector{T} where {T <: Real}
+# const DynamicFilter = Matrix{Integer}
 
-    nbands = size(dynamic_filter, 2)
-    ntimechunks = ntimechunks
-    nwin = round(Integer, wintime * sr)
-    nstep = round(Integer, steptime * sr)
+# n_bands(dynamic_filter::DynamicFilter) = size(dynamic_filter, 2)
+# n_chunks(dynamic_filter::DynamicFilter) = size(dynamic_filter, 1)
 
-    window = window_f(nwin)
+# # TODO: implement this function for real (it is just a draft for now...)
+# function dynfilt(
+#         dynamic_filter      :: Matrix{Integer},
+#         sample              :: AbstractVector{T};
+#         samplerate          :: Real = 8_000.0,
+#         wintime             :: Real = 0.025,
+#         steptime            :: Real = 0.01,
+#         minfreq             :: Real = 0.0,
+#         maxfreq             :: Real = samplerate / 2,
+#         window_f            :: Function = triang
+#     )::Vector{T} where {T <: Real}
 
-    winsize = (samplerate / 2) / nwin
+#     nbands = n_bands(dynamic_filter)
+#     ntimechunks = n_chunks(dynamic_filter)
+#     winlength = round(Integer, wintime * sr)
+#     winstep = round(Integer, steptime * sr)
 
-    # init filters
-    filters = [ digitalfilter(Filters.Bandpass((i-1) * winsize, (i * winsize) - 1, fs = samplerate), window) for i in 1:nbands ]
+#     # init filters
+#     filters = [
+#             multibandpass_digitalfilter_mel(
+#                 [i],
+#                 samplerate,
+#                 window_f,
+#                 nbands = nbands,
+#                 minfreq = minfreq,
+#                 maxfreq = maxfreq,
+#                 nwin = nbands,
+#             ) for i in 1:nbands ]
 
-    # combine filters to generate EQs
-    slice_filters = Vector{Vector{Float64}}(undef, ntimechunks)
-    for i in 1:ntimechunks
-        step_filters = (@view filters[findall(isequal(1), dynamic_filter[i])])
-        slice_filters[i] = maximum.(collect(zip(step_filters...)))
-    end
+#     # combine filters to generate EQs
+#     slice_filters = Vector{Vector{Float64}}(undef, ntimechunks)
+#     for i in 1:ntimechunks
+#         step_filters = (@view filters[findall(isequal(1), dynamic_filter[i])])
+#         slice_filters[i] = maximum.(collect(zip(step_filters...)))
+#     end
 
-    # write filtered time chunks to new_track
-    new_track = Vector{T}(undef, length(sample) - 1)
-    time_chunk_length = length(sample) / ntimechunks
-    for i in 1:ntimechunks
-        new_track[i:(i*time_chunk_length) - 1] = filt(slice_filters[i], sample[i:(i*time_chunk_length) - 1])
-    end
+#     # write filtered time chunks to new_track
+#     new_track = Vector{T}(undef, length(sample) - 1)
+#     time_chunk_length = length(sample) / ntimechunks
+#     for i in 1:ntimechunks
+#         new_track[i:(i*time_chunk_length) - 1] = filt(slice_filters[i], sample[i:(i*time_chunk_length) - 1])
+#     end
 
-    new_track
-end
+#     new_track
+# end
 
 function generate_video(
         gif                      :: String,
