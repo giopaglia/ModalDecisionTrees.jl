@@ -62,8 +62,6 @@ if !isfile(filepath)
     exit(1)
 end
 
-println(type, " ", label, " ", filepath)
-
 ############################
 ############################
 ############################
@@ -79,14 +77,28 @@ gr()
 # SETTINGS
 outpath = "filtering-results-rai"
 cache_dir = outpath * "/cache"
+tmp_dir = "/tmp/filtering_tmp_dir"
 if !isdir(outpath) mkpath(outpath) end
 if !isdir(cache_dir) mkpath(cache_dir) end
+if !isdir(tmp_dir) mkpath(tmp_dir) end
 
 save_datasets = true
 dataset_form = :stump_with_memoization
 data_savedir = cache_dir
 timing_mode = :none
 filtered_destination_dir = outpath * "/filtered"
+
+tmp_ffmpeg_output_file = tmp_dir * "/ffmpeg.out"
+tmp_ffmpeg_error_output_file = tmp_dir * "/ffmpeg.out"
+
+# convert file to wav
+if !endswith(filepath, ".wav")
+    ext = "$(split(filepath, '.')[end])"
+    println("Fil format $(ext) is not supported: converting to WAV...")
+    total_output_path = tmp_dir * "/" * replace(basename(filepath), ".$(ext)" => ".wav")
+    run(pipeline(`ffmpeg -i $filepath -y $total_output_path`, stdout = tmp_ffmpeg_output_file, stderr = tmp_ffmpeg_error_output_file))
+    filepath = total_output_path
+end
 
 # CONFIGS
 max_sample_rate = 8_000
