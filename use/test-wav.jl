@@ -1,10 +1,10 @@
 
 function usage(io::IO)
-    println(io, "\nusage:\n\t$(PROGRAM_FILE) <TYPE> <LABEL> <WAV_FILE_PATH>\n")
+    println(io, "\nusage:\n\t$(PROGRAM_FILE) <TYPE> [LABEL] <WAV_FILE_PATH>\n")
     println(io, "TYPE")
     println(io, "\t-b\tbreath")
     println(io, "\t-c\tcough")
-    println(io, "LABEL")
+    println(io, "LABEL (optional)")
     println(io, "\t-p\tpositive")
     println(io, "\t-n\tnegative")
     println(io, "WAV_FILE_PATH")
@@ -36,9 +36,10 @@ label =
     elseif "-n" in args
         "NO_CLEAN_HISTORY_AND_LOW_PROBABILITY"
     else
-        println(stderr, "ERROR: Need to pass at least one between '-p` (positive) or '-n` (negative)")
-        usage(stderr)
-        exit(1)
+        nothing
+        # println(stderr, "ERROR: Need to pass at least one between '-p` (positive) or '-n` (negative)")
+        # usage(stderr)
+        # exit(1)
     end
 args = filter(x -> !(x == "-p" || x == "-n"), args)
 
@@ -166,7 +167,11 @@ n_unique_freqs = n_unique_freqs[1]
 X = compute_X(max_timepoints, n_unique_freqs, [ ts ], 1)
 X = X_dataset_c("test", data_modal_args, [X], modal_args, false, dataset_form, false)
 
-println(apply_tree(tree, X)[1])
+result = apply_tree(tree, X)[1]
+if isnothing(label)
+    label = result
+end
+println(result)
 
 apply_tree_to_datasets_wavs(
     tree_hash,
