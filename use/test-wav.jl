@@ -110,6 +110,7 @@ max_points = 30
 cough =  ("τ1", τ1, 60, [ normalize! ], 30, 75, 50)
         #("τ2", τ2, 40, [], 30, 75, 50)
 breath = ("τ3", τ3, 40, [], 30, 45, 30)
+# breath = ("τ3", τ3, 40, [ normalize! ], 30, 45, 30)
 
 tree_hash, tree, nbands, preprocess_wavs, max_points, ma_size, ma_step = type == :breath ? breath : cough
 
