@@ -94,7 +94,7 @@ tmp_ffmpeg_error_output_file = tmp_dir * "/ffmpeg.out"
 # convert file to wav
 if !endswith(filepath, ".wav")
     ext = "$(split(filepath, '.')[end])"
-    println("Fil format $(ext) is not supported: converting to WAV...")
+    println("File format $(ext) is not supported: converting to WAV...")
     total_output_path = tmp_dir * "/" * replace(basename(filepath), ".$(ext)" => ".wav")
     run(pipeline(`ffmpeg -i $filepath -y $total_output_path`, stdout = tmp_ffmpeg_output_file, stderr = tmp_ffmpeg_error_output_file))
     filepath = total_output_path
