@@ -233,7 +233,7 @@ timerange2points(ranges::Vector{Tuple{T, T}} where T <:Number, fs::Real)::Vector
 points2timerange(ranges::Vector{UnitRange{Int64}}, fs::Real)::Vector{Tuple{T, T}} where T <:Real = [ points2timerange(r, fs) for r in ranges ]
 frame2points(indices::Vector{Integer}, framesize::Integer, stepsize::Integer)::Vector{UnitRange{Int64}} = [ frame2points(i, framesize, stepsize) for i in indices ]
 frame2points(indices::Vector{Integer}, framesize::AbstractFloat, stepsize::AbstractFloat, fs::AbstractFloat)::Vector{UnitRange{Int64}} = [ frame2points(i, framesize, stepsize, fs) for i in indices ]
-frame2timerange(indices::Vector{Integer}, framesize::AbstractFloat, stepsize::AbstractFloat, fs::AbstractFloat)::Vector{Tuple{T, T}} where T <:Number
+frame2timerange(indices::Vector{Integer}, framesize::AbstractFloat, stepsize::AbstractFloat, fs::AbstractFloat)::Vector{Tuple{T, T}} where T <:Number = [ frame2timerange(i, framesize, stepsize, fs) for i in indices ]
 
 function draw_audio_anim(
         audio_files               :: Vector{Tuple{Vector{T1},T2}} where {T1<:AbstractFloat, T2<:AbstractFloat};
