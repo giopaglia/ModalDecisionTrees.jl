@@ -15,6 +15,7 @@ using DecisionTree
 using DecisionTree.ModalLogic
 
 using Plots
+using Images
 using MFCC: hz2mel, mel2hz
 using Plots.Measures
 using JSON
@@ -222,18 +223,18 @@ end
 
 timerange2points(range::Tuple{T, T} where T <:Number, fs::Real)::UnitRange{Int64} = max(1, round(Int64, range[1] * fs)):round(Int64, range[2] * fs)
 points2timerange(range::UnitRange{Int64}, fs::Real)::Tuple{T, T} where T <:Real = ((range.start - 1) / fs, (range.stop) / fs)
-frame2points(index::Integer, framesize::Integer, stepsize::Integer)::UnitRange{Int64} = begin
+frame2points(index::Int64, framesize::Int64, stepsize::Int64)::UnitRange{Int64} = begin
     start = round(Int64, (index - 1) * stepsize) + 1
     start:(start+framesize-1)
 end
-frame2points(index::Integer, framesize::AbstractFloat, stepsize::AbstractFloat, fs::AbstractFloat)::UnitRange{Int64} = frame2points(index, round(Int64, framesize * fs), round(Int64, stepsize * fs))
-frame2timerange(index::Integer, framesize::AbstractFloat, stepsize::AbstractFloat, fs::AbstractFloat)::Tuple{T, T} where T <:Number = points2timerange(frame2points(index, framesize, stepsize, fs), fs)
+frame2points(index::Int64, framesize::AbstractFloat, stepsize::AbstractFloat, fs::AbstractFloat)::UnitRange{Int64} = frame2points(index, round(Int64, framesize * fs), round(Int64, stepsize * fs))
+frame2timerange(index::Int64, framesize::AbstractFloat, stepsize::AbstractFloat, fs::AbstractFloat)::Tuple{T, T} where T <:Number = points2timerange(frame2points(index, framesize, stepsize, fs), fs)
 
 timerange2points(ranges::Vector{Tuple{T, T}} where T <:Number, fs::Real)::Vector{UnitRange{Int64}} = [ timerange2points(r, fs) for r in ranges ]
 points2timerange(ranges::Vector{UnitRange{Int64}}, fs::Real)::Vector{Tuple{T, T}} where T <:Real = [ points2timerange(r, fs) for r in ranges ]
-frame2points(indices::Vector{Integer}, framesize::Integer, stepsize::Integer)::Vector{UnitRange{Int64}} = [ frame2points(i, framesize, stepsize) for i in indices ]
-frame2points(indices::Vector{Integer}, framesize::AbstractFloat, stepsize::AbstractFloat, fs::AbstractFloat)::Vector{UnitRange{Int64}} = [ frame2points(i, framesize, stepsize, fs) for i in indices ]
-frame2timerange(indices::Vector{Integer}, framesize::AbstractFloat, stepsize::AbstractFloat, fs::AbstractFloat)::Vector{Tuple{T, T}} where T <:Number = [ frame2timerange(i, framesize, stepsize, fs) for i in indices ]
+frame2points(indices::Vector{Int64}, framesize::Int64, stepsize::Int64)::Vector{UnitRange{Int64}} = [ frame2points(i, framesize, stepsize) for i in indices ]
+frame2points(indices::Vector{Int64}, framesize::AbstractFloat, stepsize::AbstractFloat, fs::AbstractFloat)::Vector{UnitRange{Int64}} = [ frame2points(i, framesize, stepsize, fs) for i in indices ]
+frame2timerange(indices::Vector{Int64}, framesize::AbstractFloat, stepsize::AbstractFloat, fs::AbstractFloat)::Vector{Tuple{T, T}} where T <:Number = [ frame2timerange(i, framesize, stepsize, fs) for i in indices ]
 
 function draw_audio_anim(
         audio_files               :: Vector{Tuple{Vector{T1},T2}} where {T1<:AbstractFloat, T2<:AbstractFloat};
@@ -448,7 +449,7 @@ function get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_instanc
 						tree.test_operator,
 						tree.threshold)
 
-    push!(paths[i_instance], DecisionPathNode(satisfied, tree.feature, tree.test_operator, tree.threshold, new_worlds))
+    push!(paths[i_instance], DecisionPathNode(satisfied, tree.feature, tree.test_operator, tree.threshold, deepcopy(new_worlds)))
 
 	worlds[tree.i_frame] = new_worlds
 	get_path_in_tree((satisfied ? tree.left : tree.right), X, i_instance, worlds, paths)
@@ -923,4 +924,98 @@ function generate_video(
         end
         error("unable to generate video: is ffmpeg installed?")
     end
+end
+
+mkpath("tree-anim")
+function draw_tree_anim(
+        wav_descriptor    :: Vector{Bool},
+        blank_image       :: AbstractMatrix,
+        highlighted_image :: AbstractMatrix,
+        fs                :: Real;
+        outfile           :: String               = "tree-anim/tree-anim.gif",
+        size              :: Tuple{Number,Number} = Tuple((max(size(blank_image,2), size(highlighted_image,2)), max(size(blank_image,1), size(highlighted_image,1)))),
+        fps               :: Int64                = 30
+    )
+    function plot_image(image::AbstractMatrix; size = size)
+        plot(
+            image,
+            framestyle = :zerolines,       # show axis at zeroes
+            leg = false,                   # hide legend
+            showaxis = false,             # hide y axis
+            grid = false,                  # hide y grid
+            ticks = false,                 # hide y ticks
+            tick_direction = :none,
+            margin = 0mm,
+            size = (size[1] + 25, size[2] + 25)
+        )
+    end
+    wavlength = length(wav_descriptor)
+    wavlength_seconds = wavlength / fs
+
+    total_frames = ceil(Int64, wavlength_seconds * fps)
+    step = wavlength / total_frames
+
+    anim = @animate for f in 1:total_frames
+        printprogress("Processing frame $(f) / $(total_frames)")
+        point = floor(Int64, clamp((f-1) * step, 1, wavlength))
+        plot_image(wav_descriptor[point] ? highlighted_image : blank_image; size = size)
+    end
+    printprogress("Completed all frames ($(total_frames))\n")
+
+    gif(anim, outfile, fps = fps)
+end
+draw_tree_anim(wav_descriptor::Vector{Bool}, blank_image::String, highlighted_image::String, fs::Real; kwargs...) = draw_tree_anim(wav_descriptor, load(blank_image), load(highlighted_image), fs; kwargs...)
+
+"""
+    winsize and stepsize should have to ma_size and ma_step
+"""
+function get_points_and_seconds_from_worlds(worlds::DecisionTree.ModalLogic.AbstractWorldSet, winsize::Int64, stepsize::Int64, samplerate::Real)
+    # keep largest worlds
+    dict = Dict{Int64,DecisionTree.ModalLogic.AbstractWorld}()
+    for w in worlds
+        if !haskey(dict, w.x) || dict[w.x].y < w.y
+            dict[w.x] = w
+        end
+    end
+
+    # TODO: optimize this algorithm
+
+    highest_key = maximum(keys(dict))
+    # join overlapping worlds
+    for i in 1:highest_key
+        if haskey(dict, i)
+            for j in 1:highest_key
+                if i == j continue end
+                if haskey(dict, j)
+                    # do they overlap and is j.y > than i.y?
+                    if dict[i].y >= dict[j].x && dict[j].y >= dict[i].y
+                        dict[i] = DecisionTree.ModalLogic.Interval(dict[i].x, dict[j].y)
+                        delete!(dict, j)
+                    end
+                end
+            end
+        end
+    end
+
+    timeranges = []
+    for i in 1:highest_key
+        if haskey(dict, i)
+            w = dict[i]
+            # println("Considering interval $(w.x:(w.y-1))")
+            frames = frame2points(collect(w.x:(w.y-1)), winsize, stepsize)
+            push!(timeranges, (frames[1][1], frames[end][2]))
+        end
+    end
+
+    points = []
+    seconds = []
+    wav_descriptor = fill(false, length(samples))
+    for tr in timeranges
+        # println("Points: ", (tr[1], tr[2]),"; Time (s): ", points2timerange(tr[1]:tr[2], samplerate))
+        push!(points, (tr[1], tr[2]))
+        push!(seconds, points2timerange(tr[1]:tr[2], samplerate))
+        wav_descriptor[max(1, tr[1]):min(tr[2], length(samples))] .= true
+    end
+
+    wav_descriptor, points, seconds
 end

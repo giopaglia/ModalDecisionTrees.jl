@@ -105,6 +105,7 @@ end
 max_sample_rate = 8_000
 use_full_mfcc = false
 max_points = 30
+ignore_max_points = true
 
 # hash, tree, nbands, preprocess_wavs, max_points, ma_size, ma_step
 cough =  ("τ1", τ1, 60, [ normalize! ], 30, 75, 50)
@@ -155,8 +156,10 @@ audio_kwargs = merge(audio_kwargs_partial_mfcc, (nbands = nbands,))
 ts = wav2stft_time_series(filepath, audio_kwargs; preprocess_sample = preprocess_wavs, use_full_mfcc = use_full_mfcc)
 
 ts = @views ts[2:end,:]
+# original_ts_length = size(ts,1)
 ts = moving_average(ts, ma_size, ma_step)
-if max_points != -1 && size(ts,1)>max_points
+# moving_average_ts_length = size(ts,1)
+if !ignore_max_points && max_points != -1 && size(ts,1) > max_points
     ts = ts[1:max_points,:]
 end
 
@@ -176,7 +179,7 @@ end
 banner = "##########################################"
 pre_post_banner = floor(Int64, (length(banner) - length(result) - 2) / 2)
 println(banner)
-println("#"^pre_post_banner, " ", result, " ", "#"^pre_post_banner)
+println("#"^pre_post_banner, " ", result == "YES" ? "POSITIVE" : "NEGATIVE", " ", "#"^pre_post_banner)
 println(banner)
 
 results, spectrograms = apply_tree_to_datasets_wavs(
@@ -193,3 +196,15 @@ results, spectrograms = apply_tree_to_datasets_wavs(
     generate_spectrogram = true,
     spectrograms_kwargs = (melbands = (draw = true, nbands = nbands, maxfreq = max_sample_rate / 2), spectrogram_plot_options = (ylims = (0, max_sample_rate / 2),)),
 )
+
+samples, samplerate = wavread(filepath)
+samples = merge_channels(samples)
+winsize = round(Int64, (audio_kwargs_partial_mfcc.wintime * ma_size * samplerate))
+stepsize = round(Int64, (audio_kwargs_partial_mfcc.steptime * ma_step * samplerate))
+
+wav_descriptor, points, seconds = get_points_and_seconds_from_worlds(results[1].path[end].worlds, winsize, stepsize, samplerate)
+
+println("Points: ", points)
+println("Seconds: ", seconds)
+
+draw_tree_anim(wav_descriptor, "tree-anim/t_frame_blank.png", "tree-anim/t_frame_neg2.png", samplerate)
