@@ -160,6 +160,7 @@ function get_mel_bands(nbands::Int, minfreq::Real = 0.0, maxfreq::Real = 8_000.0
     MelScale(nbands, [ MelBand(bands[i], bands[i+2] >= maxfreq ? bands[i+2] - 0.0000001 : bands[i+2], bands[i+1]) for i in 1:(length(bands)-2) ])
 end
 
+# TODO: create dispatch of this function on presence of 'window_f` argument
 function digitalfilter_mel(band::MelBand, fs::Real, window_f::Function = triang; nwin = 60, filter_type = Filters.Bandpass)
     digitalfilter(filter_type(band.left, band.right, fs = fs), FIRWindow(; transitionwidth = 0.01, attenuation = 160))
 end
@@ -220,6 +221,19 @@ function draw_synthetic_mel_filters_graph(; nbands::Integer = 60, minfreq::Real 
 end
 
 timerange2points(range::Tuple{T, T} where T <:Number, fs::Real)::UnitRange{Int64} = max(1, round(Int64, range[1] * fs)):round(Int64, range[2] * fs)
+points2timerange(range::UnitRange{Int64}, fs::Real)::Tuple{T, T} where T <:Real = ((range.start - 1) / fs, (range.stop) / fs)
+frame2points(index::Integer, framesize::Integer, stepsize::Integer)::UnitRange{Int64} = begin
+    start = round(Int64, (index - 1) * stepsize) + 1
+    start:(start+framesize-1)
+end
+frame2points(index::Integer, framesize::AbstractFloat, stepsize::AbstractFloat, fs::AbstractFloat)::UnitRange{Int64} = frame2points(index, round(Int64, framesize * fs), round(Int64, stepsize * fs))
+frame2timerange(index::Integer, framesize::AbstractFloat, stepsize::AbstractFloat, fs::AbstractFloat)::Tuple{T, T} where T <:Number = points2timerange(frame2points(index, framesize, stepsize, fs), fs)
+
+timerange2points(ranges::Vector{Tuple{T, T}} where T <:Number, fs::Real)::Vector{UnitRange{Int64}} = [ timerange2points(r, fs) for r in ranges ]
+points2timerange(ranges::Vector{UnitRange{Int64}}, fs::Real)::Vector{Tuple{T, T}} where T <:Real = [ points2timerange(r, fs) for r in ranges ]
+frame2points(indices::Vector{Integer}, framesize::Integer, stepsize::Integer)::Vector{UnitRange{Int64}} = [ frame2points(i, framesize, stepsize) for i in indices ]
+frame2points(indices::Vector{Integer}, framesize::AbstractFloat, stepsize::AbstractFloat, fs::AbstractFloat)::Vector{UnitRange{Int64}} = [ frame2points(i, framesize, stepsize, fs) for i in indices ]
+frame2timerange(indices::Vector{Integer}, framesize::AbstractFloat, stepsize::AbstractFloat, fs::AbstractFloat)::Vector{Tuple{T, T}} where T <:Number
 
 function draw_audio_anim(
         audio_files               :: Vector{Tuple{Vector{T1},T2}} where {T1<:AbstractFloat, T2<:AbstractFloat};
@@ -690,6 +704,7 @@ function apply_tree_to_datasets_wavs(
     ################ GENERATE SPECTROGRAMS ######################
     #############################################################
 
+    spectrograms = Vector{NamedTuple{(:original, :filtered), Tuple{Plots.Plot, Plots.Plot}}}(undef, n_instances)
     if generate_spectrogram
         println("Generating spectrograms...")
         for i in 1:n_instances
@@ -702,9 +717,11 @@ function apply_tree_to_datasets_wavs(
                 else
                     :all
                 end
-            hm_filt = draw_spectrogram(filtered[i], samplerates[i]; title = "Filtered", only_bands = freqs, spectrograms_kwargs...)
-            hm_orig = draw_spectrogram(originals[i], samplerates[i]; title = "Original", only_bands = freqs, spectrograms_kwargs...)
-            plot(hm_orig, hm_filt, layout = (1, 2))
+            spectrograms[i] = (
+                original = draw_spectrogram(originals[i], samplerates[i]; title = "Original", only_bands = freqs, spectrograms_kwargs...),
+                filtered = draw_spectrogram(filtered[i], samplerates[i]; title = "Filtered", only_bands = freqs, spectrograms_kwargs...)
+            )
+            plot(spectrograms[i].original, spectrograms[i].filtered, layout = (1, 2))
             savefig(heatmap_png_path[i])
         end
     end
@@ -766,7 +783,7 @@ function apply_tree_to_datasets_wavs(
         end
     end
 
-    results
+    return results, spectrograms
 end
 
 # const DynamicFilter = Matrix{Integer}

@@ -127,13 +127,13 @@ audio_kwargs_partial_mfcc = (
 )
 
 modal_args = (;
-initConditions = DecisionTree.startWithRelationGlob,
-useRelationGlob = false,
+    initConditions = DecisionTree.startWithRelationGlob,
+    useRelationGlob = false,
 )
 
 data_modal_args = (;
-ontology = getIntervalOntologyOfDim(Val(1)),
-test_operators = [TestOpGeq_80, TestOpLeq_80]
+    ontology = getIntervalOntologyOfDim(Val(1)),
+    test_operators = [TestOpGeq_80, TestOpLeq_80]
 )
 
 #####################
@@ -179,7 +179,7 @@ println(banner)
 println("#"^pre_post_banner, " ", result, " ", "#"^pre_post_banner)
 println(banner)
 
-apply_tree_to_datasets_wavs(
+results, spectrograms = apply_tree_to_datasets_wavs(
     tree_hash,
     tree,
     X,
