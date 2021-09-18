@@ -161,7 +161,7 @@ function get_mel_bands(nbands::Int, minfreq::Real = 0.0, maxfreq::Real = 8_000.0
 end
 
 function digitalfilter_mel(band::MelBand, fs::Real, window_f::Function = triang; nwin = 60, filter_type = Filters.Bandpass)
-    digitalfilter(filter_type(band.left, band.right, fs = fs), FIRWindow(; transitionwidth = 0.1, attenuation = 160))
+    digitalfilter(filter_type(band.left, band.right, fs = fs), FIRWindow(; transitionwidth = 0.01, attenuation = 160))
 end
 
 function multibandpass_digitalfilter_mel(
@@ -349,18 +349,25 @@ function draw_audio_anim(audio_files::Vector{String}; kwargs...)
 end
 
 function draw_spectrogram(
-        samples::Vector{T},
-        fs::Real;
-        gran::Int = 50,
-        title::String = "",
-        clims = (-100, 0),
-        spectrogram_plot_options = (),
-        melbands = (draw = false, nbands = 60, minfreq = 0.0, maxfreq = fs / 2, htkmel = false)
+        samples                  :: Vector{T},
+        fs                       :: Real;
+        gran                     :: Int                           = 50,
+        title                    :: String                        = "",
+        clims                    :: Tuple{Number,Number}          = (-100, 0),
+        spectrogram_plot_options :: NamedTuple                    = (),
+        melbands                 :: NamedTuple                    = (draw = false, nbands = 60, minfreq = 0.0, maxfreq = fs / 2, htkmel = false),
+        only_bands               :: Union{Symbol,Vector{Int64}}   = :all
     ) where T <: AbstractFloat
     nw_orig::Int = round(Int64, length(samples) / gran)
 
     default_melbands = (draw = false, nbands = 60, minfreq = 0.0, maxfreq = fs / 2, htkmel = false)
     melbands = merge(default_melbands, melbands)
+
+    if only_bands isa Symbol
+        only_bands = collect(1:melbands[:nbands])
+    elseif melbands[:draw] == false
+        @warn "Selected bands to display but melbands[:draw] is false => no band will be displayed in the spectrogram"
+    end
 
     default_heatmap_kwargs = (xguide = "Time (s)", yguide = "Frequency (Hz)", ylims = (0, fs / 2),  background_color_inside = :black, size = default_plot_size, leg = true, )
     total_heatmap_kwargs = merge(default_heatmap_kwargs, default_plot_margins)
@@ -368,16 +375,18 @@ function draw_spectrogram(
 
     spec = spectrogram(samples, nw_orig, round(Int64, nw_orig/2); fs = fs)
     hm = heatmap(spec.time, spec.freq, pow2db.(spec.power); title = title, clims = clims, total_heatmap_kwargs...)
+
+    # Draw horizontal line on spectrograms corresponding for selected bands
     if melbands[:draw]
         bands = get_mel_bands(melbands[:nbands], melbands[:minfreq], melbands[:maxfreq]; htkmel = melbands[:htkmel])
-        yticks!(hm, push!([ bands[i].peak for i in 1:melbands[:nbands] ], melbands[:maxfreq]), push!([ string("A", i) for i in 1:melbands[:nbands] ], string(round(Int64, melbands[:maxfreq]))))
         for i in 1:melbands[:nbands]
-            hline!(hm, [ bands[i].left ], line = (1, :white), leg = false)
-            if i == melbands[:nbands]
-                hline!(hm, [ bands[i].peak ], line = (1, :white), leg = false)
+            if i in only_bands
+                hline!(hm, [ bands[i].left, bands[i].right ], line = (1, :white), leg = false)
             end
         end
+        yticks!(hm, [ melbands[:minfreq], [ bands[i].peak for i in only_bands ]..., melbands[:maxfreq] ], [ string(round(Int64, melbands[:minfreq])), [ string("A", i) for i in only_bands ]..., string(round(Int64, melbands[:maxfreq])) ])
     end
+
     hm
 end
 function draw_spectrogram(filepath::String; kwargs...)
@@ -488,6 +497,7 @@ function apply_tree_to_datasets_wavs(
         save_single_band_tracks               :: Bool = true,
         generate_spectrogram                  :: Bool = true,
         spectrograms_kwargs                    = (),
+        spec_show_only_found_bands            :: Bool = true,
         draw_anim_for_instances               :: Vector{Int64} = Vector{Int64}(),
         anim_kwargs                            = (fps = 30,),
         normalize_before_draw_anim            :: Bool = false,
@@ -686,8 +696,14 @@ function apply_tree_to_datasets_wavs(
             if length(only_files) > 0 && !(wav_paths[i] in only_files) continue end
             if !is_correctly_classified(results[i]) continue end
             println("Generating spectrogram $(heatmap_png_path[i])...")
-            hm_filt = draw_spectrogram(filtered[i], samplerates[i]; title = "Filtered", spectrograms_kwargs...)
-            hm_orig = draw_spectrogram(originals[i], samplerates[i]; title = "Original", spectrograms_kwargs...)
+            freqs =
+                if spec_show_only_found_bands
+                    [ path_node.feature.i_attribute for path_node in results[i].path ]
+                else
+                    :all
+                end
+            hm_filt = draw_spectrogram(filtered[i], samplerates[i]; title = "Filtered", only_bands = freqs, spectrograms_kwargs...)
+            hm_orig = draw_spectrogram(originals[i], samplerates[i]; title = "Original", only_bands = freqs, spectrograms_kwargs...)
             plot(hm_orig, hm_filt, layout = (1, 2))
             savefig(heatmap_png_path[i])
         end

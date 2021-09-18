@@ -171,7 +171,12 @@ result = apply_tree(tree, X)[1]
 if isnothing(label)
     label = result
 end
-println(result)
+
+banner = "##########################################"
+pre_post_banner = floor(Int64, (length(banner) - length(result) - 2) / 2)
+println(banner)
+println("#"^pre_post_banner, " ", result, " ", "#"^pre_post_banner)
+println(banner)
 
 apply_tree_to_datasets_wavs(
     tree_hash,
@@ -185,5 +190,5 @@ apply_tree_to_datasets_wavs(
     filter_kwargs = (nbands = nbands, maxfreq = max_sample_rate / 2),
     destination_dir = filtered_destination_dir,
     generate_spectrogram = true,
-    spectrograms_kwargs = (melbands = (draw = false, nbands = nbands, maxfreq = max_sample_rate / 2), spectrogram_plot_options = (ylims = (0, max_sample_rate / 2),)),
+    spectrograms_kwargs = (melbands = (draw = true, nbands = nbands, maxfreq = max_sample_rate / 2), spectrogram_plot_options = (ylims = (0, max_sample_rate / 2),)),
 )
