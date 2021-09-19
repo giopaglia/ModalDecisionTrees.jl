@@ -167,14 +167,14 @@ function digitalfilter_mel(band::MelBand, fs::Real, window_f::Function = triang;
 end
 
 function multibandpass_digitalfilter_mel(
-        selected_bands::Vector{Int},
-        fs::Real,
-        window_f::Function;
-        nbands::Integer = 60,
-        minfreq::Real = 0.0,
-        maxfreq::Real = fs / 2,
-        nwin::Int = nbands,
-        weights::Vector{F} where F <:AbstractFloat = fill(1., length(selected_bands))
+        selected_bands :: Vector{Int},
+        fs             :: Real,
+        window_f       :: Function;
+        nbands         :: Integer                           = 60,
+        minfreq        :: Real                              = 0.0,
+        maxfreq        :: Real                              = fs / 2,
+        nwin           :: Int                               = nbands,
+        weights        :: Vector{F} where F <:AbstractFloat = fill(1., length(selected_bands))
     )::AbstractVector
 
     @assert length(weights) == length(selected_bands) "length(weights) != length(selected_bands): $(length(weights)) != $(length(selected_bands))"
@@ -193,7 +193,7 @@ function multibandpass_digitalfilter_mel(
     result_filter
 end
 
-function draw_mel_filters_graph(fs::Real, window_f::Function; nbands::Integer = 60, minfreq = 0.0, maxfreq = fs / 2)
+function draw_mel_filters_graph(fs::Real, window_f::Function; nbands::Integer = 60, minfreq::Real = 0.0, maxfreq::Real = fs / 2)
     scale = get_mel_bands(nbands, minfreq, maxfreq)
     filters = [ digitalfilter_mel(scale[i], fs, window_f; nwin = nbands) for i in 1:nbands ]
     plotfilter(filters[1]; samplerate = fs)
@@ -204,7 +204,7 @@ function draw_mel_filters_graph(fs::Real, window_f::Function; nbands::Integer = 
     plotfilter!(filters[end]; samplerate = fs)
 end
 
-function plot_band(band::MelBand; minfreq::Real = 0.0, maxfreq::Real = 8_000.0, ylims = (0.0, 1.0), show_freq = true, plot_func = plot)
+function plot_band(band::MelBand; minfreq::Real = 0.0, maxfreq::Real = 8_000.0, ylims::Tuple{Number,Number} = (0.0, 1.0), show_freq::Bool = true, plot_func::Function = plot)
     common_args = (ylims = ylims, xlims = (minfreq, maxfreq), xguide = "Frequency (Hz)", yguide = "Amplitude", leg = false)
     texts = ["", show_freq ? text(string(round(Int64, band.peak)), font(pointsize = 8)) : "", ""]
     plot_func([band.left, band.peak, band.right], [ylims[1], ylims[2], ylims[1]]; annotationfontsize = 8, texts = texts, size = default_plot_size, common_args..., default_plot_margins...)
@@ -291,7 +291,7 @@ function draw_audio_anim(
         # - :whole means "do not slice"
         selected_range            :: Union{UnitRange{Int64},Tuple{Number,Number},Symbol} = :whole,
         single_graph              :: Bool                                                = false,
-        use_wav_apporximation     :: Bool                                                = false,
+        use_wav_apporximation     :: Bool                                                = true,
         wav_apporximation_scale   :: Real                                                = 1.0
     )
     function draw_wav(points::Vector{Float64}, fs::Number; color = :auto, title = "", func = plot)
@@ -369,8 +369,8 @@ function draw_audio_anim(
     @assert length(real_fss) == length(fss) "Transformed fss length != original fss length: $(length(real_fss)) != $(length(fss))"
 
     if real_fss[1] < fps
-        @warn "Reducing FPS to $(floor(real_fss[1])) due to sampling reate too low"
-        fps = floor(real_fss[1])
+        fps = floor(Int64, real_fss[1])
+        @warn "Reducing FPS to $(fps) due to sampling reate too low"
     end
 
     wavlength = length(real_wavs[1])
@@ -436,7 +436,7 @@ function draw_spectrogram(
         gran                     :: Int                           = 50,
         title                    :: String                        = "",
         clims                    :: Tuple{Number,Number}          = (-100, 0),
-        spectrogram_plot_options :: NamedTuple                    = (),
+        spectrogram_plot_options :: NamedTuple                    = NamedTuple(),
         melbands                 :: NamedTuple                    = (draw = false, nbands = 60, minfreq = 0.0, maxfreq = fs / 2, htkmel = false),
         only_bands               :: Union{Symbol,Vector{Int64}}   = :all
     ) where T <: AbstractFloat
@@ -565,29 +565,35 @@ function apply_tree_to_datasets_wavs(
         dataset                               :: GenericDataset,
         wav_paths                             :: Vector{String},
         labels                                :: Vector{S};
-        filter_type                           :: Symbol = :static, # :dynamic
-        mode                                  :: Symbol = :bandpass, # :emphasize
-        only_files                            :: Vector{String} = Vector{String}(),
-        files_already_generated               :: Bool = false,
-        postprocess_wavs                       = [ trim_wav!,      normalize! ],
-        postprocess_wavs_kwargs                = [ (level = 0.0,), (level = 1.0,) ],
-        filter_kwargs                          = (nbands = 40,),
-        window_f                              :: Function = triang,
-        use_original_dataset_filesystem_tree  :: Bool = false,
-        destination_dir                       :: String = "filtering-results/filtered",
-        remove_from_path                      :: String = "",
-        save_single_band_tracks               :: Bool = true,
-        generate_spectrogram                  :: Bool = true,
-        spectrograms_kwargs                    = (),
-        spec_show_only_found_bands            :: Bool = true,
-        draw_anim_for_instances               :: Vector{Int64} = Vector{Int64}(),
-        anim_kwargs                            = (fps = 30,),
-        normalize_before_draw_anim            :: Bool = false,
-        generate_video_from_gif               :: Bool = true,
-        video_kwargs                           = (output_ext = "mkv",),
-        generate_json                         :: Bool = true,
-        json_file_name                        :: String = "files.json",
-        verbose                               :: Bool = false
+        # MODE OPTIONS
+        filter_type                           :: Symbol             = :static,   # :dynamic
+        mode                                  :: Symbol             = :bandpass, # :emphasize
+        # OUTPUT OPTIONS
+        only_files                            :: Vector{String}     = Vector{String}(),
+        files_already_generated               :: Bool               = false,
+        use_original_dataset_filesystem_tree  :: Bool               = false,
+        destination_dir                       :: String             = "filtering-results/filtered",
+        remove_from_path                      :: String             = "",
+        save_single_band_tracks               :: Bool               = true,
+        generate_json                         :: Bool               = true,
+        json_file_name                        :: String             = "files.json",
+        verbose                               :: Bool               = false,
+        # WAV POST-PROCESS
+        postprocess_wavs                      :: Vector{Function}   = [ trim_wav!,      normalize! ],
+        postprocess_wavs_kwargs               :: AbstractVector     = [ (level = 0.0,), (level = 1.0,) ],
+        # FILTER OPTIONS
+        filter_kwargs                         :: NamedTuple         = (nbands = 40,),
+        window_f                              :: Function           = triang,
+        # SPECTROGRAM OPTIONS
+        generate_spectrogram                  :: Bool               = true,
+        spectrograms_kwargs                   :: NamedTuple         = NamedTuple(),
+        spec_show_only_found_bands            :: Bool               = true,
+        # ANIM AND VIDEO OPTIONS (note: can't create video without animation)
+        draw_anim_for_instances               :: Vector{Int64}      = Vector{Int64}(),
+        anim_kwargs                           :: NamedTuple         = NamedTuple(),
+        normalize_before_draw_anim            :: Bool               = false,
+        generate_video_from_gif               :: Bool               = true,
+        video_kwargs                          :: NamedTuple         = NamedTuple()
     ) where {S}
 
     @assert mode in [ :bandpass, :emphasize ] "Got unsupported mode Symbol $(mode). It can be $([ :bandpass, :emphasize ])."
@@ -1006,14 +1012,14 @@ function draw_tree_anim(
     function plot_image(image::AbstractMatrix; size = size)
         plot(
             image,
-            framestyle = :zerolines,       # show axis at zeroes
-            leg = false,                   # hide legend
-            showaxis = false,             # hide y axis
-            grid = false,                  # hide y grid
-            ticks = false,                 # hide y ticks
+            framestyle     = :zerolines, # show axis at zeroes
+            leg            = false,      # hide legend
+            showaxis       = false,      # hide y axis
+            grid           = false,      # hide y grid
+            ticks          = false,      # hide y ticks
             tick_direction = :none,
-            margin = 0mm,
-            size = (size[1] + 25, size[2] + 25)
+            margin         = 0mm,
+            size           = (size[1] + 25, size[2] + 25)
         )
     end
     wavlength = length(wav_descriptor)
@@ -1085,4 +1091,52 @@ function get_points_and_seconds_from_worlds(worlds::DecisionTree.ModalLogic.Abst
     end
 
     wav_descriptor, points, seconds
+end
+
+function join_tree_video_and_waveform_video(
+            tree_v_path      :: String,
+            tree_v_size      :: Tuple{Number,Number},
+            wave_form_v_path :: String,
+            wave_form_v_size :: Tuple{Number,Number},
+            output_file      :: String                = "prova.mkv"
+        )
+
+    final_video_resolution = (max(tree_v_size[1], wave_form_v_size[1]), 1 + max(tree_v_size[2], wave_form_v_size[2]))
+    final_tree_position = (round(Int64, (final_video_resolution[1] - tree_v_size[1]) / 2), 0)
+    final_wave_form_position = (round(Int64, (final_video_resolution[1] - wave_form_v_size[1]) / 2), tree_v_size[2] + 1)
+
+    final_video_resolution = (
+        ((final_video_resolution[1] % 2 == 1) ? final_video_resolution[1] + 1 : final_video_resolution[1]),
+        ((final_video_resolution[2] % 2 == 1) ? final_video_resolution[2] + 1 : final_video_resolution[2])
+    )
+    final_tree_position = (
+        ((final_tree_position[1] % 2 == 1) ? final_tree_position[1] + 1 : final_tree_position[1]),
+        ((final_tree_position[2] % 2 == 1) ? final_tree_position[2] + 1 : final_tree_position[2])
+    )
+    final_wave_form_position = (
+        ((final_wave_form_position[1] % 2 == 1) ? final_wave_form_position[1] + 1 : final_wave_form_position[1]),
+        ((final_wave_form_position[2] % 2 == 1) ? final_wave_form_position[2] + 1 : final_wave_form_position[2])
+    )
+
+    color_input = "color=white:$(final_video_resolution[1])x$(final_video_resolution[2]),format=rgb24"
+    # color_input = "color=white:$(final_video_resolution[1])x$(final_video_resolution[2]):d=3,format=rgb24"
+
+    total_complex_filter =  "[0:v]pad=$(final_video_resolution[1]):$(final_video_resolution[2]):0:[a]; "
+    total_complex_filter *= "[a][1:v]overlay=$(final_tree_position[1]):$(final_tree_position[2]):0:[b]; "
+    total_complex_filter *= "[b][2:v]overlay=$(final_wave_form_position[1]):$(final_wave_form_position[2]):0:[c]"
+
+    run(`ffmpeg -f lavfi -i $color_input -i $tree_v_path -i $wave_form_v_path -y -filter_complex "$total_complex_filter" -map '[b]' -map '[c]' -map 2:a -c:a copy -c:v libx264 -crf 23 -preset veryfast $output_file`)
+
+    # I have two videos and I need to place them side-by-side in a new video.
+    # The dimensions first video (blob.mp4) was 1280×720. The second video (aoc.mp4) was 406×720.
+
+    # ffmpeg -i blob.mp4 -i aoc.mp4 -filter_complex "[0:v]pad=1686:720:0:[a]; [a][1:v]overlay=1280:0[b]" -map "[b]" -pix_fmt yuv420p aoc-meets-garbage-disposal.mp4
+
+    # In the first part of the filter, I specified that the first input video (blob.mp4)
+    # will have a dimension of 1686×720, where 1686 is the total width of the both videos side-by-side.
+    # A map identifier “[a]” is used for this screen canvas. Next, with a semicolon delimiter, the second
+    # video is specified as appearing at 1280 pixels from the left edge at 0. (Yes, it begins at zero.
+    # I got a stupid “Overlay area … not within the main area … or zero-sized… Failed to configure input
+    # pad on Parsed_overlay_1” error when I thought I had to use 1281 as the starting point of the second video.)
+    # The overlaid video is then map identified as “[b]”. This map is then encoded to the output video.
 end
