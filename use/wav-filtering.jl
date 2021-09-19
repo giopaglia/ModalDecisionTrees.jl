@@ -835,7 +835,7 @@ function apply_tree_to_datasets_wavs(
 
                 push!(plts, draw_worlds(wav_descriptor, samplerates[i]; title = "A$(feat)"))
             end
-            plot(plts..., layout = (n_features, 1), size = (1000, 150 * n_features), title = "Worlds of $(generic_track_name)")
+            plot(plts..., layout = (n_features, 1), size = (1000, 150 * n_features))
             savefig(output_filename)
         end
     end
