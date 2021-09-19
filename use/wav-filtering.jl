@@ -11,6 +11,8 @@ include("local.jl")
 # import Pkg
 # Pkg.activate("..")
 
+# TODO: all "outfile" arguments should be empty and return the graph instead of saving it on the HDD
+
 using DecisionTree
 using DecisionTree.ModalLogic
 
@@ -34,10 +36,10 @@ end
 
 default_plot_size = (1920, 1080)
 default_plot_margins = (
-    left_margin = 15mm,
-    right_margin = 15mm,
-    top_margin = 15mm,
-    bottom_margin = 15mm
+    left_margin = 4mm,
+    right_margin = 4mm,
+    top_margin = 4mm,
+    bottom_margin = 4mm
 )
 
 """
@@ -1038,6 +1040,48 @@ function draw_tree_anim(
     gif(anim, outfile, fps = fps)
 end
 draw_tree_anim(wav_descriptor::Vector{Bool}, blank_image::String, highlighted_image::String, fs::Real; kwargs...) = draw_tree_anim(wav_descriptor, load(blank_image), load(highlighted_image), fs; kwargs...)
+
+function draw_worlds(
+            vec     :: Vector{Bool},
+            fs      :: Real;
+            title   :: String               = "",
+            outfile :: String               = homedir() * "/worlds.png",
+            color   :: RGB                  = RGB(0.3, 0.3, 1),
+            size    :: Tuple{Number,Number} = (1000, 150)
+        )
+    tot_length = length(vec)
+    curr_pos = 0
+    ticks_positions = Vector{Float64}()
+    while tot_length > curr_pos
+        push!(ticks_positions, curr_pos)
+        curr_pos = curr_pos + floor(Int64, fs / 2)
+    end
+    ticks_string = Vector{String}(undef, length(ticks_positions))
+    for i in 0:(length(ticks_positions)-1)
+        ticks_string[i+1] = string(i*0.5)
+    end
+
+    p = plot(
+        collect(0:(length(vec) - 1)),
+        vec,
+        title = title,
+        xlims = (0, length(vec)),
+        ylims = (0, 1),
+        framestyle = :zerolines,       # show axis at zeroes
+        fill = 0,                      # show area under curve
+        leg = false,                   # hide legend
+        yshowaxis = false,             # hide y axis
+        ygrid = false,                 # hide y grid
+        yticks = false,                # hide y ticks
+        ytick_direction = :none,
+        linecolor = color,
+        fillcolor = color,
+        xlabel = "Time (s)",
+        size = size
+    )
+    xticks!(p, ticks_positions, ticks_string)
+    # savefig(outfile)
+end
 
 """
     winsize and stepsize should have to ma_size and ma_step
