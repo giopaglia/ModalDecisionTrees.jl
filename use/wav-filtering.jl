@@ -1101,7 +1101,7 @@ function join_tree_video_and_waveform_video(
             output_file      :: String                = "prova.mkv"
         )
 
-    final_video_resolution = (max(tree_v_size[1], wave_form_v_size[1]), 1 + max(tree_v_size[2], wave_form_v_size[2]))
+    final_video_resolution = (max(tree_v_size[1], wave_form_v_size[1]), 1 + tree_v_size[2] + wave_form_v_size[2])
     final_tree_position = (round(Int64, (final_video_resolution[1] - tree_v_size[1]) / 2), 0)
     final_wave_form_position = (round(Int64, (final_video_resolution[1] - wave_form_v_size[1]) / 2), tree_v_size[2] + 1)
 
@@ -1119,24 +1119,11 @@ function join_tree_video_and_waveform_video(
     )
 
     color_input = "color=white:$(final_video_resolution[1])x$(final_video_resolution[2]),format=rgb24"
-    # color_input = "color=white:$(final_video_resolution[1])x$(final_video_resolution[2]):d=3,format=rgb24"
 
     total_complex_filter =  "[0:v]pad=$(final_video_resolution[1]):$(final_video_resolution[2]):0:[a]; "
     total_complex_filter *= "[a][1:v]overlay=$(final_tree_position[1]):$(final_tree_position[2]):0:[b]; "
     total_complex_filter *= "[b][2:v]overlay=$(final_wave_form_position[1]):$(final_wave_form_position[2]):0:[c]"
 
-    run(`ffmpeg -f lavfi -i $color_input -i $tree_v_path -i $wave_form_v_path -y -filter_complex "$total_complex_filter" -map '[b]' -map '[c]' -map 2:a -c:a copy -c:v libx264 -crf 23 -preset veryfast $output_file`)
-
-    # I have two videos and I need to place them side-by-side in a new video.
-    # The dimensions first video (blob.mp4) was 1280×720. The second video (aoc.mp4) was 406×720.
-
-    # ffmpeg -i blob.mp4 -i aoc.mp4 -filter_complex "[0:v]pad=1686:720:0:[a]; [a][1:v]overlay=1280:0[b]" -map "[b]" -pix_fmt yuv420p aoc-meets-garbage-disposal.mp4
-
-    # In the first part of the filter, I specified that the first input video (blob.mp4)
-    # will have a dimension of 1686×720, where 1686 is the total width of the both videos side-by-side.
-    # A map identifier “[a]” is used for this screen canvas. Next, with a semicolon delimiter, the second
-    # video is specified as appearing at 1280 pixels from the left edge at 0. (Yes, it begins at zero.
-    # I got a stupid “Overlay area … not within the main area … or zero-sized… Failed to configure input
-    # pad on Parsed_overlay_1” error when I thought I had to use 1281 as the starting point of the second video.)
-    # The overlaid video is then map identified as “[b]”. This map is then encoded to the output video.
+    # assumption: audio is in the wave form file
+    run(`ffmpeg -f lavfi -i $color_input -i $tree_v_path -i $wave_form_v_path -y -filter_complex "$total_complex_filter" -shortest -map '[c]' -map 2:a:0 -c:a copy -c:v libx264 -crf 23 -preset veryfast $output_file`)
 end
