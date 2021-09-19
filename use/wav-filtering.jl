@@ -236,6 +236,46 @@ frame2points(indices::Vector{Int64}, framesize::Int64, stepsize::Int64)::Vector{
 frame2points(indices::Vector{Int64}, framesize::AbstractFloat, stepsize::AbstractFloat, fs::AbstractFloat)::Vector{UnitRange{Int64}} = [ frame2points(i, framesize, stepsize, fs) for i in indices ]
 frame2timerange(indices::Vector{Int64}, framesize::AbstractFloat, stepsize::AbstractFloat, fs::AbstractFloat)::Vector{Tuple{T, T}} where T <:Number = [ frame2timerange(i, framesize, stepsize, fs) for i in indices ]
 
+function approx_wav(
+        samples   :: Vector{T},
+        fs        :: Real;
+        mode      :: Function    = maximum, # rms
+        width     :: Real        = 1000.0,
+        scale_res :: Real        = 1.0
+    ):: Tuple{Vector{T}, Real} where T<:Real
+
+    num_frames = ceil(Int64, (width * scale_res) / 2) + 1
+
+    step_size = floor(Int64, length(samples) / num_frames)
+    frame_size = step_size
+
+    # TODO: optimize
+    frames = []
+    for i in 1:num_frames
+        interval = frame2points(i, frame_size, step_size)
+        # println(interval)
+        interval = UnitRange(max(interval.start, 1), min(interval.stop, length(samples)))
+        push!(frames, samples[interval])
+    end
+
+    frames_contracted = mode.(frames)
+
+    # TODO: optimize
+    n = []
+    for point in frames_contracted
+        push!(n, point)
+        push!(n, -point)
+    end
+
+    n, (fs * (length(n) / length(samples)))
+end
+function approx_wav(filepath::String; kwargs...):: Tuple{Vector{T}, Real} where T<:Real
+    samples, fs = wavread(filepath)
+    samples = merge_channels(samples)
+
+    approx_wav(samples, fs; kwargs...)
+end
+
 function draw_audio_anim(
         audio_files               :: Vector{Tuple{Vector{T1},T2}} where {T1<:AbstractFloat, T2<:AbstractFloat};
         labels                    :: Vector{String}                                      = fill("", length(audio_files)),
@@ -250,7 +290,9 @@ function draw_audio_anim(
         # - (1.1, 2.3) means from time 1.1 to time 2.3 (in seconds)
         # - :whole means "do not slice"
         selected_range            :: Union{UnitRange{Int64},Tuple{Number,Number},Symbol} = :whole,
-        single_graph              :: Bool                                                = false
+        single_graph              :: Bool                                                = false,
+        use_wav_apporximation     :: Bool                                                = false,
+        wav_apporximation_scale   :: Real                                                = 1.0
     )
     function draw_wav(points::Vector{Float64}, fs::Number; color = :auto, title = "", func = plot)
         func(
@@ -307,8 +349,32 @@ function draw_audio_anim(
             wavs[i] = wavs[i][selected_range]
         end
     end
-    wavlength = length(wavs[1])
-    freq = fss[1]
+
+    real_wavs = []
+    real_fss = []
+    if use_wav_apporximation
+        # TODO: optimize
+        for i in 1:length(wavs)
+            curr_samps, curr_fs = approx_wav(wavs[i], fss[i]; scale_res = wav_apporximation_scale, width = size[1])
+            push!(real_wavs, curr_samps)
+            push!(real_fss, curr_fs)
+        end
+    else
+        # TODO: optimize
+        real_wavs = wavs
+        real_fss = fss
+    end
+
+    @assert length(real_wavs) == length(wavs) "Transformed wavs length != original wavs length: $(length(real_wavs)) != $(length(wavs))"
+    @assert length(real_fss) == length(fss) "Transformed fss length != original fss length: $(length(real_fss)) != $(length(fss))"
+
+    if real_fss[1] < fps
+        @warn "Reducing FPS to $(floor(real_fss[1])) due to sampling reate too low"
+        fps = floor(real_fss[1])
+    end
+
+    wavlength = length(real_wavs[1])
+    freq = real_fss[1]
     wavlength_seconds = wavlength / freq
 
     total_frames = ceil(Int64, wavlength_seconds * fps)
@@ -316,7 +382,7 @@ function draw_audio_anim(
 
     anim = nothing
     plts = []
-    for (i, w) in enumerate(wavs)
+    for (i, w) in enumerate(real_wavs)
         if i == 1
             push!(plts, draw_wav(w, freq; title = labels[i], color = colors[i]))
         else
@@ -344,7 +410,7 @@ function draw_audio_anim(
         for p in 1:length(plts)
             vline!(plts[p], [ (f-1) * step ], line = (:black, 1))
         end
-        plot(plts..., layout = (length(wavs), 1))
+        plot(plts..., layout = (length(real_wavs), 1))
     end
     printprogress("Completed all frames ($(total_frames))\n")
 
@@ -352,9 +418,10 @@ function draw_audio_anim(
 end
 
 function draw_audio_anim(audio_files::Vector{String}; kwargs...)
+    # TODO: test this dispatch
     @assert length(audio_files) > 0 "No audio file provided"
 
-    converted_input::Vector{Tuple{Vector{Float64},Float64}} = []
+    converted_input::Vector{Tuple{Vector{AbstractFloat},AbstractFloat}} = []
     for f in audio_files
         wav, fs = wavread(f)
         push!(converted_input, (merge_channels(wav), fs))
@@ -848,8 +915,8 @@ function generate_video(
         video_codec              :: String                       = "libx265",
         audio_codec              :: String                       = "copy",
         output_ext               :: String                       = "mkv",
-        additional_ffmpeg_args_v :: Union{Vector{String},String} = [],
-        additional_ffmpeg_args_a :: Union{Vector{String},String} = []
+        additional_ffmpeg_args_v :: Union{Vector{String},String} = Vector{String}(),
+        additional_ffmpeg_args_a :: Union{Vector{String},String} = Vector{String}()
     )
 
     @assert isfile(gif) "File $(gif) does not exist."
