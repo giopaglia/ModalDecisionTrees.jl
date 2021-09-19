@@ -176,10 +176,12 @@ if isnothing(label)
     label = result
 end
 
+result_str = result == "YES" ? "POSITIVE" : "NEGATIVE"
+
 banner = "##########################################"
-pre_post_banner = floor(Int64, (length(banner) - length(result) - 2) / 2)
+pre_post_banner = floor(Int64, (length(banner) - length(result_str) - 2) / 2)
 println(banner)
-println("#"^pre_post_banner, " ", result == "YES" ? "POSITIVE" : "NEGATIVE", " ", "#"^pre_post_banner)
+println("#"^pre_post_banner, " ", result_str, " ", "#"^pre_post_banner)
 println(banner)
 
 results, spectrograms = apply_tree_to_datasets_wavs(
@@ -188,8 +190,7 @@ results, spectrograms = apply_tree_to_datasets_wavs(
     X,
     [ filepath ],
     [ label ];
-    postprocess_wavs = [],
-    postprocess_wavs_kwargs = [],
+    postprocess_wavs = Vector{Function}(),
     remove_from_path = dirname(filepath),
     filter_kwargs = (nbands = nbands, maxfreq = max_sample_rate / 2),
     destination_dir = filtered_destination_dir,
@@ -202,9 +203,18 @@ samples = merge_channels(samples)
 winsize = round(Int64, (audio_kwargs_partial_mfcc.wintime * ma_size * samplerate))
 stepsize = round(Int64, (audio_kwargs_partial_mfcc.steptime * ma_step * samplerate))
 
-wav_descriptor, points, seconds = get_points_and_seconds_from_worlds(results[1].path[end].worlds, winsize, stepsize, samplerate)
+wav_descriptor, points, seconds = get_points_and_seconds_from_worlds(results[1].path[end].worlds, winsize, stepsize, length(samples), samplerate)
 
 println("Points: ", points)
 println("Seconds: ", seconds)
 
-draw_tree_anim(wav_descriptor, "tree-anim/t_frame_blank.png", "tree-anim/t_frame_neg2.png", samplerate)
+println("● File: ", filepath)
+println("  ├─WAV duration: ", round(length(samples) / samplerate, digits = 2), "s")
+println("  └─Worlds duration: ", round(length(findall(wav_descriptor)) / samplerate, digits = 2), "s")
+
+# draw_tree_anim(wav_descriptor, "tree-anim/t_frame_blank.png", "tree-anim/t_frame_neg2.png", samplerate)
+
+# run(`ffmpeg -y -i tree-anim/tree-anim.gif tree-anim/tree-anim.mkv`)
+# TODO: add call to "get_points_and_seconds_from_worlds" in "apply_tree_to_datasets_wavs"
+# GOOD => "filtering-results-paper/filtered/τ3-maxfreq-4000/Y_{1}_⟨G⟩_(A32_⪴₈₀_7.781613442411969e-5)/N_{1}_A38_⪳₈₀_0.00016212943898189937/healthyandroidnosymp/breath/breaths_2pYxTRaHvl_1586931806240.orig.wav"
+# "/home/ferdiu/Julia Projects/DT/use/filtering-results-paper/filtered/τ3-maxfreq-4000/Y_{1}_⟨G⟩_(A32_⪴₈₀_7.781613442411969e-5)/N_{1}_A38_⪳₈₀_0.00016212943898189937/healthywebnosymp/2020-04-07-09_19_14_441629/audio_file_breathe.orig.wav"

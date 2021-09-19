@@ -580,6 +580,7 @@ function apply_tree_to_datasets_wavs(
         generate_json                         :: Bool               = true,
         json_file_name                        :: String             = "files.json",
         verbose                               :: Bool               = false,
+        draw_worlds_on_file                   :: Bool               = true,
         # WAV POST-PROCESS
         postprocess_wavs                      :: Vector{Function}   = [ trim_wav!,      normalize! ],
         postprocess_wavs_kwargs               :: AbstractVector     = [ (level = 0.0,), (level = 1.0,) ],
@@ -595,7 +596,12 @@ function apply_tree_to_datasets_wavs(
         anim_kwargs                           :: NamedTuple         = NamedTuple(),
         normalize_before_draw_anim            :: Bool               = false,
         generate_video_from_gif               :: Bool               = true,
-        video_kwargs                          :: NamedTuple         = NamedTuple()
+        video_kwargs                          :: NamedTuple         = NamedTuple(),
+        # SAMPLERATE ADJUST PARAMETERS FOR WORLDS
+        wintime                               :: Real               = 0.025,
+        steptime                              :: Real               = 0.01,
+        movingaverage_size                    :: Int64              = 1,
+        movingaverage_step                    :: Int64              = 1
     ) where {S}
 
     @assert mode in [ :bandpass, :emphasize ] "Got unsupported mode Symbol $(mode). It can be $([ :bandpass, :emphasize ])."
@@ -799,6 +805,38 @@ function apply_tree_to_datasets_wavs(
             )
             plot(spectrograms[i].original, spectrograms[i].filtered, layout = (1, 2))
             savefig(heatmap_png_path[i])
+        end
+    end
+
+    #############################################################
+    ######################## DRAW WORLDS ########################
+    #############################################################
+
+    if draw_worlds_on_file
+        println("Drawing worlds...")
+        for i in 1:n_instances
+            if length(only_files) > 0 && !(wav_paths[i] in only_files) continue end
+            if !is_correctly_classified(results[i]) continue end
+
+            generic_track_name = basename(replace(heatmap_png_path[i], ".spectrogram.png" => ""))
+            output_filename = replace(heatmap_png_path[i], ".spectrogram.png" => ".worlds.png")
+            println("Drawing worlds $(output_filename)...")
+
+            n_features = length(results[i].path)
+            plts = []
+            for j in 1:n_features
+                feat = results[i].path[j].feature.i_attribute
+                worlds = results[i].path[j].worlds
+
+                winsize = round(Int64, (wintime * movingaverage_size * samplerates[i]))
+                stepsize = round(Int64, (steptime * movingaverage_step * samplerates[i]))
+
+                wav_descriptor, points, seconds = get_points_and_seconds_from_worlds(worlds, winsize, stepsize, length(originals[i]), samplerates[i])
+
+                push!(plts, draw_worlds(wav_descriptor, samplerates[i]; title = "A$(feat)"))
+            end
+            plot(plts..., layout = (n_features, 1), size = (1000, 150 * n_features), title = "Worlds of $(generic_track_name)")
+            savefig(output_filename)
         end
     end
 
@@ -1045,7 +1083,7 @@ function draw_worlds(
             vec     :: Vector{Bool},
             fs      :: Real;
             title   :: String               = "",
-            outfile :: String               = homedir() * "/worlds.png",
+            outfile :: String               = "",
             color   :: RGB                  = RGB(0.3, 0.3, 1),
             size    :: Tuple{Number,Number} = (1000, 150)
         )
@@ -1080,13 +1118,24 @@ function draw_worlds(
         size = size
     )
     xticks!(p, ticks_positions, ticks_string)
-    # savefig(outfile)
+
+    if outfile != ""
+        savefig(outfile)
+    end
+
+    return p
 end
 
 """
     winsize and stepsize should have to ma_size and ma_step
 """
-function get_points_and_seconds_from_worlds(worlds::DecisionTree.ModalLogic.AbstractWorldSet, winsize::Int64, stepsize::Int64, samplerate::Real)
+function get_points_and_seconds_from_worlds(
+            worlds     :: DecisionTree.ModalLogic.AbstractWorldSet,
+            winsize    :: Int64,
+            stepsize   :: Int64,
+            n_samps    :: Int64,
+            samplerate :: Real
+        )
     # keep largest worlds
     dict = Dict{Int64,DecisionTree.ModalLogic.AbstractWorld}()
     for w in worlds
@@ -1126,12 +1175,12 @@ function get_points_and_seconds_from_worlds(worlds::DecisionTree.ModalLogic.Abst
 
     points = []
     seconds = []
-    wav_descriptor = fill(false, length(samples))
+    wav_descriptor = fill(false, n_samps)
     for tr in timeranges
         # println("Points: ", (tr[1], tr[2]),"; Time (s): ", points2timerange(tr[1]:tr[2], samplerate))
         push!(points, (tr[1], tr[2]))
         push!(seconds, points2timerange(tr[1]:tr[2], samplerate))
-        wav_descriptor[max(1, tr[1]):min(tr[2], length(samples))] .= true
+        wav_descriptor[max(1, tr[1]):min(tr[2], n_samps)] .= true
     end
 
     wav_descriptor, points, seconds

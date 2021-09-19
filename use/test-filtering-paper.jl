@@ -18,24 +18,37 @@ dataset_form = :stump_with_memoization
 data_savedir = cache_dir
 timing_mode = :none
 filtered_destination_dir = outpath * "/filtered"
-max_sample_rate = nothing
+
+spectrogram_size = (1000, 500)
+
+# VIDEO
+video_kwargs = (
+    video_codec              = "libx264",
+    output_ext               = "mkv",
+    audio_codec              = "copy", #libmp3lame"
+    additional_ffmpeg_args_v = "-crf 0 -preset ultrafast -pix_fmt yuv422p",
+    additional_ffmpeg_args_a = "" #"-b:a 320k"
+)
 
 # TREES
 tree_configs = [
-    # (tree_hash = "τ1", tree = τ1, n_task = 1, n_version = 1, nbands = 60, preprocess_wavs = [ normalize! ], max_points = 30, ma_size = 75, ma_step = 50), 
-    # (tree_hash = "τ2", tree = τ2, n_task = 1, n_version = 1, nbands = 40, preprocess_wavs = [], max_points = 30, ma_size = 75, ma_step = 50), 
-    (tree_hash = "τ3", tree = τ3, n_task = 1, n_version = 2, nbands = 40, preprocess_wavs = [], max_points = 30, ma_size = 45, ma_step = 30)
+    (tree_hash = "τ1", tree = τ1, n_task = 1, n_version = 1, nbands = 60, preprocess_wavs = [ normalize! ], max_points = 30, ma_size = 75, ma_step = 50, max_sample_rate = nothing), 
+    (tree_hash = "τ2", tree = τ2, n_task = 1, n_version = 1, nbands = 40, preprocess_wavs = [], max_points = 30, ma_size = 75, ma_step = 50, max_sample_rate = nothing), 
+    (tree_hash = "τ3", tree = τ3, n_task = 1, n_version = 2, nbands = 40, preprocess_wavs = [], max_points = 30, ma_size = 45, ma_step = 30, max_sample_rate = 8_000)
 ]
 
+results_dict = Dict{String,Any}()
+
 selected_wavs = [
-    "../datasets/KDD/covidandroidnocough/breath/breaths_8PmvbJ4U3o_1588144326476.wav",
-    "../datasets/KDD/healthyandroidnosymp/breath/breaths_VN8n8tjozE_1589473637538.wav"
+#     "../datasets/KDD/covidandroidnocough/breath/breaths_8PmvbJ4U3o_1588144326476.wav",
+#     "../datasets/KDD/healthyandroidnosymp/breath/breaths_VN8n8tjozE_1589473637538.wav"
 ]
 
 for tree_config in tree_configs
-    global max_sample_rate = 8_000
+    # max_sample_rate = 8_000
 
-    tree_hash, tree, n_task, n_version, nbands, preprocess_wavs, max_points, ma_size, ma_step = tree_config
+    tree_hash, tree, n_task, n_version, nbands, preprocess_wavs, max_points, ma_size, ma_step, max_sample_rate = tree_config
+    println("Using max samplerate: ", max_sample_rate)
 
     audio_kwargs = (
         wintime = 0.025,
@@ -81,33 +94,55 @@ for tree_config in tree_configs
     (X, Y, filepaths), (n_pos, n_neg) = @cache "dataset" cache_dir dataset_func_params dataset_func_kwparams KDDDataset_not_stratified
     X_modal = X_dataset_c("test", data_modal_args, X, modal_args, save_datasets, dataset_form, false)
 
-    draw_anim_for_instances::Vector{Int64} = filter(x -> isa(x, Integer), [ findfirst(isequal(p), filepaths[1]) for p in selected_wavs ])
+    draw_anim_for_instances::Vector{Int64} =
+        if length(selected_wavs) > 0
+            filter(x -> isa(x, Integer), [ findfirst(isequal(p), filepaths[1]) for p in selected_wavs ])
+        else
+            collect(1:length(filepaths[1]))
+        end
 
     Xslice, Yslice, filepaths_slice, draw_insts = 
-        if length(draw_anim_for_instances) > 0
+        if length(selected_wavs) > 0 && length(draw_anim_for_instances) > 0
             ModalLogic.slice_dataset(X_modal, draw_anim_for_instances), Y[draw_anim_for_instances], [ filepaths[1][draw_anim_for_instances] ], collect(1:length(draw_anim_for_instances))
         else
             X_modal, Y, filepaths, draw_anim_for_instances
         end
 
+    add_tree_hash::String, filter_kwargs::NamedTuple, spectrograms_kwargs::NamedTuple =
+        if isnothing(max_sample_rate)
+            "-no-maxfreq",
+            (nbands = nbands,),
+            (melbands = (draw = true, nbands = nbands,), spectrogram_plot_options = (size = spectrogram_size,))
+        else
+            "-maxfreq-" * string(round(Int64, max_sample_rate / 2)),
+            (nbands = nbands, maxfreq = max_sample_rate / 2),
+            (melbands = (draw = true, nbands = nbands, maxfreq = max_sample_rate / 2), spectrogram_plot_options = (ylims = (0, max_sample_rate / 2), size = spectrogram_size))
+        end
+
+    #results_dict[tree_hash] = 
     apply_tree_to_datasets_wavs(
-            tree_hash * (isnothing(max_sample_rate) ? "-no-maxfreq" : "-maxfreq-" * string(round(Int64, max_sample_rate / 2))),
+            tree_hash * add_tree_hash,
             tree,
             Xslice,
             filepaths_slice[1],
             Yslice;
-            only_files = selected_wavs,
-            postprocess_wavs = [],
-            postprocess_wavs_kwargs = [],
-            filter_kwargs = (nbands = nbands, maxfreq = max_sample_rate / 2),
+            only_files = length(selected_wavs) == 0 ? Vector{String}() : selected_wavs,
+            files_already_generated = true,
+            generate_spectrogram = false, # TODO: remove this
+            postprocess_wavs = Vector{Function}(),
+            filter_kwargs = filter_kwargs,
             remove_from_path = "../datasets/KDD/",
-            spectrograms_kwargs = (melbands = (draw = true, nbands = nbands, maxfreq = max_sample_rate / 2), spectrogram_plot_options = (ylims = (0, max_sample_rate / 2),)),
+            spectrograms_kwargs = spectrograms_kwargs,
             destination_dir = filtered_destination_dir,
-            anim_kwargs = (fps = 1,),
+            anim_kwargs = (fps = 30,),
             normalize_before_draw_anim = true,
-            draw_anim_for_instances = draw_insts
+            video_kwargs = video_kwargs,
+            # draw_anim_for_instances = draw_insts,
+            wintime = audio_kwargs.wintime,
+            steptime = audio_kwargs.steptime,
+            movingaverage_size = dataset_kwargs.ma_size,
+            movingaverage_step = dataset_kwargs.ma_step
         )
 end
 
 println("DONE!")
-exit(0)
