@@ -47,12 +47,12 @@ additional_ffmpeg_args_a = "-b:a 320k"
 ########## STATIC #########
 ###########################
 
-pos_path = filtered_destination_dir * "/τ3-maxfreq-4000/Y_{1}_⟨G⟩_(A32_⪴₈₀_7.781613442411969e-5)/Y_{1}_A38_⪳₈₀_0.00016212943898189937/covidandroidnocough/breath"
+pos_path = filtered_destination_dir * presentation_output_suffix * "/τ3-maxfreq-4000/Y_{1}_⟨G⟩_(A32_⪴₈₀_7.781613442411969e-5)/Y_{1}_A38_⪳₈₀_0.00016212943898189937/covidandroidnocough/breath"
 pos_prefix = "breaths_8PmvbJ4U3o_1588144326476"
 pos_id = "pos"
 pos_string = "positive"
 
-neg_path = filtered_destination_dir * "/τ3-maxfreq-4000/Y_{1}_⟨G⟩_(A32_⪴₈₀_7.781613442411969e-5)/N_{1}_A38_⪳₈₀_0.00016212943898189937/healthyandroidnosymp/breath"
+neg_path = filtered_destination_dir * presentation_output_suffix * "/τ3-maxfreq-4000/Y_{1}_⟨G⟩_(A32_⪴₈₀_7.781613442411969e-5)/N_{1}_A38_⪳₈₀_0.00016212943898189937/healthyandroidnosymp/breath"
 neg_prefix = "breaths_VN8n8tjozE_1589473637538"
 neg_id = "neg"
 neg_string = "negative"
