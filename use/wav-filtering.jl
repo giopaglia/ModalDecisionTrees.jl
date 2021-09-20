@@ -1047,7 +1047,7 @@ function draw_tree_anim(
         fs                :: Real;
         outfile           :: String               = "tree-anim/tree-anim.gif",
         size              :: Tuple{Number,Number} = Tuple((max(size(blank_image,2), size(highlighted_image,2)), max(size(blank_image,1), size(highlighted_image,1)))),
-        fps               :: Int64                = 30
+        fps               :: Int64                = 30,
     )
     function plot_image(image::AbstractMatrix; size = size)
         plot(
@@ -1059,7 +1059,7 @@ function draw_tree_anim(
             ticks          = false,      # hide y ticks
             tick_direction = :none,
             margin         = 0mm,
-            size           = (size[1] + 25, size[2] + 25)
+            size           = size
         )
     end
     wavlength = length(wav_descriptor)
@@ -1131,8 +1131,8 @@ end
 """
 function get_points_and_seconds_from_worlds(
             worlds     :: DecisionTree.ModalLogic.AbstractWorldSet,
-            winsize    :: Int64,
-            stepsize   :: Int64,
+            winsize    :: Int64, # wintime * samplerate * moving_average_size
+            stepsize   :: Int64, # steptime * samplerate * moving_average_size
             n_samps    :: Int64,
             samplerate :: Real
         )
@@ -1190,8 +1190,8 @@ function join_tree_video_and_waveform_video(
             tree_v_path      :: String,
             tree_v_size      :: Tuple{Number,Number},
             wave_form_v_path :: String,
-            wave_form_v_size :: Tuple{Number,Number},
-            output_file      :: String                = "prova.mkv"
+            wave_form_v_size :: Tuple{Number,Number};
+            output_file      :: String                = "output.mkv"
         )
 
     final_video_resolution = (max(tree_v_size[1], wave_form_v_size[1]), 1 + tree_v_size[2] + wave_form_v_size[2])
@@ -1218,5 +1218,91 @@ function join_tree_video_and_waveform_video(
     total_complex_filter *= "[b][2:v]overlay=$(final_wave_form_position[1]):$(final_wave_form_position[2]):0:[c]"
 
     # assumption: audio is in the wave form file
-    run(`ffmpeg -f lavfi -i $color_input -i $tree_v_path -i $wave_form_v_path -y -filter_complex "$total_complex_filter" -shortest -map '[c]' -map 2:a:0 -c:a copy -c:v libx264 -crf 23 -preset veryfast $output_file`)
+    run(`ffmpeg -f lavfi -i $color_input -i $tree_v_path -i $wave_form_v_path -y -filter_complex "$total_complex_filter" -shortest -map '[c]' -map 2:a:0 -c:a copy -c:v libx264 -crf 0 -preset veryfast $output_file`)
+end
+
+function dataset_from_wav_paths(
+        paths                  :: Vector{String},
+        labels                 :: Vector{S};
+        nbands                 :: Int64 = 40,
+        audio_kwargs           :: NamedTuple = NamedTuple(),
+        modal_args             :: NamedTuple = NamedTuple(),
+        data_modal_args        :: NamedTuple = NamedTuple(),
+        preprocess_sample      :: Vector{Function} = Vector{Function}(),
+        max_points             :: Int64 = -1,
+        ma_size                :: Int64 = -1,
+        ma_step                :: Int64 = -1,
+        dataset_form           :: Symbol = :stump_with_memoization,
+        save_dataset           :: Bool = false
+    ) where S
+
+    # TODO: a lot of assumptions here! add more options for more fine tuning
+    @assert length(paths) == length(labels) "File number and labels number mismatch: $(length(paths)) != $(length(labels))"
+
+    function compute_X(max_timepoints, n_unique_freqs, timeseries, expected_length)
+        @assert expected_length == length(timeseries)
+        X = zeros((max_timepoints, n_unique_freqs, length(timeseries)))
+        for (i,ts) in enumerate(timeseries)
+            X[1:size(ts, 1),:,i] = ts
+        end
+        X
+    end
+
+    default_audio_kwargs = (
+        wintime      = 0.025,
+        steptime     = 0.010,
+        fbtype       = :mel,
+        window_f     = DSP.triang,
+        pre_emphasis = 0.97,
+        nbands       = nbands,
+        sumpower     = false,
+        dither       = false,
+    )
+
+    default_modal_args = (;
+        initConditions = DecisionTree.startWithRelationGlob,
+        useRelationGlob = false,
+    )
+
+    default_data_modal_args = (;
+        ontology = getIntervalOntologyOfDim(Val(1)),
+        test_operators = [ TestOpGeq_80, TestOpLeq_80 ]
+    )
+
+    audio_kwargs = merge(audio_kwargs, default_audio_kwargs)
+    modal_args = merge(modal_args, default_modal_args)
+    data_modal_args = merge(data_modal_args, default_data_modal_args)
+
+    audio_kwargs = merge(default_audio_kwargs, (nbands = nbands,))
+
+    tss = []
+    for filepath in paths
+        curr_ts = wav2stft_time_series(filepath, audio_kwargs; preprocess_sample = preprocess_sample, use_full_mfcc = false)
+
+        curr_ts = @views curr_ts[2:end,:]
+
+        if ma_size > 0 && ma_step > 0
+            curr_ts = moving_average(curr_ts, ma_size, ma_step)
+        end
+
+        if max_points > 0 && size(curr_ts,1) > max_points
+            curr_ts = curr_ts[1:max_points,:]
+        end
+
+        push!(tss, curr_ts)
+    end
+
+    max_timepoints = maximum(size(ts, 1) for ts in tss)
+    n_unique_freqs = unique(size(ts,  2) for ts in tss)
+    @assert length(n_unique_freqs) == 1 "length(n_unique_freqs) != 1: {$n_unique_freqs} != 1"
+    n_unique_freqs = n_unique_freqs[1]
+
+    timing_mode = :none
+    data_savedir = "/tmp/DecisionTree.jl_cache/"
+    mkpath(data_savedir)
+
+    X = compute_X(max_timepoints, n_unique_freqs, tss, length(paths))
+    X = X_dataset_c("test", data_modal_args, [X], modal_args, save_dataset, dataset_form, false)
+
+    X, labels
 end
