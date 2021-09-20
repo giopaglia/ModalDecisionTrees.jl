@@ -136,15 +136,23 @@ function normalize!(sample::AbstractVector; level::Float64 = 1.0)
 end
 
 function trim_wav!(sample::AbstractVector; level::Float64 = 0.0)
+
+	@assert maximum(abs, sample) >= level "Level $(level) is too high or wav file is empty"
+
 	before = 1
 	after = length(sample)
-	while abs(sample[before]) <= level
+	while before < length(sample) && abs(sample[before]) <= level
 		before = before + 1
 	end
-	while abs(sample[after]) <= level
+	while after > 1 && abs(sample[after]) <= level
 		after = after - 1
 	end
-	splice!(sample, (after+1):length(sample))
-	splice!(sample, 1:(before-1))
+	if after != length(sample)
+		splice!(sample, (after+1):length(sample))
+	end
+	if before != 1
+		splice!(sample, 1:(before-1))
+	end
+
 	sample
 end
