@@ -56,6 +56,9 @@ audio_codec = "copy"
 additional_ffmpeg_args_v = "-crf 0 -preset ultrafast -pix_fmt yuv422p"
 additional_ffmpeg_args_a = "" # "-b:a 320k"
 
+# AUDIO
+filtered_normalization_level = 0.5
+
 ###########################
 ########## STATIC #########
 ###########################
@@ -171,9 +174,16 @@ for inst in (pos, neg)
     A32_samp = merge_channels(A32_samp)
     A38_samp = merge_channels(A38_samp)
 
+    A38_exagerated = normalize!(deepcopy(A38_samp); level = filtered_normalization_level)
+    A38_only_worlds = [ Int64(inst.wav_descriptor[i]) * s for (i, s) in enumerate(A38_exagerated) ]
+
     filtered_samp .*= norm_rate
     A32_samp .*= norm_rate
     A38_samp .*= norm_rate
+
+    exagerated_tmp = "/tmp/DecisionTree.jl_tmp/A38_exagerated.wav"
+    mkpath(dirname(exagerated_tmp))
+    wavwrite(A38_exagerated, exagerated_tmp)
 
     # 1) original's video
     draw_audio_anim(
@@ -196,16 +206,17 @@ for inst in (pos, neg)
     )
     # 2) filtered videos
     draw_audio_anim(
-        [ (A38_samp, original_sr) ];
-        labels = [ "Filtered " * inst.string ],
+        [ (A38_exagerated, original_sr), (A38_only_worlds, original_sr) ];
+        # labels = [ "Filtered " * inst.string ],
         outfile = inst.output.gif_filtered_path,
-        colors = [ RGB(1, 0.3, 0.3), RGB(0.1, 0.1, 1), RGB(0.2, 0.2, 1) ],
+        colors = [ RGB(1, 0.3, 0.3), RGB(0.3, 0.3, 1.0) ],
         resample_at_rate = max_sample_rate,
-        fps = anim_fps
+        fps = anim_fps,
+        single_graph = true
     )
     generate_video(
         inst.output.gif_filtered_path,
-        [ inst.input.wav_A38 ];
+        [ exagerated_tmp ];
         outpath = dirname(inst.output.vid_filtered_path),
         outputfile_name = basename(inst.output.vid_filtered_path),
         video_codec = video_codec,
@@ -214,6 +225,7 @@ for inst in (pos, neg)
         additional_ffmpeg_args_v = additional_ffmpeg_args_v,
         additional_ffmpeg_args_a = additional_ffmpeg_args_a,
     )
+    rm(exagerated_tmp)
     # 3) tree videos and join them
     draw_tree_anim(
         inst.wav_descriptor,

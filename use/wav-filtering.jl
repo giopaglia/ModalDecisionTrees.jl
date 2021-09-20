@@ -282,8 +282,9 @@ function draw_audio_anim(
         audio_files               :: Vector{Tuple{Vector{T1},T2}} where {T1<:AbstractFloat, T2<:AbstractFloat};
         labels                    :: Vector{String}                                      = fill("", length(audio_files)),
         colors                    :: Union{Vector{Symbol},Vector{RGB{Float64}}}          = fill(:auto, length(audio_files)),
+        single_graph              :: Bool                                                = false,
         outfile                   :: String                                              = homedir() * "/gif.gif",
-        size                      :: Tuple{Int64,Int64}                                  = (1000, 150 * length(audio_files)),
+        size                      :: Tuple{Int64,Int64}                                  = single_graph ? (1000, 150) : (1000, 150 * length(audio_files)),
         fps                       :: Int64                                               = 30,
         resample_at_rate          :: Real                                                = 8000.0, # 0 for "no resample"
         reset_canvas_every_frames :: Integer                                             = 50,
@@ -292,7 +293,6 @@ function draw_audio_anim(
         # - (1.1, 2.3) means from time 1.1 to time 2.3 (in seconds)
         # - :whole means "do not slice"
         selected_range            :: Union{UnitRange{Int64},Tuple{Number,Number},Symbol} = :whole,
-        single_graph              :: Bool                                                = false,
         use_wav_apporximation     :: Bool                                                = true,
         wav_apporximation_scale   :: Real                                                = 1.0
     )

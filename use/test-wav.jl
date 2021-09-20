@@ -105,7 +105,7 @@ end
 max_sample_rate = 8_000
 use_full_mfcc = false
 max_points = 30
-ignore_max_points = true
+ignore_max_points = false
 
 # hash, tree, nbands, preprocess_wavs, max_points, ma_size, ma_step
 cough =  ("τ1", τ1, 60, [ normalize! ], 30, 75, 50)
@@ -184,33 +184,33 @@ println(banner)
 println("#"^pre_post_banner, " ", result_str, " ", "#"^pre_post_banner)
 println(banner)
 
-results, spectrograms = apply_tree_to_datasets_wavs(
-    tree_hash,
-    tree,
-    X,
-    [ filepath ],
-    [ label ];
-    postprocess_wavs = Vector{Function}(),
-    remove_from_path = dirname(filepath),
-    filter_kwargs = (nbands = nbands, maxfreq = max_sample_rate / 2),
-    destination_dir = filtered_destination_dir,
-    generate_spectrogram = true,
-    spectrograms_kwargs = (melbands = (draw = true, nbands = nbands, maxfreq = max_sample_rate / 2), spectrogram_plot_options = (ylims = (0, max_sample_rate / 2),)),
-)
+# results, spectrograms = apply_tree_to_datasets_wavs(
+#     tree_hash,
+#     tree,
+#     X,
+#     [ filepath ],
+#     [ label ];
+#     postprocess_wavs = Vector{Function}(),
+#     remove_from_path = dirname(filepath),
+#     filter_kwargs = (nbands = nbands, maxfreq = max_sample_rate / 2),
+#     destination_dir = filtered_destination_dir,
+#     generate_spectrogram = true,
+#     spectrograms_kwargs = (melbands = (draw = true, nbands = nbands, maxfreq = max_sample_rate / 2), spectrogram_plot_options = (ylims = (0, max_sample_rate / 2),)),
+# )
 
-samples, samplerate = wavread(filepath)
-samples = merge_channels(samples)
-winsize = round(Int64, (audio_kwargs_partial_mfcc.wintime * ma_size * samplerate))
-stepsize = round(Int64, (audio_kwargs_partial_mfcc.steptime * ma_step * samplerate))
+# samples, samplerate = wavread(filepath)
+# samples = merge_channels(samples)
+# winsize = round(Int64, (audio_kwargs_partial_mfcc.wintime * ma_size * samplerate))
+# stepsize = round(Int64, (audio_kwargs_partial_mfcc.steptime * ma_step * samplerate))
 
-wav_descriptor, points, seconds = get_points_and_seconds_from_worlds(results[1].path[end].worlds, winsize, stepsize, length(samples), samplerate)
+# wav_descriptor, points, seconds = get_points_and_seconds_from_worlds(results[1].path[end].worlds, winsize, stepsize, length(samples), samplerate)
 
-println("Points: ", points)
-println("Seconds: ", seconds)
+# println("Points: ", points)
+# println("Seconds: ", seconds)
 
-println("● File: ", filepath)
-println("  ├─WAV duration: ", round(length(samples) / samplerate, digits = 2), "s")
-println("  └─Worlds duration: ", round(length(findall(wav_descriptor)) / samplerate, digits = 2), "s")
+# println("● File: ", filepath)
+# println("  ├─WAV duration: ", round(length(samples) / samplerate, digits = 2), "s")
+# println("  └─Worlds duration: ", round(length(findall(wav_descriptor)) / samplerate, digits = 2), "s")
 
 # draw_tree_anim(wav_descriptor, "tree-anim/t_frame_blank.png", "tree-anim/t_frame_neg2.png", samplerate)
 
