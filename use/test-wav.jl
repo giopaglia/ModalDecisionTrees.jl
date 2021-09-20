@@ -72,6 +72,7 @@ using FileIO
 
 include("wav-filtering.jl")
 include("paper-trees.jl")
+include("load-models.jl")
 
 gr()
 
@@ -108,10 +109,44 @@ max_points = 30
 ignore_max_points = false
 
 # hash, tree, nbands, preprocess_wavs, max_points, ma_size, ma_step
-cough =  ("τ1", τ1, 60, [ normalize! ], 30, 75, 50)
+# cough =  ("τ1", τ1, 60, [ normalize! ], 30, 75, 50)
         #("τ2", τ2, 40, [], 30, 75, 50)
-breath = ("τ3", τ3, 40, [], 30, 45, 30)
+# breath = ("τ3", τ3, 40, [], 30, 45, 30)
 # breath = ("τ3", τ3, 40, [ normalize! ], 30, 45, 30)
+
+hashes_1_1 = ( # task1 v1
+    "rf_9e40eb67b60e5cc0be523f44eb16f7eb1382dd990a53d7f614f1caa078938366",
+    "rf_a97311a51cf36c73b9968e31edaf9216b58030120207a3c952ff37372e13a196",
+    "rf_58adc2ea33cbd06880efbea70232200b4681a4171ca4831e3b07ead7f64aa4dd",
+    "rf_a0832de68f0af8f56ce045ec6dcd1fd752fa8b850610975000e140c38a680d4f",
+    "rf_a52e0602b0b6b9ae1398a685434c34c054c6a4c7d567a7218373e5c19fa30f66",
+    "rf_eac548a16e4725cf720573ed763cc4b75db78091b62a650d59fbf8c6dbf92e6e",
+    "rf_6b6adf67414880a58ab6a79fd7a900594f2fa02ff3be09e99b8cd0078c93d13a",
+    "rf_8cc8e656eaef64f21a47b776cf881dbdacba30f4716a84958646c369a4260ed9",
+    "rf_0f9abb51ebfb35f0c40afafe6a7a1a7ee1798c007a93b67ae3b629d11c1ed1e6",
+    "rf_166e0030857042f443af2148c2ea62d2760bb6b20b5cbfe41339a85d2f539856"
+)
+hashes_2_1 = ( # task2 v1
+    "rf_629d85da7d43a3aa65a0a6c3c70be41ec0a45aee3b7499e4d1a8e8ab38bf2cc1",
+    "rf_22ead53c1fa4d10399f48fb1a566e89ca5a6e41af14180e1ba349dd0ced22998",
+    "rf_2fb23746b85ce0ebc3a499a153a97d4741f57208b24e7def92095a4e775386b4",
+    "rf_8e811bb3bf4893e7b55481eaa3ab658577b60032f425a9a1c9af9777dd4fe146",
+    "rf_9a9802c59b300fd136ec151d0598357f3b97ba6b8bdf4c2ea5c7c7be51e85c5b"
+)
+
+cough_model_hash = hashes_1_1[1] # TODO:
+breath_model_hash = "" # TODO:
+model_save_dir = "models/trees"
+
+
+# Dataseed	use_training_form	n_task_use_aug	n_version	nbands	dataset_kwargs	use_full_mfcc	preprocess_wavs	test_operators
+# 10	stump_with_memoization	(2,true)	1	40	(100,75)	FALSE	["NG","Normalize"]	TestOp_80
+# hash, tree, nbands, preprocess_wavs, max_points, ma_size, ma_step
+cough =  (cough_model_hash, load_model(cough_model_hash, model_save_dir), 40, [ noise_gate!, normalize! ], 30, 100, 75)
+# cough =  (cough_model_hash, load_model(cough_model_hash, model_save_dir), 40, [ noise_gate!, normalize! ], 30, 100, 75)
+# TODO: select proper parameters for selected models for breath
+breath = (breath_model_hash, τ3, 40, [], 30, 45, 30)
+# breath = (breath_model_hash, load_model(breath_model_hash, model_save_dir), 40, [], 30, 45, 30)
 
 tree_hash, tree, nbands, preprocess_wavs, max_points, ma_size, ma_step = type == :breath ? breath : cough
 
@@ -171,12 +206,12 @@ n_unique_freqs = n_unique_freqs[1]
 X = compute_X(max_timepoints, n_unique_freqs, [ ts ], 1)
 X = X_dataset_c("test", data_modal_args, [X], modal_args, false, dataset_form, false)
 
-result = apply_tree(tree, X)[1]
+result = apply_model(tree, X)[1]
 if isnothing(label)
     label = result
 end
 
-result_str = result == "YES" ? "POSITIVE" : "NEGATIVE"
+result_str = startswith(result, "YES") ? "POSITIVE" : "NEGATIVE"
 
 banner = "##########################################"
 pre_post_banner = floor(Int64, (length(banner) - length(result_str) - 2) / 2)
