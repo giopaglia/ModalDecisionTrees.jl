@@ -205,7 +205,8 @@ function data_to_string(
 				percent(mean(map(M->M.oob_error, Ms)))
 			else
 				"??? $(column) ???"
-		end, (i_col == length(columns) ? "", alt_separator)))
+			end, (i_col == length(columns) ? "" : alt_separator)
+		)
 	end
 	result *= end_s
 	result *= separator
@@ -234,7 +235,8 @@ function data_to_string(
 				percent(var(map(M->M.oob_error, Ms)))
 			else
 				"??? $(column) ???"
-		end, (i_col == length(columns) ? "", alt_separator)))
+			end, (i_col == length(columns) ? "" : alt_separator)
+		)
 	end
 	result *= end_s
 	result *= separator
