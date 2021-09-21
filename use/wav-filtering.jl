@@ -952,7 +952,7 @@ end
 # end
 
 function framesample(
-            sample              :: Vector{T},
+            samples              :: Vector{T},
             fs                  :: Real;
             wintime             :: Real        = 0.025,
             steptime            :: Real        = 0.01,
@@ -963,13 +963,13 @@ function framesample(
     winlength::Int64 = round(Int64, moving_average_size * (wintime * fs))
     steplength::Int64 = round(Int64, moving_average_step * (steptime * fs))
 
-    nwin::Int64 = ceil(Int64, length(sample) / steplength)
+    nwin::Int64 = ceil(Int64, length(samples) / steplength)
 
     result = Vector{Vector{T}}(undef, nwin)
-        Threads.@threads for (i, range) in collect(enumerate(frame2points(collect(1:nwin), winlength, steplength)))
+    Threads.@threads for (i, range) in collect(enumerate(frame2points(collect(1:nwin), winlength, steplength)))
         left = max(1, range.start)
         right = min(length(samples), range.stop)
-        result[i] = deepcopy(sample[left:right])
+        result[i] = deepcopy(samples[left:right])
     end
 
     result
@@ -980,7 +980,7 @@ function splitwav(
             fs                  :: Real;
             wintime             :: Real                 = 0.05,
             steptime            :: Real                 = wintime / 2,
-            preprocess          :: Vector{Function}     = Vector{Function}([ noise_gate!, normalize!, trim_wav! ]),
+            preprocess          :: Vector{Function}     = Vector{Function}([ noise_gate!, normalize! ]),
             preprocess_kwargs   :: NamedTuple           = NamedTuple(),
             postprocess         :: Vector{Function}     = Vector{Function}([ noise_gate!, normalize!, trim_wav! ]),
             postprocess_kwargs  :: NamedTuple           = NamedTuple()
@@ -1034,7 +1034,11 @@ function splitwav(
             last_read = f
         end
     end
-    push!(cut_points, length(frames_rms))
+
+    # if the head was reading a peak keep last piece too
+    if head_status == :on_peak || head_status == :right_after_peak
+        push!(cut_points, length(samples))
+    end
 
     results::Vector{Vector{T}} = Vector{Vector{T}}(undef, length(cut_points)-1)
     for i in 2:(length(cut_points))
@@ -1051,13 +1055,14 @@ function splitwav(
         end
     end
 
-    deepcopy(results[1:(end-1)])
+    results
 end
-function splitwav(path::String; kwargs...)::Vector{Vector{T}} where {T<:AbstractFloat}
-    samples, sr = wavread(path)
-    samples = merge_channels(samples)
-
-    splitwav(samples, sr; kwargs...)
+function splitwav(samples::Matrix{T}, fs::Real; kwargs...)::Vector{Vector{T}} where T<:AbstractFloat
+    splitwav(merge_channels(samples), fs; kwargs...)
+end
+function splitwav(path::String; kwargs...)::Vector{Vector{AbstractFloat}}
+    samples, fs = wavread(path)
+    splitwav(samples, fs; kwargs...)
 end
 
 function generate_video(
