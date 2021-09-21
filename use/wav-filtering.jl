@@ -951,6 +951,115 @@ end
 #     new_track
 # end
 
+function framesample(
+            sample              :: Vector{T},
+            fs                  :: Real;
+            wintime             :: Real        = 0.025,
+            steptime            :: Real        = 0.01,
+            moving_average_size :: Int64       = 1,
+            moving_average_step :: Int64       = 1
+        )::Vector{Vector{T}} where T<:AbstractFloat
+
+    winlength::Int64 = round(Int64, moving_average_size * (wintime * fs))
+    steplength::Int64 = round(Int64, moving_average_step * (steptime * fs))
+
+    nwin::Int64 = ceil(Int64, length(sample) / steplength)
+
+    result = Vector{Vector{T}}(undef, nwin)
+        Threads.@threads for (i, range) in collect(enumerate(frame2points(collect(1:nwin), winlength, steplength)))
+        left = max(1, range.start)
+        right = min(length(samples), range.stop)
+        result[i] = deepcopy(sample[left:right])
+    end
+
+    result
+end
+
+function splitwav(
+            samples             :: Vector{T},
+            fs                  :: Real;
+            wintime             :: Real                 = 0.05,
+            steptime            :: Real                 = wintime / 2,
+            preprocess          :: Vector{Function}     = Vector{Function}([ noise_gate!, normalize!, trim_wav! ]),
+            preprocess_kwargs   :: NamedTuple           = NamedTuple(),
+            postprocess         :: Vector{Function}     = Vector{Function}([ noise_gate!, normalize!, trim_wav! ]),
+            postprocess_kwargs  :: NamedTuple           = NamedTuple()
+        )::Vector{Vector{T}} where {T<:AbstractFloat}
+
+    for pre_proc in preprocess
+        pre_proc(samples; preprocess_kwargs...)
+    end
+
+    frames::Vector{Vector{T}} = framesample(
+                            samples,
+                            fs;
+                            wintime = wintime,
+                            steptime = steptime,
+                            moving_average_size = 1,
+                            moving_average_step = 1
+                        )
+
+    frames_rms::Vector{T} = [ rms(f) for f in frames ]
+    rms_f = rms(frames_rms)
+
+    cut_points::Vector{Integer} = [ 1 ]
+    head_status::Symbol = :initial
+    last_read::T = Inf
+    for (i, f) in enumerate(frames_rms)
+        if head_status == :initial
+            if f > rms_f
+                # now the head is reading from a peak
+                head_status = :on_peak
+            end
+        elseif head_status == :on_peak
+            if f < rms_f
+                # peak is over
+                head_status = :right_after_peak
+            end
+            # still on peak
+        elseif head_status == :right_after_peak
+            if f > rms_f
+                # false alarm: the peak is not yet over
+                head_status = :on_peak
+                last_read = Inf
+                continue
+            end
+            if last_read < f
+                # rms is start raising: time to cut
+                push!(cut_points, i)
+                # reset head status
+                head_status = :initial
+                last_read = Inf
+            end
+            last_read = f
+        end
+    end
+    push!(cut_points, length(frames_rms))
+
+    results::Vector{Vector{T}} = Vector{Vector{T}}(undef, length(cut_points)-1)
+    for i in 2:(length(cut_points))
+        prev_cp = cut_points[i-1]
+        curr_cp = cut_points[i]
+        left = max(1, frame2points(prev_cp, wintime, steptime, fs).start)
+        right = min(frame2points(curr_cp, wintime, steptime, fs).stop, length(samples))
+        results[i-1] = deepcopy(samples[left:right])
+    end
+
+    for samps in results
+        for post_proc in postprocess
+            post_proc(samps; postprocess_kwargs...)
+        end
+    end
+
+    deepcopy(results[1:(end-1)])
+end
+function splitwav(path::String; kwargs...)::Vector{Vector{T}} where {T<:AbstractFloat}
+    samples, sr = wavread(path)
+    samples = merge_channels(samples)
+
+    splitwav(samples, sr; kwargs...)
+end
+
 function generate_video(
         gif                      :: String,
         wavs                     :: Vector{String};
