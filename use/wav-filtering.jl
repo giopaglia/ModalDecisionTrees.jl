@@ -278,6 +278,42 @@ function approx_wav(filepath::String; kwargs...):: Tuple{Vector{T}, Real} where 
     approx_wav(samples, fs; kwargs...)
 end
 
+function draw_wav(
+            points         :: Vector{T},
+            fs             :: Number;
+            color                                  = :auto,
+            title          :: String               = "",
+            size           :: Tuple{Number,Number} = (1000, 150),
+            func           :: Function             = plot
+        )::Plots.Plot where T <: AbstractFloat
+    plot = func(
+        collect(0:(length(points) - 1)),
+        points,
+        title = title,
+        xlims = (0, length(points)),
+        ylims = (-1, 1),
+        framestyle = :zerolines,       # show axis at zeroes
+        fill = 0,                      # show area under curve
+        leg = false,                   # hide legend
+        yshowaxis = false,             # hide y axis
+        grid = false,                  # hide y grid
+        ticks = false,                 # hide y ticks
+        tick_direction = :none,
+        linecolor = color,
+        fillcolor = color,
+        size = size
+    )
+end
+function draw_wav(points::Vector{T}; kwargs...)::Plots.Plot where T <: AbstractFloat
+    draw_wav(points::Vector{T}, 44100; kwargs...)
+end
+function draw_wav!(points::Vector{T}, fs::Number; kwargs...)::Plots.Plot where T <: AbstractFloat
+    draw_wav(points::Vector{T}, fs::Number; func = plot!, kwargs...)
+end
+function draw_wav!(points::Vector{T}; kwargs...)::Plots.Plot where T <: AbstractFloat
+    draw_wav(points::Vector{T}, 44100; func = plot!, kwargs...)
+end
+
 function draw_audio_anim(
         audio_files               :: Vector{Tuple{Vector{T1},T2}} where {T1<:AbstractFloat, T2<:AbstractFloat};
         labels                    :: Vector{String}                                      = fill("", length(audio_files)),
@@ -296,26 +332,6 @@ function draw_audio_anim(
         use_wav_apporximation     :: Bool                                                = true,
         wav_apporximation_scale   :: Real                                                = 1.0
     )
-    function draw_wav(points::Vector{Float64}, fs::Number; color = :auto, title = "", func = plot)
-        func(
-            collect(0:(length(points) - 1)),
-            points,
-            title = title,
-            xlims = (0, length(points)),
-            ylims = (-1, 1),
-            framestyle = :zerolines,       # show axis at zeroes
-            fill = 0,                      # show area under curve
-            leg = false,                   # hide legend
-            yshowaxis = false,             # hide y axis
-            grid = false,                  # hide y grid
-            ticks = false,                 # hide y ticks
-            tick_direction = :none,
-            linecolor = color,
-            fillcolor = color,
-            size = size
-        )
-    end
-    draw_wav!(points::Vector{Float64}, fs::Number; title = "", color = :auto) = draw_wav(points, fs, func = plot!; title = title, color = color)
 
     @assert length(audio_files) > 0 "No audio file provided"
     @assert length(audio_files) == length(labels) "audio_files and labels mismatch in length: $(length(audio_files)) != $(length(labels))"
@@ -386,12 +402,12 @@ function draw_audio_anim(
     plts = []
     for (i, w) in enumerate(real_wavs)
         if i == 1
-            push!(plts, draw_wav(w, freq; title = labels[i], color = colors[i]))
+            push!(plts, draw_wav(w, freq; title = labels[i], color = colors[i], size = size))
         else
             if single_graph
-                draw_wav!(w, freq; title = labels[i], color = colors[i])
+                draw_wav!(w, freq; title = labels[i], color = colors[i], size = size)
             else
-                push!(plts, draw_wav(w, freq; title = labels[i], color = colors[i]))
+                push!(plts, draw_wav(w, freq; title = labels[i], color = colors[i], size = size))
             end
         end
     end
@@ -905,22 +921,30 @@ end
 # n_bands(dynamic_filter::DynamicFilter) = size(dynamic_filter, 2)
 # n_chunks(dynamic_filter::DynamicFilter) = size(dynamic_filter, 1)
 
+# function dynamic_digitalfilter(
+#             samples            :: Vector{T},
+#             decision_path      :: DecisionPath
+#         )::DynamicFilter where T <: AbstractFloat
+# end
+
 # # TODO: implement this function for real (it is just a draft for now...)
 # function dynfilt(
-#         dynamic_filter      :: Matrix{Integer},
-#         sample              :: AbstractVector{T};
-#         samplerate          :: Real = 8_000.0,
-#         wintime             :: Real = 0.025,
-#         steptime            :: Real = 0.01,
-#         minfreq             :: Real = 0.0,
-#         maxfreq             :: Real = samplerate / 2,
-#         window_f            :: Function = triang
-#     )::Vector{T} where {T <: Real}
+#             dynamic_filter      :: DynamicFilter,
+#             samples             :: AbstractVector{T};
+#             samplerate          :: Real               = 8_000.0,
+#             wintime             :: Real               = 0.025,
+#             steptime            :: Real               = 0.01,
+#             minfreq             :: Real               = 0.0,
+#             maxfreq             :: Real               = samplerate / 2,
+#             window_f            :: Function           = triang,
+#             moving_average_size :: Int64              = 1,
+#             moving_average_step :: Int64              = 1
+#         )::Vector{T} where {T <: Real}
 
 #     nbands = n_bands(dynamic_filter)
 #     ntimechunks = n_chunks(dynamic_filter)
-#     winlength = round(Integer, wintime * sr)
-#     winstep = round(Integer, steptime * sr)
+#     winlength = round(Integer, moving_average_size * wintime * sr)
+#     winstep = round(Integer, moving_average_step * steptime * sr)
 
 #     # init filters
 #     filters = [
@@ -942,17 +966,20 @@ end
 #     end
 
 #     # write filtered time chunks to new_track
-#     new_track = Vector{T}(undef, length(sample) - 1)
-#     time_chunk_length = length(sample) / ntimechunks
+#     new_track = Vector{T}(undef, length(samples) - 1)
+#     time_chunk_length = length(samples) / ntimechunks
 #     for i in 1:ntimechunks
-#         new_track[i:(i*time_chunk_length) - 1] = filt(slice_filters[i], sample[i:(i*time_chunk_length) - 1])
+#         new_track[i:(i*time_chunk_length) - 1] = filt(slice_filters[i], samples[i:(i*time_chunk_length) - 1])
 #     end
 
 #     new_track
 # end
+# function dynfilt(decision_path::DecisionPath, samples::AbstractVector{T}; kwargs...)::Vector{T} where {T <: Real}
+#     dynfilt(dynamic_digitalfilter(samples, decision_path), samples; kwargs...)
+# end
 
 function framesample(
-            samples              :: Vector{T},
+            samples             :: Vector{T},
             fs                  :: Real;
             wintime             :: Real        = 0.025,
             steptime            :: Real        = 0.01,
@@ -984,7 +1011,7 @@ function splitwav(
             preprocess_kwargs   :: NamedTuple           = NamedTuple(),
             postprocess         :: Vector{Function}     = Vector{Function}([ noise_gate!, normalize!, trim_wav! ]),
             postprocess_kwargs  :: NamedTuple           = NamedTuple()
-        )::Vector{Vector{T}} where {T<:AbstractFloat}
+        )::Tuple{Vector{Vector{T}}, Real} where {T<:AbstractFloat}
 
     for pre_proc in preprocess
         pre_proc(samples; preprocess_kwargs...)
@@ -1055,12 +1082,12 @@ function splitwav(
         end
     end
 
-    results
+    results, fs
 end
-function splitwav(samples::Matrix{T}, fs::Real; kwargs...)::Vector{Vector{T}} where T<:AbstractFloat
+function splitwav(samples::Matrix{T}, fs::Real; kwargs...)::Tuple{Vector{Vector{T}}, Real} where T<:AbstractFloat
     splitwav(merge_channels(samples), fs; kwargs...)
 end
-function splitwav(path::String; kwargs...)::Vector{Vector{AbstractFloat}}
+function splitwav(path::String; kwargs...)::Tuple{Vector{Vector{AbstractFloat}}, Real}
     samples, fs = wavread(path)
     splitwav(samples, fs; kwargs...)
 end
