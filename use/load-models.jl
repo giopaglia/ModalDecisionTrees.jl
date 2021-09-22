@@ -6,6 +6,16 @@ function load_model(model_hash::String, model_savedir::String)
     # println()
     # println("Loading model: $(model_hash)...")
 
+    if !isfile("$(model_savedir)/$(model_hash).jld")
+        if isfile("$(model_savedir)/rf_$(model_hash).jld")
+            model_hash = "rf_" * model_hash
+        elseif isfile("$(model_savedir)/tree_$(model_hash).jld")
+            model_hash = "tree_" * model_hash
+        else
+            error("File $(model_savedir)/$(model_hash).jld not found!")
+        end
+    end
+
     model = load("$(model_savedir)/$(model_hash).jld")
 
     model = if startswith(model_hash, "tree") || haskey(model, "T")
