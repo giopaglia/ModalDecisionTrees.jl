@@ -1,26 +1,53 @@
 
 include("wav-filtering.jl")
 
-function searchdir(path::String, key::String; recursive::Bool = false)::Vector{String}
+function searchdir(
+            path          :: String,
+            key           :: Union{Vector{String},String};
+            exclude       :: Union{Vector{String},String}  = Vector{String}(),
+            recursive     :: Bool                          = false,
+            results_limit :: Int64                         = 0
+        )::Vector{String}
+
+    function contains_str(str::String, match::String)::Bool
+        occursin(match, str)
+    end
+    function contains_str(str::String, match::Vector{String})::Bool
+        length(findall(contains_str(str, m) for m in match)) > 0
+    end
+    function matches_key(x::String)::Bool
+        occursin(key, x) && !isdir(path * "/" * x) && !contains_str(x, exclude)
+    end
+
     results = Vector{String}()
 
     dir_content = readdir(path)
-    append!(results, map(res -> path * "/" * res, filter(x -> occursin(key, path * "/" * x), dir_content)))
-    
+    append!(results, map(res -> path * "/" * res, filter(matches_key, dir_content)))
+
     if recursive
         for d in filter(x -> isdir(path * "/" * x), dir_content)
-            append!(results, searchdir(path * "/" * d, key; recursive = recursive))
+            if results_limit > 0 && length(results) > results_limit break end
+            append!(results, searchdir(path * "/" * d, key; exclude = exclude, recursive = recursive, results_limit = results_limit))
         end
     end
 
-    results
+    if results_limit > 0 && length(results) > results_limit
+        deepcopy(results[1:results_limit])
+    else
+        results
+    end
 end
 
-function generate_splitted_wavs_dataset(path::String; draw_wavs::Bool = false)::Nothing
+function generate_splitted_wavs_dataset(
+            path      :: String;
+            exclude   :: Union{Vector{String},String}  = Vector{String}(),
+            draw_wavs :: Bool    = false,
+            limit     :: Int64   = 0
+        )::Nothing
     dest = rstrip(path, '/') * "-split-wavs/"
     mkpath(dest)
 
-    for wav_found in searchdir(path, ".wav"; recursive = true)
+    for wav_found in searchdir(path, ".wav"; exclude = exclude, recursive = true, results_limit = limit)
         mkpath(dirname(wav_found))
         
         
@@ -50,4 +77,4 @@ function generate_splitted_wavs_dataset(path::String; draw_wavs::Bool = false)::
     
 end
 
-# generate_splitted_wavs_dataset("../datasets/KDD/"; draw_wavs = true)
+generate_splitted_wavs_dataset("../datasets/KDD/"; exclude = [ "aug", "mono", "pitch" ], draw_wavs = true, limit = 10)
