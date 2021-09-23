@@ -1008,13 +1008,25 @@ function splitwav(
             wintime             :: Real                 = 0.05,
             steptime            :: Real                 = wintime / 2,
             preprocess          :: Vector{Function}     = Vector{Function}([ noise_gate!, normalize! ]),
-            preprocess_kwargs   :: NamedTuple           = NamedTuple(),
-            postprocess         :: Vector{Function}     = Vector{Function}([ noise_gate!, normalize!, trim_wav! ]),
-            postprocess_kwargs  :: NamedTuple           = NamedTuple()
+            preprocess_kwargs   :: Vector{NamedTuple}   = Vector{NamedTuple}([ (level = 0.01,), (level = 1.0,) ]),
+            postprocess         :: Vector{Function}     = Vector{Function}([ normalize!, trim_wav! ]),
+            postprocess_kwargs  :: Vector{NamedTuple}   = Vector{NamedTuple}([ (level = 1.0,), (level = 0.0,) ])
         )::Tuple{Vector{Vector{T}}, Real} where {T<:AbstractFloat}
 
-    for pre_proc in preprocess
-        pre_proc(samples; preprocess_kwargs...)
+    if length(preprocess) > length(preprocess_kwargs)
+        append!(preprocess_kwargs, fill(NamedTuple(), length(preprocess) - length(preprocess_kwargs)))
+    elseif length(preprocess) < length(preprocess_kwargs)
+        splice!(preprocess_kwargs, (length(preprocess_kwargs) - length(preprocess)):length(preprocess_kwargs))
+    end
+
+    if length(postprocess) > length(postprocess_kwargs)
+        append!(postprocess_kwargs, fill(NamedTuple(), length(postprocess) - length(postprocess_kwargs)))
+    elseif length(postprocess) < length(postprocess_kwargs)
+        splice!(postprocess_kwargs, (length(postprocess_kwargs) - length(postprocess)):length(postprocess_kwargs))
+    end
+
+    for (pre_proc, pre_proc_kwargs) in collect(zip(preprocess, preprocess_kwargs))
+        pre_proc(samples; pre_proc_kwargs...)
     end
 
     frames::Vector{Vector{T}} = framesample(
@@ -1032,14 +1044,18 @@ function splitwav(
     cut_points::Vector{Integer} = [ 1 ]
     head_status::Symbol = :initial
     last_read::T = Inf
+    last_non_peak_values::Vector{T} = []
+    last_non_peak_rms::T = 0.0
     for (i, f) in enumerate(frames_rms)
         if head_status == :initial
+            push!(last_non_peak_values, f)
             if f > rms_f
+                last_non_peak_rms = rms(last_non_peak_values)
                 # now the head is reading from a peak
                 head_status = :on_peak
             end
         elseif head_status == :on_peak
-            if f < rms_f
+            if f < rms_f && f < last_non_peak_rms
                 # peak is over
                 head_status = :right_after_peak
             end
@@ -1057,6 +1073,9 @@ function splitwav(
                 # reset head status
                 head_status = :initial
                 last_read = Inf
+                last_non_peak_values = []
+                last_non_peak_rms = 0.0
+                continue
             end
             last_read = f
         end
@@ -1077,8 +1096,8 @@ function splitwav(
     end
 
     for samps in results
-        for post_proc in postprocess
-            post_proc(samps; postprocess_kwargs...)
+        for (post_proc, post_proc_kwargs) in collect(zip(postprocess, postprocess_kwargs))
+            post_proc(samps; post_proc_kwargs...)
         end
     end
 
