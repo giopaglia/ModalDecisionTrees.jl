@@ -20,8 +20,8 @@ iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/cache"
 model_savedir = results_dir * "/trees"
 
-# dry_run = false
-dry_run = :dataset_only
+dry_run = false
+#dry_run = :dataset_only
 # dry_run = true
 
 # save_datasets = true
@@ -285,12 +285,12 @@ test_operators_dict = Dict(
 
 
 exec_ranges = (; # Order: faster-changing to slower-changing
-	nbands               = exec_nbands,
 	exec_max_sample_rate = exec_max_sample_rate,
 	use_training_form    = exec_use_training_form,
 	exec_n_task_use_aug_n_ver_preprocess       = exec_n_task_use_aug_n_ver_preprocess,
 	# n_task_use_aug       = exec_n_task_use_aug,
 	# n_version            = exec_n_versions,
+	nbands               = exec_nbands,
 	dataset_kwargs       = exec_dataset_kwargs,
 	use_full_mfcc        = exec_use_full_mfcc,
 	# preprocess_wavs      = exec_preprocess_wavs,
@@ -410,10 +410,10 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	##############################################################################
 	
-	nbands,
 	max_sample_rate,
 	use_training_form,
 	(n_task, use_aug, n_version, preprocess_wavs),
+	nbands,
 	dataset_kwargs,
 	use_full_mfcc,
 	test_operators = params_combination
