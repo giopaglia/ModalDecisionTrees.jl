@@ -37,11 +37,12 @@ abstract type Support end
 mutable struct ForestEvaluationSupport <: Support
 	f::Union{Nothing,Support,AbstractVector{Forest{S}}} where {S}
 	f_args::NamedTuple{T, N} where {T, N}
+	cm_train::Union{Nothing,AbstractVector{<:ConfusionMatrix}}
 	cm::Union{Nothing,AbstractVector{<:ConfusionMatrix}}
 	hash::AbstractString
 	time::Dates.Millisecond
 	enqueued::Bool
-	ForestEvaluationSupport(f_args) = new(nothing, f_args, nothing, "", Dates.Millisecond(0), false)
+	ForestEvaluationSupport(f_args) = new(nothing, f_args, nothing, nothing, "", Dates.Millisecond(0), false)
 end
 
 function will_produce_same_forest_with_different_number_of_trees(f1::ForestEvaluationSupport, f2::ForestEvaluationSupport)
@@ -209,7 +210,7 @@ include("dataset-utils.jl")
 	end
 end
 
-
+# TODO: decouple X_dataset_c from 'timing_mode` and 'data_savedir`
 function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_datasets, use_form, legacy_gammas_check)
 
 	WorldType = world_type(data_modal_args.ontology)
@@ -581,6 +582,62 @@ function exec_scan(
 	
 	@assert timing_mode in [:none, :profile, :time, :btime] "Unknown timing_mode!"
 	
+	run_name = join([replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)], ",")
+	
+	##############################################################################
+	##############################################################################
+	# Output files
+	##############################################################################
+	##############################################################################
+
+	concise_output_file_path = results_dir * "/grouped_in_models.tsv"
+	full_output_file_path    = results_dir * "/full_columns.tsv"
+
+	results_col_sep = "\t"
+
+	base_metrics_names = [
+		"train_accuracy",
+		"K",
+		"accuracy",
+		"macro_sensitivity",
+		"safe_macro_sensitivity",
+		"safe_macro_specificity",
+		"safe_macro_PPV",
+		"safe_macro_NPV",
+		"safe_macro_F1"
+	]
+
+	# TODO restore best_rule_params
+	# tree_columns = [base_metrics_names..., "n_nodes", ["best_rule_p $(best_rule_p)" for best_rule_p in best_rule_params]..., "t", "hash"]
+	tree_columns = [base_metrics_names..., "n_nodes"]
+	forest_columns = [base_metrics_names..., "oob_error", "n_nodes"]
+	
+	all_tree_columns = [tree_columns..., "t", "hash"]
+	all_forest_columns = [
+		forest_columns...,
+		["σ² $(n)" for n in forest_columns]...,
+		"t", "hash"
+	]
+
+	# If the output files do not exists initilize them
+	print_head(concise_output_file_path, tree_args, forest_args,
+		separator = results_col_sep,
+		tree_columns = [""],
+		forest_columns = ["", "σ²", "t"],
+		columns_before = ["Dataseed", "Params-combination"],
+	)
+	print_head(full_output_file_path, tree_args, forest_args,
+		separator = results_col_sep,
+		tree_columns = all_tree_columns,
+		forest_columns = all_forest_columns,
+		columns_before = ["Dataseed", (params_namedtuple |> keys .|> string)...],
+	)
+
+	##############################################################################
+	##############################################################################
+	##############################################################################
+	##############################################################################
+
 	go_tree(slice_id, X_train, Y_train, X_test, Y_test, tree_args, rng) = begin
 		started = Dates.now()
 		T =
@@ -616,6 +673,8 @@ function exec_scan(
 				print_apply_tree(T, X_test, Y_test; update_majority = true, do_print = false)
 			end
 		
+		cm_train = confusion_matrix(Y_train, apply_tree(T, X_train))
+
 		println(" test size = $(size(X_test))")
 		cm = nothing
 		for pruning_purity_threshold in sort(unique([(Float64.(tree_post_pruning_purity_thresh))...,1.0]))
@@ -633,7 +692,7 @@ function exec_scan(
 
 			# println("nodes: ($(num_nodes(T_pruned)), height: $(height(T_pruned)))")
 		end
-		return (T_test, cm, Tt, string(tree_hash));
+		return (T_test, cm_train, cm, Tt, string(tree_hash));
 	end
 
 	go_forest(slice_id, X_train, Y_train, X_test, Y_test, f_args, rng; prebuilt_model::Union{Nothing,AbstractVector{Forest{S}}} = nothing) where {S} = begin
@@ -654,6 +713,7 @@ function exec_scan(
 				], (Dates.now() - started)
 			else
 				println("Using slice of a prebuilt forest.")
+				# TODO
 				# !!! HUGE PROBLEM HERE !!! #
 				# BUG: can't compute oob_error of a forest built slicing another forest!!!
 				forests::Vector{Forest{S}} = []
@@ -670,10 +730,14 @@ function exec_scan(
 		end
 		
 		cms = ConfusionMatrix[]
+		cms_train = ConfusionMatrix[]
 		hashes = []
 		for F in Fs
 			println(" test size = $(size(X_test))")
 			
+			cm_train = confusion_matrix(Y_train, apply_forest(F, X_train))
+			push!(cms_train, cm_train)
+
 			preds = apply_forest(F, X_test);
 			cm = confusion_matrix(Y_test, preds)
 			# @test overall_accuracy(cm) > 0.99
@@ -704,13 +768,15 @@ function exec_scan(
 			push!(cms, cm)
 		end
 
-		return (Fs, cms, Ft, string(Tuple(hashes)));
+		return (Fs, cms_train, cms, Ft, string(Tuple(hashes)));
 	end
 
 	go(slice_id, X_train, Y_train, X_test, Y_test) = begin
 
 		Ts   = []
 		Fs   = []
+		Tcms_train = []
+		Fcms_train = []
 		Tcms = []
 		Fcms = []
 		Tts  = []
@@ -720,8 +786,9 @@ function exec_scan(
 
 		for (i_model, this_args) in enumerate(tree_args)
 			checkpoint_stdout("Computing tree $(i_model) / $(length(tree_args))...\n$(this_args)")
-			this_T, this_Tcm, this_Tt, this_Thash = go_tree(slice_id, X_train, Y_train, X_test, Y_test, this_args, Random.MersenneTwister(train_seed))
+			this_T, this_Tcm_train, this_Tcm, this_Tt, this_Thash = go_tree(slice_id, X_train, Y_train, X_test, Y_test, this_args, Random.MersenneTwister(train_seed))
 			push!(Ts, this_T)
+			push!(Tcms_train, this_Tcm_train)
 			push!(Tcms, this_Tcm)
 			push!(Tts, this_Tt)
 			push!(Thashs, this_Thash)
@@ -769,7 +836,11 @@ function exec_scan(
 				end
 				checkpoint_stdout("$(f.f_args)")
 
-				forest_supports_build_order[i].f, forest_supports_build_order[i].cm, forest_supports_build_order[i].time, forest_supports_build_order[i].hash = go_forest(slice_id, X_train, Y_train, X_test, Y_test, f.f_args, Random.MersenneTwister(train_seed), prebuilt_model = model)
+				forest_supports_build_order[i].f,
+				forest_supports_build_order[i].cm_train,
+				forest_supports_build_order[i].cm,
+				forest_supports_build_order[i].time,
+				forest_supports_build_order[i].hash = go_forest(slice_id, X_train, Y_train, X_test, Y_test, f.f_args, Random.MersenneTwister(train_seed), prebuilt_model = model)
 			end
 
 			# put resulting forests in vector in the order the user gave them
@@ -781,6 +852,7 @@ function exec_scan(
 				@assert f.f_args == forest_args[i] "f_args mismatch! $(f.f_args) == $(f_args[i])"
 
 				push!(Fs, f.f)
+				push!(Fcms_train, f.cm_train)
 				push!(Fcms, f.cm)
 				push!(Fts, f.time)
 				push!(Fhashs, f.hash)
@@ -788,8 +860,9 @@ function exec_scan(
 		else
 			for (i_forest, this_args) in enumerate(forest_args)
 				checkpoint_stdout("Computing Random Forest $(i_forest) / $(length(forest_args))...\n$(this_args)")
-				this_F, this_Fcm, this_Ft, this_hashes = go_forest(slice_id, X_train, Y_train, X_test, Y_test, this_args, Random.MersenneTwister(train_seed))
+				this_F, this_Fcm_train, this_Fcm, this_Ft, this_hashes = go_forest(slice_id, X_train, Y_train, X_test, Y_test, this_args, Random.MersenneTwister(train_seed))
 				push!(Fs, this_F)
+				push!(Fcms_train, this_Fcm_train)
 				push!(Fcms, this_Fcm)
 				push!(Fts, this_Ft)
 				push!(Fhashs, this_hashes)
@@ -805,11 +878,20 @@ function exec_scan(
 		# PRINT CONCISE
 		concise_output_string = string(slice_id, results_col_sep, run_name, results_col_sep)
 		for j in 1:length(tree_args)
-			concise_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j], Thashs[j]; alt_separator=", ", separator = results_col_sep, best_rule_params = best_rule_params))
+			concise_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j], Thashs[j], tree_columns;
+				train_cm = Tcms_train[j],
+				alt_separator=", ",
+				separator = results_col_sep,
+				# best_rule_params = best_rule_params,
+				))
 			concise_output_string *= string(results_col_sep)
 		end
 		for j in 1:length(forest_args)
-			concise_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j], Fhashs[j]; alt_separator=", ", separator = results_col_sep))
+			concise_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j], Fhashs[j], forest_columns;
+				train_cm = Fcms_train[j],
+				alt_separator=", ",
+				separator = results_col_sep,
+				))
 			concise_output_string *= string(results_col_sep)
 		end
 		concise_output_string *= string("\n")
@@ -818,11 +900,20 @@ function exec_scan(
 		# PRINT FULL
 		full_output_string = string(slice_id, results_col_sep, join([replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)], results_col_sep), results_col_sep)
 		for j in 1:length(tree_args)
-			full_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j], Thashs[j]; start_s = "", end_s = "", alt_separator = results_col_sep, best_rule_params = best_rule_params))
+			full_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j], Thashs[j], tree_columns;
+				train_cm = Tcms_train[j],
+				start_s = "", end_s = "",
+				alt_separator = results_col_sep,
+				# best_rule_params = best_rule_params,
+				))
 			full_output_string *= string(results_col_sep)
 		end
 		for j in 1:length(forest_args)
-			full_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j], Fhashs[j]; start_s = "", end_s = "", alt_separator = results_col_sep))
+			full_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j], Fhashs[j], forest_columns;
+				train_cm = Fcms_train[j],
+				start_s = "", end_s = "",
+				alt_separator = results_col_sep,
+				))
 			full_output_string *= string(results_col_sep)
 		end
 		full_output_string *= string("\n")
@@ -830,40 +921,18 @@ function exec_scan(
 
 		callback(slice_id)
 
-		Ts, Fs, Tcms, Fcms, Tts, Fts
+		Dict(
+			"Ts" => Ts,
+			"Fs" => Fs,
+			"Tcms_train" => Tcms_train,
+			"Fcms_train" => Fcms_train,
+			"Tcms" => Tcms,
+			"Fcms" => Fcms,
+			"Tts" => Tts,
+			"Fts" => Fts,
+		)
 	end
 	
-	run_name = join([replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)], ",")
-	
-	##############################################################################
-	##############################################################################
-	# Output files
-	##############################################################################
-	##############################################################################
-
-	concise_output_file_path = results_dir * "/grouped_in_models.tsv"
-	full_output_file_path    = results_dir * "/full_columns.tsv"
-
-	results_col_sep = "\t"
-
-	base_metrics_names = ["K", "accuracy", "safe_macro_sensitivity", "safe_macro_specificity", "safe_macro_PPV", "safe_macro_NPV", "safe_macro_F1"]
-
-	# If the output files do not exists initilize them
-	print_head(concise_output_file_path, tree_args, forest_args,
-		separator = results_col_sep,
-		tree_columns = [""],
-		forest_columns = ["", "σ²", "t"],
-		columns_before = ["Dataseed", "Params-combination"],
-	)
-	print_head(full_output_file_path, tree_args, forest_args,
-		separator = results_col_sep,
-		tree_columns = [base_metrics_names..., "n_nodes", ["best_rule_p $(best_rule_p)" for best_rule_p in best_rule_params]..., "t", "hash"],
-		forest_columns = [
-			[base_metrics_names..., "oob_error", "n_nodes"]...,
-			["σ² $(n)" for n in [base_metrics_names..., "oob_error", "n_nodes"]]..., "t", "hash"],
-		columns_before = ["Dataseed", (params_namedtuple |> keys .|> string)...],
-	)
-
 	##############################################################################
 	##############################################################################
 	##############################################################################
@@ -891,7 +960,7 @@ function exec_scan(
 	# println("forest_args  = ", length(forest_args), " × some forest_args structure")
 	println()
 	println("split_threshold   = ", split_threshold)
-	println("best_rule_params  = ", best_rule_params)
+	# println("best_rule_params  = ", best_rule_params) TODO restore
 	println("data_modal_args   = ", data_modal_args)
 	println("dataset_slices    = ($(length(dataset_slices)) dataset_slices)")
 
@@ -961,9 +1030,23 @@ function exec_scan(
 	end
 
 	global_logger(old_logger);
-	
-	rets = zip(rets...)
-	rets = map((r)->Iterators.flatten(r) |> collect, rets)
-	
-	rets
+
+	# Iterators.flatten(first(rets)) |> collect
+	# rets = zip(rets...) |> collect
+	# rets = map((r)->Iterators.flatten(r) |> collect, rets)	
+	# rets
+
+	# rets=[a,b] # debug
+	ks = unique(Iterators.flatten(keys.(rets)) |> collect)
+	all_rets = Dict()
+	for k in ks
+		all_rets[k] = [
+				if haskey(r, k)
+					r[k]
+				else
+					nothing
+				end
+			for r in rets]
+	end
+	all_rets
 end

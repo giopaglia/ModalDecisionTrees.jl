@@ -3,6 +3,9 @@ old-stuff/results
 old-stuff/results-find-best-values
 old-stuff/results-siemens
 
+filtering-results*/
+print-tree-latex/
+
 local.jl
 
 **.tmp

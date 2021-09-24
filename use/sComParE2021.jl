@@ -17,13 +17,13 @@ train_seed = 1
 results_dir = "./ComParE2021-september-v2"
 
 iteration_progress_json_file_path =  "$(results_dir)/progress.json"
-data_savedir    = "$(results_dir)/cache"
-trees_directory = "$(results_dir)/trees"
+data_savedir  = "$(results_dir)/cache"
+model_savedir = "$(results_dir)/trees"
 
 
 dry_run = false
 #dry_run = :dataset_only
-#dry_run = :model_study
+# dry_run = :model_study
 # dry_run = true
 
 # save_datasets = true
@@ -354,12 +354,19 @@ models_to_study = Dict([
 	# ("926c7c1e917236847f99e052f4785eae737f210094891863866bb7afe45eb732",
 
 	(
-		(false,"Interval"),true,true,(ma_size = 120, ma_step = 100),["NG","Normalize"],false,"stump_with_memoization",40,"TestOp_80"
+		(false,"Interval"),true,true,(ma_size = 120, ma_step = 100),["Normalize"],false,"stump_with_memoization",40,"TestOp_80"
 	) => [
-	"tree_133e11b8405703a7e9bb988fa6e8e117dddbee4d28279c2cc3eea77a50df506c",
-	"tree_ba85456f353973bc747807a5fabc672389c6840bd9faa311bea7288a266072c1",
-	"rf_6daa56e0812a6c8ed2553ccba3a84730dd36491a18f958824236f68a2b584dc5",
-	]
+		"rf_749066dbac8f05d768998d03a1b5af86f9350d92fdbbe046f9a3996c7feb237e"
+	],
+	# (
+	# 	(false,"Interval"),true,true,(ma_size = 120, ma_step = 100),["NG","Normalize"],false,"stump_with_memoization",40,"TestOp_80"
+	# ) => [
+	# "tree_133e11b8405703a7e9bb988fa6e8e117dddbee4d28279c2cc3eea77a50df506c",
+	# "tree_ba85456f353973bc747807a5fabc672389c6840bd9faa311bea7288a266072c1",
+	# "tree_993d27f4e86aca00a941e2dead6983b6f9344af36c91a3ac6446b624d235bcc2",
+	# "rf_6daa56e0812a6c8ed2553ccba3a84730dd36491a18f958824236f68a2b584dc5",
+	# "rf_1ffd65156589150a6501f6fb0a44f1a0ab393221228bff02e5dd78db8d3a2db2",
+	# ],
 ])
 
 models_to_study = Dict(JSON.json(k) => v for (k,v) in models_to_study)
@@ -406,7 +413,7 @@ end
 ################################################################################
 
 mkpath(results_dir)
-mkpath(trees_directory)
+mkpath(model_savedir)
 
 if "-f" in ARGS
 	if isfile(iteration_progress_json_file_path)
@@ -551,35 +558,47 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 				end) for mode in [:testing, :development]
 			]
 
-			for tree_hash in trees
+			for model_hash in trees
 
 				println()
 				println()
-				println("Loading tree: $(tree_hash)...")
+				println("Loading model: $(model_hash)...")
 				
-				T = load("$(trees_directory)/$(tree_hash).jld")["T"]
+				model = load("$(model_savedir)/$(model_hash).jld")
 
-				# print_tree(tree, n_tot_inst = 226)
+				model = if startswith(model_hash, "tree")
+						model["T"]
+					elseif startswith(model_hash, "rf")
+						model["F"]
+					else
+						error("Unknown model hash type: $(model_hash)")
+					end
+
 				println()
-				println("Original tree (training):")
-				print_tree(T)
+				println("Original model (training):")
+				if model isa DTree
+					print_model(model)
+				end
 
 				for (mode,dataset) in datasets
 					(X, Y), (n_pos, n_neg) = dataset
 
 					println()
 
-					# regenerated_tree = print_apply_tree(T, X, Y)
 					println()
-					println("Regenerated tree ($(mode)):")
-					regenerated_tree = print_apply_tree(T, X, Y; print_relative_confidence = true)
+					println("Regenerated model ($(mode)):")
 
-					preds = apply_tree(T, X);
+					if model isa DTree
+						regenerated_model = print_apply_model(model, X, Y; print_relative_confidence = true)
+						println()
+						# print_model(regenerated_model)
+					end
+
+					preds = apply_model(model, X);
 					cm = confusion_matrix(Y, preds)
 					println(cm)
 					
 					# readline()
-					# print_tree(regenerated_tree)
 				end
 			end
 		end
@@ -604,7 +623,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	##############################################################################
 	
-	if dry_run == true
+	if dry_run == false
 		exec_scan(
 			params_namedtuple,
 			dataset;

@@ -7,3 +7,5 @@ makefile
 
 datasets/*
 !datasets/test-Eduard
+
+.vscode/

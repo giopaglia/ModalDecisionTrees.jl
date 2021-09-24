@@ -33,6 +33,8 @@ function LoadModalDataset_v1(folder_name)
 
 	num_frames = metadata["num_frames"]
 	frame_dims = Integer[]
+	
+	println("num_frames: $(num_frames)")
 
 	for i_frame in 1:num_frames
 		@assert haskey(metadata, "frame$(i_frame)")     "$(num_frames) frames are expected, but couldn't find 'frame$(i_frame)' dataset property!"
@@ -47,10 +49,15 @@ function LoadModalDataset_v1(folder_name)
 
 	instance_names = filter(isdir, readdir(dataset_dir, sort=true))
 
+	println("Instances:")
+	println(instance_names)
+	println()
+
 	instance_names_enumerator = 
 		if metadata["supervised"]
-			TODO read joinpath(dataset_dir, "Labels.csv") and associate each instance_name to its label
-			labels = ...TODO
+			error("TODO")
+			# TODO read joinpath(dataset_dir, "Labels.csv") and associate each instance_name to its label
+			# labels = ...TODO
 			@assert length(instance_names) == length(labels)
 			zip(instance_names,labels)
 		else
@@ -75,7 +82,8 @@ function LoadModalDataset_v1(folder_name)
 			@assert instance_metadata["frame$(i_frame)"] isa INTuple  "Property 'frame$(i_frame)' should be of type INTuple, got $(typeof(instance_metadata["frame$(i_frame)"])) instead!"
 			push!(instance_frame_sizes, instance_metadata["frame$(i_frame)"])
 
-			TODO leggi joinpath(dataset_dir, example_dir, "/Frame $(i_frame).csv") e carica i datasets!
+			error("TODO")
+			# TODO leggi joinpath(dataset_dir, example_dir, "/Frame $(i_frame).csv") e carica i datasets!
 		end
 
 		if metadata["supervised"]
@@ -100,7 +108,7 @@ function LoadModalDataset_v1(folder_name)
 	end;
 end
 
-LoadModalDataset_v1("Example-Dataset-v1")
+# LoadModalDataset_v1("Example-Dataset-v1")
 
 # TODO give instances a name, different from "Example n"
 # TODO give frames a name
