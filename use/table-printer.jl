@@ -32,10 +32,16 @@ function get_creation_date_string_format(file_name::String)::String
 	Dates.format(Dates.unix2datetime(ctime(file_name)), "HH.MM.SS_dd.mm.yyyy")
 end
 
-function backup_file_using_creation_date(file_name::String)
+function backup_file_using_creation_date(file_name::String; out_path = "", copy_or_move = :move, file_suffix = ".bkp")
 	splitted_name = Base.Filesystem.splitext(file_name)
 	backup_file_name = splitted_name[1] * "_" * get_creation_date_string_format(file_name) * splitted_name[2]
-	mv(file_name, backup_file_name * ".bkp")
+	if copy_or_move == :move
+		mv(file_name, Filesystem.joinpath(out_path, backup_file_name * file_suffix))
+	elseif copy_or_move == :copy
+		cp(file_name, Filesystem.joinpath(out_path, backup_file_name * file_suffix), force=true)
+	else
+		error("backup_file_using_creation_date: Unexpected value for copy_or_move $(copy_or_move)")
+	end
 end
 
 function string_tree_head(tree_args)::String
@@ -121,6 +127,7 @@ function data_to_string(
 		time::Dates.Millisecond,
 		hash::AbstractString,
 		columns::AbstractVector;
+		train_cm = nothing,
 		start_s = "(",
 		end_s = ")",
 		separator = "\t",
@@ -131,7 +138,9 @@ function data_to_string(
 	result = start_s
 	for (i_col,column) in enumerate(columns)
 		result *= string(
-			if column == "K"
+			if column == "train_accuracy"
+				percent(overall_accuracy(train_cm))                  
+			elseif column == "K"
 				percent(kappa(cm))                  
 			elseif column == "accuracy"
 				percent(overall_accuracy(cm)) 
@@ -173,6 +182,7 @@ function data_to_string(
 		time::Dates.Millisecond,
 		hash::AbstractString,
 		columns::AbstractVector;
+		train_cm = nothing,
 		start_s = "(",
 		end_s = ")",
 		separator = "\t",
@@ -183,7 +193,9 @@ function data_to_string(
 
 	for (i_col,column) in enumerate(columns)
 		result *= string(
-			if column == "K"
+			if column == "train_accuracy"
+				percent(mean(map(cm->overall_accuracy(cm),       train_cm)))
+			elseif column == "K"
 				percent(mean(map(cm->kappa(cm),                  cms)))
 			elseif column == "accuracy"
 				percent(mean(map(cm->overall_accuracy(cm),       cms)))
@@ -205,14 +217,16 @@ function data_to_string(
 				percent(mean(map(M->M.oob_error, Ms)))
 			else
 				"??? $(column) ???"
-		end, (i_col == length(columns) ? "", alt_separator)))
+		end, (i_col == length(columns) ? "" : alt_separator))
 	end
 	result *= end_s
 	result *= separator
 	result *= start_s
 	for (i_col,column) in enumerate(columns)
 		result *= string(
-			if column == "K"
+			if column == "train_accuracy"
+				percent(var(map(cm->overall_accuracy(cm),       train_cm)))
+			elseif column == "K"
 				percent(var(map(cm->kappa(cm),                  cms)))
 			elseif column == "accuracy"
 				percent(var(map(cm->overall_accuracy(cm),       cms)))
@@ -234,7 +248,7 @@ function data_to_string(
 				percent(var(map(M->M.oob_error, Ms)))
 			else
 				"??? $(column) ???"
-		end, (i_col == length(columns) ? "", alt_separator)))
+		end, (i_col == length(columns) ? "" : alt_separator))
 	end
 	result *= end_s
 	result *= separator
