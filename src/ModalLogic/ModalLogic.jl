@@ -16,7 +16,7 @@ using BenchmarkTools # TODO only need this when testing and using @btime
 export AbstractWorld, AbstractRelation,
 				Ontology,
 				AbstractWorldSet, WorldSet,
-				display_decision,
+				display_decision, display_decision_inverse,
 				RelationGlob, RelationNone, RelationId,
 				world_type, world_types # TODO maybe remove this function?
 				# enumAccessibles, enumAccRepr
@@ -30,6 +30,7 @@ abstract type AbstractRelation end
 
 show(io::IO, r::AbstractRelation) = print(io, display_existential_relation(r))
 display_existential_relation(r) = "⟨$(display_rel_short(r))⟩"
+display_universal_relation(r) = "[$(display_rel_short(r))]"
 
 const initWorldSetFunction = Function
 const accFunction = Function
@@ -1261,9 +1262,9 @@ n_relations(X::MultiFrameModalDataset, i_frame::Integer) = n_relations(X.frames[
 world_type(X::MultiFrameModalDataset, i_frame::Integer) = world_type(X.frames[i_frame])
 world_types(X::MultiFrameModalDataset) = world_type.(X.frames) # convert(Vector{<:Type{<:AbstractWorld}}, world_type.(X.frames))
 
-getInstance(X::MultiFrameModalDataset,  i_frame::Integer, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...)
-# slice_dataset(X::MultiFrameModalDataset, i_frame::Integer, inds::AbstractVector{<:Integer}, args::Vararg)  = slice_dataset(X.frames[i], inds; args...)
-getChannel(X::MultiFrameModalDataset,   i_frame::Integer, idx_i::Integer, idx_f::Integer, args::Vararg)  = getChannel(X.frames[i], idx_i, idx_f, args...)
+getInstance(X::MultiFrameModalDataset,  i_frame::Integer, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i_frame], idx_i, args...)
+# slice_dataset(X::MultiFrameModalDataset, i_frame::Integer, inds::AbstractVector{<:Integer}, args::Vararg)  = slice_dataset(X.frames[i_frame], inds; args...)
+getChannel(X::MultiFrameModalDataset,   i_frame::Integer, idx_i::Integer, idx_f::Integer, args::Vararg)  = getChannel(X.frames[i_frame], idx_i, idx_f, args...)
 
 # getInstance(X::MultiFrameModalDataset, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...) # TODO should slice across the frames!
 slice_dataset(X::MultiFrameModalDataset, inds::AbstractVector{<:Integer}; args...) =
@@ -1295,37 +1296,46 @@ end
 
 include("testOperators.jl")
 
+display_decision_inverse(i_frame::Integer, relation::AbstractRelation, feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number; threshold_display_method::Function = x -> x) = begin
+	inv_test_operator = test_operator_inverse(test_operator)
+	display_decision(i_frame, relation, feature, inv_test_operator, threshold; threshold_display_method = threshold_display_method, inverse = true)
+end
 
-display_propositional_decision(feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number) =
-	"$(feature) $(test_operator) $(threshold)"
-
-display_decision(relation::AbstractRelation, feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number) = begin
-	propositional_decision = display_propositional_decision(feature, test_operator, threshold)
+display_decision(relation::AbstractRelation, feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number; threshold_display_method::Function = x -> x, inverse = false) = begin
+	propositional_decision = display_propositional_decision(feature, test_operator, threshold; threshold_display_method = threshold_display_method)
 	if relation != RelationId
-		"$(display_existential_relation(relation)) ($propositional_decision)"
+		"$((inverse ? display_universal_relation : display_existential_relation)(relation)) ($propositional_decision)"
 	else
 		"$propositional_decision"
 	end
 end
 
-display_decision(i_frame::Integer, relation::AbstractRelation, feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number) = begin
-	"{$i_frame} $(display_decision(relation, feature, test_operator, threshold))"
+display_decision(i_frame::Integer, relation::AbstractRelation, feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number; threshold_display_method::Function = x -> x, inverse = false) = begin
+	"{$i_frame} $(display_decision(relation, feature, test_operator, threshold; threshold_display_method = threshold_display_method, inverse = inverse))"
 end
+
+display_propositional_decision(feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number; threshold_display_method::Function = x -> x) =
+	"$(feature) $(test_operator) $(threshold_display_method(threshold))"
 
 # TODO reason about shortened features
 
-display_propositional_decision(feature::AttributeMinimumFeatureType, test_operator::typeof(≥), threshold::Number) =
-	"A$(feature.i_attribute) ⫺ $(threshold)"
+display_propositional_decision(feature::AttributeMinimumFeatureType, test_operator::typeof(≥), threshold::Number; threshold_display_method::Function = x -> x) =
+	"A$(feature.i_attribute) ⪴ $(threshold_display_method(threshold))"
+display_propositional_decision(feature::AttributeMaximumFeatureType, test_operator::typeof(≤), threshold::Number; threshold_display_method::Function = x -> x) =
+	"A$(feature.i_attribute) ⪳ $(threshold_display_method(threshold))"
+display_propositional_decision(feature::AttributeSoftMinimumFeatureType, test_operator::typeof(≥), threshold::Number; threshold_display_method::Function = x -> x) =
+	"A$(feature.i_attribute) $("⪴" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
+display_propositional_decision(feature::AttributeSoftMaximumFeatureType, test_operator::typeof(≤), threshold::Number; threshold_display_method::Function = x -> x) =
+	"A$(feature.i_attribute) $("⪳" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
 
-display_propositional_decision(feature::AttributeMaximumFeatureType, test_operator::typeof(≤), threshold::Number) =
-	"A$(feature.i_attribute) ⫹ $(threshold)"
-
-
-display_propositional_decision(feature::AttributeSoftMinimumFeatureType, test_operator::typeof(≥), threshold::Number) =
-	"A$(feature.i_attribute) $("⫺" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold)"
-
-display_propositional_decision(feature::AttributeSoftMaximumFeatureType, test_operator::typeof(≤), threshold::Number) =
-	"A$(feature.i_attribute) $("⫹" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold)"
+display_propositional_decision(feature::AttributeMinimumFeatureType, test_operator::typeof(<), threshold::Number; threshold_display_method::Function = x -> x) =
+	"A$(feature.i_attribute) ⪶ $(threshold_display_method(threshold))"
+display_propositional_decision(feature::AttributeMaximumFeatureType, test_operator::typeof(>), threshold::Number; threshold_display_method::Function = x -> x) =
+	"A$(feature.i_attribute) ⪵ $(threshold_display_method(threshold))"
+display_propositional_decision(feature::AttributeSoftMinimumFeatureType, test_operator::typeof(<), threshold::Number; threshold_display_method::Function = x -> x) =
+	"A$(feature.i_attribute) $("⪶" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
+display_propositional_decision(feature::AttributeSoftMaximumFeatureType, test_operator::typeof(>), threshold::Number; threshold_display_method::Function = x -> x) =
+	"A$(feature.i_attribute) $("⪵" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
 
 ################################################################################
 ################################################################################
