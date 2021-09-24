@@ -124,6 +124,7 @@ Note:
 # macro_weighted_PPV(cm::ConfusionMatrix) = Statistics.sum(cm.PPVs.*class_counts(cm))./sum(cm.matrix)
 # macro_weighted_NPV(cm::ConfusionMatrix) = Statistics.sum(cm.NPVs.*class_counts(cm))./sum(cm.matrix)
 
+# macro_sensitivity, also called unweighted average recall (UAR)
 macro_sensitivity(cm::ConfusionMatrix) = Statistics.mean(cm.sensitivities)
 macro_specificity(cm::ConfusionMatrix) = Statistics.mean(cm.specificities)
 macro_PPV(cm::ConfusionMatrix)         = Statistics.mean(cm.PPVs)
@@ -195,17 +196,20 @@ function _weighted_error(actual::AbstractVector, predicted::AbstractVector, weig
 	return err
 end
 
-function majority_vote(labels::AbstractVector)
+function majority_vote(labels::AbstractVector; suppress_parity_warning = false)
 	if length(labels) == 0
 		return nothing
 	end
 	counts = _hist(labels)
+	if !suppress_parity_warning && sum(counts[argmax(counts)] .== values(counts)) > 1
+		println("Warning: parity encountered in majority_vote.\nVector: $(labels)\nArgmax: $(argmax(counts))\nMax$(counts[argmax(counts)])")
+	end
 	argmax(counts)
 end
 
-function best_score(labels::AbstractVector{T}, weights::Union{Nothing,AbstractVector{N}}) where {T, N<:Real}
+function best_score(labels::AbstractVector{T}, weights::Union{Nothing,AbstractVector{N}}; suppress_parity_warning = false) where {T, N<:Real}
 	if isnothing(weights)
-		return majority_vote(labels)
+		return majority_vote(labels; suppress_parity_warning = suppress_parity_warning) # TODO use dispatch on majority_vote and best_score ArrayOfOnes o ConstantArray
 	end
 
 	if length(labels) == 0
@@ -213,7 +217,7 @@ function best_score(labels::AbstractVector{T}, weights::Union{Nothing,AbstractVe
 	end
 
 	@assert length(labels) === length(weights) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
-	@assert length(labels) != 0 "Can't compute best_score with 0 predictions" # TODO figure out whether we want to force this or returning nothing is fine.
+	# @assert length(labels) != 0 "Can't compute best_score with 0 predictions" # TODO figure out whether we want to force this or returning nothing is fine.
 
 	counts = Dict{T,AbstractFloat}()
 	for i in 1:length(labels)
@@ -221,6 +225,9 @@ function best_score(labels::AbstractVector{T}, weights::Union{Nothing,AbstractVe
 		counts[l] = get(counts, l, 0) + weights[i]
 	end
 
+	if !suppress_parity_warning && sum(counts[argmax(counts)] .== values(counts)) > 1
+		println("Warning: parity encountered in best_score.\nVector: $(labels)\nArgmax: $(argmax(counts))\nMax$(counts[argmax(counts)])")
+	end
 	return argmax(counts)
 end
 
