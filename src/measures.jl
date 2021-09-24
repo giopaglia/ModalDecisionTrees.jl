@@ -196,11 +196,14 @@ function _weighted_error(actual::AbstractVector, predicted::AbstractVector, weig
 	return err
 end
 
-function majority_vote(labels::AbstractVector)
+function majority_vote(labels::AbstractVector; suppress_parity_warning = false)
 	if length(labels) == 0
 		return nothing
 	end
 	counts = _hist(labels)
+	if !suppress_parity_warning && sum(counts[argmax(counts)] .== values(counts)) > 1
+		println("Warning: parity encountered in majority_vote.\nVector: $(labels)\nArgmax: $(argmax(counts))\nMax$(counts[argmax(counts)])")
+	end
 	argmax(counts)
 end
 
