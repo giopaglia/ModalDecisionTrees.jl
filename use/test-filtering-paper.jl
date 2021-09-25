@@ -8,7 +8,7 @@ include("paper-trees.jl")
 gr()
 
 # SETTINGS
-outpath = "filtering-results-paper"
+outpath = "filtering-results-paper-dynamic-filters"
 cache_dir = outpath * "/cache"
 if !isdir(outpath) mkpath(outpath) end
 if !isdir(cache_dir) mkpath(cache_dir) end
@@ -32,14 +32,16 @@ video_kwargs = (
 
 # TREES
 tree_configs = [
-    (tree_hash = "τ1", tree = τ1, n_task = 1, n_version = 1, nbands = 60, preprocess_wavs = [ normalize! ], max_points = 30, ma_size = 75, ma_step = 50, max_sample_rate = nothing), 
-    (tree_hash = "τ2", tree = τ2, n_task = 1, n_version = 1, nbands = 40, preprocess_wavs = [], max_points = 30, ma_size = 75, ma_step = 50, max_sample_rate = nothing), 
+    # (tree_hash = "τ1", tree = τ1, n_task = 1, n_version = 1, nbands = 60, preprocess_wavs = [ normalize! ], max_points = 30, ma_size = 75, ma_step = 50, max_sample_rate = nothing), 
+    # (tree_hash = "τ2", tree = τ2, n_task = 1, n_version = 1, nbands = 40, preprocess_wavs = [], max_points = 30, ma_size = 75, ma_step = 50, max_sample_rate = nothing), 
     (tree_hash = "τ3", tree = τ3, n_task = 1, n_version = 2, nbands = 40, preprocess_wavs = [], max_points = 30, ma_size = 45, ma_step = 30, max_sample_rate = 8_000)
 ]
 
 results_dict = Dict{String,Any}()
 
 selected_wavs = [
+    "../datasets/KDD/covidandroidnocough/breath/breaths_CNz7PwFNQz_1589436648020.wav",
+    "../datasets/KDD/healthyandroidnosymp/breath/breaths_Pf3lZHDYTV_1587122029533.wav"
 #     "../datasets/KDD/covidandroidnocough/breath/breaths_8PmvbJ4U3o_1588144326476.wav",
 #     "../datasets/KDD/healthyandroidnosymp/breath/breaths_VN8n8tjozE_1589473637538.wav"
 ]
@@ -127,8 +129,6 @@ for tree_config in tree_configs
             filepaths_slice[1],
             Yslice;
             only_files = length(selected_wavs) == 0 ? Vector{String}() : selected_wavs,
-            files_already_generated = true,
-            generate_spectrogram = false, # TODO: remove this
             postprocess_wavs = Vector{Function}(),
             filter_kwargs = filter_kwargs,
             remove_from_path = "../datasets/KDD/",
@@ -137,7 +137,7 @@ for tree_config in tree_configs
             anim_kwargs = (fps = 30,),
             normalize_before_draw_anim = true,
             video_kwargs = video_kwargs,
-            # draw_anim_for_instances = draw_insts,
+            draw_anim_for_instances = draw_insts,
             wintime = audio_kwargs.wintime,
             steptime = audio_kwargs.steptime,
             movingaverage_size = dataset_kwargs.ma_size,

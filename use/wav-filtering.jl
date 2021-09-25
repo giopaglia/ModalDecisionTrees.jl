@@ -1,15 +1,7 @@
 
 include("scanner.jl")
-# include("datasets.jl")
-# include("lib.jl")
-# include("caching.jl")
 include("wav2stft_time_series.jl")
 include("local.jl")
-
-# using DSP: filt
-# using Weave
-# import Pkg
-# Pkg.activate("..")
 
 # TODO: all "outfile" arguments should be empty and return the graph instead of saving it on the HDD
 
@@ -21,6 +13,7 @@ using Images
 using MFCC: hz2mel, mel2hz
 using Plots.Measures
 using JSON
+using Printf
 
 MFCC.mel2hz(f::AbstractFloat, htk=false)  = mel2hz([f], htk)[1]
 
@@ -322,7 +315,7 @@ function draw_audio_anim(
         outfile                   :: String                                              = homedir() * "/gif.gif",
         size                      :: Tuple{Int64,Int64}                                  = single_graph ? (1000, 150) : (1000, 150 * length(audio_files)),
         fps                       :: Int64                                               = 30,
-        resample_at_rate          :: Real                                                = 8000.0, # 0 for "no resample"
+        resample_at_rate          :: Real                                                = 0.0,
         reset_canvas_every_frames :: Integer                                             = 50,
         # selected_range:
         # - 1:1000 means from point 1 to point 1000
@@ -584,7 +577,7 @@ function apply_tree_to_datasets_wavs(
         wav_paths                             :: Vector{String},
         labels                                :: Vector{S};
         # MODE OPTIONS
-        filter_type                           :: Symbol             = :static,   # :dynamic
+        filter_type                           :: Symbol             = :dynamic,  # :static
         mode                                  :: Symbol             = :bandpass, # :emphasize
         # OUTPUT OPTIONS
         only_files                            :: Vector{String}     = Vector{String}(),
@@ -628,7 +621,7 @@ function apply_tree_to_datasets_wavs(
         @warn "The value :emphasize for 'mode` is still experimental!"
     end
     if filter_type == :dynamic
-        @warn "The value :emphasize for 'filter_type` is still experimental!"
+        @warn "The value :dynamic for 'filter_type` is still experimental!"
     end
 
     n_instances = n_samples(dataset)
@@ -719,16 +712,13 @@ function apply_tree_to_datasets_wavs(
             bands[j] = results[i].path[j].feature.i_attribute
         end
         println("Applying filter to file $(wav_paths[i]) with bands $(string(collect(zip(bands, weights))))...")
-        # TODO: add here support for dynamic filter
-        # if filter_type == :dynamic
-        filter = multibandpass_digitalfilter_mel(bands, samplerates[i], window_f; weights = weights, filter_kwargs...)
-        filtered[i] = filt(filter, originals[i])
-        # elseif filter_type == :static
-        #     filter = multibandpass_digitalfilter_mel(bands, samplerates[i], window_f; weights = weights, filter_kwargs...)
-        #     filtered[i] = filt(filter, originals[i])
-        # else
-            # assert should be performed prior this point
-        # end
+        if filter_type == :dynamic
+            filter = dynamic_multiband_digitalfilter_mel(results[i].path, samplerates[i], floor(Int64, wintime * movingaverage_size * samplerates[i]), floor(Int64, steptime * movingaverage_step * samplerates[i]), filter_kwargs[:nbands])
+            filtered[i] = apply_filter(filter, originals[i])
+        elseif filter_type == :static
+            filter = multibandpass_digitalfilter_mel(bands, samplerates[i], window_f; weights = weights, filter_kwargs...)
+            filtered[i] = filt(filter, originals[i])
+        end
     end
 
     #############################################################
@@ -868,9 +858,20 @@ function apply_tree_to_datasets_wavs(
             if !is_correctly_classified(results[i]) continue end
             single_band_tracks[i] = Vector{Tuple{Int64,Vector{Float64}}}(undef, length(results[i].path))
             n_features = length(results[i].path)
+            dyn_filter = 
+                if filter_type == :dynamic
+                    dynamic_multiband_digitalfilter_mel(results[i].path, samplerates[i], floor(Int64, wintime * movingaverage_size * samplerates[i]), floor(Int64, steptime * movingaverage_step * samplerates[i]), filter_kwargs[:nbands])
+                else
+                    nothing
+                end
             for j in 1:n_features
                 feat = results[i].path[j].feature.i_attribute
-                one_band_sample = filt(multibandpass_digitalfilter_mel([feat], samplerates[i], window_f; filter_kwargs...), originals[i])
+                one_band_sample =
+                    if filter_type == :dynamic
+                        apply_filter(dyn_filter, originals[i], feat)
+                    elseif filter_type == :static
+                        filt(multibandpass_digitalfilter_mel([feat], samplerates[i], window_f; filter_kwargs...), originals[i])
+                    end
                 single_band_tracks[i][j] = (feat, one_band_sample)
             end
         end
@@ -916,67 +917,136 @@ function apply_tree_to_datasets_wavs(
     return results, spectrograms
 end
 
-# const DynamicFilter = Matrix{Integer}
 
-# n_bands(dynamic_filter::DynamicFilter) = size(dynamic_filter, 2)
-# n_chunks(dynamic_filter::DynamicFilter) = size(dynamic_filter, 1)
+const DynamicFilterDescriptor = Matrix{Integer}
 
-# function dynamic_digitalfilter(
-#             samples            :: Vector{T},
-#             decision_path      :: DecisionPath
-#         )::DynamicFilter where T <: AbstractFloat
-# end
+n_chunks(dynamic_filter_descriptor::DynamicFilterDescriptor) = size(dynamic_filter_descriptor, 1)
+n_bands(dynamic_filter_descriptor::DynamicFilterDescriptor) = size(dynamic_filter_descriptor, 2)
+Base.show(io::IO, dynamic_filter_descriptor::DynamicFilterDescriptor) = begin
+    for i in 1:n_bands(dynamic_filter_descriptor)
+        @printf(io, "A%2d ", i)
+        for j in 1:n_chunks(dynamic_filter_descriptor)
+            print(dynamic_filter_descriptor[j,i] == 1 ? "X" : "-")
+        end
+        println()
+    end
+end
 
-# # TODO: implement this function for real (it is just a draft for now...)
-# function dynfilt(
-#             dynamic_filter      :: DynamicFilter,
-#             samples             :: AbstractVector{T};
-#             samplerate          :: Real               = 8_000.0,
-#             wintime             :: Real               = 0.025,
-#             steptime            :: Real               = 0.01,
-#             minfreq             :: Real               = 0.0,
-#             maxfreq             :: Real               = samplerate / 2,
-#             window_f            :: Function           = triang,
-#             moving_average_size :: Int64              = 1,
-#             moving_average_step :: Int64              = 1
-#         )::Vector{T} where {T <: Real}
+struct DynamicFilter{T} <: DSP.Filters.FilterType
+    descriptor :: DynamicFilterDescriptor
+    samplerate :: Real
+    winsize    :: Int64
+    stepsize   :: Int64
+    filters    :: Vector{Vector{T}}
+end
+Base.show(io::IO, dynamic_filter::DynamicFilter) = begin
+    println(io,
+        "DynamicFilter{$(eltype(eltype(dynamic_filter.filters)))}", "\n",
+        "Samplerate: ", dynamic_filter.samplerate, "\n",
+        "Window size: ", dynamic_filter.winsize, "\n",
+        "Step size: ", dynamic_filter.stepsize
+    )
+    for i in 1:n_bands(dynamic_filter.descriptor)
+        @printf(io, "A%2d ", i)
+        for j in 1:n_chunks(dynamic_filter.descriptor)
+            print(dynamic_filter.descriptor[j,i] == 1 ? "X" : "-")
+        end
+        println()
+    end
+end
 
-#     nbands = n_bands(dynamic_filter)
-#     ntimechunks = n_chunks(dynamic_filter)
-#     winlength = round(Integer, moving_average_size * wintime * sr)
-#     winstep = round(Integer, moving_average_step * steptime * sr)
+n_chunks(dynamic_filter::DynamicFilter)::Int64 = size(dynamic_filter.descriptor, 1)
+n_bands(dynamic_filter::DynamicFilter)::Int64 = size(dynamic_filter.descriptor, 2)
+winsize(dynamic_filter::DynamicFilter)::Int64 = dynamic_filter.winsize
+stepsize(dynamic_filter::DynamicFilter)::Int64 = dynamic_filter.stepsize
+filter_n_windows(dynamic_filter::DynamicFilter)::Int64 = length(dynamic_filter.filters[1])
+function get_filter(dynamic_filter::DynamicFilter{T}, band_index::Int64)::AbstractVector{T} where T
+    dynamic_filter.filters[band_index]
+end
+function get_filter(dynamic_filter::DynamicFilter{T}, band_index::AbstractVector{Int64})::Vector{T} where T
+    # combine filters to generate EQs
+    result::Vector{T} = fill(0.0, filter_n_windows(dynamic_filter))
+    for i in band_index
+        result += get_filter(dynamic_filter, i)
+    end
+    result
+end
+get_chunk(dynamic_filter::DynamicFilter, chunk_index::Int64)::Vector{Int64} = collect(frame2points(chunk_index, dynamic_filter.winsize, dynamic_filter.stepsize))
+get_chunk(dynamic_filter::DynamicFilter, chunk_index::Vector{Int64})::Vector{Int64} = cat(collect.(frame2points(chunk_index, dynamic_filter.winsize, dynamic_filter.stepsize))...; dims = 1)
+function get_filter_for_frame(dynamic_filter::DynamicFilter{T}, chunk_index::Int64)::Union{Vector{T},UndefInitializer} where T
+    filter_idxs = findall(isequal(1), dynamic_filter.descriptor[chunk_index,:])
 
-#     # init filters
-#     filters = [
-#             multibandpass_digitalfilter_mel(
-#                 [i],
-#                 samplerate,
-#                 window_f,
-#                 nbands = nbands,
-#                 minfreq = minfreq,
-#                 maxfreq = maxfreq,
-#                 nwin = nbands,
-#             ) for i in 1:nbands ]
+    if length(filter_idxs) == 0
+        return undef
+    else
+        return get_filter(dynamic_filter, filter_idxs)
+    end
+end
+function apply_filter(dynamic_filter::DynamicFilter{T}, samples::Vector{Ts}, band_index::Int64)::Vector{Ts} where {T, Ts}
+    new_track::Vector{Ts} = fill(zero(Ts), length(samples))
 
-#     # combine filters to generate EQs
-#     slice_filters = Vector{Vector{Float64}}(undef, ntimechunks)
-#     for i in 1:ntimechunks
-#         step_filters = (@view filters[findall(isequal(1), dynamic_filter[i])])
-#         slice_filters[i] = maximum.(collect(zip(step_filters...)))
-#     end
+    f = get_filter(dynamic_filter, band_index)
+    chunks = filter(x -> x <= length(samples), get_chunk(dynamic_filter, findall(isequal(1), dynamic_filter.descriptor[:,band_index])))
 
-#     # write filtered time chunks to new_track
-#     new_track = Vector{T}(undef, length(samples) - 1)
-#     time_chunk_length = length(samples) / ntimechunks
-#     for i in 1:ntimechunks
-#         new_track[i:(i*time_chunk_length) - 1] = filt(slice_filters[i], samples[i:(i*time_chunk_length) - 1])
-#     end
+    new_track[chunks] = filt(f, samples[chunks])
 
-#     new_track
-# end
-# function dynfilt(decision_path::DecisionPath, samples::AbstractVector{T}; kwargs...)::Vector{T} where {T <: Real}
-#     dynfilt(dynamic_digitalfilter(samples, decision_path), samples; kwargs...)
-# end
+    new_track
+end
+function apply_filter(dynamic_filter::DynamicFilter{T}, samples::Vector{Ts})::Vector{Ts} where {T, Ts}
+    new_track::Vector{T} = fill(zero(Ts), length(samples))
+
+    for i in 1:n_chunks(dynamic_filter)
+        f = get_filter_for_frame(dynamic_filter, i)
+        if !(f isa UndefInitializer)
+            frame = filter(x -> x <= length(samples), get_chunk(dynamic_filter, i))
+            new_track[frame] = filt(f, samples[frame])
+        end
+    end
+
+    new_track
+end
+
+function dynamic_multiband_digitalfilter_mel(
+            decision_path      :: DecisionPath,
+            samplerate         :: Real,
+            winsize            :: Int64,
+            stepsize           :: Int64,
+            nbands             :: Int64;
+            nchunks            :: Int64    = -1,
+            window_f           :: Function = triang,
+            minfreq            :: Real     = 0.0,
+            maxfreq            :: Real     = samplerate / 2,
+            nwin               :: Int64    = nbands
+        )::DynamicFilter{<:AbstractFloat}
+
+    if nchunks < 0
+        nchunks = max([ (w.y-1) for node in decision_path for w in node.worlds ]...)
+    end
+
+    descriptor::DynamicFilterDescriptor = fill(0, nchunks, nbands)
+
+    # TODO: optimize this
+    for node in decision_path
+        curr_chunks = Vector{Int64}()
+        for world_interval in [ collect(w.x:(w.y-1)) for w in node.worlds ]
+            append!(curr_chunks, world_interval)
+        end
+        descriptor[unique(curr_chunks), node.feature.i_attribute] .= 1
+    end
+
+    filters = [
+            multibandpass_digitalfilter_mel(
+                [i],
+                samplerate,
+                window_f,
+                nbands = nbands,
+                minfreq = minfreq,
+                maxfreq = maxfreq,
+                nwin = nwin,
+            ) for i in 1:nbands ]
+
+    DynamicFilter(descriptor, samplerate, winsize, stepsize, filters)
+end
 
 function framesample(
             samples             :: Vector{T},
