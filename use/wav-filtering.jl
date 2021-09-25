@@ -616,6 +616,18 @@ function apply_tree_to_datasets_wavs(
     @assert mode in [ :bandpass, :emphasize ] "Got unsupported mode Symbol $(mode). It can be $([ :bandpass, :emphasize ])."
     @assert filter_type in [ :dynamic, :static ] "Got unsupported filter_type Symbol $(filter_type). It can be $([ :dynamic, :static ])."
 
+    @assert :nbands in keys(filter_kwargs) "Need to pass at least nbands as parameter for filter_kwargs. ex: (nbands = 40,)"
+
+    # remove nbands from filter_kwargs
+    nbands = filter_kwargs[:nbands]
+    filt_kw_dict = Dict{Symbol,Any}()
+    for k in keys(filter_kwargs)
+        if k == :nbands continue end
+        filt_kw_dict[k] = filter_kwargs[k]
+    end
+    filter_kwargs = (; filt_kw_dict...)
+    println(filter_kwargs)
+
     # TODO:
     if mode == :emphasize
         @warn "The value :emphasize for 'mode` is still experimental!"
@@ -713,10 +725,10 @@ function apply_tree_to_datasets_wavs(
         end
         println("Applying filter to file $(wav_paths[i]) with bands $(string(collect(zip(bands, weights))))...")
         if filter_type == :dynamic
-            filter = dynamic_multiband_digitalfilter_mel(results[i].path, samplerates[i], floor(Int64, wintime * movingaverage_size * samplerates[i]), floor(Int64, steptime * movingaverage_step * samplerates[i]), filter_kwargs[:nbands])
+            filter = dynamic_multiband_digitalfilter_mel(results[i].path, samplerates[i], floor(Int64, wintime * movingaverage_size * samplerates[i]), floor(Int64, steptime * movingaverage_step * samplerates[i]), nbands; filter_kwargs...)
             filtered[i] = apply_filter(filter, originals[i])
         elseif filter_type == :static
-            filter = multibandpass_digitalfilter_mel(bands, samplerates[i], window_f; weights = weights, filter_kwargs...)
+            filter = multibandpass_digitalfilter_mel(bands, samplerates[i], window_f; weights = weights, nbands = nbands, filter_kwargs...)
             filtered[i] = filt(filter, originals[i])
         end
     end
@@ -860,7 +872,7 @@ function apply_tree_to_datasets_wavs(
             n_features = length(results[i].path)
             dyn_filter = 
                 if filter_type == :dynamic
-                    dynamic_multiband_digitalfilter_mel(results[i].path, samplerates[i], floor(Int64, wintime * movingaverage_size * samplerates[i]), floor(Int64, steptime * movingaverage_step * samplerates[i]), filter_kwargs[:nbands])
+                    dynamic_multiband_digitalfilter_mel(results[i].path, samplerates[i], floor(Int64, wintime * movingaverage_size * samplerates[i]), floor(Int64, steptime * movingaverage_step * samplerates[i]), nbands; filter_kwargs...)
                 else
                     nothing
                 end
@@ -870,12 +882,11 @@ function apply_tree_to_datasets_wavs(
                     if filter_type == :dynamic
                         apply_filter(dyn_filter, originals[i], feat)
                     elseif filter_type == :static
-                        filt(multibandpass_digitalfilter_mel([feat], samplerates[i], window_f; filter_kwargs...), originals[i])
+                        filt(multibandpass_digitalfilter_mel([feat], samplerates[i], window_f; nbands = nbands, filter_kwargs...), originals[i])
                     end
                 single_band_tracks[i][j] = (feat, one_band_sample)
             end
         end
-        nbands = filter_kwargs[:nbands]
         features_colors = [ RGB(1 - (1 * (i/(nbands - 1))), 0, 1 * (i/(nbands - 1))) for i in 0:(nbands-1) ]
         for i in 1:n_instances
             if length(only_files) > 0 && !(wav_paths[i] in only_files) continue end
@@ -972,7 +983,7 @@ function get_filter(dynamic_filter::DynamicFilter{T}, band_index::AbstractVector
     result
 end
 get_chunk(dynamic_filter::DynamicFilter, chunk_index::Int64)::Vector{Int64} = collect(frame2points(chunk_index, dynamic_filter.winsize, dynamic_filter.stepsize))
-get_chunk(dynamic_filter::DynamicFilter, chunk_index::Vector{Int64})::Vector{Int64} = cat(collect.(frame2points(chunk_index, dynamic_filter.winsize, dynamic_filter.stepsize))...; dims = 1)
+get_chunk(dynamic_filter::DynamicFilter, chunk_index::Vector{Int64})::Vector{Int64} = length(chunk_index) > 0 ? cat(collect.(frame2points(chunk_index, dynamic_filter.winsize, dynamic_filter.stepsize))...; dims = 1) : Vector{Int64}()
 function get_filter_for_frame(dynamic_filter::DynamicFilter{T}, chunk_index::Int64)::Union{Vector{T},UndefInitializer} where T
     filter_idxs = findall(isequal(1), dynamic_filter.descriptor[chunk_index,:])
 
@@ -1010,18 +1021,20 @@ function apply_filter(dynamic_filter::DynamicFilter{T}, samples::Vector{Ts})::Ve
     new_track
 end
 
+# TODO: dynamic_multiband_digitalfilter_mel and multibandpass_digitalfilter_mel function should be almost the same kwargs (except for nbands)
 function dynamic_multiband_digitalfilter_mel(
             decision_path      :: DecisionPath,
             samplerate         :: Real,
             winsize            :: Int64,
             stepsize           :: Int64,
             nbands             :: Int64;
-            nchunks            :: Int64    = -1,
-            window_f           :: Function = triang,
-            minfreq            :: Real     = 0.0,
-            maxfreq            :: Real     = samplerate / 2,
-            nwin               :: Int64    = nbands
-        )::DynamicFilter{<:AbstractFloat}
+            nchunks            :: Int64     = -1,
+            window_f           :: Function  = triang,
+            minfreq            :: Real      = 0.0,
+            maxfreq            :: Real      = samplerate / 2,
+            nwin               :: Int64     = nbands,
+            weights            :: Vector{F} = fill(1.0, nbands) # TODO
+        )::DynamicFilter{<:AbstractFloat} where F <:AbstractFloat
 
     if nchunks < 0
         nchunks = max([ (w.y-1) for node in decision_path for w in node.worlds ]...)
@@ -1032,10 +1045,12 @@ function dynamic_multiband_digitalfilter_mel(
     # TODO: optimize this
     for node in decision_path
         curr_chunks = Vector{Int64}()
-        for world_interval in filter(x -> x > 0, [ collect(w.x:(w.y-1)) for w in node.worlds ])
+        for world_interval in [ filter(x -> x > 0, collect(w.x:(w.y-1))) for w in node.worlds ]
             append!(curr_chunks, world_interval)
         end
-        descriptor[unique(curr_chunks), node.feature.i_attribute] .= 1
+        if length(curr_chunks) > 0
+            descriptor[unique(curr_chunks), node.feature.i_attribute] .= 1
+        end
     end
 
     filters = [

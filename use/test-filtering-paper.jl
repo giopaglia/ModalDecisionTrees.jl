@@ -40,10 +40,8 @@ tree_configs = [
 results_dict = Dict{String,Any}()
 
 selected_wavs = [
-    "../datasets/KDD/covidandroidnocough/breath/breaths_CNz7PwFNQz_1589436648020.wav",
-    "../datasets/KDD/healthyandroidnosymp/breath/breaths_Pf3lZHDYTV_1587122029533.wav"
-#     "../datasets/KDD/covidandroidnocough/breath/breaths_8PmvbJ4U3o_1588144326476.wav",
-#     "../datasets/KDD/healthyandroidnosymp/breath/breaths_VN8n8tjozE_1589473637538.wav"
+    # "../datasets/KDD/covidandroidnocough/breath/breaths_CNz7PwFNQz_1589436648020.wav",
+    # "../datasets/KDD/healthyandroidnosymp/breath/breaths_Pf3lZHDYTV_1587122029533.wav"
 ]
 
 for tree_config in tree_configs
@@ -137,7 +135,7 @@ for tree_config in tree_configs
             anim_kwargs = (fps = 30,),
             normalize_before_draw_anim = true,
             video_kwargs = video_kwargs,
-            draw_anim_for_instances = draw_insts,
+            # draw_anim_for_instances = draw_insts,
             wintime = audio_kwargs.wintime,
             steptime = audio_kwargs.steptime,
             movingaverage_size = dataset_kwargs.ma_size,
