@@ -988,7 +988,9 @@ function apply_filter(dynamic_filter::DynamicFilter{T}, samples::Vector{Ts}, ban
     f = get_filter(dynamic_filter, band_index)
     chunks = filter(x -> x <= length(samples), get_chunk(dynamic_filter, findall(isequal(1), dynamic_filter.descriptor[:,band_index])))
 
-    new_track[chunks] = filt(f, samples[chunks])
+    if length(chunks) > 0
+        new_track[chunks] = filt(f, samples[chunks])
+    end
 
     new_track
 end
@@ -998,8 +1000,10 @@ function apply_filter(dynamic_filter::DynamicFilter{T}, samples::Vector{Ts})::Ve
     for i in 1:n_chunks(dynamic_filter)
         f = get_filter_for_frame(dynamic_filter, i)
         if !(f isa UndefInitializer)
-            frame = filter(x -> x <= length(samples), get_chunk(dynamic_filter, i))
-            new_track[frame] = filt(f, samples[frame])
+            chunks = filter(x -> x <= length(samples), get_chunk(dynamic_filter, i))
+            if length(chunks) > 0
+                new_track[chunks] = filt(f, samples[chunks])
+            end
         end
     end
 
@@ -1023,12 +1027,12 @@ function dynamic_multiband_digitalfilter_mel(
         nchunks = max([ (w.y-1) for node in decision_path for w in node.worlds ]...)
     end
 
-    descriptor::DynamicFilterDescriptor = fill(0, nchunks, nbands)
+    descriptor::DynamicFilterDescriptor = fill(0, max(1, nchunks), nbands)
 
     # TODO: optimize this
     for node in decision_path
         curr_chunks = Vector{Int64}()
-        for world_interval in [ collect(w.x:(w.y-1)) for w in node.worlds ]
+        for world_interval in filter(x -> x > 0, [ collect(w.x:(w.y-1)) for w in node.worlds ])
             append!(curr_chunks, world_interval)
         end
         descriptor[unique(curr_chunks), node.feature.i_attribute] .= 1
