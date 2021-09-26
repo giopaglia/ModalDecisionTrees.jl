@@ -30,3 +30,14 @@ end
 function human_readable_time_s(ms::Dates.Millisecond)::String
 	string(ms.value / 1000)
 end
+
+
+function printprogress(io::Base.TTY, string::String)
+    print(io, "\033[2K\033[1000D" * string)
+end
+function printprogress(io::IO, string::String)
+    println(io, string)
+end
+function printprogress(string::String)
+    printprogress(stdout, string)
+end
