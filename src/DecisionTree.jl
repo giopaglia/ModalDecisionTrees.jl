@@ -1050,4 +1050,80 @@ end
 
 export print_tree_latex
 
+
+##############################################################
+##############################################################
+##############################################################
+
+
+struct DecisionPathNode
+    taken         :: Bool
+    feature       :: ModalLogic.FeatureTypeFun
+    test_operator :: TestOperatorFun
+    threshold     :: T where T
+    worlds        :: AbstractWorldSet
+end
+
+const DecisionPath = Vector{DecisionPathNode}
+
+get_path_in_tree(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, paths::Vector{DecisionPath} = Vector(DecisionPath()))::Vector{DecisionPath} = return paths
+function get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, paths::Vector{DecisionPath} = Vector(DecisionPath()))::Vector{DecisionPath}
+    satisfied = true
+	(satisfied,new_worlds) =
+		ModalLogic.modal_step(
+						get_frame(X, tree.i_frame),
+						i_instance,
+						worlds[tree.i_frame],
+						tree.relation,
+						tree.feature,
+						tree.test_operator,
+						tree.threshold)
+
+    push!(paths[i_instance], DecisionPathNode(satisfied, tree.feature, tree.test_operator, tree.threshold, deepcopy(new_worlds)))
+
+	worlds[tree.i_frame] = new_worlds
+	get_path_in_tree((satisfied ? tree.left : tree.right), X, i_instance, worlds, paths)
+end
+function get_path_in_tree(tree::DTree{S}, X::GenericDataset)::Vector{DecisionPath} where {S}
+	n_instances = n_samples(X)
+	paths::Vector{DecisionPath} = fill([], n_instances)
+	for i_instance in 1:n_instances
+		worlds = DecisionTree.inst_init_world_sets(X, tree, i_instance)
+		get_path_in_tree(tree.root, X, i_instance, worlds, paths)
+	end
+	paths
+end
+
+function get_internalnode_dirname(node::DTInternal)::String
+    replace(DecisionTree.display_decision(node), " " => "_")
+end
+
+mk_tree_path(leaf::DTLeaf; path::String) = touch(path * "/" * string(leaf.majority) * ".txt")
+function mk_tree_path(node::DTInternal; path::String)
+    dir_name = get_internalnode_dirname(node)
+    mkpath(path * "/Y_" * dir_name)
+    mkpath(path * "/N_" * dir_name)
+    mk_tree_path(node.left; path = path * "/Y_" * dir_name)
+    mk_tree_path(node.right; path = path * "/N_" * dir_name)
+end
+function mk_tree_path(tree_hash::String, tree::DTree; path::String)
+    mkpath(path * "/" * tree_hash)
+    mk_tree_path(tree.root; path = path * "/" * tree_hash)
+end
+
+function get_tree_path_as_dirpath(tree_hash::String, tree::DTree, decpath::DecisionPath; path::String)::String
+    current = tree.root
+    result = path * "/" * tree_hash
+    for node in decpath
+        if current isa DTLeaf break end
+        result *= "/" * (node.taken ? "Y" : "N") * "_" * get_internalnode_dirname(current)
+        current = node.taken ? current.left : current.right
+    end
+    result
+end
+
+export DecisionPathNode, DecisionPath,
+			get_path_in_tree, get_internalnode_dirname,
+			mk_tree_path, get_tree_path_as_dirpath
+
 end # module
