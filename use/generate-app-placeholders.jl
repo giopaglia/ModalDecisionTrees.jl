@@ -7,7 +7,7 @@ include("paper-trees.jl")
 
 gr()
 
-covid_detector_dir = homedir() * "/" * "Julia Projects/covid-detector/"
+covid_detector_dir = homedir() * "/" * "PycharmProjects/covid-detector/"
 filename = "empty-spectrogram.png"
 spec_size = (1000, 500)
 spec_mosaic_margin = 4mm

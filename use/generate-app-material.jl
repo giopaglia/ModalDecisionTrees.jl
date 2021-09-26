@@ -10,7 +10,7 @@ gr()
 
 # SETTINGS
 input_dir = "filtering-results-paper/filtered"
-app_dir = homedir() * "/" * "Julia Projects/covid-detector/"
+app_dir = homedir() * "/" * "PycharmProjects/covid-detector/"
 outpath = app_dir * "/generated-media"
 cache_dir = outpath * "/cache"
 filtered_destination_dir = outpath * "/filtered"
