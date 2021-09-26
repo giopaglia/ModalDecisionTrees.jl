@@ -984,7 +984,7 @@ function get_filter(dynamic_filter::DynamicFilter{T}, band_index::AbstractVector
 end
 get_chunk(dynamic_filter::DynamicFilter, chunk_index::Int64)::Vector{Int64} = collect(frame2points(chunk_index, dynamic_filter.winsize, dynamic_filter.stepsize))
 get_chunk(dynamic_filter::DynamicFilter, chunk_index::Vector{Int64})::Vector{Int64} = length(chunk_index) > 0 ? cat(collect.(frame2points(chunk_index, dynamic_filter.winsize, dynamic_filter.stepsize))...; dims = 1) : Vector{Int64}()
-function get_filter_for_frame(dynamic_filter::DynamicFilter{T}, chunk_index::Int64)::Union{Vector{T},UndefInitializer} where T
+function get_filter_for_chunk(dynamic_filter::DynamicFilter{T}, chunk_index::Int64)::Union{Vector{T},UndefInitializer} where T
     filter_idxs = findall(isequal(1), dynamic_filter.descriptor[chunk_index,:])
 
     if length(filter_idxs) == 0
@@ -1009,7 +1009,7 @@ function apply_filter(dynamic_filter::DynamicFilter{T}, samples::Vector{Ts})::Ve
     new_track::Vector{T} = fill(zero(Ts), length(samples))
 
     for i in 1:n_chunks(dynamic_filter)
-        f = get_filter_for_frame(dynamic_filter, i)
+        f = get_filter_for_chunk(dynamic_filter, i)
         if !(f isa UndefInitializer)
             chunks = filter(x -> x <= length(samples), get_chunk(dynamic_filter, i))
             if length(chunks) > 0
@@ -1273,7 +1273,7 @@ function generate_video(
             end
 
             print("Generating video in $(total_output_path)...")
-            run(pipeline(`ffmpeg -i $gif -i $w -y -c:a $audio_codec $additional_ffmpeg_args_a -c:v $video_codec $additional_ffmpeg_args_v $total_output_path`, stdout = tmp_ffmpeg_output_file, stderr = tmp_ffmpeg_error_output_file))
+            run(pipeline(`ffmpeg -hide_banner -i $gif -i $w -y -c:a $audio_codec $additional_ffmpeg_args_a -c:v $video_codec $additional_ffmpeg_args_v $total_output_path`, stdout = tmp_ffmpeg_output_file, stderr = tmp_ffmpeg_error_output_file))
             println(" done")
             
             if ffmpeg_output_file_manually_open close(tmp_ffmpeg_output_file) end
@@ -1467,7 +1467,7 @@ function join_tree_video_and_waveform_video(
     total_complex_filter *= "[b][2:v]overlay=$(final_wave_form_position[1]):$(final_wave_form_position[2]):0:[c]"
 
     # assumption: audio is in the wave form file
-    run(`ffmpeg -f lavfi -i $color_input -i $tree_v_path -i $wave_form_v_path -y -filter_complex "$total_complex_filter" -shortest -map '[c]' -map 2:a:0 -c:a copy -c:v libx264 -crf 0 -preset veryfast $output_file`)
+    run(`ffmpeg -hide_banner -f lavfi -i $color_input -i $tree_v_path -i $wave_form_v_path -y -filter_complex "$total_complex_filter" -shortest -map '[c]' -map 2:a:0 -c:a copy -c:v libx264 -crf 0 -preset veryfast $output_file`)
 end
 
 function dataset_from_wav_paths(

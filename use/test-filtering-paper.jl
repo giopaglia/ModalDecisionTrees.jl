@@ -23,17 +23,17 @@ spectrogram_size = (1000, 500)
 
 # VIDEO
 video_kwargs = (
-    video_codec              = "libx264",
+    video_codec              = "libx264", # "libx265"
     output_ext               = "mkv",
     audio_codec              = "copy", #libmp3lame"
-    additional_ffmpeg_args_v = "-crf 0 -preset ultrafast -pix_fmt yuv422p",
+    additional_ffmpeg_args_v = "-crf 0 -preset ultrafast -pix_fmt yuv422p", # "-crf 0 -preset ultrafast -x265-params lossless=1"
     additional_ffmpeg_args_a = "" #"-b:a 320k"
 )
 
 # TREES
 tree_configs = [
-    # (tree_hash = "τ1", tree = τ1, n_task = 1, n_version = 1, nbands = 60, preprocess_wavs = [ normalize! ], max_points = 30, ma_size = 75, ma_step = 50, max_sample_rate = nothing), 
-    # (tree_hash = "τ2", tree = τ2, n_task = 1, n_version = 1, nbands = 40, preprocess_wavs = [], max_points = 30, ma_size = 75, ma_step = 50, max_sample_rate = nothing), 
+    (tree_hash = "τ1", tree = τ1, n_task = 1, n_version = 1, nbands = 60, preprocess_wavs = [ normalize! ], max_points = 30, ma_size = 75, ma_step = 50, max_sample_rate = nothing), 
+    (tree_hash = "τ2", tree = τ2, n_task = 1, n_version = 1, nbands = 40, preprocess_wavs = [], max_points = 30, ma_size = 75, ma_step = 50, max_sample_rate = nothing), 
     (tree_hash = "τ3", tree = τ3, n_task = 1, n_version = 2, nbands = 40, preprocess_wavs = [], max_points = 30, ma_size = 45, ma_step = 30, max_sample_rate = 8_000)
 ]
 
