@@ -41,3 +41,11 @@ end
 function printprogress(string::String)
     printprogress(stdout, string)
 end
+
+_test_function_trend(vec::Vector{<:Number}, op::Function; approx::Real = 1.0)::Bool =
+	length(vec) > 1 ? length(findall([ op((vec[i+1] - vec[i]), 0)  for i in 1:(length(vec)-1) ])) >= round(Int64, (length(vec)-1)*clamp(approx,0,1)) : true
+
+isnondecreasing(vec::Vector{<:Number}; approx::Real = 1.0)::Bool = _test_function_trend(vec, >=; approx = approx)
+isdecreasing(vec::Vector{<:Number}; approx::Real = 1.0)::Bool = _test_function_trend(vec, <; approx = approx)
+isnonincreasing(vec::Vector{<:Number}; approx::Real = 1.0)::Bool = _test_function_trend(vec, <=; approx = approx)
+isincreasing(vec::Vector{<:Number}; approx::Real = 1.0)::Bool = _test_function_trend(vec, >; approx = approx)
