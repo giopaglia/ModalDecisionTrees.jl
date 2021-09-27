@@ -23,12 +23,95 @@ moving_average(vs::AbstractArray{T,2},n,st=1) where {T} = mapslices((x)->(@views
 # 	w = ceil(Int, s/(1-o))
 # 	# moving_average(vs,w,1-ceil(Int, o/w))
 # end
+function searchdir(
+            path          :: String,
+            key           :: Union{Vector{String},String};
+            exclude       :: Union{Vector{String},String}  = Vector{String}(),
+            recursive     :: Bool                          = false,
+            results_limit :: Int64                         = 0
+        )::Vector{String}
 
+    function contains_str(str::String, match::String)::Bool
+        occursin(match, str)
+    end
+    function contains_str(str::String, match::Vector{String})::Bool
+        length(findall(contains_str(str, m) for m in match)) > 0
+    end
+    function matches_key(x::String)::Bool
+        occursin(key, x) && !isdir(path * "/" * x) && !contains_str(x, exclude)
+    end
+
+    results = Vector{String}()
+
+    dir_content = readdir(path)
+    append!(results, map(res -> path * "/" * res, filter(matches_key, dir_content)))
+
+    if recursive
+        for d in filter(x -> isdir(path * "/" * x), dir_content)
+            if results_limit > 0 && length(results) > results_limit break end
+            append!(results, searchdir(path * "/" * d, key; exclude = exclude, recursive = recursive, results_limit = results_limit))
+        end
+    end
+
+    if results_limit > 0 && length(results) > results_limit
+        deepcopy(results[1:results_limit])
+    else
+        results
+    end
+end
+
+function generate_splitted_wavs_dataset(
+            path      :: String;
+            exclude   :: Union{Vector{String},String}  = Vector{String}(),
+            draw_wavs :: Bool    = false,
+            limit     :: Int64   = 0
+        )::Nothing
+    dest = rstrip(path, '/') * "-split-wavs/"
+    mkpath(dest)
+
+    for wav_found in searchdir(path, ".wav"; exclude = exclude, recursive = true, results_limit = limit)
+        mkpath(dirname(wav_found))
+
+
+        wavs, sr = splitwav(wav_found)
+        mkpath(dirname(replace(wav_found, path => dest; count = 1)))
+
+        Threads.@threads for (i, w) in collect(enumerate(wavs))
+            wavwrite(w, replace(replace(wav_found, ".wav" => ".split.$(i).wav"), path => dest; count = 1); Fs = sr)
+        end
+
+        if draw_wavs
+            plts = []
+            wav_orig, sr_orig = wavread(wav_found)
+            wav_orig = merge_channels(wav_orig)
+
+            orig_name = replace(basename(wav_found), ".wav" => "")
+            push!(plts, draw_wav(wav_orig, sr_orig; title = orig_name))
+
+            for (i, w) in enumerate(wavs)
+                push!(plts, draw_wav(w, sr; title = orig_name * ".split.$(i)"))
+            end
+
+            final_plot = plot(plts..., layout = (length(plts), 1), size = (1000, 150 * length(plts)))
+            savefig(final_plot, replace(replace(wav_found, ".wav" => ".graph.png"), path => dest; count = 1))
+        end
+    end
+
+end
+
+# """
+#     process_dataset(dataset_dir_name, wav_paths; preprocess = [], postprocess = [], split_instances = false)
+
+# Process a dataset named `dataset_dir_name` using
+# `preprocess` splitting instances (if `split_instances`
+# is true) and then 
+# """
 # function process_dataset(
 #         dataset_dir_name :: String,
 #         wav_paths        :: Vector{String};
 #         preprocess       :: Vector{Tuple{Function,NamedTuple}} = Vector{Tuple{Function,NamedTuple}}(),
-#         postprocess      :: Vector{Tuple{Function,NamedTuple}} = Vector{Tuple{Function,NamedTuple}}()
+#         postprocess      :: Vector{Tuple{Function,NamedTuple}} = Vector{Tuple{Function,NamedTuple}}(),
+#         split_instances  :: Bool                               = false
 #     )
 
 #     @assert length(wav_paths) > 0 "No wav path passed"
@@ -46,10 +129,23 @@ moving_average(vs::AbstractArray{T,2},n,st=1) where {T} = mapslices((x)->(@views
 #         result
 #     end
 
-#     outdir = rstrip(data_dir, "/") * "/" * dataset_dir_name * "-" * name_processing("PREPROC", preprocess) * "-" * name_processing("POSTPROC", postprocess)
+#     outdir = rstrip(data_dir, "/") * "/" * dataset_dir_name * "-" * name_processing("PREPROC", preprocess) * "-" * name_processing("POSTPROC", postprocess) * (split_instances ? "-splitted" : "")
+
+
+#     samples_n_samplerates = Vector{Tuple{Vector{T},Real}}(undef, length(wav_paths))
+#     Threads.@threads for (i, path) in collect(enumerate(wav_paths))
+#         samples, samplerate = wavread(path)
+#         samples = merge_channels(samples)
+
+#         samples_n_samplerates[i] = (samples, samplerate)
+#     end
 
 #     for (prepf, prepkwargs) in preprocess
 #         prepf(dataset, prepkwargs...)
+#     end
+
+#     # do the eventual splitting
+#     if split_instances
 #     end
 
 #     for (postpf, postpkwargs) in postprocess
@@ -57,6 +153,7 @@ moving_average(vs::AbstractArray{T,2},n,st=1) where {T} = mapslices((x)->(@views
 #     end
 
 #     # save dataset in a new directory named accordingly to all parameters
+#     mkpath(outdir)
 # end
 # process_dataset(dataset_dir_name::String, wav_paths_func::Function; kwargs...) = process_dataset(dataset_dir_name, wav_paths_func(); kwargs...)
 

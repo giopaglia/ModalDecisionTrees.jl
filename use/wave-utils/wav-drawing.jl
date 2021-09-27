@@ -179,11 +179,14 @@ function draw_audio_anim(
             # - :whole means "do not slice"
             selected_range            :: Union{UnitRange{Int64},Tuple{Number,Number},Symbol} = :whole,
             use_wav_apporximation     :: Bool                                                = true,
-            wav_apporximation_scale   :: Real                                                = 1.0
+            wav_approximation_scale   :: Real                                                = 1.0
         )::Plots.AnimatedGif where {T1<:AbstractFloat, T2<:AbstractFloat}
 
     @assert length(audio_files) > 0 "No audio file provided"
-    @assert length(audio_files) == length(labels) "audio_files and labels mismatch in length: $(length(audio_files)) != $(length(labels))"
+    if !single_graph
+        @assert length(audio_files) == length(labels) "audio_files and labels mismatch in length: $(length(audio_files)) != $(length(labels))"
+    end
+    @assert length(audio_files) == length(colors) "audio_files and colors mismatch in length: $(length(audio_files)) != $(length(colors))"
 
     wavs = []
     samplerates = []
@@ -221,7 +224,7 @@ function draw_audio_anim(
     if use_wav_apporximation
         # TODO: optimize
         for i in 1:length(wavs)
-            curr_samps, curr_samplerate = approx_wav(wavs[i], samplerates[i]; scale_res = wav_apporximation_scale, width = size[1])
+            curr_samps, curr_samplerate = approx_wav(wavs[i], samplerates[i]; scale_res = wav_approximation_scale, width = size[1])
             push!(real_wavs, curr_samps)
             push!(real_samplerates, curr_samplerate)
         end
@@ -254,7 +257,7 @@ function draw_audio_anim(
             push!(plts, draw_wav(w, freq; title = labels[i], color = colors[i], size = size))
         else
             if single_graph
-                draw_wav!(w, freq; title = labels[i], color = colors[i], size = size)
+                draw_wav!(w, freq; color = colors[i], size = size)
             else
                 push!(plts, draw_wav(w, freq; title = labels[i], color = colors[i], size = size))
             end
