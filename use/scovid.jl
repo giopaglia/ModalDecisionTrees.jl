@@ -14,15 +14,15 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./covid-august-v3"
+results_dir = "./covid/journal-v1"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/cache"
 model_savedir = results_dir * "/trees"
 
 dry_run = false
-#dry_run = true
 #dry_run = :dataset_only
+# dry_run = true
 
 # save_datasets = true
 save_datasets = false
@@ -163,22 +163,26 @@ legacy_gammas_check = false
 
 exec_dataseed = 1:10
 
-# max_sample_rate = 48000
-# max_sample_rate = 16000
-max_sample_rate = 8000
+exec_max_sample_rate = [8000] # 48000, 16000
 
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization]
 
-exec_n_task_use_aug = [
-	(2, true),
-	(1, false),
-	(3, true),
-	#(2, false),
-	#(3, false),
+exec_n_task_use_aug_n_ver_preprocess = [
+	(1,false,"c",["NG", "Normalize"]),
+	(2,true,"b",["Normalize"]),
+	(3,true,"b",["Normalize"]),
 ]
-exec_n_versions = [3] #1:3
-exec_nbands = [40] # [20,40,60]
+# exec_n_task_use_aug = [
+# 	(1, false),
+# 	(2, true),
+# 	(3, true),
+# 	#(2, false),
+# 	#(3, false),
+# ]
+# exec_n_versions = [3] #1:3
+exec_nbands = [20,40,60,30,50] # [20,40,60]
+# exec_nbands = [40] # [20,40,60]
 
 exec_dataset_kwargs =   [(
 						#	max_points = 10,
@@ -199,7 +203,8 @@ exec_dataset_kwargs =   [(
 						# ),(# max_points = 30,
 						# 	ma_size = 120,
 						# 	ma_step = 80,
-						# ),(# max_points = 30,
+						# ),(#max_points = 30,
+							max_points = 50,
 						 	ma_size = 100,
 						 	ma_step = 75,
 						# ),(# max_points = 30,
@@ -214,24 +219,23 @@ exec_dataset_kwargs =   [(
 						)
 						]
 
-audio_kwargs_partial_mfcc = (
+audio_kwargs_partial_mfcc(max_sample_rate,nbands) = (
 	wintime = 0.025, # in ms          # 0.020-0.040
 	steptime = 0.010, # in ms         # 0.010-0.015
 	fbtype = :mel,                    # [:mel, :htkmel, :fcmel]
 	# window_f = DSP.hamming, # [DSP.hamming, (nwin)->DSP.tukey(nwin, 0.25)]
 	window_f = DSP.triang,
 	pre_emphasis = 0.97,              # any, 0 (no pre_emphasis)
-	nbands = 40,                      # any, (also try 20)
+	nbands = nbands,                      # any, (also try 20)
 	sumpower = false,                 # [false, true]
 	dither = false,                   # [false, true]
 	# bwidth = 1.0,                   # 
 	# minfreq = 0.0,
-	maxfreq = max_sample_rate/2, # Fix this
-	# maxfreq = (sr)->(sr/2),
+	maxfreq = max_sample_rate/2,
 	# usecmp = false,
 )
 
-audio_kwargs_full_mfcc = (
+audio_kwargs_full_mfcc(max_sample_rate,nbands) = (
 	wintime=0.025,
 	steptime=0.01,
 	numcep=13,
@@ -240,9 +244,9 @@ audio_kwargs_full_mfcc = (
 	preemph=0.97,
 	dither=false,
 	minfreq=0.0,
-	maxfreq = max_sample_rate/2, # Fix this
+	maxfreq = max_sample_rate/2,
 	# maxfreq=sr/2,
-	nbands=20,
+	nbands=nbands,
 	bwidth=1.0,
 	dcttype=3,
 	fbtype=:htkmel,
@@ -262,7 +266,7 @@ wav_preprocessors = Dict(
 
 exec_preprocess_wavs = [
 	["Normalize"],
-	["NoOp"],
+	# ["NoOp"],
 	["NG", "Normalize"],
 	# ["NG", "Trim", "Normalize"],
 ]
@@ -280,19 +284,22 @@ test_operators_dict = Dict(
 )
 
 
-exec_ranges = (;
-	use_training_form = exec_use_training_form,
-	n_task_use_aug    = exec_n_task_use_aug,
-	n_version         = exec_n_versions,
-	nbands            = exec_nbands,
-	dataset_kwargs    = exec_dataset_kwargs,
-	use_full_mfcc     = exec_use_full_mfcc,
-	preprocess_wavs   = exec_preprocess_wavs,
-	test_operators    = exec_test_operators,
+exec_ranges = (; # Order: faster-changing to slower-changing
+	exec_max_sample_rate = exec_max_sample_rate,
+	use_training_form    = exec_use_training_form,
+	exec_n_task_use_aug_n_ver_preprocess       = exec_n_task_use_aug_n_ver_preprocess,
+	# n_task_use_aug       = exec_n_task_use_aug,
+	# n_version            = exec_n_versions,
+	nbands               = exec_nbands,
+	dataset_kwargs       = exec_dataset_kwargs,
+	use_full_mfcc        = exec_use_full_mfcc,
+	# preprocess_wavs      = exec_preprocess_wavs,
+	test_operators       = exec_test_operators,
 )
 
 dataset_function = (
-	((n_task,use_aug),
+	(n_task,
+		use_aug,
 		n_version,
 		cur_audio_kwargs,
 		dataset_kwargs,
@@ -354,6 +361,9 @@ if "-f" in ARGS
 	end
 end
 
+# Copy scan script into the results folder
+backup_file_using_creation_date(PROGRAM_FILE; copy_or_move = :copy, out_path = results_dir, file_suffix = "")
+
 exec_ranges_names, exec_ranges_iterators = collect(string.(keys(exec_ranges))), collect(values(exec_ranges))
 history = load_or_create_history(
 	iteration_progress_json_file_path, exec_ranges_names, exec_ranges_iterators
@@ -400,17 +410,23 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	##############################################################################
 	
-	use_training_form, n_task_use_aug, n_version, nbands, dataset_kwargs, use_full_mfcc, preprocess_wavs, test_operators = params_combination
+	max_sample_rate,
+	use_training_form,
+	(n_task, use_aug, n_version, preprocess_wavs),
+	nbands,
+	dataset_kwargs,
+	use_full_mfcc,
+	test_operators = params_combination
 	
 	test_operators = test_operators_dict[test_operators]
 
 	cur_audio_kwargs = merge(
 		if use_full_mfcc
-			audio_kwargs_full_mfcc
+			audio_kwargs_full_mfcc(max_sample_rate, nbands)
 		else
-			audio_kwargs_partial_mfcc
+			audio_kwargs_partial_mfcc(max_sample_rate, nbands)
 		end
-		, (nbands=nbands,))
+		, (;))
 
 	cur_preprocess_wavs = [ wav_preprocessors[k] for k in preprocess_wavs ]
 
@@ -423,7 +439,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	)
 
 	dataset_fun_sub_params = (
-			n_task_use_aug,
+			n_task, use_aug,
 			n_version,
 			cur_audio_kwargs,
 			dataset_kwargs,

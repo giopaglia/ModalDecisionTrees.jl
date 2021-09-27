@@ -32,7 +32,14 @@ function KDDDataset_not_stratified((n_task,n_version),
 		force_monolithic_dataset = false,
 	)
 	@assert n_task    in [1,2,3] "KDDDataset: invalid n_task:    {$n_task}"
-	@assert n_version in [1,2,3] "KDDDataset: invalid n_version: {$n_version}"
+	@assert n_version in [1,2,3,"c","b","c+b"] "KDDDataset: invalid n_version: {$n_version}"
+	
+	n_version =
+		if n_version == "c"         1
+		elseif n_version == "b"     2
+		elseif n_version == "c+b"   3
+		else                        n_version
+		end
 
 	kdd_data_dir = data_dir * "KDD/"
 	
@@ -110,27 +117,65 @@ function KDDDataset_not_stratified((n_task,n_version),
 			# println(filename)
 			filepath = kdd_data_dir * "$filename"
 			ts = wav2stft_time_series(filepath, audio_kwargs; preprocess_sample = preprocess_wavs, use_full_mfcc = use_full_mfcc)
-		
+			
+			# Some breath samples are empty or semi-empty. As such, for tasks 2 and 3 we need to ignore them, and also ignore the paired cough samples
 			if !isnothing(ts) && ! (
                                           (n_version == 2 ||
                                           n_version == 3) &&
-                                          preprocess_wavs ==
-                                          [noise_gate!,
-                                          normalize!] &&
+                                          # Initially, preprocess functions revealed that there was something wrong on these breath samples.
+                                          # But they are indeed flawed, so no need to consider them. ever.
+                                          # preprocess_wavs == [noise_gate!, normalize!] &&
                                           any(endswith.(filepath,
                                           [
-                                  "healthywebnosymp/2020-04-07-12_07_01_639904/audio_file_breathe.wav",
+                                  "healthywebnosymp/2020-04-07-12_07_01_639904/audio_file_breathe.wav", # empty file
                                   "healthywebnosymp/2020-04-07-12_07_01_639904/audio_file_cough.wav",
-                                  "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_breathe.wav",
-                                  "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav",
-                                  "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_breathe.wav_aug_pitchspeed1.wav",
-                                  "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_pitchspeed1.wav",
-                                  "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_breathe.wav_aug_pitchspeed2.wav",
-                                  "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_pitchspeed2.wav",
-                                  "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_breathe.wav_aug_pitchspeed1.wav",
-                                  "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_pitchspeed1.wav",
-                                  "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_breathe.wav_aug_pitchspeed2.wav",
-                                  "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_pitchspeed2.wav",
+
+                                  # asthmawebwithcough/2020-04-09-13_30_09_391043
+                                  
+                                  # "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_breathe.wav", # empty file
+                                  # "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav",
+                                  # "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_breathe.wav_aug_pitchspeed1.wav", # semi-empty file
+                                  # "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_pitchspeed1.wav",
+                                  # "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_breathe.wav_aug_pitchspeed2.wav", # semi-empty file
+                                  # "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_pitchspeed2.wav",
+                                  
+                                  "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_breathe.wav",                     # semi-empty file
+                                  "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_breathe.wav_aug_amp1.wav",        # semi-empty file
+                                  "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_breathe.wav_aug_amp2.wav",        # semi-empty file
+                                  "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_breathe.wav_aug_noise1.wav",      # semi-empty file
+                                  "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_breathe.wav_aug_noise2.wav",      # semi-empty file
+                                  "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_breathe.wav_aug_pitchspeed1.wav", # semi-empty file
+                                  "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_breathe.wav_aug_pitchspeed2.wav", # semi-empty file
+                                  "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav",                     # semi-empty file
+                                  "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_amp1.wav",        # semi-empty file
+                                  "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_amp2.wav",        # semi-empty file
+                                  "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_noise1.wav",      # semi-empty file
+                                  "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_noise2.wav",      # semi-empty file
+                                  "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_pitchspeed1.wav", # semi-empty file
+                                  "healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_pitchspeed2.wav", # semi-empty file
+
+                                  # asthmawebwithcough/2020-04-07-20_46_20_561555
+
+                                  # "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_breathe.wav_aug_pitchspeed1.wav", # semi-empty file
+                                  # "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_pitchspeed1.wav",
+                                  # "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_breathe.wav_aug_pitchspeed2.wav", # semi-empty file
+                                  # "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_pitchspeed2.wav",
+
+                                  "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_breathe.wav",                      # semi-empty file
+                                  "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_breathe.wav_aug_amp1.wav",         # semi-empty file
+                                  "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_breathe.wav_aug_amp2.wav",         # semi-empty file
+                                  "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_breathe.wav_aug_noise1.wav",       # semi-empty file
+                                  "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_breathe.wav_aug_noise2.wav",       # semi-empty file
+                                  "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_breathe.wav_aug_pitchspeed1.wav",  # semi-empty file
+                                  "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_breathe.wav_aug_pitchspeed2.wav",  # semi-empty file
+                                  "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav",                      # semi-empty file
+                                  "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_amp1.wav",         # semi-empty file
+                                  "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_amp2.wav",         # semi-empty file
+                                  "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_noise1.wav",       # semi-empty file
+                                  "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_noise2.wav",       # semi-empty file
+                                  "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_pitchspeed1.wav",  # semi-empty file
+                                  "asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_pitchspeed2.wav",  # semi-empty file
+
                                   ])))
 				cur_file_timeseries[i_filename] =
 					if return_filepaths
