@@ -23,6 +23,18 @@ moving_average(vs::AbstractArray{T,2},n,st=1) where {T} = mapslices((x)->(@views
 # 	w = ceil(Int, s/(1-o))
 # 	# moving_average(vs,w,1-ceil(Int, o/w))
 # end
+
+"""
+    searchdir(path, key; exclude = [], recursive = false, results_limit = 0)
+
+Search the directory at `path` for files containing `key`.
+
+Exceptions can be specified using `exclude` and the amount
+of results can be limited by specifying a value greater than 0
+for `results_limit`.
+
+The search can be recurisve by setting `recursive` to `ture`.
+"""
 function searchdir(
             path          :: String,
             key           :: Union{Vector{String},String};
