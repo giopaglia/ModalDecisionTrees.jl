@@ -1,4 +1,6 @@
 
+using DSP, WAV
+
 """
     noise_gate!(samples; level = 0.005, release = 30)
 
@@ -63,6 +65,7 @@ function splitwav(
             samplerate          :: Real;
             wintime             :: Real                 = 0.05,
             steptime            :: Real                 = wintime / 2,
+            head_sensibility    :: Int64                = 10,
             preprocess          :: Vector{Function}     = Vector{Function}([ noise_gate!, normalize! ]),
             preprocess_kwargs   :: Vector{NamedTuple}   = Vector{NamedTuple}([ (level = 0.01,), (level = 1.0,) ]),
             postprocess         :: Vector{Function}     = Vector{Function}([ normalize!, trim_wav! ]),
@@ -171,8 +174,29 @@ end
     dataset_from_wav_paths(paths, labels; nbands = 40, audio_kwargs = (), modal_args = (), data_modal_args = (), max_points = -1, ma_size = -1, ma_step = -1, dataset_form = :stump_with_memoization, save_dataset = false)
     dataset_from_wav_paths(path, label; kwargs...)
 
-Create a dataset from
-TODO: include a description of all available kwargs for all arguments
+Create a dataset from a list of WAV files.
+
+    default_audio_kwargs = (
+        wintime      = 0.025,
+        steptime     = 0.010,
+        fbtype       = :mel,
+        window_f     = DSP.triang,
+        pre_emphasis = 0.97,
+        nbands       = nbands,
+        sumpower     = false,
+        dither       = false,
+    )
+
+    default_modal_args = (;
+        initConditions = DecisionTree.startWithRelationGlob,
+        useRelationGlob = false,
+    )
+
+    default_data_modal_args = (;
+        ontology = getIntervalOntologyOfDim(Val(1)),
+        test_operators = [ TestOpGeq_80, TestOpLeq_80 ]
+    )
+
 """
 function dataset_from_wav_paths(
             paths                  :: Vector{String},
@@ -222,9 +246,9 @@ function dataset_from_wav_paths(
         test_operators = [ TestOpGeq_80, TestOpLeq_80 ]
     )
 
-    audio_kwargs = merge(audio_kwargs, default_audio_kwargs)
-    modal_args = merge(modal_args, default_modal_args)
-    data_modal_args = merge(data_modal_args, default_data_modal_args)
+    audio_kwargs = merge(default_audio_kwargs, audio_kwargs)
+    modal_args = merge(default_modal_args, modal_args)
+    data_modal_args = merge(default_data_modal_args, data_modal_args)
 
     audio_kwargs = merge(default_audio_kwargs, (nbands = nbands,))
 
@@ -250,6 +274,8 @@ function dataset_from_wav_paths(
     @assert length(n_unique_freqs) == 1 "length(n_unique_freqs) != 1: {$n_unique_freqs} != 1"
     n_unique_freqs = n_unique_freqs[1]
 
+    global timing_mode
+    global data_savedir
     timing_mode = :none
     data_savedir = "/tmp/DecisionTree.jl_cache/"
     mkpath(data_savedir)
