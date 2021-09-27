@@ -176,6 +176,7 @@ end
 
 Create a dataset from a list of WAV files.
 
+Default values for `audio_kwargs`, `modal_args` and `data_modal_args` are:
     default_audio_kwargs = (
         wintime      = 0.025,
         steptime     = 0.010,
@@ -197,20 +198,33 @@ Create a dataset from a list of WAV files.
         test_operators = [ TestOpGeq_80, TestOpLeq_80 ]
     )
 
+Possible values for `dataset_form` are:
+
+* `:dimensional` - create the dataset in the form of `OntologicalDataset`
+* `:fmd` - create the dataset in the form of `FeatModalDataset`
+* `:stump` - create the dataset in the form of `StumpFeatModalDataset`
+* `:stump_with_memoization` - create the dataset in the form of `StumpFeatModalDatasetWithMemoization`
+
+Possible values for `timing` are:
+
+* `:none` - no timing
+* `:time` - use the macro [`@time`](@ref) while creating the dataset
+* `:btime` - use the macro [`@btime`](@ref) while creating the dataset
 """
 function dataset_from_wav_paths(
             paths                  :: Vector{String},
             labels                 :: Vector{S};
-            nbands                 :: Int64 = 40,
-            audio_kwargs           :: NamedTuple = NamedTuple(),
-            modal_args             :: NamedTuple = NamedTuple(),
-            data_modal_args        :: NamedTuple = NamedTuple(),
+            nbands                 :: Int64            = 40,
+            audio_kwargs           :: NamedTuple       = NamedTuple(),
+            modal_args             :: NamedTuple       = NamedTuple(),
+            data_modal_args        :: NamedTuple       = NamedTuple(),
             preprocess_sample      :: Vector{Function} = Vector{Function}(),
-            max_points             :: Int64 = -1,
-            ma_size                :: Int64 = -1,
-            ma_step                :: Int64 = -1,
-            dataset_form           :: Symbol = :stump_with_memoization,
-            save_dataset           :: Bool = false
+            max_points             :: Int64            = -1,
+            ma_size                :: Int64            = -1,
+            ma_step                :: Int64            = -1,
+            timing                 :: Symbol           = :none,
+            dataset_form           :: Symbol           = :stump_with_memoization,
+            save_dataset           :: Bool             = false
         ) where S
 
     # TODO: a lot of assumptions here! add more options for more fine tuning
@@ -276,7 +290,7 @@ function dataset_from_wav_paths(
 
     global timing_mode
     global data_savedir
-    timing_mode = :none
+    timing_mode = timing
     data_savedir = "/tmp/DecisionTree.jl_cache/"
     mkpath(data_savedir)
 
