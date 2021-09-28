@@ -162,6 +162,7 @@ function draw_wav!(samples::Vector{T}; kwargs...)::Plots.Plot where T <: Abstrac
 end
 
 """
+TODO: docs
 """
 function draw_audio_anim(
             audio_files               :: Vector{Tuple{Vector{T1},T2}};
@@ -188,11 +189,10 @@ function draw_audio_anim(
     end
     @assert length(audio_files) == length(colors) "audio_files and colors mismatch in length: $(length(audio_files)) != $(length(colors))"
 
-    wavs = []
-    samplerates = []
-    for f in audio_files
-        push!(wavs, merge_channels(f[1]))
-        push!(samplerates, f[2])
+    wavs = Vector{Vector{T1}}(undef, length(audio_files))
+    samplerates = Vector{T2}(undef, length(audio_files))
+    Threads.@threads for (i, f) in collect(enumerate(audio_files))
+        wavs[i], samplerates[i] = merge_channels(f[1]), f[2]
     end
 
     if resample_at_rate > 0
@@ -219,19 +219,15 @@ function draw_audio_anim(
         end
     end
 
-    real_wavs = []
-    real_samplerates = []
+    real_wavs = Vector{Vector{T1}}(undef, length(wavs))
+    real_samplerates = Vector{T2}(undef, length(samplerates))
     if use_wav_apporximation
-        # TODO: optimize
-        for i in 1:length(wavs)
-            curr_samps, curr_samplerate = approx_wav(wavs[i], samplerates[i]; scale_res = wav_approximation_scale, width = size[1])
-            push!(real_wavs, curr_samps)
-            push!(real_samplerates, curr_samplerate)
+        Threads.@threads for i in 1:length(wavs)
+            real_wavs[i], real_samplerates[i] = approx_wav(wavs[i], samplerates[i]; scale_res = wav_approximation_scale, width = size[1])
         end
     else
-        # TODO: optimize
-        real_wavs = wavs
-        real_samplerates = samplerates
+        real_wavs = @view wavs[:]
+        real_samplerates = @view samplerates[:]
     end
 
     @assert length(real_wavs) == length(wavs) "Transformed wavs length != original wavs length: $(length(real_wavs)) != $(length(wavs))"
@@ -290,10 +286,10 @@ function draw_audio_anim(audio_files::Vector{String}; kwargs...)
     # TODO: test this dispatch
     @assert length(audio_files) > 0 "No audio file provided"
 
-    converted_input::Vector{Tuple{Vector{AbstractFloat},AbstractFloat}} = []
-    for f in audio_files
+    converted_input::Vector{Tuple{Vector{AbstractFloat},AbstractFloat}} = Vector{Tuple{Vector{AbstractFloat},AbstractFloat}}(undef, length(audio_files))
+    Threads.@threads for (i, f) in collect(enumerate(audio_files))
         wav, samplerate = wavread(f)
-        push!(converted_input, (merge_channels(wav), samplerate))
+        converted_input[i] = (merge_channels(wav), samplerate)
     end
 
     draw_audio_anim(converted_input; kwargs...)
@@ -307,6 +303,8 @@ end
     melbands = (draw = false, nbands = 40, minfreq = 0.0, maxfreq = samplerate / 2, htkmel = false), only_bands = :all)
 
 Draw spectrogram of a wav.
+
+TODO: more detailed doc
 """
 function draw_spectrogram(
             samples                  :: Vector{T},

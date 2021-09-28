@@ -12,6 +12,9 @@ include("wave-utils/wav-lib.jl")
 include("wave-utils/wav-process.jl")
 include("wave-utils/wav-drawing.jl")
 
+"""
+TODO: docs
+"""
 mutable struct InstancePathInTree{S}
     file_name    :: String
     label        :: S
@@ -25,10 +28,18 @@ mutable struct InstancePathInTree{S}
     InstancePathInTree{S}(file_name::String, label::S, tree::DTree, dataset_info) where S = new(file_name, label, tree, nothing, [], dataset_info)
 end
 
-is_correctly_classified(inst::InstancePathInTree)::Bool = inst.label === inst.predicted
+"""
+    is_correctly_classified(inst)
+
+Check if an `InstancePathInTree` was correctly classified.
+
+Note: returns `false` even if the prediction was not performed
+(`inst.predicted` is `nothing`).
+"""
+is_correctly_classified(inst::InstancePathInTree)::Bool = !isnothing(inst.predicted) && inst.label === inst.predicted
 
 """
-TODO
+TODO: docs
 """
 function apply_tree_to_datasets_wavs(
         tree_hash                             :: String,
@@ -185,7 +196,7 @@ function apply_tree_to_datasets_wavs(
         end
         println("Applying filter to file $(wav_paths[i]) with bands $(string(collect(zip(bands, weights))))...")
         if filter_type == :dynamic
-            filter = dynamic_multiband_digitalfilter_mel(results[i].path, samplerates[i], floor(Int64, wintime * movingaverage_size * samplerates[i]), floor(Int64, steptime * movingaverage_step * samplerates[i]), nbands; filter_kwargs...)
+            filter = dynamic_multibandpass_digitalfilter_mel(results[i].path, samplerates[i], floor(Int64, wintime * movingaverage_size * samplerates[i]), floor(Int64, steptime * movingaverage_step * samplerates[i]), nbands; filter_kwargs...)
             filtered[i] = apply_filter(filter, originals[i])
         elseif filter_type == :static
             filter = multibandpass_digitalfilter_mel(bands, samplerates[i], window_f; weights = weights, nbands = nbands, filter_kwargs...)
@@ -332,7 +343,7 @@ function apply_tree_to_datasets_wavs(
             n_features = length(results[i].path)
             dyn_filter = 
                 if filter_type == :dynamic
-                    dynamic_multiband_digitalfilter_mel(results[i].path, samplerates[i], floor(Int64, wintime * movingaverage_size * samplerates[i]), floor(Int64, steptime * movingaverage_step * samplerates[i]), nbands; filter_kwargs...)
+                    dynamic_multibandpass_digitalfilter_mel(results[i].path, samplerates[i], floor(Int64, wintime * movingaverage_size * samplerates[i]), floor(Int64, steptime * movingaverage_step * samplerates[i]), nbands; filter_kwargs...)
                 else
                     nothing
                 end

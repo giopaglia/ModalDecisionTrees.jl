@@ -34,7 +34,7 @@ struct MelScale
     MelScale(bands::Vector{MelBand}) = new(length(bands), bands)
 end
 
-import Base: getindex, setindex!, length
+import Base: getindex, setindex!, length, show
 
 Base.length(scale::MelScale)::Int = length(scale.bands)
 Base.getindex(scale::MelScale, idx::Int)::MelBand = scale.bands[idx]
@@ -45,6 +45,10 @@ Base.setindex!(scale::MelScale, band::MelBand, idx::Int)::MelBand = scale.bands[
 
 Get `nbands` vector containing all the relevant frequencies
 to build a Mel scale in the range `minfreq`:`maxfreq`.
+
+A vector of length `nbands + 2` will return where the first
+and last frequencies are the `minfreq` and `maxfreq` and
+the values in the middle are the peak of each band.
 """
 function melbands(nbands::Int, minfreq::Real = 0.0, maxfreq::Real = 8_000.0; htkmel = false)::Vector{Float64}
     minmel = hz2mel(minfreq, htkmel)
@@ -68,7 +72,21 @@ the distribution of the Worlds on a per-band basis.
 """
 const DynamicFilterDescriptor = Matrix{Integer}
 
+"""
+    n_chunks(dynamic_filter_descriptor)
+
+Returns the number of `time chunks` in the `DynamicFilterDescriptor`.
+
+This, depending on cases, may correpsond to the frames
+of a framed wave.
+"""
 n_chunks(dynamic_filter_descriptor::DynamicFilterDescriptor) = size(dynamic_filter_descriptor, 1)
+
+"""
+    n_bands(dynamic_filter_descriptor)
+
+Returns the number of `bands` in the `DynamicFilterDescriptor`.
+"""
 n_bands(dynamic_filter_descriptor::DynamicFilterDescriptor) = size(dynamic_filter_descriptor, 2)
 Base.show(io::IO, dynamic_filter_descriptor::DynamicFilterDescriptor) = begin
     for i in 1:n_bands(dynamic_filter_descriptor)
@@ -110,13 +128,14 @@ end
 """
     n_chunks(dynamic_filter)
 
-Get the number of `chunks` (AKA `worlds`) the `dynamic_filter` is built with.
+Get the number of `chunks` (AKA `worlds` or `frames`)
+the `DynamicFilter` is built with.
 """
 n_chunks(dynamic_filter::DynamicFilter)::Int64 = size(dynamic_filter.descriptor, 1)
 """
     n_chunks(dynamic_filter)
 
-Get the number of `bands` the `dynamic_filter` is built with.
+Get the number of `bands` the `DynamicFilter` is built with.
 """
 n_bands(dynamic_filter::DynamicFilter)::Int64 = size(dynamic_filter.descriptor, 2)
 """
@@ -187,7 +206,7 @@ end
 
 
 ##############################################################
-##############################################################
+####################### CONVERSIONS ##########################
 ##############################################################
 
 """
@@ -240,13 +259,23 @@ frame2points(indices::Vector{Int64}, framesize::Int64, stepsize::Int64)::Vector{
 frame2points(indices::Vector{Int64}, framesize::AbstractFloat, stepsize::AbstractFloat, samplerate::AbstractFloat)::Vector{UnitRange{Int64}} = [ frame2points(i, framesize, stepsize, samplerate) for i in indices ]
 frame2timerange(indices::Vector{Int64}, framesize::AbstractFloat, stepsize::AbstractFloat, samplerate::AbstractFloat)::Vector{Tuple{T, T}} where T <:Number = [ frame2timerange(i, framesize, stepsize, samplerate) for i in indices ]
 
+##############################################################
+##############################################################
+##############################################################
+
+
+##############################################################
+######################## WAVE UTILS ##########################
+##############################################################
 
 """
     FIRfreqz(b; w = range(0, stop=π, length=1024))
 
-Calculate frequency response
+Calculate frequency finite impulse response of the
+`FIRFilter` represented by the `b` Array.
+
+ref: https://weavejl.mpastell.com/stable/examples/FIR_design.pdf
 """
-# https://weavejl.mpastell.com/stable/examples/FIR_design.pdf
 function FIRfreqz(b::Array; w = range(0, stop=π, length=1024))::Array{ComplexF32}
     n = length(w)
     h = Array{ComplexF32}(undef, n)
@@ -262,9 +291,192 @@ function FIRfreqz(b::Array; w = range(0, stop=π, length=1024))::Array{ComplexF3
 end
 
 """
-    multibandpass_digitalfilter()
+    framesample(samples, samplerate; winsize = 200, stepsize = 80)
+    framesample(samples; winsize = 200, stepsize = 80)
+    framesample(samples, samplerate; wintime = 0.025, steptime = 0.01, moving_averate_size = 1, moving_average_step = 1)
 
-Create a multi band pass digital filter using bands in `vec` in the form of (w1, w2)
+Get a Vector of frames representing `samples`.
+
+Note: the first dispatch is the same as the second; the `samplerate`
+argument is presente just for consistency with the rest of the functions.
+In the third dispatch `samplerate` is used to calculate `winsize` and
+`stepsize` as follows:
+
+* `winsize` = `samplerate` * `wintime` * `moving_average_size`
+* `stepsize` = `samplerate` * `steptime` * `moving_average_step`
+"""
+function framesample(
+            samples             :: Vector{T},
+            samplerate          :: Integer;
+            winsize             :: Integer    = 200, # = 0.025 * 8_000 Hz
+            stepsize            :: Integer    = 80   # = 0.01 * 8_000 Hz
+        )::Vector{Vector{T}} where T<:AbstractFloat
+
+    nwin::Int64 = ceil(Int64, length(samples) / stepsize)
+
+    result = Vector{Vector{T}}(undef, nwin)
+    Threads.@threads for (i, range) in collect(enumerate(frame2points(collect(1:nwin), winsize, stepsize)))
+    left = max(1, range.start)
+    right = min(length(samples), range.stop)
+    result[i] = deepcopy(samples[left:right])
+    end
+
+    result
+end
+function framesample(samples::Vector{T}; winsize::Integer = 200, stepsize::Integer = 80)::Vector{Vector{T}} where T<:AbstractFloat
+    framesample(samples, 44100; winsize = winsize, stepsize = stepsize)
+end
+function framesample(
+            samples             :: Vector{T},
+            samplerate          :: Real;
+            wintime             :: AbstractFloat = 0.025,
+            steptime            :: AbstractFloat = 0.01,
+            moving_average_size :: Integer       = 1,
+            moving_average_step :: Integer       = 1
+        )::Vector{Vector{T}} where T<:AbstractFloat
+
+    winsize::Int64 = round(Int64, moving_average_size * (wintime * samplerate))
+    stepsize::Int64 = round(Int64, moving_average_step * (steptime * samplerate))
+
+    framesample(samples, samplerate; winsize = winsize, stepsize = stepsize)
+end
+
+"""
+    approx_wav(samples, samplerate; mode = maximum, width = 1000.0, sacle_res = 1.0)
+    approx_wav(filepath; mode = maximum, width = 1000.0, sacle_res = 1.0)
+
+Get an approximation of the wav using `mode` as "frame descriptor":
+`mode` default value is `maximum` meaning that each frame the wav will
+be divided into will be approximated by the `maximum` of the frame.
+
+Another useful value for `mode` could be [`rms`](@ref).
+"""
+function approx_wav(
+            samples    :: Vector{T},
+            samplerate :: Real;
+            mode       :: Function    = maximum,
+            width      :: Real        = 1000.0,
+            scale_res  :: Real        = 1.0
+        ):: Tuple{Vector{T}, Real} where T<:Real
+
+    num_frames = ceil(Int64, (width * scale_res) / 2) + 1
+
+    step_size = floor(Int64, length(samples) / num_frames)
+    frame_size = step_size
+
+    frames = []
+    for i in 1:num_frames
+        interval = frame2points(i, frame_size, step_size)
+        interval = UnitRange(max(interval.start, 1), min(interval.stop, length(samples)))
+        push!(frames, samples[interval])
+    end
+
+    frames_contracted = mode.(frames)
+
+    n = Vector{T}(undef, 2 * length(frames_contracted))
+    Threads.@threads for i in collect(1:2:((length(frames_contracted)*2)-1))
+        i_r = floor(Int64, i / 2) + 1
+        n[i:i+1] = [ frames_contracted[i_r], -frames_contracted[i_r] ]
+    end
+
+    n, (samplerate * (length(n) / length(samples)))
+end
+function approx_wav(samples::Matrix, samplerate::Real; kwargs...)::Tuple{Vector{T}, Real} where T<:Real
+    approx_wav(merge_channels(samples), samplerate; kwargs...)
+end
+function approx_wav(filepath::String; kwargs...)::Tuple{Vector{T}, Real} where T<:Real
+    samples, samplerate = wavread(filepath)
+    approx_wav(samples, samplerate; kwargs...)
+end
+
+"""
+    get_points_and_seconds_from_worlds(worlds, winsize, stepsize, n_samps, samplerate)
+
+The `winsize` and `stepsize` parameres should have `moving_average_size`
+and `moving_average_step` already considered in them.
+
+In general:
+
+* `winsize` = `wintime` * `samplerate` * `moving_average_size`
+* `stepsize` = `steptime` * `samplerate` * `moving_average_step`
+"""
+function get_points_and_seconds_from_worlds(
+            worlds     :: DecisionTree.ModalLogic.AbstractWorldSet,
+            winsize    :: Int64,
+            stepsize   :: Int64,
+            n_samps    :: Int64,
+            samplerate :: Real
+        )
+    # keep largest worlds
+    dict = Dict{Int64,DecisionTree.ModalLogic.AbstractWorld}()
+    for w in worlds
+        if !haskey(dict, w.x) || dict[w.x].y < w.y
+            dict[w.x] = w
+        end
+    end
+
+    highest_key = maximum(keys(dict))
+    # join overlapping worlds
+    for i in 1:highest_key
+        if haskey(dict, i)
+            for j in 1:highest_key
+                if i == j continue end
+                if haskey(dict, j)
+                    # do they overlap and is j.y > than i.y?
+                    if dict[i].y >= dict[j].x && dict[j].y >= dict[i].y
+                        dict[i] = DecisionTree.ModalLogic.Interval(dict[i].x, dict[j].y)
+                        delete!(dict, j)
+                    end
+                end
+            end
+        end
+    end
+
+    # convert worlds into samples intervals
+    timeranges = []
+    for i in 1:highest_key
+        if haskey(dict, i)
+            w = dict[i]
+            frames = frame2points(collect(w.x:(w.y-1)), winsize, stepsize)
+            push!(timeranges, (frames[1][1], frames[end][2]))
+        end
+    end
+
+    points = []
+    seconds = []
+    wav_descriptor = fill(false, n_samps)
+    for tr in timeranges
+        push!(points, (tr[1], tr[2]))
+        push!(seconds, points2timerange(tr[1]:tr[2], samplerate))
+        wav_descriptor[max(1, tr[1]):min(tr[2], n_samps)] .= true
+    end
+
+    wav_descriptor, points, seconds
+end
+
+##############################################################
+##############################################################
+##############################################################
+
+
+##############################################################
+################## DIGITAL FILTER CREATION ###################
+##############################################################
+
+"""
+    multibandpass_digitalfilter(vec, samplerate, window_f; nbands = 40, nwin = nbands, weigths = fill(1, length(vec)))
+    multibandpass_digitalfilter(selected_bands, samplerate, window_f; nbands = 40, minfreq = 0.0, maxfreq = samplerate / 2, nwin = nbands, weigths = fill(1, length(vec)))
+
+Create a multi band pass digital filter using bands in
+`vec` in the form of a tuple `(w1, w2)`.
+
+`wheigts` is an array of values in the range 0.0 to 1.0
+of the same length of `vec` which controls the
+attenuation of the band (1.0 = let the band pass,
+0.0 = is the same as not including the band in `vec`,
+0.5 = let the band pass but with "half of the energy").
+
+see: [`DSP.Filters.Bandpass`](@ref).
 """
 function multibandpass_digitalfilter(
             vec        :: Vector{Tuple{T, T}},
@@ -277,7 +489,7 @@ function multibandpass_digitalfilter(
 
     @assert length(weights) == length(vec) "length(weights) != length(vec): $(length(weights)) != $(length(vec))"
 
-    result_filter = zeros(T, nbands)
+    result_filter = zeros(T, nwin)
     i = 1
     @simd for t in vec
         result_filter += digitalfilter(Filters.Bandpass(t..., fs = samplerate), FIRWindow(window_f(nwin))) * weights[i]
@@ -285,9 +497,6 @@ function multibandpass_digitalfilter(
     end
     result_filter
 end
-
-"""
-"""
 function multibandpass_digitalfilter(
             selected_bands :: Vector{Int},
             samplerate     :: Real,
@@ -316,12 +525,24 @@ end
 
 # TODO: create dispatch of this function on presence of 'window_f` argument
 """
+    function digitalfilter_mel(band, samplerate, window_f = triang; nwin = 40, filter_type = Filters.Bandpass)
+
+Create a digital `Bandpass` filter for `band`.
 """
-function digitalfilter_mel(band::MelBand, samplerate::Real, window_f::Function = triang; nwin = 40, filter_type = Filters.Bandpass)
+function digitalfilter_mel(band::MelBand, samplerate::Real, window_f::Function = triang; nwin::Int64 = 40, filter_type = Filters.Bandpass)
     digitalfilter(filter_type(band.left, band.right, fs = samplerate), FIRWindow(; transitionwidth = 0.01, attenuation = 160))
 end
 
 """
+    function multibandpass_digitalfilter_mel(selected_bands, samplerate, window_f = triang; nbands = 40, minfreq = 0.0, maxfreq = samplerate / 2, nwin = nbands, weights = fill(1, length(selected_bands)))
+
+Create a digital multi-`Bandpass` filter for `selected_bands`.
+
+`wheigts` is an array of values in the range 0.0 to 1.0
+of the same length of `selected_bands` which controls the
+attenuation of the band (1.0 = let the band pass,
+0.0 = is the same as not including the band in `selected_bands`,
+0.5 = let the band pass but with "half of the energy").
 """
 function multibandpass_digitalfilter_mel(
             selected_bands :: Vector{Int},
@@ -341,9 +562,9 @@ function multibandpass_digitalfilter_mel(
     i = 1
     @simd for b in selected_bands
         if result_filter isa UndefInitializer
-            result_filter = digitalfilter_mel(scale[b], samplerate, window_f, nwin = nwin) * weights[i]
+            result_filter = digitalfilter_mel(scale[b], samplerate, window_f; nwin = nwin) * weights[i]
         else
-            result_filter += digitalfilter_mel(scale[b], samplerate, window_f, nwin = nwin) * weights[i]
+            result_filter += digitalfilter_mel(scale[b], samplerate, window_f; nwin = nwin) * weights[i]
         end
         i=i+1
     end
@@ -352,60 +573,95 @@ function multibandpass_digitalfilter_mel(
 end
 
 
+
+# TODO: dynamic_multibandpass_digitalfilter_mel and multibandpass_digitalfilter_mel function should have almost the same kwargs (except for nbands)
 """
-    approx_wav(samples, samplerate; mode = maximum, width = 1000.0, sacle_res = 1.0)
-    approx_wav(filepath; mode = maximum, width = 1000.0, sacle_res = 1.0)
+    dynamic_multibandpass_digitalfilter_mel(decision_path, samplerate, winsize, stepsize, nbands; nchunks = -1, window_f = triang, minfreq = 0.0, maxfreq = samplerate / 2, nwin = nbands, weights = fill(1, length(nbands)))
 
-Get an approximation of the wav using `mode` as "frame descriptor":
-`mode` default value is `maximum` meaning that each frame the wav will
-be divided into will be approximated by the `maximum` of the frame.
+Create a `DynamicFilter` using the info in `decision_path`.
 
-Another useful value for `mode` could be [`rms`](@ref).
+The `DynamicFilterDescriptor` is a "more general" representation
+of a `DecisionPath` which allow the user to modify more freely
+the dynamic filter.
+
+The parameters are the same as any other multibandpass digital filter
+except for `nchunks` which is used to control how many frames will
+be used inside the `DynamicFilter`.
+
+Note: `nchunks` doesn't necessarily mean that the final wave must
+have exactly `nchunks` frames (but at least `nchunks`).
+If the wave has more than `nchunks` frames the last will be
+considered to be 0 and then they will be muted. 
 """
-function approx_wav(
-            samples    :: Vector{T},
-            samplerate :: Real;
-            mode       :: Function    = maximum, # rms
-            width      :: Real        = 1000.0,
-            scale_res  :: Real        = 1.0
-        ):: Tuple{Vector{T}, Real} where T<:Real
+function dynamic_multibandpass_digitalfilter_mel(
+            decision_path      :: DecisionPath,
+            samplerate         :: Real,
+            winsize            :: Int64,
+            stepsize           :: Int64,
+            nbands             :: Int64;
+            nchunks            :: Int64     = -1,
+            window_f           :: Function  = triang,
+            minfreq            :: Real      = 0.0,
+            maxfreq            :: Real      = samplerate / 2,
+            nwin               :: Int64     = nbands,
+            weights            :: Vector{F} = fill(1.0, nbands) # TODO
+        )::DynamicFilter{<:AbstractFloat} where F <:AbstractFloat
 
-    num_frames = ceil(Int64, (width * scale_res) / 2) + 1
-
-    step_size = floor(Int64, length(samples) / num_frames)
-    frame_size = step_size
-
-    # TODO: optimize
-    frames = []
-    for i in 1:num_frames
-        interval = frame2points(i, frame_size, step_size)
-        interval = UnitRange(max(interval.start, 1), min(interval.stop, length(samples)))
-        push!(frames, samples[interval])
+    if nchunks < 0
+        nchunks = max([ (w.y-1) for node in decision_path for w in node.worlds ]...)
     end
 
-    frames_contracted = mode.(frames)
+    descriptor::DynamicFilterDescriptor = fill(0, max(1, nchunks), nbands)
 
-    # TODO: optimize
-    n = []
-    for point in frames_contracted
-        push!(n, point)
-        push!(n, -point)
+    for node in decision_path
+        curr_chunks = Vector{Int64}()
+        for world_interval in [ filter(x -> x > 0, collect(w.x:(w.y-1))) for w in node.worlds ]
+            append!(curr_chunks, world_interval)
+        end
+        if length(curr_chunks) > 0
+            descriptor[unique(curr_chunks), node.feature.i_attribute] .= 1
+        end
     end
 
-    n, (samplerate * (length(n) / length(samples)))
-end
-function approx_wav(filepath::String; kwargs...)::Tuple{Vector{T}, Real} where T<:Real
-    samples, samplerate = wavread(filepath)
-    samples = merge_channels(samples)
+    filters = [
+            multibandpass_digitalfilter_mel(
+                [i],
+                samplerate,
+                window_f,
+                nbands = nbands,
+                minfreq = minfreq,
+                maxfreq = maxfreq,
+                nwin = nwin,
+            ) for i in 1:nbands ]
 
-    approx_wav(samples, samplerate; kwargs...)
+    DynamicFilter(descriptor, samplerate, winsize, stepsize, filters)
 end
+
+##############################################################
+##############################################################
+##############################################################
+
+
+##############################################################
+##################### APPLY FILTER ###########################
+##############################################################
 
 """
     apply_filter(dynamic_filter, samples)
     apply_filter(dynamic_filter, samples, band_index)
 
-TODO: docs
+Apply filter `dynamic_filter` to `samples`.
+
+If the parameter `band_index` is specified will be
+applied only the filter corresponding to the band at
+index `band_index`.
+This will result in a wave containing frequencies only
+in that band and all the samples corresponding to zero-chunks
+zeroed-out (no signal).
+
+Note: if a chunk in the `DynamicFilter` is 0 in all of its
+bands the resulting chunk after the filter is applied
+will be muted.
 """
 function apply_filter(dynamic_filter::DynamicFilter{T}, samples::Vector{Ts}, band_index::Int64)::Vector{Ts} where {T, Ts}
     new_track::Vector{Ts} = fill(zero(Ts), length(samples))
@@ -435,147 +691,6 @@ function apply_filter(dynamic_filter::DynamicFilter{T}, samples::Vector{Ts})::Ve
     new_track
 end
 
-# TODO: dynamic_multiband_digitalfilter_mel and multibandpass_digitalfilter_mel function should be almost the same kwargs (except for nbands)
-"""
-"""
-function dynamic_multiband_digitalfilter_mel(
-            decision_path      :: DecisionPath,
-            samplerate         :: Real,
-            winsize            :: Int64,
-            stepsize           :: Int64,
-            nbands             :: Int64;
-            nchunks            :: Int64     = -1,
-            window_f           :: Function  = triang,
-            minfreq            :: Real      = 0.0,
-            maxfreq            :: Real      = samplerate / 2,
-            nwin               :: Int64     = nbands,
-            weights            :: Vector{F} = fill(1.0, nbands) # TODO
-        )::DynamicFilter{<:AbstractFloat} where F <:AbstractFloat
-
-    if nchunks < 0
-        nchunks = max([ (w.y-1) for node in decision_path for w in node.worlds ]...)
-    end
-
-    descriptor::DynamicFilterDescriptor = fill(0, max(1, nchunks), nbands)
-
-    # TODO: optimize this
-    for node in decision_path
-        curr_chunks = Vector{Int64}()
-        for world_interval in [ filter(x -> x > 0, collect(w.x:(w.y-1))) for w in node.worlds ]
-            append!(curr_chunks, world_interval)
-        end
-        if length(curr_chunks) > 0
-            descriptor[unique(curr_chunks), node.feature.i_attribute] .= 1
-        end
-    end
-
-    filters = [
-            multibandpass_digitalfilter_mel(
-                [i],
-                samplerate,
-                window_f,
-                nbands = nbands,
-                minfreq = minfreq,
-                maxfreq = maxfreq,
-                nwin = nwin,
-            ) for i in 1:nbands ]
-
-    DynamicFilter(descriptor, samplerate, winsize, stepsize, filters)
-end
-
-# TODO: make a dispatch of this function with famesample(samples, winsize, stepsize)
-"""
-    framesample(samples, samplerate; wintime = 0.025, steptime = 0.01, moving_averate_size = 1, moving_average_step = 1)
-
-Get a Vector of frames representing `samples`.
-
-* `winsize` = `samplerate` * `wintime` * `moving_average_size`
-* `stepsize` = `samplerate` * `steptime` * `moving_average_step`
-"""
-function framesample(
-            samples             :: Vector{T},
-            samplerate          :: Real;
-            wintime             :: Real       = 0.025,
-            steptime            :: Real       = 0.01,
-            moving_average_size :: Int64      = 1,
-            moving_average_step :: Int64      = 1
-        )::Vector{Vector{T}} where T<:AbstractFloat
-
-    winlength::Int64 = round(Int64, moving_average_size * (wintime * samplerate))
-    steplength::Int64 = round(Int64, moving_average_step * (steptime * samplerate))
-
-    nwin::Int64 = ceil(Int64, length(samples) / steplength)
-
-    result = Vector{Vector{T}}(undef, nwin)
-    Threads.@threads for (i, range) in collect(enumerate(frame2points(collect(1:nwin), winlength, steplength)))
-        left = max(1, range.start)
-        right = min(length(samples), range.stop)
-        result[i] = deepcopy(samples[left:right])
-    end
-
-    result
-end
-
-"""
-    get_points_and_seconds_from_worlds(worlds, winsize, stepsize, n_samps, samplerate)
-
-The `winsize` and `stepsize` parameres should have `moving_average_size`
-and `moving_average_step` already considered in them.
-"""
-function get_points_and_seconds_from_worlds(
-            worlds     :: DecisionTree.ModalLogic.AbstractWorldSet,
-            winsize    :: Int64, # wintime * samplerate * moving_average_size
-            stepsize   :: Int64, # steptime * samplerate * moving_average_size
-            n_samps    :: Int64,
-            samplerate :: Real
-        )
-    # keep largest worlds
-    dict = Dict{Int64,DecisionTree.ModalLogic.AbstractWorld}()
-    for w in worlds
-        if !haskey(dict, w.x) || dict[w.x].y < w.y
-            dict[w.x] = w
-        end
-    end
-
-    # TODO: optimize this algorithm
-
-    highest_key = maximum(keys(dict))
-    # join overlapping worlds
-    for i in 1:highest_key
-        if haskey(dict, i)
-            for j in 1:highest_key
-                if i == j continue end
-                if haskey(dict, j)
-                    # do they overlap and is j.y > than i.y?
-                    if dict[i].y >= dict[j].x && dict[j].y >= dict[i].y
-                        dict[i] = DecisionTree.ModalLogic.Interval(dict[i].x, dict[j].y)
-                        delete!(dict, j)
-                    end
-                end
-            end
-        end
-    end
-
-    timeranges = []
-    for i in 1:highest_key
-        if haskey(dict, i)
-            w = dict[i]
-            # println("Considering interval $(w.x:(w.y-1))")
-            frames = frame2points(collect(w.x:(w.y-1)), winsize, stepsize)
-            push!(timeranges, (frames[1][1], frames[end][2]))
-        end
-    end
-
-    points = []
-    seconds = []
-    wav_descriptor = fill(false, n_samps)
-    for tr in timeranges
-        # println("Points: ", (tr[1], tr[2]),"; Time (s): ", points2timerange(tr[1]:tr[2], samplerate))
-        push!(points, (tr[1], tr[2]))
-        push!(seconds, points2timerange(tr[1]:tr[2], samplerate))
-        wav_descriptor[max(1, tr[1]):min(tr[2], n_samps)] .= true
-    end
-
-    wav_descriptor, points, seconds
-end
-
+##############################################################
+##############################################################
+##############################################################
