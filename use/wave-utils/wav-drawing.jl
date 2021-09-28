@@ -1,5 +1,6 @@
 
 # TODO: all "outfile" arguments should be empty and return the graph instead of saving it on the HDD
+# TODO: make consistent intefraces Tuple{Vector{Number},Number} = func_name((samples, samplerate), [other args...]) and/or func_name(samples, samplerate)
 
 using DSP, WAV, Plots, Images, Plots.Measures
 
@@ -10,6 +11,7 @@ default_plot_margins = (
     top_margin = 4mm,
     bottom_margin = 4mm
 )
+_make_it_even(v::Integer) = v % 2 != 0 ? v+1 : v
 
 """
     plotfilter(filter; samplerate = 100.0, xlims = (0,0), ylims = (-24, 0), plotfunc = plot)
@@ -23,7 +25,7 @@ function plotfilter(
         xlims      :: Union{Nothing,Tuple{Real,Real}} = (0, 0),
         ylims      :: Union{Nothing,Tuple{Real,Real}} = (-24, 0),
         plotfunc   :: Function                        = plot
-    )
+    )::Plots.Plot
 
     w = range(0, stop=π, length=1024)
     h = FIRfreqz(filter; w = w)
@@ -33,10 +35,7 @@ function plotfilter(
     end
     plotfunc(ws, amp2db.(abs.(h)), xlabel="Frequency (Hz)", ylabel="Magnitude (db)", xlims = xlims, ylims = ylims, leg = false, size = default_plot_size, default_plot_margins...)
 end
-# TODO: test all dispatch
-plotfilter(filter::Filters.Filter; kwargs...) = plotfilter(digitalfilter(filter, firwindow); kwargs...)
-plotfilter!(filter::Filters.Filter; args...)  = plotfilter(filter; args..., plotfunc = plot!)
-plotfilter!(filter; args...)                  = plotfilter(filter; args..., plotfunc = plot!)
+plotfilter!(filter; args...)::Plots.Plot = plotfilter(filter; args..., plotfunc = plot!)
 
 """
     draw_mel_filters_graph(samplerate, window_f; nbands = 40, minfreq = 0.0, maxfreq = 8000.0)
@@ -128,7 +127,7 @@ maintain interface consistency.
 function draw_wav(
             samples        :: Vector{T},
             samplerate     :: Number;
-            color                                  = :auto, # TODO: find proper Union Type for this argument
+            color                                  = :auto,
             title          :: String               = "",
             size           :: Tuple{Number,Number} = (1000, 150),
             plotfunc       :: Function             = plot
@@ -148,7 +147,7 @@ function draw_wav(
         tick_direction = :none,
         linecolor = color,
         fillcolor = color,
-        size = size
+        size = _make_it_even.(size)
     )
 end
 function draw_wav(samples::Vector{T}; kwargs...)::Plots.Plot where T <: AbstractFloat
@@ -169,7 +168,7 @@ function draw_audio_anim(
             labels                    :: Vector{String}                             = fill("", length(audio_files)),
             colors                    :: Union{Vector{Symbol},Vector{RGB{Float64}}} = fill(:auto, length(audio_files)),
             single_graph              :: Bool                                       = false,
-            outfile                   :: String                                     = "", # TODO: handle empty string
+            outfile                   :: String                                     = "",
             size                      :: Tuple{Int64,Int64}                         = single_graph ? (1000, 150) : (1000, 150 * length(audio_files)),
             fps                       :: Int64                                      = 30,
             resample_at_rate          :: Real                                       = 0.0,
@@ -181,7 +180,7 @@ function draw_audio_anim(
             selected_range            :: Union{UnitRange{Int64},Tuple{Number,Number},Symbol} = :whole,
             use_wav_apporximation     :: Bool                                                = true,
             wav_approximation_scale   :: Real                                                = 1.0
-        )::Plots.AnimatedGif where {T1<:AbstractFloat, T2<:AbstractFloat}
+        )::Plots.Animation where {T1<:AbstractFloat, T2<:AbstractFloat}
 
     @assert length(audio_files) > 0 "No audio file provided"
     if !single_graph
@@ -203,7 +202,7 @@ function draw_audio_anim(
         samplerates .= resample_at_rate
     end
 
-    @assert length(unique(samplerates)) == 1 "Inconsistent bitrate across multiple files (try using resample keyword argument)"
+    @assert length(unique(samplerates)) == 1 "Inconsistent bitrate across multiple files (try using resample_at_rate keyword argument)"
     @assert length(unique([x -> length(x) for wav in wavs])) == 1 "Inconsistent length across multiple files"
 
     if selected_range isa Tuple
@@ -280,10 +279,13 @@ function draw_audio_anim(
     end
     printprogress("Completed all frames ($(total_frames))\n")
 
-    gif(anim, outfile, fps = fps)
+    if length(outfile) > 0
+        gif(anim, outfile, fps = fps)
+    end
+
+    anim
 end
-function draw_audio_anim(audio_files::Vector{String}; kwargs...)
-    # TODO: test this dispatch
+function draw_audio_anim(audio_files::Vector{String}; kwargs...)::Plots.Animation
     @assert length(audio_files) > 0 "No audio file provided"
 
     converted_input::Vector{Tuple{Vector{AbstractFloat},AbstractFloat}} = Vector{Tuple{Vector{AbstractFloat},AbstractFloat}}(undef, length(audio_files))
@@ -332,10 +334,14 @@ function draw_spectrogram(
     total_heatmap_kwargs = merge(default_heatmap_kwargs, default_plot_margins)
     total_heatmap_kwargs = merge(total_heatmap_kwargs, spectrogram_plot_options)
 
+    if haskey(total_heatmap_kwargs, :size)
+        total_heatmap_kwargs = merge(spectrogram_plot_options, (:size = _make_it_even.(spectrogram_plot_options.size),))
+    end
+
     spec = spectrogram(samples, nw_orig, round(Int64, nw_orig / 2); fs = samplerate)
     hm = heatmap(spec.time, spec.freq, pow2db.(spec.power); title = title, clims = clims, total_heatmap_kwargs...)
 
-    # Draw horizontal line on spectrograms corresponding for selected bands
+    # Draw horizontal line on spectrograms corresponding to selected bands
     if melbands[:draw]
     bands = get_mel_bands(melbands[:nbands], melbands[:minfreq], melbands[:maxfreq]; htkmel = melbands[:htkmel])
     for i in 1:melbands[:nbands]
@@ -461,10 +467,10 @@ function draw_tree_anim(
             blank_image       :: AbstractMatrix,
             highlighted_image :: AbstractMatrix,
             samplerate        :: Real;
-            outfile           :: String               = "", # TODO: handle empty string
+            outfile           :: String               = "",
             size              :: Tuple{Number,Number} = Tuple((max(size(blank_image,2), size(highlighted_image,2)), max(size(blank_image,1), size(highlighted_image,1)))),
             fps               :: Int64                = 30,
-        )
+        )::Plots.Animation
 
     function plot_image(image::AbstractMatrix; size = size)
         plot(
@@ -476,7 +482,7 @@ function draw_tree_anim(
             ticks          = false,      # hide y ticks
             tick_direction = :none,
             margin         = 0mm,
-            size           = size
+            size           = _make_it_even.(size)
         )
     end
 
@@ -493,9 +499,13 @@ function draw_tree_anim(
     end
     printprogress("Completed all frames ($(total_frames))\n")
 
-    gif(anim, outfile, fps = fps)
+    if length(outfile) > 0
+        gif(anim, outfile, fps = fps)
+    end
+
+    anim
 end
-draw_tree_anim(wav_descriptor::Vector{Bool}, blank_image::String, highlighted_image::String, samplerate::Real; kwargs...) = draw_tree_anim(wav_descriptor, load(blank_image), load(highlighted_image), samplerate; kwargs...)
+draw_tree_anim(wav_descriptor::Vector{Bool}, blank_image::String, highlighted_image::String, samplerate::Real; kwargs...)::Plots.Animation = draw_tree_anim(wav_descriptor, load(blank_image), load(highlighted_image), samplerate; kwargs...)
 
 """
     draw_worlds(descriptor, samplerate; title = "", outfile = "", color = RGB(0.3, 0.3, 1), size = (1000, 150))
@@ -541,7 +551,7 @@ function draw_worlds(
         linecolor = color,
         fillcolor = color,
         xlabel = "Time (s)",
-        size = size
+        size = _make_it_even.(size)
     )
     xticks!(p, ticks_positions, ticks_string)
 
@@ -561,7 +571,7 @@ Assumption: the waveform video contains the audio.
 
 NB: it need ffmpeg to be installed on the system.
 """
-function join_tree_video_and_waveform_video(
+function join_tree_video_and_waveform_video( # TODO: add here more tuning parameters
             tree_v_path      :: String,
             tree_v_size      :: Tuple{Number,Number},
             wave_form_v_path :: String,
@@ -569,23 +579,9 @@ function join_tree_video_and_waveform_video(
             output_file      :: String                = "output.mkv"
         )
 
-    final_video_resolution = (max(tree_v_size[1], wave_form_v_size[1]), 1 + tree_v_size[2] + wave_form_v_size[2])
-    final_tree_position = (round(Int64, (final_video_resolution[1] - tree_v_size[1]) / 2), 0)
-    final_wave_form_position = (round(Int64, (final_video_resolution[1] - wave_form_v_size[1]) / 2), tree_v_size[2] + 1)
-
-    # for safety resize everything in even number to be compatible with all video encoders (ex: libx264 does not support odd numbers)
-    final_video_resolution = (
-        ((final_video_resolution[1] % 2 == 1) ? final_video_resolution[1] + 1 : final_video_resolution[1]),
-        ((final_video_resolution[2] % 2 == 1) ? final_video_resolution[2] + 1 : final_video_resolution[2])
-    )
-    final_tree_position = (
-        ((final_tree_position[1] % 2 == 1) ? final_tree_position[1] + 1 : final_tree_position[1]),
-        ((final_tree_position[2] % 2 == 1) ? final_tree_position[2] + 1 : final_tree_position[2])
-    )
-    final_wave_form_position = (
-        ((final_wave_form_position[1] % 2 == 1) ? final_wave_form_position[1] + 1 : final_wave_form_position[1]),
-        ((final_wave_form_position[2] % 2 == 1) ? final_wave_form_position[2] + 1 : final_wave_form_position[2])
-    )
+    final_video_resolution = _make_it_even.((max(tree_v_size[1], wave_form_v_size[1]), 1 + tree_v_size[2] + wave_form_v_size[2]))
+    final_tree_position = _make_it_even.((round(Int64, (final_video_resolution[1] - tree_v_size[1]) / 2), 0))
+    final_wave_form_position = _make_it_even.((round(Int64, (final_video_resolution[1] - wave_form_v_size[1]) / 2), tree_v_size[2] + 1))
 
     color_input = "color=white:$(final_video_resolution[1])x$(final_video_resolution[2]),format=rgb24"
 
@@ -593,7 +589,7 @@ function join_tree_video_and_waveform_video(
     total_complex_filter *= "[a][1:v]overlay=$(final_tree_position[1]):$(final_tree_position[2]):0:[b]; "
     total_complex_filter *= "[b][2:v]overlay=$(final_wave_form_position[1]):$(final_wave_form_position[2]):0:[c]"
 
-    # assumption: audio is in the wave form file
+    # assumption: audio is in the wave-form file
     run(`ffmpeg -hide_banner -f lavfi -i $color_input -i $tree_v_path -i $wave_form_v_path -y -filter_complex "$total_complex_filter" -shortest -map '[c]' -map 2:a:0 -c:a copy -c:v libx264 -crf 0 -preset veryfast $output_file`)
 end
 

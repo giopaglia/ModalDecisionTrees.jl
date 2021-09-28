@@ -604,7 +604,7 @@ function dynamic_multibandpass_digitalfilter_mel(
             minfreq            :: Real      = 0.0,
             maxfreq            :: Real      = samplerate / 2,
             nwin               :: Int64     = nbands,
-            weights            :: Vector{F} = fill(1.0, nbands) # TODO
+            weights            :: Vector{F} = fill(1.0, nbands) # TODO: suppor weights in dynamic_multibandpass_digitalfilter_mel
         )::DynamicFilter{<:AbstractFloat} where F <:AbstractFloat
 
     if nchunks < 0
