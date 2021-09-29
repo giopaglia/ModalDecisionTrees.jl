@@ -158,7 +158,7 @@ end
 
 Process a dataset named `dataset_dir_name` using
 `preprocess` splitting instances (if `split_instances`
-is true) and then 
+is `true`) and then apply to all new wavs `postprocess`.
 """
 function process_dataset(
         dataset_dir_name :: String,
@@ -218,7 +218,6 @@ function process_dataset(
     # save
     mkpath.(unique(map(p -> outdir * "/" * dirname(p), new_filepaths)))
     Threads.@threads for (sns, path) in collect(zip(new_samples_n_samplerates, new_filepaths))
-        println("Writing file $(path)...")
         wavwrite(sns[1], outdir * "/" * path; Fs = sns[2])
     end
 end
