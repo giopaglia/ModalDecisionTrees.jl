@@ -185,7 +185,7 @@ for inst in (pos, neg)
     wavwrite(filtered_exagerated, exagerated_tmp; Fs = original_sr)
 
     # 1) original's video
-    draw_audio_anim(
+    draw_wave_anim(
         [ (orig_norm, original_sr) ];
         outfile = inst.output.gif_original_path,
         colors = [ RGB(0.3, 0.3, 1) ],
@@ -205,7 +205,7 @@ for inst in (pos, neg)
         additional_ffmpeg_args_a = additional_ffmpeg_args_a,
     )
     # 2) filtered videos
-    draw_audio_anim(
+    draw_wave_anim(
         [ (orig_norm, original_sr), (filtered_exagerated, original_sr) ];
         labels = [ "Filtered " * inst.string, "" ],
         outfile = inst.output.gif_filtered_path,

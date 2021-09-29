@@ -1,7 +1,4 @@
 
-# TODO: all "outfile" arguments should be empty and return the graph instead of saving it on the HDD
-# TODO: make consistent intefraces Tuple{Vector{Number},Number} = func_name((samples, samplerate), [other args...]) and/or func_name(samples, samplerate)
-
 using DSP, WAV, Plots, Images, Plots.Measures
 
 default_plot_size = (1920, 1080)
@@ -117,7 +114,9 @@ end
 
 """
     draw_wav(samples[, samplerate]; color = :auto, title = "", size = (1000, 150), plotfunc = plot)
+    draw_wav(filepath; kwargs...)
     draw_wav!(samples[, samplerate]; color = :auto, title = "", size = (1000, 150))
+    draw_wav!(filepath; kwargs...)
 
 Plot a wave using its `samples`.
 
@@ -126,7 +125,7 @@ maintain interface consistency.
 """
 function draw_wav(
             samples        :: Vector{T},
-            samplerate     :: Number;
+            samplerate     :: Number               = 44100.0;
             color                                  = :auto,
             title          :: String               = "",
             size           :: Tuple{Number,Number} = (1000, 150),
@@ -150,26 +149,84 @@ function draw_wav(
         size = _make_it_even.(size)
     )
 end
-function draw_wav(samples::Vector{T}; kwargs...)::Plots.Plot where T <: AbstractFloat
-    draw_wav(samples::Vector{T}, 44100; kwargs...)
+function draw_wav(samples::Matrix{T}, samplerate::Real = 44100.0; kwargs...)::Plots.Plot where T <: AbstractFloat
+    draw_wav(merge_channels(samples), samplerate; kwargs...)
 end
-function draw_wav!(samples::Vector{T}, samplerate::Number; kwargs...)::Plots.Plot where T <: AbstractFloat
-    draw_wav(samples::Vector{T}, samplerate::Number; plotfunc = plot!, kwargs...)
+function draw_wav(filepath::String; kwargs...)::Plots.Plot
+    samps, sr = wavread(filepath)
+    draw_wav(samps, sr; kwargs...)
 end
-function draw_wav!(samples::Vector{T}; kwargs...)::Plots.Plot where T <: AbstractFloat
-    draw_wav(samples::Vector{T}, 44100; plotfunc = plot!, kwargs...)
+function draw_wav(samples_n_samplerate::Tuple{Vector{T},Real}; kwargs...)::Plots.Plot where T<:AbstractFloat
+    draw_wav(samples_n_samplerate...; kwargs...)
 end
 
 """
-TODO: docs
+    draw_wav!(samples, samplerate; kwargs...)
+    draw_wav!(samples_n_samplerate; kwargs...)
+    draw_wav!(filepath; kwargs...)
+
+Same as [`draw_wav`](@ref) but this will draw on
+the existing canvas.
 """
-function draw_audio_anim(
-            audio_files               :: Vector{Tuple{Vector{T1},T2}};
-            labels                    :: Vector{String}                             = fill("", length(audio_files)),
-            colors                    :: Union{Vector{Symbol},Vector{RGB{Float64}}} = fill(:auto, length(audio_files)),
+function draw_wav!(samples::Vector{T}, samplerate::Real = 44100.0; kwargs...)::Plots.Plot where T <: AbstractFloat
+    draw_wav(samples, samplerate; plotfunc = plot!, kwargs...)
+end
+function draw_wav!(samples::Matrix{T}, samplerate::Real = 44100.0; kwargs...)::Plots.Plot where T <: AbstractFloat
+    draw_wav(samples, samplerate; plotfunc = plot!, kwargs...)
+end
+function draw_wav!(filepath::String; kwargs...)::Plots.Plot
+    samps, sr = wavread(filepath)
+    draw_wav(samps, sr; plotfunc = plot!, kwargs...)
+end
+function draw_wav!(samples_n_samplerate::Tuple{Vector{T},Real}; kwargs...)::Plots.Plot where T<:AbstractFloat
+    draw_wav(samples_n_samplerate...; plotfunc = plot!, kwargs...)
+end
+
+"""
+    draw_wave_anim(samples_vec, samplerates; labels = [], colors = [], single_graph = false, outfile = "", size = (1000, 150), fps = 30, resample_at_rate = 0.0, reset_canvas_every_frames = 50, selected_range = :whole, use_wav_apporximation = true, wav_approximation_scale = 1.0)
+    draw_wave_anim(filepaths; kargs...)
+    draw_wave_anim(filepath; kargs...)
+    draw_wave_anim(samples_and_samplerates_vec; kargs...)
+    draw_wave_anim(samples_and_samplerates; kargs...)
+
+Draw an animation of the waves represented by  form with a moving
+vertical line as it was played by an audio player.
+
+The resulting animation can containe a stack of wave forms or
+a single graph containing all waveforms drawn one above each other,
+depending on the value of `single_graph`.
+
+If `single_graph` if `false` a `label` can be set for each
+wave graph.
+
+Before drawing a resampling of the waves can be done if there are
+waves that mismatch in samplerate by setting the `resample_at_rate`
+at the desired samplingrate.
+
+`use_wav_apporximation` will create an approximation before drawing.
+The default value of this parameter is set to `true` and in most cases
+it is a good idea to leav it this way for performance reasons.
+When `true` the wave is approximated in `2n` points where `n` is the
+width setted in `size`.
+If an accurate representation of the wave is needed this feature
+should be turned off.
+
+For a more fine tuning of the approximation of the wave it is available
+the `wav_approximation_scale` parameter which will cause the wave to
+be rendered at a scaled resoultion.
+
+To avoid drawing a lot of transparent lines the canvas can be reset to
+the original canvas (containing just the draw of the waveforms). This
+will happen every `reset_canvas_every_frames` frames.
+"""
+function draw_wave_anim(
+            wavs                      :: Vector{Vector{T1}},
+            samplerates               :: Vector{T2};
+            labels                    :: Vector{String}                             = fill("", length(wavs)),
+            colors                    :: Union{Vector{Symbol},Vector{RGB{Float64}}} = fill(:auto, length(wavs)),
             single_graph              :: Bool                                       = false,
             outfile                   :: String                                     = "",
-            size                      :: Tuple{Int64,Int64}                         = single_graph ? (1000, 150) : (1000, 150 * length(audio_files)),
+            size                      :: Tuple{Int64,Int64}                         = single_graph ? (1000, 150) : (1000, 150 * length(wavs)),
             fps                       :: Int64                                      = 30,
             resample_at_rate          :: Real                                       = 0.0,
             reset_canvas_every_frames :: Integer                                    = 50,
@@ -182,17 +239,13 @@ function draw_audio_anim(
             wav_approximation_scale   :: Real                                                = 1.0
         )::Plots.Animation where {T1<:AbstractFloat, T2<:AbstractFloat}
 
-    @assert length(audio_files) > 0 "No audio file provided"
-    if !single_graph
-        @assert length(audio_files) == length(labels) "audio_files and labels mismatch in length: $(length(audio_files)) != $(length(labels))"
-    end
-    @assert length(audio_files) == length(colors) "audio_files and colors mismatch in length: $(length(audio_files)) != $(length(colors))"
+    @assert length(wavs) > 0 "No audio file provided"
 
-    wavs = Vector{Vector{T1}}(undef, length(audio_files))
-    samplerates = Vector{T2}(undef, length(audio_files))
-    Threads.@threads for (i, f) in collect(enumerate(audio_files))
-        wavs[i], samplerates[i] = merge_channels(f[1]), f[2]
+    @assert length(wavs) == length(samplerates) "wavs and samplerates mismatch in length: $(length(wavs)) != $(length(samplerates))"
+    if !single_graph
+        @assert length(wavs) == length(labels) "wavs and labels mismatch in length: $(length(wavs)) != $(length(labels))"
     end
+    @assert length(wavs) == length(colors) "wavs and colors mismatch in length: $(length(wavs)) != $(length(colors))"
 
     if resample_at_rate > 0
         Threads.@threads for i in 1:length(wavs)
@@ -219,7 +272,7 @@ function draw_audio_anim(
     end
 
     real_wavs = Vector{Vector{T1}}(undef, length(wavs))
-    real_samplerates = Vector{T2}(undef, length(samplerates))
+    real_samplerates = Vector{Real}(undef, length(samplerates))
     if use_wav_apporximation
         Threads.@threads for i in 1:length(wavs)
             real_wavs[i], real_samplerates[i] = approx_wav(wavs[i], samplerates[i]; scale_res = wav_approximation_scale, width = size[1])
@@ -234,7 +287,6 @@ function draw_audio_anim(
 
     if real_samplerates[1] < fps
         fps = floor(Int64, real_samplerates[1])
-        # TODO: maybe auto-select an higher resolution automatically
         @warn "Reducing FPS to $(fps) due to sampling reate too low"
     end
 
@@ -285,16 +337,31 @@ function draw_audio_anim(
 
     anim
 end
-function draw_audio_anim(audio_files::Vector{String}; kwargs...)::Plots.Animation
+function draw_wave_anim(audio_files::Vector{String}; kwargs...)::Plots.Animation
     @assert length(audio_files) > 0 "No audio file provided"
 
-    converted_input::Vector{Tuple{Vector{AbstractFloat},AbstractFloat}} = Vector{Tuple{Vector{AbstractFloat},AbstractFloat}}(undef, length(audio_files))
+    converted_samps::Vector{Vector{AbstractFloat}} = Vector{Vector{AbstractFloat}}(undef, length(audio_files))
+    samplerates::Vector{Real} = Vector{Real}(undef, length(audio_files))
     Threads.@threads for (i, f) in collect(enumerate(audio_files))
-        wav, samplerate = wavread(f)
-        converted_input[i] = (merge_channels(wav), samplerate)
+        converted_samps[i], samplerates[i] = wavread(f)
     end
 
-    draw_audio_anim(converted_input; kwargs...)
+    draw_wave_anim(converted_samps, samplerates; kwargs...)
+end
+draw_wave_anim(audio_file::String; kwargs...)::Plots.Animation = draw_wave_anim([audio_file]; kwargs...)
+function draw_wave_anim(samples::Vector{Matrix{T}}, samplerates::Vector{Real}; kwargs...)::Plots.Animation where T<:AbstractFloat
+    converted::Vector{Vector{AbstractFloat}} = Vector{Vector{AbstractFloat}}(undef, length(samples))
+    Threads.@threads for (i, samps) in collect(enumerate(samples))
+        converted[i] = merge_channels(samps)
+    end
+
+    draw_wave_anim(converted, samplerates; kwargs...)
+end
+function draw_wave_anim(samples_n_samplerate::Vector{Tuple{Vector{T1},T2}}; kwargs...)::Plots.Animation where {T1<:AbstractFloat, T2<:Real}
+    draw_wave_anim([ samples_n_samplerate[i][1] for i in 1:length(samples_n_samplerate) ], [ samples_n_samplerate[i][2] for i in 1:length(samples_n_samplerate) ]; kwargs...)
+end
+function draw_wave_anim(samples_n_samplerate::Tuple{Vector{T},Real}; kwargs...)::Plots.Animation where T<:AbstractFloat
+    draw_wave_anim(samples_n_samplerate...; kwargs...)
 end
 
 """
@@ -304,20 +371,40 @@ end
     draw_spectrogram(filepath; gran = 50, title = "", clims = (-100, 0), spectrogram_plot_options = (),
     melbands = (draw = false, nbands = 40, minfreq = 0.0, maxfreq = samplerate / 2, htkmel = false), only_bands = :all)
 
-Draw spectrogram of a wav.
+Draw spectrogram of a wave.
 
-TODO: more detailed doc
+`gran` controls how large is the window used to apply
+the STFT determining this way the time axis resolution
+of the spectrogram.
+
+Mel bands can be drawn on the resulting image setting
+`melbands.draw` to `true`.
+
+`melbands` is a NamedTuple whose keys and default values are:
+
+    melbands = (
+        draw = false,
+        nbands = 40,
+        minfreq = 0.0,
+        maxfreq = samplerate / 2,
+        htkmel = false
+    )
+
+`only_bands` can be used to show only some of the melbands; it can
+be a vector of Integers (the index of the bands you want to draw)
+or a Symbol `:all` to show them all.
 """
 function draw_spectrogram(
             samples                  :: Vector{T},
             samplerate               :: Real;
             gran                     :: Int                         = 50,
             title                    :: String                      = "",
+            outfile                  :: String                      = "",
             clims                    :: Tuple{Number,Number}        = (-100, 0),
             spectrogram_plot_options :: NamedTuple                  = NamedTuple(),
             melbands                 :: NamedTuple                  = (draw = false, nbands = 40, minfreq = 0.0, maxfreq = samplerate / 2, htkmel = false),
             only_bands               :: Union{Symbol,Vector{Int64}} = :all
-        ) where T <: AbstractFloat
+        )::Plots.Plot where T <: AbstractFloat
 
     nw_orig::Int = round(Int64, length(samples) / gran)
 
@@ -335,7 +422,7 @@ function draw_spectrogram(
     total_heatmap_kwargs = merge(total_heatmap_kwargs, spectrogram_plot_options)
 
     if haskey(total_heatmap_kwargs, :size)
-        total_heatmap_kwargs = merge(spectrogram_plot_options, (size = _make_it_even.(spectrogram_plot_options.size),))
+        total_heatmap_kwargs = merge(total_heatmap_kwargs, (size = _make_it_even.(total_heatmap_kwargs.size),))
     end
 
     spec = spectrogram(samples, nw_orig, round(Int64, nw_orig / 2); fs = samplerate)
@@ -352,13 +439,22 @@ function draw_spectrogram(
     yticks!(hm, [ melbands[:minfreq], [ bands[i].peak for i in only_bands ]..., melbands[:maxfreq] ], [ string(round(Int64, melbands[:minfreq])), [ string("A", i) for i in only_bands ]..., string(round(Int64, melbands[:maxfreq])) ])
     end
 
+    if length(outfile) > 0
+        savefig(hm, outfile)
+    end
+
     hm
 end
-function draw_spectrogram(filepath::String; kwargs...)
+function draw_spectrogram(samples::Matrix{T}, samplerate::Real; kwargs...)::Plots.Plot where T<:AbstractFloat
+    samps = merge_channels(samples)
+    draw_spectrogram(samps, samplerate; kwargs...)
+end
+function draw_spectrogram(filepath::String; kwargs...)::Plots.Plot
     samp, sr = wavread(filepath)
-    samp = merge_channels(samp)
-
     draw_spectrogram(samp, sr; kwargs...)
+end
+function draw_spectrogram(samples_n_samplerate::Tuple{Vector{T},Real}; kwargs...)::Plots.Plot where T<:AbstractFloat
+    draw_spectrogram(samples_n_samplerate...; kwargs...)
 end
 
 """
@@ -391,7 +487,7 @@ function generate_video(
         outputfile_name = replace(outputfile_name, "." * output_ext => "")
     end
 
-    if !isnothing(outpath)
+    if !isnothing(outpath) || (isa(outpath, String) && length(outpath) == 0)
         try
             mkpath(outpath)
         catch
@@ -459,8 +555,8 @@ end
 """
     draw_tree_anim(wav_descriptor, blank_image, highlighted_image, samplerate; outfile = "", size = `calculated from images`, fps = 30)
 
-Draw a simple animation highlighting a tree branch when `wav_descriptor` is `true`.
-TODO: make this more clear
+Draw a simple animation which will highlight a tree
+branch in time ranges accordingly to `wav_descriptor`.
 """
 function draw_tree_anim(
             wav_descriptor    :: Vector{Bool},
@@ -571,7 +667,7 @@ Assumption: the waveform video contains the audio.
 
 NB: it need ffmpeg to be installed on the system.
 """
-function join_tree_video_and_waveform_video( # TODO: add here more tuning parameters
+function join_tree_video_and_waveform_video(
             tree_v_path      :: String,
             tree_v_size      :: Tuple{Number,Number},
             wave_form_v_path :: String,

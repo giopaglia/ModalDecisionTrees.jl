@@ -332,6 +332,9 @@ function framesample(
 
     framesample(samples; winsize = winsize, stepsize = stepsize)
 end
+function framesample(samples_n_samplerate::Tuple{Vector{T},Real}; kwargs...)::Vector{Vector{T}} where T<:AbstractFloat
+    framesample(samples_n_samplerate...; kwargs...)
+end
 
 """
     approx_wav(samples, samplerate; mode = maximum, width = 1000.0, sacle_res = 1.0)
@@ -349,7 +352,7 @@ function approx_wav(
             mode       :: Function    = maximum,
             width      :: Real        = 1000.0,
             scale_res  :: Real        = 1.0
-        ):: Tuple{Vector{T}, Real} where T<:Real
+        ):: Tuple{Vector{T}, AbstractFloat} where T<:Real
 
     num_frames = ceil(Int64, (width * scale_res) / 2) + 1
 
@@ -373,12 +376,18 @@ function approx_wav(
 
     n, (samplerate * (length(n) / length(samples)))
 end
-function approx_wav(samples::Matrix, samplerate::Real; kwargs...)::Tuple{Vector{T}, Real} where T<:Real
+function approx_wav(samples::Matrix, samplerate::Real; kwargs...)::Tuple{Vector{T}, Real} where T<:AbstractFloat
     approx_wav(merge_channels(samples), samplerate; kwargs...)
 end
-function approx_wav(filepath::String; kwargs...)::Tuple{Vector{T}, Real} where T<:Real
+function approx_wav(filepath::String; kwargs...)::Tuple{Vector{T}, Real} where T<:AbstractFloat
     samples, samplerate = wavread(filepath)
     approx_wav(samples, samplerate; kwargs...)
+end
+function approx_wav(samples_n_samplerate::Tuple{Vector{T},Real}; kwargs...)::Tuple{Vector{T}, Real} where T<:AbstractFloat
+    approx_wav(samples_n_samplerate...; kwargs...)
+end
+function approx_wav(samples_n_samplerate::Tuple{Matrix{T},Real}; kwargs...)::Tuple{Vector{T}, Real} where T<:AbstractFloat
+    approx_wav(samples_n_samplerate...; kwargs...)
 end
 
 """
