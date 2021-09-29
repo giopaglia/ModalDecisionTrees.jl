@@ -159,7 +159,7 @@ function splitwav(
         splice!(postprocess_kwargs, (length(postprocess_kwargs) - length(postprocess)):length(postprocess_kwargs))
     end
 
-    for (pre_proc, pre_proc_kwargs) in collect(zip(preprocess, preprocess_kwargs))
+    Threads.@threads for (pre_proc, pre_proc_kwargs) in collect(zip(preprocess, preprocess_kwargs))
         pre_proc(samples; pre_proc_kwargs...)
     end
 
@@ -229,7 +229,7 @@ function splitwav(
     end
 
     results::Vector{Vector{T}} = Vector{Vector{T}}(undef, length(cut_points)-1)
-    for i in 2:(length(cut_points))
+    Threads.@threads for i in 2:(length(cut_points))
         # assumption: always good idea to cut first frame
         prev_cp = cut_points[i-1] + round(Int64, head_sensibility * head_strictness)
         curr_cp = cut_points[i]
@@ -238,7 +238,7 @@ function splitwav(
         results[i-1] = deepcopy(samples[left:right])
     end
 
-    for samps in results
+    Threads.@threads for samps in results
         for (post_proc, post_proc_kwargs) in collect(zip(postprocess, postprocess_kwargs))
             post_proc(samps; post_proc_kwargs...)
         end
@@ -248,6 +248,9 @@ function splitwav(
 end
 function splitwav(samples::Matrix{T}, samplerate::Real; kwargs...)::Tuple{Vector{Vector{T}}, Real} where T<:AbstractFloat
     splitwav(merge_channels(samples), samplerate; kwargs...)
+end
+function splitwav(samples_and_samplerate::Tuple{Vector{T}, Real}; kwargs...)::Tuple{Vector{Vector{T}}, Real} where T<:AbstractFloat
+    splitwav(samples_and_samplerate...; kwargs...)
 end
 function splitwav(filepath::String; kwargs...)::Tuple{Vector{Vector{AbstractFloat}}, Real}
     samples, samplerate = wavread(filepath)

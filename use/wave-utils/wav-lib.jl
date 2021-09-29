@@ -291,23 +291,18 @@ function FIRfreqz(b::Array; w = range(0, stop=π, length=1024))::Array{ComplexF3
 end
 
 """
-    framesample(samples, samplerate; winsize = 200, stepsize = 80)
     framesample(samples; winsize = 200, stepsize = 80)
     framesample(samples, samplerate; wintime = 0.025, steptime = 0.01, moving_averate_size = 1, moving_average_step = 1)
 
 Get a Vector of frames representing `samples`.
 
-Note: the first dispatch is the same as the second; the `samplerate`
-argument is presente just for consistency with the rest of the functions.
-In the third dispatch `samplerate` is used to calculate `winsize` and
-`stepsize` as follows:
+Note: difference between `{win,step}size` and `{win,step}time`:
 
 * `winsize` = `samplerate` * `wintime` * `moving_average_size`
 * `stepsize` = `samplerate` * `steptime` * `moving_average_step`
 """
 function framesample(
-            samples             :: Vector{T},
-            samplerate          :: Integer;
+            samples             :: Vector{T};
             winsize             :: Integer    = 200, # = 0.025 * 8_000 Hz
             stepsize            :: Integer    = 80   # = 0.01 * 8_000 Hz
         )::Vector{Vector{T}} where T<:AbstractFloat
@@ -316,15 +311,12 @@ function framesample(
 
     result = Vector{Vector{T}}(undef, nwin)
     Threads.@threads for (i, range) in collect(enumerate(frame2points(collect(1:nwin), winsize, stepsize)))
-    left = max(1, range.start)
-    right = min(length(samples), range.stop)
-    result[i] = deepcopy(samples[left:right])
+        left = max(1, range.start)
+        right = min(length(samples), range.stop)
+        result[i] = deepcopy(samples[left:right])
     end
 
     result
-end
-function framesample(samples::Vector{T}; winsize::Integer = 200, stepsize::Integer = 80)::Vector{Vector{T}} where T<:AbstractFloat
-    framesample(samples, 44100; winsize = winsize, stepsize = stepsize)
 end
 function framesample(
             samples             :: Vector{T},
@@ -338,7 +330,7 @@ function framesample(
     winsize::Int64 = round(Int64, moving_average_size * (wintime * samplerate))
     stepsize::Int64 = round(Int64, moving_average_step * (steptime * samplerate))
 
-    framesample(samples, samplerate; winsize = winsize, stepsize = stepsize)
+    framesample(samples; winsize = winsize, stepsize = stepsize)
 end
 
 """

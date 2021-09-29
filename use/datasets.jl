@@ -111,63 +111,118 @@ function generate_splitted_wavs_dataset(
 
 end
 
-# """
-#     process_dataset(dataset_dir_name, wav_paths; preprocess = [], postprocess = [], split_instances = false)
+"""
+    split_wavs_and_get_names(samples_n_samplerates, paths; splitwav_kwargs = ())
+    split_wavs_and_get_names(paths; splitwav_kwargs = ())
 
-# Process a dataset named `dataset_dir_name` using
-# `preprocess` splitting instances (if `split_instances`
-# is true) and then 
-# """
-# function process_dataset(
-#         dataset_dir_name :: String,
-#         wav_paths        :: Vector{String};
-#         preprocess       :: Vector{Tuple{Function,NamedTuple}} = Vector{Tuple{Function,NamedTuple}}(),
-#         postprocess      :: Vector{Tuple{Function,NamedTuple}} = Vector{Tuple{Function,NamedTuple}}(),
-#         split_instances  :: Bool                               = false
-#     )
+Call [`splitwav`](@ref) on all inputed WAVs and then return a filepath
+for each slice of the original wave following naming `ORIGINALPATH.split.[i].wav`.
+"""
+function split_wavs_and_get_names(
+            samples_n_samplerates :: Vector{Tuple{Vector{T},Real}},
+            paths                 :: Vector{String};
+            splitwav_kwargs       :: NamedTuple                    = NamedTuple()
+        )::Tuple{Vector{Tuple{Vector{T},Real}},Vector{String}} where T<:AbstractFloat
 
-#     @assert length(wav_paths) > 0 "No wav path passed"
+    results_sns = Vector{Tuple{Vector{T},Real}}()
+    results_paths = Vector{String}()
 
-#     function name_processing(type::String, pp::Vector{Tuple{Function,NamedTuple}})
-#         if length(pp) == 0 return "" end
+    sns_lock = Threads.Condition()
+    paths_lock = Threads.Condition()
+    # using these locks make sense because most of each iteration time will be spent in 'splitwav`
+    Threads.@threads for (sns, path) in collect(zip(samples_n_samplerates, paths))
+        wavs, samplerate = splitwav(sns; splitwav_kwargs...)
+        lock(sns_lock)
+        append!(results_sns, collect(zip(wavs, fill(samplerate, length(wavs)))))
+        unlock(sns_lock)
+        lock(paths_lock)
+        append!(results_paths, [ replace(path, r".wav$" => ".split.$(i).wav") for i in 1:length(wavs) ])
+        unlock(paths_lock)
+    end
 
-#         result = "$(type)["
-#         for p in pp
-#             result *= string(p[1], ",")
-#         end
-#         result = rstrip(result, ",")
-#         result *= "]"
+    @assert length(results_sns) == length(results_paths) "Mismatching length: length(results_sns) vs length(results_paths): $(length(results_sns)) != $(length(results_paths))"
 
-#         result
-#     end
+    results_sns, results_paths
+end
+function split_wavs_and_get_names(paths::Vector{String}; kwargs...)::Tuple{Tuple{Vector{AbstractFloat},Real},Vector{String}}
+    sns = Vector{Tuple{Vector{AbstractFloat},Real}}(undef, length(paths))
+    Threads.@threads for (i, p) in collect(enumerate(paths))
+        samples, samplerate = wavread(p)
+        sns[i] = (merge_channels(samples), samplerate)
+    end
+    split_wavs(sns, paths; kwargs...)
+end
 
-#     outdir = rstrip(data_dir, "/") * "/" * dataset_dir_name * "-" * name_processing("PREPROC", preprocess) * "-" * name_processing("POSTPROC", postprocess) * (split_instances ? "-splitted" : "")
+"""
+    process_dataset(dataset_dir_name, wav_paths; preprocess = [], postprocess = [], split_instances = false)
 
+Process a dataset named `dataset_dir_name` using
+`preprocess` splitting instances (if `split_instances`
+is true) and then 
+"""
+function process_dataset(
+        dataset_dir_name :: String,
+        wav_paths        :: Vector{String};
+        preprocess       :: Vector{Tuple{Function,NamedTuple}} = Vector{Tuple{Function,NamedTuple}}(),
+        postprocess      :: Vector{Tuple{Function,NamedTuple}} = Vector{Tuple{Function,NamedTuple}}(),
+        split_instances  :: Bool                               = false,
+        split_kwargs     :: NamedTuple                         = NamedTuple()
+    )
 
-#     samples_n_samplerates = Vector{Tuple{Vector{T},Real}}(undef, length(wav_paths))
-#     Threads.@threads for (i, path) in collect(enumerate(wav_paths))
-#         samples, samplerate = wavread(path)
-#         samples = merge_channels(samples)
+    @assert length(wav_paths) > 0 "No wav path passed"
 
-#         samples_n_samplerates[i] = (samples, samplerate)
-#     end
+    function name_processing(type::String, pp::Vector{Tuple{Function,NamedTuple}})
+        result = "$(type)["
+        for p in pp
+            result *= string(p[1], ",")
+        end
+        result = rstrip(result, ',')
+        result *= "]"
 
-#     for (prepf, prepkwargs) in preprocess
-#         prepf(dataset, prepkwargs...)
-#     end
+        result
+    end
 
-#     # do the eventual splitting
-#     if split_instances
-#     end
+    outdir = rstrip(data_dir, '/') * "/" * dataset_dir_name * "-" * name_processing("PREPROC", preprocess) * "-" * name_processing("POSTPROC", postprocess) * (split_instances ? "-inst-split" : "")
 
-#     for (postpf, postpkwargs) in postprocess
-#         postpf(dataset, postpkwargs...)
-#     end
+    # read wavs
+    samples_n_samplerates = Vector{Tuple{Vector{AbstractFloat},Real}}(undef, length(wav_paths))
+    Threads.@threads for (i, path) in collect(enumerate(wav_paths))
+        samples, samplerate = wavread(rstrip(data_dir, '/') * "/" * dataset_dir_name * "/" * path)
+        samples = merge_channels(samples)
 
-#     # save dataset in a new directory named accordingly to all parameters
-#     mkpath(outdir)
-# end
-# process_dataset(dataset_dir_name::String, wav_paths_func::Function; kwargs...) = process_dataset(dataset_dir_name, wav_paths_func(); kwargs...)
+        samples_n_samplerates[i] = (samples, samplerate)
+    end
+
+    # apply pre-process
+    Threads.@threads for sns in samples_n_samplerates
+        for (prepf, prepkwargs) in preprocess
+            prepf(sns[1], prepkwargs...)
+        end
+    end
+
+    # split
+    new_samples_n_samplerates, new_filepaths =
+        if split_instances
+            split_wavs_and_get_names(samples_n_samplerates, wav_paths; splitwav_kwargs = split_kwargs)
+        else
+            samples_n_samplerates, wav_paths
+        end
+
+    # apply post-process
+    Threads.@threads for sns in new_samples_n_samplerates
+        for (postpf, postpkwargs) in postprocess
+            postpf(sns[1], postpkwargs...)
+        end
+    end
+
+    # save
+    mkpath.(unique(map(p -> outdir * "/" * dirname(p), new_filepaths)))
+    Threads.@threads for (sns, path) in collect(zip(new_samples_n_samplerates, new_filepaths))
+        println("Writing file $(path)...")
+        wavwrite(sns[1], outdir * "/" * path; Fs = sns[2])
+    end
+end
+process_dataset(dataset_dir_name::String, wav_paths_func::Function; kwargs...) = process_dataset(dataset_dir_name, wav_paths_func(); kwargs...)
 
 # process_dataset("KDD", x -> load_from_jsonKDD(n_version, n_task), )
 
