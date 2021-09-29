@@ -335,7 +335,7 @@ function draw_spectrogram(
     total_heatmap_kwargs = merge(total_heatmap_kwargs, spectrogram_plot_options)
 
     if haskey(total_heatmap_kwargs, :size)
-        total_heatmap_kwargs = merge(spectrogram_plot_options, (:size = _make_it_even.(spectrogram_plot_options.size),))
+        total_heatmap_kwargs = merge(spectrogram_plot_options, (size = _make_it_even.(spectrogram_plot_options.size),))
     end
 
     spec = spectrogram(samples, nw_orig, round(Int64, nw_orig / 2); fs = samplerate)
