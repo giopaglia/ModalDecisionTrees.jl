@@ -31,9 +31,9 @@ display_rel_short(::_Topo_TPPi)  = "T̅P̅P̅"
 display_rel_short(::_Topo_NTPP)  = "NTPP"
 display_rel_short(::_Topo_NTPPi) = "N̅T̅P̅P̅"
 
-display_rel_short(::_Topo_DR)   = "DR"
-display_rel_short(::_Topo_PP)   = "PP"
-display_rel_short(::_Topo_PPi)  = "P̅P̅"
+display_rel_short(::_Topo_DR)    = "DR"
+display_rel_short(::_Topo_PP)    = "PP"
+display_rel_short(::_Topo_PPi)   = "P̅P̅"
 
 const RCC8Relations = [Topo_DC, Topo_EC, Topo_PO, Topo_TPP, Topo_TPPi, Topo_NTPP, Topo_NTPPi]
 const RCC5Relations = [Topo_DR, Topo_PO, Topo_PP, Topo_PPi]
