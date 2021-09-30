@@ -70,7 +70,7 @@ end
 A DynamicFilterDescriptor is a `Matrix{Integer}` representing
 the distribution of the Worlds on a per-band basis.
 """
-const DynamicFilterDescriptor = Matrix{Integer}
+const DynamicFilterDescriptor = Matrix{<:Integer}
 
 """
     n_chunks(dynamic_filter_descriptor)
@@ -90,7 +90,7 @@ Returns the number of `bands` in the `DynamicFilterDescriptor`.
 n_bands(dynamic_filter_descriptor::DynamicFilterDescriptor) = size(dynamic_filter_descriptor, 2)
 Base.show(io::IO, dynamic_filter_descriptor::DynamicFilterDescriptor) = begin
     for i in 1:n_bands(dynamic_filter_descriptor)
-        @printf(io, "A%2d ", i)
+        @printf(io, "A%3d ", i)
         for j in 1:n_chunks(dynamic_filter_descriptor)
             print(dynamic_filter_descriptor[j,i] == 1 ? "X" : "-")
         end
@@ -108,6 +108,19 @@ struct DynamicFilter{T} <: DSP.Filters.FilterType
     winsize    :: Int64
     stepsize   :: Int64
     filters    :: Vector{Vector{T}}
+    weights    :: Vector{AbstractFloat}
+    DynamicFilter(
+                descriptor :: DynamicFilterDescriptor,
+                samplerate :: Real,
+                winsize    :: Int64,
+                stepsize   :: Int64,
+                filters    :: Vector{Vector{T1}},
+                weights    :: Vector{T2}
+            ) where {T1<:AbstractFloat, T2<:AbstractFloat} = begin
+        @assert n_bands(descriptor) == length(filters) "Mismatching length of n_bands and filters. n_bands(descriptor) == length(filters): $(n_bands(descriptor)) != $(length(filters))"
+        @assert n_bands(descriptor) == length(weights) "Mismatching length of n_bands and weights. n_bands(descriptor) == length(weights): $(n_bands(descriptor)) != $(length(filters))"
+        new{T1}(descriptor, samplerate, winsize, stepsize, filters, weights)
+    end
 end
 Base.show(io::IO, dynamic_filter::DynamicFilter) = begin
     println(io,
@@ -117,11 +130,11 @@ Base.show(io::IO, dynamic_filter::DynamicFilter) = begin
         "Step size: ", dynamic_filter.stepsize
     )
     for i in 1:n_bands(dynamic_filter.descriptor)
-        @printf(io, "A%2d ", i)
+        @printf(io, "A%3d ", i)
         for j in 1:n_chunks(dynamic_filter.descriptor)
             print(dynamic_filter.descriptor[j,i] == 1 ? "X" : "-")
         end
-        println()
+        println(" w$(dynamic_filter.weights[i])")
     end
 end
 
@@ -163,7 +176,7 @@ filter_n_windows(dynamic_filter::DynamicFilter)::Int64 = length(dynamic_filter.f
 Get the `band_index`-th filter in the `dynamic_filter`.
 """
 function get_filter(dynamic_filter::DynamicFilter{T}, band_index::Int64)::AbstractVector{T} where T
-    dynamic_filter.filters[band_index]
+    dynamic_filter.filters[band_index] * dynamic_filter.weights[band_index]
 end
 function get_filter(dynamic_filter::DynamicFilter{T}, band_index::AbstractVector{Int64})::Vector{T} where T
     # combine filters to generate EQs
@@ -526,7 +539,7 @@ end
 
 # TODO: create dispatch of this function on presence of 'window_f` argument
 """
-    function digitalfilter_mel(band, samplerate, window_f = triang; nwin = 40, filter_type = Filters.Bandpass)
+    digitalfilter_mel(band, samplerate, window_f = triang; nwin = 40, filter_type = Filters.Bandpass)
 
 Create a digital `Bandpass` filter for `band`.
 """
@@ -535,7 +548,7 @@ function digitalfilter_mel(band::MelBand, samplerate::Real, window_f::Function =
 end
 
 """
-    function multibandpass_digitalfilter_mel(selected_bands, samplerate, window_f = triang; nbands = 40, minfreq = 0.0, maxfreq = samplerate / 2, nwin = nbands, weights = fill(1, length(selected_bands)))
+    multibandpass_digitalfilter_mel(selected_bands, samplerate, window_f = triang; nbands = 40, minfreq = 0.0, maxfreq = samplerate / 2, nwin = nbands, weights = fill(1, length(selected_bands)))
 
 Create a digital multi-`Bandpass` filter for `selected_bands`.
 
@@ -573,9 +586,6 @@ function multibandpass_digitalfilter_mel(
     result_filter
 end
 
-
-
-# TODO: dynamic_multibandpass_digitalfilter_mel and multibandpass_digitalfilter_mel function should have almost the same kwargs (except for nbands)
 """
     dynamic_multibandpass_digitalfilter_mel(decision_path, samplerate, winsize, stepsize, nbands; nchunks = -1, window_f = triang, minfreq = 0.0, maxfreq = samplerate / 2, nwin = nbands, weights = fill(1, length(nbands)))
 
@@ -605,7 +615,7 @@ function dynamic_multibandpass_digitalfilter_mel(
             minfreq            :: Real      = 0.0,
             maxfreq            :: Real      = samplerate / 2,
             nwin               :: Int64     = nbands,
-            weights            :: Vector{F} = fill(1.0, nbands) # TODO: suppor weights in dynamic_multibandpass_digitalfilter_mel
+            weights            :: Vector{F} = fill(1.0, nbands)
         )::DynamicFilter{<:AbstractFloat} where F <:AbstractFloat
 
     if nchunks < 0
@@ -635,7 +645,7 @@ function dynamic_multibandpass_digitalfilter_mel(
                 nwin = nwin,
             ) for i in 1:nbands ]
 
-    DynamicFilter(descriptor, samplerate, winsize, stepsize, filters)
+    DynamicFilter(descriptor, samplerate, winsize, stepsize, filters, weights)
 end
 
 ##############################################################
