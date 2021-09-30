@@ -202,7 +202,7 @@ function majority_vote(labels::AbstractVector; suppress_parity_warning = false)
 	end
 	counts = _hist(labels)
 	if !suppress_parity_warning && sum(counts[argmax(counts)] .== values(counts)) > 1
-		println("Warning: parity encountered in majority_vote.\nVector: $(labels)\nArgmax: $(argmax(counts))\nMax$(counts[argmax(counts)])")
+		println("Warning: parity encountered in majority_vote.\nVector ($(length(labels)) elements): $(labels)\nArgmax: $(argmax(counts))\nMax: $(counts[argmax(counts)]) (sum = $(sum(values(counts))))")
 	end
 	argmax(counts)
 end
@@ -226,7 +226,7 @@ function best_score(labels::AbstractVector{T}, weights::Union{Nothing,AbstractVe
 	end
 
 	if !suppress_parity_warning && sum(counts[argmax(counts)] .== values(counts)) > 1
-		println("Warning: parity encountered in best_score.\nVector: $(labels)\nArgmax: $(argmax(counts))\nMax$(counts[argmax(counts)])")
+		println("Warning: parity encountered in best_score.\nVector ($(length(labels)) elements): $(labels)\nArgmax: $(argmax(counts))\nMax: $(counts[argmax(counts)]) (sum = $(sum(values(counts))))")
 	end
 	return argmax(counts)
 end
