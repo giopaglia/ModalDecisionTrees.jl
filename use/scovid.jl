@@ -14,14 +14,14 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./covid/journal-v1"
+results_dir = "./covid/journal-v2-fbtype-ontology"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/cache"
 model_savedir = results_dir * "/trees"
 
-dry_run = false
-#dry_run = :dataset_only
+# dry_run = false
+dry_run = :dataset_only
 # dry_run = true
 
 # save_datasets = true
@@ -70,12 +70,14 @@ println(" $(length(tree_args)) trees")
 ################################################################################
 
 forest_runs = 5
-optimize_forest_computation = true
+optimize_forest_computation = false
+# optimize_forest_computation = true
 
 
 forest_args = []
 
-for n_trees in [50,100]
+# for n_trees in [50,100]
+for n_trees in [50]
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
       for partial_sampling in [0.7]
@@ -111,7 +113,7 @@ modal_args = (;
 )
 
 data_modal_args = (;
-	ontology = getIntervalOntologyOfDim(Val(1)),
+	# ontology = getIntervalOntologyOfDim(Val(1)),
 	# ontology = getIntervalOntologyOfDim(Val(2)),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A]),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A, ModalLogic.IA_L, ModalLogic.IA_Li, ModalLogic.IA_D]),
@@ -181,7 +183,10 @@ exec_n_task_use_aug_n_ver_preprocess = [
 # 	#(3, false),
 # ]
 # exec_n_versions = [3] #1:3
-exec_nbands = [20,40,60,30,50] # [20,40,60]
+
+exec_fbtype = [:mel, :htkmel, :fcmel] #, :semitone]
+
+exec_nbands = [30] # [20,40,60]
 # exec_nbands = [40] # [20,40,60]
 
 exec_dataset_kwargs =   [(
@@ -219,10 +224,10 @@ exec_dataset_kwargs =   [(
 						)
 						]
 
-audio_kwargs_partial_mfcc(max_sample_rate,nbands) = (
+audio_kwargs_partial_mfcc(max_sample_rate,nbands,fbtype) = (
 	wintime = 0.025, # in ms          # 0.020-0.040
 	steptime = 0.010, # in ms         # 0.010-0.015
-	fbtype = :mel,                    # [:mel, :htkmel, :fcmel]
+	fbtype = fbtype, # :mel                   # [:mel, :htkmel, :fcmel]
 	# window_f = DSP.hamming, # [DSP.hamming, (nwin)->DSP.tukey(nwin, 0.25)]
 	window_f = DSP.triang,
 	pre_emphasis = 0.97,              # any, 0 (no pre_emphasis)
@@ -235,7 +240,7 @@ audio_kwargs_partial_mfcc(max_sample_rate,nbands) = (
 	# usecmp = false,
 )
 
-audio_kwargs_full_mfcc(max_sample_rate,nbands) = (
+audio_kwargs_full_mfcc(max_sample_rate,nbands,fbtype) = (
 	wintime=0.025,
 	steptime=0.01,
 	numcep=13,
@@ -249,7 +254,7 @@ audio_kwargs_full_mfcc(max_sample_rate,nbands) = (
 	nbands=nbands,
 	bwidth=1.0,
 	dcttype=3,
-	fbtype=:htkmel,
+	fbtype=fbtype, # :htkmel
 	usecmp=false,
 	modelorder=0
 )
@@ -283,8 +288,19 @@ test_operators_dict = Dict(
 	"TestOp"    => [TestOpGeq,    TestOpLeq],
 )
 
+exec_ontology = [ "IA", "IA7", "IA3", ]
+
+ontology_dict = Dict(
+	"-"     => ModalLogic.OneWorldOntology,
+	"IA"    => getIntervalOntologyOfDim(Val(1)),
+	"IA7"   => Ontology{ModalLogic.Interval}(ModalLogic.IA7Relations),
+	"IA3"   => Ontology{ModalLogic.Interval}(ModalLogic.IA3Relations),
+	"IA2D"  => getIntervalOntologyOfDim(Val(2)),
+)
+
 
 exec_ranges = (; # Order: faster-changing to slower-changing
+	fbtype               = exec_fbtype,
 	exec_max_sample_rate = exec_max_sample_rate,
 	use_training_form    = exec_use_training_form,
 	exec_n_task_use_aug_n_ver_preprocess       = exec_n_task_use_aug_n_ver_preprocess,
@@ -295,6 +311,7 @@ exec_ranges = (; # Order: faster-changing to slower-changing
 	use_full_mfcc        = exec_use_full_mfcc,
 	# preprocess_wavs      = exec_preprocess_wavs,
 	test_operators       = exec_test_operators,
+	ontology             = exec_ontology,
 )
 
 dataset_function = (
@@ -410,21 +427,24 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	##############################################################################
 	
+	fbtype,
 	max_sample_rate,
 	use_training_form,
 	(n_task, use_aug, n_version, preprocess_wavs),
 	nbands,
 	dataset_kwargs,
 	use_full_mfcc,
-	test_operators = params_combination
+	test_operators,
+	ontology = params_combination
 	
 	test_operators = test_operators_dict[test_operators]
+	ontology       = ontology_dict[ontology]
 
 	cur_audio_kwargs = merge(
 		if use_full_mfcc
-			audio_kwargs_full_mfcc(max_sample_rate, nbands)
+			audio_kwargs_full_mfcc(max_sample_rate, nbands, fbtype)
 		else
-			audio_kwargs_partial_mfcc(max_sample_rate, nbands)
+			audio_kwargs_partial_mfcc(max_sample_rate, nbands, fbtype)
 		end
 		, (;))
 
@@ -435,6 +455,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	cur_data_modal_args = merge(data_modal_args,
 		(
 			test_operators = test_operators,
+			ontology       = ontology,
 		)
 	)
 

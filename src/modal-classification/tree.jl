@@ -84,7 +84,7 @@ module treeclassifier
 		indX                  :: AbstractVector{<:Integer},   # an array of sample indices (we split using samples in indX[node.region])
 		n_classes             :: Int,
 		####################
-		perform_consistency_check :: Bool,
+		_perform_consistency_check :: Union{Val{true},Val{false}},
 		####################
 		writing_lock          :: Threads.Condition,
 		####################
@@ -147,12 +147,9 @@ module treeclassifier
 		best_feature = FeatureTypeNone
 		best_test_operator = nothing
 		best_threshold = nothing
-		consistency_sat_check =
-			if perform_consistency_check
-				Vector{Bool}(undef, n_instances)
-			else
-				nothing
-			end
+		if isa(_perform_consistency_check,Val{true})
+			consistency_sat_check = Vector{Bool}(undef, n_instances)
+		end
 		best_consistency = nothing
 		
 		#####################
@@ -225,7 +222,7 @@ module treeclassifier
 				# Re-initialize right class counts
 				nr = zero(U)
 				ncr = fill(zero(U), n_classes)
-				if isa(consistency_sat_check,Vector)
+				if isa(_perform_consistency_check,Val{true})
 					consistency_sat_check[1:n_instances] .= 1
 				end
 				for i_instance in 1:n_instances
@@ -238,7 +235,7 @@ module treeclassifier
 						nr += Wf[i_instance]
 						ncr[Yf[i_instance]] += Wf[i_instance]
 					else
-						if isa(consistency_sat_check,Vector)
+						if isa(_perform_consistency_check,Val{true})
 							consistency_sat_check[i_instance] = 0
 						end
 					end
@@ -268,7 +265,7 @@ module treeclassifier
 						# println(" NEW BEST $best_frame, $best_purity__nt/nt")
 						@logmsg DTDetail "  Found new optimum in frame $(best_frame): " (best_purity__nt/nt) best_relation best_feature best_test_operator best_threshold
 						#################################
-						best_consistency  = if isa(consistency_sat_check,Vector)
+						best_consistency  = if isa(_perform_consistency_check,Val{true})
 								consistency_sat_check[1:n_instances]
 							else
 								nr
@@ -337,7 +334,7 @@ module treeclassifier
 			end
 			
 			# Check consistency
-			consistency = if isa(consistency_sat_check,Vector)
+			consistency = if isa(_perform_consistency_check,Val{true})
 					unsatisfied_flags
 				else
 					sum(unsatisfied_flags)
@@ -346,8 +343,8 @@ module treeclassifier
 			if best_consistency != consistency
 				errStr = "Something's wrong with the optimization steps.\n"
 				errStr *= "Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(node.i_frame) with decision: $(decision_str), purity $(best_purity)\n"
-				errStr *= "Different separation was expected:\n"
-				if isa(consistency_sat_check,Vector)
+				errStr *= "Different partition was expected:\n"
+				if isa(_perform_consistency_check,Val{true})
 					errStr *= "Actual: $(consistency) ($(sum(consistency)))\n"
 					errStr *= "Expected: $(best_consistency) ($(sum(best_consistency)))\n"
 					diff = best_consistency.-consistency
@@ -602,7 +599,7 @@ module treeclassifier
 			initConditions          :: Vector{<:DecisionTree._initCondition},
 			useRelationGlob         :: Vector{Bool},
 			##########################################################################
-			perform_consistency_check :: Bool,
+			_perform_consistency_check :: Union{Val{true},Val{false}},
 			##########################################################################
 			rng = Random.GLOBAL_RNG :: Random.AbstractRNG
 		) where {U}
@@ -664,7 +661,7 @@ module treeclassifier
 					indX,
 					n_classes,
 					######################################################################
-					perform_consistency_check,
+					_perform_consistency_check,
 					######################################################################
 					writing_lock,
 					######################################################################
@@ -765,7 +762,7 @@ module treeclassifier
 				initConditions,
 				useRelationGlob,
 				########################################################################
-				perform_consistency_check,
+				Val(perform_consistency_check),
 				########################################################################
 				rng,
 		)
