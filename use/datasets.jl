@@ -167,7 +167,7 @@ function process_dataset(
             preprocess           :: Vector{Tuple{Function,NamedTuple}} = Vector{Tuple{Function,NamedTuple}}(),
             postprocess          :: Vector{Tuple{Function,NamedTuple}} = Vector{Tuple{Function,NamedTuple}}(),
             partition_instances  :: Bool                               = false,
-            split_kwargs         :: NamedTuple                         = (preprocess = Vector{Function}(), postprocess = Vector{Function}())
+            split_kwargs         :: NamedTuple                         = (cut_original = Val(true), preprocess = Vector{Function}(), postprocess = Vector{Function}())
         )
 
     @assert length(wav_paths) > 0 "No wav path passed"

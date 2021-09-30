@@ -126,20 +126,26 @@ wave before any cutting is performed.
 * `postprocess` (parameterizable using `postprocess_kwargs`)
 is a vector of effects that will be applied to the resulting
 waves, after the cutting.
+
+If `cut_original` is `Val(true)` the cutting will be performed
+to the original samples: the `postprocess` parameter will be
+ignored and the `preprocess` will be applied only to the correct
+application of the algorithm but not to the resulting waves.
 """
 function splitwav(
             samples               :: Vector{T},
             samplerate            :: Real;
-            wintime               :: Real                 = 0.05,
-            steptime              :: Real                 = wintime / 2,
-            use_last_non_peak_rms :: Bool                 = false,
-            head_sensibility      :: Int64                = 10,
-            head_strictness       :: Real                 = 0.7,
-            minimum_time          :: Real                 = 0.15,
-            preprocess            :: Vector{Function}     = Vector{Function}([ noise_gate!, normalize! ]),
-            preprocess_kwargs     :: Vector{NamedTuple}   = Vector{NamedTuple}([ (level = 0.005,), (level = 1.0,) ]),
-            postprocess           :: Vector{Function}     = Vector{Function}([ noise_gate!, normalize!, trim_wav!, remove_long_silences! ]),
-            postprocess_kwargs    :: Vector{NamedTuple}   = Vector{NamedTuple}([ (level = 0.01,), (level = 1.0,), (level = 0.0,), (level = 0.005,) ])
+            wintime               :: Real                        = 0.05,
+            steptime              :: Real                        = wintime / 2,
+            use_last_non_peak_rms :: Bool                        = false,
+            head_sensibility      :: Int64                       = 10,
+            head_strictness       :: Real                        = 0.7,
+            minimum_time          :: Real                        = 0.15,
+            cut_original          :: Union{Val{true},Val{false}} = Val(false),
+            preprocess            :: Vector{Function}            = Vector{Function}([ noise_gate!, normalize! ]),
+            preprocess_kwargs     :: Vector{NamedTuple}          = Vector{NamedTuple}([ (level = 0.005,), (level = 1.0,) ]),
+            postprocess           :: Vector{Function}            = Vector{Function}([ noise_gate!, normalize!, trim_wav!, remove_long_silences! ]),
+            postprocess_kwargs    :: Vector{NamedTuple}          = Vector{NamedTuple}([ (level = 0.01,), (level = 1.0,), (level = 0.0,), (level = 0.005,) ])
         )::Tuple{Vector{Vector{T}}, Real} where {T<:AbstractFloat}
 
     if head_sensibility < 2
@@ -157,6 +163,10 @@ function splitwav(
         append!(postprocess_kwargs, fill(NamedTuple(), length(postprocess) - length(postprocess_kwargs)))
     elseif length(postprocess) < length(postprocess_kwargs)
         splice!(postprocess_kwargs, (length(postprocess_kwargs) - length(postprocess)):length(postprocess_kwargs))
+    end
+
+    if cut_original isa Val{true}
+        original = deepcopy(samples)
     end
 
     Threads.@threads for (pre_proc, pre_proc_kwargs) in collect(zip(preprocess, preprocess_kwargs))
@@ -235,12 +245,19 @@ function splitwav(
         curr_cp = cut_points[i]
         left = max(1, frame2points(prev_cp, wintime, steptime, samplerate).start)
         right = min(frame2points(curr_cp, wintime, steptime, samplerate).stop, length(samples))
-        results[i-1] = deepcopy(samples[left:right])
+        results[i-1] =
+            if cut_original isa Val{true}
+                deepcopy(original[left:right])
+            else
+                deepcopy(samples[left:right])
+            end
     end
 
-    Threads.@threads for samps in results
-        for (post_proc, post_proc_kwargs) in collect(zip(postprocess, postprocess_kwargs))
-            post_proc(samps; post_proc_kwargs...)
+    if cut_original isa Val{false}
+        Threads.@threads for samps in results
+            for (post_proc, post_proc_kwargs) in collect(zip(postprocess, postprocess_kwargs))
+                post_proc(samps; post_proc_kwargs...)
+            end
         end
     end
 
