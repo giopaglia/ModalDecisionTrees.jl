@@ -23,6 +23,52 @@ using WAV
 using MFCC
 using MFCC: fft2barkmx, fft2melmx
 
+
+function hz2semitone(f::Vector{T}, base_freq) where {T<:AbstractFloat}
+	12 .* log2.(f./base_freq)
+end
+hz2semitone(f::AbstractFloat, base_freq)  = hz2semitone([f], base_freq)[1]
+
+function semitone2hz(z::Vector{T}, base_freq) where {T<:AbstractFloat}
+	# z .= 12 .* log2.(f./base_freq)
+	# z ./ 12 .= log2.(f./base_freq)
+	# 2 .^ (z ./ 12) .= (f./base_freq)
+	base_freq .* (2 .^ (z ./ 12))
+end
+semitone2hz(f::AbstractFloat, base_freq)  = semitone2hz([f], base_freq)[1]
+
+
+TODOMMMMMM = 0.1
+
+function my_fft2semitonemx(nfft::Int, nfilts::Int; sr=8000.0, width=1.0, minfreq=TODOMMMMMM, maxfreq=sr/2, base_freq=nothing)
+	wts=zeros(nfilts, nfft)
+	# Center freqs of each DFT bin
+	fftfreqs = collect(0:nfft-1) / nfft * sr;
+	# 'Center freqs' of semitone bands - uniformly spaced between limits
+	minsemitone = hz2semitone(minfreq, base_freq);
+	maxsemitone = hz2semitone(maxfreq, base_freq);
+	binfreqs = semitone2hz(minsemitone .+ collect(0:(nfilts+1)) / (nfilts+1) * (maxsemitone-minsemitone), base_freq);
+
+	# println(minsemitone)
+	# println(maxsemitone)
+
+	for i in 1:nfilts
+		fs = binfreqs[i .+ (0:2)]
+		# scale by width
+		fs = fs[2] .+ (fs .- fs[2])width
+		# lower and upper slopes for all bins
+		loslope = (fftfreqs .- fs[1]) / (fs[2] - fs[1])
+		hislope = (fs[3] .- fftfreqs) / (fs[3] - fs[2])
+		# then intersect them with each other and zero
+		wts[i,:] = max.(0, min.(loslope, hislope))
+	end
+
+	# Make sure 2nd half of DFT is zero
+	wts[:, (nfft>>1)+1:nfft] .= 0.
+	return wts
+end
+
+
 function my_powspec(x::Vector{T}, sr::Real=8000.0; wintime=0.025, steptime=0.01, dither=true, window_f::Function) where {T<:AbstractFloat}
 	nwin = round(Integer, wintime * sr)
 	nstep = round(Integer, steptime * sr)
@@ -41,41 +87,50 @@ end
 
 # audspec tested against octave with simple vectors for all fbtypes
 function my_audspec(x::Matrix{T}, sr::Real=16000.0; nfilts=ceil(Int, hz2bark(sr/2)), fbtype=:bark,
-                 minfreq=0., maxfreq=sr/2, sumpower=true, bwidth=1.0) where {T<:AbstractFloat}
-    nfreqs, nframes = size(x)
-    nfft = 2(nfreqs-1)
-    if fbtype == :bark
-        wts = fft2barkmx(nfft, nfilts, sr=sr, width=bwidth, minfreq=minfreq, maxfreq=maxfreq)
-    elseif fbtype == :mel
-        wts = fft2melmx(nfft, nfilts, sr=sr, width=bwidth, minfreq=minfreq, maxfreq=maxfreq)
-    elseif fbtype == :htkmel
-        wts = fft2melmx(nfft, nfilts, sr=sr, width=bwidth, minfreq=minfreq, maxfreq=maxfreq,
-                        htkmel=true, constamp=true)
-    elseif fbtype == :fcmel
-        wts = fft2melmx(nfft, nfilts, sr=sr, width=bwidth, minfreq=minfreq, maxfreq=maxfreq,
-                        htkmel=true, constamp=false)
-    else
-        error("Unknown filterbank type ", fbtype)
-    end
-    wts = wts[:, 1:nfreqs]
-    if sumpower
-        return wts * x
-    else
-        return (wts * sqrt.(x)).^2
-    end
+				 minfreq=0., maxfreq=sr/2, sumpower=true, bwidth=1.0, base_freq=nothing) where {T<:AbstractFloat}
+	nfreqs, nframes = size(x)
+	nfft = 2(nfreqs-1)
+	wts =
+		if fbtype == :bark
+			fft2barkmx(nfft, nfilts, sr=sr, width=bwidth, minfreq=minfreq, maxfreq=maxfreq)
+		elseif fbtype == :mel
+			fft2melmx(nfft, nfilts, sr=sr, width=bwidth, minfreq=minfreq, maxfreq=maxfreq)
+		elseif fbtype == :htkmel
+			fft2melmx(nfft, nfilts, sr=sr, width=bwidth, minfreq=minfreq, maxfreq=maxfreq,
+				htkmel=true, constamp=true)
+		elseif fbtype == :fcmel
+			fft2melmx(nfft, nfilts, sr=sr, width=bwidth, minfreq=minfreq, maxfreq=maxfreq,
+				htkmel=true, constamp=false)
+		elseif fbtype == :semitone
+			my_fft2semitonemx(nfft, nfilts, sr=sr, width=bwidth, minfreq=minfreq, maxfreq=maxfreq, base_freq=base_freq)
+		else
+			error("Unknown filterbank type: $(fbtype)")
+		end
+	wts = wts[:, 1:nfreqs]
+	if sumpower
+		return wts * x
+	else
+		return (wts * sqrt.(x)).^2
+	end
 end
 
 function my_stft(x::Vector{T}, sr::Real=16000.0; wintime=0.025, steptime=0.01,
-              sumpower=false, pre_emphasis=0.97, dither=false, minfreq=0.0, maxfreq=sr/2,
-              nbands=20, bwidth=1.0, fbtype=:htkmel,
-              usecmp=false, window_f=hamming
-              # , do_log = false
-              ) where {T<:AbstractFloat}
+			  sumpower=false, pre_emphasis=0.97, dither=false, minfreq=0.0, maxfreq=sr/2,
+			  nbands=20, bwidth=1.0, fbtype=:htkmel,
+			  usecmp=false, window_f=hamming,
+			  base_freq=nothing,
+			  # , do_log = false
+			  ) where {T<:AbstractFloat}
 	if (pre_emphasis != 0)
 		x = filt(PolynomialRatio([1., -pre_emphasis], [1.]), x)
 	end
 	pspec = my_powspec(x, sr, wintime=wintime, steptime=steptime, dither=dither, window_f=window_f)
-	aspec = my_audspec(pspec, sr, nfilts=nbands, fbtype=fbtype, minfreq=minfreq, maxfreq=maxfreq, sumpower=sumpower, bwidth=bwidth)
+	
+	# println(size(pspec))
+	# heatmap(pspec)
+	# display(plot!())
+
+	aspec = my_audspec(pspec, sr, nfilts=nbands, fbtype=fbtype, minfreq=minfreq, maxfreq=maxfreq, sumpower=sumpower, bwidth=bwidth, base_freq=base_freq)
 	# if do_log log.(aspec) else aspec end
 	# log.(aspec)
 end
@@ -89,15 +144,15 @@ function wav2stft_time_series(filepath, kwargs; preprocess_sample::AbstractVecto
 	for pps in preprocess_sample
 		pps(samps)
 	end
-        
+		
 	if ! (maximum(abs, samps) > 0.0)
-                println("ERROR: File $(filepath) has max peak 0!")
-            return nothing
-        end
+				println("ERROR: File $(filepath) has max peak 0!")
+			return nothing
+		end
 	if any(isnan.(samps))
-                println("ERROR: File $(filepath) has a NaN value!")
-            return nothing
-        end
+				println("ERROR: File $(filepath) has a NaN value!")
+			return nothing
+		end
 
 	# wintime = 0.025 # ms
 	# steptime = 0.010 # ms
