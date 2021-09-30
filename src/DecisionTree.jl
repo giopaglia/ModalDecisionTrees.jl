@@ -750,7 +750,7 @@ apply_tree_proba(tree::DTNode, features::AbstractMatrix{S}, labels) =
 =#
 
 # use an array of trees to test features
-function apply_trees(trees::AbstractVector{DTree{S}}, X::GenericDataset; tree_weights::Union{AbstractVector{Z},Nothing} = nothing) where {S, Z<:Real}
+function apply_trees(trees::AbstractVector{DTree{S}}, X::GenericDataset; suppress_parity_warning = false, tree_weights::Union{AbstractVector{Z},Nothing} = nothing) where {S, Z<:Real}
 	@logmsg DTDetail "apply_trees..."
 	n_trees = length(trees)
 	n_instances = n_samples(X)
@@ -759,26 +759,30 @@ function apply_trees(trees::AbstractVector{DTree{S}}, X::GenericDataset; tree_we
 		@assert length(trees) === length(tree_weights) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
 	end
 
+	# apply each tree to the whole dataset
 	votes = Matrix{S}(undef, n_trees, n_instances)
 	for i_tree in 1:n_trees
 		votes[i_tree,:] = apply_tree(trees[i_tree], X)
 	end
 
+	# for each instance, aggregate the votes
 	predictions = Vector{S}(undef, n_instances)
 	Threads.@threads for i in 1:n_instances
-		if S <: Float64
-			@error "apply_trees need a code expansion. The case is S = $(S) <: Float64"
-			if isnothing(tree_weights)
-				predictions[i] = mean(votes[:,i])
-			else
-				weighted_votes = Vector{N}()
-				for j in 1:length(votes[:,i])
-					weighted_votes = votes[j,i] * tree_weights[j]
+		predictions[i] = begin
+			if S <: Float64
+				@error "apply_trees need a code expansion. The case is S = $(S) <: Float64"
+				if isnothing(tree_weights)
+					mean(votes[:,i])
+				else
+					weighted_votes = Vector{N}()
+					for j in 1:length(votes[:,i])
+						weighted_votes = votes[j,i] * tree_weights[j]
+					end
+					mean(weighted_votes)
 				end
-				predictions[i] = mean(weighted_votes)
+			else
+				best_score(votes[:,i], tree_weights; suppress_parity_warning = suppress_parity_warning)
 			end
-		else
-			predictions[i] = best_score(votes[:,i], tree_weights)
 		end
 	end
 
