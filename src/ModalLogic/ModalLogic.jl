@@ -1536,7 +1536,7 @@ function modal_step(
 	# TODO space for optimization here: with some relations (e.g. IA_A, IA_L) can be made smaller
 
 	if returns_survivors isa Val{true}
-		worlds_map = Dict{AbstractWorld,WorldSetType}()
+		worlds_map = Dict{AbstractWorld,AbstractWorldSet{WorldType}}()
 	end
 	if length(worlds) == 0
 		# If there are no neighboring worlds, then the modal decision is not met
@@ -1550,9 +1550,8 @@ function modal_step(
 		# List all accessible worlds
 		acc_worlds = 
 			if returns_survivors isa Val{true}
-				#Threads.@threads 
-				for curr_w in worlds
-					worlds_map[curr_w] = collect(acc_function(X, i_instance)(curr_w, relation))
+				Threads.@threads for curr_w in worlds
+					worlds_map[curr_w] = acc_function(X, i_instance)(curr_w, relation)
 				end
 				unique(cat([ worlds_map[k] for k in keys(worlds_map) ]...; dims = 1))
 			else
