@@ -70,12 +70,14 @@ println(" $(length(tree_args)) trees")
 ################################################################################
 
 forest_runs = 5
-optimize_forest_computation = true
+optimize_forest_computation = false
+# optimize_forest_computation = true
 
 
 forest_args = []
 
-for n_trees in [50,100]
+# for n_trees in [50,100]
+for n_trees in [50]
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
       for partial_sampling in [0.7]
