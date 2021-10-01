@@ -43,6 +43,9 @@ label =
     end
 args = filter(x -> !(x == "-p" || x == "-n"), args)
 
+testing = "-t" in args
+args = filter(x -> !(x == "-t"), args)
+
 if length(args) == 0
     println(stderr, "ERROR: No filepath passed")
     usage(stderr)
@@ -72,6 +75,7 @@ using FileIO
 
 include("wav-filtering.jl")
 include("paper-trees.jl")
+include("load-models.jl")
 
 gr()
 
@@ -107,11 +111,17 @@ use_full_mfcc = false
 max_points = 30
 ignore_max_points = false
 
-# hash, tree, nbands, preprocess_wavs, max_points, ma_size, ma_step
-cough =  ("τ1", τ1, 60, [ normalize! ], 30, 75, 50)
-        #("τ2", τ2, 40, [], 30, 75, 50)
-breath = ("τ3", τ3, 40, [], 30, 45, 30)
-# breath = ("τ3", τ3, 40, [ normalize! ], 30, 45, 30)
+include("test-wav-models.jl")
+
+selected_test = model_sets[2]
+cough_model_hash = selected_test.hashes_1_1[6]
+breath_model_hash = selected_test.hashes_1_2[1]
+proper_model_list = type == :breath ? selected_test.hashes_1_2 : selected_test.hashes_1_1
+model_save_dir = "models/trees"
+
+# hash, tree
+cough =  (cough_model_hash, load_model(cough_model_hash, model_save_dir), selected_test.parameters...)
+breath = (breath_model_hash, load_model(breath_model_hash, model_save_dir), selected_test.parameters...)
 
 tree_hash, tree, nbands, preprocess_wavs, max_points, ma_size, ma_step = type == :breath ? breath : cough
 
@@ -171,19 +181,29 @@ n_unique_freqs = n_unique_freqs[1]
 X = compute_X(max_timepoints, n_unique_freqs, [ ts ], 1)
 X = X_dataset_c("test", data_modal_args, [X], modal_args, false, dataset_form, false)
 
-result = apply_tree(tree, X)[1]
-if isnothing(label)
-    label = result
+if testing
+    for hash in proper_model_list
+        println(
+            "Testing model: ",
+            hash, "\n",
+            "Result:\n\t",
+            startswith(apply_model(load_model(hash, model_save_dir), X)[1], "YES") ? "\tPOSITIVE" : "\tNEGATIVE", "\n"
+        )
+    end
+else
+    result = apply_model(tree, X)[1]
+    if isnothing(label)
+        label = result
+    end
+
+    result_str = startswith(result, "YES") ? "POSITIVE" : "NEGATIVE"
+
+    banner = "##########################################"
+    pre_post_banner = floor(Int64, (length(banner) - length(result_str) - 2) / 2)
+    println(banner)
+    println("#"^pre_post_banner, " ", result_str, " ", "#"^pre_post_banner)
+    println(banner)
 end
-
-result_str = result == "YES" ? "POSITIVE" : "NEGATIVE"
-
-banner = "##########################################"
-pre_post_banner = floor(Int64, (length(banner) - length(result_str) - 2) / 2)
-println(banner)
-println("#"^pre_post_banner, " ", result_str, " ", "#"^pre_post_banner)
-println(banner)
-
 # results, spectrograms = apply_tree_to_datasets_wavs(
 #     tree_hash,
 #     tree,

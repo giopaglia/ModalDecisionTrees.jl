@@ -9,9 +9,9 @@ include("paper-trees.jl")
 gr()
 
 # SETTINGS
-input_dir = "filtering-results-paper/filtered"
+input_dir = "filtering-results-paper-dynamic-filters/filtered"
 app_dir = homedir() * "/" * "PycharmProjects/covid-detector/"
-outpath = app_dir * "/generated-media"
+outpath = "filtering-results-paper-dynamic-filters"
 cache_dir = outpath * "/cache"
 filtered_destination_dir = outpath * "/filtered"
 presentation_output_suffix = "/presentation"
@@ -101,8 +101,8 @@ stepsize_pos = round(Int64, (steptime * ma_step * pos_sr))
 winsize_neg = round(Int64, (wintime * ma_size * neg_sr))
 stepsize_neg = round(Int64, (steptime * ma_step * neg_sr))
 
-wav_descriptor_pos, points_pos, seconds_pos = get_points_and_seconds_from_worlds(res_pos[1].worlds, winsize_pos, stepsize_pos, length(pos_samples), pos_sr)
-wav_descriptor_neg, points_neg, seconds_neg = get_points_and_seconds_from_worlds(res_neg[1].worlds, winsize_neg, stepsize_neg, length(neg_samples), neg_sr)
+wav_descriptor_pos, points_pos, seconds_pos = get_points_and_seconds_from_worlds(res_pos[end].worlds, winsize_pos, stepsize_pos, length(pos_samples), pos_sr)
+wav_descriptor_neg, points_neg, seconds_neg = get_points_and_seconds_from_worlds(res_neg[end].worlds, winsize_neg, stepsize_neg, length(neg_samples), neg_sr)
 
 println("Positive intervals (seconds): ", seconds_pos)
 println("Negative intervals (seconds): ", seconds_neg)
@@ -174,16 +174,15 @@ for inst in (pos, neg)
     A32_samp = merge_channels(A32_samp)
     A38_samp = merge_channels(A38_samp)
 
-    A38_exagerated = normalize!(deepcopy(A38_samp); level = filtered_normalization_level)
-    A38_only_worlds = [ Int64(inst.wav_descriptor[i]) * s for (i, s) in enumerate(A38_exagerated) ]
+    filtered_exagerated = normalize!(deepcopy(filtered_samp); level = filtered_normalization_level)
 
     filtered_samp .*= norm_rate
     A32_samp .*= norm_rate
     A38_samp .*= norm_rate
 
-    exagerated_tmp = "/tmp/DecisionTree.jl_tmp/A38_exagerated.wav"
+    exagerated_tmp = "/tmp/DecisionTree.jl_tmp/filtered_exagerated.wav"
     mkpath(dirname(exagerated_tmp))
-    wavwrite(A38_exagerated, exagerated_tmp)
+    wavwrite(filtered_exagerated, exagerated_tmp; Fs = original_sr)
 
     # 1) original's video
     draw_wave_anim(
@@ -191,7 +190,8 @@ for inst in (pos, neg)
         outfile = inst.output.gif_original_path,
         colors = [ RGB(0.3, 0.3, 1) ],
         resample_at_rate = max_sample_rate,
-        fps = anim_fps
+        fps = anim_fps,
+        wav_approximation_scale = 2.0
     )
     generate_video(
         inst.output.gif_original_path,
@@ -206,12 +206,13 @@ for inst in (pos, neg)
     )
     # 2) filtered videos
     draw_wave_anim(
-        [ (A38_exagerated, original_sr), (A38_only_worlds, original_sr) ];
-        # labels = [ "Filtered " * inst.string ],
+        [ (orig_norm, original_sr), (filtered_exagerated, original_sr) ];
+        labels = [ "Filtered " * inst.string, "" ],
         outfile = inst.output.gif_filtered_path,
         colors = [ RGB(1, 0.3, 0.3), RGB(0.3, 0.3, 1.0) ],
         resample_at_rate = max_sample_rate,
         fps = anim_fps,
+        wav_approximation_scale = 2.0,
         single_graph = true
     )
     generate_video(

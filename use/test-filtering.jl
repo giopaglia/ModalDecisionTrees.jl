@@ -177,7 +177,7 @@ apply_tree_to_datasets_wavs(
 # savefig(heatmap_png_path)
 
 # # GENERATE GIF
-# draw_audio_anim(
+# draw_wave_anim(
 #     [ (samps_covid, sr_covid), (filtered_covid, sr_covid), [ (single_band_wavs[i][3], sr_covid) for i in 1:length(single_band_wavs) ]... ],
 #     labels = [ "Original", "Filtered", [ string("A", single_band_wavs[i][1]) for i in 1:length(single_band_wavs) ]... ],
 #     colors = [ RGB(.3, .3, 1), RGB(1, .3, .3), features_colors[selected_features]...],

@@ -1526,13 +1526,18 @@ function modal_step(
 		relation::AbstractRelation,
 		feature::FeatureTypeFun,
 		test_operator::TestOperatorFun,
-		threshold::T) where {T, N, WorldType<:AbstractWorld, WorldSetType<:AbstractWorldSet{WorldType}}
+		threshold::T,
+		returns_survivors::Union{Val{true},Val{false}} = Val(false)
+	) where {T, N, WorldType<:AbstractWorld, WorldSetType<:AbstractWorldSet{WorldType}}
 	@logmsg DTDetail "modal_step" worlds display_decision(relation, feature, test_operator, threshold)
 
 	satisfied = false
 	
 	# TODO space for optimization here: with some relations (e.g. IA_A, IA_L) can be made smaller
 
+	if returns_survivors isa Val{true}
+		worlds_map = Dict{AbstractWorld,AbstractWorldSet{WorldType}}()
+	end
 	if length(worlds) == 0
 		# If there are no neighboring worlds, then the modal decision is not met
 		@logmsg DTDetail "   No accessible world"
@@ -1543,7 +1548,15 @@ function modal_step(
 		new_worlds = WorldSetType()
 
 		# List all accessible worlds
-		acc_worlds = acc_function(X, i_instance)(worlds, relation)
+		acc_worlds = 
+			if returns_survivors isa Val{true}
+				Threads.@threads for curr_w in worlds
+					worlds_map[curr_w] = acc_function(X, i_instance)(curr_w, relation)
+				end
+				unique(cat([ worlds_map[k] for k in keys(worlds_map) ]...; dims = 1))
+			else
+				acc_function(X, i_instance)(worlds, relation)
+			end
 
 		for w in acc_worlds
 			if test_decision(X, i_instance, w, feature, test_operator, threshold)
@@ -1565,7 +1578,11 @@ function modal_step(
 	else
 		@logmsg DTDetail "   NO"
 	end
-	return (satisfied, worlds)
+	if returns_survivors isa Val{true}
+		return (satisfied, worlds, worlds_map)
+	else
+		return (satisfied, worlds)
+	end
 end
 
 test_decision(
