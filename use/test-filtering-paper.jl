@@ -91,7 +91,7 @@ for tree_config in tree_configs
         test_operators = [TestOpGeq_80, TestOpLeq_80]
     )
 
-    (X, Y, filepaths), (n_pos, n_neg) = @cache "dataset" cache_dir dataset_func_params dataset_func_kwparams KDDDataset_not_stratified
+    (X, Y, filepaths), (n_pos, n_neg) = @cache "dataset" cache_dir dataset_func_params dataset_func_kwparams KDDDataset
     X_modal = X_dataset_c("test", data_modal_args, X, modal_args, save_datasets, dataset_form, false)
 
     draw_anim_for_instances::Vector{Int64} =

@@ -96,7 +96,7 @@ tree_hash = "d5cce8625a82b7c1e5360a4d055175425302db80dc57e55695e32d4d782c6ac5"
 # TEST APPLY_TREE_TO_WAV
 tree = JLD2.load(tree_path * "/tree_$(tree_hash).jld")["T"]
 
-(X, Y, filepaths), (n_pos, n_neg) = @cache "dataset" cache_dir dataset_func_params dataset_func_kwparams KDDDataset_not_stratified
+(X, Y, filepaths), (n_pos, n_neg) = @cache "dataset" cache_dir dataset_func_params dataset_func_kwparams KDDDataset
 X_modal = X_dataset_c("test", data_modal_args, X, modal_args, save_datasets, dataset_form, false)
 
 apply_tree_to_datasets_wavs(

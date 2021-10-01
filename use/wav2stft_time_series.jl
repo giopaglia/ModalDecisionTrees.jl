@@ -137,22 +137,34 @@ end
 
 merge_channels(samps) = vec(sum(samps, dims=2)/size(samps, 2))
 
-function wav2stft_time_series(filepath, kwargs; preprocess_sample::AbstractVector = [], use_full_mfcc = false)
+function wav2stft_time_series(
+		filepath,
+		kwargs;
+		preprocess_sample::AbstractVector = [],
+		use_full_mfcc = false,
+		ignore_samples_with_sr_less_than = -Inf,
+	)
 	samps, sr = wavread(filepath)
+
+	if sr < ignore_samples_with_sr_less_than
+		println("Ignoring file \"$(filepath)\" due to sampling rate constraint ($(sr) < $(ignore_samples_with_sr_less_than))")
+		return nothing
+	end
+
 	samps = merge_channels(samps)
 
 	for pps in preprocess_sample
 		pps(samps)
 	end
-		
+	
 	if ! (maximum(abs, samps) > 0.0)
-				println("ERROR: File $(filepath) has max peak 0!")
-			return nothing
-		end
+		println("ERROR: File $(filepath) has max peak 0!")
+		return nothing
+	end
 	if any(isnan.(samps))
-				println("ERROR: File $(filepath) has a NaN value!")
-			return nothing
-		end
+		println("ERROR: File $(filepath) has a NaN value!")
+		return nothing
+	end
 
 	# wintime = 0.025 # ms
 	# steptime = 0.010 # ms

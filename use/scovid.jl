@@ -14,7 +14,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./covid/journal-v2-fbtype-ontology"
+results_dir = "./covid/journal-v3-TODO"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/cache"
@@ -165,7 +165,10 @@ legacy_gammas_check = false
 
 exec_dataseed = 1:10
 
-exec_max_sample_rate = [8000] # 48000, 16000
+exec_max_sample_rate = [8000] # , 16000]
+
+exec_ignore_low_sr_samples = [false] # , true]
+
 
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization]
@@ -174,6 +177,7 @@ exec_n_task_use_aug_n_ver_preprocess = [
 	(1,false,"c",["NG", "Normalize"]),
 	(2,true,"b",["Normalize"]),
 	(3,true,"b",["Normalize"]),
+	# (3,true,"c+b",["NG", "Normalize"]),
 ]
 # exec_n_task_use_aug = [
 # 	(1, false),
@@ -184,7 +188,7 @@ exec_n_task_use_aug_n_ver_preprocess = [
 # ]
 # exec_n_versions = [3] #1:3
 
-exec_fbtype = [:mel, :htkmel, :fcmel] #, :semitone]
+exec_fbtype = [:fcmel] #, :mel, :htkmel] #, :semitone]
 
 exec_nbands = [30] # [20,40,60]
 # exec_nbands = [40] # [20,40,60]
@@ -263,9 +267,9 @@ exec_use_full_mfcc = [false]
 
 
 wav_preprocessors = Dict(
-	"NoOp" => identity,
-	"NG" => noise_gate!,
-	"Trim" => trim_wav!,
+	"NoOp"      => identity,
+	"NG"        => noise_gate!,
+	"Trim"      => trim_wav!,
 	"Normalize" => normalize!,
 )
 
@@ -302,6 +306,7 @@ ontology_dict = Dict(
 exec_ranges = (; # Order: faster-changing to slower-changing
 	fbtype               = exec_fbtype,
 	exec_max_sample_rate = exec_max_sample_rate,
+	exec_ignore_low_sr_samples = exec_ignore_low_sr_samples,
 	use_training_form    = exec_use_training_form,
 	exec_n_task_use_aug_n_ver_preprocess       = exec_n_task_use_aug_n_ver_preprocess,
 	# n_task_use_aug       = exec_n_task_use_aug,
@@ -321,14 +326,18 @@ dataset_function = (
 		cur_audio_kwargs,
 		dataset_kwargs,
 		cur_preprocess_wavs,
-		use_full_mfcc,)->
-	KDDDataset_not_stratified(
+		use_full_mfcc,
+		ignore_low_sr_samples,
+		max_sample_rate,
+		)->
+	KDDDataset(
 		(n_task,n_version),
 		cur_audio_kwargs;
 		dataset_kwargs...,
 		use_augmentation_data = use_aug,
 		preprocess_wavs = cur_preprocess_wavs,
-		use_full_mfcc = use_full_mfcc
+		use_full_mfcc = use_full_mfcc,
+		ignore_samples_with_sr_less_than = (ignore_low_sr_samples ? max_sample_rate : -Inf)
 	)
 )
 
@@ -429,6 +438,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	
 	fbtype,
 	max_sample_rate,
+	ignore_low_sr_samples,
 	use_training_form,
 	(n_task, use_aug, n_version, preprocess_wavs),
 	nbands,
@@ -465,7 +475,10 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			cur_audio_kwargs,
 			dataset_kwargs,
 			cur_preprocess_wavs,
-			use_full_mfcc,)	
+			use_full_mfcc,
+			ignore_low_sr_samples,
+			max_sample_rate,
+			)
 
 	# Load Dataset
 	dataset = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
