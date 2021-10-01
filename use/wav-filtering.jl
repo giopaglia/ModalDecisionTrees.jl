@@ -1,7 +1,6 @@
 
 include("scanner.jl")
 include("wav2stft_time_series.jl")
-include("local.jl")
 include("lib.jl")
 
 using DecisionTree

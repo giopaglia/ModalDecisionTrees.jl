@@ -6,8 +6,7 @@ old-stuff/results-siemens
 filtering-results*/
 print-tree-latex/
 
-local.jl
-
+**.out
 **.tmp
 **.jld
 **/progress.json

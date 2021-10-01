@@ -388,7 +388,7 @@ if "-f" in ARGS
 end
 
 # Copy scan script into the results folder
-backup_file_using_creation_date(PROGRAM_FILE; copy_or_move = :copy, out_path = results_dir, file_suffix = "")
+backup_file_using_creation_date(PROGRAM_FILE; copy_or_move = :copy, out_path = results_dir)
 
 exec_ranges_names, exec_ranges_iterators = collect(string.(keys(exec_ranges))), collect(values(exec_ranges))
 history = load_or_create_history(

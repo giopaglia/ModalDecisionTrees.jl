@@ -73,7 +73,7 @@ n_task = 1
 n_version = 2
 round_dataset_to_datatype = false
 # round_dataset_to_datatype = UInt16
-dataset, n_pos, n_neg = KDDDataset_not_stratified((n_task,n_version), audio_kwargs; dataset_kwargs...)
+dataset, n_pos, n_neg = KDDDataset((n_task,n_version), audio_kwargs; dataset_kwargs...)
 println(dataset[1] |> size)
 
 exec_run("Test",
@@ -92,7 +92,7 @@ exec_run("Test",
 # for i in 1:10
 # 	for n_task in 1:1
 # 		for n_version in 1:2
-# 			dataset = KDDDataset_not_stratified((n_task,n_version), audio_kwargs; dataset_kwargs...)
+# 			dataset = KDDDataset((n_task,n_version), audio_kwargs; dataset_kwargs...)
 # 			# (1,1) -> 994
 
 # 			exec_run("($(n_task),$(n_version))", dataset, 0.8, 0,
@@ -117,12 +117,12 @@ exec_run("Test",
 # 															))
 
 
-# dataset = KDDDataset_not_stratified((1,1), audio_kwargs; dataset_kwargs..., rng = rng) # 110/137 -> 110/110
-# dataset = KDDDataset_not_stratified((1,2), audio_kwargs; dataset_kwargs..., rng = rng) # 110/137 -> 110/110
-# dataset = KDDDataset_not_stratified((2,1), audio_kwargs; dataset_kwargs..., rng = rng) # 26/8 -> 8/8
-# dataset = KDDDataset_not_stratified((2,2), audio_kwargs; dataset_kwargs..., rng = rng) # 46/8 -> 8/8
-# dataset = KDDDataset_not_stratified((3,1), audio_kwargs; dataset_kwargs..., rng = rng) # 46/13 -> 13/13
-# dataset = KDDDataset_not_stratified((3,2), audio_kwargs; dataset_kwargs..., rng = rng) # 46/13 -> 13/13
+# dataset = KDDDataset((1,1), audio_kwargs; dataset_kwargs..., rng = rng) # 110/137 -> 110/110
+# dataset = KDDDataset((1,2), audio_kwargs; dataset_kwargs..., rng = rng) # 110/137 -> 110/110
+# dataset = KDDDataset((2,1), audio_kwargs; dataset_kwargs..., rng = rng) # 26/8 -> 8/8
+# dataset = KDDDataset((2,2), audio_kwargs; dataset_kwargs..., rng = rng) # 46/8 -> 8/8
+# dataset = KDDDataset((3,1), audio_kwargs; dataset_kwargs..., rng = rng) # 46/13 -> 13/13
+# dataset = KDDDataset((3,2), audio_kwargs; dataset_kwargs..., rng = rng) # 46/13 -> 13/13
 
 # exec_run("Test", dataset, 0.8, 0, log_level=log_level,
 # 			forest_args=forest_args, args=args, modal_args=modal_args,

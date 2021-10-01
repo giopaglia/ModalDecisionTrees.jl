@@ -1,0 +1,8 @@
+TIMESTAMP	FILE NAME	COMP TIME	ARGS	
+07/08/2021 03:42:18	dataset_c745c5406f252334580a23c60b65ce70f8c0ca699469de6f539af723ee40c744.jld	00:00:10	(((5, 7), ("avg", 3), false, TestOperator[⫺, ⫹, ⫺₉₀, ⫹₉₀, ⫺₈₀, ⫹₈₀, ⫺₇₀, ⫹₇₀, ⫺₆₀, ⫹₆₀]), 100, -1, "Pavia")	
+07/08/2021 22:47:54	dataset_e80787f1d7dc5120de9bbadbf4255115891f16c6f6b1af3eabcb14ff4e704897.jld	00:00:01	(((5, 7), ("avg", 3), :flattened, [⫺]), 100, -1, "Pavia")	
+07/08/2021 23:11:02	dataset_c9143e94617593f08429547170ad533f62a5720495fcb56bfccf039026a49205.jld	00:00:00	(((5, 7), ("avg", 3), false, TestOperator[⫺, ⫹, ⫺₉₀, ⫹₉₀, ⫺₈₀, ⫹₈₀, ⫺₇₀, ⫹₇₀, ⫺₆₀, ⫹₆₀]), 100, -1, "Salinas-A")	
+08/08/2021 16:15:15	dataset_4a5ec4f56628dd739107538b570ad4ecd2be914a0bed88ee6604f4529ed0d410.jld	00:00:00	(((5, 7), ("avg", 3), :flattened, [⫺]), 100, -1, "Salinas-A")	
+08/08/2021 17:30:45	dataset_caa9e654452dcf7ab256fdf7e0d8a1204e812edd807cafa1994d92e6376bb1ea.jld	00:01:40	(((5, 7), ("avg", 3), false, TestOperator[⫺, ⫹, ⫺₉₀, ⫹₉₀, ⫺₈₀, ⫹₈₀, ⫺₇₀, ⫹₇₀, ⫺₆₀, ⫹₆₀]), 100, -1, "PaviaCentre")	
+09/08/2021 13:04:23	dataset_2a02dca0acf62b33d233bd413f0d287468dc15763aa7fd5ef42ad3741fe71974.jld	00:01:31	(((5, 7), ("avg", 3), :flattened, [⫺]), 100, -1, "PaviaCentre")	
+09/08/2021 13:45:49	dataset_081ca09ac05f71065e1d5aabf0a3b41bc4afe749b16781dc2b7eee9cc45eca7c.jld	00:00:00	(((5, 7), ("avg", 3), false, TestOperator[⫺, ⫹, ⫺₉₀, ⫹₉₀, ⫺₈₀, ⫹₈₀, ⫺₇₀, ⫹₇₀, ⫺₆₀, ⫹₆₀]), 100, -1, "IndianPines")	

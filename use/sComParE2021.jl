@@ -14,7 +14,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./ComParE2021-september-v2"
+results_dir = "./ComParE2021/september-v3TODO"
 
 iteration_progress_json_file_path =  "$(results_dir)/progress.json"
 data_savedir  = "$(results_dir)/cache"
@@ -73,6 +73,7 @@ println(" $(length(tree_args)) trees")
 ################################################################################
 
 forest_runs = 5
+# optimize_forest_computation = false
 optimize_forest_computation = true
 
 

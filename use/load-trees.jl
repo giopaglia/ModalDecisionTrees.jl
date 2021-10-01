@@ -103,7 +103,7 @@ dataset_function = (
 		dataset_kwargs,
 		cur_preprocess_wavs,
 		use_full_mfcc,)->
-	KDDDataset_not_stratified(
+	KDDDataset(
 		(n_task,n_version),
 		cur_audio_kwargs;
 		dataset_kwargs...,
