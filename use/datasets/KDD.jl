@@ -346,7 +346,7 @@ function KDDDataset((n_task,n_version),
 
 			if size(ts,1) == 0
 				println("Warning! Moving average ends up killing sample \"$(filepath)\" ($(original_length) points, ma_size = $(ma_size), ma_step = $(ma_step))")
-				nothing
+				return nothing
 			end
 
 			# println("ts_with_ma_length:	$(size(ts,1))	$(filepath)")
