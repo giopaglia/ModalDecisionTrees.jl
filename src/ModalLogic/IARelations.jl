@@ -257,15 +257,15 @@ enumAccReprAggr(f::AttributeMinimumFeatureType, a::typeof(minimum), w::Interval,
 
 
 enumAccReprAggr(f::FeatureTypeFun, a::Function, w::Interval, r::_IA_AorO,       X::Integer) = 
-	Iterators.flatten([enumAccReprAggr(f, a, w, r, X) for r in IA72IARelations(_IA_AorO)])
+	Iterators.flatten([enumAccReprAggr(f, a, w, r, X) for r in IA72IARelations(IA_AorO)])
 enumAccReprAggr(f::FeatureTypeFun, a::Function, w::Interval, r::_IA_AiorOi,     X::Integer) = 
-	Iterators.flatten([enumAccReprAggr(f, a, w, r, X) for r in IA72IARelations(_IA_AiorOi)])
+	Iterators.flatten([enumAccReprAggr(f, a, w, r, X) for r in IA72IARelations(IA_AiorOi)])
 enumAccReprAggr(f::FeatureTypeFun, a::Function, w::Interval, r::_IA_DorBorE,    X::Integer) = 
-	Iterators.flatten([enumAccReprAggr(f, a, w, r, X) for r in IA72IARelations(_IA_DorBorE)])
+	Iterators.flatten([enumAccReprAggr(f, a, w, r, X) for r in IA72IARelations(IA_DorBorE)])
 enumAccReprAggr(f::FeatureTypeFun, a::Function, w::Interval, r::_IA_DiorBiorEi, X::Integer) = 
-	Iterators.flatten([enumAccReprAggr(f, a, w, r, X) for r in IA72IARelations(_IA_DiorBiorEi)])
+	Iterators.flatten([enumAccReprAggr(f, a, w, r, X) for r in IA72IARelations(IA_DiorBiorEi)])
 enumAccReprAggr(f::FeatureTypeFun, a::Function, w::Interval, r::_IA_I,          X::Integer) = 
-	Iterators.flatten([enumAccReprAggr(f, a, w, r, X) for r in IA72IARelations(_IA_I)])
+	Iterators.flatten([enumAccReprAggr(f, a, w, r, X) for r in IA72IARelations(IA_I)])
 
 
 
