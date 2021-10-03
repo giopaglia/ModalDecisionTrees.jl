@@ -253,7 +253,7 @@ generate_KDD_partitioned() = begin
 	run(`rm "../datasets/KDD-partitioned/healthyandroidnosymp/breath/breaths_QiX6eemjYb_1587126241264.wav-split.2.wav"`)
 end
 
-generate_KDD_partitioned()
+#generate_KDD_partitioned()
 
 exec_dataseed = 1:10
 
