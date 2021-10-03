@@ -34,7 +34,7 @@ kdd_nonexisting_files = [
 	"asthmawebwithcough/2020-04-07-18_49_21_155697/audio_file_cough.wav_aug_amp1.wav",    # Ignore to square up
 	# These are unacceptable
 	"healthywebnosymp/2020-04-07-22_28_51_823683/audio_file_breathe.wav",
-	"healthywebnosymp/2020-04-07-22_28_51_823683/audio_file_breathe.wav",
+	"healthywebnosymp/2020-04-07-22_28_51_823683/audio_file_cough.wav",
 	"healthywebnosymp/2020-04-08-07_10_48_484176/audio_file_breathe.wav",
 	"healthywebnosymp/2020-04-08-07_10_48_484176/audio_file_cough.wav",
 	"healthywebnosymp/2020-04-16-20_22_54_947910/audio_file_breathe.wav",
