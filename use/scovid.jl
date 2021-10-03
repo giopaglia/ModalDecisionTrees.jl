@@ -163,9 +163,104 @@ legacy_gammas_check = false
 ##################################### SCAN #####################################
 ################################################################################
 
+# For generating KDD-partitioned dataset
+include("wav-filtering.jl")
+for n_task in 1:3
+  for n_version in 1:2
+    process_dataset("KDD", KDD_getSamplesList(n_task, n_version, true; rel_path = true);
+    out_dataset_dir_name = "KDD-partitioned",
+    partition_instances = true,
+    partitioning_kwargs = (
+        cut_original = Val(true),
+        preprocess   = Function[],
+        postprocess  = Function[],
+      )
+    )
+  end
+end
+# Bad (e.g. short?)
+run(`rm "../datasets/KDD-partitioned/covidwebnocough/2020-04-26-16_20_02_616687/audio_file_cough.wav-split.1.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidwebnocough/2020-04-26-16_20_02_616687/audio_file_cough.wav-split.5.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebnosymp/2020-04-08-08_16_43_888185/audio_file_cough.wav-split.2.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-14-19_05_58_854062/audio_file_breathe.wav_aug_pitchspeed2.wav-split.1.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidwebwithcough/2020-04-13-18_37_12_935759/audio_file_breathe.wav-split.8.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidwebwithcough/2020-04-13-18_37_12_935759/audio_file_breathe.wav-split.6.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_2DDMc0SESm_1587299604514.wav-split.1.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_zv02Ygabqh_1587712162421.wav-split.1.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-14-19_05_58_854062/audio_file_breathe.wav_aug_pitchspeed1.wav-split.1.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidwebwithcough/2020-04-13-18_37_12_935759/audio_file_breathe.wav-split.3.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_wI0AtSFKGI_1586891988754.wav-split.7.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-14-19_05_58_854062/audio_file_breathe.wav_aug_noise1.wav-split.1.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_RZPXvUslJL_1589782005941.wav-split.3.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-10-16_31_45_878885/audio_file_breathe.wav_aug_pitchspeed2.wav-split.8.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-14-19_05_58_854062/audio_file_breathe.wav-split.1.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-14-19_05_58_854062/audio_file_breathe.wav_aug_amp1.wav-split.1.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-14-19_05_58_854062/audio_file_breathe.wav_aug_amp2.wav-split.1.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-08-19_36_24_576603/audio_file_breathe.wav-split.5.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-08-19_36_24_576603/audio_file_breathe.wav_aug_amp1.wav-split.5.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-08-19_36_24_576603/audio_file_breathe.wav_aug_amp2.wav-split.5.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-08-19_36_24_576603/audio_file_breathe.wav_aug_noise1.wav-split.5.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_wI0AtSFKGI_1587123341332.wav-split.7.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-08-19_36_24_576603/audio_file_breathe.wav_aug_noise1.wav-split.4.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-20-10_53_52_205272/audio_file_breathe.wav_aug_pitchspeed1.wav-split.3.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-20-10_53_52_205272/audio_file_breathe.wav_aug_pitchspeed2.wav-split.3.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidwebwithcough/2020-04-13-18_37_12_935759/audio_file_breathe.wav-split.7.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_crxRiqIPHi_1587826550848.wav-split.1.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_RZPXvUslJL_1589436750953.wav-split.9.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidwebwithcough/2020-04-08-19_50_32_255545/audio_file_breathe.wav-split.9.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-09-13_18_07_699528/audio_file_breathe.wav_aug_pitchspeed2.wav-split.1.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-08-19_36_24_576603/audio_file_breathe.wav-split.4.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-08-19_36_24_576603/audio_file_breathe.wav_aug_amp1.wav-split.4.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-08-19_36_24_576603/audio_file_breathe.wav_aug_amp2.wav-split.4.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-10-16_31_45_878885/audio_file_breathe.wav_aug_pitchspeed1.wav-split.6.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-07-20_32_56_249415/audio_file_breathe.wav_aug_pitchspeed2.wav-split.1.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_2DDMc0SESm_1587299604514.wav-split.2.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_wI0AtSFKGI_1587123341332.wav-split.4.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthyandroidwithcough/breath/breaths_yfW1c2NlCx_1586974588197.wav-split.11.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthyandroidwithcough/breath/breaths_yfW1c2NlCx_1586974588197.wav_aug_amp1.wav-split.11.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthyandroidwithcough/breath/breaths_yfW1c2NlCx_1586974588197.wav_aug_amp2.wav-split.11.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthyandroidwithcough/breath/breaths_yfW1c2NlCx_1586974588197.wav_aug_pitchspeed1.wav-split.10.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_wI0AtSFKGI_1587123341332.wav-split.5.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-14-14_29_49_101189/audio_file_breathe.wav_aug_pitchspeed2.wav-split.1.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_crxRiqIPHi_1587826550848.wav-split.6.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthyandroidwithcough/breath/breaths_yfW1c2NlCx_1586974588197.wav_aug_noise1.wav-split.11.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthyandroidwithcough/breath/breaths_yfW1c2NlCx_1586974588197.wav_aug_noise2.wav-split.11.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthyandroidwithcough/breath/breaths_yfW1c2NlCx_1586974588197.wav_aug_pitchspeed2.wav-split.10.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-14-14_29_49_101189/audio_file_breathe.wav_aug_pitchspeed1.wav-split.1.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-20-10_53_52_205272/audio_file_breathe.wav_aug_pitchspeed1.wav-split.2.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-20-10_53_52_205272/audio_file_breathe.wav_aug_pitchspeed2.wav-split.2.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_FLwelKnRhk_1587323996895.wav-split.4.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_wI0AtSFKGI_1587123341332.wav-split.6.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-20-10_53_52_205272/audio_file_breathe.wav-split.3.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-20-10_53_52_205272/audio_file_breathe.wav_aug_amp1.wav-split.3.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthyandroidnosymp/cough/cough_988JFCXXIs_1586971301985.wav-split.5.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebnosymp/2020-04-15-17_40_04_078640/audio_file_cough.wav-split.2.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidwebnocough/2020-04-13-18_36_14_654135/audio_file_cough.wav-split.2.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/cough/cough_crxRiqIPHi_1588687422136.wav-split.5.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebnosymp/2020-04-19-17_45_04_814914/audio_file_cough.wav-split.2.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidandroidnocough/cough/cough_CNz7PwFNQz_1588314464492.wav-split.1.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthyandroidnosymp/cough/cough_PWUKaMIaFV_1588224156757.wav-split.1.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthyandroidnosymp/cough/cough_r57l51XPwo_1587967960517.wav-split.3.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthyandroidnosymp/cough/cough_Yarb5WSBeD_1588832877170.wav-split.1.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthywebnosymp/2020-04-19-17_45_04_814914/audio_file_cough.wav-split.1.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/cough/cough_crxRiqIPHi_1587914038132.wav-split.3.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/cough/cough_crxRiqIPHi_1588604042078.wav-split.3.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidwebwithcough/2020-04-26-19_33_46_515975/audio_file_cough.wav-split.2.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/cough/cough_2DDMc0SESm_1588143205284.wav-split.1.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidwebnocough/2020-04-21-12_31_25_239458/audio_file_cough.wav-split.1.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidwebnocough/2020-04-26-10_36_54_607302/audio_file_cough.wav-split.2.wav"`)
+# Too long (TODO cut them properly)
+run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_RZPXvUslJL_1589525867100.wav-split.1.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_RZPXvUslJL_1589264294638.wav-split.1.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_RZPXvUslJL_1589144967244.wav-split.2.wav"`)
+run(`rm "../datasets/KDD-partitioned/covidwebwithcough/2020-04-13-18_37_12_935759/audio_file_breathe.wav-split.8.wav"`)
+run(`rm "../datasets/KDD-partitioned/healthyandroidnosymp/breath/breaths_QiX6eemjYb_1587126241264.wav-split.2.wav"`)
+
 exec_dataseed = 1:10
 
 exec_max_sample_rate = [8000] # , 16000]
+
+# exec_dataset_dir = ["KDD", "KDD-partitioned"]
 
 exec_ignore_low_sr_samples = [false] # , true]
 
@@ -173,11 +268,18 @@ exec_ignore_low_sr_samples = [false] # , true]
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization]
 
-exec_n_task_use_aug_n_ver_preprocess = [
-	(1,false,"c",["NG", "Normalize"]),
-	(2,true,"b",["Normalize"]),
-	(3,true,"b",["Normalize"]),
-	# (3,true,"c+b",["NG", "Normalize"]),
+exec_n_task_use_aug_n_ver_dataset_dir_preprocess = [
+	#
+	# (1,false,"c","KDD",["NG", "Normalize"]),
+	# (2,true,"b","KDD",["Normalize"]),
+	# (3,true,"b","KDD",["Normalize"]),
+	#
+	(1,false,"c","KDD-partitioned",["NG", "Normalize", "RemSilence"]),
+	(1,false,"b","KDD-partitioned",["Normalize", "RemSilence"]),
+	(2,true,"c","KDD-partitioned",["NG", "Normalize", "RemSilence"]),
+	(2,true,"b","KDD-partitioned",["Normalize", "RemSilence"]),
+	(3,true,"c","KDD-partitioned",["NG", "Normalize", "RemSilence"]),
+	(3,true,"b","KDD-partitioned",["Normalize", "RemSilence"]),
 ]
 # exec_n_task_use_aug = [
 # 	(1, false),
@@ -194,25 +296,13 @@ exec_nbands = [30] # [20,40,60]
 # exec_nbands = [40] # [20,40,60]
 
 exec_dataset_kwargs =   [(
-						#	max_points = 10,
-						#	ma_size = 45,
-						#	ma_step = 30,
-						#),(max_points = 20,
-							# ma_size = 45,
-							# ma_step = 30,
-						# ),(max_points = 20,
-						# 	ma_size = 45,
-						# 	ma_step = 30,
-						# ),(max_points = 30,
-						# 	ma_size = 45,
-						# 	ma_step = 30,
+							max_points = 50,
+							ma_size = 45,
+							ma_step = 30,
 						# ),(# max_points = 30,
 						#	ma_size = 120,
 						#	ma_step = 100,
-						# ),(# max_points = 30,
-						# 	ma_size = 120,
-						# 	ma_step = 80,
-						# ),(#max_points = 30,
+						),(#max_points = 30,
 							max_points = 50,
 						 	ma_size = 100,
 						 	ma_step = 75,
@@ -222,9 +312,6 @@ exec_dataset_kwargs =   [(
 						# ),(# max_points = 30,
 							# ma_size = 75,
 							# ma_step = 50,
-						# ),(# max_points = 50,
-						# 	ma_size = 45,
-						# 	ma_step = 30,
 						)
 						]
 
@@ -267,10 +354,11 @@ exec_use_full_mfcc = [false]
 
 
 wav_preprocessors = Dict(
-	"NoOp"      => identity,
-	"NG"        => noise_gate!,
-	"Trim"      => trim_wav!,
-	"Normalize" => normalize!,
+	"NoOp"       => identity,
+	"NG"         => noise_gate!,
+	"Trim"       => trim_wav!,
+	"Normalize"  => normalize!,
+	"RemSilence" => remove_long_silences!,
 )
 
 exec_preprocess_wavs = [
@@ -292,7 +380,7 @@ test_operators_dict = Dict(
 	"TestOp"    => [TestOpGeq,    TestOpLeq],
 )
 
-exec_ontology = [ "IA", "IA7", "IA3", ]
+exec_ontology = [ "IA", ] # "IA7", "IA3", 
 
 ontology_dict = Dict(
 	"-"     => ModalLogic.OneWorldOntology,
@@ -306,9 +394,10 @@ ontology_dict = Dict(
 exec_ranges = (; # Order: faster-changing to slower-changing
 	fbtype               = exec_fbtype,
 	exec_max_sample_rate = exec_max_sample_rate,
+	# exec_dataset_dir       = exec_dataset_dir,
 	exec_ignore_low_sr_samples = exec_ignore_low_sr_samples,
 	use_training_form    = exec_use_training_form,
-	exec_n_task_use_aug_n_ver_preprocess       = exec_n_task_use_aug_n_ver_preprocess,
+	exec_n_task_use_aug_n_ver_dataset_dir_preprocess       = exec_n_task_use_aug_n_ver_dataset_dir_preprocess,
 	# n_task_use_aug       = exec_n_task_use_aug,
 	# n_version            = exec_n_versions,
 	nbands               = exec_nbands,
@@ -329,6 +418,7 @@ dataset_function = (
 		use_full_mfcc,
 		ignore_low_sr_samples,
 		max_sample_rate,
+		dataset_dir,
 		)->
 	KDDDataset(
 		(n_task,n_version),
@@ -337,7 +427,8 @@ dataset_function = (
 		use_augmentation_data = use_aug,
 		preprocess_wavs = cur_preprocess_wavs,
 		use_full_mfcc = use_full_mfcc,
-		ignore_samples_with_sr_less_than = (ignore_low_sr_samples ? max_sample_rate : -Inf)
+		ignore_samples_with_sr_less_than = (ignore_low_sr_samples ? max_sample_rate : -Inf),
+		dir = "$(data_dir)$(dataset_dir)/",
 	)
 )
 
@@ -438,9 +529,10 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	
 	fbtype,
 	max_sample_rate,
+	# dataset_dir,
 	ignore_low_sr_samples,
 	use_training_form,
-	(n_task, use_aug, n_version, preprocess_wavs),
+	(n_task, use_aug, n_version, dataset_dir, preprocess_wavs),
 	nbands,
 	dataset_kwargs,
 	use_full_mfcc,
@@ -478,6 +570,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			use_full_mfcc,
 			ignore_low_sr_samples,
 			max_sample_rate,
+			dataset_dir,
 			)
 
 	# Load Dataset

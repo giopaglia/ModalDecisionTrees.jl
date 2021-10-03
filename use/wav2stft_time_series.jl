@@ -145,6 +145,8 @@ function wav2stft_time_series(
 		ignore_samples_with_sr_less_than = -Inf,
 	)
 	samps, sr = wavread(filepath)
+	
+	println(filepath)
 
 	if sr < ignore_samples_with_sr_less_than
 		println("Ignoring file \"$(filepath)\" due to sampling rate constraint ($(sr) < $(ignore_samples_with_sr_less_than))")
@@ -173,12 +175,14 @@ function wav2stft_time_series(
 	# #window_f = (nwin)->tukey(nwin, 0.25)
 	# window_f = hamming
 
-	ts = if use_full_mfcc
-		mfcc(samps, sr; kwargs...)[1]
-	else
-		my_stft(samps, sr; kwargs...)'
-	end
-	# print(size(ts))
+	ts =
+		if use_full_mfcc
+			mfcc(samps, sr; kwargs...)[1]
+		else
+			my_stft(samps, sr; kwargs...)'
+		end
+
+	println("SIZE: ", size(ts,1))
 	ts
 end
 

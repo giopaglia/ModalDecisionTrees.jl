@@ -25,7 +25,7 @@ moving_average(vs::AbstractArray{T,2},n,st=1) where {T} = mapslices((x)->(@views
 # end
 
 """
-    searchdir(path, key; exclude = [], recursive = false, results_limit = 0)
+	searchdir(path, key; exclude = [], recursive = false, results_limit = 0)
 
 Search the directory at `path` for files containing `key`.
 
@@ -36,40 +36,40 @@ for `results_limit`.
 The search can be recurisve by setting `recursive` to `ture`.
 """
 function searchdir(
-            path          :: String,
-            key           :: Union{Vector{String},String};
-            exclude       :: Union{Vector{String},String}  = Vector{String}(),
-            recursive     :: Bool                          = false,
-            results_limit :: Int64                         = 0
-        )::Vector{String}
+			path          :: String,
+			key           :: Union{Vector{String},String};
+			exclude       :: Union{Vector{String},String}  = Vector{String}(),
+			recursive     :: Bool                          = false,
+			results_limit :: Int64                         = 0
+		)::Vector{String}
 
-    function contains_str(str::String, match::String)::Bool
-        occursin(match, str)
-    end
-    function contains_str(str::String, match::Vector{String})::Bool
-        length(findall(contains_str(str, m) for m in match)) > 0
-    end
-    function matches_key(x::String)::Bool
-        occursin(key, x) && !isdir(path * "/" * x) && !contains_str(x, exclude)
-    end
+	function contains_str(str::String, match::String)::Bool
+		occursin(match, str)
+	end
+	function contains_str(str::String, match::Vector{String})::Bool
+		length(findall(contains_str(str, m) for m in match)) > 0
+	end
+	function matches_key(x::String)::Bool
+		occursin(key, x) && !isdir(path * "/" * x) && !contains_str(x, exclude)
+	end
 
-    results = Vector{String}()
+	results = Vector{String}()
 
-    dir_content = readdir(path)
-    append!(results, map(res -> path * "/" * res, filter(matches_key, dir_content)))
+	dir_content = readdir(path)
+	append!(results, map(res -> path * "/" * res, filter(matches_key, dir_content)))
 
-    if recursive
-        for d in filter(x -> isdir(path * "/" * x), dir_content)
-            if results_limit > 0 && length(results) > results_limit break end
-            append!(results, searchdir(path * "/" * d, key; exclude = exclude, recursive = recursive, results_limit = results_limit))
-        end
-    end
+	if recursive
+		for d in filter(x -> isdir(path * "/" * x), dir_content)
+			if results_limit > 0 && length(results) > results_limit break end
+			append!(results, searchdir(path * "/" * d, key; exclude = exclude, recursive = recursive, results_limit = results_limit))
+		end
+	end
 
-    if results_limit > 0 && length(results) > results_limit
-        deepcopy(results[1:results_limit])
-    else
-        results
-    end
+	if results_limit > 0 && length(results) > results_limit
+		deepcopy(results[1:results_limit])
+	else
+		results
+	end
 end
 
 # just a debugging function
@@ -86,7 +86,7 @@ end
 #         mkpath(dirname(wav_found))
 
 
-#         wavs, sr = splitwav(wav_found)
+#         wavs, sr = partitionwav(wav_found)
 #         mkpath(dirname(replace(wav_found, path => dest; count = 1)))
 
 #         Threads.@threads for (i, w) in collect(enumerate(wavs))
@@ -113,120 +113,133 @@ end
 # end
 
 """
-    partition_wavs_and_get_names(samples_n_samplerates, paths; splitwav_kwargs = ())
-    partition_wavs_and_get_names(paths; splitwav_kwargs = ())
+	partition_wavs_and_get_names(samples_n_samplerates, paths; partitioning_kwargs = ())
+	partition_wavs_and_get_names(paths; partitioning_kwargs = ())
 
-Call [`splitwav`](@ref) on all inputed WAVs and then return a filepath
+Call [`partitionwav`](@ref) on all inputed WAVs and then return a filepath
 for each slice of the original wave following naming `ORIGINALPATH.split.[i].wav`.
 """
 function partition_wavs_and_get_names(
-            samples_n_samplerates :: Vector{Tuple{Vector{T},Real}},
-            paths                 :: Vector{String};
-            splitwav_kwargs       :: NamedTuple                    = NamedTuple()
-        )::Tuple{Vector{Tuple{Vector{T},Real}},Vector{String}} where T<:AbstractFloat
+			samples_n_samplerates :: Vector{Tuple{Vector{T},Real}},
+			paths                 :: Vector{String};
+			partitioning_kwargs       :: NamedTuple                    = NamedTuple()
+		)::Tuple{Vector{Tuple{Vector{T},Real}},Vector{String}} where T<:AbstractFloat
 
-    results_sns = Vector{Tuple{Vector{T},Real}}()
-    results_paths = Vector{String}()
+	results_sns = Vector{Tuple{Vector{T},Real}}()
+	results_paths = Vector{String}()
 
-    sns_lock = Threads.Condition()
-    paths_lock = Threads.Condition()
-    # using these locks make sense because most of each iteration time will be spent in 'splitwav`
-    Threads.@threads for (sns, path) in collect(zip(samples_n_samplerates, paths))
-        wavs, samplerate = splitwav(sns; splitwav_kwargs...)
-        lock(sns_lock)
-        append!(results_sns, collect(zip(wavs, fill(samplerate, length(wavs)))))
-        unlock(sns_lock)
-        lock(paths_lock)
-        append!(results_paths, [ replace(path, r".wav$" => ".split.$(i).wav") for i in 1:length(wavs) ])
-        unlock(paths_lock)
-    end
+	sns_lock = Threads.Condition()
+	paths_lock = Threads.Condition()
+	# using these locks make sense because most of each iteration time will be spent in 'partitionwav`
+	Threads.@threads for (sns, path) in collect(zip(samples_n_samplerates, paths))
+		wavs, samplerate = partitionwav(sns; partitioning_kwargs...)
+		lock(sns_lock)
+		append!(results_sns, collect(zip(wavs, fill(samplerate, length(wavs)))))
+		unlock(sns_lock)
+		lock(paths_lock)
+		# append!(results_paths, [ replace(path, r".wav$" => ".split.$(i).wav") for i in 1:length(wavs) ])
+		append!(results_paths, [ "$(path)-split.$(i).wav" for i in 1:length(wavs) ])
+		unlock(paths_lock)
+	end
 
-    @assert length(results_sns) == length(results_paths) "Mismatching length: length(results_sns) vs length(results_paths): $(length(results_sns)) != $(length(results_paths))"
+	@assert length(results_sns) == length(results_paths) "Mismatching length: length(results_sns) vs length(results_paths): $(length(results_sns)) != $(length(results_paths))"
 
-    results_sns, results_paths
+	results_sns, results_paths
 end
 function partition_wavs_and_get_names(paths::Vector{String}; kwargs...)::Tuple{Tuple{Vector{AbstractFloat},Real},Vector{String}}
-    sns = Vector{Tuple{Vector{AbstractFloat},Real}}(undef, length(paths))
-    Threads.@threads for (i, p) in collect(enumerate(paths))
-        samples, samplerate = wavread(p)
-        sns[i] = (merge_channels(samples), samplerate)
-    end
-    split_wavs(sns, paths; kwargs...)
+	sns = Vector{Tuple{Vector{AbstractFloat},Real}}(undef, length(paths))
+	Threads.@threads for (i, p) in collect(enumerate(paths))
+		samples, samplerate = wavread(p)
+		sns[i] = (merge_channels(samples), samplerate)
+	end
+	split_wavs(sns, paths; kwargs...)
 end
 
 """
-    process_dataset(dataset_dir_name, wav_paths; preprocess = [], postprocess = [], partition_instances = false, split_kwargs = (preprocess = [], postprocess = []))
+	process_dataset(dataset_dir_name, wav_paths; preprocess = [], postprocess = [], partition_instances = false, partitioning_kwargs = (preprocess = [], postprocess = []))
 
 Process a dataset named `dataset_dir_name` using
 `preprocess` splitting instances (if `partition_instances`
 is `true`) and then apply to all new wavs `postprocess`.
 """
 function process_dataset(
-            dataset_dir_name     :: String,
-            wav_paths            :: Vector{String};
-            preprocess           :: Vector{Tuple{Function,NamedTuple}} = Vector{Tuple{Function,NamedTuple}}(),
-            postprocess          :: Vector{Tuple{Function,NamedTuple}} = Vector{Tuple{Function,NamedTuple}}(),
-            partition_instances  :: Bool                               = false,
-            split_kwargs         :: NamedTuple                         = (cut_original = Val(true), preprocess = Vector{Function}(), postprocess = Vector{Function}())
-        )
+			dataset_dir_name     :: String,
+			wav_paths            :: Vector{String};
+			out_dataset_dir_name :: Union{String,Nothing}              = nothing,
+			preprocess           :: Vector{Tuple{Function,NamedTuple}} = Vector{Tuple{Function,NamedTuple}}(),
+			postprocess          :: Vector{Tuple{Function,NamedTuple}} = Vector{Tuple{Function,NamedTuple}}(),
+			partition_instances  :: Bool                               = false,
+			partitioning_kwargs  :: NamedTuple                         = (
+				cut_original = Val(true),
+				preprocess   = Vector{Function}(),
+				postprocess  = Vector{Function}(),
+			)
+		)
 
-    @assert length(wav_paths) > 0 "No wav path passed"
+	@assert length(wav_paths) > 0 "No wav path passed"
 
-    function name_processing(type::String, pp::Vector{Tuple{Function,NamedTuple}})
-        result = "$(type)["
-        for p in pp
-            result *= string(p[1])
-            if length(pp[2]) > 0
-                result *= string("{", pp[2], "}")
-            end
-            result *= ","
-        end
-        result = rstrip(result, ',')
-        result *= "]"
+	function name_processing(type::String, pp::Vector{Tuple{Function,NamedTuple}})
+		result = "$(type)["
+		for p in pp
+			result *= string(p[1])
+			if length(pp[2]) > 0
+				result *= string("{", pp[2], "}")
+			end
+			result *= ","
+		end
+		result = rstrip(result, ',')
+		result *= "]"
 
-        result
-    end
+		result
+	end
 
-    outdir = rstrip(data_dir, '/') * "/" * dataset_dir_name * "-" * name_processing("PREPROC", preprocess) * "-" * name_processing("POSTPROC", postprocess) * (partition_instances ? "-inst-partitioned" : "")
+	outdir = rstrip(data_dir, '/') * "/" * (
+		!isnothing(out_dataset_dir_name) ? out_dataset_dir_name :
+			dataset_dir_name *
+			(partition_instances ? "-partitioned" : "") *
+			"-" * name_processing("PREPROC", preprocess) *
+			"-" * name_processing("POSTPROC", postprocess) *
+			""
+		)
 
-    # read wavs
-    samples_n_samplerates = Vector{Tuple{Vector{AbstractFloat},Real}}(undef, length(wav_paths))
-    Threads.@threads for (i, path) in collect(enumerate(wav_paths))
-        samples, samplerate = wavread(rstrip(data_dir, '/') * "/" * dataset_dir_name * "/" * path)
-        samples = merge_channels(samples)
+	# read wavs
+	samples_n_samplerates = Vector{Tuple{Vector{AbstractFloat},Real}}(undef, length(wav_paths))
+	Threads.@threads for (i, path) in collect(enumerate(wav_paths))
+		samples, samplerate = wavread(rstrip(data_dir, '/') * "/" * dataset_dir_name * "/" * path)
+		samples = merge_channels(samples)
 
-        samples_n_samplerates[i] = (samples, samplerate)
-    end
+		samples_n_samplerates[i] = (samples, samplerate)
+	end
 
-    # apply pre-process
-    Threads.@threads for sns in samples_n_samplerates
-        for (prepf, prepkwargs) in preprocess
-            prepf(sns[1], prepkwargs...)
-        end
-    end
+	# apply pre-process
+	Threads.@threads for sns in samples_n_samplerates
+		for (prepf, prepkwargs) in preprocess
+			prepf(sns[1], prepkwargs...)
+		end
+	end
 
-    # split
-    new_samples_n_samplerates, new_filepaths =
-        if partition_instances
-            partition_wavs_and_get_names(samples_n_samplerates, wav_paths; splitwav_kwargs = split_kwargs)
-        else
-            samples_n_samplerates, wav_paths
-        end
+	# split
+	new_samples_n_samplerates, new_filepaths =
+		if partition_instances
+			partition_wavs_and_get_names(samples_n_samplerates, wav_paths; partitioning_kwargs = partitioning_kwargs)
+		else
+			samples_n_samplerates, wav_paths
+		end
 
-    # apply post-process
-    Threads.@threads for sns in new_samples_n_samplerates
-        for (postpf, postpkwargs) in postprocess
-            postpf(sns[1], postpkwargs...)
-        end
-    end
+	# apply post-process
+	Threads.@threads for sns in new_samples_n_samplerates
+		for (postpf, postpkwargs) in postprocess
+			postpf(sns[1], postpkwargs...)
+		end
+	end
 
-    # save
-    mkpath.(unique(map(p -> outdir * "/" * dirname(p), new_filepaths)))
-    Threads.@threads for (sns, path) in collect(zip(new_samples_n_samplerates, new_filepaths))
-        wavwrite(sns[1], outdir * "/" * path; Fs = sns[2])
-    end
+	# save
+	mkpath.(unique(map(p -> outdir * "/" * dirname(p), new_filepaths)))
+	Threads.@threads for (sns, path) in collect(zip(new_samples_n_samplerates, new_filepaths))
+		wavwrite(sns[1], outdir * "/" * path; Fs = sns[2])
+	end
 end
-process_dataset(dataset_dir_name::String, wav_paths_func::Function; kwargs...) = process_dataset(dataset_dir_name, wav_paths_func(); kwargs...)
+# process_dataset(dataset_dir_name::String, wav_paths_func::Function; kwargs...) = process_dataset(dataset_dir_name, wav_paths_func(); kwargs...)
 
 # process_dataset("KDD", x -> load_from_jsonKDD(n_version, n_task), )
 
