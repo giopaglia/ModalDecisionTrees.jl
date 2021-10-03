@@ -139,17 +139,29 @@ kdd_task_to_folders = [
 	],
 ]
 
+# Obtain the list of all files considered throughout all tasks and versions
+KDD_getSamplesList(; files_to_ignore = kdd_nonexisting_files, dir = kdd_data_dir, rel_path = false) = begin
+	all_folders = Iterators.flatten([task_folders[1:2] for task_folders in kdd_task_to_folders]) |> collect
+	Iterators.flatten(
+		ThreadsX.collect([KDD_getSamplesList(folder, n_version, true; files_to_ignore = files_to_ignore, dir = dir, rel_path = rel_path, separate_base_n_aug = false)
+				for folder in all_folders
+					for n_version in 1:2])
+	) |> collect |> Vector{String}
+end
+
+# Obtain the list files considered for a given task and version
 KDD_getSamplesList(n_task::Integer, n_version::Integer, use_augmentation_data; files_to_ignore = kdd_nonexisting_files, dir = kdd_data_dir, rel_path = false) = begin
 	global kdd_task_to_folders
 	folders_Y, folders_N, class_labels = kdd_task_to_folders[n_task]
 
-	[
-		Iterators.flatten(KDD_getSamplesList(folders_Y, n_version, use_augmentation_data; files_to_ignore = files_to_ignore, dir = dir, rel_path = rel_path))...,
-		Iterators.flatten(KDD_getSamplesList(folders_N, n_version, use_augmentation_data; files_to_ignore = files_to_ignore, dir = dir, rel_path = rel_path))...,
-	]
+	vcat(
+		KDD_getSamplesList(folders_Y, n_version, use_augmentation_data; files_to_ignore = files_to_ignore, dir = dir, rel_path = rel_path, separate_base_n_aug = false),
+		KDD_getSamplesList(folders_N, n_version, use_augmentation_data; files_to_ignore = files_to_ignore, dir = dir, rel_path = rel_path, separate_base_n_aug = false),
+	)
 end
 
-KDD_getSamplesList(folders::AbstractVector{<:AbstractString}, n_version::Integer, use_augmentation_data; files_to_ignore = kdd_nonexisting_files, dir = kdd_data_dir, rel_path = false) = begin
+# Obtain the list files inside a given folder (note: n_version is needed for computing the files to ignore)
+KDD_getSamplesList(folders::AbstractVector{<:AbstractString}, n_version::Integer, use_augmentation_data; files_to_ignore = kdd_nonexisting_files, dir = kdd_data_dir, rel_path = false, separate_base_n_aug = true) = begin
 	global kdd_has_augmentation_data
 	global kdd_has_subfolder_structure
 	global kdd_augmentation_file_suffixes
@@ -255,7 +267,11 @@ KDD_getSamplesList(folders::AbstractVector{<:AbstractString}, n_version::Integer
 	# println(length(aug_timeseries))
 	# println(map(length, timeseries))
 	# println(map(length, aug_timeseries))
-	timeseries, aug_timeseries
+	if separate_base_n_aug
+		timeseries, aug_timeseries
+	else
+		vcat(timeseries, aug_timeseries)
+	end
 end
 
 function KDDDataset((n_task,n_version),
