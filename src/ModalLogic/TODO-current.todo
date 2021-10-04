@@ -2,9 +2,10 @@
 - Lookahead: two levels
 - Add dataset infos in result: shape, e tempi di calcolo del dataset.
 - Save confusion matrices... (be careful of random forests with their oob error...)
-- Think: need to support categoricals...?
 - Try running with: --compile=min -O0, and then with -O3
 - Remove n_relations()?
+
+(FingerMovements+add_dim e include_static_data!)
 
 - Highlight difference between channel_size and max_channel_size
 
@@ -21,8 +22,6 @@ In scanner.jl rimuovi i gammas, rimuovi test_operators cambia il modo di indicar
 
 Testa round_dataset_to_datatype/mapArrayToDataType in versione multiframe
 Restore optimize_tree_parameters! optimizations
-
-let perform_consistency_check be an argument (split_consistency_satisfied_check) and create the debug and performance profiles
 
 _split!: Also write test_condition this for OntologicalDataset and cross check
 TODO add consistency_step_data and remove occurrences of "gamma"
