@@ -120,10 +120,10 @@ Call [`partitionwav`](@ref) on all inputed WAVs and then return a filepath
 for each slice of the original wave following naming `ORIGINALPATH.split.[i].wav`.
 """
 function partition_wavs_and_get_names(
-			samples_n_samplerates :: Vector{Tuple{Vector{T},Real}},
-			paths                 :: Vector{String};
-			partitioning_kwargs       :: NamedTuple                    = NamedTuple()
-		)::Tuple{Vector{Tuple{Vector{T},Real}},Vector{String}} where T<:AbstractFloat
+			samples_n_samplerates :: AbstractVector{<:Tuple{<:AbstractVector{<:T},SR}},
+			paths                 :: AbstractVector{String};
+			partitioning_kwargs   :: NamedTuple                    = NamedTuple()
+		)::Tuple{Vector{Tuple{Vector{T},Real}},Vector{String}} where {T<:AbstractFloat,SR<:Real}
 
 	results_sns = Vector{Tuple{Vector{T},Real}}()
 	results_paths = Vector{String}()
@@ -131,7 +131,8 @@ function partition_wavs_and_get_names(
 	sns_lock = Threads.Condition()
 	paths_lock = Threads.Condition()
 	# using these locks make sense because most of each iteration time will be spent in 'partitionwav`
-	Threads.@threads for (sns, path) in collect(zip(samples_n_samplerates, paths))
+	# Threads.@threads
+	for (sns, path) in collect(zip(samples_n_samplerates, paths))
 		wavs, samplerate = partitionwav(sns; partitioning_kwargs...)
 		lock(sns_lock)
 		append!(results_sns, collect(zip(wavs, fill(samplerate, length(wavs)))))
@@ -164,19 +165,19 @@ is `true`) and then apply to all new wavs `postprocess`.
 """
 function process_dataset(
 			dataset_dir_name     :: String,
-			wav_paths            :: Vector{String};
+			filepaths            :: Vector{String};
 			out_dataset_dir_name :: Union{String,Nothing}              = nothing,
-			preprocess           :: Vector{Tuple{Function,NamedTuple}} = Vector{Tuple{Function,NamedTuple}}(),
-			postprocess          :: Vector{Tuple{Function,NamedTuple}} = Vector{Tuple{Function,NamedTuple}}(),
+			preprocess           :: Vector{Tuple{Function,NamedTuple}} = Tuple{Function,NamedTuple}[],
+			postprocess          :: Vector{Tuple{Function,NamedTuple}} = Tuple{Function,NamedTuple}[],
 			partition_instances  :: Bool                               = false,
 			partitioning_kwargs  :: NamedTuple                         = (
 				cut_original = Val(true),
-				preprocess   = Vector{Function}(),
-				postprocess  = Vector{Function}(),
+				preprocess   = Function[],
+				postprocess  = Function[],
 			)
 		)
 
-	@assert length(wav_paths) > 0 "No wav path passed"
+	@assert length(filepaths) > 0 "No wav path passed"
 
 	function name_processing(type::String, pp::Vector{Tuple{Function,NamedTuple}})
 		result = "$(type)["
@@ -201,42 +202,37 @@ function process_dataset(
 			"-" * name_processing("POSTPROC", postprocess) *
 			""
 		)
+	println("outdir = $(outdir)")
 
 	# read wavs
-	samples_n_samplerates = Vector{Tuple{Vector{AbstractFloat},Real}}(undef, length(wav_paths))
-	Threads.@threads for (i, path) in collect(enumerate(wav_paths))
-		samples, samplerate = wavread(rstrip(data_dir, '/') * "/" * dataset_dir_name * "/" * path)
+	Threads.@threads for (i, filepath) in collect(enumerate(filepaths))
+
+		samples, samplerate = wavread(rstrip(data_dir, '/') * "/" * dataset_dir_name * "/" * filepath)
 		samples = merge_channels(samples)
 
-		samples_n_samplerates[i] = (samples, samplerate)
-	end
-
-	# apply pre-process
-	Threads.@threads for sns in samples_n_samplerates
+		# apply pre-process
 		for (prepf, prepkwargs) in preprocess
-			prepf(sns[1], prepkwargs...)
-		end
-	end
-
-	# split
-	new_samples_n_samplerates, new_filepaths =
-		if partition_instances
-			partition_wavs_and_get_names(samples_n_samplerates, wav_paths; partitioning_kwargs = partitioning_kwargs)
-		else
-			samples_n_samplerates, wav_paths
+			prepf(samples, prepkwargs...)
 		end
 
-	# apply post-process
-	Threads.@threads for sns in new_samples_n_samplerates
-		for (postpf, postpkwargs) in postprocess
-			postpf(sns[1], postpkwargs...)
+		# partition
+		new_sampless_n_samplerates, new_filepaths =
+			if partition_instances
+				partition_wavs_and_get_names([(samples, samplerate)], [filepath]; partitioning_kwargs = partitioning_kwargs)
+			else
+				[(samples, samplerate)], [filepath]
 		end
-	end
 
-	# save
-	mkpath.(unique(map(p -> outdir * "/" * dirname(p), new_filepaths)))
-	Threads.@threads for (sns, path) in collect(zip(new_samples_n_samplerates, new_filepaths))
-		wavwrite(sns[1], outdir * "/" * path; Fs = sns[2])
+		for ((new_samples, new_samplerate),new_filepath) in zip(new_sampless_n_samplerates,new_filepaths)
+			# apply post-process
+			for (postpf, postpkwargs) in postprocess
+				postpf(new_samples, postpkwargs...)
+			end
+
+			# save
+			mkpath(outdir * "/" * dirname(new_filepath))
+			wavwrite(new_samples, outdir * "/" * new_filepath; Fs = new_samplerate)
+		end
 	end
 end
 # process_dataset(dataset_dir_name::String, wav_paths_func::Function; kwargs...) = process_dataset(dataset_dir_name, wav_paths_func(); kwargs...)

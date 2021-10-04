@@ -141,11 +141,13 @@ function partitionwav(
 			head_sensibility      :: Int64                       = 10,
 			head_strictness       :: Real                        = 0.7,
 			minimum_time          :: Real                        = 0.15,
-			cut_original          :: Union{Val{true},Val{false}} = Val(false),
-			preprocess            :: Vector{Function}            = Vector{Function}([ noise_gate!, normalize! ]),
-			preprocess_kwargs     :: Vector{NamedTuple}          = Vector{NamedTuple}([ (level = 0.005,), (level = 1.0,) ]),
-			postprocess           :: Vector{Function}            = Vector{Function}([ noise_gate!, normalize!, trim_wav!, remove_long_silences! ]),
-			postprocess_kwargs    :: Vector{NamedTuple}          = Vector{NamedTuple}([ (level = 0.01,), (level = 1.0,), (level = 0.0,), (level = 0.005,) ])
+			cut_original          :: Union{Val{true},Val{false}} = Val(true),
+			preprocess            :: Vector{Function}            = Function[ noise_gate!, normalize! ],
+			preprocess_kwargs     :: Vector{NamedTuple}          = NamedTuple[ (level = 0.005,), (level = 1.0,) ],
+			postprocess           :: Vector{Function}            = Function[],
+			postprocess_kwargs    :: Vector{NamedTuple}          = NamedTuple[],
+			# postprocess           :: Vector{Function}            = Function[ noise_gate!, normalize!, trim_wav!, remove_long_silences! ],
+			# postprocess_kwargs    :: Vector{NamedTuple}          = NamedTuple[ (level = 0.01,), (level = 1.0,), (level = 0.0,), (level = 0.005,)],
 		)::Tuple{Vector{Vector{T}}, Real} where {T<:AbstractFloat}
 
 	if head_sensibility < 2
