@@ -4,7 +4,7 @@ struct Interval <: AbstractWorld
 	x :: Integer
 	y :: Integer
 	# TODO check x<y but only in debug mode.  && x<=N, y<=N ?
-	# Interval(x,y) = x>0 && y>0 && x < y ? new(x,y) : error("Can't instantiate Interval(x={$x},y={$y})")
+	# Interval(x,y) = x>0 && y>0 && x < y ? new(x,y) : throw_n_log("Can't instantiate Interval(x={$x},y={$y})")
 	Interval(w::Interval) = new(w.x,w.y)
 	Interval(x::Integer,y::Integer) = new(x,y)
 	Interval((x,y)::Tuple{Integer,Integer}) = new(x,y)

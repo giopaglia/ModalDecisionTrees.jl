@@ -55,7 +55,7 @@ function load_cached_obj(type::String, common_cache_dir::String, hash::String)
 		try
 			obj = Serialization.deserialize(total_load_path)
 		catch e
-			throw(ArgumentError("File $(total_load_path) is neither in JLD2 format nor a Serialized object"))
+			throw_n_log("File $(total_load_path) is neither in JLD2 format nor a Serialized object", ArgumentError)
 		end
 	end
 

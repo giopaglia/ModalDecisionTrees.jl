@@ -285,7 +285,7 @@ for f in [
     try
         run(`convert "$f[0]" $o`)
     catch
-        error("An error occurred while extracting posters from gifs")
+        throw_n_log("An error occurred while extracting posters from gifs")
     end
 end
 

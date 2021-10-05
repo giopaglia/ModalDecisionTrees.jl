@@ -12,7 +12,7 @@ function load_model(model_hash::String, model_savedir::String)
         elseif isfile("$(model_savedir)/tree_$(model_hash).jld")
             model_hash = "tree_" * model_hash
         else
-            error("File $(model_savedir)/$(model_hash).jld not found!")
+            throw_n_log("File $(model_savedir)/$(model_hash).jld not found!")
         end
     end
 
@@ -23,7 +23,7 @@ function load_model(model_hash::String, model_savedir::String)
         elseif startswith(model_hash, "rf") || haskey(model, "F")
             model["F"]
         else
-            error("Unknown model hash type: $(model_hash)")
+            throw_n_log("Unknown model hash type: $(model_hash)")
         end
     model
 end

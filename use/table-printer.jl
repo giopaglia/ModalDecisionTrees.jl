@@ -40,7 +40,7 @@ function backup_file_using_creation_date(file_name::String; out_path = "", copy_
 	elseif copy_or_move == :copy
 		cp(file_name, Filesystem.joinpath(out_path, backup_file_name * file_suffix), force=true)
 	else
-		error("backup_file_using_creation_date: Unexpected value for copy_or_move $(copy_or_move)")
+		throw_n_log("backup_file_using_creation_date: Unexpected value for copy_or_move $(copy_or_move)")
 	end
 end
 
@@ -276,7 +276,7 @@ function extract_model(
 	)
 
 	if ! isfile(file_name)
-		error("No file with name $(file_name) found.")
+		throw_n_log("No file with name $(file_name) found.")
 	end
 
 	file = open(file_name, "r")
@@ -340,7 +340,7 @@ function extract_model(
 				end
 			end	
 		else
-			error("No model known of type $(type); could be \"T\" or \"RF\".")
+			throw_n_log("No model known of type $(type); could be \"T\" or \"RF\".")
 		end
 
 		selected_columns

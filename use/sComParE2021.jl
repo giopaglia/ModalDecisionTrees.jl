@@ -388,7 +388,7 @@ MakeOntologicalDataset(Xs, test_operators, ontology) = begin
 					elseif test_operator isa _TestOpLeqSoft
 						push!(features, ModalLogic.AttributeSoftMaximumFeatureType(i_attr, test_operator.alpha))
 					else
-						error("Unknown test_operator type: $(test_operator), $(typeof(test_operator))")
+						throw_n_log("Unknown test_operator type: $(test_operator), $(typeof(test_operator))")
 					end
 				end
 			end
@@ -399,7 +399,7 @@ MakeOntologicalDataset(Xs, test_operators, ontology) = begin
 				elseif any(map(t->isa(feature,t), [AttributeMaximumFeatureType, AttributeSoftMaximumFeatureType]))
 					[≤]
 				else
-					error("Unknown feature type: $(feature), $(typeof(feature))")
+					throw_n_log("Unknown feature type: $(feature), $(typeof(feature))")
 					[≥, ≤]
 				end for feature in features
 			]
@@ -555,7 +555,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 					dataset = (X, Y), (n_pos, n_neg)
 					dataset
 				else
-					error(typeof(dataset_fun_sub_params))
+					throw_n_log("$(typeof(dataset_fun_sub_params))")
 				end) for mode in [:testing, :development]
 			]
 
@@ -572,7 +572,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 					elseif startswith(model_hash, "rf")
 						model["F"]
 					else
-						error("Unknown model hash type: $(model_hash)")
+						throw_n_log("Unknown model hash type: $(model_hash)")
 					end
 
 				println()

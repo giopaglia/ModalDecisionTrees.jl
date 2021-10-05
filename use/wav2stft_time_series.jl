@@ -104,7 +104,7 @@ function my_audspec(x::Matrix{T}, sr::Real=16000.0; nfilts=ceil(Int, hz2bark(sr/
 		elseif fbtype == :semitone
 			my_fft2semitonemx(nfft, nfilts, sr=sr, width=bwidth, minfreq=minfreq, maxfreq=maxfreq, base_freq=base_freq)
 		else
-			error("Unknown filterbank type: $(fbtype)")
+			throw_n_log("Unknown filterbank type: $(fbtype)")
 		end
 	wts = wts[:, 1:nfreqs]
 	if sumpower

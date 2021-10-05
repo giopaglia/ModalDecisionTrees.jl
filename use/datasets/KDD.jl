@@ -172,7 +172,7 @@ KDD_getSamplesList(folders::AbstractVector{<:AbstractString}, n_version::Integer
 		elseif n_version == 2
 			("breath","breathe","breaths_")
 		else
-			error("Unknown n_version: $(n_version)")
+			throw_n_log("Unknown n_version: $(n_version)")
 		end
 
 	files_map = JSON.parsefile(kdd_data_dir * "files.json")
@@ -315,7 +315,7 @@ function KDDDataset((n_task,n_version),
 		elseif n_version == 3
 			(1, 2)
 		else
-			error("Unknown n_version: $(n_version)")
+			throw_n_log("Unknown n_version: $(n_version)")
 		end
 
 	##############################################################################
@@ -531,7 +531,7 @@ function KDDDataset((n_task,n_version),
 	# println(size.(d.only_training[1][3]))
 
 	if force_monolithic_dataset == true
-		error("TODO account for class ordering when using concat_labeled_datasets")
+		throw_n_log("TODO account for class ordering when using concat_labeled_datasets")
 		d = (concat_labeled_datasets(d.train_n_test[1], d.only_training[1]), (d.train_n_test[2] .+ d.only_training[2]))
 	elseif force_monolithic_dataset == :train_n_test
 		d = d.train_n_test

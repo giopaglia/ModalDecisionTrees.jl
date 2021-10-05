@@ -62,7 +62,7 @@ function SampleLandCoverDataset(
 								elseif dataset == "Pavia"
 									PaviaDataset(),["Asphalt", "Meadows", "Gravel", "Trees", "Painted metal sheets", "Bare Soil", "Bitumen", "Self-Blocking Bricks", "Shadows"]
 								else
-									error("Unknown land cover dataset")
+									throw_n_log("Unknown land cover dataset")
 	end
 
 	# print(size(Xmap))
@@ -73,7 +73,7 @@ function SampleLandCoverDataset(
 	n_labels = length(existingLabels)
 
 	if n_labels != length(class_labels_map)
-		error("Unexpected number of labels in dataset: $(n_labels) != $(length(class_labels_map))")
+		throw_n_log("Unexpected number of labels in dataset: $(n_labels) != $(length(class_labels_map))")
 	end
 
 	class_counts = Dict(y=>0 for y in existingLabels)
@@ -150,7 +150,7 @@ function SampleLandCoverDataset(
 	end
 
 	if (sum(already_sampled) != n_samples)
-		error("ERROR! Sampling failed! $(n_samples) $(sum(already_sampled))")
+		throw_n_log("ERROR! Sampling failed! $(n_samples) $(sum(already_sampled))")
 	end
 	# println(labels)
 
@@ -168,7 +168,7 @@ function SampleLandCoverDataset(
 			inputs = parent(imfilter(inputs, ones(k,k,1,1)/9, Inner()))
 			@assert size(inputs)[1:2] == (window_size[1]-k+1, window_size[2]-k+1)
 		else
-			error("Unexpected value for apply_filter: $(apply_filter)")
+			throw_n_log("Unexpected value for apply_filter: $(apply_filter)")
 		end
 	end
 
@@ -188,7 +188,7 @@ function SampleLandCoverDataset(
 			inputs = sum(inputs, dims=(1,2))./(size(inputs, 1)*size(inputs, 2))
 			inputs = dropdims(inputs; dims=(1,2))
 		else
-			error("Unexpected value for flattened: $(flattened)")
+			throw_n_log("Unexpected value for flattened: $(flattened)")
 		end
 		inputs = permutedims(inputs, [2,1])
 	elseif (size(inputs, 1), size(inputs, 2)) == (1, 1)

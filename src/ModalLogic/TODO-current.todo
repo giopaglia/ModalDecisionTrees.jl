@@ -5,7 +5,7 @@
 - Try running with: --compile=min -O0, and then with -O3
 - Remove n_relations()?
 
-(FingerMovements+add_dim e include_static_data!)
+diversi frame con diverse ontologie (FingerMovements+add_dim e include_static_data!)
 
 - Highlight difference between channel_size and max_channel_size
 

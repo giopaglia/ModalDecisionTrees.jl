@@ -539,7 +539,7 @@ function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n
 					[new_X]
 				end
 			else
-				error("dataset_name = $(dataset_name), mode = $(mode)")
+				throw_n_log("dataset_name = $(dataset_name), mode = $(mode)")
 			end
 		# TODO
 		@assert length(X_train) == 1
@@ -547,7 +547,7 @@ function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n
 		
 		X_train, X_test = transform_f(X_train[1]), transform_f(X_test[1])
 	# else
-	# 	error("Unknown dataset_name ($(dataset_name)) for mode = $(mode)")
+	# 	throw_n_log("Unknown dataset_name ($(dataset_name)) for mode = $(mode)")
 	end
 
 	# println(countmap(Y_train))
@@ -631,7 +631,6 @@ function readARFF(p::String)
 					end
 				end
 			end
-			#error(1)
 		end
 
 		# for i in eachrow(df)
@@ -712,7 +711,7 @@ function ModalFrame2MatricialDataset(f::ModalFrame)
 			elseif length(max_inst_size) == 2
 				X[:, :, i_feature, i_instance] .= channel
 			else
-				error("length(max_inst_size) = $(length(max_inst_size))")
+				throw_n_log("length(max_inst_size) = $(length(max_inst_size))")
 			end
 			# X[[(:) for i in max_inst_size]..., i_feature, i_instance] .= channel
 		end

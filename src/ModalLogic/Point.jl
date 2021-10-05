@@ -7,7 +7,7 @@
 	# Point(w::Point) = new(w.x,w.y)
 # 	x :: Integer
 # 	# TODO check x<=N but only in debug mode
-# 	# Point(x) = x<=N ... ? new(x) : error("Can't instantiate Point(x={$x})")
+# 	# Point(x) = x<=N ... ? new(x) : throw_n_log("Can't instantiate Point(x={$x})")
 # 	Point(x::Integer) = new(x)
 # 	Point(::_emptyWorld) = new(0)
 # 	Point(::_firstWorld) = new(1)

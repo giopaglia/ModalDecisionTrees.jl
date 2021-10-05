@@ -3,7 +3,8 @@ import Base: getindex, values
 import Random
 using JSON
 
-data_dir = "../datasets/"
+data_dir = "../datasets/" # TODO save this on a .env file, and then: using ConfigEnv; dotenv()
+
 include("wav2stft_time_series.jl")
 include("wave-utils/wav-process.jl")
 

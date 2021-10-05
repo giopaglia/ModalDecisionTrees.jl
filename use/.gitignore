@@ -1,10 +1,8 @@
-old-stuff/debugging
-old-stuff/results
-old-stuff/results-find-best-values
-old-stuff/results-siemens
 
 filtering-results*/
 print-tree-latex/
+
+.env
 
 **.out
 **.tmp

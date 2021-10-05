@@ -246,7 +246,7 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 				elseif test_operator isa _TestOpLeqSoft
 					push!(features, ModalLogic.AttributeSoftMaximumFeatureType(i_attr, test_operator.alpha))
 				else
-					error("Unknown test_operator type: $(test_operator), $(typeof(test_operator))")
+					throw_n_log("Unknown test_operator type: $(test_operator), $(typeof(test_operator))")
 				end
 			end
 		end
@@ -257,7 +257,7 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 			elseif any(map(t->isa(feature,t), [AttributeMaximumFeatureType, AttributeSoftMaximumFeatureType]))
 				[≤]
 			else
-				error("Unknown feature type: $(feature), $(typeof(feature))")
+				throw_n_log("Unknown feature type: $(feature), $(typeof(feature))")
 				[≥, ≤]
 			end for feature in features
 		]
@@ -314,7 +314,7 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 					end
 				end
 			else
-				error("Unexpected value for use_form: $(use_form)!")
+				throw_n_log("Unexpected value for use_form: $(use_form)!")
 			end
 		end
 		
@@ -396,7 +396,7 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 									println("i_attribute=$(i_attribute)")
 									print("instance: ")
 									println(ModalLogic.getInstanceAttribute(instance, i_attribute))
-									error("aoe")
+									throw_n_log("aoe")
 								end
 							end
 							i_feature += 1
@@ -432,7 +432,7 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 									print("instance: ")
 									println(ModalLogic.getInstanceAttribute(instance, i_attribute))
 									print(instance)
-									# error("aoe")
+									# throw_n_log("aoe")
 									readline()
 								
 								end
@@ -478,7 +478,7 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 
 										print("channel: ")
 										println(ModalLogic.getInstanceAttribute(instance, i_attribute))
-										# error("aoe")
+										# throw_n_log("aoe")
 										readline()
 									end
 								end
@@ -537,7 +537,7 @@ function buildModalDatasets(X_train, X_test, data_modal_args, modal_args, use_tr
 				X_dataset_c("train", data_modal_args, X_train, modal_args, save_datasets, use_training_form, legacy_gammas_check)
 			end
 		else
-			error("Unexpected value for use_training_form: $(use_training_form)!")
+			throw_n_log("Unexpected value for use_training_form: $(use_training_form)!")
 		end
 		
 		# println("X_train:")
@@ -571,7 +571,8 @@ function exec_scan(
 		data_savedir                    ::Union{String,Nothing} = nothing,
 		model_savedir                   ::Union{String,Nothing} = nothing,
 		legacy_gammas_check             = false,
-		log_level                       = DecisionTree.DTOverview,
+		log_level                       = nothing, # TODO remove this obsolete parameter
+		logger                          = ConsoleLogger(stderr, DecisionTree.DTOverview), # TODO remove this as well?
 		timing_mode                     ::Symbol = :time,
 		### Misc
 		best_rule_params                = [(t=.8, min_confidence=0.6, min_support=0.1), (t=.65, min_confidence=0.6, min_support=0.1)],
@@ -584,6 +585,11 @@ function exec_scan(
 	
 	run_name = join([replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)], ",")
 	
+	if !isnothing(log_level)
+		println("Warning! scanner.log_level parameter is obsolete. Use logger = ConsoleLogger(stderr, $(log_level)) instead!")
+		logger = ConsoleLogger(stderr, log_level)
+	end
+
 	##############################################################################
 	##############################################################################
 	# Output files
@@ -971,13 +977,10 @@ function exec_scan(
 	# println("legacy_gammas_check   = ", legacy_gammas_check)
 	# println("log_level   = ", log_level)
 	# println("timing_mode   = ", timing_mode)
+
 	println()
 
-	old_logger = global_logger(ConsoleLogger(stderr, log_level))
-	# global_logger(ConsoleLogger(stderr, Logging.Warn));
-	# global_logger(ConsoleLogger(stderr, Logging.Info))
-	# global_logger(ConsoleLogger(stderr, log_level))
-	# global_logger(ConsoleLogger(stderr, DecisionTree.DTDebug))
+	old_logger = global_logger(logger);
 
 	rets = []
 	
@@ -1001,10 +1004,10 @@ function exec_scan(
 			# readline()
 
 			if test_flattened == true
-				error("TODO handle case test_flattened = true")
+				throw_n_log("TODO handle case test_flattened = true")
 			end
 			if test_averaged == true
-				error("TODO handle case test_averaged = true")
+				throw_n_log("TODO handle case test_averaged = true")
 			end
 			
 			# TODO

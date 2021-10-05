@@ -55,7 +55,7 @@ function LoadModalDataset_v1(folder_name)
 
 	instance_names_enumerator = 
 		if metadata["supervised"]
-			error("TODO")
+			throw_n_log("TODO")
 			# TODO read joinpath(dataset_dir, "Labels.csv") and associate each instance_name to its label
 			# labels = ...TODO
 			@assert length(instance_names) == length(labels)
@@ -82,7 +82,7 @@ function LoadModalDataset_v1(folder_name)
 			@assert instance_metadata["frame$(i_frame)"] isa INTuple  "Property 'frame$(i_frame)' should be of type INTuple, got $(typeof(instance_metadata["frame$(i_frame)"])) instead!"
 			push!(instance_frame_sizes, instance_metadata["frame$(i_frame)"])
 
-			error("TODO")
+			throw_n_log("TODO")
 			# TODO leggi joinpath(dataset_dir, example_dir, "/Frame $(i_frame).csv") e carica i datasets!
 		end
 

@@ -246,7 +246,7 @@ MakeOntologicalDataset(Xs) = begin
 					elseif test_operator isa _TestOpLeqSoft
 						push!(features, ModalLogic.AttributeSoftMaximumFeatureType(i_attr, test_operator.alpha))
 					else
-						error("Unknown test_operator type: $(test_operator), $(typeof(test_operator))")
+						throw_n_log("Unknown test_operator type: $(test_operator), $(typeof(test_operator))")
 					end
 				end
 			end
@@ -257,7 +257,7 @@ MakeOntologicalDataset(Xs) = begin
 				elseif any(map(t->isa(feature,t), [AttributeMaximumFeatureType, AttributeSoftMaximumFeatureType]))
 					[≤]
 				else
-					error("Unknown feature type: $(feature), $(typeof(feature))")
+					throw_n_log("Unknown feature type: $(feature), $(typeof(feature))")
 					[≥, ≤]
 				end for feature in features
 			]
@@ -298,7 +298,7 @@ for (dataset_fun_sub_params,trees) in dataset_to_trees
 		# 	(X, Y), (n_pos, n_neg) = dataset
 		# 	(X, Y, nothing), (n_pos, n_neg)
 		else
-			error(typeof(dataset_fun_sub_params))
+			throw_n_log("$(typeof(dataset_fun_sub_params))")
 		end
 
 	# TODO should not need these at test time. Instead, extend functions so that one can use a MatricialDataset instead of an OntologicalDataset

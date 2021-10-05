@@ -37,8 +37,14 @@ export DTNode, DTLeaf, DTInternal,
 				#
 				GammaType, GammaSliceType, spawn_rng,
 				#
-				initWorldSet
+				initWorldSet,
+				#
+				throw_n_log
 
+function throw_n_log(str::AbstractString, err_type = ErrorException)
+	@error str
+	throw(err_type(str))
+end
 
 # ScikitLearn API
 export DecisionTreeClassifier,

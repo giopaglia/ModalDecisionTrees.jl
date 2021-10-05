@@ -10,7 +10,7 @@ export computeModalDataset, computeModalDataset_m,
 
 @inline function checkModalDatasetConsistency(modalDataset, X::OntologicalDataset{T, N, WorldType}, features::AbstractVector{<:FeatureTypeFun}) where {T, N, WorldType<:AbstractWorld}
 	if !(modalDatasetIsConsistent(modalDataset, X, length(features)))
-		error("The provided modalDataset structure is not consistent with the expected dataset, test operators and/or relations!"
+		throw_n_log("The provided modalDataset structure is not consistent with the expected dataset, test operators and/or relations!"
 			* "\n\tmodalDataset:"
 			* " $(typeof(modalDataset))"
 			* " $(eltype(modalDataset))"

@@ -6,28 +6,26 @@
 
 include("scanner.jl")
 
-main_rng = DecisionTree.mk_rng(1)
-
 train_seed = 1
 
 ################################################################################
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./covid/journal-v4-KDDpartitioned"
+results_dir = "./covid/journal-v5-TODO"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/cache"
 model_savedir = results_dir * "/trees"
 
-dry_run = false
-# dry_run = :dataset_only
+# dry_run = false
+dry_run = :dataset_only
 # dry_run = true
+
+skip_training = false
 
 # save_datasets = true
 save_datasets = false
-
-skip_training = false
 
 perform_consistency_check = false
 
@@ -80,7 +78,7 @@ forest_args = []
 for n_trees in [50]
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
-      for partial_sampling in [0.7]
+			for partial_sampling in [0.7]
 				push!(forest_args, (
 					n_subfeatures       = n_subfeatures,
 					n_trees             = n_trees,
@@ -93,8 +91,8 @@ for n_trees in [50]
 					# min_loss_at_leaf    = 0.0,
 					perform_consistency_check = perform_consistency_check,
 				))
-	    end
-    end
+			end
+		end
 	end
 end
 
@@ -165,17 +163,18 @@ legacy_gammas_check = false
 
 # For generating KDD-partitioned dataset
 generate_KDD_partitioned() = begin
-	# include("wav-filtering.jl")
-  process_dataset("KDD", KDD_getSamplesList(; rel_path = true);
-  out_dataset_dir_name = "KDD-norm-partitioned",
-  partition_instances = true,
-  partitioning_kwargs = (
-      cut_original        = Val(true),
-      preprocess          = Function[noise_gate!, normalize!],
+	include("wav-filtering.jl")
+	process_dataset("KDD", KDD_getSamplesList(; rel_path = true);
+	out_dataset_dir_name = "KDD-norm-partitioned",
+	partition_instances = true,
+	partitioning_kwargs = (
+			cut_original        = Val(true),
+			preprocess          = Function[noise_gate!, normalize!],
 			# preprocess_kwargs   = NamedTuple[ (level = 0.005,), (level = 1.0,) ],
-      postprocess         = Function[],
-    )
-  )
+			postprocess         = Function[],
+		)
+	)
+	run(`rm "../datasets/KDD-norm-partitioned/covidwebnocough/2020-04-26-16_20_02_616687/audio_file_cough.wav-split.1.wav"`)
 end
 
 
@@ -269,7 +268,7 @@ end
 # 	run(`rm "../datasets/KDD-partitioned/healthyandroidnosymp/breath/breaths_QiX6eemjYb_1587126241264.wav-split.2.wav"`)
 # end
 
-generate_KDD_partitioned()
+# generate_KDD_partitioned()
 
 exec_dataseed = 1:10
 
@@ -312,15 +311,19 @@ exec_nbands = [30] # [20,40,60]
 
 exec_dataset_kwargs =   [(
 							max_points = 50,
+							ma_size = 30,
+							ma_step = 20,
+						),(
+							max_points = 50,
 							ma_size = 45,
 							ma_step = 30,
 						# ),(# max_points = 30,
 						#	ma_size = 120,
 						#	ma_step = 100,
-						),(#max_points = 30,
-							max_points = 50,
-						 	ma_size = 100,
-						 	ma_step = 75,
+						# ),(#max_points = 30,
+						# 	max_points = 50,
+						# 	ma_size = 100,
+						# 	ma_step = 75,
 						# ),(# max_points = 30,
 						# 	ma_size = 90,
 						# 	ma_step = 60,
@@ -501,12 +504,41 @@ history = load_or_create_history(
 	iteration_progress_json_file_path, exec_ranges_names, exec_ranges_iterators
 )
 
+# Log to console AND to .out file, & send Telegram message with Errors
+using Logging, LoggingExtras
+using Telegram, Telegram.API
+using ConfigEnv
+function get_logger()
+	i_log_filename,log_filename = 0,""
+	while i_log_filename == 0 || isfile(log_filename)
+		i_log_filename += 1
+		log_filename = 
+			results_dir * "/" *
+			(dry_run == :dataset_only ? "datasets-" : "") *
+			"$(i_log_filename).out"
+	end
+	logfile_io = open(log_filename, "w+")
+
+	dotenv()
+	tg = TelegramClient()
+	tg_logger = TelegramLogger(tg; async = false)
+
+	TeeLogger(
+	  current_logger(),
+	  SimpleLogger(logfile_io, log_level),
+		MinLevelLogger(tg_logger, Logging.Error), # Want to ignore Telegram? Comment out this
+	)
+end
+global_logger(get_logger())
+
 ################################################################################
 ################################################################################
 ################################################################################
 ################################################################################
 # TODO actually,no need to recreate the dataset when changing, say, testoperators. Make a distinction between dataset params and run params
 for params_combination in IterTools.product(exec_ranges_iterators...)
+
+	flush(logfile_io);
 
 	# Unpack params combination
 	# params_namedtuple = (zip(Symbol.(exec_ranges_names), params_combination) |> Dict |> namedtuple)
@@ -637,7 +669,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		data_savedir                    =   data_savedir,
 		model_savedir                   =   model_savedir,
 		legacy_gammas_check             =   legacy_gammas_check,
-		log_level                       =   log_level,
+		# logger                          =   logger,
 		timing_mode                     =   timing_mode,
 		### Misc
 		save_datasets                   =   save_datasets,
@@ -652,5 +684,9 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 end
 
 println("Done!")
+
+@error "Done!"
+
+close(io);
 
 exit(0)
