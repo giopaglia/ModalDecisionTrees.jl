@@ -38,7 +38,7 @@ Union{
 
 @inline function checkGammasConsistency(gammas, X::OntologicalDataset{T, N, WorldType}, test_operators::AbstractVector{<:TestOperator}, RelationSet::AbstractVector{<:AbstractRelation}) where {T, N, WorldType<:AbstractWorld}
 	if !(gammasIsConsistent(gammas, X, length(test_operators), length(RelationSet))) # Note: max(2, ...) because at least RelationId and RelationGlob are always present.
-		error("The provided gammas structure is not consistent with the expected dataset, test operators and/or relations!"
+		throw_n_log("The provided gammas structure is not consistent with the expected dataset, test operators and/or relations!"
 			* "\n$(typeof(gammas))"
 			* "\n$(eltype(gammas))"
 			* "\n$(size(gammas))"
@@ -368,7 +368,7 @@ function computeGammas(
 						end
 						i_to+=length(thresholds)
 					else
-						error("Unexpected mode flag for test_operator $(test_operator): $(mode)\n$(test_operators)")
+						throw_n_log("Unexpected mode flag for test_operator $(test_operator): $(mode)\n$(test_operators)")
 					end
 				end
 				
@@ -396,12 +396,12 @@ function computeGammas(
 				# 			# println("-")
 				# 		end
 				# 	else
-				# 		error("Unexpected mode flag for test_operator $(test_operator): $(mode)\n$(test_operators)")
+				# 		throw_n_log("Unexpected mode flag for test_operator $(test_operator): $(mode)\n$(test_operators)")
 				# 	end
 				# 	# println(w, i_to)
 				# end
 				# # if i_to != (n_actual_operators+1)
-				# # 	error("i_to != (n_actual_operators+1)! $(i_to) != $(n_actual_operators+1)")
+				# # 	throw_n_log("i_to != (n_actual_operators+1)! $(i_to) != $(n_actual_operators+1)")
 				# # end
 			end # world
 
@@ -443,7 +443,7 @@ function computeGammas(
 							end
 							i_to+=length(thresholds)
 						else
-							error("Unexpected mode flag for test_operator $(test_operator): $(mode)\n$(test_operators)")
+							throw_n_log("Unexpected mode flag for test_operator $(test_operator): $(mode)\n$(test_operators)")
 						end
 					end
 
@@ -472,11 +472,11 @@ function computeGammas(
 					# 			i_to+=1
 					# 		end
 					# 	else
-					# 		error("Unexpected mode flag for test_operator $(test_operator): $(mode)\n$(test_operators)")
+					# 		throw_n_log("Unexpected mode flag for test_operator $(test_operator): $(mode)\n$(test_operators)")
 					# 	end
 					# end
 					# if i_to != (n_actual_operators+1)
-					# 	error("i_to != (n_actual_operators+1)! $(i_to) != $(n_actual_operators+1)")
+					# 	throw_n_log("i_to != (n_actual_operators+1)! $(i_to) != $(n_actual_operators+1)")
 					# end 
 					# Quale e' piu' veloce? TODO use gammasId in computePropositionalThresholdDual?
 					# @assert (opGeqMaxThresh, opLesMinThresh) == ModalLogic.computePropositionalThresholdDualRepr(ModalLogic.enumAccRepr(w, relation, channel), channel) "computePropositionalThresholdDual different $((opGeqMaxThresh, opLesMinThresh)) $(get_thresholds(w, channel))"

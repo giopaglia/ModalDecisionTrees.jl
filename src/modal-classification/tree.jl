@@ -330,7 +330,7 @@ module treeclassifier
 			@logmsg DTDetail " unsatisfied_flags" unsatisfied_flags
 
 			if length(unique(unsatisfied_flags)) == 1
-				error("An uninformative split was reached. Something's off\nPurity: $(node.purity)\nSplit: $(decision_str)\nUnsatisfied flags: $(unsatisfied_flags)")
+				throw_n_log("An uninformative split was reached. Something's off\nPurity: $(node.purity)\nSplit: $(decision_str)\nUnsatisfied flags: $(unsatisfied_flags)")
 			end
 			
 			# Check consistency
@@ -360,9 +360,7 @@ module treeclassifier
 					# errStr *= "$(ModalLogic.getChannel(Xs, indX[i + r_start], best_feature))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[node.i_frame][indX[i + r_start]])\n";
 				# end
 
-				# throw or error(Base.ErrorException(errStr))
-				println("ERROR! " * errStr)
-				error("ERROR! " * errStr)
+				throw_n_log("ERROR! " * errStr)
 			end
 
 			@logmsg DTDetail "pre-partition" region indX[region] unsatisfied_flags
@@ -421,35 +419,35 @@ module treeclassifier
 		n_instances = n_samples(Xs)
 
 		if length(Y) != n_instances
-			error("dimension mismatch between dataset and label vector Y: ($(n_instances)) vs $(size(Y))")
+			throw_n_log("dimension mismatch between dataset and label vector Y: ($(n_instances)) vs $(size(Y))")
 		elseif length(W) != n_instances
-			error("dimension mismatch between dataset and weights vector W: ($(n_instances)) vs $(size(W))")
+			throw_n_log("dimension mismatch between dataset and weights vector W: ($(n_instances)) vs $(size(W))")
 		############################################################################
 		elseif length(n_subrelations) != n_frames(Xs)
-			error("mismatching number of n_subrelations with number of frames: $(length(n_subrelations)) vs $(n_frames(Xs))")
+			throw_n_log("mismatching number of n_subrelations with number of frames: $(length(n_subrelations)) vs $(n_frames(Xs))")
 		elseif length(n_subfeatures)  != n_frames(Xs)
-			error("mismatching number of n_subfeatures with number of frames: $(length(n_subfeatures)) vs $(n_frames(Xs))")
+			throw_n_log("mismatching number of n_subfeatures with number of frames: $(length(n_subfeatures)) vs $(n_frames(Xs))")
 		elseif length(initConditions) != n_frames(Xs)
-			error("mismatching number of initConditions with number of frames: $(length(initConditions)) vs $(n_frames(Xs))")
+			throw_n_log("mismatching number of initConditions with number of frames: $(length(initConditions)) vs $(n_frames(Xs))")
 		elseif length(useRelationGlob) != n_frames(Xs)
-			error("mismatching number of useRelationGlob with number of frames: $(length(useRelationGlob)) vs $(n_frames(Xs))")
+			throw_n_log("mismatching number of useRelationGlob with number of frames: $(length(useRelationGlob)) vs $(n_frames(Xs))")
 		############################################################################
 		# elseif any(n_relations(Xs) .< n_subrelations)
-		# 	error("in at least one frame the total number of relations is less than the number "
+		# 	throw_n_log("in at least one frame the total number of relations is less than the number "
 		# 		* "of relations required at each split\n"
 		# 		* "# relations:    " * string(n_relations(Xs)) * "\n\tvs\n"
 		# 		* "# subrelations: " * string(n_subrelations |> collect))
 		# elseif length(findall(n_subrelations .< 0)) > 0
-		# 	error("total number of relations $(n_subrelations) must be >= zero ")
+		# 	throw_n_log("total number of relations $(n_subrelations) must be >= zero ")
 		elseif any(n_features(Xs) .< n_subfeatures)
-			error("in at least one frame the total number of features is less than the number "
+			throw_n_log("in at least one frame the total number of features is less than the number "
 				* "of features required at each split\n"
 				* "# features:    " * string(n_features(Xs)) * "\n\tvs\n"
 				* "# subfeatures: " * string(n_subfeatures |> collect))
 		elseif length(findall(n_subfeatures .< 0)) > 0
-			error("total number of features $(n_subfeatures) must be >= zero ")
+			throw_n_log("total number of features $(n_subfeatures) must be >= zero ")
 		elseif min_samples_leaf < 1
-			error("min_samples_leaf must be a positive integer "
+			throw_n_log("min_samples_leaf must be a positive integer "
 				* "(given $(min_samples_leaf))")
 		# if loss_function in [util.entropy]
 		# 	min_loss_at_leaf_thresh = 0.75 # min_purity_increase 0.01
@@ -462,27 +460,27 @@ module treeclassifier
 		# 			* "(given $(min_purity_increase))")
 		# end
 		elseif loss_function in [util.gini, util.zero_one] && (min_loss_at_leaf > 1.0 || min_loss_at_leaf <= 0.0)
-			error("min_loss_at_leaf for loss $(loss_function) must be in (0,1]"
+			throw_n_log("min_loss_at_leaf for loss $(loss_function) must be in (0,1]"
 				* "(given $(min_loss_at_leaf))")
 		elseif max_depth < -1
-			error("unexpected value for max_depth: $(max_depth) (expected:"
+			throw_n_log("unexpected value for max_depth: $(max_depth) (expected:"
 				* " max_depth >= 0, or max_depth = -1 for infinite depth)")
 		end
 
 		# TODO make sure how missing, nothing, NaN & infinite can be handled
 		# if nothing in Xs.fwd
-		# 	error("Warning! This algorithm doesn't allow nothing values in Xs.fwd")
+		# 	throw_n_log("Warning! This algorithm doesn't allow nothing values in Xs.fwd")
 		# elseif any(isnan.(Xs.fwd)) # TODO make sure that this does its job.
-		# 	error("Warning! This algorithm doesn't allow NaN values in Xs.fwd")
+		# 	throw_n_log("Warning! This algorithm doesn't allow NaN values in Xs.fwd")
 		# else
 		if nothing in Y
-			error("Warning! This algorithm doesn't allow nothing values in Y")
+			throw_n_log("Warning! This algorithm doesn't allow nothing values in Y")
 		# elseif any(isnan.(Y))
-		# 	error("Warning! This algorithm doesn't allow NaN values in Y")
+		# 	throw_n_log("Warning! This algorithm doesn't allow NaN values in Y")
 		elseif nothing in W
-			error("Warning! This algorithm doesn't allow nothing values in W")
+			throw_n_log("Warning! This algorithm doesn't allow nothing values in W")
 		elseif any(isnan.(W))
-			error("Warning! This algorithm doesn't allow NaN values in W")
+			throw_n_log("Warning! This algorithm doesn't allow NaN values in W")
 		end
 
 	end
@@ -541,12 +539,12 @@ module treeclassifier
 	# 	#  propositional splits.
 		
 	# 	if RelationId in ontology_relations
-	# 		error("Found RelationId in ontology provided. No need.")
+	# 		throw_n_log("Found RelationId in ontology provided. No need.")
 	# 		# ontology_relations = filter(e->e ≠ RelationId, ontology_relations)
 	# 	end
 
 	# 	if RelationGlob in ontology_relations
-	# 		error("Found RelationGlob in ontology provided. Use useRelationGlob = true instead.")
+	# 		throw_n_log("Found RelationGlob in ontology provided. Use useRelationGlob = true instead.")
 	# 		# ontology_relations = filter(e->e ≠ RelationGlob, ontology_relations)
 	# 		# useRelationGlob = true
 	# 	end

@@ -237,6 +237,11 @@ git-tree-sha1 = "c77875b634a10dee1b3701c92f993bf8dc1dee02"
 uuid = "459fdd68-db75-56b8-8c15-d717a790f88e"
 version = "0.1.0"
 
+[[ConfigEnv]]
+git-tree-sha1 = "1891cfd27ae8256e4e69574c93dc0d6eb839903e"
+uuid = "01234589-554d-41b7-ae5c-7b6ee2db6796"
+version = "1.0.0"
+
 [[ConstructionBase]]
 deps = ["LinearAlgebra"]
 git-tree-sha1 = "f74e9d5388b8620b4cee35d4c5a618dd4dc547f4"
@@ -774,6 +779,12 @@ git-tree-sha1 = "8076680b162ada2a031f707ac7b4953e30667a37"
 uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.21.2"
 
+[[JSON3]]
+deps = ["Dates", "Mmap", "Parsers", "StructTypes", "UUIDs"]
+git-tree-sha1 = "b3e5984da3c6c95bcf6931760387ff2e64f508f3"
+uuid = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
+version = "1.9.1"
+
 [[JSONSchema]]
 deps = ["HTTP", "JSON", "ZipFile"]
 git-tree-sha1 = "b84ab8139afde82c7c65ba2b792fe12e01dd7307"
@@ -916,6 +927,12 @@ uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [[Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
+
+[[LoggingExtras]]
+deps = ["Dates", "Logging"]
+git-tree-sha1 = "dfeda1c1130990428720de0024d4516b1902ce98"
+uuid = "e6f89c97-d47a-5376-807f-9c37f3926c36"
+version = "0.4.7"
 
 [[LoweredCodeUtils]]
 deps = ["JuliaInterpreter"]
@@ -1398,6 +1415,12 @@ git-tree-sha1 = "2ce41e0d042c60ecd131e9fb7154a3bfadbf50d3"
 uuid = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
 version = "0.6.3"
 
+[[StructTypes]]
+deps = ["Dates", "UUIDs"]
+git-tree-sha1 = "8445bf99a36d703a09c601f9a57e2f83000ef2ae"
+uuid = "856f2bd8-1eba-4b0a-8007-ebc267875bd4"
+version = "1.7.3"
+
 [[TOML]]
 deps = ["Dates"]
 uuid = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
@@ -1417,6 +1440,12 @@ version = "1.5.2"
 [[Tar]]
 deps = ["ArgTools", "SHA"]
 uuid = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
+
+[[Telegram]]
+deps = ["HTTP", "JSON3"]
+git-tree-sha1 = "2405cba3b9277bbbe73369e949dcb61a03466e2e"
+uuid = "1da6f4ae-116c-4c38-8ee9-19974ff3601d"
+version = "1.1.1"
 
 [[Test]]
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]

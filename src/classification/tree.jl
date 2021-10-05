@@ -236,22 +236,22 @@ module treeclassifier
             min_purity_increase :: Float64) where {S, T, U}
         n_samples, n_features = size(X)
         if length(Y) != n_samples
-            throw("dimension mismatch between X and Y ($(size(X)) vs $(size(Y))")
+            throw_n_log("dimension mismatch between X and Y ($(size(X)) vs $(size(Y))")
         elseif length(W) != n_samples
-            throw("dimension mismatch between X and W ($(size(X)) vs $(size(W))")
+            throw_n_log("dimension mismatch between X and W ($(size(X)) vs $(size(W))")
         elseif max_depth < -1
-            throw("unexpected value for max_depth: $(max_depth) (expected:"
+            throw_n_log("unexpected value for max_depth: $(max_depth) (expected:"
                 * " max_depth >= 0, or max_depth = -1 for infinite depth)")
         elseif n_features < max_features
-            throw("number of features $(n_features) is less than the number "
+            throw_n_log("number of features $(n_features) is less than the number "
                 * "of max features $(max_features)")
         elseif max_features < 0
-            throw("number of features $(max_features) must be >= zero ")
+            throw_n_log("number of features $(max_features) must be >= zero ")
         elseif min_samples_leaf < 1
-            throw("min_samples_leaf must be a positive integer "
+            throw_n_log("min_samples_leaf must be a positive integer "
                 * "(given $(min_samples_leaf))")
         elseif min_samples_split < 2
-            throw("min_samples_split must be at least 2 "
+            throw_n_log("min_samples_split must be at least 2 "
                 * "(given $(min_samples_split))")
         end
     end

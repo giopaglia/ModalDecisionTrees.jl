@@ -200,10 +200,10 @@ function build_forest(
         rng                 = Random.GLOBAL_RNG) where {S, T}
 
     if n_trees < 1
-        throw("the number of trees must be >= 1")
+        throw_n_log("the number of trees must be >= 1")
     end
     if !(0.0 < partial_sampling <= 1.0)
-        throw("partial_sampling must be in the range (0,1]")
+        throw_n_log("partial_sampling must be in the range (0,1]")
     end
 
     if n_subfeatures == -1
@@ -248,7 +248,7 @@ function build_forest(
                 loss = loss)
         end
     else
-        throw("rng must of be type Integer or Random.AbstractRNG")
+        throw_n_log("rng must of be type Integer or Random.AbstractRNG")
     end
 
     return Ensemble{S, T}(forest)
