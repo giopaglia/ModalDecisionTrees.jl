@@ -62,7 +62,7 @@ end
 # TODO
 # function checkModalDatasetConsistency(modalDataset, X::OntologicalDataset{T, N, WorldType}, features::AbstractVector{<:FeatureTypeFun}) where {T, N, WorldType<:AbstractWorld}
 # 	if !(modalDatasetIsConsistent(modalDataset, X, length(features)))
-# 		error("The provided modalDataset structure is not consistent with the expected dataset, test operators and/or relations!"
+# 		throw_n_log("The provided modalDataset structure is not consistent with the expected dataset, test operators and/or relations!"
 # 			* "\n\tmodalDataset:"
 # 			* " $(typeof(modalDataset))"
 # 			* " $(eltype(modalDataset))"
@@ -427,7 +427,7 @@ Base.@propagate_inbounds function computeModalDatasetStumpSupport(
 
 	computefmd_g =
 		if RelationGlob in relations
-			error("RelationGlob in relations: $(relations)")
+			throw_n_log("RelationGlob in relations: $(relations)")
 			relations = filter!(l->l≠RelationGlob, relations)
 			true
 		elseif computeRelationGlob

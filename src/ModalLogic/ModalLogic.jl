@@ -601,7 +601,7 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
 			for (i_test_operator,test_operator) in enumerate(aggrsnops[aggr])
 				# TODO figure out a solution to this issue: >= and <= in a propositional condition can find more or less the same optimum, so no need to check both; but which one of them should be the one on the left child, the one that makes the modal step?
 				# if dual_test_operator(test_operator) in tested_test_operator
-				# 	error("Double-check this part of the code: there's a foundational issue here to settle!")
+				# 	throw_n_log("Double-check this part of the code: there's a foundational issue here to settle!")
 				# 	println("Found $(test_operator)'s dual $(dual_test_operator(test_operator)) in tested_test_operator = $(tested_test_operator)")
 				# 	continue
 				# end

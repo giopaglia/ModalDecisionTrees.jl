@@ -131,11 +131,11 @@ macro_PPV(cm::ConfusionMatrix)         = Statistics.mean(cm.PPVs)
 macro_NPV(cm::ConfusionMatrix)         = Statistics.mean(cm.NPVs)
 macro_F1(cm::ConfusionMatrix)          = Statistics.mean(cm.F1s)
 
-macro_weighted_F1(cm::ConfusionMatrix) = length(cm.classes) == 2 ? error("macro_weighted_F1 Binary case?") : Statistics.sum(cm.F1s.*class_counts(cm))./sum(cm.matrix)
-macro_weighted_sensitivity(cm::ConfusionMatrix) = length(cm.classes) == 2 ? error("macro_weighted_sensitivity Binary case?") : Statistics.sum(cm.sensitivities.*class_counts(cm))./sum(cm.matrix)
-macro_weighted_specificity(cm::ConfusionMatrix) = length(cm.classes) == 2 ? error("# Binary case?") : Statistics.sum(cm.specificities.*class_counts(cm))./sum(cm.matrix)
-macro_weighted_PPV(cm::ConfusionMatrix) = length(cm.classes) == 2 ? error("macro_weighted_PPV Binary case?") : Statistics.sum(cm.PPVs.*class_counts(cm))./sum(cm.matrix)
-macro_weighted_NPV(cm::ConfusionMatrix) = length(cm.classes) == 2 ? error("macro_weighted_NPV Binary case?") : Statistics.sum(cm.NPVs.*class_counts(cm))./sum(cm.matrix)
+macro_weighted_F1(cm::ConfusionMatrix) = length(cm.classes) == 2 ? throw_n_log("macro_weighted_F1 Binary case?") : Statistics.sum(cm.F1s.*class_counts(cm))./sum(cm.matrix)
+macro_weighted_sensitivity(cm::ConfusionMatrix) = length(cm.classes) == 2 ? throw_n_log("macro_weighted_sensitivity Binary case?") : Statistics.sum(cm.sensitivities.*class_counts(cm))./sum(cm.matrix)
+macro_weighted_specificity(cm::ConfusionMatrix) = length(cm.classes) == 2 ? throw_n_log("# Binary case?") : Statistics.sum(cm.specificities.*class_counts(cm))./sum(cm.matrix)
+macro_weighted_PPV(cm::ConfusionMatrix) = length(cm.classes) == 2 ? throw_n_log("macro_weighted_PPV Binary case?") : Statistics.sum(cm.PPVs.*class_counts(cm))./sum(cm.matrix)
+macro_weighted_NPV(cm::ConfusionMatrix) = length(cm.classes) == 2 ? throw_n_log("macro_weighted_NPV Binary case?") : Statistics.sum(cm.NPVs.*class_counts(cm))./sum(cm.matrix)
 
 safe_macro_sensitivity(cm::ConfusionMatrix) = length(cm.classes) == 2 ? cm.sensitivities[1] : macro_sensitivity(cm)
 safe_macro_specificity(cm::ConfusionMatrix) = length(cm.classes) == 2 ? cm.specificities[1] : macro_specificity(cm)
@@ -264,7 +264,7 @@ end
 # 	_rng = mk_rng(rng)::Random.AbstractRNG
 # 	nfolds = args[1]
 # 	if nfolds < 2
-# 		throw("number of folds must be greater than 1")
+# 		throw_n_log("number of folds must be greater than 1")
 # 	end
 # 	if classifier == :tree
 # 		pruning_purity      = args[2]
@@ -395,7 +395,7 @@ end
 # 	_rng = mk_rng(rng)::Random.AbstractRNG
 # 	nfolds = args[1]
 # 	if nfolds < 2
-# 		throw("number of folds must be greater than 1")
+# 		throw_n_log("number of folds must be greater than 1")
 # 	end
 # 	if regressor == :tree
 # 		pruning_purity      = args[2]

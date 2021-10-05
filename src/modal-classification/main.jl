@@ -203,11 +203,11 @@ function build_forest(
 	end
 
 	if n_trees < 1
-		error("the number of trees must be >= 1")
+		throw_n_log("the number of trees must be >= 1")
 	end
 	
 	if !(0.0 < partial_sampling <= 1.0)
-		error("partial_sampling must be in the range (0,1]")
+		throw_n_log("partial_sampling must be in the range (0,1]")
 	end
 	
 	for X in frames(Xs)

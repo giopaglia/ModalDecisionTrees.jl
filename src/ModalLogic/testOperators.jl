@@ -121,11 +121,11 @@ export TestOpGeq_95, TestOpGeq_90, TestOpGeq_85, TestOpGeq_80, TestOpGeq_75, Tes
 
 struct _TestOpGeqSoft  <: TestOperatorPositive
   alpha :: AbstractFloat
-  _TestOpGeqSoft(a::T) where {T<:Real} = (a > 0 && a < 1) ? new(a) : error("Invalid instantiation for test operator: _TestOpGeqSoft($(a))")
+  _TestOpGeqSoft(a::T) where {T<:Real} = (a > 0 && a < 1) ? new(a) : throw_n_log("Invalid instantiation for test operator: _TestOpGeqSoft($(a))")
 end;
 struct _TestOpLeqSoft  <: TestOperatorNegative
   alpha :: AbstractFloat
-  _TestOpLeqSoft(a::T) where {T<:Real} = (a > 0 && a < 1) ? new(a) : error("Invalid instantiation for test operator: _TestOpLeqSoft($(a))")
+  _TestOpLeqSoft(a::T) where {T<:Real} = (a > 0 && a < 1) ? new(a) : throw_n_log("Invalid instantiation for test operator: _TestOpLeqSoft($(a))")
 end;
 
 const TestOpGeq_95  = _TestOpGeqSoft((Rational(95,100)));
@@ -151,8 +151,8 @@ dual_test_operator(x::_TestOpGeqSoft) = TestOpNone
 dual_test_operator(x::_TestOpLeqSoft) = TestOpNone
 # TODO The dual_test_operators for TestOpGeqSoft(alpha) is TestOpLeSoft(1-alpha), which is not defined yet.
 # Define it, together with their dual_test_operator and computePropositionalThresholdDual
-# dual_test_operator(x::_TestOpGeqSoft) = error("If you use $(x), need to write computeModalThresholdDual for the primal test operator.")
-# dual_test_operator(x::_TestOpLeqSoft) = error("If you use $(x), need to write computeModalThresholdDual for the primal test operator.")
+# dual_test_operator(x::_TestOpGeqSoft) = throw_n_log("If you use $(x), need to write computeModalThresholdDual for the primal test operator.")
+# dual_test_operator(x::_TestOpLeqSoft) = throw_n_log("If you use $(x), need to write computeModalThresholdDual for the primal test operator.")
 
 primary_test_operator(x::_TestOpGeqSoft) = x
 primary_test_operator(x::_TestOpLeqSoft) = dual_test_operator(x)

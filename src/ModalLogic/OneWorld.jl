@@ -17,7 +17,7 @@ print_world(::OneWorld) = println("−")
 
 inst_readWorld(::OneWorld, instance::MatricialInstance{T,1}) where {T} = instance
 
-enumAccBare(::OneWorld, ::AbstractRelation, XYZ::Vararg{Integer}) = error("Can't access any world via any relation other than RelationId from a OneWorld")
+enumAccBare(::OneWorld, ::AbstractRelation, XYZ::Vararg{Integer}) = throw_n_log("Can't access any world via any relation other than RelationId from a OneWorld")
 enumAccBare(::OneWorld, ::_RelationId, XYZ::Vararg{Integer}) = [OneWorld()]
 enumAccessibles(::OneWorld, ::_RelationGlob, XYZ::Vararg{Integer}) = [OneWorld()]
 

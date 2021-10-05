@@ -13,6 +13,7 @@
 ☐	Improve type stability for better time performance: https://docs.julialang.org/en/v1/devdocs/reflection/#Intermediate-and-compiled-representations  @code_warntype https://www.johnmyleswhite.com/notebook/2013/12/06/writing-type-stable-code-in-julia/ e.g. type-stable slicing with JuliennedArrays ( from https://discourse.julialang.org/t/way-to-slice-an-array-of-unknown-number-of-dimensions/27246 ), EllipsisNotation https://github.com/ChrisRackauckas/EllipsisNotation.jl. Use \@code_warntype as in https://discourse.julialang.org/t/why-selectdim-is-type-instable/25271/2 to double check each function https://nextjournal.com/jbieler/adding-static-type-checking-to-julia-in-100-lines-of-code/
 
 ☐	Check whether \@inbounds improves performances. @propagate_inbounds, @inbounds (and @boundscheck): "In general, bounds-check removal should be the last optimization you make after ensuring everything else works, is well-tested, and follows the usual performance tips." https://stackoverflow.com/questions/38901275/inbounds-propagation-rules-in-julia?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+☐	throw, error(), @error -> throw_n_log()
 - gammas contain a lot of redundance: perhaps use PooledArrays.jl, IndirectArrays.jl, CategoricalArrays.jl for saving space, both for saving to file AND for learing (might be beneficial for caching)?
 
 ☐	Maybe make gammas be an array-like structure with different indexing style (e.g. relations taken from a list, IndexStyle...). This makes the indexing safer
