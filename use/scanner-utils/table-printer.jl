@@ -1,7 +1,7 @@
 
 import Dates
 
-include("lib.jl")
+include("../lib.jl")
 
 ###############################################################################
 ############################ OUTPUT HANDLERS ##################################
@@ -49,11 +49,11 @@ function string_tree_head(tree_args)::String
 end
 
 function string_forest_head(forest_args)::String
-    if haskey(forest_args, :partial_sampling)
-	string("RF($(forest_args.partial_sampling),$(forest_args.n_trees),$(print_function(forest_args.n_subfeatures)),$(print_function(forest_args.n_subrelations)))")
-    else
-	string("RF($(forest_args.n_trees),$(print_function(forest_args.n_subfeatures)),$(print_function(forest_args.n_subrelations)))")
-    end
+	if haskey(forest_args, :partial_sampling)
+		string("RF($(forest_args.partial_sampling),$(forest_args.n_trees),$(print_function(forest_args.n_subfeatures)),$(print_function(forest_args.n_subrelations)))")
+	else
+		string("RF($(forest_args.n_trees),$(print_function(forest_args.n_subfeatures)),$(print_function(forest_args.n_subrelations)))")
+	end
 end
 
 function string_head(
@@ -62,7 +62,7 @@ function string_head(
 		separator = "\t",
 		tree_columns,
 		forest_columns,
-    columns_before::Union{Integer,Vector{<:AbstractString}} = 1
+		columns_before::Union{Integer,Vector{<:AbstractString}} = 1
 	)::String
 	
 	if columns_before isa Integer
@@ -96,7 +96,7 @@ function string_head(
 	result
 end
 
-function print_head(file_name::String, tree_args::AbstractArray, forest_args::AbstractArray; kwargs...)
+function print_result_head(file_name::String, tree_args::AbstractArray, forest_args::AbstractArray; kwargs...)
 	header = string_head(tree_args, forest_args; kwargs...)
 
 	if isfile(file_name)
@@ -115,6 +115,7 @@ function print_head(file_name::String, tree_args::AbstractArray, forest_args::Ab
 	write(file, header)
 	close(file)
 end
+
 
 function percent(num::Real; digits=2)
 	return round.(num.*100, digits=digits)
@@ -451,7 +452,7 @@ function string_table_latex(table::Vector{Vector{Any}};
 	if length(foot_note) > 0
 		result *= "\\begin{tablenotes}\n"
 		result *= "\\item " * foot_note * "\n"
-	  	result *= "\\end{tablenotes}\n"
+		result *= "\\end{tablenotes}\n"
 	end
 
 	# close resizebox

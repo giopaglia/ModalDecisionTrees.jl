@@ -140,17 +140,18 @@ kdd_task_to_folders = [
 ]
 
 # Obtain the list of all files considered throughout all tasks and versions
-KDD_getSamplesList(; files_to_ignore = kdd_nonexisting_files, dir = kdd_data_dir, rel_path = false) = begin
+KDD_getSamplesList(; files_to_ignore = kdd_nonexisting_files, dir = kdd_data_dir, rel_path = false, only_version = nothing) = begin
 	all_folders = Iterators.flatten([task_folders[1:2] for task_folders in kdd_task_to_folders]) |> collect
+	n_versions = isnothing(only_version) ? [1,2] : [only_version]
 	Iterators.flatten(
 		ThreadsX.collect([KDD_getSamplesList(folder, n_version, true; files_to_ignore = files_to_ignore, dir = dir, rel_path = rel_path, separate_base_n_aug = false)
 				for folder in all_folders
-					for n_version in 1:2])
+					for n_version in n_versions])
 	) |> collect |> Vector{String}
 end
 
 # Obtain the list files considered for a given task and version
-KDD_getSamplesList(n_task::Integer, n_version::Integer, use_augmentation_data; files_to_ignore = kdd_nonexisting_files, dir = kdd_data_dir, rel_path = false) = begin
+KDD_getSamplesList(n_task::Integer, n_version, use_augmentation_data; files_to_ignore = kdd_nonexisting_files, dir = kdd_data_dir, rel_path = false) = begin
 	global kdd_task_to_folders
 	folders_Y, folders_N, class_labels = kdd_task_to_folders[n_task]
 
@@ -161,11 +162,17 @@ KDD_getSamplesList(n_task::Integer, n_version::Integer, use_augmentation_data; f
 end
 
 # Obtain the list files inside a given folder (note: n_version is needed for computing the files to ignore)
-KDD_getSamplesList(folders::AbstractVector{<:AbstractString}, n_version::Integer, use_augmentation_data; files_to_ignore = kdd_nonexisting_files, dir = kdd_data_dir, rel_path = false, separate_base_n_aug = true) = begin
+KDD_getSamplesList(folders::AbstractVector{<:AbstractString}, n_version, use_augmentation_data; files_to_ignore = kdd_nonexisting_files, dir = kdd_data_dir, rel_path = false, separate_base_n_aug = true) = begin
 	global kdd_has_augmentation_data
 	global kdd_has_subfolder_structure
 	global kdd_augmentation_file_suffixes
 	
+	n_version =
+		if n_version == "c"         1
+		elseif n_version == "b"     2
+		else                        n_version
+	end
+
 	subfolder, file_suffix, file_prefix = 
 		if n_version == 1
 			("cough","cough","cough_")
@@ -204,8 +211,8 @@ KDD_getSamplesList(folders::AbstractVector{<:AbstractString}, n_version::Integer
 
 		# collect is necessary because the threads macro only supports arrays
 		# https://stackoverflow.com/questions/57633477/multi-threading-julia-shows-error-with-enumerate-iterator
-		# Threads.@threads (TODO right now can't because of GLPK when using augmentation data)
-		for (i_samples, (is_aug,these_samples)) in collect(enumerate(all_file_paths))
+		# for (i_samples, (is_aug,these_samples)) in collect(enumerate(all_file_paths))
+		Threads.@threads for (i_samples, (is_aug,these_samples)) in collect(enumerate(all_file_paths))
 			
 			# Correct folder/subfolder structure
 			these_samples =
@@ -297,7 +304,7 @@ function KDDDataset((n_task,n_version),
 		elseif n_version == "b"     2
 		elseif n_version == "c+b"   3
 		else                        n_version
-		end
+	end
 
 	# TASK
 
@@ -392,7 +399,6 @@ function KDDDataset((n_task,n_version),
 		ts_with_ma_lengths_dict = Dict{String,Integer}()
 		ts_cut_lengths_dict     = Dict{String,Integer}()
 
-		# Threads.@threads (TODO right now can't because of GLPK when using augmentation data)
 		pos      = Dict(ThreadsX.collect([f => loadSample(f, ts_lengths_dict, ts_with_ma_lengths_dict, ts_cut_lengths_dict) for f in pos_filepaths]))
 		pos_aug  = Dict(ThreadsX.collect([f => loadSample(f, ts_lengths_dict, ts_with_ma_lengths_dict, ts_cut_lengths_dict) for f in pos_aug_filepaths]))
 		neg      = Dict(ThreadsX.collect([f => loadSample(f, ts_lengths_dict, ts_with_ma_lengths_dict, ts_cut_lengths_dict) for f in neg_filepaths]))

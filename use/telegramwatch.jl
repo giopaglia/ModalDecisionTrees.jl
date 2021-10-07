@@ -12,8 +12,8 @@ dotenv()
 tg = TelegramClient()
 tg_logger = TelegramLogger(tg; async = false)
 demux_logger = TeeLogger(
-    MinLevelLogger(tg_logger, Logging.Error),
-    ConsoleLogger()
+	MinLevelLogger(tg_logger, Logging.Error),
+	ConsoleLogger()
 )
 global_logger(demux_logger)
 

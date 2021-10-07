@@ -239,9 +239,9 @@ function ComParE2021Dataset(;
 
 	class_counts = [class_counts[label] for label in class_names] |> Tuple
 	
-	println("ts_lengths         = (max = $(StatsBase.maximum(ts_lengths)        ), min = $(StatsBase.minimum(ts_lengths)        ), mean = $(StatsBase.mean(ts_lengths)        ), std = $(StatsBase.std(ts_lengths)))")
-	println("ts_with_ma_lengths = (max = $(StatsBase.maximum(ts_with_ma_lengths)), min = $(StatsBase.minimum(ts_with_ma_lengths)), mean = $(StatsBase.mean(ts_with_ma_lengths)), std = $(StatsBase.std(ts_with_ma_lengths)))")
-	println("ts_cut_lengths     = (max = $(StatsBase.maximum(ts_cut_lengths)    ), min = $(StatsBase.minimum(ts_cut_lengths)    ), mean = $(StatsBase.mean(ts_cut_lengths)    ), std = $(StatsBase.std(ts_cut_lengths)))")
+	println("ts_lengths         = (max = $(StatsBase.maximum(ts_lengths)        ), min = $(StatsBase.minimum(ts_lengths)        ), median = $(StatsBase.median(ts_lengths)        ), mean = $(StatsBase.mean(ts_lengths)        ), std = $(StatsBase.std(ts_lengths)))")
+	println("ts_with_ma_lengths = (max = $(StatsBase.maximum(ts_with_ma_lengths)), min = $(StatsBase.minimum(ts_with_ma_lengths)), median = $(StatsBase.median(ts_with_ma_lengths)), mean = $(StatsBase.mean(ts_with_ma_lengths)), std = $(StatsBase.std(ts_with_ma_lengths)))")
+	println("ts_cut_lengths     = (max = $(StatsBase.maximum(ts_cut_lengths)    ), min = $(StatsBase.minimum(ts_cut_lengths)    ), median = $(StatsBase.median(ts_cut_lengths)    ), mean = $(StatsBase.mean(ts_cut_lengths)    ), std = $(StatsBase.std(ts_cut_lengths)))")
 
 	println("Class counts: $(class_counts); # points: $(max_timepoints)")
 

@@ -114,6 +114,7 @@ end
 
 using JuMP
 using GLPK
+# using CPLEX, MathOptInterfaceCPLEX
 # using MathOptInterface
 
 """
@@ -164,6 +165,7 @@ function _solve_binary_sampling_prob(split_threshold, an, ap, tn, tp)
 
 	# model = Model(GLPK.Optimizer)
 	model = Model(GLPK.Optimizer, bridge_constraints = false)
+	# model = Model(CPLEX.Optimizer, bridge_constraints = false)
 
 	@variable(model, 0 <= alpha_n  <= 1)
 	@variable(model, 0 <= alpha_p  <= 1)

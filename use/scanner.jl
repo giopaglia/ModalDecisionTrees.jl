@@ -20,8 +20,7 @@ using Test
 # using PProf
 
 
-using DataStructures
-
+using DataStructures 
 
 using SHA
 using Serialization
@@ -579,6 +578,7 @@ function exec_scan(
 		save_datasets                   :: Bool = false,
 		skip_training                   :: Bool = false,
 		callback                        :: Function = identity,
+		dataset_shape_columns           :: Union{AbstractVector,Nothing} = nothing,
 	)
 	
 	@assert timing_mode in [:none, :profile, :time, :btime] "Unknown timing_mode!"
@@ -596,11 +596,13 @@ function exec_scan(
 	##############################################################################
 	##############################################################################
 
-	concise_output_file_path = results_dir * "/grouped_in_models.tsv"
-	full_output_file_path    = results_dir * "/full_columns.tsv"
+	# concise_output_filepath = results_dir * "/grouped_in_models.tsv"
+	full_output_filepath    = results_dir * "/full_columns.tsv"
 
 	results_col_sep = "\t"
 
+	# TODO also print train_seed
+	
 	base_metrics_names = [
 		"train_accuracy",
 		"K",
@@ -625,18 +627,34 @@ function exec_scan(
 		"t", "hash"
 	]
 
-	# If the output files do not exists initilize them
-	print_head(concise_output_file_path, tree_args, forest_args,
-		separator = results_col_sep,
-		tree_columns = [""],
-		forest_columns = ["", "σ²", "t"],
-		columns_before = ["Dataseed", "Params-combination"],
+	dataset_shape_functions = OrderedDict(
+		"# insts (TRAIN)"  => (X_train, Y_train, X_test, Y_test)->length(Y_train),
+		"# insts (TEST)"   => (X_train, Y_train, X_test, Y_test)->length(Y_test),
+		# "n_attributes"     => (X_train, Y_train, X_test, Y_test)->n_attributes(X_train),
+		"n_features"       => (X_train, Y_train, X_test, Y_test)->n_features(X_train),
+		"channel_size"     => (X_train, Y_train, X_test, Y_test)->channel_size(X_test),
+		# "avg_channel_size" => (X_train, Y_train, X_test, Y_test)->?,
+		# "class counts"     => (X_train, Y_train, X_test, Y_test)->?,
 	)
-	print_head(full_output_file_path, tree_args, forest_args,
+
+	if isnothing(dataset_shape_columns)
+		dataset_shape_columns = collect(keys(dataset_shape_functions))
+	else
+		@assert all([col_name in keys(dataset_shape_functions) for col_name in dataset_shape_columns]) "Unknown column encountered in dataset_shape_columns = $(dataset_shape_columns)"
+	end
+
+	# If the output files do not exists initilize them
+	# print_result_head(concise_output_filepath, tree_args, forest_args,
+	# 	separator = results_col_sep,
+	# 	tree_columns = [""],
+	# 	forest_columns = ["", "σ²", "t"],
+	# 	columns_before = ["Dataseed", "Params-combination"],
+	# )
+	print_result_head(full_output_filepath, tree_args, forest_args,
 		separator = results_col_sep,
 		tree_columns = all_tree_columns,
 		forest_columns = all_forest_columns,
-		columns_before = ["Dataseed", (params_namedtuple |> keys .|> string)...],
+		columns_before = ["Dataseed", (params_namedtuple |> keys .|> string)..., dataset_shape_columns...],
 	)
 
 	##############################################################################
@@ -880,51 +898,48 @@ function exec_scan(
 		# PRINT RESULT IN FILES 
 		##############################################################################
 		##############################################################################
+		
+		function print_result_row(values_for_columns_before, tab_kwargs, output_filepath)
+			out_str = string(join(values_for_columns_before, results_col_sep), results_col_sep)
+			for j in 1:length(tree_args)
+				out_str *= string(data_to_string(Ts[j], Tcms[j], Tts[j], Thashs[j], tree_columns;
+					train_cm = Tcms_train[j],
+					tab_kwargs...,
+					# best_rule_params = best_rule_params,
+					))
+				out_str *= string(results_col_sep)
+			end
+			for j in 1:length(forest_args)
+				out_str *= string(data_to_string(Fs[j], Fcms[j], Fts[j], Fhashs[j], forest_columns;
+					train_cm = Fcms_train[j],
+					tab_kwargs...,
+					))
+				out_str *= string(results_col_sep)
+			end
+			out_str *= "\n"
+			append_in_file(output_filepath, out_str)
+		end
 
 		# PRINT CONCISE
-		concise_output_string = string(slice_id, results_col_sep, run_name, results_col_sep)
-		for j in 1:length(tree_args)
-			concise_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j], Thashs[j], tree_columns;
-				train_cm = Tcms_train[j],
-				alt_separator=", ",
-				separator = results_col_sep,
-				# best_rule_params = best_rule_params,
-				))
-			concise_output_string *= string(results_col_sep)
-		end
-		for j in 1:length(forest_args)
-			concise_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j], Fhashs[j], forest_columns;
-				train_cm = Fcms_train[j],
-				alt_separator=", ",
-				separator = results_col_sep,
-				))
-			concise_output_string *= string(results_col_sep)
-		end
-		concise_output_string *= string("\n")
-		append_in_file(concise_output_file_path, concise_output_string)
+		# print_result_row(
+		# 	[slice_id, run_name],
+		# 	(alt_separator=", ", separator = results_col_sep),
+		# 	concise_output_filepath,
+		# 	# results_col_sep = results_col_sep, TODO?
+		# )
 
 		# PRINT FULL
-		full_output_string = string(slice_id, results_col_sep, join([replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)], results_col_sep), results_col_sep)
-		for j in 1:length(tree_args)
-			full_output_string *= string(data_to_string(Ts[j], Tcms[j], Tts[j], Thashs[j], tree_columns;
-				train_cm = Tcms_train[j],
-				start_s = "", end_s = "",
-				alt_separator = results_col_sep,
-				# best_rule_params = best_rule_params,
-				))
-			full_output_string *= string(results_col_sep)
-		end
-		for j in 1:length(forest_args)
-			full_output_string *= string(data_to_string(Fs[j], Fcms[j], Fts[j], Fhashs[j], forest_columns;
-				train_cm = Fcms_train[j],
-				start_s = "", end_s = "",
-				alt_separator = results_col_sep,
-				))
-			full_output_string *= string(results_col_sep)
-		end
-		full_output_string *= string("\n")
-		append_in_file(full_output_file_path, full_output_string)
-
+		print_result_row(
+			[
+				slice_id,
+				[replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)]...,
+				[string(dataset_shape_functions[col_name](X_train, Y_train, X_test, Y_test)) for col_name in dataset_shape_columns]...,
+			],
+			(start_s = "", end_s = "", alt_separator = results_col_sep),
+			full_output_filepath,
+			# results_col_sep = results_col_sep, TODO?
+		)
+		
 		callback(slice_id)
 
 		Dict(

@@ -128,12 +128,12 @@ exec_dicts = load_or_create_execution_progress_dictionary(
 # if the output files does not exist initialize it
 if ! isfile(concise_output_file_path)
 	concise_output_file = open(concise_output_file_path, "a+")
-	print_head(concise_output_file, tree_args, forest_args, tree_columns = [""], forest_columns = [""], separator = column_separator)
+	print_result_head(concise_output_file, tree_args, forest_args, tree_columns = [""], forest_columns = [""], separator = column_separator)
 	close(concise_output_file)
 end
 if ! isfile(full_output_file_path)
 	full_output_file = open(full_output_file_path, "a+")
-	print_head(full_output_file, tree_args, forest_args, separator = column_separator)
+	print_result_head(full_output_file, tree_args, forest_args, separator = column_separator)
 	close(full_output_file)
 end
 

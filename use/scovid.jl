@@ -6,20 +6,20 @@
 
 include("scanner.jl")
 
-train_seed = 1
+train_seed = 2
 
 ################################################################################
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./covid/journal-v5-TODO"
+results_dir = "./covid/journal-v6-trainseed2"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/cache"
 model_savedir = results_dir * "/trees"
 
-# dry_run = false
-dry_run = :dataset_only
+dry_run = false
+# dry_run = :dataset_only
 # dry_run = true
 
 skip_training = false
@@ -282,18 +282,18 @@ exec_ignore_low_sr_samples = [false] # , true]
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization]
 
-exec_n_task_use_aug_n_ver_dataset_dir_preprocess = [
+exec_n_ver_n_task_use_aug_dataset_dir_preprocess = [
 	#
-	# (1,false,"c","KDD",["NG", "Normalize"]),
-	# (2,true,"b","KDD",["Normalize"]),
-	# (3,true,"b","KDD",["Normalize"]),
+	# ("c",1,false,"KDD",["NG", "Normalize"]),
+	# ("b",2,true,"KDD",["Normalize"]),
+	# ("b",3,true,"KDD",["Normalize"]),
 	#
-	(1,false,"c","KDD-norm-partitioned",["NG", "Normalize", "RemSilence"]),
-	(1,false,"b","KDD-norm-partitioned",["Normalize", "RemSilence"]),
-	(2,true,"c","KDD-norm-partitioned",["NG", "Normalize", "RemSilence"]),
-	(2,true,"b","KDD-norm-partitioned",["Normalize", "RemSilence"]),
-	(3,true,"c","KDD-norm-partitioned",["NG", "Normalize", "RemSilence"]),
-	(3,true,"b","KDD-norm-partitioned",["Normalize", "RemSilence"]),
+	("c",1,false,"KDD-norm-partitioned",["NG", "Normalize", "RemSilence"]),
+	("c",2,true,"KDD-norm-partitioned",["NG", "Normalize", "RemSilence"]),
+	("c",3,true,"KDD-norm-partitioned",["NG", "Normalize", "RemSilence"]),
+	("b",1,false,"KDD-norm-partitioned",["Normalize", "RemSilence"]),
+	("b",2,true,"KDD-norm-partitioned",["Normalize", "RemSilence"]),
+	("b",3,true,"KDD-norm-partitioned",["Normalize", "RemSilence"]),
 ]
 # exec_n_task_use_aug = [
 # 	(1, false),
@@ -415,7 +415,7 @@ exec_ranges = (; # Order: faster-changing to slower-changing
 	# exec_dataset_dir       = exec_dataset_dir,
 	exec_ignore_low_sr_samples = exec_ignore_low_sr_samples,
 	use_training_form    = exec_use_training_form,
-	exec_n_task_use_aug_n_ver_dataset_dir_preprocess       = exec_n_task_use_aug_n_ver_dataset_dir_preprocess,
+	exec_n_ver_n_task_use_aug_dataset_dir_preprocess       = exec_n_ver_n_task_use_aug_dataset_dir_preprocess,
 	# n_task_use_aug       = exec_n_task_use_aug,
 	# n_version            = exec_n_versions,
 	nbands               = exec_nbands,
@@ -508,28 +508,28 @@ history = load_or_create_history(
 using Logging, LoggingExtras
 using Telegram, Telegram.API
 using ConfigEnv
-function get_logger()
-	i_log_filename,log_filename = 0,""
-	while i_log_filename == 0 || isfile(log_filename)
-		i_log_filename += 1
-		log_filename = 
-			results_dir * "/" *
-			(dry_run == :dataset_only ? "datasets-" : "") *
-			"$(i_log_filename).out"
-	end
-	logfile_io = open(log_filename, "w+")
 
-	dotenv()
-	tg = TelegramClient()
-	tg_logger = TelegramLogger(tg; async = false)
-
-	TeeLogger(
-	  current_logger(),
-	  SimpleLogger(logfile_io, log_level),
-		MinLevelLogger(tg_logger, Logging.Error), # Want to ignore Telegram? Comment out this
-	)
+i_log_filename,log_filename = 0,""
+while i_log_filename == 0 || isfile(log_filename)
+	global i_log_filename,log_filename
+	i_log_filename += 1
+	log_filename = 
+		results_dir * "/" *
+		(dry_run == :dataset_only ? "datasets-" : "") *
+		"$(i_log_filename).out"
 end
-global_logger(get_logger())
+logfile_io = open(log_filename, "w+")
+dotenv()
+
+tg = TelegramClient()
+tg_logger = TelegramLogger(tg; async = false)
+
+new_logger = TeeLogger(
+	current_logger(),
+	SimpleLogger(logfile_io, log_level),
+	MinLevelLogger(tg_logger, Logging.Error), # Want to ignore Telegram? Comment out this
+)
+global_logger(new_logger)
 
 ################################################################################
 ################################################################################
@@ -579,7 +579,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	# dataset_dir,
 	ignore_low_sr_samples,
 	use_training_form,
-	(n_task, use_aug, n_version, dataset_dir, preprocess_wavs),
+	(n_version, n_task, use_aug, dataset_dir, preprocess_wavs),
 	nbands,
 	dataset_kwargs,
 	use_full_mfcc,
@@ -609,16 +609,16 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	)
 
 	dataset_fun_sub_params = (
-			n_task, use_aug,
-			n_version,
-			cur_audio_kwargs,
-			dataset_kwargs,
-			cur_preprocess_wavs,
-			use_full_mfcc,
-			ignore_low_sr_samples,
-			max_sample_rate,
-			dataset_dir,
-			)
+		n_task, use_aug,
+		n_version,
+		cur_audio_kwargs,
+		dataset_kwargs,
+		cur_preprocess_wavs,
+		use_full_mfcc,
+		ignore_low_sr_samples,
+		max_sample_rate,
+		dataset_dir,
+	)
 
 	# Load Dataset
 	dataset = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
