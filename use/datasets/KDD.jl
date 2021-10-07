@@ -211,8 +211,8 @@ KDD_getSamplesList(folders::AbstractVector{<:AbstractString}, n_version, use_aug
 
 		# collect is necessary because the threads macro only supports arrays
 		# https://stackoverflow.com/questions/57633477/multi-threading-julia-shows-error-with-enumerate-iterator
-		# for (i_samples, (is_aug,these_samples)) in collect(enumerate(all_file_paths))
-		Threads.@threads for (i_samples, (is_aug,these_samples)) in collect(enumerate(all_file_paths))
+		for (i_samples, (is_aug,these_samples)) in collect(enumerate(all_file_paths))
+		# Threads.@threads for (i_samples, (is_aug,these_samples)) in collect(enumerate(all_file_paths))
 			
 			# Correct folder/subfolder structure
 			these_samples =
