@@ -1,6 +1,6 @@
 include("runner.jl")
-include("table-printer.jl")
-include("progressive-iterator-manager.jl")
+include("scanner-utils/table-printer.jl")
+include("scanner-utils/progressive-iterator-manager.jl")
 
 main_rng = DecisionTree.mk_rng(1)
 

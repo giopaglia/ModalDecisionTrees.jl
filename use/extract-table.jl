@@ -4,7 +4,7 @@ Pkg.activate("..")
 using Revise
 using DecisionTree
 
-include("table-printer.jl")
+include("scanner-utils/table-printer.jl")
 
 import Statistics
 tables_path = "./tables"

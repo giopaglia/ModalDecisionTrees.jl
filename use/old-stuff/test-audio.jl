@@ -1,8 +1,8 @@
 # julia -i -t4 test-audio.jl
 # julia -i test-audio.jl
 include("runner.jl")
-include("table-printer.jl")
-include("progressive-iterator-manager.jl")
+include("scanner-utils/table-printer.jl")
+include("scanner-utils/progressive-iterator-manager.jl")
 
 rng = my_rng()
 

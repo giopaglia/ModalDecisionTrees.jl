@@ -95,8 +95,8 @@ end
 
 
 include("caching.jl")
-include("table-printer.jl")
-include("progressive-iterator-manager.jl")
+include("scanner-utils/table-printer.jl")
+include("scanner-utils/progressive-iterator-manager.jl")
 include("datasets.jl")
 include("dataset-utils.jl")
 

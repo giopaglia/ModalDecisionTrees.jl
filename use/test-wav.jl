@@ -75,7 +75,7 @@ using FileIO
 
 include("wav-filtering.jl")
 include("paper-trees.jl")
-include("load-models.jl")
+include("scanner-utils/load-model.jl")
 
 gr()
 

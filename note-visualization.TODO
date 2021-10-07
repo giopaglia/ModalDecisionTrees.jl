@@ -1,0 +1,64 @@
+VISUALIZATION
+
+DATASET
+
+- visualization: plot instances and datasets as heatmaps
+
+
+MODELLI
+
+DATASET+MODELLI
+
+RISULTATI
+
+visualization of decision trees as in python with export_graphviz from sklearn.tree and dtreeviz
+
+export_graphviz from sklearn.tree. In this article, a different and more complete approach is provided using the dtreeviz
+
+n_attrs=40; for i in {1..$n_attrs}; do grep 'A'$i'[^0-9]' covid-july/scan-covid-july.out | wc -l; done
+
+
+During the last few years, different visualization techniques have been introduced in order to make Machine Learning more explainable such as:
+
+    Exploring Convolutional Neural Networks Filters and Feature maps.
+    Graphs Networks.
+    Bayesian-based models.
+    Causal Reasoning applied to Machine Learning.
+    Local/Global surrogate models.
+    Introduction of Local Interpretable Model-Agnostic Explanations (LIME) and Shapley Values.
+
+
+import pandas as pd
+import plotly.graph_objects as go
+
+df = pd.read_csv('https://raw.githubusercontent.com/vyaduvanshi/helper-files/master/parallel_coordinates.csv')
+group_vars = df['country'].unique()
+dfg = pd.DataFrame({'country':df['country'].unique()})
+dfg['dummy'] = dfg.index
+df = pd.merge(df, dfg, on = 'country', how='left')
+
+
+dimensions = list([dict(range=[df['gm_Retail & Recreation'].min(),df['gm_Retail & Recreation'].max()],
+				    label='Retail & Recreation', values=df['gm_Retail & Recreation']),
+			   dict(range=[df['gm_Grocery & Pharmacy'].min(),df['gm_Grocery & Pharmacy'].max()],
+				   label='Grocery & Pharmacy', values=df['gm_Grocery & Pharmacy']),
+			   dict(range=[df['gm_Parks'].min(),df['gm_Parks'].max()],
+				   label='Parks', values=df['gm_Parks']),
+			   dict(range=[df['gm_Transit Stations'].min(),df['gm_Transit Stations'].max()],
+				   label='Transit Stations', values=df['gm_Transit Stations']),
+			   dict(range=[df['gm_Workplaces'].min(),df['gm_Workplaces'].max()],
+				   label='Workplaces', values=df['gm_Workplaces']),
+			   dict(range=[df['gm_Residential'].min(),df['gm_Residential'].max()],
+				   label='Residential', values=df['gm_Residential']),
+			    
+			   dict(range=[0,df['dummy'].max()],
+				   tickvals = dfg['dummy'], ticktext = dfg['country'],
+				   label='Country', values=df['dummy']),
+			   
+			   ])
+
+fig = go.Figure(data=go.Parcoords(line = dict(color = df['dummy'],
+			    colorscale = [[0,'rgba(200,0,0,0.1)'],[0.5,'rgba(0,200,0,0.1)'],[1,'rgba(0,0,200,0.1)']]),
+			dimensions=dimensions))
+fig.show()
+

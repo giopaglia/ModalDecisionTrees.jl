@@ -565,15 +565,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 				println()
 				println("Loading model: $(model_hash)...")
 				
-				model = load("$(model_savedir)/$(model_hash).jld")
-
-				model = if startswith(model_hash, "tree")
-						model["T"]
-					elseif startswith(model_hash, "rf")
-						model["F"]
-					else
-						throw_n_log("Unknown model hash type: $(model_hash)")
-					end
+				model = load_model(model_hash, model_savedir)
 
 				println()
 				println("Original model (training):")
