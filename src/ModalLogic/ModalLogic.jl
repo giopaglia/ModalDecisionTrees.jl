@@ -1252,6 +1252,8 @@ n_samples(X::MultiFrameModalDataset)            = n_samples(X.frames[1]) # n_fra
 length(X::MultiFrameModalDataset)               = n_samples(X)
 frames(X::MultiFrameModalDataset) = X.frames
 Base.iterate(X::MultiFrameModalDataset, state=1) = state > length(X) ? nothing : (getInstance(X, state), state+1)
+
+channel_size(X::MultiFrameModalDataset) = map(channel_size, X.frames)
 # get total number of features (TODO: figure if this is useless or not)
 n_features(X::MultiFrameModalDataset) = map(n_features, X.frames)
 # get number of features in a single frame
