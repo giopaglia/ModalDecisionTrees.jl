@@ -117,8 +117,15 @@ end
 	draw_wav(filepath; kwargs...)
 	draw_wav!(samples[, samplerate]; color = :auto, title = "", size = (1000, 150))
 	draw_wav!(filepath; kwargs...)
-
+	
 Plot a wave using its `samples`.
+	
+	draw_wav(filepaths; title_func = basename, kwargs...)
+
+Multiple wav can be drawn in the same plot
+passing their `filepaths`. The `title_func` parameter
+can be used to process the `title` string
+for each individual file.
 
 NB: `samplerate` is not used inside this function but inserted to
 maintain interface consistency.
@@ -158,6 +165,14 @@ function draw_wav(filepath::String; kwargs...)::Plots.Plot
 end
 function draw_wav(samples_n_samplerate::Tuple{Vector{T},Real}; kwargs...)::Plots.Plot where T<:AbstractFloat
 	draw_wav(samples_n_samplerate...; kwargs...)
+end
+function draw_wav(filepaths::Vector{String}; title_func::Function = basename, kwargs...)::Plots.Plot
+	plts = []
+	for filepath in filepaths
+		samps, sr = wavread(filepath)
+		push!(plts, draw_wav(samps, sr; title = title_func(filepath), kwargs...))
+	end
+	plot(plts..., layout = (length(filepaths), 1), size = (1000, length(filepaths) * 150))
 end
 
 """
