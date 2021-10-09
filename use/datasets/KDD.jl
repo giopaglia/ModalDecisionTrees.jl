@@ -140,8 +140,9 @@ kdd_task_to_folders = [
 ]
 
 # Obtain the list of all files considered throughout all tasks and versions
-KDD_getSamplesList(; files_to_ignore = kdd_nonexisting_files, dir = kdd_data_dir, rel_path = false, only_version = nothing) = begin
-	all_folders = Iterators.flatten([task_folders[1:2] for task_folders in kdd_task_to_folders]) |> collect
+KDD_getSamplesList(; files_to_ignore = kdd_nonexisting_files, dir = kdd_data_dir, rel_path = false, only_version = nothing, only_tasks = nothing) = begin
+	kdd_folders = isnothing(only_tasks) ? kdd_task_to_folders : kdd_task_to_folders[only_tasks]
+	all_folders = Iterators.flatten([task_folders[1:2] for task_folders in kdd_folders]) |> collect
 	n_versions = isnothing(only_version) ? [1,2] : [only_version]
 	Iterators.flatten(
 		ThreadsX.collect([KDD_getSamplesList(folder, n_version, true; files_to_ignore = files_to_ignore, dir = dir, rel_path = rel_path, separate_base_n_aug = false)

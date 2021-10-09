@@ -3,7 +3,7 @@ import Base: getindex, values
 import Random
 using JSON
 
-data_dir = "../datasets/" # TODO save this on a .env file, and then: using ConfigEnv; dotenv()
+data_dir = "../datasets/" # TODO move this to an .env file?
 
 include("wav2stft_time_series.jl")
 include("wave-utils/wav-process.jl")
@@ -118,7 +118,7 @@ end
 	partition_wavs_and_get_names(paths; partitioning_kwargs = ())
 
 Call [`partitionwav`](@ref) on all inputed WAVs and then return a filepath
-for each slice of the original wave following naming `ORIGINALPATH.split.[i].wav`.
+for each slice of the original wave
 """
 function partition_wavs_and_get_names(
 			samples_n_samplerates :: AbstractVector{<:Tuple{<:AbstractVector{<:T},SR}},

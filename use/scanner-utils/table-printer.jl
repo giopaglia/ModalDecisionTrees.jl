@@ -23,7 +23,6 @@ function print_function(func::Core.Function)::String
 	elseif func === DecisionTree.util.gini
 		"gini"
 	else
-		# ""
 		string(func)
 	end
 end

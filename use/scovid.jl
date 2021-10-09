@@ -12,7 +12,7 @@ train_seed = 2
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./covid/journal-v6-trainseed2"
+results_dir = "./covid/journal-v7-TODO"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/cache"
@@ -74,8 +74,8 @@ optimize_forest_computation = false
 
 forest_args = []
 
-# for n_trees in [50,100]
-for n_trees in [50]
+# for n_trees in [51,101]
+for n_trees in [51]
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
 			for partial_sampling in [0.7]
@@ -310,28 +310,28 @@ exec_nbands = [30] # [20,40,60]
 # exec_nbands = [40] # [20,40,60]
 
 exec_dataset_kwargs =   [(
-							max_points = 50,
-							ma_size = 30,
-							ma_step = 20,
-						),(
-							max_points = 50,
-							ma_size = 45,
-							ma_step = 30,
-						# ),(# max_points = 30,
-						#	ma_size = 120,
-						#	ma_step = 100,
-						# ),(#max_points = 30,
-						# 	max_points = 50,
-						# 	ma_size = 100,
-						# 	ma_step = 75,
-						# ),(# max_points = 30,
-						# 	ma_size = 90,
-						# 	ma_step = 60,
-						# ),(# max_points = 30,
-							# ma_size = 75,
-							# ma_step = 50,
-						)
-						]
+		max_points = 50,
+		ma_size = 30,
+		ma_step = 20,
+	),(
+		max_points = 50,
+		ma_size = 45,
+		ma_step = 30,
+	# ),(# max_points = 30,
+	# 	ma_size = 120,
+	# 	ma_step = 100,
+	# ),(#max_points = 30,
+	# 	max_points = 50,
+	# 	ma_size = 100,
+	# 	ma_step = 75,
+	# ),(# max_points = 30,
+	# 	ma_size = 90,
+	# 	ma_step = 60,
+	# ),(# max_points = 30,
+	# 	ma_size = 75,
+	# 	ma_step = 50,
+	)
+]
 
 audio_kwargs_partial_mfcc(max_sample_rate,nbands,fbtype) = (
 	wintime = 0.025, # in ms          # 0.020-0.040

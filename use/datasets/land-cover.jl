@@ -51,18 +51,80 @@ function SampleLandCoverDataset(
 	@assert pad_window_size[1] >= window_size[1] && pad_window_size[2] >= window_size[2]
 
 	@assert isodd(window_size[1]) && isodd(window_size[2])
-	(Xmap, Ymap), class_labels_map = 	if dataset == "IndianPines"
-									IndianPinesDataset(),["Alfalfa", "Corn-notill", "Corn-mintill", "Corn", "Grass-pasture", "Grass-trees", "Grass-pasture-mowed", "Hay-windrowed", "Oats", "Soybean-notill", "Soybean-mintill", "Soybean-clean", "Wheat", "Woods", "Buildings-Grass-Trees-Drives", "Stone-Steel-Towers"]
-								elseif dataset == "Salinas"
-									SalinasDataset(),["Brocoli_green_weeds_1", "Brocoli_green_weeds_2", "Fallow", "Fallow_rough_plow", "Fallow_smooth", "Stubble", "Celery", "Grapes_untrained", "Soil_vinyard_develop", "Corn_senesced_green_weeds", "Lettuce_romaine_4wk", "Lettuce_romaine_5wk", "Lettuce_romaine_6wk", "Lettuce_romaine_7wk", "Vinyard_untrained", "Vinyard_vertical_trellis"]
-								elseif dataset == "Salinas-A"
-									SalinasADataset(),Dict(1 => "Brocoli_green_weeds_1", 10 => "Corn_senesced_green_weeds", 11 => "Lettuce_romaine_4wk", 12 => "Lettuce_romaine_5wk", 13 => "Lettuce_romaine_6wk", 14 => "Lettuce_romaine_7wk")
-								elseif dataset == "PaviaCentre"
-									PaviaCentreDataset(),["Water", "Trees", "Asphalt", "Self-Blocking Bricks", "Bitumen", "Tiles", "Shadows", "Meadows", "Bare Soil"]
-								elseif dataset == "Pavia"
-									PaviaDataset(),["Asphalt", "Meadows", "Gravel", "Trees", "Painted metal sheets", "Bare Soil", "Bitumen", "Self-Blocking Bricks", "Shadows"]
-								else
-									throw_n_log("Unknown land cover dataset")
+	(Xmap, Ymap), class_labels_map =
+		if dataset == "IndianPines"
+			IndianPinesDataset(),[
+				"Alfalfa",
+				"Corn-notill",
+				"Corn-mintill",
+				"Corn",
+				"Grass-pasture",
+				"Grass-trees",
+				"Grass-pasture-mowed",
+				"Hay-windrowed",
+				"Oats",
+				"Soybean-notill",
+				"Soybean-mintill",
+				"Soybean-clean",
+				"Wheat",
+				"Woods",
+				"Buildings-Grass-Trees-Drives",
+				"Stone-Steel-Towers",
+			]
+		elseif dataset == "Salinas"
+			SalinasDataset(),[
+				"Brocoli_green_weeds_1",
+				"Brocoli_green_weeds_2",
+				"Fallow",
+				"Fallow_rough_plow",
+				"Fallow_smooth",
+				"Stubble",
+				"Celery",
+				"Grapes_untrained",
+				"Soil_vinyard_develop",
+				"Corn_senesced_green_weeds",
+				"Lettuce_romaine_4wk",
+				"Lettuce_romaine_5wk",
+				"Lettuce_romaine_6wk",
+				"Lettuce_romaine_7wk",
+				"Vinyard_untrained",
+				"Vinyard_vertical_trellis",
+			]
+		elseif dataset == "Salinas-A"
+			SalinasADataset(),Dict(
+				1 => "Brocoli_green_weeds_1",
+				10 => "Corn_senesced_green_weeds",
+				11 => "Lettuce_romaine_4wk",
+				12 => "Lettuce_romaine_5wk",
+				13 => "Lettuce_romaine_6wk",
+				14 => "Lettuce_romaine_7wk",
+			)
+		elseif dataset == "PaviaCentre"
+			PaviaCentreDataset(),[
+				"Water",
+				"Trees",
+				"Asphalt",
+				"Self-Blocking Bricks",
+				"Bitumen",
+				"Tiles",
+				"Shadows",
+				"Meadows",
+				"Bare Soil",
+			]
+		elseif dataset == "Pavia"
+			PaviaDataset(),[
+				"Asphalt",
+				"Meadows",
+				"Gravel",
+				"Trees",
+				"Painted metal sheets",
+				"Bare Soil",
+				"Bitumen",
+				"Self-Blocking Bricks",
+				"Shadows",
+			]
+		else
+			throw_n_log("Unknown land cover dataset")
 	end
 
 	# print(size(Xmap))
