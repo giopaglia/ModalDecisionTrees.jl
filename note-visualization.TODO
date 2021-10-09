@@ -7,6 +7,14 @@ DATASET
 
 MODELLI
 
+
+# Print leaderboards of the most used relations
+for rel in {"⟨O⟩","⟨D⟩","⟨O̅⟩","⟨B̅⟩","⟨D̅⟩","⟨E⟩","⟨B⟩","⟨L̅⟩","⟨A̅⟩","⟨L⟩","⟨A⟩","⟨E̅⟩","⟨G⟩"}; do
+  echo -n "$rel\t"
+  grep "$rel" covid/journal-v4-KDDpartitioned/*.out | howmanylines
+done | sort -n -k 2
+
+
 DATASET+MODELLI
 
 RISULTATI

@@ -1436,6 +1436,11 @@ git-tree-sha1 = "8445bf99a36d703a09c601f9a57e2f83000ef2ae"
 uuid = "856f2bd8-1eba-4b0a-8007-ebc267875bd4"
 version = "1.7.3"
 
+[[StructuredArrays]]
+git-tree-sha1 = "0cc8436a17791431675eb229b5b16175b001055b"
+uuid = "2e8cd123-6858-488d-b42d-068777248635"
+version = "0.2.2"
+
 [[TOML]]
 deps = ["Dates"]
 uuid = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
