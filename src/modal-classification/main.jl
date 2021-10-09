@@ -4,6 +4,8 @@
 using .util: Label
 using .ModalLogic
 
+using StructuredArrays # , FillArrays # TODO choose one
+
 include("tree.jl")
 
 # Conversion: NodeMeta (node + training info) -> DTNode (bare decision tree model)
@@ -104,7 +106,7 @@ function build_tree(
 	W                   :: Union{Nothing,AbstractVector{U}}   = nothing;
 	##############################################################################
 	loss_function       :: Function                           = util.entropy,
-	max_depth           :: Int                                = -1,
+	max_depth           :: Int                                = typemax(Int),
 	min_samples_leaf    :: Int                                = 1,
 	min_purity_increase :: AbstractFloat                      = 0.0,
 	min_loss_at_leaf    :: AbstractFloat                      = -Inf,
@@ -117,7 +119,11 @@ function build_tree(
 	perform_consistency_check :: Bool = true,
 	##############################################################################
 	rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {S, U}
-
+	
+	if isnothing(W)
+		W = UniformArray{Int}(1,n_samples(Xs))
+	end
+	
 	if useRelationGlob isa Bool
 		useRelationGlob = fill(useRelationGlob, n_frames(Xs))
 	end
@@ -131,11 +137,12 @@ function build_tree(
 		initConditions = fill(initConditions, n_frames(Xs))
 	end
 
+	# TODO remove? @assert max_depth > 0?
 	if max_depth == -1
 		max_depth = typemax(Int)
 	end
 
-	rng = mk_rng(rng)
+	# rng = mk_rng(rng) # TODO figure out what to do here. Maybe it can be helpful to make rng either an rng or a seed, and then mk_rng transforms it into an rng
 	t = treeclassifier.fit(
 		Xs                  = Xs,
 		Y                   = Y,
@@ -162,9 +169,11 @@ end
 
 function build_forest(
 	Xs                  :: MultiFrameModalDataset,
-	Y                   :: AbstractVector{S}
-	;
-	# , W                   :: Union{Nothing,AbstractVector{U}} = nothing; TODO these must also be used for the calculation of the oob_error
+	Y                   :: AbstractVector{S},
+	# Use unary weights if no weight is supplied
+	W                   :: AbstractVector{U} = UniformArray{Int}(1,n_samples(Xs)); # from StructuredArrays
+	# W                   :: AbstractVector{U} = fill(1, n_samples(Xs));
+	# W                   :: AbstractVector{U} = Ones{Int}(n_samples(Xs));      # from FillArrays
 	##############################################################################
 	# Forest logic-agnostic parameters
 	n_trees             = 100,
@@ -172,7 +181,7 @@ function build_forest(
 	##############################################################################
 	# Tree logic-agnostic parameters
 	loss_function       :: Function           = util.entropy,
-	max_depth           :: Int                = -1,
+	max_depth           :: Int                = typemax(Int),
 	min_samples_leaf    :: Int                = 1,
 	min_purity_increase :: AbstractFloat      = 0.0,
 	min_loss_at_leaf    :: AbstractFloat      = -Inf,
@@ -187,7 +196,7 @@ function build_forest(
 	##############################################################################
 	rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {S, U}
 
-	rng = mk_rng(rng)
+	# rng = mk_rng(rng)
 
 	if n_subrelations isa Function
 		n_subrelations = fill(n_subrelations, n_frames(Xs))
@@ -224,17 +233,28 @@ function build_forest(
 	oob_samples = Vector{Vector{Integer}}(undef, n_trees)
 
 	rngs = [spawn_rng(rng) for i_tree in 1:n_trees]
+
+	if W isa UniformArray
+		W_one_slice = UniformArray{Int}(1,num_samples)
+	end
+
+	get_W_slice(W::UniformArray, inds) = W_one_slice
+	get_W_slice(W::Any, inds) = @view W[inds]
+
+	# TODO improve naming (at least)
+	_get_weights(W::UniformArray, inds) = nothing
+	_get_weights(W::Any, inds) = @view W[inds]
+
 	Threads.@threads for i_tree in 1:n_trees
 		inds = rand(rngs[i_tree], 1:t_samples, num_samples)
 
 		X_slice = ModalLogic.slice_dataset(Xs, inds; return_view = true)
 		Y_slice = @view Y[inds]
-		# v_weights = @views W[inds]
 
 		trees[i_tree] = build_tree(
 			X_slice
 			, Y_slice
-			# , v_weights
+			, get_W_slice(W, inds)
 			;
 			####
 			loss_function        = loss_function,
@@ -256,7 +276,7 @@ function build_forest(
 		oob_samples[i_tree] = setdiff(1:t_samples, inds)
 
 		tree_preds = apply_tree(trees[i_tree], ModalLogic.slice_dataset(Xs, oob_samples[i_tree]; return_view = true))
-		cms[i_tree] = confusion_matrix(Y[oob_samples[i_tree]], tree_preds)
+		cms[i_tree] = confusion_matrix(Y[oob_samples[i_tree]], tree_preds, _get_weights(W, inds))
 	end
 
 	oob_classified = Vector{Bool}()
@@ -289,7 +309,7 @@ function build_forest(
 		push!(oob_classified, overall_accuracy(cm) > 0.5)
 	end
 
-	oob_error = 1.0 - (length(findall(oob_classified)) / length(oob_classified))
+	oob_error = 1.0 - (sum(W[findall(oob_classified)]) / sum(W))
 
 	return Forest{S}(trees, cms, oob_error)
 end

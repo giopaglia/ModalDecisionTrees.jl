@@ -233,7 +233,8 @@ end
 
 ### Classification ###
 
-function confusion_matrix(actual::AbstractVector, predicted::AbstractVector)
+function confusion_matrix(actual::AbstractVector, predicted::AbstractVector, weights = nothing)
+	@assert isnothing(weights) "TODO Expand code: Non-nothing weights encountered in confusion_matrix()"
 	@assert length(actual) == length(predicted)
 	N = length(actual)
 	_actual = zeros(Int, N)
