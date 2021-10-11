@@ -34,7 +34,7 @@ Exceptions can be specified using `exclude` and the amount
 of results can be limited by specifying a value greater than 0
 for `results_limit`.
 
-The search can be recurisve by setting `recursive` to `ture`.
+The search can be recurisve by setting `recursive` to `true`.
 """
 function searchdir(
 			path          :: String,
@@ -73,6 +73,44 @@ function searchdir(
 	end
 end
 
+"""
+	draw_wavs_for_partitioned_dataset(original_dataset_dir, partitioned_dataset_dir)
+
+Given the `original_dataset_dir` and its partitioned version `original_dataset_dir`
+draw in stack the original wav and all the resulting partitions.
+"""
+function draw_wavs_for_partitioned_dataset(original_dataset_dir::String, partitioned_dataset_dir::String)
+	function splitted_name(orig::String, n::Integer)::String
+		replace(orig, original_dataset_dir => partitioned_dataset_dir; count = 1) * "-split.$(n).wav"
+	end
+
+	if !isdir(original_dataset_dir) && !startswith(original_dataset_dir, data_dir)
+		original_dataset_dir = data_dir * original_dataset_dir
+	end
+
+	if !isdir(partitioned_dataset_dir) && !startswith(partitioned_dataset_dir, data_dir)
+		partitioned_dataset_dir = data_dir * partitioned_dataset_dir
+	end
+
+	for original_path in searchdir(original_dataset_dir, ".wav"; recursive = true)
+		files_to_draw = [ original_path ]
+		i = 1
+		while isfile(splitted_name(original_path, i))
+			push!(files_to_draw, splitted_name(original_path, i))
+			i += 1
+		end
+		if length(files_to_draw) > 1
+			println("Drawing partitioned \"$(original_path)\"")
+			for i in 2:(length(files_to_draw)-1)
+				println(" ├─ \"$(splitted_name(original_path, i-1))\"")
+			end
+			println(" └─ \"$(splitted_name(original_path, length(files_to_draw)-1))\"")
+
+			draw_wav(files_to_draw)
+			savefig(replace(splitted_name(original_path, 0), "-split.0.wav" => "-splits.png"))
+		end
+	end
+end
 # just a debugging function
 # function generate_splitted_wavs_dataset(
 #             path      :: String;
