@@ -5,7 +5,9 @@
 ☐	Add attribute filters: primarily, derivatives
 ☐	roc and pr curve, if the result is a numerical confidence: i) in Random Forest, one could aggregate tree answers in a continuous manner, and output confidence values, in this context, roc and pr curve can be computed; ii) in Decision Tree there are other approaches
 ☐	Different array implementations? Array with named dimensions? staticArrays for small domains (matrices/vectors) https://github.com/JuliaArrays/StaticArrays.jl Etc.
+☐	Extend to regression
 ☐	give names to features
+☐	Check whether CatWalk.jl can help runtime dispatch look-up time
 
 ☐	save pre-process pipeline together with the models
 ☐	problem with argmax when testing (e.g. RF), especially on unbalanced datasets
@@ -19,6 +21,7 @@
 ☐	Custom pretty printing, instead of display_... See https://docs.julialang.org/en/v1/manual/types/#man-custom-pretty-printing
 ☐	Random Forest -> Decision Forest
 ☐	Improve type stability for better time performance: https://docs.julialang.org/en/v1/devdocs/reflection/#Intermediate-and-compiled-representations  @code_warntype https://www.johnmyleswhite.com/notebook/2013/12/06/writing-type-stable-code-in-julia/ e.g. type-stable slicing with JuliennedArrays ( from https://discourse.julialang.org/t/way-to-slice-an-array-of-unknown-number-of-dimensions/27246 ), EllipsisNotation https://github.com/ChrisRackauckas/EllipsisNotation.jl. Use \@code_warntype as in https://discourse.julialang.org/t/why-selectdim-is-type-instable/25271/2 to double check each function https://nextjournal.com/jbieler/adding-static-type-checking-to-julia-in-100-lines-of-code/
+☐	add purity measure to DTLeaf e DTInternal
 
 ☐	Check whether \@inbounds improves performances. @propagate_inbounds, @inbounds (and @boundscheck): "In general, bounds-check removal should be the last optimization you make after ensuring everything else works, is well-tested, and follows the usual performance tips." https://stackoverflow.com/questions/38901275/inbounds-propagation-rules-in-julia?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
 
