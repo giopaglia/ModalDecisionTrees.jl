@@ -226,7 +226,10 @@ function best_score(labels::AbstractVector{T}, weights::Union{Nothing,AbstractVe
 	end
 
 	if !suppress_parity_warning && sum(counts[argmax(counts)] .== values(counts)) > 1
-		println("Warning: parity encountered in best_score.\nVector ($(length(labels)) elements): $(labels)\nArgmax: $(argmax(counts))\nMax: $(counts[argmax(counts)]) (sum = $(sum(values(counts))))")
+		println("Warning: parity encountered in best_score.")
+		println("Vector ($(length(labels)) elements): $(labels)")
+		println("Argmax: $(argmax(counts))")
+		println("Max: $(counts[argmax(counts)]) (sum = $(sum(values(counts))))")
 	end
 	return argmax(counts)
 end
@@ -247,7 +250,7 @@ function confusion_matrix(actual::AbstractVector, predicted::AbstractVector, wei
 	if length(class_labels) == 2
 		class_labels = reverse(class_labels)
 	end
-
+	
 	N = length(class_labels)
 	for i in 1:N
 		_actual[actual .== class_labels[i]] .= i
