@@ -403,10 +403,13 @@ exec_ontology = [ "IA", ] # "IA7", "IA3",
 
 ontology_dict = Dict(
 	"-"     => ModalLogic.OneWorldOntology,
+	"RCC8"  => getIntervalRCC8OntologyOfDim(Val(2)),
+	"RCC5"  => getIntervalRCC5OntologyOfDim(Val(2)),
 	"IA"    => getIntervalOntologyOfDim(Val(1)),
 	"IA7"   => Ontology{ModalLogic.Interval}(ModalLogic.IA7Relations),
 	"IA3"   => Ontology{ModalLogic.Interval}(ModalLogic.IA3Relations),
 	"IA2D"  => getIntervalOntologyOfDim(Val(2)),
+	# "o_ALLiDxA" => Ontology{ModalLogic.Interval2D}([ModalLogic.IA_AA, ModalLogic.IA_LA, ModalLogic.IA_LiA, ModalLogic.IA_DA]),
 )
 
 
@@ -688,6 +691,6 @@ println("Done!")
 
 @error "Done!"
 
-close(io);
+close(logfile_io);
 
 exit(0)
