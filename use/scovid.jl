@@ -12,7 +12,7 @@ train_seed = 2
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./covid/journal-v7-TODO"
+results_dir = "./covid/journal-v7-TODO2"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/cache"
@@ -156,6 +156,7 @@ test_averaged  = false
 legacy_gammas_check = false
 # legacy_gammas_check = true
 
+prefer_nonaug_data = true
 
 ################################################################################
 ##################################### SCAN #####################################
@@ -629,7 +630,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	linearized_dataset, dataset_slices = 
 		if dataset isa NamedTuple{(:train_n_test,:only_training)}
-			balanced_dataset_slice(dataset, todo_dataseeds, split_threshold)
+			balanced_dataset_slice(dataset, todo_dataseeds, split_threshold; discourage_only_training = prefer_nonaug_data)
 		else
 			balanced_dataset_slice(dataset, todo_dataseeds)
 		end

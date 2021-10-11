@@ -113,83 +113,97 @@ balanced_dataset_slice(n_label_samples::NTuple{N,Integer}, dataseed::Union{Nothi
 end
 
 using JuMP
-using GLPK
+using Clp
+# using GLPK
 # using CPLEX, MathOptInterfaceCPLEX
 # using MathOptInterface
 
-"""
-# https://online-optimizer.appspot.com/?model=ms:fATuYfQ2gKPO8uPEf1v5UTq62WibExAI
-var alpha_n >= 0;
-var alpha_p >= 0;
-var beta_n >= 0;
-var beta_p >= 0;
-var gamma_n >= 0;
-var gamma_p >= 0;
+function solve_binary_sampling_prob(split_threshold, an, ap, tn, tp; discourage_only_training = true)
 
-#an = 54;
-#ap = 32;
-#tn = 0;
-#tp = 119;
-#split_threshold = 0.8;
+	function gen_binary_sampling_prob()
 
-maximize z: 54*alpha_n + 32*alpha_p + 54*beta_n + 32*beta_p + 0*gamma_n + 119*gamma_p;
+		"""
+		# https://online-optimizer.appspot.com/?model=ms:fATuYfQ2gKPO8uPEf1v5UTq62WibExAI
+		var alpha_n >= 0;
+		var alpha_p >= 0;
+		var beta_n >= 0;
+		var beta_p >= 0;
+		var gamma_n >= 0;
+		var gamma_p >= 0;
 
-subject to c10:  alpha_n >= 0;
-subject to c20:  alpha_p >= 0;
-subject to c30:  beta_n  >= 0;
-subject to c40:  beta_p  >= 0;
-subject to c50:  gamma_n >= 0;
-subject to c60:  gamma_p >= 0;
+		#an = 54;
+		#ap = 32;
+		#tn = 0;
+		#tp = 119;
+		#split_threshold = 0.8;
 
-subject to c1:   alpha_n <= 1;
-subject to c2:   alpha_p <= 1;
-subject to c3:   beta_n  <= 1;
-subject to c4:   beta_p  <= 1;
-subject to c5:   gamma_n <= 1;
-subject to c6:   gamma_p <= 1;
+		maximize z: 54*alpha_n + 32*alpha_p + 54*beta_n + 32*beta_p + 0*gamma_n + 119*gamma_p;
 
-subject to calphanbetan:   alpha_n + beta_n <= 1;
-subject to calphapbetap:   alpha_p + beta_p <= 1;
+		subject to c10:  alpha_n >= 0;
+		subject to c20:  alpha_p >= 0;
+		subject to c30:  beta_n  >= 0;
+		subject to c40:  beta_p  >= 0;
+		subject to c50:  gamma_n >= 0;
+		subject to c60:  gamma_p >= 0;
 
-subject to cN2P2:   54*alpha_n = 32*alpha_p;
-subject to cN1P1:   54*beta_n + 0*gamma_n = 32*beta_p + 119*gamma_p;
+		subject to c1:   alpha_n <= 1;
+		subject to c2:   alpha_p <= 1;
+		subject to c3:   beta_n  <= 1;
+		subject to c4:   beta_p  <= 1;
+		subject to c5:   gamma_n <= 1;
+		subject to c6:   gamma_p <= 1;
 
-subject to traintest_ratio_n:   54*beta_n + 0*gamma_n   = 0.8 * ((54*beta_n + 0*gamma_n) + (54*alpha_n));
-subject to traintest_ratio_p:   32*beta_p + 119*gamma_p = 0.8 * ((32*beta_p + 119*gamma_p) + (32*alpha_p));
+		subject to calphanbetan:   alpha_n + beta_n <= 1;
+		subject to calphapbetap:   alpha_p + beta_p <= 1;
 
-end;
-"""
+		subject to cN2P2:   54*alpha_n = 32*alpha_p;
+		subject to cN1P1:   54*beta_n + 0*gamma_n = 32*beta_p + 119*gamma_p;
 
+		subject to traintest_ratio_n:   54*beta_n + 0*gamma_n   = 0.8 * ((54*beta_n + 0*gamma_n) + (54*alpha_n));
+		subject to traintest_ratio_p:   32*beta_p + 119*gamma_p = 0.8 * ((32*beta_p + 119*gamma_p) + (32*alpha_p));
 
-function _solve_binary_sampling_prob(split_threshold, an, ap, tn, tp)
+		end;
+		"""
 
-	# model = Model(GLPK.Optimizer)
-	model = Model(GLPK.Optimizer, bridge_constraints = false)
-	# model = Model(CPLEX.Optimizer, bridge_constraints = false)
+		model = Model(Clp.Optimizer)
+		set_optimizer_attribute(model, "LogLevel", 1)
+		set_optimizer_attribute(model, "Algorithm", 4)
 
-	@variable(model, 0 <= alpha_n  <= 1)
-	@variable(model, 0 <= alpha_p  <= 1)
-	@variable(model, 0 <= beta_n   <= 1)
-	@variable(model, 0 <= beta_p   <= 1)
-	@variable(model, 0 <= gamma_n  <= 1)
-	@variable(model, 0 <= gamma_p  <= 1)
-	@objective(model, Max, an*alpha_n + ap*alpha_p + an*beta_n + ap*beta_p + tn*gamma_n + tp*gamma_p)
+		# model = Model(CPLEX.Optimizer)
+		# model = Model(GLPK.Optimizer)
+		# model = Model(GLPK.Optimizer, bridge_constraints = false)
 
-	@constraint(model, calphanbetan,   alpha_n + beta_n <= 1)
-	@constraint(model, calphapbetap,   alpha_p + beta_p <= 1)
+		@variable(model, 0 <= alpha_n  <= 1)
+		@variable(model, 0 <= alpha_p  <= 1)
+		@variable(model, 0 <= beta_n   <= 1)
+		@variable(model, 0 <= beta_p   <= 1)
+		@variable(model, 0 <= gamma_n  <= 1)
+		@variable(model, 0 <= gamma_p  <= 1)
 
-	@constraint(model, cN2P2,   an*alpha_n             == ap*alpha_p)
-	@constraint(model, cN1P1,   an*beta_n + tn*gamma_n == ap*beta_p + tp*gamma_p)
+		@objective(model, Max, an*alpha_n + ap*alpha_p + an*beta_n + ap*beta_p + tn*gamma_n + tp*gamma_p)
 
-	@constraint(model, traintest_ratio_n,   an*beta_n + tn*gamma_n == split_threshold * ((an*beta_n + tn*gamma_n) + (an*alpha_n)))
-	@constraint(model, traintest_ratio_p,   ap*beta_p + tp*gamma_p == split_threshold * ((ap*beta_p + tp*gamma_p) + (ap*alpha_p)))
+		# Non-intersecting sets
+		@constraint(model, calphanbetan,   alpha_n + beta_n <= 1)
+		@constraint(model, calphapbetap,   alpha_p + beta_p <= 1)
 
-	model, alpha_n, alpha_p, beta_n, beta_p, gamma_n, gamma_p
-end
+		# Data balance
+		@constraint(model, cN2P2,   an*alpha_n             == ap*alpha_p)
+		@constraint(model, cN1P1,   an*beta_n + tn*gamma_n == ap*beta_p + tp*gamma_p)
 
-function solve_binary_sampling_prob(split_threshold, an, ap, tn, tp)
+		# Honor split_threshold as train/test ration
+		@constraint(model, traintest_ratio_n,   an*beta_n + tn*gamma_n == split_threshold * ((an*beta_n + tn*gamma_n) + (an*alpha_n)))
+		@constraint(model, traintest_ratio_p,   ap*beta_p + tp*gamma_p == split_threshold * ((ap*beta_p + tp*gamma_p) + (ap*alpha_p)))
 
-	local model, alpha_n, alpha_p, beta_n, beta_p, gamma_n, gamma_p = _solve_binary_sampling_prob(split_threshold, an, ap, tn, tp)
+		# # Only use only_training instances if needed
+		# if discourage_only_training
+		# 	@constraint(model, discourage_only_training_n,   ...)
+		# 	@constraint(model, discourage_only_training_p,   ...)
+		# end
+
+		model, alpha_n, alpha_p, beta_n, beta_p, gamma_n, gamma_p
+	end
+
+	local model, alpha_n, alpha_p, beta_n, beta_p, gamma_n, gamma_p = gen_binary_sampling_prob()
 
 	# print(model)
 	optimize!(model)
@@ -232,7 +246,7 @@ function solve_binary_sampling_prob(split_threshold, an, ap, tn, tp)
 
 end
 
-balanced_dataset_slice(dataset::NamedTuple{(:train_n_test,:only_training)}, dataseeds::Vector{<:Integer}, split_threshold::AbstractFloat; samples_per_class_share::Union{Nothing,AbstractFloat} = nothing) where N = begin
+balanced_dataset_slice(dataset::NamedTuple{(:train_n_test,:only_training)}, dataseeds::Vector{<:Integer}, split_threshold::AbstractFloat; samples_per_class_share::Union{Nothing,AbstractFloat} = nothing, discourage_only_training = true) where N = begin
 	
 	@assert length(dataset.train_n_test[2])  == 2 "TODO Expand code. Currently, can't perform balanced_dataset_slice(NamedTuple{(:train_n_test,:only_training)}, ...) on non-binary dataset"
 	@assert length(dataset.only_training[2]) == 2 "TODO Expand code. Currently, can't perform balanced_dataset_slice(NamedTuple{(:train_n_test,:only_training)}, ...) on non-binary dataset"
@@ -248,7 +262,7 @@ balanced_dataset_slice(dataset::NamedTuple{(:train_n_test,:only_training)}, data
 	ap, an = dataset.train_n_test[2]
 	tp, tn = dataset.only_training[2]
 
-	N2_from_a, P2_from_a, N1_from_a, N1_from_t, P1_from_a, P1_from_t, tot = solve_binary_sampling_prob(split_threshold, an, ap, tn, tp)
+	N2_from_a, P2_from_a, N1_from_a, N1_from_t, P1_from_a, P1_from_t, tot = solve_binary_sampling_prob(split_threshold, an, ap, tn, tp; discourage_only_training = discourage_only_training)
 
 	N2_from_a = round(Int, N2_from_a)
 	P2_from_a = round(Int, P2_from_a)
@@ -256,7 +270,6 @@ balanced_dataset_slice(dataset::NamedTuple{(:train_n_test,:only_training)}, data
 	N1_from_t = round(Int, N1_from_t)
 	P1_from_a = round(Int, P1_from_a)
 	P1_from_t = round(Int, P1_from_t)
-
 
 	@assert N2_from_a + N1_from_a <= an
 	@assert P2_from_a + P1_from_a <= ap
@@ -271,15 +284,40 @@ balanced_dataset_slice(dataset::NamedTuple{(:train_n_test,:only_training)}, data
 	# println(P1_from_a)
 	# println(P1_from_t)
 
-	N2 = N2_from_a
-	P2 = P2_from_a
+	if discourage_only_training
+
+		# Result:
+		# train neg = 103 from only_training + 0 from all = 103 
+		# train pos = 0 from only_training + 103 from all = 103 
+		# test neg = (0 from only_training +) 26 from all = 26 
+		# test pos = (0 from only_training +) 26 from all = 26 
+
+		# This ensures that, during training, we use at least all of the non-only_training instances
+		function __relax(from_a, from_t, avail_a)
+			min(from_a+from_t, avail_a), from_a+from_t-min(from_a+from_t, avail_a)
+		end
+
+		N1_from_a, N1_from_t = __relax(N1_from_a, N1_from_t, an-N2_from_a)
+		P1_from_a, P1_from_t = __relax(P1_from_a, P1_from_t, ap-P2_from_a)
+	end
+
 	N1 = N1_from_a + N1_from_t
 	P1 = P1_from_a + P1_from_t
+	N2 = N2_from_a
+	P2 = P2_from_a
 
 	@assert N2 == P2 "Splitting costraint failed: N2 != P2, $(N2) != $(P2)"
 	@assert N1 == P1 "Splitting costraint failed: N1 != P1, $(N1) != $(P1)"
 	@assert (N1/(N1+N2))-split_threshold <= 0.02 "TODO expand code (constraint on split_threshold can be softened). Splitting costraint failed: N1/(N1+N2) != split_threshold, $(N1)/($(N1)+$(N2))=$(N1/(N1+N2)) != $(split_threshold)"
 	@assert (P1/(P1+P2))-split_threshold <= 0.02 "TODO expand code (constraint on split_threshold can be softened). Splitting costraint failed: P1/(P1+P2) != split_threshold, $(P1)/($(P1)+$(P2))=$(P1/(P1+P2)) != $(split_threshold)"
+	
+	println()
+	println("Result:")
+	println("- train neg = $(N1_from_t) from only_training + $(N1_from_a) from all = $(N1) ")
+	println("- train pos = $(P1_from_t) from only_training + $(P1_from_a) from all = $(P1) ")
+	println("- test neg = (0 from only_training +) $(N2_from_a) from all = $(N2) ")
+	println("- test pos = (0 from only_training +) $(P2_from_a) from all = $(P2) ")
+	println()
 
 	# println()
 	# println(N2)
@@ -337,10 +375,10 @@ balanced_dataset_slice(dataset::NamedTuple{(:train_n_test,:only_training)}, data
 
 		println()
 		println("dataseed: [$(dataseed)]")
-		println("$(length(N1_from_t_perm)) + $(length(N1_from_a_perm)) = $(length(N1_idx)) ", N1_idx)
-		println("$(length(P1_from_t_perm)) + $(length(P1_from_a_perm)) = $(length(P1_idx)) ", P1_idx)
-		println(length(N2_idx), " ", N2_idx)
-		println(length(P2_idx), " ", P2_idx)
+		println("train neg = $(length(N1_from_t_perm)) + $(length(N1_from_a_perm)) = $(length(N1_idx)) ", N1_idx)
+		println("train pos = $(length(P1_from_t_perm)) + $(length(P1_from_a_perm)) = $(length(P1_idx)) ", P1_idx)
+		println("test neg = ", length(N2_idx), " ", N2_idx)
+		println("test pos = ", length(P2_idx), " ", P2_idx)
 		
 		# dataset_slice = vcat(N1_idx, P1_idx, N2_idx, P2_idx)
 		# stratify
