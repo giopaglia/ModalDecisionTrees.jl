@@ -14,6 +14,7 @@ module treeclassifier
 	using Logging: @logmsg
 	import Random
 	import StatsBase
+	using StructuredArrays # , FillArrays # TODO choose one
 
 	mutable struct NodeMeta{U}
 		region             :: UnitRange{Int}                   # a slice of the samples used to decide the split of the node
@@ -690,7 +691,10 @@ module treeclassifier
 			# TODO Add default values for this function? loss_function = util.entropy
 			Xs                      :: MultiFrameModalDataset,
 			Y                       :: AbstractVector{S},
-			W                       :: Union{AbstractVector{U},Nothing},
+			# Use unary weights if no weight is supplied
+			W                       :: AbstractVector{U} = UniformArray{Int}(1,n_samples(Xs)), # from StructuredArrays
+			# W                       :: AbstractVector{U} = fill(1, n_samples(Xs)),
+			# W                       :: AbstractVector{U} = Ones{Int}(n_samples(Xs)),      # from FillArrays
 			##########################################################################
 			# Logic-agnostic training parameters
 			loss_function           :: Function,
@@ -709,14 +713,6 @@ module treeclassifier
 			##########################################################################
 			rng = Random.GLOBAL_RNG :: Random.AbstractRNG
 		) where {S, U}
-
-		# Use unary weights if no weight is supplied
-		if isnothing(W)
-			# TODO optimize w in the case of all-ones: write a subtype of AbstractVector:
-			#  AllOnesVector, so that getindex(W, i) = 1 and sum(W) = size(W).
-			#  This allows the compiler to optimize constants at compile-time
-			W = fill(1, n_samples(Xs))
-		end
 
 		# Check validity of the input
 		check_input(
