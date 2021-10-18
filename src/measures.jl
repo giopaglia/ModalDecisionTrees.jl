@@ -202,7 +202,10 @@ function majority_vote(labels::AbstractVector; suppress_parity_warning = false)
 	end
 	counts = _hist(labels)
 	if !suppress_parity_warning && sum(counts[argmax(counts)] .== values(counts)) > 1
-		println("Warning: parity encountered in majority_vote.\nVector ($(length(labels)) elements): $(labels)\nArgmax: $(argmax(counts))\nMax: $(counts[argmax(counts)]) (sum = $(sum(values(counts))))")
+		println("Warning: parity encountered in majority_vote.")
+		println("Vector ($(length(labels)) elements): $(labels)")
+		println("Argmax: $(argmax(counts))")
+		println("Max: $(counts[argmax(counts)]) (sum = $(sum(values(counts))))")
 	end
 	argmax(counts)
 end
@@ -226,14 +229,18 @@ function best_score(labels::AbstractVector{T}, weights::Union{Nothing,AbstractVe
 	end
 
 	if !suppress_parity_warning && sum(counts[argmax(counts)] .== values(counts)) > 1
-		println("Warning: parity encountered in best_score.\nVector ($(length(labels)) elements): $(labels)\nArgmax: $(argmax(counts))\nMax: $(counts[argmax(counts)]) (sum = $(sum(values(counts))))")
+		println("Warning: parity encountered in best_score.")
+		println("Vector ($(length(labels)) elements): $(labels)")
+		println("Argmax: $(argmax(counts))")
+		println("Max: $(counts[argmax(counts)]) (sum = $(sum(values(counts))))")
 	end
 	return argmax(counts)
 end
 
 ### Classification ###
 
-function confusion_matrix(actual::AbstractVector, predicted::AbstractVector)
+function confusion_matrix(actual::AbstractVector, predicted::AbstractVector, weights = nothing)
+	@assert isnothing(weights) "TODO Expand code: Non-nothing weights encountered in confusion_matrix()"
 	@assert length(actual) == length(predicted)
 	N = length(actual)
 	_actual = zeros(Int, N)
@@ -246,7 +253,7 @@ function confusion_matrix(actual::AbstractVector, predicted::AbstractVector)
 	if length(class_labels) == 2
 		class_labels = reverse(class_labels)
 	end
-
+	
 	N = length(class_labels)
 	for i in 1:N
 		_actual[actual .== class_labels[i]] .= i

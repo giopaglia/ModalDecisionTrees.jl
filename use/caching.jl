@@ -5,7 +5,7 @@ _default_table_file_name(type::String) = "$(type)_cached.tsv"
 _default_jld_file_name(type::String, hash::String) = string(type * "_" * hash * ".jld")
 
 function _infos_to_dict(infos::NamedTuple)::Dict
-    Dict([String(k) => v for (k,v) in zip(keys(infos),values(infos))])
+	Dict([String(k) => v for (k,v) in zip(keys(infos),values(infos))])
 end
 
 function cached_obj_exists(type::String, common_cache_dir::String, hash::String)::Bool
@@ -20,15 +20,15 @@ function cache_obj(type::String, common_cache_dir::String, obj::Any, hash::Strin
 
 	cache_table_exists = isfile(common_cache_dir * "/" * _default_table_file_name(type))
 
-    table_file = open(common_cache_dir * "/" * _default_table_file_name(type), "a+")
-    if !cache_table_exists
-        write(table_file, string("TIMESTAMP$(column_separator)FILE NAME$(column_separator)COMP TIME$(column_separator)ARGS$(column_separator)\n"))
-    end
+	table_file = open(common_cache_dir * "/" * _default_table_file_name(type), "a+")
+	if !cache_table_exists
+		write(table_file, string("TIMESTAMP$(column_separator)FILE NAME$(column_separator)COMP TIME$(column_separator)ARGS$(column_separator)\n"))
+	end
 	write(table_file, string(
-            Dates.format(Dates.now(), "dd/mm/yyyy HH:MM:SS"), column_separator,
-            _default_jld_file_name(type, hash), column_separator,
-            human_readable_time(time_spent), column_separator,
-            args_string, column_separator,
+			Dates.format(Dates.now(), "dd/mm/yyyy HH:MM:SS"), column_separator,
+			_default_jld_file_name(type, hash), column_separator,
+			human_readable_time(time_spent), column_separator,
+			args_string, column_separator,
 			"\n"))
 	close(table_file)
 

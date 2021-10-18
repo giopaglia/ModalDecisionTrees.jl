@@ -60,7 +60,7 @@ export DecisionTreeClassifier,
 include("ModalLogic/ModalLogic.jl")
 using .ModalLogic
 
-import .ModalLogic: n_samples
+import .ModalLogic: n_samples # TODO make this a DecisionTree.n_samples export, and make ModalLogic import it?
 
 include("gammas.jl")
 # include("modalDataset.jl")

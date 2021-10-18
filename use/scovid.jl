@@ -12,7 +12,7 @@ train_seed = 2
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./covid/journal-v6-trainseed2"
+results_dir = "./covid/journal-v7-TODO2"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/cache"
@@ -74,8 +74,8 @@ optimize_forest_computation = false
 
 forest_args = []
 
-# for n_trees in [50,100]
-for n_trees in [50]
+# for n_trees in [51,101]
+for n_trees in [51]
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
 			for partial_sampling in [0.7]
@@ -156,6 +156,7 @@ test_averaged  = false
 legacy_gammas_check = false
 # legacy_gammas_check = true
 
+prefer_nonaug_data = true
 
 ################################################################################
 ##################################### SCAN #####################################
@@ -310,28 +311,28 @@ exec_nbands = [30] # [20,40,60]
 # exec_nbands = [40] # [20,40,60]
 
 exec_dataset_kwargs =   [(
-							max_points = 50,
-							ma_size = 30,
-							ma_step = 20,
-						),(
-							max_points = 50,
-							ma_size = 45,
-							ma_step = 30,
-						# ),(# max_points = 30,
-						#	ma_size = 120,
-						#	ma_step = 100,
-						# ),(#max_points = 30,
-						# 	max_points = 50,
-						# 	ma_size = 100,
-						# 	ma_step = 75,
-						# ),(# max_points = 30,
-						# 	ma_size = 90,
-						# 	ma_step = 60,
-						# ),(# max_points = 30,
-							# ma_size = 75,
-							# ma_step = 50,
-						)
-						]
+		max_points = 50,
+		ma_size = 30,
+		ma_step = 20,
+	),(
+		max_points = 50,
+		ma_size = 45,
+		ma_step = 30,
+	# ),(# max_points = 30,
+	# 	ma_size = 120,
+	# 	ma_step = 100,
+	# ),(#max_points = 30,
+	# 	max_points = 50,
+	# 	ma_size = 100,
+	# 	ma_step = 75,
+	# ),(# max_points = 30,
+	# 	ma_size = 90,
+	# 	ma_step = 60,
+	# ),(# max_points = 30,
+	# 	ma_size = 75,
+	# 	ma_step = 50,
+	)
+]
 
 audio_kwargs_partial_mfcc(max_sample_rate,nbands,fbtype) = (
 	wintime = 0.025, # in ms          # 0.020-0.040
@@ -402,10 +403,13 @@ exec_ontology = [ "IA", ] # "IA7", "IA3",
 
 ontology_dict = Dict(
 	"-"     => ModalLogic.OneWorldOntology,
+	"RCC8"  => getIntervalRCC8OntologyOfDim(Val(2)),
+	"RCC5"  => getIntervalRCC5OntologyOfDim(Val(2)),
 	"IA"    => getIntervalOntologyOfDim(Val(1)),
 	"IA7"   => Ontology{ModalLogic.Interval}(ModalLogic.IA7Relations),
 	"IA3"   => Ontology{ModalLogic.Interval}(ModalLogic.IA3Relations),
 	"IA2D"  => getIntervalOntologyOfDim(Val(2)),
+	# "o_ALLiDxA" => Ontology{ModalLogic.Interval2D}([ModalLogic.IA_AA, ModalLogic.IA_LA, ModalLogic.IA_LiA, ModalLogic.IA_DA]),
 )
 
 
@@ -629,7 +633,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	linearized_dataset, dataset_slices = 
 		if dataset isa NamedTuple{(:train_n_test,:only_training)}
-			balanced_dataset_slice(dataset, todo_dataseeds, split_threshold)
+			balanced_dataset_slice(dataset, todo_dataseeds, split_threshold; discourage_only_training = prefer_nonaug_data)
 		else
 			balanced_dataset_slice(dataset, todo_dataseeds)
 		end
@@ -687,6 +691,6 @@ println("Done!")
 
 @error "Done!"
 
-close(io);
+close(logfile_io);
 
 exit(0)
