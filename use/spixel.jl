@@ -6,7 +6,7 @@
 
 include("scanner.jl")
 
-main_rng = DecisionTree.mk_rng(1)
+data_seed = 1
 
 train_seed = 1
 
@@ -238,16 +238,15 @@ exec_ranges = (;
 dataset_function = (
 	(windowsize,apply_filter,flattened,test_operators),
 	n_samples_per_label,n_attributes,
-		dataset_name)->SampleLandCoverDataset(
+		dataset_name)->LandCoverDataset(
 					dataset_name,
-					n_samples_per_label,
-					windowsize[1];
+					windowsize[1],
+					n_samples_per_label;
 					pad_window_size = windowsize[2],
-					stratify        = false,
 					flattened       = flattened,
 					apply_filter    = apply_filter,
 					n_attributes    = n_attributes,
-					rng             = copy(main_rng))
+					seed            = data_seed)
 
 ################################################################################
 ################################### SCAN FILTERS ###############################

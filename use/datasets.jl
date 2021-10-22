@@ -13,7 +13,7 @@ include("wave-utils/wav-process.jl")
 # include("datasets/siemens-0.jl")
 
 # https://stackoverflow.com/questions/59562325/moving-average-in-julia
-moving_average(vs::AbstractArray{T,1},n,st=1) where {T} = [sum(@view vs[i:(i+n-1)])/n for i in 1:st:(length(vs)-(n-1))]
+moving_average(vs::AbstractArray{T,1},n,st=1) where {T} = (n = min(length(vs),n); [sum(@view vs[i:(i+n-1)])/n for i in 1:st:(length(vs)-(n-1))])
 moving_average(vs::AbstractArray{T,2},n,st=1) where {T} = mapslices((x)->(@views moving_average(x,n,st)), vs, dims=1)
 # (sum(w) for w in partition(1:9, 3, 2))
 # moving_average_np(vs,num_out_points,st) = moving_average(vs,length(vs)-num_out_points*st+1,st)

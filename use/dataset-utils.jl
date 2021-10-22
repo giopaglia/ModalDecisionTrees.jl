@@ -308,8 +308,8 @@ balanced_dataset_slice(dataset::NamedTuple{(:train_n_test,:only_training)}, data
 
 	@assert N2 == P2 "Splitting costraint failed: N2 != P2, $(N2) != $(P2)"
 	@assert N1 == P1 "Splitting costraint failed: N1 != P1, $(N1) != $(P1)"
-	@assert (N1/(N1+N2))-split_threshold <= 0.02 "TODO expand code (constraint on split_threshold can be softened). Splitting costraint failed: N1/(N1+N2) != split_threshold, $(N1)/($(N1)+$(N2))=$(N1/(N1+N2)) != $(split_threshold)"
-	@assert (P1/(P1+P2))-split_threshold <= 0.02 "TODO expand code (constraint on split_threshold can be softened). Splitting costraint failed: P1/(P1+P2) != split_threshold, $(P1)/($(P1)+$(P2))=$(P1/(P1+P2)) != $(split_threshold)"
+	@assert (N1/(N1+N2))-split_threshold <= 0.05 "TODO expand code (constraint on split_threshold can be softened). Splitting costraint failed: N1/(N1+N2) != split_threshold, $(N1)/($(N1)+$(N2))=$(N1/(N1+N2)) != $(split_threshold)"
+	@assert (P1/(P1+P2))-split_threshold <= 0.05 "TODO expand code (constraint on split_threshold can be softened). Splitting costraint failed: P1/(P1+P2) != split_threshold, $(P1)/($(P1)+$(P2))=$(P1/(P1+P2)) != $(split_threshold)"
 	
 	println()
 	println("Result:")
