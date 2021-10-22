@@ -246,8 +246,8 @@ KDD_getSamplesList(folders::AbstractVector{<:AbstractString}, n_version, use_aug
 			filter!((filepath)->! (filepath in files_to_ignore), aug_samples)
 
 			# Interpret the filepath as a prefix
-			base_samples = [sort(glob("$(filepath)*", dir)) for filepath in base_samples] |> Iterators.flatten |> collect
-			aug_samples  = [sort(glob("$(filepath)*", dir)) for filepath in aug_samples]  |> Iterators.flatten |> collect
+			base_samples = [sort(glob("$(filepath)*.wav", dir)) for filepath in base_samples] |> Iterators.flatten |> collect
+			aug_samples  = [sort(glob("$(filepath)*.wav", dir)) for filepath in aug_samples]  |> Iterators.flatten |> collect
 			
 			removeprefix(s::AbstractString, prefix::AbstractString) = startswith(s, prefix) ? s[length(prefix)+1:end] : s
 			removesuffix(s::AbstractString, suffix::AbstractString) = endswith(s, prefix) ? s[end-length(prefix):end] : s

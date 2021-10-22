@@ -144,9 +144,9 @@ function wav2stft_time_series(
 		use_full_mfcc = false,
 		ignore_samples_with_sr_less_than = -Inf,
 	)
-	samps, sr = wavread(filepath)
-	
 	println(filepath)
+	
+	samps, sr = wavread(filepath)
 
 	if sr < ignore_samples_with_sr_less_than
 		println("Ignoring file \"$(filepath)\" due to sampling rate constraint ($(sr) < $(ignore_samples_with_sr_less_than))")

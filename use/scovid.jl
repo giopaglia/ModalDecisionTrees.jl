@@ -18,8 +18,8 @@ iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/cache"
 model_savedir = results_dir * "/trees"
 
-dry_run = false
-# dry_run = :dataset_only
+# dry_run = false
+dry_run = :dataset_only
 # dry_run = true
 
 skip_training = false
@@ -163,20 +163,20 @@ prefer_nonaug_data = true
 ################################################################################
 
 # For generating KDD-partitioned dataset
-generate_KDD_partitioned() = begin
-	include("wav-filtering.jl")
-	process_dataset("KDD", KDD_getSamplesList(; rel_path = true);
-	out_dataset_dir_name = "KDD-norm-partitioned",
-	partition_instances = true,
-	partitioning_kwargs = (
-			cut_original        = Val(true),
-			preprocess          = Function[noise_gate!, normalize!],
-			# preprocess_kwargs   = NamedTuple[ (level = 0.005,), (level = 1.0,) ],
-			postprocess         = Function[],
-		)
-	)
-	run(`rm "../datasets/KDD-norm-partitioned/covidwebnocough/2020-04-26-16_20_02_616687/audio_file_cough.wav-split.1.wav"`)
-end
+# generate_KDD_partitioned() = begin
+# 	include("wav-filtering.jl")
+# 	process_dataset("KDD", KDD_getSamplesList(; rel_path = true);
+# 	out_dataset_dir_name = "KDD-norm-partitioned",
+# 	partition_instances = true,
+# 	partitioning_kwargs = (
+# 			cut_original        = Val(true),
+# 			preprocess          = Function[noise_gate!, normalize!],
+# 			# preprocess_kwargs   = NamedTuple[ (level = 0.005,), (level = 1.0,) ],
+# 			postprocess         = Function[],
+# 		)
+# 	)
+# 	run(`rm "../datasets/KDD-norm-partitioned/covidwebnocough/2020-04-26-16_20_02_616687/audio_file_cough.wav-split.1.wav"`)
+# end
 
 
 # # For generating KDD-partitioned dataset
@@ -289,12 +289,12 @@ exec_n_ver_n_task_use_aug_dataset_dir_preprocess = [
 	# ("b",2,true,"KDD",["Normalize"]),
 	# ("b",3,true,"KDD",["Normalize"]),
 	#
-	("c",1,false,"KDD-norm-partitioned",["NG", "Normalize", "RemSilence"]),
-	("c",2,true,"KDD-norm-partitioned",["NG", "Normalize", "RemSilence"]),
-	("c",3,true,"KDD-norm-partitioned",["NG", "Normalize", "RemSilence"]),
-	("b",1,false,"KDD-norm-partitioned",["Normalize", "RemSilence"]),
-	("b",2,true,"KDD-norm-partitioned",["Normalize", "RemSilence"]),
-	("b",3,true,"KDD-norm-partitioned",["Normalize", "RemSilence"]),
+	("c",1,false,"KDD-norm-partitioned-v1",["NG", "Normalize", "RemSilence"]),
+	("c",2,true,"KDD-norm-partitioned-v1",["NG", "Normalize", "RemSilence"]),
+	("c",3,true,"KDD-norm-partitioned-v1",["NG", "Normalize", "RemSilence"]),
+	# ("b",1,false,"KDD-norm-partitioned-v1",["Normalize", "RemSilence"]),
+	# ("b",2,true,"KDD-norm-partitioned-v1",["Normalize", "RemSilence"]),
+	# ("b",3,true,"KDD-norm-partitioned-v1",["Normalize", "RemSilence"]),
 ]
 # exec_n_task_use_aug = [
 # 	(1, false),
@@ -312,12 +312,16 @@ exec_nbands = [30] # [20,40,60]
 
 exec_dataset_kwargs =   [(
 		max_points = 50,
-		ma_size = 30,
-		ma_step = 20,
+		ma_size = 15,
+		ma_step = 10,
 	),(
 		max_points = 50,
-		ma_size = 45,
-		ma_step = 30,
+		ma_size = 30,
+		ma_step = 20,
+	# ),(
+	# 	max_points = 50,
+	# 	ma_size = 45,
+	# 	ma_step = 30,
 	# ),(# max_points = 30,
 	# 	ma_size = 120,
 	# 	ma_step = 100,
