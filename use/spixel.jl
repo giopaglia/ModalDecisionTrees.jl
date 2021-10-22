@@ -20,8 +20,8 @@ iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/cache"
 model_savedir = results_dir * "/trees"
 
-# dry_run = false
-dry_run = :dataset_only
+dry_run = false
+# dry_run = :dataset_only
 # dry_run = true
 
 # save_datasets = true
@@ -418,7 +418,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		data_savedir                    =   data_savedir,
 		model_savedir                   =   model_savedir,
 		legacy_gammas_check             =   legacy_gammas_check,
-		logger                          =   logger,
+		#logger                          =   logger,
 		timing_mode                     =   timing_mode,
 		### Misc
 		save_datasets                   =   save_datasets,
