@@ -37,10 +37,7 @@ function semitone2hz(z::Vector{T}, base_freq) where {T<:AbstractFloat}
 end
 semitone2hz(f::AbstractFloat, base_freq)  = semitone2hz([f], base_freq)[1]
 
-
-TODOMMMMMM = 0.1
-
-function my_fft2semitonemx(nfft::Int, nfilts::Int; sr=8000.0, width=1.0, minfreq=TODOMMMMMM, maxfreq=sr/2, base_freq=nothing)
+function my_fft2semitonemx(nfft::Int, nfilts::Int; sr=8000.0, width=1.0, minfreq=20, maxfreq=sr/2, base_freq=nothing)
 	wts=zeros(nfilts, nfft)
 	# Center freqs of each DFT bin
 	fftfreqs = collect(0:nfft-1) / nfft * sr;
@@ -87,7 +84,9 @@ end
 
 # audspec tested against octave with simple vectors for all fbtypes
 function my_audspec(x::Matrix{T}, sr::Real=16000.0; nfilts=ceil(Int, hz2bark(sr/2)), fbtype=:bark,
-				 minfreq=0., maxfreq=sr/2, sumpower=true, bwidth=1.0, base_freq=nothing) where {T<:AbstractFloat}
+				 minfreq=0., maxfreq=sr/2, sumpower=true, bwidth=1.0,
+				 base_freq=:fft, base_freq_min = 200, base_freq_max = 700,
+			 ) where {T<:AbstractFloat}
 	nfreqs, nframes = size(x)
 	nfft = 2(nfreqs-1)
 	wts =
@@ -102,7 +101,7 @@ function my_audspec(x::Matrix{T}, sr::Real=16000.0; nfilts=ceil(Int, hz2bark(sr/
 			fft2melmx(nfft, nfilts, sr=sr, width=bwidth, minfreq=minfreq, maxfreq=maxfreq,
 				htkmel=true, constamp=false)
 		elseif fbtype == :semitone
-			my_fft2semitonemx(nfft, nfilts, sr=sr, width=bwidth, minfreq=minfreq, maxfreq=maxfreq, base_freq=base_freq)
+			my_fft2semitonemx(nfft, nfilts, sr=sr, width=bwidth, minfreq=minfreq, maxfreq=maxfreq, base_freq=base_freq, base_freq_min = base_freq_min, base_freq_max = base_freq_max,)
 		else
 			throw_n_log("Unknown filterbank type: $(fbtype)")
 		end
@@ -118,7 +117,7 @@ function my_stft(x::Vector{T}, sr::Real=16000.0; wintime=0.025, steptime=0.01,
 			  sumpower=false, pre_emphasis=0.97, dither=false, minfreq=0.0, maxfreq=sr/2,
 			  nbands=20, bwidth=1.0, fbtype=:htkmel,
 			  usecmp=false, window_f=hamming,
-			  base_freq=nothing,
+			  base_freq=:fft, base_freq_min = 200, base_freq_max = 700,
 			  # , do_log = false
 			  ) where {T<:AbstractFloat}
 	if (pre_emphasis != 0)
@@ -130,11 +129,95 @@ function my_stft(x::Vector{T}, sr::Real=16000.0; wintime=0.025, steptime=0.01,
 	# heatmap(pspec)
 	# display(plot!())
 
-	aspec = my_audspec(pspec, sr, nfilts=nbands, fbtype=fbtype, minfreq=minfreq, maxfreq=maxfreq, sumpower=sumpower, bwidth=bwidth, base_freq=base_freq)
+	if fbtype == :semitone
+		base_freq = calc_F0(x, sr; min_freq = base_freq_min, max_freq = base_freq_max, method = base_freq)
+	end
+	
+	aspec = my_audspec(pspec, sr, nfilts=nbands, fbtype=fbtype, minfreq=minfreq, maxfreq=maxfreq, sumpower=sumpower, bwidth=bwidth,
+		base_freq=base_freq, base_freq_min = base_freq_min, base_freq_max = base_freq_max,
+	)
 	# if do_log log.(aspec) else aspec end
 	# log.(aspec)
 end
 
+
+function F0_autocor(samples, sr; center_clip = maximum(samples)*.3)
+	# println(center_clip)
+	clip_(s) = begin
+		if abs(s) < center_clip
+			0
+		elseif s > center_clip
+			s - center_clip
+		elseif s < -center_clip
+			s + center_clip
+		else
+			s
+		end
+	end
+	y = StatsBase.autocor(clip_.(samples), );
+	x = 0:(length(y)-1);
+	(reverse((sr ./ x)), reverse(y))
+end
+
+function F0_fft(samples, sr)
+	n = length(samples)
+	p = DSP.fft(samples)
+
+	nUniquePts = ceil(Int, (n+1)/2)
+	p = p[1:nUniquePts]
+	p = abs.(p)
+
+	p = p / n #scale
+	p = p.^2  # square it
+	# odd nfft excludes Nyquist point
+	if n % 2 > 0
+    p[2:length(p)] = p[2:length(p)]*2 # we've got odd number of   points fft
+	else 
+    p[2: (length(p) -1)] = p[2: (length(p) -1)]*2 # we've got even number of points fft
+	end
+
+	freqArray = (0:(nUniquePts-1)) * (sr / n)
+	freqArray, p
+end
+
+function calc_F0(args...; method = :fft, kwargs...)
+	d = Dict(
+		:autocor => F0_autocor,
+		:fft     => F0_fft,
+		# :esprit  => F0_esprit,
+		# :world   => F0_world,
+	)
+	calc_F0(args...; method_fun = d[method], kwargs...)
+end
+
+
+function calc_F0(samples, sr; min_freq = 200, max_freq = 700, method_fun = F0_autocor, return_all = false)
+	freqArray, p = method_fun(samples, sr)
+	sp = sortperm(freqArray)
+	freqArray = freqArray[sp]
+	p = p[sp]
+	fake_p = p[:]
+	x1 = findfirst((a)->a>=min_freq,freqArray)
+	x2 = findfirst((a)->a>=max_freq,freqArray)
+	
+	println()
+	println(x1)
+	println(collect(freqArray)[max(x1-1,1):min(x1+1, length(freqArray))])
+	println(p[max(x1-1,1):min(x1+1, length(freqArray))])
+	println()
+	println(x2)
+	println(collect(freqArray)[max(x2-1,1):min(x2+1, length(freqArray))])
+	println(p[max(x2-1,1):min(x2+1, length(freqArray))])
+
+	fake_p[1:x1-1] .= -Inf
+	fake_p[x2:end] .= -Inf
+	peak_pos = argmax(moving_average_same(fake_p,1))
+	peak_ampl = maximum(fake_p)
+	F0 = freqArray[peak_pos]
+	(return_all ? (freqArray, p, F0) : F0)
+end
+
+# TODO use mono: https://github.com/JuliaMusic/MusicProcessing.jl/blob/master/src/audio.jl
 merge_channels(samps) = vec(sum(samps, dims=2)/size(samps, 2))
 
 function wav2stft_time_series(
