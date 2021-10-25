@@ -12,15 +12,16 @@ train_seed = 2
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./covid/journal-v7-TODO2"
+results_dir = "./covid/journal-v8-base_freq"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/cache"
 model_savedir = results_dir * "/trees"
 
 # dry_run = false
-dry_run = :dataset_only
-# dry_run = true
+# dry_run = :dataset_only
+# dry_run = :model_study
+dry_run = true
 
 skip_training = false
 
@@ -307,14 +308,19 @@ exec_n_ver_n_task_use_aug_dataset_dir_preprocess = [
 
 exec_fbtype = [:fcmel] #, :mel, :htkmel] #, :semitone]
 
+exec_base_freq     = [:fft, :autocor]
+exec_base_freq_min = [200, 300]
+exec_base_freq_max = [600, 700]
+
+
 exec_nbands = [30] # [20,40,60]
 # exec_nbands = [40] # [20,40,60]
 
 exec_dataset_kwargs =   [(
-		max_points = 50,
-		ma_size = 15,
-		ma_step = 10,
-	),(
+	# 	max_points = 50,
+	# 	ma_size = 15,
+	# 	ma_step = 10,
+	# ),(
 		max_points = 50,
 		ma_size = 30,
 		ma_step = 20,
@@ -338,7 +344,7 @@ exec_dataset_kwargs =   [(
 	)
 ]
 
-audio_kwargs_partial_mfcc(max_sample_rate,nbands,fbtype) = (
+audio_kwargs_partial_mfcc(max_sample_rate, nbands, fbtype, base_freq, base_freq_min, base_freq_max) = (
 	wintime = 0.025, # in ms          # 0.020-0.040
 	steptime = 0.010, # in ms         # 0.010-0.015
 	fbtype = fbtype, # :mel                   # [:mel, :htkmel, :fcmel]
@@ -352,9 +358,12 @@ audio_kwargs_partial_mfcc(max_sample_rate,nbands,fbtype) = (
 	# minfreq = 0.0,
 	maxfreq = max_sample_rate/2,
 	# usecmp = false,
+	base_freq     = base_freq,
+	base_freq_min = base_freq_min,
+	base_freq_max = base_freq_max,
 )
 
-audio_kwargs_full_mfcc(max_sample_rate,nbands,fbtype) = (
+audio_kwargs_full_mfcc(max_sample_rate, nbands, fbtype, base_freq, base_freq_min, base_freq_max) = (
 	wintime=0.025,
 	steptime=0.01,
 	numcep=13,
@@ -370,7 +379,10 @@ audio_kwargs_full_mfcc(max_sample_rate,nbands,fbtype) = (
 	dcttype=3,
 	fbtype=fbtype, # :htkmel
 	usecmp=false,
-	modelorder=0
+	modelorder=0,
+	base_freq     = base_freq,
+	base_freq_min = base_freq_min,
+	base_freq_max = base_freq_max,
 )
 
 exec_use_full_mfcc = [false]
@@ -418,6 +430,9 @@ ontology_dict = Dict(
 
 
 exec_ranges = (; # Order: faster-changing to slower-changing
+	base_freq            = exec_base_freq,
+	base_freq_min        = exec_base_freq_min,
+	base_freq_max        = exec_base_freq_max,
 	fbtype               = exec_fbtype,
 	exec_max_sample_rate = exec_max_sample_rate,
 	# exec_dataset_dir       = exec_dataset_dir,
@@ -489,6 +504,57 @@ iteration_whitelist = [
 ]
 
 iteration_blacklist = []
+
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+
+models_to_study = Dict([
+	(
+		"fcmel",8000,false,"stump_with_memoization",("c",3,true,"KDD-norm-partitioned-v1",["NG","Normalize","RemSilence"]),30,(max_points = 50, ma_size = 30, ma_step = 20),false,"TestOp_80","IA"
+	) => [
+		"tree_d3377114b972e5806a9e0631d02a5b9803c1e81d6cd6633b3dab4d9e22151969"
+	],
+])
+
+models_to_study = Dict(JSON.json(k) => v for (k,v) in models_to_study)
+
+MakeOntologicalDataset(Xs, test_operators, ontology) = begin
+	MultiFrameModalDataset([
+		begin
+			features = FeatureTypeFun[]
+
+			for i_attr in 1:n_attributes(X)
+				for test_operator in test_operators
+					if test_operator == TestOpGeq
+						push!(features, ModalLogic.AttributeMinimumFeatureType(i_attr))
+					elseif test_operator == TestOpLeq
+						push!(features, ModalLogic.AttributeMaximumFeatureType(i_attr))
+					elseif test_operator isa _TestOpGeqSoft
+						push!(features, ModalLogic.AttributeSoftMinimumFeatureType(i_attr, test_operator.alpha))
+					elseif test_operator isa _TestOpLeqSoft
+						push!(features, ModalLogic.AttributeSoftMaximumFeatureType(i_attr, test_operator.alpha))
+					else
+						throw_n_log("Unknown test_operator type: $(test_operator), $(typeof(test_operator))")
+					end
+				end
+			end
+
+			featsnops = Vector{<:TestOperatorFun}[
+				if any(map(t->isa(feature,t), [AttributeMinimumFeatureType, AttributeSoftMinimumFeatureType]))
+					[≥]
+				elseif any(map(t->isa(feature,t), [AttributeMaximumFeatureType, AttributeSoftMaximumFeatureType]))
+					[≤]
+				else
+					throw_n_log("Unknown feature type: $(feature), $(typeof(feature))")
+					[≥, ≤]
+				end for feature in features
+			]
+
+			OntologicalDataset(X, ontology, features, featsnops)
+		end for X in Xs])
+end
 
 ################################################################################
 ################################################################################
@@ -582,6 +648,9 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	##############################################################################
 	
+	base_freq,
+	base_freq_min,
+	base_freq_max,
 	fbtype,
 	max_sample_rate,
 	# dataset_dir,
@@ -599,9 +668,9 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	cur_audio_kwargs = merge(
 		if use_full_mfcc
-			audio_kwargs_full_mfcc(max_sample_rate, nbands, fbtype)
+			audio_kwargs_full_mfcc(max_sample_rate, nbands, fbtype, base_freq, base_freq_min, base_freq_max)
 		else
-			audio_kwargs_partial_mfcc(max_sample_rate, nbands, fbtype)
+			audio_kwargs_partial_mfcc(max_sample_rate, nbands, fbtype, base_freq, base_freq_min, base_freq_max)
 		end
 		, (;))
 
@@ -628,6 +697,95 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		dataset_dir,
 	)
 
+
+	if dry_run == :model_study
+		# println(JSON.json(params_combination))
+		# println(models_to_study)
+		# println(keys(models_to_study))
+		if JSON.json(params_combination) in keys(models_to_study)
+			
+			trees = models_to_study[JSON.json(params_combination)]
+			
+			println()
+			println()
+			println("Study models for $(params_combination): $(trees)")
+
+			if length(trees) == 0
+				continue
+			end
+			
+			println("dataset_fun_sub_params: $(dataset_fun_sub_params)")
+
+			# @assert dataset_fun_sub_params isa String
+			
+			# dataset_fun_sub_params = merge(dataset_fun_sub_params, (; mode = :testing))
+
+			datasets = []
+			println("TODO")
+			# datasets = [
+			# 	(mode,if dataset_fun_sub_params isa Tuple
+			# 		dataset = dataset_function(dataset_fun_sub_params...; mode = mode)
+			# 		# dataset = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
+			# 		(X, Y), (n_pos, n_neg) = dataset
+			# 		# elseif dataset_fun_sub_params isa String
+			# 		# 	# load_cached_obj("dataset", data_savedir, dataset_fun_sub_params)
+			# 		# 	dataset = Serialization.deserialize("$(data_savedir)/dataset_$(dataset_fun_sub_params).jld").train_n_test
+			# 		# 	println(typeof(dataset))
+			# 		# 	(X, Y), (n_pos, n_neg) = dataset
+			# 		# 	(X, Y, nothing), (n_pos, n_neg)
+
+			# 		# TODO should not need these at test time. Instead, extend functions so that one can use a MatricialDataset instead of an OntologicalDataset
+			# 		X = MakeOntologicalDataset(X, test_operators, ontology)
+			# 		# println(length(Y))
+			# 		# println((n_pos, n_neg))
+
+			# 		println(display_structure(X))
+			# 		# println(Y)
+			# 		dataset = (X, Y), (n_pos, n_neg)
+			# 		dataset
+			# 	else
+			# 		throw_n_log("$(typeof(dataset_fun_sub_params))")
+			# 	end) for mode in [:testing, :development]
+			# ]
+
+			for model_hash in trees
+
+				println()
+				println()
+				println("Loading model: $(model_hash)...")
+				
+				model = load_model(model_hash, model_savedir)
+
+				println()
+				println("Original model (training):")
+				if model isa DTree
+					print_model(model)
+				end
+
+				for (mode,dataset) in datasets
+					(X, Y), (n_pos, n_neg) = dataset
+
+					println()
+
+					println()
+					println("Regenerated model ($(mode)):")
+
+					if model isa DTree
+						regenerated_model = print_apply_model(model, X, Y; print_relative_confidence = true)
+						println()
+						# print_model(regenerated_model)
+					end
+
+					preds = apply_model(model, X);
+					cm = confusion_matrix(Y, preds)
+					println(cm)
+					
+					# readline()
+				end
+			end
+		end
+	end
+
 	# Load Dataset
 	dataset = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
 
@@ -653,41 +811,43 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	##############################################################################
 	
-	exec_scan(
-		params_namedtuple,
-		linearized_dataset;
-		### Training params
-		train_seed                      =   train_seed,
-		modal_args                      =   cur_modal_args,
-		tree_args                       =   tree_args,
-		tree_post_pruning_purity_thresh =   [],
-		forest_args                     =   forest_args,
-		forest_runs                     =   forest_runs,
-		optimize_forest_computation     =   optimize_forest_computation,
-		test_flattened                  =   test_flattened,
-		test_averaged                   =   test_averaged,
-		### Dataset params
-		split_threshold                 =   split_threshold,
-		data_modal_args                 =   cur_data_modal_args,
-		dataset_slices                  =   dataset_slices,
-		round_dataset_to_datatype       =   round_dataset_to_datatype,
-		use_training_form               =   use_training_form,
-		### Run params
-		results_dir                     =   results_dir,
-		data_savedir                    =   data_savedir,
-		model_savedir                   =   model_savedir,
-		legacy_gammas_check             =   legacy_gammas_check,
-		# logger                          =   logger,
-		timing_mode                     =   timing_mode,
-		### Misc
-		save_datasets                   =   save_datasets,
-		skip_training                   =   skip_training,
-		callback                        =   (dataseed)->begin
-			# Add this step to the "history" of already computed iteration
-			push_iteration_to_history!(history, (params_namedtuple, dataseed))
-			save_history(iteration_progress_json_file_path, history)
-		end
-	);
+	if dry_run == false
+		exec_scan(
+			params_namedtuple,
+			linearized_dataset;
+			### Training params
+			train_seed                      =   train_seed,
+			modal_args                      =   cur_modal_args,
+			tree_args                       =   tree_args,
+			tree_post_pruning_purity_thresh =   [],
+			forest_args                     =   forest_args,
+			forest_runs                     =   forest_runs,
+			optimize_forest_computation     =   optimize_forest_computation,
+			test_flattened                  =   test_flattened,
+			test_averaged                   =   test_averaged,
+			### Dataset params
+			split_threshold                 =   split_threshold,
+			data_modal_args                 =   cur_data_modal_args,
+			dataset_slices                  =   dataset_slices,
+			round_dataset_to_datatype       =   round_dataset_to_datatype,
+			use_training_form               =   use_training_form,
+			### Run params
+			results_dir                     =   results_dir,
+			data_savedir                    =   data_savedir,
+			model_savedir                   =   model_savedir,
+			legacy_gammas_check             =   legacy_gammas_check,
+			# logger                          =   logger,
+			timing_mode                     =   timing_mode,
+			### Misc
+			save_datasets                   =   save_datasets,
+			skip_training                   =   skip_training,
+			callback                        =   (dataseed)->begin
+				# Add this step to the "history" of already computed iteration
+				push_iteration_to_history!(history, (params_namedtuple, dataseed))
+				save_history(iteration_progress_json_file_path, history)
+			end
+		);
+	end
 
 end
 
