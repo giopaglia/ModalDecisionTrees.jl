@@ -30,6 +30,7 @@ import Dates
 
 
 include("lib.jl")
+include("scanner-utils/load-model.jl")
 
 abstract type Support end
 

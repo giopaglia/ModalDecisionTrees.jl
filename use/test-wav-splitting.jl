@@ -5,29 +5,25 @@ include("wav-filtering.jl")
 
 # process_dataset("KDD", found; partition_instances = true)
 
-process_dataset("KDD", KDD_getSamplesList(; only_version = "c", rel_path = true);
-    out_dataset_dir_name = "KDD-norm-partitioned",
-    partition_instances = true,
-    partitioning_kwargs = (
-        cut_original        = Val(true),
-        preprocess          = Function[noise_gate!, normalize!],
-        # preprocess_kwargs   = NamedTuple[ (level = 0.005,), (level = 1.0,) ],
-        postprocess         = Function[],
-    )
-)
+out_dir = "KDD-norm-partitioned"
 
-process_dataset("KDD", KDD_getSamplesList(; only_version = "b", rel_path = true);
-    out_dataset_dir_name = "KDD-norm-partitioned",
-    partition_instances = true,
-    partitioning_kwargs = (
-        cut_original        = Val(true),
-        preprocess          = Function[normalize!],
-        # preprocess_kwargs   = NamedTuple[ (level = 0.005,), (level = 1.0,) ],
-        postprocess         = Function[],
-    )
-)
+generate_KDD_partitioned() = begin
+	include("wav-filtering.jl")
+	process_dataset("KDD", KDD_getSamplesList(; only_version = "c", rel_path = true);
+	out_dataset_dir_name = out_dir,
+	partition_instances = true,
+	partitioning_kwargs = (
+			cut_original        = Val(true),
+			preprocess          = Function[noise_gate!, normalize!],
+			# preprocess_kwargs   = NamedTuple[ (level = 0.005,), (level = 1.0,) ],
+			postprocess         = Function[],
+		)
+	)
+end
 
-draw_wavs_for_partitioned_dataset("KDD", "KDD-norm-partitioned")
+generate_KDD_partitioned()
+
+draw_wavs_for_partitioned_dataset("KDD", out_dir)
 
 # generate_splitted_wavs_dataset("../datasets/KDD"; exclude = ["aug","mono","pitch"], draw_wavs = true, limit = 10)
 # generate_splitted_wavs_dataset("../datasets/KDD"; exclude = ["aug","mono","pitch","breath"], draw_wavs = true, limit = 20)
