@@ -8,6 +8,7 @@
 ☐	Extend to regression
 ☐	give names to features
 ☐	Check whether CatWalk.jl can help runtime dispatch look-up time
+☐	Migliora stile (https://github.com/invenia/BlueStyle), e non usare import! Usa Base.length, invece!
 
 ☐	save pre-process pipeline together with the models
 ☐	problem with argmax when testing (e.g. RF), especially on unbalanced datasets
