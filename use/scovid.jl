@@ -19,9 +19,9 @@ data_savedir  = results_dir * "/cache"
 model_savedir = results_dir * "/trees"
 
 # dry_run = false
-# dry_run = :dataset_only
+dry_run = :dataset_only
 # dry_run = :model_study
-dry_run = true
+#dry_run = true
 
 skip_training = false
 
@@ -290,9 +290,9 @@ exec_n_ver_n_task_use_aug_dataset_dir_preprocess = [
 	# ("b",2,true,"KDD",["Normalize"]),
 	# ("b",3,true,"KDD",["Normalize"]),
 	#
-	("c",1,false,"KDD-norm-partitioned-v1",["NG", "Normalize", "RemSilence"]),
-	("c",2,true,"KDD-norm-partitioned-v1",["NG", "Normalize", "RemSilence"]),
-	("c",3,true,"KDD-norm-partitioned-v1",["NG", "Normalize", "RemSilence"]),
+	("c",1,false,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
+	("c",2,true,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
+	("c",3,true,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
 	# ("b",1,false,"KDD-norm-partitioned-v1",["Normalize", "RemSilence"]),
 	# ("b",2,true,"KDD-norm-partitioned-v1",["Normalize", "RemSilence"]),
 	# ("b",3,true,"KDD-norm-partitioned-v1",["Normalize", "RemSilence"]),
@@ -306,7 +306,8 @@ exec_n_ver_n_task_use_aug_dataset_dir_preprocess = [
 # ]
 # exec_n_versions = [3] #1:3
 
-exec_fbtype = [:fcmel] #, :mel, :htkmel] #, :semitone]
+#exec_fbtype = [:fcmel] #, :mel, :htkmel] #, :semitone]
+exec_fbtype = [:semitone] #, :mel, :htkmel] #, :semitone]
 
 exec_base_freq     = [:fft, :autocor]
 exec_base_freq_min = [200, 300]

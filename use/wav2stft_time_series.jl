@@ -130,7 +130,7 @@ function my_stft(x::Vector{T}, sr::Real=16000.0; wintime=0.025, steptime=0.01,
 	# display(plot!())
 
 	if fbtype == :semitone
-		base_freq = calc_F0(x, sr; min_freq = base_freq_min, max_freq = base_freq_max, method = base_freq)
+		base_freq = calc_F0(x, sr; method = base_freq, min_freq = base_freq_min, max_freq = base_freq_max)
 	end
 	
 	aspec = my_audspec(pspec, sr, nfilts=nbands, fbtype=fbtype, minfreq=minfreq, maxfreq=maxfreq, sumpower=sumpower, bwidth=bwidth,
@@ -180,14 +180,14 @@ function F0_fft(samples, sr)
 	freqArray, p
 end
 
-function calc_F0(args...; method = :fft, kwargs...)
+function calc_F0(samples, sr; method = :fft, min_freq = 200, max_freq = 700, method_fun = F0_autocor, return_all = false)
 	d = Dict(
 		:autocor => F0_autocor,
 		:fft     => F0_fft,
 		# :esprit  => F0_esprit,
 		# :world   => F0_world,
 	)
-	calc_F0(args...; method_fun = d[method], kwargs...)
+	calc_F0(samples, sr; method_fun = d[method], min_freq = min_freq, max_freq = max_freq, return_all = return_all)
 end
 
 
