@@ -131,7 +131,7 @@ macro_PPV(cm::ConfusionMatrix)         = Statistics.mean(cm.PPVs)
 macro_NPV(cm::ConfusionMatrix)         = Statistics.mean(cm.NPVs)
 macro_F1(cm::ConfusionMatrix)          = Statistics.mean(cm.F1s)
 
-macro_weighted_F1(cm::ConfusionMatrix) = length(cm.classes) == 2 ? throw_n_log("macro_weighted_F1 Binary case?") : Statistics.sum(cm.F1s.*class_counts(cm))./sum(cm.matrix)
+macro_weighted_F1(cm::ConfusionMatrix)  = length(cm.classes) == 2 ? throw_n_log("macro_weighted_F1 Binary case?") : Statistics.sum(cm.F1s.*class_counts(cm))./sum(cm.matrix)
 macro_weighted_sensitivity(cm::ConfusionMatrix) = length(cm.classes) == 2 ? throw_n_log("macro_weighted_sensitivity Binary case?") : Statistics.sum(cm.sensitivities.*class_counts(cm))./sum(cm.matrix)
 macro_weighted_specificity(cm::ConfusionMatrix) = length(cm.classes) == 2 ? throw_n_log("# Binary case?") : Statistics.sum(cm.specificities.*class_counts(cm))./sum(cm.matrix)
 macro_weighted_PPV(cm::ConfusionMatrix) = length(cm.classes) == 2 ? throw_n_log("macro_weighted_PPV Binary case?") : Statistics.sum(cm.PPVs.*class_counts(cm))./sum(cm.matrix)
