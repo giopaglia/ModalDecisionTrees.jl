@@ -231,7 +231,7 @@ function wav2stft_time_series(
 		use_full_mfcc = false,
 		ignore_samples_with_sr_less_than = -Inf,
 	)
-	println(filepath)
+	print(filepath, "\t")
 	
 	samps, sr = wavread(filepath)
 

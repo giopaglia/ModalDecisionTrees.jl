@@ -309,7 +309,7 @@ exec_n_ver_n_task_use_aug_dataset_dir_preprocess = [
 #exec_fbtype = [:fcmel] #, :mel, :htkmel] #, :semitone]
 exec_fbtype = [:semitone] #, :mel, :htkmel] #, :semitone]
 
-exec_minfreq     = [20]
+exec_minfreq       = [20]
 exec_base_freq     = [:fft, :autocor]
 exec_base_freq_min = [200, 300]
 exec_base_freq_max = [600, 700]
@@ -318,15 +318,27 @@ exec_base_freq_max = [600, 700]
 exec_nbands = [30] # [20,40,60]
 # exec_nbands = [40] # [20,40,60]
 
-exec_dataset_kwargs =   [(
+combine_moving_averages((size1,step1), (size2,step2)) = begin
+	(1*size1+(size2-1)*step1,step1*step2)
+end
+
+exec_wintime_steptime_dataset_kwargs =   [(
+		# (0.025,0.010),(
 	# 	max_points = 50,
 	# 	ma_size = 15,
 	# 	ma_step = 10,
 	# ),(
+	(0.025,0.010),(
 		max_points = 50,
 		ma_size = 30,
 		ma_step = 20,
+	),
 	# ),(
+	# combine_moving_averages((0.025,0.010),(30,20)),(
+	# 	max_points = 50,
+	# ),
+	# ),(
+	# (0.025,0.010),(
 	# 	max_points = 50,
 	# 	ma_size = 45,
 	# 	ma_step = 30,
@@ -334,24 +346,26 @@ exec_dataset_kwargs =   [(
 	# 	ma_size = 120,
 	# 	ma_step = 100,
 	# ),(#max_points = 30,
+	# (0.025,0.010),(
 	# 	max_points = 50,
 	# 	ma_size = 100,
 	# 	ma_step = 75,
 	# ),(# max_points = 30,
+	# (0.025,0.010),(
 	# 	ma_size = 90,
 	# 	ma_step = 60,
 	# ),(# max_points = 30,
+	# (0.025,0.010),(
 	# 	ma_size = 75,
 	# 	ma_step = 50,
 	)
 ]
 
-audio_kwargs_partial_mfcc(max_sample_rate, nbands, fbtype, minfreq, base_freq, base_freq_min, base_freq_max) = (
-	wintime = 0.025, # in ms          # 0.020-0.040
-	steptime = 0.010, # in ms         # 0.010-0.015
+audio_kwargs_partial_mfcc(max_sample_rate, wintime, steptime, nbands, fbtype, minfreq, base_freq, base_freq_min, base_freq_max) = (
+	wintime  = wintime, # 0.025, # in ms          # 0.020-0.040
+	steptime = steptime, # 0.010, # in ms         # 0.010-0.015
 	fbtype = fbtype, # :mel                   # [:mel, :htkmel, :fcmel]
-	# window_f = DSP.hamming, # [DSP.hamming, (nwin)->DSP.tukey(nwin, 0.25)]
-	window_f = DSP.triang,
+	window_f = DSP.triang, # [DSP.hamming, (nwin)->DSP.tukey(nwin, 0.25)]
 	pre_emphasis = 0.97,              # any, 0 (no pre_emphasis)
 	nbands = nbands,                      # any, (also try 20)
 	sumpower = false,                 # [false, true]
@@ -360,28 +374,6 @@ audio_kwargs_partial_mfcc(max_sample_rate, nbands, fbtype, minfreq, base_freq, b
 	minfreq = minfreq,
 	maxfreq = max_sample_rate/2,
 	# usecmp = false,
-	base_freq     = base_freq,
-	base_freq_min = base_freq_min,
-	base_freq_max = base_freq_max,
-)
-
-audio_kwargs_full_mfcc(max_sample_rate, nbands, fbtype, minfreq, base_freq, base_freq_min, base_freq_max) = (
-	wintime=0.025,
-	steptime=0.01,
-	numcep=13,
-	lifterexp=-22,
-	sumpower=false,
-	preemph=0.97,
-	dither=false,
-	minfreq=minfreq,
-	maxfreq = max_sample_rate/2,
-	# maxfreq=sr/2,
-	nbands=nbands,
-	bwidth=1.0,
-	dcttype=3,
-	fbtype=fbtype, # :htkmel
-	usecmp=false,
-	modelorder=0,
 	base_freq     = base_freq,
 	base_freq_min = base_freq_min,
 	base_freq_max = base_freq_max,
@@ -445,7 +437,7 @@ exec_ranges = (; # Order: faster-changing to slower-changing
 	# n_task_use_aug       = exec_n_task_use_aug,
 	# n_version            = exec_n_versions,
 	nbands               = exec_nbands,
-	dataset_kwargs       = exec_dataset_kwargs,
+	wintime_steptime_dataset_kwargs       = exec_wintime_steptime_dataset_kwargs,
 	use_full_mfcc        = exec_use_full_mfcc,
 	# preprocess_wavs      = exec_preprocess_wavs,
 	test_operators       = exec_test_operators,
@@ -662,7 +654,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	use_training_form,
 	(n_version, n_task, use_aug, dataset_dir, preprocess_wavs),
 	nbands,
-	dataset_kwargs,
+	((wintime,steptime),dataset_kwargs),
 	use_full_mfcc,
 	test_operators,
 	ontology = params_combination
@@ -671,11 +663,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	ontology       = ontology_dict[ontology]
 
 	cur_audio_kwargs = merge(
-		if use_full_mfcc
-			audio_kwargs_full_mfcc(max_sample_rate, nbands, fbtype, minfreq, base_freq, base_freq_min, base_freq_max)
-		else
-			audio_kwargs_partial_mfcc(max_sample_rate, nbands, fbtype, minfreq, base_freq, base_freq_min, base_freq_max)
-		end
+		audio_kwargs_partial_mfcc(max_sample_rate, wintime, steptime, nbands, fbtype, minfreq, base_freq, base_freq_min, base_freq_max)
 		, (;))
 
 	cur_preprocess_wavs = [ wav_preprocessors[k] for k in preprocess_wavs ]
