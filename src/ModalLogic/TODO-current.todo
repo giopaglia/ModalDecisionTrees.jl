@@ -1,8 +1,8 @@
 - introduce post pruning (improve pre-pruning/post-pruning against a dataset and introduce validation/test set distinction)
-- Lookahead: two levels
-- Save confusion matrices... (be careful of random forests with their oob error...)
+- DT Lookahead (e.g. two levels of decisions in one)
 - Try running with: --compile=min -O0, and then with -O3
 - Remove n_relations()?
+- optimize IA3 and IA7 and relaunch comparison
 
 - different frames with different ontologies: FingerMovements+add_dim e include_static_data!
 
