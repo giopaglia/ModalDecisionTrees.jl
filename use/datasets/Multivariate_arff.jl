@@ -495,8 +495,8 @@ function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n
 		end
 	end
 
-	(X_train, Y_train), n_label_samples_train = ClassificationDataset2RunnerDataset(ds_train)
-	(X_test,  Y_test),  n_label_samples_test  = ClassificationDataset2RunnerDataset(ds_test)
+	(X_train, Y_train), class_counts_train = ClassificationDataset2RunnerDataset(ds_train)
+	(X_test,  Y_test),  class_counts_test  = ClassificationDataset2RunnerDataset(ds_test)
 
 	if dataset_name == "FingerMovements"
 		# FingerMovements
@@ -555,13 +555,13 @@ function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n
 	# println(countmap([Y_train..., Y_test...]))
 
 	if join_train_n_test == true
-		concat_labeled_datasets((X_train, Y_train), (X_test,  Y_test), (n_label_samples_train, n_label_samples_test)), (n_label_samples_train .+ n_label_samples_test)
+		concat_labeled_datasets((X_train, Y_train), (X_test,  Y_test), (class_counts_train, class_counts_test)), (class_counts_train .+ class_counts_test)
 	elseif join_train_n_test == false
-		((X_train, Y_train), (X_test,  Y_test)), n_label_samples_train
+		((X_train, Y_train), (X_test,  Y_test)), class_counts_train
 	elseif join_train_n_test == :only_training
-		(X_train, Y_train), n_label_samples_train
+		(X_train, Y_train), class_counts_train
 	elseif join_train_n_test == :only_testing
-		(X_test,  Y_test), n_label_samples_test
+		(X_test,  Y_test), class_counts_test
 	end
 end
 
@@ -650,7 +650,7 @@ function ClassificationDataset2RunnerDataset(d::ClassificationDataset)
 		push!(X, ModalFrame2MatricialDataset(frame))
 	end
 	
-	n_label_samples = []
+	class_counts = []
 	prev_label = nothing
 	
 	cur_count = 0
@@ -658,15 +658,15 @@ function ClassificationDataset2RunnerDataset(d::ClassificationDataset)
 		# println(label)
 		if prev_label != nothing && label != prev_label
 			# println("!")
-			push!(n_label_samples, cur_count)
+			push!(class_counts, cur_count)
 			cur_count = 0
 		end
 		cur_count += 1
 		prev_label = label
 	end
-	push!(n_label_samples, cur_count)
+	push!(class_counts, cur_count)
 
-	(X,Y),Tuple(n_label_samples)
+	(X,Y),Tuple(class_counts)
 end
 
 function ModalFrame2MatricialDataset(f::ModalFrame)

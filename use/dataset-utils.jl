@@ -81,34 +81,50 @@ mapArrayToDataType(type::Type{<:AbstractFloat}, array::AbstractArray{<:Real}) = 
 	type.(array)
 end
 
-balanced_dataset_slice(dataset::Tuple{Tuple{AbstractVector{<:GenericDataset},AbstractVector},NTuple{N,Integer}}, dataseeds::Vector{<:Integer}; samples_per_class_share::Union{Nothing,AbstractFloat} = nothing) where N = begin
-	d, n_label_samples = dataset
-	d, [balanced_dataset_slice(n_label_samples, dataseed; samples_per_class_share = samples_per_class_share) for dataseed in dataseeds]
+balanced_dataset_slice(
+		dataset::Tuple{Tuple{AbstractVector{<:GenericDataset},AbstractVector},NTuple{N,Integer}},
+		dataseeds::Vector{<:Integer};
+		kwargs...
+	) where N = begin
+	d, class_counts = dataset
+	d, [balanced_dataset_slice(class_counts, dataseed; kwargs...) for dataseed in dataseeds]
 end
 
-balanced_dataset_slice(n_label_samples::NTuple{N,Integer}, dataseed::Union{Nothing,Integer}; samples_per_class_share::Union{Nothing,AbstractFloat} = nothing) where N = begin
-	n_instances = sum(n_label_samples)
+balanced_dataset_slice(
+		class_counts::NTuple{N,Integer},
+		dataseed::Union{Nothing,Integer};
+		n_samples_per_class::Union{Nothing,AbstractFloat,Integer,NTuple{N,Integer}} = nothing,
+		also_return_discarted::Bool = false,
+	) where N = begin
+	n_instances = sum(class_counts)
 	if !isnothing(dataseed)
 		rng = Random.MersenneTwister(dataseed)
 		
-		n_classes = length(n_label_samples)
+		n_classes = length(class_counts)
 
-		n_per_class = if isnothing(samples_per_class_share)
-			minimum(n_label_samples)
-		else
-			floor(Int, (samples_per_class_share*n_instances)/n_classes)
+		n_per_class = begin
+			if isnothing(n_samples_per_class)
+				minimum(class_counts)
+			elseif isa(n_samples_per_class, Integer)
+				n_samples_per_class
+			elseif isa(n_samples_per_class, AbstractFloat)
+				floor(Int, (n_samples_per_class*n_instances)/n_classes)
+			elseif isa(n_samples_per_class, NTuple{N,Integer} where N)
+				n_samples_per_class
+			end
 		end
 
 		dataset_slice = Array{Int64,2}(undef, n_classes, n_per_class)
 		c = 0
 		for i in 1:n_classes
-			# dataset_slice[i,:] .= sort(c .+ Random.randperm(rng, n_label_samples[i])[1:n_per_class])
-			dataset_slice[i,:] .= c .+ Random.randperm(rng, n_label_samples[i])[1:n_per_class]
-			c += n_label_samples[i]
+			# dataset_slice[i,:] .= sort(c .+ Random.randperm(rng, class_counts[i])[1:n_per_class])
+			dataset_slice[i,:] .= c .+ Random.randperm(rng, class_counts[i])[1:n_per_class]
+			c += class_counts[i]
 		end
 		dataset_slice = dataset_slice[:]
+		!also_return_discarted ? (dataset_slice) : (dataset_slice,sort(collect(setdiff(Set(1:n_instances), Set(dataset_slice)))))
 	else
-		1:n_instances
+		!also_return_discarted ? (1:n_instances) : (1:n_instances,[])
 	end
 end
 
@@ -246,12 +262,17 @@ function solve_binary_sampling_prob(split_threshold, an, ap, tn, tp; discourage_
 
 end
 
-balanced_dataset_slice(dataset::NamedTuple{(:train_n_test,:only_training)}, dataseeds::Vector{<:Integer}, split_threshold::AbstractFloat; samples_per_class_share::Union{Nothing,AbstractFloat} = nothing, discourage_only_training = true) where N = begin
+balanced_dataset_slice(dataset::NamedTuple{(:train_n_test,:only_training)},
+		dataseeds::Vector{<:Integer},
+		split_threshold::AbstractFloat;
+		n_samples_per_class::Union{Nothing,AbstractFloat,Integer} = nothing,
+		discourage_only_training = true,
+	) where N = begin
 	
 	@assert length(dataset.train_n_test[2])  == 2 "TODO Expand code. Currently, can't perform balanced_dataset_slice(NamedTuple{(:train_n_test,:only_training)}, ...) on non-binary dataset"
 	@assert length(dataset.only_training[2]) == 2 "TODO Expand code. Currently, can't perform balanced_dataset_slice(NamedTuple{(:train_n_test,:only_training)}, ...) on non-binary dataset"
 
-	@assert isnothing(samples_per_class_share) "TODO Expand code"
+	@assert isnothing(n_samples_per_class) "TODO Expand code"
 
 	@assert split_threshold != 1.0 "TODO expand code. Don't quite know how to perform full training here?"
 	
@@ -330,9 +351,9 @@ balanced_dataset_slice(dataset::NamedTuple{(:train_n_test,:only_training)}, data
 	# println(tot)
 
 	# Linearizza dataset
-	# n_label_samples = (dataset.train_n_test[2] .+ dataset.only_training[2])
+	# class_counts = (dataset.train_n_test[2] .+ dataset.only_training[2])
 	# d = concat_labeled_datasets(dataset.train_n_test[1], dataset.only_training[1])
-	# linearized_dataset = (d, n_label_samples)
+	# linearized_dataset = (d, class_counts)
 
 	linearized_dataset = concat_labeled_datasets(dataset.train_n_test[1], dataset.only_training[1])
 
@@ -396,6 +417,20 @@ balanced_dataset_slice(dataset::NamedTuple{(:train_n_test,:only_training)}, data
 
 	end
 	linearized_dataset, dataset_slices
+end
+
+function stratify((X,Y), n_classes)
+	n_samples = length(Y)
+	@assert (n_samples % n_classes) == 0 "Couln't stratify! n_samples must be divisible by"
+	n_samples_per_class = div(n_samples, n_classes)
+	# Balanced case, 2D-dimensional dataset:
+	X2 = reshape(X, (size(X)[1:end-2]...,  n_samples_per_class,n_classes,size(X)[end]));
+	X3 = permutedims(X2, [(1:(length(size(X))-2))...,length(size(X)),length(size(X))-1,length(size(X))+1])
+	X4 = reshape(X3, (size(X)[1:end-2]...,n_samples,size(X)[end]));
+	# Balanced case, labels:
+	Y = reshape(transpose(reshape(Y, (n_samples_per_class,n_classes))), n_samples)
+	X4,Y
+	# X = reshape(permutedims(reshape(X, (size(X, 1),size(X, 2),n_samples_per_class,n_classes,size(X, 4))),   [1,2,4,3,5]), (size(X, 1),size(X, 2),n_samples,size(X, 4)))
 end
 
 # Multi-frame dataset with labels and instance-ids

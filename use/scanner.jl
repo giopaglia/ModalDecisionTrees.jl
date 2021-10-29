@@ -105,7 +105,7 @@ include("dataset-utils.jl")
 # The instances for which the full StumpFeatModalDataset is computed are either all, or the ones specified for training;
 # This depends on whether the dataset is already splitted or not.
 @resumable function generate_splits(dataset, split_threshold, round_dataset_to_datatype, save_datasets, run_name, dataset_slices, data_savedir, buildModalDatasets_fun)
-	if split_threshold != false # Dataset is to be splitted
+	if split_threshold !== false # Dataset is to be splitted
 		
 		# Unpack dataset
 		X, Y = dataset
@@ -128,28 +128,53 @@ include("dataset-utils.jl")
 
 		for (slice_id,dataset_slice) in dataset_slices
 
-			println("Dataset_slice = (" * (!isnothing(dataset_slice) ? "$(length(dataset_slice))) -> $(dataset_slice)" : "nothing"))
+			print("Dataset_slice = ")
+			if isnothing(dataset_slice)
+				println("nothing")
+			elseif isa(dataset_slice, AbstractVector{<:Integer})
+				println("($(length(dataset_slice))) -> $(dataset_slice)")
+			elseif isa(dataset_slice, NTuple{2,<:AbstractVector{<:Integer}})
+				println("($(length.(dataset_slice))) -> $(dataset_slice)")
+			else
+				throw_n_log("Unknown dataset_slice type: $(typeof(dataset_slice))")
+			end
 
 			# Slice instances (for balancing, for example)
-			X_to_train_slice, X_to_test_slice, Y_slice =
-				if isnothing(dataset_slice)
-					(X_to_train, X_to_test, Y,)
-				else
-					(
-						ModalLogic.slice_dataset(X_to_train, dataset_slice, return_view = true),
-						ModalLogic.slice_dataset(X_to_test,  dataset_slice, return_view = true),
-						Y[dataset_slice],
-					)
-			end
-			
-			# println(" train dataset:")
-			# println(display_structure(X_train_slice))
-			# println(" test  dataset:")
-			# println(display_structure(X_test_slice))
+			X_train_slice, Y_train_slice, X_test_slice, Y_test_slice = begin
+				if isnothing(dataset_slice) || isa(dataset_slice, AbstractVector{<:Integer})
+					# Use two different structures for train and test
+					X_to_train_slice, X_to_test_slice, Y_slice =
+						if isnothing(dataset_slice)
+							(
+								X_to_train,
+								X_to_test,
+								Y,
+							)
+						else
+							(
+								ModalLogic.slice_dataset(X_to_train, dataset_slice, return_view = true),
+								ModalLogic.slice_dataset(X_to_test,  dataset_slice, return_view = true),
+								Y[dataset_slice],
+							)
+					end
 
-			# Split in train/test
-			(X_train_slice, Y_train_slice), _ = traintestsplit((X_to_train_slice, Y_slice), split_threshold; return_view = true)
-			_, (X_test_slice, Y_test_slice)   = traintestsplit((X_to_test_slice,  Y_slice), split_threshold; return_view = true)
+					# Split in train/test
+					(X_train_slice, Y_train_slice), _ = traintestsplit((X_to_train_slice, Y_slice), split_threshold; return_view = true)
+					_, (X_test_slice, Y_test_slice)   = traintestsplit((X_to_test_slice,  Y_slice), split_threshold; return_view = true)
+					
+					(X_train_slice, Y_train_slice, X_test_slice, Y_test_slice)
+				elseif isa(dataset_slice, NTuple{2,<:AbstractVector{<:Integer}})
+					@assert isone(split_threshold) || iszero(split_threshold) "Can't set a split_threshold (value: $(split_threshold)) when specifying a split dataset_slice (type: $(gettype(dataset_slice)))"
+					(
+						ModalLogic.slice_dataset(X_to_train, dataset_slice[1], return_view = true),
+						Y[dataset_slice[1]],
+						ModalLogic.slice_dataset(X_to_test,  dataset_slice[2], return_view = true),
+						Y[dataset_slice[2]],
+					)
+				else
+					throw_n_log("Unknown dataset_slice type: $(typeof(dataset_slice))")
+				end
+			end
 			
 			# if save_datasets
 			# 	JLD2.@save "$(data_savedir)/datasets/$(run_name)-$(slice_id)-dataset_slice.jld" dataset_slice
@@ -187,16 +212,38 @@ include("dataset-utils.jl")
 		# Slice *training* instances (for balancing, for example)
 		for (slice_id,dataset_slice) in dataset_slices
 
-			println("Dataset_slice = (" * (!isnothing(dataset_slice) ? "$(length(dataset_slice))) -> $(dataset_slice)" : "nothing"))
+			print("Dataset_slice = ")
+			if isnothing(dataset_slice)
+				println("nothing")
+			elseif isa(dataset_slice, AbstractVector{<:Integer})
+				println("($(length(dataset_slice))) -> $(dataset_slice)")
+			elseif isa(dataset_slice, NTuple{2,<:AbstractVector{<:Integer}})
+				println("($(length.(dataset_slice))) -> $(dataset_slice)")
+			else
+				throw_n_log("Unknown dataset_slice type: $(typeof(dataset_slice))")
+			end
 
-			X_train_slice, Y_train_slice =
+			X_train_slice, Y_train_slice, X_test_slice, Y_test_slice =
 				if isnothing(dataset_slice)
-					(X_train, Y_train,)
-				else
+					(X_train, Y_train, X_test, Y_test)
+				elseif isa(dataset_slice, AbstractVector{<:Integer})
 					(
-					ModalLogic.slice_dataset(X_train, dataset_slice, return_view = true),
-					Y_train[dataset_slice],
+						ModalLogic.slice_dataset(X_train, dataset_slice, return_view = true),
+						Y_train[dataset_slice],
+						X_test,
+						Y_test,
 					)
+				elseif isa(dataset_slice, NTuple{2,<:AbstractVector{<:Integer}})
+					@assert isone(split_threshold) || iszero(split_threshold) "Can't set a split_threshold (value: $(split_threshold)) when specifying a split dataset_slice (type: $(gettype(dataset_slice)))"
+					throw_n_log("TODO expand code. When isa(dataset_slice, NTuple{2,<:AbstractVector{<:Integer}}) and the dataset is already splitted, must also test on the validation data! Maybe when the dataset is already splitted into ((X_train, Y_train), (X_test, Y_test)), join it and create a dummy dataset_slice")
+					(
+						ModalLogic.slice_dataset(X_train, dataset_slice[1], return_view = true),
+						Y_train[dataset_slice[1]],
+						ModalLogic.slice_dataset(X_train, dataset_slice[2], return_view = true),
+						Y_train[dataset_slice[2]],
+					)
+				else
+					throw_n_log("Unknown dataset_slice type: $(typeof(dataset_slice))")
 				end
 
 			# if save_datasets
@@ -205,7 +252,7 @@ include("dataset-utils.jl")
 			# 	JLD2.@save "$(data_savedir)/datasets/$(run_name)-$(slice_id)-sliced_train.jld" sliced_train
 			# end
 			
-			@yield slice_id, ((X_train_slice, Y_train_slice), (X_test, Y_test))
+			@yield slice_id, ((X_train_slice, Y_train_slice), (X_test_slice, Y_test_slice))
 		end
 	end
 end
@@ -563,7 +610,10 @@ function exec_scan(
 		### Dataset params
 		split_threshold                 ::Union{Bool,AbstractFloat} = 1.0,
 		data_modal_args                 = (),
-		dataset_slices                  ::Union{AbstractVector{<:Tuple{<:Any,<:AbstractVector{<:Integer}}},AbstractVector{<:AbstractVector{<:Integer}},Nothing} = nothing,
+		dataset_slices                  ::Union{
+			AbstractVector{<:Tuple{<:Any,SLICE}},
+			AbstractVector{SLICE},
+			Nothing} = nothing,
 		round_dataset_to_datatype       ::Union{Bool,Type} = false,
 		use_training_form               = :stump_with_memoization,
 		### Run params
@@ -580,7 +630,7 @@ function exec_scan(
 		skip_training                   :: Bool = false,
 		callback                        :: Function = identity,
 		dataset_shape_columns           :: Union{AbstractVector,Nothing} = nothing,
-	)
+	) where {SLICE<:Union{<:AbstractVector{<:Integer},NTuple{2,<:AbstractVector{<:Integer}}}}
 	
 	@assert timing_mode in [:none, :profile, :time, :btime] "Unknown timing_mode!"
 	
@@ -601,8 +651,6 @@ function exec_scan(
 	full_output_filepath    = results_dir * "/full_columns.tsv"
 
 	results_col_sep = "\t"
-
-	# TODO also print train_seed
 	
 	base_metrics_names = [
 		"train_accuracy",
@@ -631,11 +679,22 @@ function exec_scan(
 	dataset_shape_functions = OrderedDict(
 		"# insts (TRAIN)"  => (X_train, Y_train, X_test, Y_test)->length(Y_train),
 		"# insts (TEST)"   => (X_train, Y_train, X_test, Y_test)->length(Y_test),
+		#
+		"class_counts (TRAIN)"     => (X_train, Y_train, X_test, Y_test)->begin
+			m = StatsBase.countmap(Y_train)
+			ks = keys(m) |> collect |> sort
+			Tuple([m[k] for k in ks])
+		end,
+		"class_counts (TEST)"     => (X_train, Y_train, X_test, Y_test)->begin
+			m = StatsBase.countmap(Y_test)
+			ks = keys(m) |> collect |> sort
+			Tuple([m[k] for k in ks])
+		end,
+		#
 		# "n_attributes"     => (X_train, Y_train, X_test, Y_test)->n_attributes(X_train),
 		"n_features"       => (X_train, Y_train, X_test, Y_test)->n_features(X_train),
 		"channel_size"     => (X_train, Y_train, X_test, Y_test)->channel_size(X_test),
 		# "avg_channel_size" => (X_train, Y_train, X_test, Y_test)->?,
-		# "class counts"     => (X_train, Y_train, X_test, Y_test)->?,
 	)
 
 	if isnothing(dataset_shape_columns)
@@ -689,7 +748,7 @@ function exec_scan(
 			JLD2.@save model_save_path T
 		end
 
-		# If not fulltraining
+		# If not full-training
 		T_test =
 			if split_threshold != 1.0
 				println("Test tree:")

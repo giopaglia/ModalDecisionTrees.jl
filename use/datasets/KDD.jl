@@ -422,10 +422,6 @@ function KDDDataset((n_task,n_version),
 
 		println("Base: POS={$(length(pos))}, NEG={$(length(neg))}\tAug: POS={$(length(pos_aug))}, NEG={$(length(neg_aug))}")
 
-		# Stratify
-		# timeseries = vec(hcat(pos,neg)')
-		# Y = vec(hcat(ones(Int,length(pos)),zeros(Int,length(neg)))')
-
 		# println(typeof(pos))
 		timeseries     = [pos...,     neg...]
 		timeseries_aug = [pos_aug..., neg_aug...]
