@@ -12,7 +12,7 @@ train_seed = 2
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./covid/journal-v8-base_freq"
+results_dir = "./covid/journal-v9-partitioned-clean-cough-semitone"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/cache"
@@ -75,8 +75,8 @@ optimize_forest_computation = false
 
 forest_args = []
 
-# for n_trees in [51,101]
-for n_trees in [51]
+# for n_trees in [50, 100]
+for n_trees in [50]
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
 			for partial_sampling in [0.7]
@@ -162,115 +162,6 @@ prefer_nonaug_data = true
 ################################################################################
 ##################################### SCAN #####################################
 ################################################################################
-
-# For generating KDD-partitioned dataset
-# generate_KDD_partitioned() = begin
-# 	include("wav-filtering.jl")
-# 	process_dataset("KDD", KDD_getSamplesList(; rel_path = true);
-# 	out_dataset_dir_name = "KDD-norm-partitioned",
-# 	partition_instances = true,
-# 	partitioning_kwargs = (
-# 			cut_original        = Val(true),
-# 			preprocess          = Function[noise_gate!, normalize!],
-# 			# preprocess_kwargs   = NamedTuple[ (level = 0.005,), (level = 1.0,) ],
-# 			postprocess         = Function[],
-# 		)
-# 	)
-# 	run(`rm "../datasets/KDD-norm-partitioned/covidwebnocough/2020-04-26-16_20_02_616687/audio_file_cough.wav-split.1.wav"`)
-# end
-
-
-# # For generating KDD-partitioned dataset
-# generate_KDD_partitioned() = begin
-# 	include("wav-filtering.jl")
-#   process_dataset("KDD", KDD_getSamplesList(; rel_path = true);
-#   out_dataset_dir_name = "KDD-partitioned",
-#   partition_instances = true,
-#   partitioning_kwargs = (
-#       cut_original = Val(true),
-#       preprocess   = Function[],
-#       postprocess  = Function[],
-#     )
-#   )
-# 	# Bad (e.g. short?)
-# 	run(`rm "../datasets/KDD-partitioned/covidwebnocough/2020-04-26-16_20_02_616687/audio_file_cough.wav-split.1.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidwebnocough/2020-04-26-16_20_02_616687/audio_file_cough.wav-split.5.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebnosymp/2020-04-08-08_16_43_888185/audio_file_cough.wav-split.2.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-14-19_05_58_854062/audio_file_breathe.wav_aug_pitchspeed2.wav-split.1.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidwebwithcough/2020-04-13-18_37_12_935759/audio_file_breathe.wav-split.6.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_2DDMc0SESm_1587299604514.wav-split.1.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_zv02Ygabqh_1587712162421.wav-split.1.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-14-19_05_58_854062/audio_file_breathe.wav_aug_pitchspeed1.wav-split.1.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidwebwithcough/2020-04-13-18_37_12_935759/audio_file_breathe.wav-split.3.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_wI0AtSFKGI_1586891988754.wav-split.7.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-14-19_05_58_854062/audio_file_breathe.wav_aug_noise1.wav-split.1.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_RZPXvUslJL_1589782005941.wav-split.3.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-10-16_31_45_878885/audio_file_breathe.wav_aug_pitchspeed2.wav-split.8.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-14-19_05_58_854062/audio_file_breathe.wav-split.1.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-14-19_05_58_854062/audio_file_breathe.wav_aug_amp1.wav-split.1.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-14-19_05_58_854062/audio_file_breathe.wav_aug_amp2.wav-split.1.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-08-19_36_24_576603/audio_file_breathe.wav-split.5.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-08-19_36_24_576603/audio_file_breathe.wav_aug_amp1.wav-split.5.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-08-19_36_24_576603/audio_file_breathe.wav_aug_amp2.wav-split.5.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-08-19_36_24_576603/audio_file_breathe.wav_aug_noise1.wav-split.5.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_wI0AtSFKGI_1587123341332.wav-split.7.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-08-19_36_24_576603/audio_file_breathe.wav_aug_noise1.wav-split.4.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-20-10_53_52_205272/audio_file_breathe.wav_aug_pitchspeed1.wav-split.3.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-20-10_53_52_205272/audio_file_breathe.wav_aug_pitchspeed2.wav-split.3.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidwebwithcough/2020-04-13-18_37_12_935759/audio_file_breathe.wav-split.7.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_crxRiqIPHi_1587826550848.wav-split.1.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_RZPXvUslJL_1589436750953.wav-split.9.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidwebwithcough/2020-04-08-19_50_32_255545/audio_file_breathe.wav-split.9.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-09-13_18_07_699528/audio_file_breathe.wav_aug_pitchspeed2.wav-split.1.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-08-19_36_24_576603/audio_file_breathe.wav-split.4.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-08-19_36_24_576603/audio_file_breathe.wav_aug_amp1.wav-split.4.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-08-19_36_24_576603/audio_file_breathe.wav_aug_amp2.wav-split.4.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-10-16_31_45_878885/audio_file_breathe.wav_aug_pitchspeed1.wav-split.6.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-07-20_32_56_249415/audio_file_breathe.wav_aug_pitchspeed2.wav-split.1.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_2DDMc0SESm_1587299604514.wav-split.2.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_wI0AtSFKGI_1587123341332.wav-split.4.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthyandroidwithcough/breath/breaths_yfW1c2NlCx_1586974588197.wav-split.11.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthyandroidwithcough/breath/breaths_yfW1c2NlCx_1586974588197.wav_aug_amp1.wav-split.11.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthyandroidwithcough/breath/breaths_yfW1c2NlCx_1586974588197.wav_aug_amp2.wav-split.11.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthyandroidwithcough/breath/breaths_yfW1c2NlCx_1586974588197.wav_aug_pitchspeed1.wav-split.10.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_wI0AtSFKGI_1587123341332.wav-split.5.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-14-14_29_49_101189/audio_file_breathe.wav_aug_pitchspeed2.wav-split.1.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_crxRiqIPHi_1587826550848.wav-split.6.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthyandroidwithcough/breath/breaths_yfW1c2NlCx_1586974588197.wav_aug_noise1.wav-split.11.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthyandroidwithcough/breath/breaths_yfW1c2NlCx_1586974588197.wav_aug_noise2.wav-split.11.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthyandroidwithcough/breath/breaths_yfW1c2NlCx_1586974588197.wav_aug_pitchspeed2.wav-split.10.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-14-14_29_49_101189/audio_file_breathe.wav_aug_pitchspeed1.wav-split.1.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-20-10_53_52_205272/audio_file_breathe.wav_aug_pitchspeed1.wav-split.2.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-20-10_53_52_205272/audio_file_breathe.wav_aug_pitchspeed2.wav-split.2.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_FLwelKnRhk_1587323996895.wav-split.4.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_wI0AtSFKGI_1587123341332.wav-split.6.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-20-10_53_52_205272/audio_file_breathe.wav-split.3.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebwithcough/2020-04-20-10_53_52_205272/audio_file_breathe.wav_aug_amp1.wav-split.3.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthyandroidnosymp/cough/cough_988JFCXXIs_1586971301985.wav-split.5.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebnosymp/2020-04-15-17_40_04_078640/audio_file_cough.wav-split.2.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidwebnocough/2020-04-13-18_36_14_654135/audio_file_cough.wav-split.2.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/cough/cough_crxRiqIPHi_1588687422136.wav-split.5.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebnosymp/2020-04-19-17_45_04_814914/audio_file_cough.wav-split.2.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidandroidnocough/cough/cough_CNz7PwFNQz_1588314464492.wav-split.1.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthyandroidnosymp/cough/cough_PWUKaMIaFV_1588224156757.wav-split.1.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthyandroidnosymp/cough/cough_r57l51XPwo_1587967960517.wav-split.3.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthyandroidnosymp/cough/cough_Yarb5WSBeD_1588832877170.wav-split.1.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthywebnosymp/2020-04-19-17_45_04_814914/audio_file_cough.wav-split.1.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/cough/cough_crxRiqIPHi_1587914038132.wav-split.3.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/cough/cough_crxRiqIPHi_1588604042078.wav-split.3.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidwebwithcough/2020-04-26-19_33_46_515975/audio_file_cough.wav-split.2.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/cough/cough_2DDMc0SESm_1588143205284.wav-split.1.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidwebnocough/2020-04-21-12_31_25_239458/audio_file_cough.wav-split.1.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidwebnocough/2020-04-26-10_36_54_607302/audio_file_cough.wav-split.2.wav"`)
-# 	# Too long (TODO cut them properly)
-# 	run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_RZPXvUslJL_1589525867100.wav-split.1.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_RZPXvUslJL_1589264294638.wav-split.1.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/covidandroidwithcough/breath/breaths_RZPXvUslJL_1589144967244.wav-split.2.wav"`)
-# 	# TODO figure out # run(`rm "../datasets/KDD-partitioned/covidwebwithcough/2020-04-13-18_37_12_935759/audio_file_breathe.wav-split.8.wav"`)
-# 	run(`rm "../datasets/KDD-partitioned/healthyandroidnosymp/breath/breaths_QiX6eemjYb_1587126241264.wav-split.2.wav"`)
-# end
-
-# generate_KDD_partitioned()
 
 exec_dataseed = 1:10
 
