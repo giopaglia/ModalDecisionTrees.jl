@@ -25,6 +25,10 @@ using ThreadsX
 ################################################################################
 ################################################################################
 
+removeprefix(s::AbstractString, prefix::AbstractString) = startswith(s, prefix) ? s[length(prefix)+1:end] : s
+removesuffix(s::AbstractString, suffix::AbstractString) = endswith(s,   suffix) ? s[1:end-length(suffix)] : s
+
+
 kdd_data_dir = data_dir * "KDD/"
 
 kdd_has_subfolder_structure = ["asthmawebwithcough", "covidwebnocough", "covidwebwithcough", "healthywebnosymp", "healthywebwithcough"]
@@ -245,12 +249,13 @@ KDD_getSamplesList(folders::AbstractVector{<:AbstractString}, n_version, use_aug
 			filter!((filepath)->! (filepath in files_to_ignore), base_samples)
 			filter!((filepath)->! (filepath in files_to_ignore), aug_samples)
 
-			# Interpret the filepath as a prefix
-			base_samples = [sort(glob("$(filepath)*.wav", dir)) for filepath in base_samples] |> Iterators.flatten |> collect
-			aug_samples  = [sort(glob("$(filepath)*.wav", dir)) for filepath in aug_samples]  |> Iterators.flatten |> collect
+			# println(removesuffix.(base_samples, ".wav"))
 			
-			removeprefix(s::AbstractString, prefix::AbstractString) = startswith(s, prefix) ? s[length(prefix)+1:end] : s
-			removesuffix(s::AbstractString, suffix::AbstractString) = endswith(s, prefix) ? s[end-length(prefix):end] : s
+			# Interpret the filepath as a prefix
+			base_samples = [sort(glob("$(removesuffix(filepath, ".wav"))*.wav", dir)) for filepath in base_samples] |> Iterators.flatten |> collect
+			aug_samples  = [sort(glob("$(removesuffix(filepath, ".wav"))*.wav", dir)) for filepath in aug_samples]  |> Iterators.flatten |> collect
+
+			# println(base_samples)
 
 			if rel_path
 				base_samples = [removeprefix(filepath, dir) for filepath in base_samples]
@@ -404,6 +409,8 @@ function KDDDataset((n_task,n_version),
 		pos_aug  = Dict(ThreadsX.collect([f => loadSample(f, ts_lengths_dict, ts_with_ma_lengths_dict, ts_cut_lengths_dict) for f in pos_aug_filepaths]))
 		neg      = Dict(ThreadsX.collect([f => loadSample(f, ts_lengths_dict, ts_with_ma_lengths_dict, ts_cut_lengths_dict) for f in neg_filepaths]))
 		neg_aug  = Dict(ThreadsX.collect([f => loadSample(f, ts_lengths_dict, ts_with_ma_lengths_dict, ts_cut_lengths_dict) for f in neg_aug_filepaths]))
+
+		@assert length(ts_lengths_dict) > 0 "No sample was found! (n_subver $(n_subver), dir = $(dir)). $(length(neg_filepaths)) $(length(neg_aug_filepaths))"
 
 		# Some samples are nothing: filter them out and sort filepaths
 		pos_filepaths     = sort(collect(keys(filter( (x)->!isnothing(x[2]), pos))))

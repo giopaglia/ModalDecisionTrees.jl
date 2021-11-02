@@ -75,11 +75,11 @@ function push_iteration_to_history!(history, nt)
 	push!(history, JSON.parse(JSON.json(nt)))
 end
 
-function _match_filter(test_parameters, filters)::Bool
+function _match_filter(params_namedtuple, filters)::Bool
 	for filter in filters
 		for (i, k) in enumerate(keys(filter))
-			# TODO: handle test_parameters has no key "k"
-			if filter[k] == test_parameters[k]
+			# TODO: handle params_namedtuple has no key "k"
+			if filter[k] == params_namedtuple[k]
 				if i == length(filter)
 					# if was it was the last key then there is a match
 					return true
@@ -97,23 +97,23 @@ function _match_filter(test_parameters, filters)::Bool
 	return false
 end
 
-# note: filters may contain less keys than test_parameters
-function is_whitelisted_test(test_parameters, filters = [])::Bool
+# note: filters may contain less keys than params_namedtuple
+function is_whitelisted_test(params_namedtuple, filters::AbstractVector = [])::Bool
 	# if filters is empty no whitelisting is applied
 	if length(filters) == 0
 		return true
 	end
 
-	return _match_filter(test_parameters, filters)
+	return _match_filter(params_namedtuple, filters)
 end
 
-function is_blacklisted_test(test_parameters, filters = [])::Bool
+function is_blacklisted_test(params_namedtuple, filters::AbstractVector = [])::Bool
 	# if filters is empty no blacklisting is applied
 	if length(filters) == 0
 		return false
 	end
 
-	return _match_filter(test_parameters, filters)
+	return _match_filter(params_namedtuple, filters)
 end
 
 function load_or_create_history(file_path::String, args...)

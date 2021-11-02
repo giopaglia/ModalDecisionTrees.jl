@@ -12,7 +12,7 @@ train_seed = 2
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./covid/journal-v9-partitioned-clean-cough-semitone"
+results_dir = "./covid/journal-v10-min_sample_rate-fbtype-simple_mas"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/cache"
@@ -21,7 +21,7 @@ model_savedir = results_dir * "/trees"
 # dry_run = false
 dry_run = :dataset_only
 # dry_run = :model_study
-#dry_run = true
+# dry_run = true
 
 skip_training = false
 
@@ -29,6 +29,8 @@ skip_training = false
 save_datasets = false
 
 perform_consistency_check = false
+
+iteration_blacklist = []
 
 ################################################################################
 ##################################### TREES ####################################
@@ -165,25 +167,31 @@ prefer_nonaug_data = true
 
 exec_dataseed = 1:10
 
-exec_max_sample_rate = [8000] # , 16000]
+exec_max_sample_rate = [8000, 16000]
 
-# exec_dataset_dir = ["KDD", "KDD-partitioned"]
-
-exec_ignore_low_sr_samples = [false] # , true]
-
+exec_ignore_low_sr_samples = [true]
 
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization]
 
 exec_n_ver_n_task_use_aug_dataset_dir_preprocess = [
-	#
-	# ("c",1,false,"KDD",["NG", "Normalize"]),
-	# ("b",2,true,"KDD",["Normalize"]),
-	# ("b",3,true,"KDD",["Normalize"]),
-	#
+	
+	("c",1,false,"KDD",["NG", "Normalize"]),
+	("c",2,true,"KDD",["NG", "Normalize"]),
+	("c",3,true,"KDD",["NG", "Normalize"]),
+	
 	("c",1,false,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
 	("c",2,true,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
 	("c",3,true,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
+	
+	# ("b",1,false,"KDD",["Normalize"]),
+	# ("b",2,true,"KDD",["Normalize"]),
+	# ("b",3,true,"KDD",["Normalize"]),
+	
+	# ("b",1,false,"KDD",["NG", "Normalize", "RemSilence"]),
+	# ("b",2,true,"KDD",["Normalize", "RemSilence"]),
+	# ("b",3,true,"KDD",["Normalize", "RemSilence"]),
+	
 	# ("b",1,false,"KDD-norm-partitioned-v1",["Normalize", "RemSilence"]),
 	# ("b",2,true,"KDD-norm-partitioned-v1",["Normalize", "RemSilence"]),
 	# ("b",3,true,"KDD-norm-partitioned-v1",["Normalize", "RemSilence"]),
@@ -197,16 +205,17 @@ exec_n_ver_n_task_use_aug_dataset_dir_preprocess = [
 # ]
 # exec_n_versions = [3] #1:3
 
-#exec_fbtype = [:fcmel] #, :mel, :htkmel] #, :semitone]
-exec_fbtype = [:semitone] #, :mel, :htkmel] #, :semitone]
+exec_fbtype = [:fcmel, :semitone] #, :mel, :htkmel] #, :semitone]
 
-exec_minfreq       = [20]
+exec_minfreq       = [20.0]
 exec_base_freq     = [:fft, :autocor]
-exec_base_freq_min = [200, 300]
-exec_base_freq_max = [600, 700]
+exec_base_freq_min = [200]
+exec_base_freq_max = [700]
 
+# Ignore :fcmel+:autocor
+push!(iteration_blacklist, (fbtype    = :fcmel, base_freq = :autocor))
 
-exec_nbands = [30] # [20,40,60]
+exec_nbands = [30, 50] # [20,40,60]
 # exec_nbands = [40] # [20,40,60]
 
 combine_moving_averages((size1,step1), (size2,step2)) = begin
@@ -214,7 +223,7 @@ combine_moving_averages((size1,step1), (size2,step2)) = begin
 end
 
 exec_wintime_steptime_dataset_kwargs =   [(
-		# (0.025,0.010),(
+	# (0.025,0.010),(
 	# 	max_points = 50,
 	# 	ma_size = 15,
 	# 	ma_step = 10,
@@ -223,17 +232,21 @@ exec_wintime_steptime_dataset_kwargs =   [(
 		max_points = 50,
 		ma_size = 30,
 		ma_step = 20,
-	),
-	# ),(
+	)
+	),(
 	# combine_moving_averages((0.025,0.010),(30,20)),(
 	# 	max_points = 50,
-	# ),
 	# ),(
-	# (0.025,0.010),(
+	(0.025,0.010),(
+		max_points = 50,
+		ma_size = 45,
+		ma_step = 30,
+	)
+	# ),(
+	# combine_moving_averages((0.025,0.010),(45,30)),(
 	# 	max_points = 50,
-	# 	ma_size = 45,
-	# 	ma_step = 30,
-	# ),(# max_points = 30,
+	# ),(
+	# max_points = 30,
 	# 	ma_size = 120,
 	# 	ma_step = 100,
 	# ),(#max_points = 30,
@@ -321,7 +334,6 @@ exec_ranges = (; # Order: faster-changing to slower-changing
 	base_freq_max        = exec_base_freq_max,
 	fbtype               = exec_fbtype,
 	exec_max_sample_rate = exec_max_sample_rate,
-	# exec_dataset_dir       = exec_dataset_dir,
 	exec_ignore_low_sr_samples = exec_ignore_low_sr_samples,
 	use_training_form    = exec_use_training_form,
 	exec_n_ver_n_task_use_aug_dataset_dir_preprocess       = exec_n_ver_n_task_use_aug_dataset_dir_preprocess,
@@ -388,8 +400,6 @@ iteration_whitelist = [
 	# 	dataset_kwargs = (max_points = 30, ma_size = 45, ma_step = 30),
 	# )
 ]
-
-iteration_blacklist = []
 
 ################################################################################
 ################################################################################
@@ -496,6 +506,8 @@ global_logger(new_logger)
 ################################################################################
 ################################################################################
 # TODO actually,no need to recreate the dataset when changing, say, testoperators. Make a distinction between dataset params and run params
+n_interations = 0
+n_interations_done = 0
 for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	flush(logfile_io);
@@ -508,6 +520,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	if (!is_whitelisted_test(params_namedtuple, iteration_whitelist)) || is_blacklisted_test(params_namedtuple, iteration_blacklist)
 		continue
 	end
+
+	global n_interations += 1
 
 	##############################################################################
 	##############################################################################
@@ -525,6 +539,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	else
 		println("...")
 	end
+
+	global n_interations_done += 1
 
 	if dry_run == true
 		continue
@@ -735,7 +751,9 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 end
 
 println("Done!")
+println("# Iterations $(n_interations_done)/$(n_interations)")
 
+# Notify the Telegram Bot
 @error "Done!"
 
 close(logfile_io);
