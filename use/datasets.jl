@@ -8,6 +8,9 @@ data_dir = "../datasets/" # TODO move this to an .env file?
 include("wav2stft_time_series.jl")
 include("wave-utils/wav-process.jl")
 
+removeprefix(s::AbstractString, prefix::AbstractString) = startswith(s, prefix) ? s[length(prefix)+1:end] : s
+removesuffix(s::AbstractString, suffix::AbstractString) = endswith(s,   suffix) ? s[1:end-length(suffix)] : s
+
 # include("datasets/dummy.jl")
 # include("datasets/eduard.jl")
 # include("datasets/siemens-0.jl")
@@ -284,3 +287,4 @@ include("datasets/KDD.jl")
 include("datasets/land-cover.jl")
 include("datasets/ComParE2021.jl")
 include("datasets/LoadModalDataset.jl")
+# include("datasets/Siemens-Trip-vibration.jl")

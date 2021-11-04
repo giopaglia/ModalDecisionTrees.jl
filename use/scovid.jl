@@ -25,8 +25,8 @@ dry_run = :dataset_only
 
 skip_training = false
 
-# save_datasets = true
-save_datasets = false
+save_datasets = true
+# save_datasets = false
 
 perform_consistency_check = false
 
@@ -155,9 +155,6 @@ split_threshold = 0.8
 
 test_flattened = false
 test_averaged  = false
-
-legacy_gammas_check = false
-# legacy_gammas_check = true
 
 prefer_nonaug_data = true
 
@@ -533,7 +530,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	print("Iteration \"$(run_name)\"")
 
 	# Check whether this iteration was already computed or not
-	if all(iteration_in_history(history, (params_namedtuple, dataseed)) for dataseed in exec_dataseed) && (!save_datasets) # !skip_training
+	if all(iteration_in_history(history, (params_namedtuple, dataseed)) for dataseed in exec_dataseed) && (!save_datasets)
 		println(": skipping")
 		continue
 	else
@@ -734,7 +731,6 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			results_dir                     =   results_dir,
 			data_savedir                    =   data_savedir,
 			model_savedir                   =   model_savedir,
-			legacy_gammas_check             =   legacy_gammas_check,
 			# logger                          =   logger,
 			timing_mode                     =   timing_mode,
 			### Misc

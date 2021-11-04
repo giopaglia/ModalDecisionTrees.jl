@@ -25,10 +25,6 @@ using ThreadsX
 ################################################################################
 ################################################################################
 
-removeprefix(s::AbstractString, prefix::AbstractString) = startswith(s, prefix) ? s[length(prefix)+1:end] : s
-removesuffix(s::AbstractString, suffix::AbstractString) = endswith(s,   suffix) ? s[1:end-length(suffix)] : s
-
-
 kdd_data_dir = data_dir * "KDD/"
 
 kdd_has_subfolder_structure = ["asthmawebwithcough", "covidwebnocough", "covidwebwithcough", "healthywebnosymp", "healthywebwithcough"]
