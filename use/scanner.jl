@@ -186,7 +186,7 @@ include("dataset-utils.jl")
 			# 	JLD2.@save "$(data_savedir)/datasets/$(run_name)-$(slice_id)-sliced_test.jld" sliced_test
 			# end
 
-			@yield slice_id, ((X_train_slice, Y_train_slice), (X_test_slice, Y_test_slice))
+			@yield ((X_to_train, X), slice_id, ((X_train_slice, Y_train_slice), (X_test_slice, Y_test_slice)))
 		end
 
 	else # Dataset is already splitted
@@ -200,12 +200,12 @@ include("dataset-utils.jl")
 		end
 		
 		# Compute mffmd for the training instances
-		X_train, X_test = buildModalDatasets_fun(X_train, X_test)
+		X_to_train, X_to_test = buildModalDatasets_fun(X_train, X_test)
 
 		# if save_datasets
-		# 	train = (X_train, Y_train)
+		# 	train = (X_to_train, Y_train)
 		# 	JLD2.@save "$(data_savedir)/datasets/$(run_name)-train.jld" train
-		# 	test = (X_test, Y_test)
+		# 	test = (X_to_test, Y_test)
 		# 	JLD2.@save "$(data_savedir)/datasets/$(run_name)-test.jld" test
 		# end
 
@@ -225,21 +225,21 @@ include("dataset-utils.jl")
 
 			X_train_slice, Y_train_slice, X_test_slice, Y_test_slice =
 				if isnothing(dataset_slice)
-					(X_train, Y_train, X_test, Y_test)
+					(X_to_train, Y_train, X_to_test, Y_test)
 				elseif isa(dataset_slice, AbstractVector{<:Integer})
 					(
-						ModalLogic.slice_dataset(X_train, dataset_slice, return_view = true),
+						ModalLogic.slice_dataset(X_to_train, dataset_slice, return_view = true),
 						Y_train[dataset_slice],
-						X_test,
+						X_to_test,
 						Y_test,
 					)
 				elseif isa(dataset_slice, NTuple{2,<:AbstractVector{<:Integer}})
 					@assert isone(split_threshold) || iszero(split_threshold) "Can't set a split_threshold (value: $(split_threshold)) when specifying a split dataset_slice (type: $(gettype(dataset_slice)))"
 					throw_n_log("TODO expand code. When isa(dataset_slice, NTuple{2,<:AbstractVector{<:Integer}}) and the dataset is already splitted, must also test on the validation data! Maybe when the dataset is already splitted into ((X_train, Y_train), (X_test, Y_test)), join it and create a dummy dataset_slice")
 					(
-						ModalLogic.slice_dataset(X_train, dataset_slice[1], return_view = true),
+						ModalLogic.slice_dataset(X_to_train, dataset_slice[1], return_view = true),
 						Y_train[dataset_slice[1]],
-						ModalLogic.slice_dataset(X_train, dataset_slice[2], return_view = true),
+						ModalLogic.slice_dataset(X_to_train, dataset_slice[2], return_view = true),
 						Y_train[dataset_slice[2]],
 					)
 				else
@@ -252,7 +252,7 @@ include("dataset-utils.jl")
 			# 	JLD2.@save "$(data_savedir)/datasets/$(run_name)-$(slice_id)-sliced_train.jld" sliced_train
 			# end
 			
-			@yield slice_id, ((X_train_slice, Y_train_slice), (X_test_slice, Y_test_slice))
+			@yield ((X_to_train, X_train), slice_id, ((X_train_slice, Y_train_slice), (X_test_slice, Y_test_slice)))
 		end
 	end
 end
@@ -366,8 +366,13 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 		end
 		
 		X_frame = 
-			if save_datasets # TODO Actually, in the case use_form == :stump_with_memoization, the dataset must be saved AFTER all runs.
+			if save_datasets
+				# if use_form == :stump_with_memoization # label: use_training_form
+				# 	@cachefast_skipsave "$(dataset_type_str)_dataset" data_savedir (use_form, X, features, featsnops, needToComputeRelationGlob) X_dataset_sf_c
+				# 	# X_dataset_sf_c(use_form, X, features, featsnops, needToComputeRelationGlob)
+				# else
 				@cachefast "$(dataset_type_str)_dataset" data_savedir (use_form, X, features, featsnops, needToComputeRelationGlob) X_dataset_sf_c
+				# end
 			else
 				X_dataset_sf_c(use_form, X, features, featsnops, needToComputeRelationGlob)
 			end
@@ -408,7 +413,11 @@ function buildModalDatasets(X_train, X_test, data_modal_args, modal_args, use_tr
 	X_train =
 		if use_training_form in [:dimensional, :fmd, :stump, :stump_with_memoization]
 			if save_datasets
-				@cachefast "training_dataset" data_savedir ("train", data_modal_args, X_train, modal_args, save_datasets, use_training_form) X_dataset_c
+				# if use_training_form == :stump_with_memoization
+				# 	@cachefast_skipsave "training_dataset" data_savedir ("train", data_modal_args, X_train, modal_args, save_datasets, use_training_form) X_dataset_c
+				# else
+					@cachefast "training_dataset" data_savedir ("train", data_modal_args, X_train, modal_args, save_datasets, use_training_form) X_dataset_c
+				# end
 			else
 				X_dataset_c("train", data_modal_args, X_train, modal_args, save_datasets, use_training_form)
 			end
@@ -888,14 +897,17 @@ function exec_scan(
 
 	rets = []
 	
-	buildModalDatasets_fun = (X_train,X_test)->buildModalDatasets(X_train, X_test, data_modal_args, modal_args, use_training_form, data_savedir, timing_mode, save_datasets)
+	buildModalDatasets_fun = (X_train, X_test)->buildModalDatasets(X_train, X_test, data_modal_args, modal_args, use_training_form, data_savedir, timing_mode, save_datasets)
 
-	for (slice_id,dataset) in generate_splits(dataset, split_threshold, round_dataset_to_datatype, save_datasets, run_name, dataset_slices, data_savedir, buildModalDatasets_fun)
+	X_full       = nothing
+	X_full_input = nothing
 
-		(X_train,Y_train), (X_test,Y_test) = dataset
+	for (X_f_tuple, slice_id, ((X_train,Y_train), (X_test,Y_test))) in generate_splits(dataset, split_threshold, round_dataset_to_datatype, save_datasets, run_name, dataset_slices, data_savedir, buildModalDatasets_fun)
 
+		(X_full, X_full_input) = X_f_tuple
+		
 		@assert n_samples(X_train) == length(Y_train)
-		@assert n_samples(X_test) == length(Y_test)
+		@assert n_samples(X_test)  == length(Y_test)
 		
 
 		println("train dataset:")
@@ -934,6 +946,11 @@ function exec_scan(
 			# end
 			
 		end
+	end
+
+	# Finally save the dataset with memoization
+	if save_datasets && use_training_form == :stump_with_memoization && !isnothing(X_full)
+		@cachefast_overwrite "training_dataset" data_savedir ("train", data_modal_args, X_full_input, modal_args, save_datasets, use_training_form) X_dataset_c X_full
 	end
 
 	global_logger(old_logger);
