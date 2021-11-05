@@ -24,28 +24,30 @@ using MFCC
 using MFCC: fft2barkmx, fft2melmx
 
 
-function hz2semitone(f::Vector{T}, base_freq) where {T<:AbstractFloat}
-	12 .* log2.(f./base_freq)
-end
-hz2semitone(f::AbstractFloat, base_freq)  = hz2semitone([f], base_freq)[1]
+SEMITONE_MINFREQ = 20.0
 
-function semitone2hz(z::Vector{T}, base_freq) where {T<:AbstractFloat}
-	# z .= 12 .* log2.(f./base_freq)
-	# z ./ 12 .= log2.(f./base_freq)
-	# 2 .^ (z ./ 12) .= (f./base_freq)
-	base_freq .* (2 .^ (z ./ 12))
-end
-semitone2hz(f::AbstractFloat, base_freq)  = semitone2hz([f], base_freq)[1]
+hz2semitone(freq, base_freq) = 12 * log2(freq/base_freq)
+semitone2hz(z,    base_freq) = base_freq * (2 ^ (z / 12))
 
-function my_fft2semitonemx(nfft::Int, nfilts::Int; sr=8000.0, width=1.0, minfreq=20, maxfreq=sr/2, base_freq=nothing)
+function my_fft2semitonemx(nfft::Int, nfilts::Int; sr=8000.0, width=1.0, minfreq=nothing, maxfreq=sr/2, base_freq=nothing)
+	if isnothing(minfreq)
+		minfreq = SEMITONE_MINFREQ
+	end
+
 	wts=zeros(nfilts, nfft)
 	# Center freqs of each DFT bin
 	fftfreqs = collect(0:nfft-1) / nfft * sr;
 	# 'Center freqs' of semitone bands - uniformly spaced between limits
 	minsemitone = hz2semitone(minfreq, base_freq);
 	maxsemitone = hz2semitone(maxfreq, base_freq);
-	binfreqs = semitone2hz(minsemitone .+ collect(0:(nfilts+1)) / (nfilts+1) * (maxsemitone-minsemitone), base_freq);
+	binfreqs = semitone2hz.(minsemitone .+ collect(0:(nfilts+1)) / (nfilts+1) * (maxsemitone-minsemitone), base_freq);
 
+	# println(minfreq)
+	# println(maxfreq)
+	# println(base_freq)
+	# println()
+	# println(binfreqs)
+	# println()
 	# println(minsemitone)
 	# println(maxsemitone)
 
@@ -58,6 +60,9 @@ function my_fft2semitonemx(nfft::Int, nfilts::Int; sr=8000.0, width=1.0, minfreq
 		hislope = (fs[3] .- fftfreqs) / (fs[3] - fs[2])
 		# then intersect them with each other and zero
 		wts[i,:] = max.(0, min.(loslope, hislope))
+		# println(fs)
+		# println(wts[i,:])
+		# readline()
 	end
 
 	# Make sure 2nd half of DFT is zero
@@ -84,21 +89,21 @@ end
 
 # audspec tested against octave with simple vectors for all fbtypes
 function my_audspec(x::Matrix{T}, sr::Real=16000.0; nfilts=ceil(Int, hz2bark(sr/2)), fbtype=:bark,
-				 minfreq=0., maxfreq=sr/2, sumpower=true, bwidth=1.0,
+				 minfreq=nothing, maxfreq=sr/2, sumpower=true, bwidth=1.0,
 				 base_freq=:fft,
 			 ) where {T<:AbstractFloat}
 	nfreqs, nframes = size(x)
 	nfft = 2(nfreqs-1)
 	wts =
 		if fbtype == :bark
-			fft2barkmx(nfft, nfilts, sr=sr, width=bwidth, minfreq=minfreq, maxfreq=maxfreq)
+			fft2barkmx(nfft, nfilts, sr=sr, width=bwidth, minfreq=(isnothing(minfreq) ? 0.0 : minfreq), maxfreq=maxfreq)
 		elseif fbtype == :mel
-			fft2melmx(nfft, nfilts, sr=sr, width=bwidth, minfreq=minfreq, maxfreq=maxfreq)
+			fft2melmx(nfft, nfilts, sr=sr, width=bwidth, minfreq=(isnothing(minfreq) ? 0.0 : minfreq), maxfreq=maxfreq)
 		elseif fbtype == :htkmel
-			fft2melmx(nfft, nfilts, sr=sr, width=bwidth, minfreq=minfreq, maxfreq=maxfreq,
+			fft2melmx(nfft, nfilts, sr=sr, width=bwidth, minfreq=(isnothing(minfreq) ? 0.0 : minfreq), maxfreq=maxfreq,
 				htkmel=true, constamp=true)
 		elseif fbtype == :fcmel
-			fft2melmx(nfft, nfilts, sr=sr, width=bwidth, minfreq=minfreq, maxfreq=maxfreq,
+			fft2melmx(nfft, nfilts, sr=sr, width=bwidth, minfreq=(isnothing(minfreq) ? 0.0 : minfreq), maxfreq=maxfreq,
 				htkmel=true, constamp=false)
 		elseif fbtype == :semitone
 			my_fft2semitonemx(nfft, nfilts, sr=sr, width=bwidth, minfreq=minfreq, maxfreq=maxfreq, base_freq=base_freq,)
@@ -114,7 +119,7 @@ function my_audspec(x::Matrix{T}, sr::Real=16000.0; nfilts=ceil(Int, hz2bark(sr/
 end
 
 function my_stft(x::Vector{T}, sr::Real=16000.0; wintime=0.025, steptime=0.01,
-			  sumpower=false, pre_emphasis=0.97, dither=false, minfreq=0.0, maxfreq=sr/2,
+			  sumpower=false, pre_emphasis=0.97, dither=false, minfreq=nothing, maxfreq=sr/2,
 			  nbands=20, bwidth=1.0, fbtype=:htkmel,
 			  usecmp=false, window_f=hamming,
 			  base_freq=:fft, base_freq_min = 200, base_freq_max = 700,
@@ -226,7 +231,7 @@ function wav2stft_time_series(
 		use_full_mfcc = false,
 		ignore_samples_with_sr_less_than = -Inf,
 	)
-	println(filepath)
+	print(filepath, "\t")
 	
 	samps, sr = wavread(filepath)
 

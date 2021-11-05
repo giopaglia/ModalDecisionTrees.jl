@@ -236,7 +236,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	dataset_fun_sub_params = (from,to)
 	
 	# Load Dataset
-	dataset, n_label_samples = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
+	dataset, class_counts = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
 
 	cur_modal_args = modal_args
 	cur_data_modal_args = data_modal_args
@@ -244,7 +244,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	## Dataset slices
 	# obtain dataseeds that are were not done before
 	todo_dataseeds = filter((dataseed)->!iteration_in_history(history, (params_namedtuple, dataseed)), exec_dataseed)
-	dataset_slices = [(dataseed,balanced_dataset_slice(n_label_samples, dataseed)) for dataseed in todo_dataseeds]
+	dataset_slices = [(dataseed,balanced_dataset_slice(class_counts, dataseed)) for dataseed in todo_dataseeds]
 
 	println("Dataseeds = $(todo_dataseeds)")
 

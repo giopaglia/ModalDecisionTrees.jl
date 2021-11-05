@@ -14,7 +14,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./pixel/journal-v1"
+results_dir = "./pixel/journal-v2-test-on-rest"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/cache"
@@ -141,8 +141,8 @@ round_dataset_to_datatype = UInt16
 # round_dataset_to_datatype = Float32
 # round_dataset_to_datatype = Float64
 
-split_threshold = 0.8
-# split_threshold = 1.0
+# split_threshold = 0.8
+split_threshold = 1.0
 # split_threshold = false
 
 # use_training_form = :dimensional
@@ -163,7 +163,7 @@ legacy_gammas_check = false
 
 exec_dataseed = 1:10
 
-exec_dataset_name = ["Pavia", "Salinas-A", "PaviaCentre", "IndianPines", "Salinas"]
+exec_dataset_name = ["Pavia University", "Salinas-A", "Pavia Centre", "IndianPines", "Salinas"]
 
 exec_windowsize_flattened_ontology_test_operators = [
 	"single-pixel, propositional"       ,
@@ -224,29 +224,30 @@ ontology_dict = Dict(
 )
 
 
-# exec_n_samples_per_label = 2:2
-exec_n_samples_per_label = 100:100
+# exec_n_samples_per_class = 2:2
+exec_n_samples_per_class = 200:200
 exec_n_attributes = -1:-1
 
 exec_ranges = (;
 	windowsize_flattened_ontology_test_operators = exec_windowsize_flattened_ontology_test_operators,
-	n_samples_per_label                          = exec_n_samples_per_label,
+	n_samples_per_class                          = exec_n_samples_per_class,
 	n_attributes                                 = exec_n_attributes,
 	dataset_name                                 = exec_dataset_name,
 )
 
 dataset_function = (
 	(windowsize,apply_filter,flattened,test_operators),
-	n_samples_per_label,n_attributes,
+	n_samples_per_class,n_attributes,
 		dataset_name)->LandCoverDataset(
-					dataset_name,
-					windowsize[1],
-					n_samples_per_label;
-					pad_window_size = windowsize[2],
-					flattened       = flattened,
-					apply_filter    = apply_filter,
-					n_attributes    = n_attributes,
-					seed            = data_seed)
+					dataset_name;
+					window_size         = windowsize[1],
+					# n_samples_per_class = n_samples_per_class,
+					n_samples_per_class = nothing,
+					pad_window_size     = windowsize[2],
+					flattened           = flattened,
+					apply_filter        = apply_filter,
+					n_attributes        = n_attributes,
+					seed                = data_seed)
 
 ################################################################################
 ################################### SCAN FILTERS ###############################
@@ -354,7 +355,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	
 	windowsize_flattened_ontology_test_operators,
-	n_samples_per_label,n_attributes,
+	n_samples_per_class,n_attributes,
 	dataset_name = params_combination
 	
 	windowsize_flattened_ontology_test_operators = windowsize_flattened_ontology_test_operators_dict[windowsize_flattened_ontology_test_operators]
@@ -363,10 +364,10 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	test_operators = test_operators_dict[test_operators]
 	ontology       = ontology_dict[ontology]
 
-	dataset_fun_sub_params = (windowsize,apply_filter,flattened,test_operators), n_samples_per_label,n_attributes, dataset_name
+	dataset_fun_sub_params = (windowsize,apply_filter,flattened,test_operators), n_samples_per_class,n_attributes, dataset_name
 	
 	# Load Dataset
-	dataset, n_label_samples = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
+	dataset, class_counts = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
 
 	if dry_run == :dataset_only
 		continue
@@ -385,7 +386,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	## Dataset slices
 	# obtain dataseeds that are were not done before
 	todo_dataseeds = filter((dataseed)->!iteration_in_history(history, (params_namedtuple, dataseed)), exec_dataseed)
-	dataset_slices = [(dataseed,balanced_dataset_slice(n_label_samples, dataseed)) for dataseed in todo_dataseeds]
+	dataset_slices = [(dataseed,balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = n_samples_per_class, also_return_discarted = true)) for dataseed in todo_dataseeds]
 
 	println("Dataseeds = $(todo_dataseeds)")
 

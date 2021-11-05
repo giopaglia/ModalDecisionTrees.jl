@@ -1,7 +1,7 @@
 using ImageFiltering
 using DataStructures
 
-function IndianPinesDataset(modIndianPines8 = false)
+function IndianPinesDataset(;modIndianPines8 = false)
 	X = matread(data_dir * "indian-pines/Indian_pines_corrected.mat")["indian_pines_corrected"]
 	Y = matread(data_dir * "indian-pines/Indian_pines_gt.mat")["indian_pines_gt"]
 	(X, Y) = map(((x)->round.(Int,x)), (X, Y))
@@ -90,7 +90,7 @@ function PaviaCentreDataset()
 	]
 end
 
-function PaviaDataset()
+function PaviaUniversityDataset()
 	X = matread(data_dir * "paviaU/PaviaU.mat")["paviaU"]
 	Y = matread(data_dir * "paviaU/PaviaU_gt.mat")["paviaU_gt"]
 	(X, Y) = map(((x)->round.(Int,x)), (X, Y))
@@ -108,12 +108,11 @@ function PaviaDataset()
 end
 
 function LandCoverDataset(
-	dataset_name::String,
-	window_size::Union{Integer,NTuple{2,Integer}},
-	n_samples_per_label::Union{Nothing,Integer} = nothing
+	dataset_name::String
 	;
+	window_size::Union{Integer,NTuple{2,Integer}} = 1,
 	pad_window_size::Union{Integer,NTuple{2,Integer}} = window_size,
-	# stratify = false,
+	n_samples_per_class::Union{Nothing,Integer} = nothing,
 	n_attributes::Integer = -1,
 	flattened::Union{Bool,Symbol} = false,
 	apply_filter::Union{Bool,Tuple} = false,
@@ -133,15 +132,14 @@ function LandCoverDataset(
 	
 	println("Load LandCoverDataset: $(dataset_name)...")
 	println("window_size         = $(window_size)")
-	println("n_samples_per_label = $(n_samples_per_label)")
 	println("pad_window_size     = $(pad_window_size)")
-	# println("stratify            = $(stratify)")
+	println("n_samples_per_class = $(n_samples_per_class)")
 	println("n_attributes        = $(n_attributes)")
 	println("flattened           = $(flattened)")
 	println("apply_filter        = $(apply_filter)")
 	println("seed                = $(seed)")
 
-	(Xmap, Ymap), class_labels_map =
+	(Xmap, Ymap), class_names_map =
 		if dataset_name == "IndianPines"
 			IndianPinesDataset()
 		elseif dataset_name == "IndianPines8"
@@ -150,116 +148,165 @@ function LandCoverDataset(
 			SalinasDataset()
 		elseif dataset_name == "Salinas-A"
 			SalinasADataset()
-		elseif dataset_name == "PaviaCentre"
+		elseif dataset_name == "Pavia Centre"
 			PaviaCentreDataset()
-		elseif dataset_name == "Pavia"
-			PaviaDataset()
+		elseif dataset_name == "Pavia University"
+			PaviaUniversityDataset()
 		else
 			throw_n_log("Unknown land cover dataset_name: $(dataset_name)")
 	end
 
-	print()
-	print("Image size: $(size(Xmap))")
-	# readline()
-	existingLabels = sort(filter!(l->l≠0, unique(Ymap)))
-	# print(existingLabels)
-	# readline()
-	n_labels = length(existingLabels)
+	println()
+	println("Image size: $(size(Xmap))")
 
-	if n_labels != length(class_labels_map)
-		throw_n_log("Unexpected number of labels in dataset: $(n_labels) != $(length(class_labels_map))")
-	end
-
-	# Derive the total number of samples per class
-	class_counts = Dict(y => 0 for y in existingLabels)
-	no_class_counts = 0
-	for y in Ymap
-		if y ≠ 0
-			class_counts[y] += 1
-		else
-			no_class_counts += 1
-		end
-	end
-	# println(zip(class_labels_map,class_counts) |> collect)
-	# println(no_class_counts)
-	# readline()
-
-	class_is_to_ignore = Dict(y => (class_counts[y] < n_samples_per_label) for y in existingLabels)
-
-	n_labels = 
-		if sum(values(class_is_to_ignore)) != 0
-			# println("Warning! The following classes will be ignored in order to balance the dataset:")
-			
-			ignored_existingLabels = filter(y->(class_is_to_ignore[y]), existingLabels)
-			non_ignored_existingLabels = map(y->!(class_is_to_ignore[y]), existingLabels)
-			
-			print("ignored classes: $([(class_labels_map[y],class_counts[y]) for y in ignored_existingLabels])")
-
-			filter(y->(class_is_to_ignore[y]), existingLabels)
-			sum(non_ignored_existingLabels)
-			# readline()
-		else
-			n_labels
-	end
-
-	println("n_labels = $(n_labels)")
-
-	n_samples = n_samples_per_label * n_labels
-	println("n_samples = $(n_samples_per_label) * $(n_labels) = $(n_samples)")
-
-	# X, Y, tot_attributes = size(Xmap)
 	X, Y, tot_attributes = size(Xmap, 1), size(Xmap, 2), size(Xmap, 3)
-	inputs = Array{eltype(Xmap),4}(undef, window_size[1], window_size[2], n_samples, tot_attributes)
-	labels = Vector{eltype(Ymap)}(undef, n_samples)
-	sampled_class_counts = Dict(y=>0 for y in existingLabels)
-	
+
+	# Note: important that these are sorted
+	# existingLabels = sort(filter!(l->l≠0, unique(Ymap)))
+	existingLabels = sort(collect(keys(class_names_map)))
+	n_classes = length(existingLabels)
+
 	x_pad, y_pad = floor(Int,window_size[1]/2), floor(Int,window_size[2]/2)
 	x_dummypad, y_dummypad = floor(Int,pad_window_size[1]/2), floor(Int,pad_window_size[2]/2)
-
+	
 	# println(1+x_dummypad, ":", (X-x_dummypad))
 	# println(1+y_dummypad, ":", (Y-y_dummypad))
+	
+	function obtain_all()
+		println("n_classes = $(n_classes)")
 
-	already_sampled = fill(false, X, Y)
-	for i in 1:n_samples
-		# print(i)
-		while (
-			x = rand(rng, 1+x_dummypad:(X-x_dummypad));
-			y = rand(rng, 1+y_dummypad:(Y-y_dummypad));
-			exLabel = Ymap[x,y];
-			exLabel == 0 || class_is_to_ignore[exLabel] || already_sampled[x,y] || sampled_class_counts[exLabel] == n_samples_per_label
-		)
+		_inputs = Array{eltype(Xmap),3}[]
+		labels = eltype(Ymap)[]
+
+		for x in 1+x_dummypad:(X-x_dummypad)
+			for y in 1+y_dummypad:(Y-y_dummypad)
+				exLabel = Ymap[x,y];
+				if exLabel == 0 || ! (exLabel in existingLabels)
+					continue
+				end
+
+				push!(_inputs, Xmap[x-x_pad:x+x_pad, y-y_pad:y+y_pad, :])
+				push!(labels, exLabel)
+			end
 		end
-		# print( Xmap[x:x+window_size[1]-1,y:y+window_size[2]-1,:] )
-		# print( size(inputs[:,:,i,:]) )
-		# readline()
-		# print(label)
-		# print(sampled_class_counts)
-		# println(x,y)
-		# println(x,x+window_size[1]-1)
-		# println(y,y+window_size[2]-1)
-		# println(already_sampled[x,y])
-		# readline()
 
-		inputs[:,:,i,:] .= Xmap[x-x_pad:x+x_pad, y-y_pad:y+y_pad, :]
-		already_sampled[x,y] = true
-		labels[i] = findfirst(l->l==exLabel, existingLabels)
-		sampled_class_counts[exLabel] += 1
-		# readline()
+		n_samples = length(labels)
+		println("n_samples = $(n_samples)")
+		inputs = Array{eltype(Xmap),4}(undef, window_size[1], window_size[2], n_samples, tot_attributes)
+		for i in 1:n_samples
+			inputs[:,:,i,:] .= _inputs[i]
+		end
+		n_classes, n_samples, inputs, labels
 	end
 
-	if (sum(already_sampled) != n_samples)
-		throw_n_log("ERROR! Sampling failed! $(n_samples) $(sum(already_sampled))")
-	end
-	# println(labels)
+	function obtain_with_random_sampling()
+		
+		# Derive the total number of samples per class
+		class_counts_d = Dict(y => 0 for y in existingLabels)
+		no_class_counts = 0
+		for exLabel in Ymap
+			if exLabel == 0 || ! (exLabel in existingLabels)
+				no_class_counts += 1
+			else
+				class_counts_d[exLabel] += 1
+			end
+		end
+		# println(zip(class_names_map,class_counts_d) |> collect)
+		# println(no_class_counts)
+		# readline()
 
+		class_is_to_ignore = Dict(y => (class_counts_d[y] < n_samples_per_class) for y in existingLabels)
+		
+		n_classes = begin
+			if sum(values(class_is_to_ignore)) != 0
+				# println("Warning! The following classes will be ignored in order to balance the dataset:")
+				
+				ignored_existingLabels = filter(y->(class_is_to_ignore[y]), existingLabels)
+				non_ignored_existingLabels = map(y->!(class_is_to_ignore[y]), existingLabels)
+				
+				print("ignored classes: $([(class_names_map[y],class_counts_d[y]) for y in ignored_existingLabels])")
+				
+				filter(y->(class_is_to_ignore[y]), existingLabels)
+				sum(non_ignored_existingLabels)
+				# readline()
+			else
+				n_classes
+			end
+		end
+		
+		println("n_classes = $(n_classes)")
+		
+		n_samples = n_samples_per_class * n_classes
+		println("n_samples = $(n_samples_per_class) * $(n_classes) = $(n_samples)")
+
+		inputs = Array{eltype(Xmap),4}(undef, window_size[1], window_size[2], n_samples, tot_attributes)
+		labels = Vector{eltype(Ymap)}(undef, n_samples)
+	
+		already_sampled = fill(false, X, Y)
+		sampled_class_counts_d = Dict(y=>0 for y in existingLabels)
+		for i in 1:n_samples
+			# print(i)
+			while (
+				x = rand(rng, 1+x_dummypad:(X-x_dummypad));
+				y = rand(rng, 1+y_dummypad:(Y-y_dummypad));
+				exLabel = Ymap[x,y];
+				exLabel == 0 || ! (exLabel in existingLabels) || class_is_to_ignore[exLabel] || already_sampled[x,y] || sampled_class_counts_d[exLabel] == n_samples_per_class
+			)
+			end
+			# print( Xmap[x:x+window_size[1]-1,y:y+window_size[2]-1,:] )
+			# print( size(inputs[:,:,i,:]) )
+			# readline()
+			# print(label)
+			# print(sampled_class_counts_d)
+			# println(x,y)
+			# println(x,x+window_size[1]-1)
+			# println(y,y+window_size[2]-1)
+			# println(already_sampled[x,y])
+			# readline()
+
+			inputs[:,:,i,:] .= Xmap[x-x_pad:x+x_pad, y-y_pad:y+y_pad, :]
+			labels[i] = exLabel
+			already_sampled[x,y] = true
+			sampled_class_counts_d[exLabel] += 1
+			# readline()
+		end
+
+		if (sum(already_sampled) != n_samples)
+			throw_n_log("ERROR! Sampling failed! $(n_samples) $(sum(already_sampled))")
+		end
+		# println(labels)
+		n_classes, n_samples, inputs, labels
+	end
+	
+	n_classes, n_samples, inputs, labels = begin
+		if isnothing(n_samples_per_class)
+			obtain_all()
+		else
+			obtain_with_random_sampling()
+		end
+	end
+
+	effective_class_counts_d = Dict(y => 0 for y in existingLabels)
+	for i in 1:n_samples
+		effective_class_counts_d[labels[i]] += 1
+	end
+	
+	# Sort pixels by label
+	sp = sortperm(labels)
+	labels = labels[sp]
+	inputs = inputs[:,:,sp,:]
+	class_counts = Tuple(effective_class_counts_d[y] for y in existingLabels) # Note: Assuming existingLabels is sorted!
+
+	println("class_counts = $(class_counts)")
+	@assert length(labels) == sum(class_counts) "length(labels) = $(length(labels)) != sum(class_counts) = $(sum(class_counts))"
+	
+	# Select a subset of the attributes
 	if n_attributes != -1
-		# new_inputs = Array{eltype(Xmap),4}(undef, window_size[1], window_size[2], n_samples, n_attributes)
-		n_attributes
-		inputs = inputs[:,:,:,1:floor(Int, tot_attributes/n_attributes):tot_attributes]
-		# new_inputs[:,:,:,:] = inputs[:,:,:,:]
-		# inputs = new_inputs
+		selected_attrs = 1:floor(Int, tot_attributes/n_attributes):tot_attributes
+		inputs = inputs[:,:,:,selected_attrs]
 	end
 
+	# Apply a convolutional filter
 	if apply_filter != false
 		if apply_filter[1] == "avg"
 			k = apply_filter[2]
@@ -269,15 +316,6 @@ function LandCoverDataset(
 			throw_n_log("Unexpected value for apply_filter: $(apply_filter)")
 		end
 	end
-
-	sp = sortperm(labels)
-	labels = labels[sp]
-	inputs = inputs[:,:,sp,:]
-	
-	# if stratify
-	# 	labels = reshape(transpose(reshape(labels, (n_samples_per_label,n_labels))), n_samples)
-	# 	inputs = reshape(permutedims(reshape(inputs, (size(inputs, 1),size(inputs, 2),n_samples_per_label,n_labels,size(inputs, 4))), [1,2,4,3,5]), (size(inputs, 1),size(inputs, 2),n_samples,size(inputs, 4)))
-	# end
 
 	if flattened != false
 		if flattened == :flattened
@@ -295,18 +333,10 @@ function LandCoverDataset(
 	else
 		inputs = permutedims(inputs, [1,2,4,3])
 	end
-	
 
-	# println([class_labels_map[y] for y in existingLabels])
+	# println([class_names_map[y] for y in existingLabels])
 	# println(labels)
-	class_labels = [class_labels_map[y] for y in existingLabels]
-	ys = [class_labels[y] for y in labels]
+	Ys = [class_names_map[y] for y in labels]
 	
-	dataset = inputs, ys
-
-	# if stratify
-	# 	dataset
-	# else
-		dataset, Tuple(fill(n_samples_per_label, n_labels))
-	# end
+	(inputs, Ys), class_counts
 end
