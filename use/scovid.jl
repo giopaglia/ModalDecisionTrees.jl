@@ -18,10 +18,10 @@ iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/cache"
 model_savedir = results_dir * "/trees"
 
-# dry_run = false
-dry_run = :dataset_only
+dry_run = false
+#dry_run = :dataset_only
 # dry_run = :model_study
-# dry_run = true
+#dry_run = true
 
 skip_training = false
 
@@ -215,7 +215,7 @@ exec_base_freq_max = [700]
 # Ignore :fcmel+:autocor
 push!(iteration_blacklist, (fbtype    = :fcmel, base_freq = :autocor))
 
-exec_nbands = [30, 50] # [20,40,60]
+exec_nbands = [30] # [20,40,60]
 # exec_nbands = [40] # [20,40,60]
 
 combine_moving_averages((size1,step1), (size2,step2)) = begin
