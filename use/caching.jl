@@ -32,12 +32,13 @@ function cache_obj(type::String, common_cache_dir::String, obj::Any, hash::Strin
 			"\n"))
 	close(table_file)
 
-	checkpoint_stdout("Saving $(type) to file $(total_save_path)...")
+	checkpoint_stdout("Saving $(type) to file $(total_save_path)[.tmp]...")
 	if use_serialize
-		Serialization.serialize(total_save_path, obj)
+		Serialization.serialize("$(total_save_path).tmp", obj)
 	else
-		JLD2.@save total_save_path obj
+		JLD2.@save "$(total_save_path).tmp" obj
 	end
+	mv("$(total_save_path).tmp", "$(total_save_path)"; force = true)
 end
 cache_obj(type::String, common_cache_dir::String, obj::Any, infos::Dict; kwargs...) = cache_obj(type, common_cache_dir, obj, get_hash_sha256(infos), string(infos); kwargs...)
 cache_obj(type::String, common_cache_dir::String, obj::Any, infos::NamedTuple; kwargs...) = cache_obj(type, common_cache_dir, obj, _infos_to_dict(infos))
@@ -171,5 +172,59 @@ macro cachefast(type, common_cache_dir, args, compute_function)
 			cache_obj($(type), $(common_cache_dir), _result_value, _hash, string($(args)), time_spent = _finish_time, use_serialize = true)
 			_result_value
 		end
+	end
+end
+
+macro cachefast_overwrite(type, common_cache_dir, args, compute_function, obj)
+	# TODO type check
+	# hyigene
+	type = esc(type)
+	common_cache_dir = esc(common_cache_dir)
+	args = esc(args)
+	compute_function = esc(compute_function)
+	obj = esc(obj)
+
+	return quote
+		_hash = get_hash_sha256($(args))
+		# if cached_obj_exists($(type), $(common_cache_dir), _hash)
+		# 	load_cached_obj($(type), $(common_cache_dir), _hash)
+		# else
+			checkpoint_stdout("Computing " * $(type) * "...")
+
+			_started = Dates.now()
+			_finish_time = (Dates.now() - _started)
+
+			checkpoint_stdout("Computed " * $(type) * " in " * human_readable_time_s(_finish_time) * " seconds (" * human_readable_time(_finish_time) * ")")
+
+			cache_obj($(type), $(common_cache_dir), $(obj), _hash, string($(args)), time_spent = _finish_time, use_serialize = true)
+			$(obj)
+		# end
+	end
+end
+
+macro cachefast_skipsave(type, common_cache_dir, args, compute_function)
+	# TODO type check
+	# hyigene
+	type = esc(type)
+	common_cache_dir = esc(common_cache_dir)
+	args = esc(args)
+	compute_function = esc(compute_function)
+
+	return quote
+		_hash = get_hash_sha256($(args))
+		# if cached_obj_exists($(type), $(common_cache_dir), _hash)
+		# 	load_cached_obj($(type), $(common_cache_dir), _hash)
+		# else
+			checkpoint_stdout("Computing " * $(type) * "...")
+
+			_started = Dates.now()
+			_result_value = $(compute_function)($(args)...)
+			_finish_time = (Dates.now() - _started)
+
+			checkpoint_stdout("Computed " * $(type) * " in " * human_readable_time_s(_finish_time) * " seconds (" * human_readable_time(_finish_time) * ")")
+
+			# cache_obj($(type), $(common_cache_dir), _result_value, _hash, string($(args)), time_spent = _finish_time, use_serialize = true)
+			_result_value
+		# end
 	end
 end
