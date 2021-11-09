@@ -12,16 +12,16 @@ train_seed = 2
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./covid/journal-v11-TODO"
+results_dir = "./covid/journal-v11-breath-big-scan"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 
-dry_run = false
-#dry_run = :dataset_only
+# dry_run = false
+# dry_run = :dataset_only
 # dry_run = :model_study
-#dry_run = true
+dry_run = true
 
 skip_training = false
 
@@ -50,7 +50,7 @@ for loss_function in [DecisionTree.util.entropy]
 	for min_samples_leaf in [2,4] # [1,2]
 		for min_purity_increase in [0.01] # [0.01, 0.001]
 			for min_loss_at_leaf in [0.4, 0.5, 0.6] # [0.4, 0.6]
-				push!(tree_args, 
+				push!(tree_args,
 					(
 						loss_function       = loss_function,
 						min_samples_leaf    = min_samples_leaf,
@@ -172,11 +172,11 @@ exec_ignore_low_sr_samples = [true]
 exec_use_training_form = [:stump_with_memoization]
 
 exec_n_ver_n_task_use_aug_dataset_dir_preprocess = [
-	
+
 	# ("c",1,false,"KDD",["NG", "Normalize"]),
 	# ("c",2,true,"KDD",["NG", "Normalize"]),
 	# ("c",3,true,"KDD",["NG", "Normalize"]),
-	
+
 	# ("c",1,false,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
 	# ("c",2,true,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
 	# ("c",3,true,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
@@ -192,11 +192,11 @@ exec_n_ver_n_task_use_aug_dataset_dir_preprocess = [
 	# ("b",1,false,"KDD",["Normalize"]),
 	# ("b",2,true,"KDD",["Normalize"]),
 	# ("b",3,true,"KDD",["Normalize"]),
-	
+
 	# ("b",1,false,"KDD",["NG", "Normalize", "RemSilence"]),
 	# ("b",2,true,"KDD",["Normalize", "RemSilence"]),
 	# ("b",3,true,"KDD",["Normalize", "RemSilence"]),
-	
+
 	# ("b",1,false,"KDD-norm-partitioned-v1",["Normalize", "RemSilence"]),
 	# ("b",2,true,"KDD-norm-partitioned-v1",["Normalize", "RemSilence"]),
 	# ("b",3,true,"KDD-norm-partitioned-v1",["Normalize", "RemSilence"]),
@@ -214,11 +214,12 @@ exec_fbtype = [:fcmel, :semitone] #, :mel, :htkmel] #, :semitone]
 
 exec_minfreq       = [20.0]
 exec_base_freq     = [:fft, :autocor]
-exec_base_freq_min = [200]
+exec_base_freq_min = [100, 200]
 exec_base_freq_max = [700]
 
 # Ignore :fcmel+:autocor
 push!(iteration_blacklist, (fbtype    = :fcmel, base_freq = :autocor))
+push!(iteration_blacklist, (fbtype    = :fcmel, base_freq_min = 200))
 
 exec_nbands = [30] # [20,40,60]
 # exec_nbands = [40] # [20,40,60]
@@ -279,7 +280,7 @@ audio_kwargs_partial_mfcc(max_sample_rate, wintime, steptime, nbands, fbtype, mi
 	nbands = nbands,                      # any, (also try 20)
 	sumpower = false,                 # [false, true]
 	dither = false,                   # [false, true]
-	# bwidth = 1.0,                   # 
+	# bwidth = 1.0,                   #
 	minfreq = minfreq,
 	maxfreq = max_sample_rate/2,
 	# usecmp = false,
@@ -318,7 +319,7 @@ test_operators_dict = Dict(
 	"TestOp"    => [TestOpGeq,    TestOpLeq],
 )
 
-exec_ontology = [ "IA", ] # "IA7", "IA3", 
+exec_ontology = [ "IA", ] # "IA7", "IA3",
 
 ontology_dict = Dict(
 	"-"     => ModalLogic.OneWorldOntology,
@@ -488,7 +489,7 @@ i_log_filename,log_filename = 0,""
 while i_log_filename == 0 || isfile(log_filename)
 	global i_log_filename,log_filename
 	i_log_filename += 1
-	log_filename = 
+	log_filename =
 		results_dir * "/" *
 		(dry_run == :dataset_only ? "datasets-" : "") *
 		"$(i_log_filename).out"
@@ -554,7 +555,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	##############################################################################
 	##############################################################################
-	
+
 	minfreq,
 	base_freq,
 	base_freq_min,
@@ -570,7 +571,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	use_full_mfcc,
 	test_operators,
 	ontology = params_combination
-	
+
 	test_operators = test_operators_dict[test_operators]
 	ontology       = ontology_dict[ontology]
 
@@ -581,7 +582,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	cur_preprocess_wavs = [ wav_preprocessors[k] for k in preprocess_wavs ]
 
 	cur_modal_args = modal_args
-	
+
 	cur_data_modal_args = merge(data_modal_args,
 		(
 			test_operators = test_operators,
@@ -607,9 +608,9 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		# println(models_to_study)
 		# println(keys(models_to_study))
 		if JSON.json(params_combination) in keys(models_to_study)
-			
+
 			trees = models_to_study[JSON.json(params_combination)]
-			
+
 			println()
 			println()
 			println("Study models for $(params_combination): $(trees)")
@@ -617,11 +618,11 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			if length(trees) == 0
 				continue
 			end
-			
+
 			println("dataset_fun_sub_params: $(dataset_fun_sub_params)")
 
 			# @assert dataset_fun_sub_params isa String
-			
+
 			# dataset_fun_sub_params = merge(dataset_fun_sub_params, (; mode = :testing))
 
 			datasets = []
@@ -657,7 +658,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 				println()
 				println()
 				println("Loading model: $(model_hash)...")
-				
+
 				model = load_model(model_hash, model_savedir)
 
 				println()
@@ -683,7 +684,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 					preds = apply_model(model, X);
 					cm = confusion_matrix(Y, preds)
 					println(cm)
-					
+
 					# readline()
 				end
 			end
@@ -697,7 +698,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	# obtain dataseeds that are were not done before
 	todo_dataseeds = filter((dataseed)->!iteration_in_history(history, (params_namedtuple, dataseed)), exec_dataseed)
 
-	linearized_dataset, dataset_slices = 
+	linearized_dataset, dataset_slices =
 		if dataset isa NamedTuple{(:train_n_test,:only_training)}
 			balanced_dataset_slice(dataset, todo_dataseeds, split_threshold; discourage_only_training = prefer_nonaug_data)
 		else
@@ -714,7 +715,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	##############################################################################
 	##############################################################################
-	
+
 	if dry_run == false
 		exec_scan(
 			params_namedtuple,
