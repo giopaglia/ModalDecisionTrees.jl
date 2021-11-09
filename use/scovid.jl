@@ -12,11 +12,11 @@ train_seed = 2
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./covid/journal-v10-min_sample_rate-fbtype-simple_mas"
+results_dir = "./covid/journal-v11-TODO"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
-data_savedir  = results_dir * "/cache"
-model_savedir = results_dir * "/trees"
+data_savedir  = results_dir * "/data_cache"
+model_savedir = results_dir * "/models_cache"
 
 dry_run = false
 #dry_run = :dataset_only
@@ -164,7 +164,7 @@ prefer_nonaug_data = true
 
 exec_dataseed = 1:10
 
-exec_max_sample_rate = [8000, 16000]
+exec_max_sample_rate = [16000]
 
 exec_ignore_low_sr_samples = [true]
 
@@ -173,14 +173,22 @@ exec_use_training_form = [:stump_with_memoization]
 
 exec_n_ver_n_task_use_aug_dataset_dir_preprocess = [
 	
-	("c",1,false,"KDD",["NG", "Normalize"]),
-	("c",2,true,"KDD",["NG", "Normalize"]),
-	("c",3,true,"KDD",["NG", "Normalize"]),
+	# ("c",1,false,"KDD",["NG", "Normalize"]),
+	# ("c",2,true,"KDD",["NG", "Normalize"]),
+	# ("c",3,true,"KDD",["NG", "Normalize"]),
 	
-	("c",1,false,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
-	("c",2,true,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
-	("c",3,true,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
-	
+	# ("c",1,false,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
+	# ("c",2,true,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
+	# ("c",3,true,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
+
+	("b",1,false,"KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
+	("b",2,true,"KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
+	("b",3,true,"KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
+
+	("b",1,false,"KDD",["Normalize", "RemSilence"]),
+	("b",2,true,"KDD",["Normalize", "RemSilence"]),
+	("b",3,true,"KDD",["Normalize", "RemSilence"]),
+
 	# ("b",1,false,"KDD",["Normalize"]),
 	# ("b",2,true,"KDD",["Normalize"]),
 	# ("b",3,true,"KDD",["Normalize"]),
