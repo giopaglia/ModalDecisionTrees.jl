@@ -14,7 +14,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./MTSC"
+results_dir = "./MTSC-v2"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir = results_dir * "/cache"
@@ -142,9 +142,9 @@ round_dataset_to_datatype = false
 samples_per_class_share = nothing
 # samples_per_class_share = 0.8
 
-# split_threshold = 0.8
+split_threshold = 0.8
 # split_threshold = 1.0
-split_threshold = false
+# split_threshold = false
 
 # use_training_form = :dimensional
 # use_training_form = :fmd
@@ -162,8 +162,9 @@ legacy_gammas_check = false
 ##################################### SCAN #####################################
 ################################################################################
 
-# exec_dataseed = 1:1
-exec_dataseed = [nothing]
+# exec_dataseed = [nothing]
+# exec_dataseed = [nothing, (1:9)...]
+exec_dataseed = [(1:9)...]
 
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization]
@@ -222,7 +223,8 @@ exec_ranges = (;
 dataset_function = 
 	(dataset_name, n_chunks, flatten)->
 	(
-		Multivariate_arffDataset(dataset_name; n_chunks = n_chunks, join_train_n_test = false, flatten = flatten, use_catch22 = true)
+		# Multivariate_arffDataset(dataset_name; n_chunks = n_chunks, join_train_n_test = false, flatten = flatten, use_catch22 = true)
+		Multivariate_arffDataset(dataset_name; n_chunks = n_chunks, join_train_n_test = true, flatten = flatten, use_catch22 = true)
 	)
 
 ################################################################################
@@ -341,12 +343,13 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	# Load Dataset
 	# dataset_function(dataset_fun_sub_params...)
-	dataset, n_label_samples = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
+	dataset, class_counts = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
 
 	## Dataset slices
 	# obtain dataseeds that are were not done before
 	todo_dataseeds = filter((dataseed)->!iteration_in_history(history, (params_namedtuple, dataseed)), exec_dataseed)
-	dataset_slices = [(dataseed, balanced_dataset_slice(n_label_samples, dataseed; samples_per_class_share = samples_per_class_share)) for dataseed in todo_dataseeds]
+	# dataset_slices = [(dataseed, balanced_dataset_slice(class_counts, dataseed; samples_per_class_share = samples_per_class_share)) for dataseed in todo_dataseeds]
+	dataset_slices = [(dataseed, balanced_dataset_slice(class_counts, dataseed; samples_per_class_share = class_counts.*split_threshold)) for dataseed in todo_dataseeds]
 
 	println("Dataseeds = $(todo_dataseeds)")
 
