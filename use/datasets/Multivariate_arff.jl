@@ -3,6 +3,7 @@ using CSV
 using DataFrames
 using CategoricalArrays
 using StatsBase
+using Catch22
 
 # include("siemens.jl")
 
@@ -472,18 +473,24 @@ end
 # Multivariate_arff("FingerMovements")
 # TODO different n_chunks for different frames
 
-function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n_test = false, flatten = false, mode = false)
+function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n_test = false, flatten = false, mode = false, use_catch22 = false)
 
 	ds_train = readARFF(data_dir * "Multivariate_arff/$(dataset_name)/$(dataset_name)_TRAIN.arff");
 	ds_test  = readARFF(data_dir * "Multivariate_arff/$(dataset_name)/$(dataset_name)_TEST.arff");
 
 	for fid in length(ds_train.frames)
-		transform!(ds_train, paa, fid; n_chunks = n_chunks);
-		transform!(ds_test,  paa, fid; n_chunks = n_chunks);
+		# transform!(ds_train, paa, fid; n_chunks = n_chunks);
+		# transform!(ds_test,  paa, fid; n_chunks = n_chunks);
 
 		# TODO more transformations
 		# transform!(ds_train, fid, [paa,paa], [(;n_chunks=2, f=mean),(;n_chunks=2, f=StatsBase.var)])
 		# transform!(ds_test,  fid, [paa,paa], [(;n_chunks=2, f=mean),(;n_chunks=2, f=StatsBase.var)])
+
+
+		if use_catch22
+			transform!(ds_train, fid, [paa for _ in 1:22], [(;n_chunks=n_chunks, f=catch22[fn]) for fn in getnames(catch22)])
+			transform!(ds_test,  fid, [paa for _ in 1:22], [(;n_chunks=n_chunks, f=catch22[fn]) for fn in getnames(catch22)])
+		end
 	end
 
 	@assert !(flatten == true && mode != false) "flatten=$(flatten), mode=$(mode)"

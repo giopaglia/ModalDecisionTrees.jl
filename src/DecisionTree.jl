@@ -9,6 +9,7 @@ import Random
 using Statistics
 using StatsBase
 using Printf
+using Catch22
 
 using Logging
 using Logging: @logmsg

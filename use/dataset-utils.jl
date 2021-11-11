@@ -46,82 +46,108 @@ end
 # For integers: find minimum and maximum (ignoring Infs), and rescale the dataset
 # For floating-point, numbers, round
 round_dataset((X,Y)::Tuple{Any,Vector}, type::Type = UInt8) = (mapArrayToDataType(type, X),Y)
-round_dataset(((X_train,Y_train),(X_test,Y_test))::Tuple{Tuple,Tuple}, type::Type = UInt8) = begin
+function round_dataset(((X_train,Y_train),(X_test,Y_test))::Tuple{Tuple,Tuple}, type::Type = UInt8)
 	X_train, X_test = mapArrayToDataType(type, (X_train, X_test))
 	(X_train,Y_train),(X_test,Y_test)
 end
 
 # Multiframe datasets: scale each frame independently
-mapArrayToDataType(type::Type, mf_array::AbstractArray{<:AbstractArray}) = begin
+function mapArrayToDataType(type::Type, mf_array::AbstractArray{<:AbstractArray})
 	map(a->mapArrayToDataType(type, a), mf_array)
 end
-mapArrayToDataType(type::Type, mf_arrays::NTuple{N,AbstractArray{<:AbstractArray}}) where {N} = begin
+function mapArrayToDataType(type::Type, mf_arrays::NTuple{N,AbstractArray{<:AbstractArray}}) where {N}
 	zip(map((arrays)->mapArrayToDataType(type, arrays), zip(mf_arrays...))...)
 end
 
 # Integer: rescale datasets in the available discrete range.
 #  for tuples of datasets, min and max are calculated across all datasets
-mapArrayToDataType(type::Type{<:Integer}, arrays::NTuple{N,AbstractArray{<:Real}}) where {N} = begin
+function mapArrayToDataType(type::Type{<:Integer}, arrays::NTuple{N,AbstractArray{<:Real}}) where {N}
 	minVal, maxVal = minimum(minimum.(array)), maximum(maximum.(array))
 	map((array)->mapArrayToDataType(type,array), arrays; minVal = minVal, maxVal = maxVal)
 end
-mapArrayToDataType(type::Type{<:Integer}, array::AbstractArray{<:Real}; minVal = minimum(array), maxVal = maximum(array)) = begin
+function mapArrayToDataType(type::Type{<:Integer}, array::AbstractArray{<:Real}; minVal = minimum(array), maxVal = maximum(array))
 	normalized_array = (array.-minVal)./(maxVal-minVal)
 	typemin(type) .+ round.(type, (big(typemax(type))-big(typemin(type)))*normalized_array)
 end
 
 # Floats: just round to the nearest float
-mapArrayToDataType(type::Type{<:AbstractFloat}, arrays::NTuple{N,AbstractArray{<:Real}}) where {N} = begin
+function mapArrayToDataType(type::Type{<:AbstractFloat}, arrays::NTuple{N,AbstractArray{<:Real}}) where {N}
 	map((array)->mapArrayToDataType(type,array), arrays)
 end
 
-mapArrayToDataType(type::Type{<:AbstractFloat}, array::AbstractArray{<:Real}) = begin
+function mapArrayToDataType(type::Type{<:AbstractFloat}, array::AbstractArray{<:Real})
 	# TODO worry about eps of the target type and the magnitude of values in array
 	#  (and eventually scale up or down the array). Also change mapArrayToDataType(type, Xs::Tuple) then
 	type.(array)
 end
 
-balanced_dataset_slice(
+function balanced_dataset_slice(
 		dataset::Tuple{Tuple{AbstractVector{<:GenericDataset},AbstractVector},NTuple{N,Integer}},
 		dataseeds::Vector{<:Integer};
 		kwargs...
-	) where N = begin
+	) where N
 	d, class_counts = dataset
 	d, [balanced_dataset_slice(class_counts, dataseed; kwargs...) for dataseed in dataseeds]
 end
 
-balanced_dataset_slice(
+function balanced_dataset_slice(
 		class_counts::NTuple{N,Integer},
 		dataseed::Union{Nothing,Integer};
 		n_samples_per_class::Union{Nothing,AbstractFloat,Integer,NTuple{N,Integer}} = nothing,
 		also_return_discarted::Bool = false,
-	) where N = begin
+	) where N
 	n_instances = sum(class_counts)
 	if !isnothing(dataseed)
 		rng = Random.MersenneTwister(dataseed)
 		
 		n_classes = length(class_counts)
 
-		n_per_class = begin
-			if isnothing(n_samples_per_class)
-				minimum(class_counts)
-			elseif isa(n_samples_per_class, Integer)
-				n_samples_per_class
-			elseif isa(n_samples_per_class, AbstractFloat)
-				floor(Int, (n_samples_per_class*n_instances)/n_classes)
-			elseif isa(n_samples_per_class, NTuple{N,Integer} where N)
-				n_samples_per_class
+		dataset_slice = begin
+			if isnothing(n_samples_per_class) || isa(n_samples_per_class, Integer)
+				n_per_class = begin
+					if isnothing(n_samples_per_class)
+						minimum(class_counts)
+					elseif isa(n_samples_per_class, Integer)
+						n_samples_per_class
+					end
+				end
+
+				dataset_slice = Array{Int64,2}(undef, n_classes, n_per_class)
+				c = 0
+				for i in 1:n_classes
+					# dataset_slice[i,:] .= sort(c .+ Random.randperm(rng, class_counts[i])[1:n_per_class])
+					dataset_slice[i,:] .= c .+ Random.randperm(rng, class_counts[i])[1:n_per_class]
+					c += class_counts[i]
+				end
+				dataset_slice = dataset_slice[:]
+				dataset_slice
+			elseif isa(n_samples_per_class, AbstractFloat) ||  isa(n_samples_per_class, NTuple{N,Integer} where N)
+				n_per_class = begin
+					if isa(n_samples_per_class, AbstractFloat)
+						# Tuple(fill(floor(Int, (n_samples_per_class*n_instances)/n_classes), n_classes))
+						# Tuple(fill(floor.(Int, class_counts.*n_samples_per_class), n_classes))
+						floor.(Int, class_counts.*n_samples_per_class)
+					elseif isa(n_samples_per_class, NTuple{N,Integer} where N)
+						n_samples_per_class
+					end
+				end
+				# println("n_per_class = $(n_per_class)")
+
+				dataset_slice = Matrix{Union{Nothing,Integer}}(fill(nothing, (n_classes, maximum(n_per_class))))
+				c = 0
+				for i in 1:n_classes
+					n_samp = n_per_class[i]
+					dataset_slice[i,1:n_samp] .= c .+ Random.randperm(rng, class_counts[i])[1:n_samp]
+					c += class_counts[i]
+				end
+
+				# Note: not stratified!!!
+				dataset_slice = filter(!isnothing, dataset_slice[:])
+			else
+				error("Unknwon typeof(n_samples_per_class): $(typeof(n_samples_per_class))")
 			end
 		end
 
-		dataset_slice = Array{Int64,2}(undef, n_classes, n_per_class)
-		c = 0
-		for i in 1:n_classes
-			# dataset_slice[i,:] .= sort(c .+ Random.randperm(rng, class_counts[i])[1:n_per_class])
-			dataset_slice[i,:] .= c .+ Random.randperm(rng, class_counts[i])[1:n_per_class]
-			c += class_counts[i]
-		end
-		dataset_slice = dataset_slice[:]
 		!also_return_discarted ? (dataset_slice) : (dataset_slice,sort(collect(setdiff(Set(1:n_instances), Set(dataset_slice)))))
 	else
 		!also_return_discarted ? (1:n_instances) : (1:n_instances,[])
@@ -262,12 +288,12 @@ function solve_binary_sampling_prob(split_threshold, an, ap, tn, tp; discourage_
 
 end
 
-balanced_dataset_slice(dataset::NamedTuple{(:train_n_test,:only_training)},
+function balanced_dataset_slice(dataset::NamedTuple{(:train_n_test,:only_training)},
 		dataseeds::Vector{<:Integer},
 		split_threshold::AbstractFloat;
 		n_samples_per_class::Union{Nothing,AbstractFloat,Integer} = nothing,
 		discourage_only_training = true,
-	) where N = begin
+	) where N
 	
 	@assert length(dataset.train_n_test[2])  == 2 "TODO Expand code. Currently, can't perform balanced_dataset_slice(NamedTuple{(:train_n_test,:only_training)}, ...) on non-binary dataset"
 	@assert length(dataset.only_training[2]) == 2 "TODO Expand code. Currently, can't perform balanced_dataset_slice(NamedTuple{(:train_n_test,:only_training)}, ...) on non-binary dataset"

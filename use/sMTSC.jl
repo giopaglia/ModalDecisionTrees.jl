@@ -14,14 +14,14 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./3Dstuff/MTSC-FingerMovements3D"
+results_dir = "./MTSC-v2"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
-data_savedir = results_dir * "/cache"
-model_savedir = results_dir * "/trees"
+data_savedir  = results_dir * "/data_cache"
+model_savedir = results_dir * "/models_cache"
 
-dry_run = false
-# dry_run = :dataset_only
+# dry_run = false
+dry_run = :dataset_only
 # dry_run = true
 
 # save_datasets = true
@@ -139,11 +139,10 @@ round_dataset_to_datatype = false
 # round_dataset_to_datatype = Float32
 # round_dataset_to_datatype = Float64
 
-n_samples_per_class = nothing
-# n_samples_per_class = 0.8
+n_samples_per_class = 0.8
 
-split_threshold = 0.8
-# split_threshold = 1.0
+# split_threshold = 0.8
+split_threshold = 1.0
 # split_threshold = false
 
 # use_training_form = :dimensional
@@ -162,8 +161,9 @@ legacy_gammas_check = false
 ##################################### SCAN #####################################
 ################################################################################
 
-exec_dataseed = 1:10
 # exec_dataseed = [nothing]
+# exec_dataseed = [nothing, (1:9)...]
+exec_dataseed = [(1:9)...]
 
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization]
@@ -181,15 +181,22 @@ test_operators_dict = Dict(
 	"TestOp"    => [TestOpGeq,    TestOpLeq],
 )
 
-exec_dataset_name_mode = [
-	("FingerMovements",false),
-	("FingerMovements",:horizontal_3f),
-	("FingerMovements",:vertical_4f),
-	("FingerMovements",:uniform),
-	#("Libras",false),
-	#("LSST",false),
-	#("NATOPS",false),
-	#("RacketSports",false),
+exec_dataset_name = [
+	# "FingerMovements",
+	# "Libras",
+	# "LSST",
+	# "NATOPS",
+	# "RacketSports",
+
+	"AtrialFibrillation",
+	"Cricket",
+	"EthanolConcentration",
+	"HandMovementDirection",
+	"Heartbeat",
+	"MotorImagery",
+	"SelfRegulationSCP1",
+	"SelfRegulationSCP2",
+	"StandWalkJump",
 ]
 
 exec_flatten_ontology = [(false,"interval2D")] # ,(true,"one_world")]
@@ -201,22 +208,23 @@ ontology_dict = Dict(
 )
 
 
-exec_n_chunks = [5, 10, 15]
+exec_n_chunks = [30]
 # exec_n_chunks = [60]
 
 exec_ranges = (;
 	use_training_form    = exec_use_training_form  ,
 	test_operators       = exec_test_operators     ,
-	dataset_name_mode    = exec_dataset_name_mode  ,
+	dataset_name         = exec_dataset_name       ,
 	flatten_ontology     = exec_flatten_ontology   ,
 	n_chunks             = exec_n_chunks           ,
 )
 
 
 dataset_function = 
-	(dataset_name, mode, n_chunks, flatten)->
+	(dataset_name, n_chunks, flatten)->
 	(
-		Multivariate_arffDataset(dataset_name; n_chunks = n_chunks, join_train_n_test = true, flatten = flatten, mode = mode)
+		# Multivariate_arffDataset(dataset_name; n_chunks = n_chunks, join_train_n_test = false, flatten = flatten, use_catch22 = true, mode = mode)
+		Multivariate_arffDataset(dataset_name; n_chunks = n_chunks, join_train_n_test = true,  flatten = flatten, use_catch22 = true, mode = false)
 	)
 
 ################################################################################
@@ -313,7 +321,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	
 	use_training_form,
 	test_operators,
-	(dataset_name,mode),
+	dataset_name,
 	(flatten,ontology),
 	n_chunks = params_combination
 	
@@ -330,20 +338,35 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	)
 
 	dataset_fun_sub_params = (
-		dataset_name, mode, n_chunks, flatten
+		dataset_name, n_chunks, flatten
 	)
 
 	# Load Dataset
 	# dataset_function(dataset_fun_sub_params...)
 	dataset, class_counts = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
 
+	println("class_distribution: ")
+	println(StatsBase.countmap(dataset[2]))
+	println("class_counts: $(class_counts)")
+
 	## Dataset slices
 	# obtain dataseeds that are were not done before
 	todo_dataseeds = filter((dataseed)->!iteration_in_history(history, (params_namedtuple, dataseed)), exec_dataseed)
-	dataset_slices = [(dataseed, balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = n_samples_per_class)) for dataseed in todo_dataseeds]
+	# dataset_slices = [(dataseed, balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = class_counts)) for dataseed in todo_dataseeds]
+	dataset_slices = [(dataseed, balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = n_samples_per_class, also_return_discarted = true)) for dataseed in todo_dataseeds]
 
 	println("Dataseeds = $(todo_dataseeds)")
 
+	for (dataseed,(train_slice,test_slice)) in dataset_slices
+		println("train class_distribution: ")
+		println(StatsBase.countmap(dataset[2][train_slice]))
+		println("test class_distribution: ")
+		println(StatsBase.countmap(dataset[2][test_slice]))
+		println("...")
+		break # Note: Assuming this print is the same for all dataseeds
+	end
+	println()
+	
 	if dry_run == :dataset_only
 		continue
 	end
