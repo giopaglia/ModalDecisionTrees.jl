@@ -188,15 +188,15 @@ exec_dataset_name = [
 	# "NATOPS",
 	# "RacketSports",
 
-	AtrialFibrillation,
-	Cricket,
-	EthanolConcentration,
-	HandMovementDirection,
-	Heartbeat,
-	MotorImagery,
-	SelfRegulationSCP1,
-	SelfRegulationSCP2,
-	StandWalkJump,
+	"AtrialFibrillation",
+	"Cricket",
+	"EthanolConcentration",
+	"HandMovementDirection",
+	"Heartbeat",
+	"MotorImagery",
+	"SelfRegulationSCP1",
+	"SelfRegulationSCP2",
+	"StandWalkJump",
 ]
 
 exec_flatten_ontology = [(false,"interval"),(true,"one_world")]
