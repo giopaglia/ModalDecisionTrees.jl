@@ -9,6 +9,8 @@
 ☐	give names to features
 ☐	Check whether CatWalk.jl can help runtime dispatch look-up time
 ☐	Migliora stile (https://github.com/invenia/BlueStyle), e non usare import! Usa Base.length, invece!
+☐	Functio-symbolic: tree partitions according to logical rules, but occasionally on math relations (e.g., on leaves)
+
 
 ☐	save pre-process pipeline together with the models
 ☐	problem with argmax when testing (e.g. RF), especially on unbalanced datasets
