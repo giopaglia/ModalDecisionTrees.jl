@@ -400,6 +400,7 @@ balanced_dataset_slice(dataset::NamedTuple{(:train_n_test,:only_training)},
 		println("train pos = $(length(P1_from_t_perm)) + $(length(P1_from_a_perm)) = $(length(P1_idx)) ", P1_idx)
 		println("test neg = ", length(N2_idx), " ", N2_idx)
 		println("test pos = ", length(P2_idx), " ", P2_idx)
+		println()
 		
 		# dataset_slice = vcat(N1_idx, P1_idx, N2_idx, P2_idx)
 		# stratify

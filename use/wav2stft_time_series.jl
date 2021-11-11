@@ -146,7 +146,7 @@ function my_stft(x::Vector{T}, sr::Real=16000.0; wintime=0.025, steptime=0.01,
 end
 
 
-function F0_autocor(samples, sr; center_clip = maximum(samples)*.3)
+function F0_autocor(samples, sr; center_clip = maximum(samples)*.3) # maximum(samples)/3.0)
 	# println(center_clip)
 	clip_(s) = begin
 		if abs(s) < center_clip
