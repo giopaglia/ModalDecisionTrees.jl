@@ -24,8 +24,8 @@ model_savedir = results_dir * "/models_cache"
 dry_run = :dataset_only
 # dry_run = true
 
-# save_datasets = true
-save_datasets = false
+save_datasets = true
+# save_datasets = false
 
 skip_training = false
 
@@ -187,7 +187,7 @@ exec_dataset_name = [
 	# "LSST",
 	# "NATOPS",
 	# "RacketSports",
-
+	
 	"AtrialFibrillation",
 	"Cricket",
 	"EthanolConcentration",

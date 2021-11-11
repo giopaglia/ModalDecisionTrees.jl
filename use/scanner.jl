@@ -413,11 +413,11 @@ function buildModalDatasets(X_train, X_test, data_modal_args, modal_args, use_tr
 	X_train =
 		if use_training_form in [:dimensional, :fmd, :stump, :stump_with_memoization]
 			if save_datasets
-				# if use_training_form == :stump_with_memoization
-				# 	@cachefast_skipsave "training_dataset" data_savedir ("train", data_modal_args, X_train, modal_args, save_datasets, use_training_form) X_dataset_c
-				# else
-					@cachefast "training_dataset" data_savedir ("train", data_modal_args, X_train, modal_args, save_datasets, use_training_form) X_dataset_c
-				# end
+				if use_training_form == :stump_with_memoization
+					@cachefast_skipsave "training_dataset" data_savedir ("train", data_modal_args, X_train, modal_args, save_datasets, use_training_form) X_dataset_c
+				else
+					@cachefast          "training_dataset" data_savedir ("train", data_modal_args, X_train, modal_args, save_datasets, use_training_form) X_dataset_c
+				end
 			else
 				X_dataset_c("train", data_modal_args, X_train, modal_args, save_datasets, use_training_form)
 			end
