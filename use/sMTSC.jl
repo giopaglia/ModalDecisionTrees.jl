@@ -14,7 +14,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./MTSC-v2"
+results_dir = "./MTSC-inbalanced-splits"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
