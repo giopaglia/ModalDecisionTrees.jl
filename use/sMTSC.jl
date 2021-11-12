@@ -14,7 +14,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./MTSC-inbalanced-splits"
+results_dir = "./MTSC-v2"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
@@ -203,8 +203,8 @@ exec_dataset_name = [
 exec_flatten_ontology = [(false,"interval"),(true,"one_world")]
 
 ontology_dict = Dict(
-	"one_world" => ModalLogic.OneWorldOntology,
-	"interval"  => getIntervalOntologyOfDim(Val(1)),
+	"one_world"   => ModalLogic.OneWorldOntology,
+	"interval"    => getIntervalOntologyOfDim(Val(1)),
 	"interval2D"  => getIntervalOntologyOfDim(Val(2)),
 )
 

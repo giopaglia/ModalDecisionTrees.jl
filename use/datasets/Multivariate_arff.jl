@@ -520,7 +520,8 @@ function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n
 
 		transform_f =
 			if mode == false
-				(X)->[add_dim(X)]
+				# (X)->[add_dim(X)]
+				(X)->[X]
 			elseif mode == :horizontal_3f
 				(X)->begin
 					@assert size(X, 2) == (5+3*7+2) "size(X, 1) != (5+3*7+2). size(X) = $(size(X))"
