@@ -449,8 +449,12 @@ function exec_scan(
 		split_threshold                 ::Union{Bool,AbstractFloat} = 1.0,
 		data_modal_args                 = (),
 		dataset_slices                  ::Union{
-			AbstractVector{<:Tuple{<:Any,SLICE}},
-			AbstractVector{SLICE},
+			AbstractVector{<:Tuple{<:Any,
+				<:Union{<:AbstractVector{<:Integer},<:NTuple{2,<:AbstractVector{<:Integer}}}
+			}},
+			AbstractVector{
+				<:Union{<:AbstractVector{<:Integer},<:NTuple{2,<:AbstractVector{<:Integer}}}
+			},
 			Nothing} = nothing,
 		round_dataset_to_datatype       ::Union{Bool,Type} = false,
 		use_training_form               = :stump_with_memoization,
@@ -468,7 +472,7 @@ function exec_scan(
 		skip_training                   :: Bool = false,
 		callback                        :: Function = identity,
 		dataset_shape_columns           :: Union{AbstractVector,Nothing} = nothing,
-	) where {SLICE<:Union{<:AbstractVector{<:Integer},<:NTuple{2,<:AbstractVector{<:Integer}}}}
+	) where {}
 	
 	@assert timing_mode in [:none, :profile, :time, :btime] "Unknown timing_mode!"
 	@assert !legacy_gammas_check "legacy_gammas_check parameter is deprecated!" # TODO remove
