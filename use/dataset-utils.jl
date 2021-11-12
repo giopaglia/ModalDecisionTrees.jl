@@ -142,7 +142,7 @@ function balanced_dataset_slice(
 				end
 
 				# Note: not stratified!!!
-				dataset_slice = filter(!isnothing, dataset_slice[:])
+				dataset_slice = Vector{<:Integer}(filter(!isnothing, dataset_slice[:]))
 			else
 				error("Unknwon typeof(n_samples_per_class): $(typeof(n_samples_per_class))")
 			end
