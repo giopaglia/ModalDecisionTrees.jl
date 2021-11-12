@@ -468,7 +468,7 @@ function exec_scan(
 		skip_training                   :: Bool = false,
 		callback                        :: Function = identity,
 		dataset_shape_columns           :: Union{AbstractVector,Nothing} = nothing,
-	) where {SLICE<:Union{<:AbstractVector{<:Integer},NTuple{2,<:AbstractVector{<:Integer}}}}
+	) where {SLICE<:Union{<:AbstractVector{<:Integer},<:NTuple{2,<:AbstractVector{<:Integer}}}}
 	
 	@assert timing_mode in [:none, :profile, :time, :btime] "Unknown timing_mode!"
 	@assert !legacy_gammas_check "legacy_gammas_check parameter is deprecated!" # TODO remove
