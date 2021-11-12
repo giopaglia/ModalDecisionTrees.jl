@@ -133,7 +133,7 @@ function balanced_dataset_slice(
 				end
 				# println("n_per_class = $(n_per_class)")
 
-				dataset_slice = Matrix{Union{Nothing,Integer}}(fill(nothing, (n_classes, maximum(n_per_class))))
+				dataset_slice = Matrix{Union{Nothing,Int64}}(fill(nothing, (n_classes, maximum(n_per_class))))
 				c = 0
 				for i in 1:n_classes
 					n_samp = n_per_class[i]
@@ -142,7 +142,7 @@ function balanced_dataset_slice(
 				end
 
 				# Note: not stratified!!!
-				dataset_slice = Vector{Integer}(filter(!isnothing, dataset_slice[:]))
+				dataset_slice = Vector{Int64}(filter(!isnothing, dataset_slice[:]))
 			else
 				error("Unknwon typeof(n_samples_per_class): $(typeof(n_samples_per_class))")
 			end
