@@ -1,8 +1,12 @@
+using StatsBase
+using DataFrames
+using CSV
+using Tables
 
 size(mf::ModalFrame) = (nrow(mf.data),)
 getindex(mf::ModalFrame, i::Int) = mf.views[i]
 
-struct ClassificationDataset
+struct ClassificationDataset2
 	ldim::Int
 	hdim::Int
 	frames::Vector{ModalFrame}
@@ -11,7 +15,7 @@ struct ClassificationDataset
 	classes::CategoricalArray
 end
 
-function ClassificationDataset(frames::Vector{ModalFrame}, classes::CategoricalArray)
+function ClassificationDataset2(frames::Vector{ModalFrame}, classes::CategoricalArray)
 	instances = ModalInstance[]
 	domains = Dict{Int, Dict{Symbol, Vector{Number}}}()
 
@@ -56,10 +60,10 @@ function ClassificationDataset(frames::Vector{ModalFrame}, classes::CategoricalA
 
 	ldim, hdim = extrema([dimension(i) for i in frames])
 
-	ClassificationDataset(ldim, hdim, frames, instances, domains, classes)
+	ClassificationDataset2(ldim, hdim, frames, instances, domains, classes)
 end
 
-function ClassificationDataset2RunnerDataset(d::ClassificationDataset)
+function ClassificationDataset22RunnerDataset(d::ClassificationDataset2)
 	Y = map(string, Array(d.classes))
 	X = Array{<:Number}[]
 	for frame in d.frames
@@ -68,20 +72,20 @@ function ClassificationDataset2RunnerDataset(d::ClassificationDataset)
 	(X,Y)
 end
 
-instance(cs::ClassificationDataset, i::Int) = cs.instances[i] # TODO cs -> ds (either sup or unsupervised)
-instance(cs::ClassificationDataset, i::Int, f::Int) = cs.instances[i][f]
-function attributes(ds::ClassificationDataset)
+instance(cs::ClassificationDataset2, i::Int) = cs.instances[i] # TODO cs -> ds (either sup or unsupervised)
+instance(cs::ClassificationDataset2, i::Int, f::Int) = cs.instances[i][f]
+function attributes(ds::ClassificationDataset2)
 	d = Dict{Int,Array{String,1}}()
 	for (fid,frame) in enumerate(ds.frames)
 		d[fid] = names(frame.data)
 	end
 	return d
 end
-attributes(ds::ClassificationDataset, fid::Int) = names(ds.frames[fid].data)
+attributes(ds::ClassificationDataset2, fid::Int) = names(ds.frames[fid].data)
 
-length(ds::ClassificationDataset) = length(ds.instances)
+length(ds::ClassificationDataset2) = length(ds.instances)
 
-function show(io::IO, ::MIME"text/plain", ds::ClassificationDataset)
+function show(io::IO, ::MIME"text/plain", ds::ClassificationDataset2)
 	println(io, "Classification dataset with $(length(ds.instances)) instances")
 
 	for (i, inst) in enumerate(ds.instances)
@@ -93,7 +97,7 @@ end
 
 # TODO
 # possible test: all([auslan.instances[i].rows[1][attr] === auslan.frames[1].data[i,attr] for i in 1:length(auslan.instances) for attr in attributes(auslan, 1)])
-function transform!(ds::ClassificationDataset, f::Function, fid::Int; kwargs...)
+function transform!(ds::ClassificationDataset2, f::Function, fid::Int; kwargs...)
 	for attr in attributes(ds, fid)
 		for i in 1:nrow(ds.frames[fid].data)
 			ds.frames[fid].data[i,attr] = f(ds.frames[fid].data[i,attr]; kwargs...)
@@ -101,7 +105,7 @@ function transform!(ds::ClassificationDataset, f::Function, fid::Int; kwargs...)
 	end
 end
 
-function minimum(ds::ClassificationDataset)
+function minimum(ds::ClassificationDataset2)
 	d = Dict{Int,Array{Float64,1}}()
 
 	for (fid,frame) in enumerate(ds.frames)
@@ -115,7 +119,7 @@ function minimum(ds::ClassificationDataset)
 	return d
 end
 
-function maximum(ds::ClassificationDataset)
+function maximum(ds::ClassificationDataset2)
 	d = Dict{Int,Array{Float64,1}}()
 
 	for (fid,frame) in enumerate(ds.frames)
@@ -130,7 +134,7 @@ function maximum(ds::ClassificationDataset)
 end
 
 # TODO fix problem with select_attributes!
-function select_attributes!(ds::ClassificationDataset, frame_attributes::Dict{Int, Array{Int, 1}})
+function select_attributes!(ds::ClassificationDataset2, frame_attributes::Dict{Int, Array{Int, 1}})
 	frames = collect(keys(frame_attributes))
 
 	for i in 1:length(frames)
@@ -138,12 +142,12 @@ function select_attributes!(ds::ClassificationDataset, frame_attributes::Dict{In
 	end
 end
 
-# function transform!(ds::ClassificationDataset, f::Function; kwargs...)
+# function transform!(ds::ClassificationDataset2, f::Function; kwargs...)
 
 # using MultivariateTimeSeries
 # X, y = read_data_labeled(joinpath(dirname(pathof(GBDTs)), "..", "data", "auslan_youtube8"));
 #
-# # adesso voglio passare da MTS a ClassificationDataset
+# # adesso voglio passare da MTS a ClassificationDataset2
 #
 # my_frame = DataFrame()
 #
@@ -157,11 +161,11 @@ end
 #     push!(my_frame, [array_data[:, j] for j in 1:length(names(X))])
 # end
 #
-# auslan = ClassificationDataset([ModalFrame(my_frame)], CategoricalArray(y))
+# auslan = ClassificationDataset2([ModalFrame(my_frame)], CategoricalArray(y))
 
 
 
-function cd_sample(ds::ClassificationDataset,
+function cd_sample(ds::ClassificationDataset2,
 		range::Union{UnitRange{Int},Nothing};
 		invert::Bool=false)
 
@@ -195,10 +199,10 @@ function cd_sample(ds::ClassificationDataset,
 		end
 	end
 
-	return ClassificationDataset([ModalFrame(timeseries_df)], CategoricalArray(output_classes))
+	return ClassificationDataset2([ModalFrame(timeseries_df)], CategoricalArray(output_classes))
 end
 
-function cd_sample(ds::ClassificationDataset,
+function cd_sample(ds::ClassificationDataset2,
 	percentage::Float64; 
 	seed::Int=1,
 	bias::Float64=0.0, # bias to uniform
@@ -280,72 +284,110 @@ function cd_sample(ds::ClassificationDataset,
 		end
 	end
 
-	return ClassificationDataset([ModalFrame(timeseries_df)], CategoricalArray(output_classes))
+	return ClassificationDataset2([ModalFrame(timeseries_df)], CategoricalArray(output_classes))
 end
 
-function trip_shutdown(path::String, day::Int) # day = 4 solo 4th, day = 1 tutti
-	df = DataFrame()
-	classes = Int[]
-	attributes = CSV.File(path * "/Example_1.csv", drop = [1, 2]) |> DataFrame |> names
+# function trip_shutdown(dir::String, day::Int) # day = 4 solo 4th, day = 1 tutti
+# 	df = DataFrame()
+# 	classes = Int[]
+# 	attributes = CSV.File(dir * "/Example_1.csv", drop = [1, 2]) |> DataFrame |> names
+
+# 	for attr in attributes
+# 		insertcols!(df, attr => Array{Float64, 1}[])
+# 	end
+
+# 	for row in CSV.File(dir * "/DataInfo.csv")
+# 		if row.Day >= day
+# 			aux = CSV.File(dir * "/Example_" * string(row.ExampleID) * ".csv", drop = [1, 2]) |> Tables.matrix
+
+# 			push!(df, [aux[:, j] for j in 1:length(attributes)])
+
+# 			push!(classes, row.Class)
+# 		end
+# 	end
+
+# 	ds = ClassificationDataset2([ModalFrame(df)], CategoricalArray(classes))
+
+# 	return ds
+# end
+
+
+function trip_no_trip(dir::String;
+		n_machine::Union{Nothing, Int64} = nothing,
+		ignore_class0 = true,
+		mode::Symbol = :classification, # :classification, :regression
+		regression_step_in_minutes = 60,
+		)
+	X_df = DataFrame()
+	Y = []
+	attributes = CSV.File(dir * "/Example_1.csv", drop = [1, 2]) |> DataFrame |> names
+
+	println("Attributes: $(attributes)")
 
 	for attr in attributes
-		insertcols!(df, attr => Array{Float64, 1}[])
+		insertcols!(X_df, attr => Array{Float64, 1}[])
 	end
 
-	for row in CSV.File(path * "/DataInfo.csv")
-		if row.Day >= day
-			aux = CSV.File(path * "/Example_" * string(row.ExampleID) * ".csv", drop = [1, 2]) |> Tables.matrix
-
-			push!(df, [aux[:, j] for j in 1:length(attributes)])
-
-			push!(classes, row.Class)
-		end
-	end
-
-	ds = ClassificationDataset([ModalFrame(df)], CategoricalArray(classes))
-
-	return ds
-end
-
-
-function trip_no_trip(path::String; n_machine::Union{Missing, Int64} = missing)
-	df = DataFrame()
-	classes_zeros = Int[]
-	classes_ones = Int[]
-	attributes = CSV.File(path * "/Example_1.csv", drop = [1, 2]) |> DataFrame |> names
-
-	for attr in attributes
-		insertcols!(df, attr => Array{Float64, 1}[])
-	end
-
-	df_zeros = deepcopy(df)
-	df_ones  = deepcopy(df)
-	for row in CSV.File(path * "/DataInfo.csv")
-		if row.Class == 0
+	for row in CSV.File(dir * "/DataInfo.csv")
+		if ignore_class0 == true && row.Class == 0
 			continue
 		else
-			if !ismissing(n_machine) && row.Datasource != n_machine
+			if !isnothing(n_machine) && row.Datasource != n_machine
 				continue
 			end
 
-			aux = CSV.File(path * "/Example_" * string(row.ExampleID) * ".csv", drop = [1, 2]) |> Tables.matrix
+			aux = CSV.File(dir * "/Example_$(row.ExampleID).csv", drop = [1, 2]) |> Tables.matrix
 
-			if row.Day < 4
-					push!(df_zeros, [aux[:, j] for j in 1:length(attributes)])
-				push!(classes_zeros, 0)
+			println(size(aux))
+
+			if mode == :classification
+				push!(X_df, [aux[:, j] for j in 1:length(attributes)])
+				push!(Y, (row.Day < 4 ? "no-trip" : "trip"))
+			elseif mode == :regression
+				for minute in 1:regression_step_in_minutes:(1440-1)
+					println("Window: [$(minute):$(minute+regression_step_in_minutes-1)]")
+					push!(X_df, [aux[minute:(minute+regression_step_in_minutes-1), j] for j in 1:length(attributes)])
+					push!(Y, (1440-(minute+regression_step_in_minutes-1))/60)
+				end
 			else
-					push!(df_ones, [aux[:, j] for j in 1:length(attributes)])
-				push!(classes_ones, 1)
+				error("Unknown mode: $(mode) (type = $(typeof(mode)))")
 			end
 		end
 	end
 	
-	df = vcat(df_zeros, df_ones)
-	classes = vcat(classes_zeros, classes_ones)
+	ids  = sortperm(Y)
+	X_df = X_df[ids,:]
+	Y    = Y[ids]
 
-	ds = ClassificationDataset([ModalFrame(df)], CategoricalArray(classes))
+	# println(X_df)
+	# println(Y)
 
-	ds, (length(classes_zeros), length(classes_ones))
+	if mode == :classification
+		classes = unique(Y)
+		cm = StatsBase.countmap(Y)
+		class_counts = Tuple([cm[y] for y in unique(Y)])
+
+		println(classes)
+		println(cm)
+		println(class_counts)
+		println()
+
+		ds = ClassificationDataset2([ModalFrame(X_df)], CategoricalArray(Y))
+		ds, class_counts
+	elseif mode == :regression
+		n_instances = nrow(X_df)
+		n_attrs = ncol(X_df)
+		channel_length = ((length.(X_df) |> unique)[1,:] |> unique)[1]
+		X = Array{Float64,3}(undef, channel_length, n_instances, n_attrs)
+		for (i_inst, instance) in enumerate(eachrow(X_df))
+			for (i_attr, channel) in enumerate(instance)
+				X[:, i_inst, i_attr] = channel
+			end
+		end
+		X, Y
+	else
+		error("Unknown mode: $(mode) (type = $(typeof(mode)))")
+	end
 end
 
 function window_slice(x::AbstractArray{T} where T<:Real;
@@ -377,10 +419,25 @@ function paa(x::AbstractArray{T} where T <: Real;
 end
 
 function SiemensJuneDataset_not_stratified(from, to)
-	# Qua fai un nuovo dataset, cambiando il path, con trip vs no-trip
+	# Qua fai un nuovo dataset, cambiando il dir, con trip vs no-trip
 	ds, class_counts = trip_no_trip(data_dir * "Data_Features"); 
 	# Qua si fa una trasformazione del dataset usando la window che va dal punto 1 al punto 120, i.e., le prime due ore.
 	transform!(ds, window_slice, 1; from=from, to=to)
+	
+	ClassificationDataset22RunnerDataset(ds), class_counts
+end
 
-	ClassificationDataset2RunnerDataset(ds), class_counts
+function SiemensDataset_regression(datadirname; binning, kwargs...)
+	X, Y = trip_no_trip(data_dir * datadirname; mode = :regression, kwargs...);
+	function manual_bin(y)
+		for (threshold,label) in binning
+			y <= threshold && return label
+		end
+		error("Error! element with label $(y) falls outside binning $(binning)")
+	end
+	Y = manual_bin.(Y)
+	classes = unique(Y)
+	cm = StatsBase.countmap(Y)
+	class_counts = Tuple([cm[y] for y in unique(Y)])
+	(X, Y), class_counts
 end

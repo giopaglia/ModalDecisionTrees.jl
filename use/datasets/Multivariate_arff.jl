@@ -5,8 +5,6 @@ using CategoricalArrays
 using StatsBase
 using Catch22
 
-# include("siemens.jl")
-
 struct ModalInstance <: AbstractVector{SubDataFrame}
 	# worlds::Set{<:AbstractOntology} # TODO add set of worlds, for the semantics (DT)
 	rows::Vector{DataFrameRow}

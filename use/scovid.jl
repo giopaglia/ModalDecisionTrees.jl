@@ -71,8 +71,8 @@ println(" $(length(tree_args)) trees")
 ################################################################################
 
 forest_runs = 5
-optimize_forest_computation = false
-# optimize_forest_computation = true
+# optimize_forest_computation = false
+optimize_forest_computation = true
 
 
 forest_args = []

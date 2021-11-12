@@ -283,8 +283,9 @@ end
 # process_dataset("KDD", x -> load_from_jsonKDD(n_version, n_task), )
 
 include("datasets/Multivariate_arff.jl")
+include("datasets/siemens.jl")
 include("datasets/KDD.jl")
 include("datasets/land-cover.jl")
 include("datasets/ComParE2021.jl")
 include("datasets/LoadModalDataset.jl")
-include("datasets/Siemens-Trip-vibration.jl")
+# include("datasets/Siemens-Trip-vibration.jl")
