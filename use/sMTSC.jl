@@ -20,8 +20,8 @@ iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 
-# dry_run = false
-dry_run = :dataset_only
+dry_run = false
+#dry_run = :dataset_only
 # dry_run = true
 
 save_datasets = true
@@ -182,21 +182,21 @@ test_operators_dict = Dict(
 )
 
 exec_dataset_name = [
-	# "FingerMovements",
-	# "Libras",
-	# "LSST",
-	# "NATOPS",
-	# "RacketSports",
+	"FingerMovements",
+	"Libras",
+	"LSST",
+	"NATOPS",
+	"RacketSports",
 	
-	"AtrialFibrillation",
-	"Cricket",
-	"EthanolConcentration",
-	"HandMovementDirection",
-	"Heartbeat",
-	"MotorImagery",
-	"SelfRegulationSCP1",
-	"SelfRegulationSCP2",
-	"StandWalkJump",
+	#"AtrialFibrillation",
+	#"Cricket",
+	#"EthanolConcentration",
+	#"HandMovementDirection",
+	#"Heartbeat",
+	#"MotorImagery",
+	#"SelfRegulationSCP1",
+	#"SelfRegulationSCP2",
+	#"StandWalkJump",
 ]
 
 # exec_flatten_ontology = [(false,"interval2D")] # ,(true,"one_world")]
