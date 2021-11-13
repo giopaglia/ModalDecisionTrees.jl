@@ -14,7 +14,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./MTSC-v2"
+results_dir = "./MTSC-v3"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
@@ -360,8 +360,10 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	for (dataseed,(train_slice,test_slice)) in dataset_slices
 		println("train class_distribution: ")
+		println(train_slice)
 		println(StatsBase.countmap(dataset[2][train_slice]))
 		println("test class_distribution: ")
+		println(test_slice)
 		println(StatsBase.countmap(dataset[2][test_slice]))
 		println("...")
 		break # Note: Assuming this print is the same for all dataseeds

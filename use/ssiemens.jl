@@ -111,10 +111,10 @@ modal_args = (;
 )
 
 data_modal_args = (;
-	# ontology = getIntervalOntologyOfDim(Val(1)),
+	ontology = getIntervalOntologyOfDim(Val(1)),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A]),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A, ModalLogic.IA_L, ModalLogic.IA_Li, ModalLogic.IA_D]),
-	# test_operators = [TestOpGeq_80, TestOpLeq_80],
+	test_operators = [TestOpGeq_80, TestOpLeq_80],
 )
 
 
