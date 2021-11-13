@@ -438,7 +438,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	# obtain dataseeds that are were not done before
 	todo_dataseeds = filter((dataseed)->!iteration_in_history(history, (params_namedtuple, dataseed)), exec_dataseed)
 	dataset_slices = [(dataseed, balanced_dataset_slice(class_counts, dataseed)) for dataseed in todo_dataseeds]
-	
+
 	println("Dataseeds = $(todo_dataseeds)")
 
 	for (dataseed,data_slice) in dataset_slices
@@ -460,7 +460,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	if dry_run == false
 		exec_scan(
 			params_namedtuple,
-			linearized_dataset;
+			dataset;
 			### Training params
 			train_seed                      =   train_seed,
 			modal_args                      =   cur_modal_args,
