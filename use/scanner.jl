@@ -164,6 +164,8 @@ include("dataset-utils.jl")
 					
 					(X_train_slice, Y_train_slice, X_test_slice, Y_test_slice)
 				elseif isa(dataset_slice, NTuple{2,<:AbstractVector{<:Integer}})
+					println("train slice: $(dataset_slice[1])")
+					println("test  slice: $(dataset_slice[2])")
 					@assert isone(split_threshold) || iszero(split_threshold) "Can't set a split_threshold (value: $(split_threshold)) when specifying a split dataset_slice (type: $(gettype(dataset_slice)))"
 					(
 						ModalLogic.slice_dataset(X_to_train, dataset_slice[1], return_view = true),
