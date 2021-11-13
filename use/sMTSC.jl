@@ -24,8 +24,8 @@ dry_run = false
 #dry_run = :dataset_only
 # dry_run = true
 
-save_datasets = true
-# save_datasets = false
+#save_datasets = true
+save_datasets = false
 
 skip_training = false
 

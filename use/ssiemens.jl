@@ -25,8 +25,8 @@ dry_run = false
 
 skip_training = false
 
-save_datasets = true
-# save_datasets = false
+#save_datasets = true
+save_datasets = false
 
 perform_consistency_check = false
 
