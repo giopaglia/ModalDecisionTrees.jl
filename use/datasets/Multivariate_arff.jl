@@ -477,17 +477,15 @@ function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n
 	ds_test  = readARFF(data_dir * "Multivariate_arff/$(dataset_name)/$(dataset_name)_TEST.arff");
 
 	for fid in length(ds_train.frames)
-		# transform!(ds_train, paa, fid; n_chunks = n_chunks);
-		# transform!(ds_test,  paa, fid; n_chunks = n_chunks);
-
-		# TODO more transformations
-		# transform!(ds_train, fid, [paa,paa], [(;n_chunks=2, f=mean),(;n_chunks=2, f=StatsBase.var)])
-		# transform!(ds_test,  fid, [paa,paa], [(;n_chunks=2, f=mean),(;n_chunks=2, f=StatsBase.var)])
-
-
 		if use_catch22
 			transform!(ds_train, fid, [paa for _ in 1:22], [(;n_chunks=n_chunks, f=catch22[fn]) for fn in getnames(catch22)])
 			transform!(ds_test,  fid, [paa for _ in 1:22], [(;n_chunks=n_chunks, f=catch22[fn]) for fn in getnames(catch22)])
+		else
+			transform!(ds_train, paa, fid; n_chunks = n_chunks);
+			transform!(ds_test,  paa, fid; n_chunks = n_chunks);
+		# TODO more transformations
+		# transform!(ds_train, fid, [paa,paa], [(;n_chunks=2, f=mean),(;n_chunks=2, f=StatsBase.var)])
+		# transform!(ds_test,  fid, [paa,paa], [(;n_chunks=2, f=mean),(;n_chunks=2, f=StatsBase.var)])
 		end
 	end
 
@@ -502,7 +500,14 @@ function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n
 
 	(X_train, Y_train), class_counts_train = ClassificationDataset2RunnerDataset(ds_train)
 	(X_test,  Y_test),  class_counts_test  = ClassificationDataset2RunnerDataset(ds_test)
-
+	
+	# println(ds_train)
+	println(size(X_train))
+	println(size.(X_train))
+	println(size(X_test))
+	println(size.(X_test))
+	# println(unique(X_train))
+	
 	if dataset_name == "FingerMovements"
 		# FingerMovements
 		#        F3     F1     Fz     F2     F4
@@ -549,7 +554,7 @@ function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n
 			end
 		# TODO
 		@assert length(X_train) == 1
-		@assert length(X_test) == 1
+		@assert length(X_test)  == 1
 		
 		X_train, X_test = transform_f(X_train[1]), transform_f(X_test[1])
 	# else
