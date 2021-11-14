@@ -378,10 +378,10 @@ function trip_no_trip(dir::String;
 		n_instances = nrow(X_df)
 		n_attrs = ncol(X_df)
 		channel_length = ((length.(X_df) |> unique)[1,:] |> unique)[1]
-		X = Array{Float64,3}(undef, channel_length, n_instances, n_attrs)
+		X = Array{Float64,3}(undef, channel_length, n_attrs, n_instances)
 		for (i_inst, instance) in enumerate(eachrow(X_df))
 			for (i_attr, channel) in enumerate(instance)
-				X[:, i_inst, i_attr] = channel
+				X[:, i_attr, i_inst] = channel
 			end
 		end
 		X, Y

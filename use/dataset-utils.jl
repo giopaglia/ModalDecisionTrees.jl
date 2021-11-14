@@ -464,7 +464,7 @@ end
 function concat_labeled_datasets((X1, Y1, f1)::Tuple{AbstractVector{<:GenericDataset},AbstractVector,AbstractVector{<:AbstractVector}}, (X2, Y2, f2)::Tuple{AbstractVector{<:GenericDataset},AbstractVector,AbstractVector{<:AbstractVector}})
 	X = concat_datasets(X1, X2)
 	Y = vcat(Y1, Y2)
-	f = map(x->Iterators.flatten(x)|>collect, zip(f1,f2))
+	f = map((x)->(Iterators.flatten(x)|>collect), zip(f1,f2))
 	# println(size.(X1))
 	# println(size(Y1))
 	# println(size.(f1))

@@ -14,7 +14,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./MTSC-v3"
+results_dir = "./MTSC-more_dataseeds"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
@@ -212,20 +212,23 @@ ontology_dict = Dict(
 exec_n_chunks = [30]
 # exec_n_chunks = [60]
 
+exec_use_catch22 = [false]
+
 exec_ranges = (;
 	use_training_form    = exec_use_training_form  ,
 	test_operators       = exec_test_operators     ,
 	dataset_name         = exec_dataset_name       ,
 	flatten_ontology     = exec_flatten_ontology   ,
+	use_catch22          = exec_use_catch22        ,
 	n_chunks             = exec_n_chunks           ,
 )
 
 
 dataset_function = 
-	(dataset_name, n_chunks, flatten)->
+	(dataset_name, n_chunks, flatten, use_catch22)->
 	(
-		# Multivariate_arffDataset(dataset_name; n_chunks = n_chunks, join_train_n_test = false, flatten = flatten, use_catch22 = true, mode = mode)
-		Multivariate_arffDataset(dataset_name; n_chunks = n_chunks, join_train_n_test = true,  flatten = flatten, use_catch22 = true, mode = false)
+		# Multivariate_arffDataset(dataset_name; n_chunks = n_chunks, join_train_n_test = false, flatten = flatten, use_catch22 = use_catch22, mode = mode)
+		Multivariate_arffDataset(dataset_name; n_chunks = n_chunks, join_train_n_test = true,  flatten = flatten, use_catch22 = use_catch22, mode = false)
 	)
 
 ################################################################################
@@ -324,6 +327,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	test_operators,
 	dataset_name,
 	(flatten,ontology),
+	use_catch22,
 	n_chunks = params_combination
 	
 	test_operators = test_operators_dict[test_operators]
@@ -339,7 +343,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	)
 
 	dataset_fun_sub_params = (
-		dataset_name, n_chunks, flatten
+		dataset_name, n_chunks, flatten, use_catch22
 	)
 
 	# Load Dataset
