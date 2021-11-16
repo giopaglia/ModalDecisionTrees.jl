@@ -14,18 +14,18 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./MTSC-more_dataseeds"
+results_dir = "./MTSC-more_dataseeds-v2"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 
 dry_run = false
-#dry_run = :dataset_only
+# dry_run = :dataset_only
 # dry_run = true
 
-save_datasets = true
-# save_datasets = false
+# save_datasets = true
+save_datasets = false
 
 skip_training = false
 
@@ -75,9 +75,9 @@ optimize_forest_computation = true
 
 forest_args = []
 
-for n_trees in []
-	for n_subfeatures in []
-		for n_subrelations in []
+for n_trees in [100]
+	for n_subfeatures in [half_f]
+		for n_subrelations in [id_f]
 			push!(forest_args, (
 				n_subfeatures       = n_subfeatures,
 				n_trees             = n_trees,
@@ -139,7 +139,7 @@ round_dataset_to_datatype = false
 # round_dataset_to_datatype = Float32
 # round_dataset_to_datatype = Float64
 
-n_samples_per_class = 0.8
+# n_samples_per_class = 0.8
 
 # split_threshold = 0.8
 split_threshold = 1.0
@@ -163,7 +163,7 @@ legacy_gammas_check = false
 
 # exec_dataseed = [nothing]
 # exec_dataseed = [nothing, (1:9)...]
-exec_dataseed = [(1:9)...]
+exec_dataseed = [(1:30)...]
 
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization]
@@ -200,7 +200,7 @@ exec_dataset_name = [
 ]
 
 # exec_flatten_ontology = [(false,"interval2D")] # ,(true,"one_world")]
-exec_flatten_ontology = [(false,"interval"),(true,"one_world")]
+exec_use_catch22_flatten_ontology = [(false,false,"interval"),(false,true,"one_world"),(true,true,"one_world")]
 
 ontology_dict = Dict(
 	"one_world"   => ModalLogic.OneWorldOntology,
@@ -209,18 +209,18 @@ ontology_dict = Dict(
 )
 
 
-exec_n_chunks = [30]
+exec_n_chunks = [missing]
 # exec_n_chunks = [60]
 
-exec_use_catch22 = [false]
+# exec_use_catch22 = [false]
 
 exec_ranges = (;
-	use_training_form    = exec_use_training_form  ,
-	test_operators       = exec_test_operators     ,
-	dataset_name         = exec_dataset_name       ,
-	flatten_ontology     = exec_flatten_ontology   ,
-	use_catch22          = exec_use_catch22        ,
-	n_chunks             = exec_n_chunks           ,
+	use_training_form                = exec_use_training_form              ,
+	test_operators                   = exec_test_operators                 ,
+	dataset_name                     = exec_dataset_name                   ,
+	use_catch22_flatten_ontology     = exec_use_catch22_flatten_ontology   ,
+	# use_catch22                      = exec_use_catch22                    ,
+	n_chunks                         = exec_n_chunks                       ,
 )
 
 
@@ -228,7 +228,13 @@ dataset_function =
 	(dataset_name, n_chunks, flatten, use_catch22)->
 	(
 		# Multivariate_arffDataset(dataset_name; n_chunks = n_chunks, join_train_n_test = false, flatten = flatten, use_catch22 = use_catch22, mode = mode)
-		Multivariate_arffDataset(dataset_name; n_chunks = n_chunks, join_train_n_test = true,  flatten = flatten, use_catch22 = use_catch22, mode = false)
+		Multivariate_arffDataset(dataset_name;
+			n_chunks = n_chunks,
+			join_train_n_test = false,
+			flatten = flatten,
+			use_catch22 = use_catch22,
+			mode = false
+		)
 	)
 
 ################################################################################
@@ -326,8 +332,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	use_training_form,
 	test_operators,
 	dataset_name,
-	(flatten,ontology),
-	use_catch22,
+	(use_catch22,flatten,ontology),
 	n_chunks = params_combination
 	
 	test_operators = test_operators_dict[test_operators]
@@ -348,9 +353,16 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	# Load Dataset
 	# dataset_function(dataset_fun_sub_params...)
-	dataset, class_counts = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
+	((dataset_train, class_counts_train), (dataset_test, class_counts_test)) = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
 
-	println("class_distribution: ")
+	dataset, class_counts = concat_labeled_datasets(dataset_train, dataset_test, (class_counts_train, class_counts_test)), (class_counts_train .+ class_counts_test)
+
+	println("train class_distribution: ")
+	println(StatsBase.countmap(dataset_train[2]))
+	println("test class_distribution: ")
+	println(StatsBase.countmap(dataset_test[2]))
+	println()
+	println("total class_distribution: ")
 	println(StatsBase.countmap(dataset[2]))
 	println("class_counts: $(class_counts)")
 
@@ -358,7 +370,18 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	# obtain dataseeds that are were not done before
 	todo_dataseeds = filter((dataseed)->!iteration_in_history(history, (params_namedtuple, dataseed)), exec_dataseed)
 	# dataset_slices = [(dataseed, balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = class_counts)) for dataseed in todo_dataseeds]
-	dataset_slices = [(dataseed, balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = n_samples_per_class, also_return_discarted = true)) for dataseed in todo_dataseeds]
+	dataset_slices = Tuple{Int64,Tuple{Vector{Int64}, Vector{Int64}}}[(dataseed,
+		if dataseed == 1
+			train_idxs = Integer[]
+			c=0
+			for i in 1:length(class_counts)
+				train_idxs = vcat(train_idxs, c+1:c+class_counts_train[i])
+				c += class_counts_train[i]+class_counts_test[i]
+			end
+			(Vector{Integer}(collect(train_idxs)), Vector{Integer}(collect(setdiff(Set(1:sum(class_counts)), Set(train_idxs)))))
+		else
+			balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = class_counts_train, also_return_discarted = true)
+		end) for dataseed in todo_dataseeds]
 
 	println("Dataseeds = $(todo_dataseeds)")
 
@@ -367,6 +390,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		println(StatsBase.countmap(dataset[2][train_slice]))
 		println("test class_distribution: ")
 		println(StatsBase.countmap(dataset[2][test_slice]))
+		# println(train_slice)
+		# println(test_slice)
 		println("...")
 		break # Note: Assuming this print is the same for all dataseeds
 	end

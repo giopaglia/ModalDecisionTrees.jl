@@ -157,7 +157,13 @@ function data_to_string(
 			elseif column == "safe_macro_F1"
 				percent(safe_macro_F1(cm))          
 			elseif column == "n_nodes"
-				num_nodes(M)
+				num_nodes(M)        
+			elseif column == "n_leaves"
+				length(M)        
+			elseif column == "height"
+				height(M)        
+			elseif column == "modal_height"
+				modal_height(M)
 			else
 				"??? $(column) ???"
 		end, alt_separator) # (i_col == length(columns) ? "", alt_separator))
@@ -211,6 +217,8 @@ function data_to_string(
 				percent(mean(map(cm->safe_macro_NPV(cm),         cms)))
 			elseif column == "safe_macro_F1"
 				percent(mean(map(cm->safe_macro_F1(cm),          cms)))
+			elseif column == "n_trees"
+				percent(mean(length.(Ms)))
 			elseif column == "n_nodes"
 				percent(mean(num_nodes.(Ms)))
 			elseif column == "oob_error"
@@ -242,6 +250,8 @@ function data_to_string(
 				percent(var(map(cm->safe_macro_NPV(cm),         cms)))
 			elseif column == "safe_macro_F1"
 				percent(var(map(cm->safe_macro_F1(cm),          cms)))
+			elseif column == "n_trees"
+				percent(var(length.(Ms)))
 			elseif column == "n_nodes"
 				percent(var(num_nodes.(Ms)))
 			elseif column == "oob_error"

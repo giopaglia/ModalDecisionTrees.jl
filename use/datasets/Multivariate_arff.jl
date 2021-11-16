@@ -480,12 +480,13 @@ function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n
 		if use_catch22
 			transform!(ds_train, fid, [paa for _ in 1:22], [(;n_chunks=n_chunks, f=catch22[fn]) for fn in getnames(catch22)])
 			transform!(ds_test,  fid, [paa for _ in 1:22], [(;n_chunks=n_chunks, f=catch22[fn]) for fn in getnames(catch22)])
+		# elseif use_mean_n_var
+			# TODO more transformations
+			# transform!(ds_train, fid, [paa,paa], [(;n_chunks=2, f=mean),(;n_chunks=2, f=StatsBase.var)])
+			# transform!(ds_test,  fid, [paa,paa], [(;n_chunks=2, f=mean),(;n_chunks=2, f=StatsBase.var)])
 		else
 			transform!(ds_train, paa, fid; n_chunks = n_chunks);
 			transform!(ds_test,  paa, fid; n_chunks = n_chunks);
-		# TODO more transformations
-		# transform!(ds_train, fid, [paa,paa], [(;n_chunks=2, f=mean),(;n_chunks=2, f=StatsBase.var)])
-		# transform!(ds_test,  fid, [paa,paa], [(;n_chunks=2, f=mean),(;n_chunks=2, f=StatsBase.var)])
 		end
 	end
 
@@ -568,7 +569,7 @@ function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n
 	if join_train_n_test == true
 		concat_labeled_datasets((X_train, Y_train), (X_test,  Y_test), (class_counts_train, class_counts_test)), (class_counts_train .+ class_counts_test)
 	elseif join_train_n_test == false
-		((X_train, Y_train), (X_test,  Y_test)), class_counts_train
+		(((X_train, Y_train), class_counts_train), ((X_test,  Y_test), class_counts_test))
 	elseif join_train_n_test == :only_training
 		(X_train, Y_train), class_counts_train
 	elseif join_train_n_test == :only_testing

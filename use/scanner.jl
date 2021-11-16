@@ -502,13 +502,13 @@ function exec_scan(
 		"safe_macro_specificity",
 		"safe_macro_PPV",
 		"safe_macro_NPV",
-		"safe_macro_F1"
+		"safe_macro_F1",
 	]
 
 	# TODO restore best_rule_params
 	# tree_columns = [base_metrics_names..., "n_nodes", ["best_rule_p $(best_rule_p)" for best_rule_p in best_rule_params]..., "t", "hash"]
-	tree_columns = [base_metrics_names..., "n_nodes"]
-	forest_columns = [base_metrics_names..., "oob_error", "n_nodes"]
+	tree_columns = [base_metrics_names..., "n_nodes", "n_leaves", "height", "modal_height",]
+	forest_columns = [base_metrics_names..., "oob_error", "n_trees", "n_nodes",]
 	
 	all_tree_columns = [tree_columns..., "t", "hash"]
 	all_forest_columns = [
