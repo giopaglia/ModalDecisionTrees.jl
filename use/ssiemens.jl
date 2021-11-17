@@ -12,16 +12,16 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./siemens/TURBOEXPO-regression-v2"
+results_dir = "./siemens/TURBOEXPO-regression"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 
-dry_run = false
+#dry_run = false
 # dry_run = :dataset_only
 # dry_run = :model_study
-# dry_run = true
+dry_run = true
 
 skip_training = false
 
