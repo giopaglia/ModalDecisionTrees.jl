@@ -12,7 +12,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./siemens/TURBOEXPO-regression"
+results_dir = "./siemens/TURBOEXPO-regression-v2"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
@@ -25,8 +25,8 @@ dry_run = false
 
 skip_training = false
 
-save_datasets = true
-# save_datasets = false
+#save_datasets = true
+save_datasets = false
 
 perform_consistency_check = false
 
@@ -111,10 +111,10 @@ modal_args = (;
 )
 
 data_modal_args = (;
-	# ontology = getIntervalOntologyOfDim(Val(1)),
+	ontology = getIntervalOntologyOfDim(Val(1)),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A]),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A, ModalLogic.IA_L, ModalLogic.IA_Li, ModalLogic.IA_D]),
-	# test_operators = [TestOpGeq_80, TestOpLeq_80],
+	test_operators = [TestOpGeq_80, TestOpLeq_80],
 )
 
 
