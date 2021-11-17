@@ -165,17 +165,44 @@ exec_datadirname = ["Siemens-Data-Features", "Siemens-Data-Measures"]
 
 exec_use_training_form = [:stump_with_memoization]
 
-exec_binning = [(1.0 => "High-Risk", 3.0 => "Risky", Inf => "Low-Risk")]
+exec_binning = [
+	(1.0 => "High-Risk", 3.0 => "Risky", Inf => "Low-Risk"),
+	(4.0 => "High-Risk", 8.0 => "Risky", Inf => "Low-Risk"),
+]
+
+exec_ignore_last_minutes = [0, 2*60]
+
+exec_moving_average = [
+	(
+		ma_size = 4,
+		ma_step = 4,
+	),
+	(
+		ma_size = 3,
+		ma_step = 3,
+	),
+	(
+		ma_size = 2,
+		ma_step = 2,
+	),
+]
 
 exec_ranges = (;
 	datadirname                                  = exec_datadirname,
 	use_training_form                            = exec_use_training_form,
 	binning                                      = exec_binning,
+	ignore_last_minutes                          = exec_ignore_last_minutes,
+	moving_average                               = exec_moving_average,
 )
 
 
-dataset_function = (datadirname, binning)->begin
-	SiemensDataset_regression(datadirname; binning = binning)
+dataset_function = (datadirname, binning, ignore_last_minutes, moving_average)->begin
+	SiemensDataset_regression(datadirname;
+		moving_average...,
+		only_consider_trip_days = true,
+		binning = binning,
+		ignore_last_minutes = ignore_last_minutes,
+	)
 end
 
 ################################################################################
@@ -333,8 +360,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	##############################################################################
 	
-	datadirname, use_training_form, binning = params_combination
-	dataset_fun_sub_params = (datadirname, binning)
+	datadirname, use_training_form, binning, ignore_last_minutes, moving_average = params_combination
+	dataset_fun_sub_params = (datadirname, binning, ignore_last_minutes, moving_average)
 	
 	cur_modal_args = modal_args
 	cur_data_modal_args = data_modal_args

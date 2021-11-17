@@ -315,8 +315,12 @@ end
 function trip_no_trip(dir::String;
 		n_machine::Union{Nothing, Int64} = nothing,
 		ignore_class0 = true,
+		only_consider_trip_days = true,
 		mode::Symbol = :classification, # :classification, :regression
 		regression_step_in_minutes = 60,
+		ignore_last_minutes = 0,
+		ma_size = nothing,
+		ma_step = nothing,
 		)
 	X_df = DataFrame()
 	Y = []
@@ -329,7 +333,9 @@ function trip_no_trip(dir::String;
 	end
 
 	for row in CSV.File(dir * "/DataInfo.csv")
-		if ignore_class0 == true && row.Class == 0
+		if ignore_class0 && row.Class == 0
+			continue
+		elseif only_consider_trip_days && ! (row.Class == 1 && row.Day == 4)
 			continue
 		else
 			if !isnothing(n_machine) && row.Datasource != n_machine
@@ -338,15 +344,19 @@ function trip_no_trip(dir::String;
 
 			aux = CSV.File(dir * "/Example_$(row.ExampleID).csv", drop = [1, 2]) |> Tables.matrix
 
-			println(size(aux))
+			# println(size(aux))
 
 			if mode == :classification
-				push!(X_df, [aux[:, j] for j in 1:length(attributes)])
+				ts = [moving_average(aux[:, j], ma_size, ma_step) for j in 1:length(attributes)]
+				push!(X_df, ts)
 				push!(Y, (row.Day < 4 ? "no-trip" : "trip"))
 			elseif mode == :regression
-				for minute in 1:regression_step_in_minutes:(1440-1)
-					println("Window: [$(minute):$(minute+regression_step_in_minutes-1)]")
-					push!(X_df, [aux[minute:(minute+regression_step_in_minutes-1), j] for j in 1:length(attributes)])
+				for minute in 1:regression_step_in_minutes:((1440-1)-ignore_last_minutes)
+					# println("Window: [$(minute):$(minute+regression_step_in_minutes-1)]")
+					ts = [
+						moving_average(aux[minute:(minute+regression_step_in_minutes-1), j], ma_size, ma_step)
+						for j in 1:length(attributes)]
+					push!(X_df, ts)
 					push!(Y, (1440-(minute+regression_step_in_minutes-1))/60)
 				end
 			else
@@ -384,6 +394,7 @@ function trip_no_trip(dir::String;
 				X[:, i_attr, i_inst] = channel
 			end
 		end
+		println("size: $(size(X))")
 		X, Y
 	else
 		error("Unknown mode: $(mode) (type = $(typeof(mode)))")
