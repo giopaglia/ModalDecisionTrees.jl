@@ -18,10 +18,10 @@ iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 
-#dry_run = false
+dry_run = false
 # dry_run = :dataset_only
 # dry_run = :model_study
-dry_run = true
+#dry_run = true
 
 skip_training = false
 
@@ -161,7 +161,8 @@ prefer_nonaug_data = true
 
 exec_dataseed = 1:10
 
-exec_datadirname = ["Siemens-Data-Features", "Siemens-Data-Measures"]
+#exec_datadirname = ["Siemens-Data-Features", "Siemens-Data-Measures"]
+exec_datadirname = ["Siemens-Data-Measures"]
 
 exec_use_training_form = [:stump_with_memoization]
 
