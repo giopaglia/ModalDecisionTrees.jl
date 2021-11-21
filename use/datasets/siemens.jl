@@ -321,6 +321,7 @@ function trip_no_trip(dir::String;
 		ignore_last_minutes = 0,
 		ma_size = nothing,
 		ma_step = nothing,
+		ignore_uneven_cuts = true,
 		)
 	X_df = DataFrame()
 	Y = []
@@ -351,13 +352,26 @@ function trip_no_trip(dir::String;
 				push!(X_df, ts)
 				push!(Y, (row.Day < 4 ? "no-trip" : "trip"))
 			elseif mode == :regression
-				for minute in 1:regression_step_in_minutes:((1440-1)-ignore_last_minutes)
-					# println("Window: [$(minute):$(minute+regression_step_in_minutes-1)]")
-					ts = [
-						moving_average(aux[minute:(minute+regression_step_in_minutes-1), j], ma_size, ma_step)
-						for j in 1:length(attributes)]
+				ts_filt = aux[1:end-ignore_last_minutes,:]
+				# ignore_last_minutes=10
+				# regression_step_in_minutes=60
+				# ignore_last_minutes=0
+				# ts_filt = randn(1440-ignore_last_minutes, length(attributes))
+				collect(size(ts_filt, 1):(-regression_step_in_minutes):(1))
+				# for minute in 1:regression_step_in_minutes:(1440-1)-ignore_last_minutes
+				# minute:min((minute+regression_step_in_minutes-1), end)
+				for last_minute in size(ts_filt,1):(-regression_step_in_minutes):(1)
+					idxs = max(1, (last_minute-regression_step_in_minutes+1)):last_minute
+					
+					if ignore_uneven_cuts && length(idxs) != regression_step_in_minutes
+						continue
+					end
+					ts = [moving_average(ts_filt[idxs, j], ma_size, ma_step) for j in 1:length(attributes)]
+					# a .|> (last_minute)-> distance_from_trip = (1440-last_minute)/60
+					distance_from_trip = (1440-last_minute)/60
+					# println("Window:"); display(idxs)
 					push!(X_df, ts)
-					push!(Y, (1440-(minute+regression_step_in_minutes-1))/60)
+					push!(Y, distance_from_trip)
 				end
 			else
 				error("Unknown mode: $(mode) (type = $(typeof(mode)))")

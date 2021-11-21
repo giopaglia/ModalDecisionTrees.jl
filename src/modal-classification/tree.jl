@@ -342,7 +342,7 @@ module treeclassifier
 			end
 
 			if best_consistency != consistency
-				errStr = "Something's wrong with the optimization steps.\n"
+				errStr = "Something's wrong with the optimization steps for relation $(node.relation), feature $(node.feature) and test_operator $(node.test_operator).\n"
 				errStr *= "Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(node.i_frame) with decision: $(decision_str), purity $(best_purity)\n"
 				errStr *= "Different partition was expected:\n"
 				if isa(_perform_consistency_check,Val{true})

@@ -75,7 +75,8 @@ optimize_forest_computation = true
 
 forest_args = []
 # for n_trees in [51,101]
-for n_trees in [51]
+# for n_trees in [51]
+for n_trees in []
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
 			for partial_sampling in [0.7]
