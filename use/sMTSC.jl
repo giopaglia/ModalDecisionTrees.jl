@@ -6,6 +6,8 @@
 
 include("scanner.jl")
 
+using MAT
+
 main_rng = DecisionTree.mk_rng(1)
 
 train_seed = 1
@@ -14,7 +16,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./MTSC-more_dataseeds-v2"
+results_dir = "./MTSC-more_dataseeds-v4"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
@@ -93,6 +95,7 @@ for n_trees in [100]
 		end
 	end
 end
+
 
 
 println(" $(length(forest_args)) forests " * (length(forest_args) > 0 ? "(repeated $(forest_runs) times)" : ""))
@@ -357,6 +360,12 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	dataset, class_counts = concat_labeled_datasets(dataset_train, dataset_test, (class_counts_train, class_counts_test)), (class_counts_train .+ class_counts_test)
 
+	# (X,Y) = dataset
+	# matwrite("$(run_name).mat", Dict(
+	# 	"X" => X,
+	# 	"Y" => Y,
+	# ); compress = true)
+
 	println("train class_distribution: ")
 	println(StatsBase.countmap(dataset_train[2]))
 	println("test class_distribution: ")
@@ -390,9 +399,18 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		println(StatsBase.countmap(dataset[2][train_slice]))
 		println("test class_distribution: ")
 		println(StatsBase.countmap(dataset[2][test_slice]))
-		# println(train_slice)
-		# println(test_slice)
+		println(train_slice)
+		println(test_slice)
 		println("...")
+		
+		# print("ROW: ")
+		# print(dataset_name)
+		# print("\t")
+		# print(dataseed)
+		# print("\t")
+		# print(train_slice)
+		# print("\t")
+		# println(test_slice)
 		break # Note: Assuming this print is the same for all dataseeds
 	end
 	println()

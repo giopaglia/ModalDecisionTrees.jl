@@ -4,6 +4,10 @@
 ################################################################################
 ################################################################################
 
+using SoleBase
+using StatsPlots
+using Plots.PlotMeasures
+
 include("scanner.jl")
 
 train_seed = 1
@@ -12,13 +16,13 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./siemens/TURBOEXPO-regression"
+results_dir = "./siemens/TURBOEXPO-regression-v2-fix-binning"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 
-#dry_run = false
+# dry_run = false
 # dry_run = :dataset_only
 # dry_run = :model_study
 dry_run = true
@@ -161,7 +165,7 @@ prefer_nonaug_data = true
 
 exec_dataseed = 1:10
 
-exec_datadirname = ["Siemens-Data-Features", "Siemens-Data-Measures"]
+exec_datadirname = ["Siemens-Data-Features"]
 
 exec_use_training_form = [:stump_with_memoization]
 
@@ -170,7 +174,7 @@ exec_binning = [
 	(4.0 => "High-Risk", 8.0 => "Risky", Inf => "Low-Risk"),
 ]
 
-exec_ignore_last_minutes = [0, 2*60]
+exec_ignore_last_minutes = [0, 10, 2*60]
 
 exec_moving_average = [
 	(
@@ -456,6 +460,91 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	# Load Dataset
 	dataset, class_counts = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
+
+	X, Y = dataset
+
+	##############################################################################
+	##############################################################################
+	##############################################################################
+
+	# using SoleBase
+	# using StatsPlots
+	# using Plots.PlotMeasures
+
+	# X, Y = randn(19,5,20), rand(0:1, 20)
+
+	# for f in [1]
+	# 	# f = [1][1]
+
+	# 	n_attrs = size(X,2)[end]
+	# 	n_insts = size(X)[end]
+	# 	columns = []
+	# 	for i_attr in 1:n_attrs
+	# 		push!(columns, ([X[:,i_attr,i_inst] for i_inst in 1:n_insts]))
+	# 	end
+	# 	colnames = [string(i) for i in 1:n_attrs]
+	# 	df = DataFrame(columns, colnames)
+	# 	mfd = MultiFrameDataset([1:ncol(df)], df)
+	# 	# ClassificationMultiFrameDataset(Y, mfd)
+
+	# 	for t in [4] # [1,2,4,8,16]
+	# 		# t = 4
+	# 		attr_descrs = describe(mfd; desc = [:mean_m], t = [(t,0,0)])[1]
+	# 		# attr_descrs = describe(mfd; desc = [:mean_m, :min_m, :max_m], t = [(t,0,0)])[1]
+	# 		attr_descr_cols = names(attr_descrs)[2:end]
+	# 		println(attr_descrs)
+	# 		println(attr_descr_cols)
+	# 		for (i_op, op_descr) in enumerate(eachcol(attr_descrs[:,2:end]))
+	# 			# (i_op, op_descr) = collect(enumerate(eachcol(attr_descrs[:,2:end])))[1]
+
+	# 			stackedhists = []
+	# 			op = attr_descr_cols[i_op]
+	# 			for (i_attr, matrix) in enumerate(op_descr)
+	# 				# (i_attr, matrix) = collect(enumerate(op_descr))[1]
+	# 				# matrix = op_descr[1]
+	# 				# println(i_op, op_descr)
+	# 				println(size(matrix))
+	# 				gr()
+	# 				for w in 1:t
+	# 					# w = (1:t)[1]
+	# 					kwargs = begin
+	# 						if w == 1
+	# 							(title = "Histograms",)
+	# 						elseif w == t
+	# 							(xlabel = "Response",)
+	# 						else
+	# 							(;)
+	# 						end
+	# 					end
+	# 					# push!(stackedhists, histogram(matrix[:,w], bins=20, legend=false, ylabel="$(op), $(w)/$(t)", xticks=nothing, kwargs...))
+	# 					push!(stackedhists, histogram(matrix[:,w], bins=20, legend=false, ylabel="$(w), $(i_attr)", xticks=nothing))
+	# 				end
+	# 				# h = histogram([matrix[:,w] for w in 1:t]; bins=20, legend=false, ylabel="$(op), $(t) chunks, $(i_attr) attribute", xticks=nothing, title = "Histograms", xlabel = "Response")
+	# 				# readline()
+	# 				# println(stackedhists |> typeof)
+	# 				# break
+	# 				# println(names(col))
+	# 				# println(matrix)
+	# 				# println(matrix |> typeof)
+	# 			end
+	# 			plot(stackedhists..., layout=(n_attrs,t), size = (1000,500), margin=1mm, title = "$(op)")
+	# 		end
+	# 		break
+	# 	end
+
+	# end
+
+	# histogram2d(x, y)
+
+	# using StatsBase, Plots
+	# h = fit(Histogram, (x, y), nbins=20)
+	# plot(h) # same as histogram2d
+	# wireframe(midpoints(h.edges[1]), midpoints(h.edges[2]), h.weights)
+
+	##############################################################################
+	##############################################################################
+	##############################################################################
+	
 
 	println("class_distribution: ")
 	println(StatsBase.countmap(dataset[2]))
