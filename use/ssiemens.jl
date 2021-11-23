@@ -621,13 +621,13 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	println("Dataseeds = $(todo_dataseeds)")
 
-	for (dataseed,data_slice) in dataset_slices
-		println("class_distribution: ")
-		println(StatsBase.countmap(dataset[2][data_slice]))
-		println("...")
-		break # Note: Assuming this print is the same for all dataseeds
-	end
-	println()
+	# for (dataseed,data_slice) in dataset_slices
+	# 	println("class_distribution: ")
+	# 	println(StatsBase.countmap(dataset[2][data_slice]))
+	# 	println("...")
+	# 	break # Note: Assuming this print is the same for all dataseeds
+	# end
+	# println()
 
 	if dry_run == :dataset_only
 		continue
