@@ -23,8 +23,8 @@ iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 
-# dry_run = false
-dry_run = :dataset_only
+dry_run = false
+# dry_run = :dataset_only
 # dry_run = :model_study
 #dry_run = true
 
@@ -621,13 +621,13 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	println("Dataseeds = $(todo_dataseeds)")
 
-	for (dataseed,data_slice) in dataset_slices
-		println("class_distribution: ")
-		println(StatsBase.countmap(dataset[2][data_slice]))
-		println("...")
-		break # Note: Assuming this print is the same for all dataseeds
-	end
-	println()
+	# for (dataseed,data_slice) in dataset_slices
+	# 	println("class_distribution: ")
+	# 	println(StatsBase.countmap(dataset[2][data_slice]))
+	# 	println("...")
+	# 	break # Note: Assuming this print is the same for all dataseeds
+	# end
+	# println()
 
 	if dry_run == :dataset_only
 		continue
