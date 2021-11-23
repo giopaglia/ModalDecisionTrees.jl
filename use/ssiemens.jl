@@ -23,8 +23,8 @@ iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 
-# dry_run = false
-dry_run = :dataset_only
+dry_run = false
+# dry_run = :dataset_only
 # dry_run = :model_study
 #dry_run = true
 
@@ -147,7 +147,7 @@ round_dataset_to_datatype = false
 # round_dataset_to_datatype = Float64
 
 # traintest_threshold = 0.8
-train_instances_per_class = 100
+train_instances_per_class = 90
 
 split_threshold = 1.0
 # split_threshold = 0.8
