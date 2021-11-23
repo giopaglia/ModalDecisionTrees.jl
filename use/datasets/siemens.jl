@@ -317,7 +317,8 @@ function trip_no_trip(dir::String;
 		ignore_class0 = true,
 		only_consider_trip_days = true,
 		mode::Symbol = :classification, # :classification, :regression
-		regression_step_in_minutes = 60,
+		regression_window_in_minutes = 60,
+		regression_step_in_minutes = 1,
 		ignore_last_minutes = 0,
 		ma_size = nothing,
 		ma_step = nothing,
@@ -352,23 +353,25 @@ function trip_no_trip(dir::String;
 				push!(X_df, ts)
 				push!(Y, (row.Day < 4 ? "no-trip" : "trip"))
 			elseif mode == :regression
+				ts_n_points = size(aux, 1)
 				ts_filt = aux[1:end-ignore_last_minutes,:]
+				ts_filt_n_points = size(ts_filt, 1)
 				# ignore_last_minutes=10
 				# regression_step_in_minutes=60
 				# ignore_last_minutes=0
 				# ts_filt = randn(1440-ignore_last_minutes, length(attributes))
-				collect(size(ts_filt, 1):(-regression_step_in_minutes):(1))
+				collect(ts_filt_n_points:(-regression_step_in_minutes):(1))
 				# for minute in 1:regression_step_in_minutes:(1440-1)-ignore_last_minutes
 				# minute:min((minute+regression_step_in_minutes-1), end)
-				for last_minute in size(ts_filt,1):(-regression_step_in_minutes):(1)
-					idxs = max(1, (last_minute-regression_step_in_minutes+1)):last_minute
-					
-					if ignore_uneven_cuts && length(idxs) != regression_step_in_minutes
+				for last_minute in ts_filt_n_points:(-regression_step_in_minutes):(1)
+					idxs = max(1, (last_minute-regression_window_in_minutes+1)):last_minute
+					# println("Window $(idxs)")
+					if ignore_uneven_cuts && length(idxs) != regression_window_in_minutes
 						continue
 					end
 					ts = [moving_average(ts_filt[idxs, j], ma_size, ma_step) for j in 1:length(attributes)]
 					# a .|> (last_minute)-> distance_from_trip = (1440-last_minute)/60
-					distance_from_trip = (1440-last_minute)/60
+					distance_from_trip = (ts_n_points-last_minute)/60
 					# println("Window:"); display(idxs)
 					push!(X_df, ts)
 					push!(Y, distance_from_trip)

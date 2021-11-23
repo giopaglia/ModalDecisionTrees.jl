@@ -4,11 +4,12 @@
 ################################################################################
 ################################################################################
 
+include("scanner.jl")
+
 using SoleBase
 using StatsPlots
 using Plots.PlotMeasures
 
-include("scanner.jl")
 
 train_seed = 1
 
@@ -22,8 +23,8 @@ iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 
-dry_run = false
-# dry_run = :dataset_only
+# dry_run = false
+dry_run = :dataset_only
 # dry_run = :model_study
 #dry_run = true
 
@@ -145,7 +146,11 @@ round_dataset_to_datatype = false
 # round_dataset_to_datatype = Float32
 # round_dataset_to_datatype = Float64
 
-split_threshold = 0.8
+# traintest_threshold = 0.8
+train_instances_per_class = 100
+
+split_threshold = 1.0
+# split_threshold = 0.8
 # split_threshold = 1.0
 # split_threshold = false
 
@@ -175,7 +180,9 @@ exec_binning = [
 	(4.0 => "High-Risk", 8.0 => "Risky", Inf => "Low-Risk"),
 ]
 
-exec_ignore_last_minutes = [0, 10, 2*60]
+exec_ignore_last_minutes = [10] # , 2*60]
+exec_regression_step_in_minutes = [1]
+exec_regression_window_in_minutes = [60]
 
 exec_moving_average = [
 	(
@@ -198,15 +205,19 @@ exec_ranges = (;
 	binning                                      = exec_binning,
 	ignore_last_minutes                          = exec_ignore_last_minutes,
 	moving_average                               = exec_moving_average,
+	regression_window_in_minutes                 = exec_regression_window_in_minutes,
+	regression_step_in_minutes                   = exec_regression_step_in_minutes,
 )
 
 
-dataset_function = (datadirname, binning, ignore_last_minutes, moving_average)->begin
+dataset_function = (datadirname, binning, ignore_last_minutes, moving_average, regression_window_in_minutes, regression_step_in_minutes)->begin
 	SiemensDataset_regression(datadirname;
 		moving_average...,
 		only_consider_trip_days = true,
 		binning = binning,
 		ignore_last_minutes = ignore_last_minutes,
+		regression_window_in_minutes = regression_window_in_minutes,
+		regression_step_in_minutes = regression_step_in_minutes,
 	)
 end
 
@@ -365,8 +376,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	##############################################################################
 	
-	datadirname, use_training_form, binning, ignore_last_minutes, moving_average = params_combination
-	dataset_fun_sub_params = (datadirname, binning, ignore_last_minutes, moving_average)
+	datadirname, use_training_form, binning, ignore_last_minutes, moving_average, regression_window_in_minutes, regression_step_in_minutes = params_combination
+	dataset_fun_sub_params = (datadirname, binning, ignore_last_minutes, moving_average, regression_window_in_minutes, regression_step_in_minutes)
 	
 	cur_modal_args = modal_args
 	cur_data_modal_args = data_modal_args
@@ -488,49 +499,100 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	# 	mfd = MultiFrameDataset([1:ncol(df)], df)
 	# 	# ClassificationMultiFrameDataset(Y, mfd)
 
-	# 	for t in [4] # [1,2,4,8,16]
+	# 	for t in [1] # ,2,4,8,16] # TODO eventualmente fissarlo.
 	# 		# t = 4
-	# 		attr_descrs = describe(mfd; desc = [:mean_m], t = [(t,0,0)])[1]
-	# 		# attr_descrs = describe(mfd; desc = [:mean_m, :min_m, :max_m], t = [(t,0,0)])[1]
-	# 		attr_descr_cols = names(attr_descrs)[2:end]
-	# 		println(attr_descrs)
-	# 		println(attr_descr_cols)
-	# 		for (i_op, op_descr) in enumerate(eachcol(attr_descrs[:,2:end]))
-	# 			# (i_op, op_descr) = collect(enumerate(eachcol(attr_descrs[:,2:end])))[1]
+	# 		# description = describe(mfd; desc = [:mean_m], t = [(t,0,0)])[1]
+	# 		# TODO add catch22
+	# 		description = describe(mfd; desc = [:mean_m, :min_m, :max_m], t = [(t,0,0)])[1]
+	# 		attr_descr_cols = names(description)[2:end]
+	# 		# println(description)
+	# 		# println(attr_descr_cols)
 
-	# 			stackedhists = []
-	# 			op = attr_descr_cols[i_op]
-	# 			for (i_attr, matrix) in enumerate(op_descr)
-	# 				# (i_attr, matrix) = collect(enumerate(op_descr))[1]
-	# 				# matrix = op_descr[1]
-	# 				# println(i_op, op_descr)
-	# 				println(size(matrix))
-	# 				gr()
-	# 				for w in 1:t
-	# 					# w = (1:t)[1]
-	# 					kwargs = begin
-	# 						if w == 1
-	# 							(title = "Histograms",)
-	# 						elseif w == t
-	# 							(xlabel = "Response",)
-	# 						else
-	# 							(;)
-	# 						end
-	# 					end
-	# 					# push!(stackedhists, histogram(matrix[:,w], bins=20, legend=false, ylabel="$(op), $(w)/$(t)", xticks=nothing, kwargs...))
-	# 					push!(stackedhists, histogram(matrix[:,w], bins=20, legend=false, ylabel="$(w), $(i_attr)", xticks=nothing))
-	# 				end
-	# 				# h = histogram([matrix[:,w] for w in 1:t]; bins=20, legend=false, ylabel="$(op), $(t) chunks, $(i_attr) attribute", xticks=nothing, title = "Histograms", xlabel = "Response")
-	# 				# readline()
-	# 				# println(stackedhists |> typeof)
-	# 				# break
-	# 				# println(names(col))
-	# 				# println(matrix)
-	# 				# println(matrix |> typeof)
-	# 			end
-	# 			plot(stackedhists..., layout=(n_attrs,t), size = (1000,500), margin=1mm, title = "$(op)")
+	# 		# max_mean = mean([v for values in description[:,:mean_m] for v in values])
+	# 		# plot(collect(1:n_attrs), [description[band,:mean_m][1] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
+	# 		# for i_inst in 2:(nrow(new_dataset)-1)
+	# 		# 	plot!(collect(1:n_attrs), [description[band,:mean_m][i_inst] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
+	# 		# end
+	# 		# all_plot = plot!(collect(1:n_attrs), [description[band,:mean_m][nrow(new_dataset)] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
+
+	# 		d = SoleBase.SoleData.SoleDataset._stat_description(description; functions = Function[mean, var, std])
+	# 		# p = plot(
+	# 		# 	[
+	# 		# 		plot(collect(1:n_attrs), [v[1] for v in d[:,feat_symb]], size = (1080, 1080), title = string(feat_symb), xticks = 1:n_attrs)
+	# 		# 		for feat_symb in [
+	# 		# 				:mean_m_mean, :mean_m_var, :mean_m_std,
+	# 		# 				:min_m_mean, :min_m_var, :min_m_std,
+	# 		# 				:max_m_mean, :max_m_var, :max_m_std]
+	# 		# 	]...
+	# 		# 	layout = (3, 3),
+	# 		# )
+
+	# 		# display(p)
+	# 		# readline()
+			
+	# 		p = begin
+	# 			feat_symb = :mean_m_var
+	# 			ys = [v[1] for v in d[:,feat_symb]]
+	# 			sp = sortperm(ys, rev = true)
+	# 			println(sp)
+	# 			plot(collect(1:n_attrs), ys[sp]; size = (1080, 1080), title = string(feat_symb), xticks = (1:n_attrs,sp))
 	# 		end
-	# 		break
+
+	# 		# p = plot(
+	# 		# 	[
+	# 		# 		begin
+	# 		# 			ys = [v[1] for v in d[:,feat_symb]]
+	# 		# 			sp = sortperm(ys, rev=true)
+	# 		# 			println(sp)
+	# 		# 			plot(collect(1:n_attrs), ys[sp]; size = (1080, 1080), title = string(feat_symb), xticks = sp)
+	# 		# 		end for feat_symb in [
+	# 		# 			:mean_m_var,
+	# 		# 			:min_m_var,
+	# 		# 			:max_m_var,
+	# 		# 		]
+	# 		# 	]...;
+	# 		# 	layout = (3, 1),
+	# 		# 	xticks = (ys = [v[1] for v in d[:,:mean_m_var]]; sp = sortperm(ys, rev=true)),
+	# 		# )
+
+	# 		display(p)
+
+	# 		# for (i_op, op_descr) in enumerate(eachcol(description[:,2:end]))
+	# 		# 	# (i_op, op_descr) = collect(enumerate(eachcol(description[:,2:end])))[1]
+
+	# 		# 	stackedhists = []
+	# 		# 	op = attr_descr_cols[i_op]
+	# 		# 	for (i_attr, matrix) in enumerate(op_descr)
+	# 		# 		# (i_attr, matrix) = collect(enumerate(op_descr))[1]
+	# 		# 		# matrix = op_descr[1]
+	# 		# 		# println(i_op, op_descr)
+	# 		# 		println(size(matrix))
+	# 		# 		gr()
+	# 		# 		for w in 1:t
+	# 		# 			# w = (1:t)[1]
+	# 		# 			kwargs = begin
+	# 		# 				if w == 1
+	# 		# 					(title = "Histograms",)
+	# 		# 				elseif w == t
+	# 		# 					(xlabel = "Response",)
+	# 		# 				else
+	# 		# 					(;)
+	# 		# 				end
+	# 		# 			end
+	# 		# 			# push!(stackedhists, histogram(matrix[:,w], bins=20, legend=false, ylabel="$(op), $(w)/$(t)", xticks=nothing, kwargs...))
+	# 		# 			push!(stackedhists, histogram(matrix[:,w], bins=20, legend=false, ylabel="$(w), $(i_attr)", xticks=nothing))
+	# 		# 		end
+	# 		# 		# h = histogram([matrix[:,w] for w in 1:t]; bins=20, legend=false, ylabel="$(op), $(t) chunks, $(i_attr) attribute", xticks=nothing, title = "Histograms", xlabel = "Response")
+	# 		# 		# readline()
+	# 		# 		# println(stackedhists |> typeof)
+	# 		# 		# break
+	# 		# 		# println(names(col))
+	# 		# 		# println(matrix)
+	# 		# 		# println(matrix |> typeof)
+	# 		# 	end
+	# 		# 	plot(stackedhists..., layout=(n_attrs,t), size = (1000,500), margin=1mm, title = "$(op)")
+	# 		# end
+	# 		readline()
 	# 	end
 
 	# end
@@ -554,7 +616,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	## Dataset slices
 	# obtain dataseeds that are were not done before
 	todo_dataseeds = filter((dataseed)->!iteration_in_history(history, (params_namedtuple, dataseed)), exec_dataseed)
-	dataset_slices = [(dataseed, balanced_dataset_slice(class_counts, dataseed)) for dataseed in todo_dataseeds]
+	# dataset_slices = [(dataseed, balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = minimum(class_counts)*traintest_threshold, also_return_discarted = true)) for dataseed in todo_dataseeds]
+	dataset_slices = [(dataseed, balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = train_instances_per_class, also_return_discarted = true)) for dataseed in todo_dataseeds]
 
 	println("Dataseeds = $(todo_dataseeds)")
 
