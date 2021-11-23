@@ -1229,6 +1229,12 @@ git-tree-sha1 = "2b7c3213ed4f2eed686f9f531f85d3ea2f75286f"
 uuid = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 version = "0.7.9"
 
+[[NPZ]]
+deps = ["Compat", "ZipFile"]
+git-tree-sha1 = "fbfb3c151b0308236d854c555b43cdd84c1e5ebf"
+uuid = "15e1cf62-19b3-5cfa-8e77-841668bca605"
+version = "0.4.1"
+
 [[NaNMath]]
 git-tree-sha1 = "bfe47e760d60b82b66b61d2d44128b62e3a369fb"
 uuid = "77ba4419-2d1f-58cd-9bb1-8ffee604a2e3"
@@ -1635,7 +1641,9 @@ uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 
 [[SoleBase]]
 deps = ["CSV", "Catch22", "DataFrames", "Reexport", "ScientificTypes", "Statistics"]
-path = "/home/gio/.julia/dev/SoleBase"
+git-tree-sha1 = "8dd1bfefe6d8f5565fed9e7f0448867aa3afb697"
+repo-rev = "load-dataset-function/lorebalbo"
+repo-url = "https://github.com/aclai-lab/SoleBase.jl"
 uuid = "142d03a6-36c4-4bac-9273-c7ed2abbbb4d"
 version = "0.1.0"
 
