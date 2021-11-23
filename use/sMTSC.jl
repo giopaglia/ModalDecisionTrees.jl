@@ -6,7 +6,8 @@
 
 include("scanner.jl")
 
-using MAT
+# using MAT
+using NPZ
 
 main_rng = DecisionTree.mk_rng(1)
 
@@ -16,7 +17,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./MTSC-more_dataseeds-v4"
+results_dir = "./MTSC-more_dataseeds-v5-better"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
@@ -203,6 +204,7 @@ exec_dataset_name = [
 ]
 
 # exec_flatten_ontology = [(false,"interval2D")] # ,(true,"one_world")]
+# exec_use_catch22_flatten_ontology = [(false,false,"interval")]
 exec_use_catch22_flatten_ontology = [(false,false,"interval"),(false,true,"one_world"),(true,true,"one_world")]
 
 ontology_dict = Dict(
@@ -360,11 +362,17 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	dataset, class_counts = concat_labeled_datasets(dataset_train, dataset_test, (class_counts_train, class_counts_test)), (class_counts_train .+ class_counts_test)
 
-	# (X,Y) = dataset
+	(X,Y) = dataset
+
 	# matwrite("$(run_name).mat", Dict(
 	# 	"X" => X,
 	# 	"Y" => Y,
 	# ); compress = true)
+
+	# class_names = unique(Y)
+	# npzwrite("$(run_name)-X.npy", X[1])
+	# npzwrite("$(run_name)-Y.npy", map((y)->(findfirst((x)->x==y,class_names)), Y))
+	# npzwrite("$(run_name)-class_names.npy", Dict([c => i for (i,c) in enumerate(class_names)]))
 
 	println("train class_distribution: ")
 	println(StatsBase.countmap(dataset_train[2]))
