@@ -362,7 +362,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	dataset, class_counts = concat_labeled_datasets(dataset_train, dataset_test, (class_counts_train, class_counts_test)), (class_counts_train .+ class_counts_test)
 
-	(X,Y) = dataset
+	# (X,Y) = dataset
 
 	# matwrite("$(run_name).mat", Dict(
 	# 	"X" => X,

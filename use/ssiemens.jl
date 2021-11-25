@@ -7,11 +7,14 @@
 include("scanner.jl")
 
 using SoleBase
+using SoleBase: dimension
+using SoleVisualizations
 using StatsPlots
 using Plots.PlotMeasures
 
 
 train_seed = 1
+
 
 ################################################################################
 #################################### FOLDERS ###################################
@@ -146,8 +149,8 @@ round_dataset_to_datatype = false
 # round_dataset_to_datatype = Float32
 # round_dataset_to_datatype = Float64
 
-# traintest_threshold = 0.8
-train_instances_per_class = 90
+traintest_threshold = 0.8
+# train_instances_per_class = 100
 
 split_threshold = 1.0
 # split_threshold = 0.8
@@ -181,7 +184,8 @@ exec_binning = [
 ]
 
 exec_ignore_last_minutes = [10] # , 2*60]
-exec_regression_step_in_minutes = [1]
+# exec_regression_step_in_minutes = [1]
+exec_regression_step_in_minutes = [60]
 exec_regression_window_in_minutes = [60]
 
 exec_moving_average = [
@@ -485,19 +489,28 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	# X, Y = randn(19,5,20), rand(0:1, 20)
 
-	# for f in [1]
-	# 	# f = [1][1]
+	for f in [1]
+		# f = [1][1]
 
-	# 	n_attrs = size(X,2)[end]
-	# 	n_insts = size(X)[end]
-	# 	columns = []
-	# 	for i_attr in 1:n_attrs
-	# 		push!(columns, ([X[:,i_attr,i_inst] for i_inst in 1:n_insts]))
-	# 	end
-	# 	colnames = [string(i) for i in 1:n_attrs]
-	# 	df = DataFrame(columns, colnames)
-	# 	mfd = MultiFrameDataset([1:ncol(df)], df)
-	# 	# ClassificationMultiFrameDataset(Y, mfd)
+		n_attrs = size(X,2)[end]
+		n_insts = size(X)[end]
+		columns = []
+		for i_attr in 1:n_attrs
+			push!(columns, ([X[:,i_attr,i_inst] for i_inst in 1:n_insts]))
+		end
+		colnames = [string(i) for i in 1:n_attrs]
+		df = DataFrame(columns, colnames)
+		mfd = MultiFrameDataset([1:ncol(df)], df)
+		# ClassificationMultiFrameDataset(Y, mfd)
+
+		# println(mfd)
+
+		p = SoleVisualizations.plotdescription(mfd)[1]
+
+		plot!(p; size = (1920, 1080))
+		savefig(p, "plotdescription-$(run_name).png")
+
+		display(p)
 
 	# 	for t in [1] # ,2,4,8,16] # TODO eventualmente fissarlo.
 	# 		# t = 4
@@ -595,7 +608,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	# 		readline()
 	# 	end
 
-	# end
+	end
 
 	# histogram2d(x, y)
 
@@ -616,8 +629,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	## Dataset slices
 	# obtain dataseeds that are were not done before
 	todo_dataseeds = filter((dataseed)->!iteration_in_history(history, (params_namedtuple, dataseed)), exec_dataseed)
-	# dataset_slices = [(dataseed, balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = minimum(class_counts)*traintest_threshold, also_return_discarted = true)) for dataseed in todo_dataseeds]
-	dataset_slices = [(dataseed, balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = train_instances_per_class, also_return_discarted = true)) for dataseed in todo_dataseeds]
+	dataset_slices = [(dataseed, balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = floor(Int, minimum(class_counts)*traintest_threshold), also_return_discarted = true)) for dataseed in todo_dataseeds]
+	# dataset_slices = [(dataseed, balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = train_instances_per_class, also_return_discarted = true)) for dataseed in todo_dataseeds]
 
 	println("Dataseeds = $(todo_dataseeds)")
 

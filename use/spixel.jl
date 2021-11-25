@@ -365,7 +365,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	test_operators = test_operators_dict[test_operators]
 	ontology       = ontology_dict[ontology]
 
-	dataset_fun_sub_params = (windowsize,apply_filter,flattened,test_operators), n_samples_per_class,n_attributes, dataset_name
+	dataset_fun_sub_params = (windowsize,apply_filter,flattened,test_operators), n_samples_per_class, n_attributes, dataset_name
 	
 	# Load Dataset
 	dataset, class_counts = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function

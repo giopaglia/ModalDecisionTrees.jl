@@ -32,7 +32,7 @@ mutable struct ModalFrame <: AbstractVector{SubDataFrame}
 	views::Vector{DataFrameRow} # intraframe instances (i.e., first, second, .., series)
 end
 
-dimension(mf::ModalFrame) = mf.dimension
+mfd_dimension(mf::ModalFrame) = mf.dimension
 
 @inline function ModalFrame(data::DataFrame)
 	colnames = names(data)
@@ -117,7 +117,7 @@ function ClassificationDataset(frames::Vector{ModalFrame}, classes::CategoricalA
 		end
 	end
 
-	ldim, hdim = extrema([dimension(i) for i in frames])
+	ldim, hdim = extrema([mfd_dimension(i) for i in frames])
 
 	ClassificationDataset(ldim, hdim, frames, instances, domains, classes, unique(classes))
 end
