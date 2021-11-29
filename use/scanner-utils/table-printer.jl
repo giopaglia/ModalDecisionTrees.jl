@@ -123,7 +123,7 @@ end
 # Print a tree entry in a row
 function data_to_string(
 		M::DTree,
-		cm::ConfusionMatrix,
+		cm::GenericPerformanceType,
 		time::Dates.Millisecond,
 		hash::AbstractString,
 		columns::AbstractVector;
@@ -159,11 +159,15 @@ function data_to_string(
 			elseif column == "n_nodes"
 				num_nodes(M)        
 			elseif column == "n_leaves"
-				length(M)        
+				length(M)
 			elseif column == "height"
-				height(M)        
+				height(M)
 			elseif column == "modal_height"
 				modal_height(M)
+			elseif column == "MAE"
+				cm.MAE
+			elseif column == "RMSE"
+				cm.RMSE
 			else
 				"??? $(column) ???"
 		end, alt_separator) # (i_col == length(columns) ? "", alt_separator))
@@ -184,7 +188,7 @@ end
 # Print a forest entry in a row
 function data_to_string(
 		Ms::AbstractVector{Forest{S}},
-		cms::AbstractVector{ConfusionMatrix},
+		cms::AbstractVector{GenericPerformanceType},
 		time::Dates.Millisecond,
 		hash::AbstractString,
 		columns::AbstractVector;
@@ -223,6 +227,10 @@ function data_to_string(
 				percent(mean(num_nodes.(Ms)))
 			elseif column == "oob_error"
 				percent(mean(map(M->M.oob_error, Ms)))
+			elseif column == "MAE"
+				mean(map(cm->cm.MAE,          cms))
+			elseif column == "RMSE"
+				mean(map(cm->cm.RMSE,          cms))
 			else
 				"??? $(column) ???"
 		end, (i_col == length(columns) ? "" : alt_separator))
@@ -256,6 +264,10 @@ function data_to_string(
 				percent(var(num_nodes.(Ms)))
 			elseif column == "oob_error"
 				percent(var(map(M->M.oob_error, Ms)))
+			elseif column == "MAE"
+				var(map(cm->cm.MAE,          cms))
+			elseif column == "RMSE"
+				var(map(cm->cm.RMSE,          cms))
 			else
 				"??? $(column) ???"
 		end, (i_col == length(columns) ? "" : alt_separator))

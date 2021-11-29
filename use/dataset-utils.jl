@@ -144,7 +144,7 @@ function balanced_dataset_slice(
 				# Note: not stratified!!!
 				dataset_slice = Vector{Int64}(filter(!isnothing, dataset_slice[:]))
 			else
-				error("Unknwon typeof(n_samples_per_class): $(typeof(n_samples_per_class))")
+				error("Unknown typeof(n_samples_per_class): $(typeof(n_samples_per_class))")
 			end
 		end
 

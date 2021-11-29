@@ -37,8 +37,8 @@ abstract type Support end
 mutable struct ForestEvaluationSupport <: Support
 	f::Union{Nothing,Support,AbstractVector{Forest{S}}} where {S}
 	f_args::NamedTuple{T, N} where {T, N}
-	cm_train::Union{Nothing,AbstractVector{<:ConfusionMatrix}}
-	cm::Union{Nothing,AbstractVector{<:ConfusionMatrix}}
+	cm_train::Union{Nothing,AbstractVector{<:GenericPerformanceType}}
+	cm::Union{Nothing,AbstractVector{<:GenericPerformanceType}}
 	hash::AbstractString
 	time::Dates.Millisecond
 	enqueued::Bool
@@ -166,7 +166,7 @@ include("dataset-utils.jl")
 				elseif isa(dataset_slice, NTuple{2,<:AbstractVector{<:Integer}})
 					println("train slice: $(dataset_slice[1])")
 					println("test  slice: $(dataset_slice[2])")
-					@assert isone(split_threshold) || iszero(split_threshold) "Can't set a split_threshold (value: $(split_threshold)) when specifying a split dataset_slice (type: $(gettype(dataset_slice)))"
+					@assert isone(split_threshold) || iszero(split_threshold) "Can't set a split_threshold (value: $(split_threshold)) when specifying a split dataset_slice (type: $(typeof(dataset_slice)))"
 					(
 						ModalLogic.slice_dataset(X_to_train, dataset_slice[1], return_view = true),
 						Y[dataset_slice[1]],
@@ -236,7 +236,7 @@ include("dataset-utils.jl")
 						Y_test,
 					)
 				elseif isa(dataset_slice, NTuple{2,<:AbstractVector{<:Integer}})
-					@assert isone(split_threshold) || iszero(split_threshold) "Can't set a split_threshold (value: $(split_threshold)) when specifying a split dataset_slice (type: $(gettype(dataset_slice)))"
+					@assert isone(split_threshold) || iszero(split_threshold) "Can't set a split_threshold (value: $(split_threshold)) when specifying a split dataset_slice (type: $(typeof(dataset_slice)))"
 					throw_n_log("TODO expand code. When isa(dataset_slice, NTuple{2,<:AbstractVector{<:Integer}}) and the dataset is already splitted, must also test on the validation data! Maybe when the dataset is already splitted into ((X_train, Y_train), (X_test, Y_test)), join it and create a dummy dataset_slice")
 					(
 						ModalLogic.slice_dataset(X_to_train, dataset_slice[1], return_view = true),
@@ -437,6 +437,7 @@ end
 function exec_scan(
 		params_namedtuple               ::NamedTuple,
 		dataset                         ::Tuple;
+		is_regression_problem           = false,
 		### Training params
 		train_seed                      = 1,
 		modal_args                      = (),
@@ -493,17 +494,26 @@ function exec_scan(
 
 	results_col_sep = "\t"
 	
-	base_metrics_names = [
-		"train_accuracy",
-		"K",
-		"accuracy",
-		"macro_sensitivity",
-		"safe_macro_sensitivity",
-		"safe_macro_specificity",
-		"safe_macro_PPV",
-		"safe_macro_NPV",
-		"safe_macro_F1",
-	]
+	base_metrics_names = begin
+			if is_regression_problem
+			[
+				"MAE",
+				"RMSE",
+			]
+		else
+			[
+				"train_accuracy",
+				"K",
+				"accuracy",
+				"macro_sensitivity",
+				"safe_macro_sensitivity",
+				"safe_macro_specificity",
+				"safe_macro_PPV",
+				"safe_macro_NPV",
+				"safe_macro_F1",
+			]
+		end
+	end
 
 	# TODO restore best_rule_params
 	# tree_columns = [base_metrics_names..., "n_nodes", ["best_rule_p $(best_rule_p)" for best_rule_p in best_rule_params]..., "t", "hash"]
@@ -517,26 +527,35 @@ function exec_scan(
 		"t", "hash"
 	]
 
-	dataset_shape_functions = OrderedDict(
-		"# insts (TRAIN)"  => (X_train, Y_train, X_test, Y_test)->length(Y_train),
-		"# insts (TEST)"   => (X_train, Y_train, X_test, Y_test)->length(Y_test),
-		#
-		"class_counts (TRAIN)"     => (X_train, Y_train, X_test, Y_test)->begin
-			m = StatsBase.countmap(Y_train)
-			ks = keys(m) |> collect |> sort
-			Tuple([m[k] for k in ks])
-		end,
-		"class_counts (TEST)"     => (X_train, Y_train, X_test, Y_test)->begin
-			m = StatsBase.countmap(Y_test)
-			ks = keys(m) |> collect |> sort
-			Tuple([m[k] for k in ks])
-		end,
-		#
-		# "n_attributes"     => (X_train, Y_train, X_test, Y_test)->n_attributes(X_train),
-		"n_features"       => (X_train, Y_train, X_test, Y_test)->n_features(X_train),
-		"channel_size"     => (X_train, Y_train, X_test, Y_test)->channel_size(X_test),
-		# "avg_channel_size" => (X_train, Y_train, X_test, Y_test)->?,
-	)
+	dataset_shape_functions = begin
+		if is_regression_problem
+			OrderedDict(
+				"# insts (TRAIN)"  => (X_train, Y_train, X_test, Y_test)->length(Y_train),
+				"# insts (TEST)"   => (X_train, Y_train, X_test, Y_test)->length(Y_test),
+			)
+		else
+			OrderedDict(
+				"# insts (TRAIN)"  => (X_train, Y_train, X_test, Y_test)->length(Y_train),
+				"# insts (TEST)"   => (X_train, Y_train, X_test, Y_test)->length(Y_test),
+				#
+				"class_counts (TRAIN)"     => (X_train, Y_train, X_test, Y_test)->begin
+					m = StatsBase.countmap(Y_train)
+					ks = keys(m) |> collect |> sort
+					Tuple([m[k] for k in ks])
+				end,
+				"class_counts (TEST)"     => (X_train, Y_train, X_test, Y_test)->begin
+					m = StatsBase.countmap(Y_test)
+					ks = keys(m) |> collect |> sort
+					Tuple([m[k] for k in ks])
+				end,
+				#
+				# "n_attributes"     => (X_train, Y_train, X_test, Y_test)->n_attributes(X_train),
+				"n_features"       => (X_train, Y_train, X_test, Y_test)->n_features(X_train),
+				"channel_size"     => (X_train, Y_train, X_test, Y_test)->channel_size(X_test),
+				# "avg_channel_size" => (X_train, Y_train, X_test, Y_test)->?,
+			)
+		end
+	end
 
 	if isnothing(dataset_shape_columns)
 		dataset_shape_columns = collect(keys(dataset_shape_functions))
@@ -610,8 +629,15 @@ function exec_scan(
 			cm = confusion_matrix(Y_test, preds)
 			# @test overall_accuracy(cm) > 0.99
 
-			println("RESULT:\t$(run_name)\t$(slice_id)\t$(tree_args)\t$(modal_args)\t$(pruning_purity_threshold)\t|\t$(display_cm_as_row(cm))\t$(model_save_path)")
-			
+			cm_str = begin
+				if is_regression_problem
+					display(cm)
+				else
+					display_cm_as_row(cm)
+				end
+			end
+			println("RESULT:\t$(run_name)\t$(slice_id)\t$(tree_args)\t$(modal_args)\t$(pruning_purity_threshold)\t|\t$(cm_str)\t$(model_save_path)")
+
 			println(cm)
 			# @show cm
 
@@ -654,8 +680,8 @@ function exec_scan(
 			print(F)
 		end
 		
-		cms = ConfusionMatrix[]
-		cms_train = ConfusionMatrix[]
+		cms = GenericPerformanceType[]
+		cms_train = GenericPerformanceType[]
 		hashes = []
 		for F in Fs
 			println(" test size = $(size(X_test))")
@@ -676,16 +702,26 @@ function exec_scan(
 
 				checkpoint_stdout("Saving random_forest to file $(model_save_path)...")
 				JLD2.@save model_save_path F
+			end    
+  
+			cm_str = begin
+				if is_regression_problem
+					display(cm)
+				else
+					display_cm_as_row(cm)
+				end
 			end
 
-			println("RESULT:\t$(run_name)\t$(slice_id)\t$(f_args)\t$(modal_args)\t$(display_cm_as_row(cm))\t$(model_save_path)")
+			println("RESULT:\t$(run_name)\t$(slice_id)\t$(f_args)\t$(modal_args)\t$(cm_str)\t$(model_save_path)")
 
-			# println("  accuracy: ", round(overall_accuracy(cm)*100, digits=2), "% kappa: ", round(cm.kappa*100, digits=2), "% ")
-			for (i,row) in enumerate(eachrow(cm.matrix))
-				for val in row
-					print(lpad(val,3," "))
+			if !is_regression_problem
+				# println("  accuracy: ", round(overall_accuracy(cm)*100, digits=2), "% kappa: ", round(cm.kappa*100, digits=2), "% ")
+				for (i,row) in enumerate(eachrow(cm.matrix))
+					for val in row
+						print(lpad(val,3," "))
+					end
+					println("  " * "$(round(100*row[i]/sum(row), digits=2))%\t\t" * cm.classes[i])
 				end
-				println("  " * "$(round(100*row[i]/sum(row), digits=2))%\t\t" * cm.classes[i])
 			end
 
 			println("Forest OOB Error: $(round.(F.oob_error.*100, digits=2))%")
@@ -771,7 +807,7 @@ function exec_scan(
 			# put resulting forests in vector in the order the user gave them
 			for (i, f) in enumerate(forest_supports_user_order)
 				@assert f.f isa AbstractVector{Forest{S}} where {S} "This is not a Vector of Forests! eltype = $(eltype(f.f))"
-				@assert f.cm isa AbstractVector{ConfusionMatrix} "This is not a Vector of ConfusionMatrix!"
+				@assert f.cm isa AbstractVector{<:GenericPerformanceType} "This is not a Vector of <:GenericPerformanceType!"
 				@assert length(f.f) == forest_runs "There is a support struct with less than $(forest_runs) forests: $(length(f.f))"
 				@assert length(f.cm) == forest_runs "There is a support struct with less than $(forest_runs) confusion matrices: $(length(f.cm))"
 				@assert f.f_args == forest_args[i] "f_args mismatch! $(f.f_args) == $(f_args[i])"
@@ -830,6 +866,15 @@ function exec_scan(
 		# )
 
 		# PRINT FULL
+		# println(typeof(X_train))
+		# println(typeof(X_test))
+		# println(length(Y_train))
+		# println(typeof(Y_train))
+		# println(length(Y_test))
+		# println(typeof(Y_test))
+		# println(n_samples(X_train))
+		# println(n_samples(X_test))
+
 		print_result_row(
 			[
 				slice_id,
