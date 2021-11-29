@@ -3,9 +3,10 @@
 
 module util
 
-	export Label, gini, entropy, zero_one, q_bi_sort!
+	export gini, entropy, zero_one, q_bi_sort!
 
 	const Label = Int
+	const RegressionLabel = Float64 # AbstractFloat
 	
 	# This function translates a list of labels into categorical form
 	function assign(Y :: AbstractVector{T}) where T

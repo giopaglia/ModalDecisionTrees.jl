@@ -172,11 +172,18 @@ end
 
 struct Forest{S}
 	trees       :: AbstractVector{<:DTree{S}}
-	cm          :: AbstractVector{<:ConfusionMatrix}
+	cm          :: Union{
+		AbstractVector{<:ConfusionMatrix},
+		AbstractVector{<:PerformanceStruct}, #where {N},
+	}
 	oob_error   :: AbstractFloat
+
 	function Forest{S}(
 		trees       :: AbstractVector{<:DTree{S}},
-		cm          :: AbstractVector{<:ConfusionMatrix},
+		cm          :: Union{
+			AbstractVector{<:ConfusionMatrix},
+			AbstractVector{<:PerformanceStruct}, #where {N},
+		},
 		oob_error   :: AbstractFloat,
 	) where {S}
 	new{S}(trees, cm, oob_error)
@@ -214,7 +221,7 @@ spawn_rng(rng) = Random.MersenneTwister(abs(rand(rng, Int)))
 
 include("load_data.jl")
 include("util.jl")
-include("modal-classification/main.jl")
+include("model/main.jl")
 # TODO: include("ModalscikitlearnAPI.jl")
 
 #############################
@@ -249,7 +256,7 @@ apply_model(forest::Forest, args...; kwargs...) = apply_forest(forest, args...; 
 
 print_apply_model(tree::DTree, args...; kwargs...) = print_apply_tree(tree, args...; kwargs...)
 
-function print_tree(io::IO, leaf::DTLeaf, depth=-1, indent=0, indent_guides=[]; n_tot_inst = nothing, rel_confidence_class_counts = nothing)
+function print_tree(io::IO, leaf::DTLeaf{String}, depth=-1, indent=0, indent_guides=[]; n_tot_inst = nothing, rel_confidence_class_counts = nothing)
 	matches = findall(leaf.values .== leaf.majority)
 
 	n_correct = length(matches)
@@ -295,6 +302,27 @@ function print_tree(io::IO, leaf::DTLeaf, depth=-1, indent=0, indent_guides=[]; 
 	end
 
 	println(io, "$(leaf.majority) : $(n_correct)/$(n_inst) ($(metrics_str))")
+end
+function print_tree(io::IO, leaf::DTLeaf{<:Float64}, depth=-1, indent=0, indent_guides=[]; n_tot_inst = nothing, rel_confidence_class_counts = nothing)
+	
+	n_inst = length(leaf.values)
+	
+	mae = sum(abs.(leaf.values .- leaf.majority)) / n_inst
+	rmse = StatsBase.rmsd(leaf.values, [leaf.majority for i in 1:length(leaf.values)])
+	var = StatsBase.var(leaf.values)
+	
+	metrics_str = ""
+	# metrics_str *= "$(leaf.values) "
+	metrics_str *= "var: $(@sprintf "%.4f" mae)"
+	metrics_str *= ", mae: $(@sprintf "%.4f" mae)"
+	metrics_str *= ", rmse: $(@sprintf "%.4f" rmse)"
+	
+	if !isnothing(n_tot_inst)
+		support = n_inst/n_tot_inst
+		metrics_str *= ", supp = $(@sprintf "%.4f" support)"
+	end
+
+	println(io, "$(leaf.majority) : $(n_inst) ($(metrics_str))")
 end
 print_tree(leaf::DTLeaf, depth=-1, indent=0, indent_guides=[]; kwargs...) = print_tree(stdout, leaf, depth, indent, indent_guides; kwargs...)
 
@@ -521,6 +549,20 @@ function _empty_tree_leaves(tree::DTree)
 		tree.worldTypes,
 		tree.initConditions
 	)
+end
+
+
+function print_apply_tree(leaf::DTLeaf{<:Float64}, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, class::S; update_majority = false) where {S}
+	vals = [leaf.values..., class]
+
+	majority = 
+	if update_majority
+		StatsBase.mean(leaf.values)
+	else
+		leaf.majority
+	end
+
+	return DTLeaf(majority, vals)
 end
 
 function print_apply_tree(leaf::DTLeaf{S}, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, class::S; update_majority = false) where {S}
@@ -777,15 +819,12 @@ function apply_trees(trees::AbstractVector{DTree{S}}, X::GenericDataset; suppres
 	Threads.@threads for i in 1:n_instances
 		predictions[i] = begin
 			if S <: Float64
-				@error "apply_trees need a code expansion. The case is S = $(S) <: Float64"
+				# @error "apply_trees need a code expansion. The case is S = $(S) <: Float64"
 				if isnothing(tree_weights)
 					mean(votes[:,i])
 				else
-					weighted_votes = Vector{N}()
-					for j in 1:length(votes[:,i])
-						weighted_votes = votes[j,i] * tree_weights[j]
-					end
-					mean(weighted_votes)
+					n_trees = length(votes[:,i])
+					sum([votes[j,i] * tree_weights[j] for j in 1:n_trees]) / sum(tree_weights)
 				end
 			else
 				best_score(votes[:,i], tree_weights; suppress_parity_warning = suppress_parity_warning)
@@ -797,12 +836,14 @@ function apply_trees(trees::AbstractVector{DTree{S}}, X::GenericDataset; suppres
 end
 
 # use a proper forest to test features
-function apply_forest(forest::Forest, X::GenericDataset; weight_trees_by::Bool = false)
+function apply_forest(forest::Forest, X::GenericDataset; weight_trees_by::Union{Bool,Symbol,AbstractVector} = false)
 	if weight_trees_by == false
 		apply_trees(forest.trees, X)
+	elseif isa(weight_trees_by, AbstractVector)
+		apply_trees(forest.trees, X; tree_weights = weight_trees_by)
 	elseif weight_trees_by == :accuracy
 		# TODO: choose HOW to weight a tree... overall_accuracy is just an example (maybe can be parameterized)
-		apply_trees(forest.trees, X, tree_weights = map(cm -> overall_accuracy(cm), forest.cm))
+		apply_trees(forest.trees, X; tree_weights = map(cm -> overall_accuracy(cm), forest.cm))
 	else
 		@error "Unexpected value for weight_trees_by: $(weight_trees_by)"
 	end

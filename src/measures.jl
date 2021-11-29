@@ -1,5 +1,6 @@
 export overall_accuracy,
 				kappa,
+				GenericPerformanceType,
 				macro_sensitivity,
 				macro_specificity,
 				macro_PPV,
@@ -238,6 +239,12 @@ function best_score(labels::AbstractVector{T}, weights::Union{Nothing,AbstractVe
 end
 
 ### Classification ###
+
+const PerformanceStruct = NamedTuple
+const GenericPerformanceType = Union{ConfusionMatrix,PerformanceStruct}
+function confusion_matrix(actual::AbstractVector{Float64}, predicted::AbstractVector{Float64}, weights = nothing)
+	(MAE = sum(abs.(actual .- predicted)) / length(predicted), RMSE = StatsBase.rmsd(actual, predicted))
+end
 
 function confusion_matrix(actual::AbstractVector, predicted::AbstractVector, weights = nothing)
 	@assert isnothing(weights) "TODO Expand code: Non-nothing weights encountered in confusion_matrix()"
