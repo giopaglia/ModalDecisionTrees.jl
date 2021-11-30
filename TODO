@@ -10,6 +10,7 @@
 ☐	Check whether CatWalk.jl can help runtime dispatch look-up time
 ☐	Migliora stile (https://github.com/invenia/BlueStyle), e non usare import! Usa Base.length, invece!
 ☐	Functio-symbolic: tree partitions according to logical rules, but occasionally on math relations (e.g., on leaves)
+☐	scanner.jl: instead of training different trees with different post-pruning parameters, just train one and then use post-pruning with the different parametrizations
 
 
 ☐	save pre-process pipeline together with the models
