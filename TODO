@@ -9,6 +9,7 @@
 ☐	give names to features
 ☐	Check whether CatWalk.jl can help runtime dispatch look-up time
 ☐	Migliora stile (https://github.com/invenia/BlueStyle), e non usare import! Usa Base.length, invece!
+☐	Add the info gain of the split to each internal node
 ☐	Functio-symbolic: tree partitions according to logical rules, but occasionally on math relations (e.g., on leaves)
 
 
