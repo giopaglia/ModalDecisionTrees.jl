@@ -8,6 +8,8 @@ module util
 	const Label = Int
 	const RegressionLabel = Float64 # AbstractFloat
 	
+	using StatsBase
+
 	# This function translates a list of labels into categorical form
 	function assign(Y :: AbstractVector{T}) where T
 		function assign(Y :: AbstractVector{T}, list :: AbstractVector{T}) where T
@@ -51,22 +53,26 @@ module util
 
 	# returns the entropy of ns/n, ns is an array of integers
 	# and entropy_terms are precomputed entropy terms
-	@inline function entropy(ns::AbstractVector{U}, n :: Integer, entropy_terms) where {U <: Integer}
+	@inline function entropy(ns::AbstractVector{U}, l :: Integer, entropy_terms) where {U <: Integer}
 		s = 0.0
 		for k in ns
 			s += entropy_terms[k+1]
 		end
-		return log(n) - s / n
+		return log(l) - s / l
 	end
 
-	@inline function entropy(ns :: AbstractVector{U}, n :: U) where {U <: Real}
+	@inline function entropy(ns :: AbstractVector{U}, l :: Integer) where {U <: Real}
 		s = 0.0
 		@simd for k in ns
 			if k > 0
 				s += k * log(k)
 			end
 		end
-		return log(n) - s / n
+		return log(l) - s / l
+	end
+
+	@inline function variance(ns :: AbstractVector{U}, l :: Integer) where {U <: Real}
+		sum((ns .- StatsBase.mean(ns)).^2) / (l - 1) # = StatsBase.var(ns)
 	end
 
 	# adapted from the Julia Base.Sort Library
