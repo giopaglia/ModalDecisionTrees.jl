@@ -8,7 +8,7 @@ include("scanner.jl")
 
 using SoleBase
 using SoleBase: dimension
-using SoleVisualizations
+using SoleViz
 using StatsPlots
 using Plots.PlotMeasures
 
@@ -20,16 +20,16 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./siemens/TURBOEXPO-regression-v2-fix-binning"
+results_dir = "./siemens/TURBOEXPO-regression-v3-fix-leakage-n-true-reg"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 
-dry_run = false
-# dry_run = :dataset_only
+# dry_run = false
+dry_run = :dataset_only
 # dry_run = :model_study
-#dry_run = true
+# dry_run = true
 
 skip_training = false
 
@@ -56,14 +56,16 @@ tree_args = [
 
 for loss_function in [DecisionTree.util.entropy]
 	for min_samples_leaf in [1] # [1,2]
-		for min_purity_increase in [0.01, 0.001]
-			for min_loss_at_leaf in [0.4, 0.6]
-				push!(tree_args, 
+		for min_purity_increase in [100.0, 50.0, 10.0, 1.0, 0.0, 0.01, 0.001] # [0.01, 0.001]
+		# for min_purity_increase in [0.0] # ,0.01, 0.001]
+			for min_loss_at_leaf in [0.001] # [0.4, 0.6]
+				push!(tree_args,
 					(
 						loss_function       = loss_function,
 						min_samples_leaf    = min_samples_leaf,
 						min_purity_increase = min_purity_increase,
 						min_loss_at_leaf    = min_loss_at_leaf,
+						perform_consistency_check = perform_consistency_check,
 					)
 				)
 			end
@@ -119,10 +121,10 @@ modal_args = (;
 )
 
 data_modal_args = (;
-	ontology = getIntervalOntologyOfDim(Val(1)),
+	# ontology = getIntervalOntologyOfDim(Val(1)),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A]),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A, ModalLogic.IA_L, ModalLogic.IA_Li, ModalLogic.IA_D]),
-	test_operators = [TestOpGeq_80, TestOpLeq_80],
+	# test_operators = [TestOpGeq_80, TestOpLeq_80],
 )
 
 
@@ -171,7 +173,7 @@ prefer_nonaug_data = true
 ##################################### SCAN #####################################
 ################################################################################
 
-exec_dataseed = 1:10
+exec_dataseed = 0:4
 
 #exec_datadirname = ["Siemens-Data-Features", "Siemens-Data-Measures"]
 exec_datadirname = ["Siemens-Data-Measures"]
@@ -179,13 +181,14 @@ exec_datadirname = ["Siemens-Data-Measures"]
 exec_use_training_form = [:stump_with_memoization]
 
 exec_binning = [
-	(1.0 => "High-Risk", 3.0 => "Risky", Inf => "Low-Risk"),
-	(4.0 => "High-Risk", 8.0 => "Risky", Inf => "Low-Risk"),
+	nothing,
+	# (1.0 => "High-Risk", 3.0 => "Risky", Inf => "Low-Risk"),
+	# (4.0 => "High-Risk", 8.0 => "Risky", Inf => "Low-Risk"),
 ]
 
 exec_ignore_last_minutes = [10] # , 2*60]
 # exec_regression_step_in_minutes = [1]
-exec_regression_step_in_minutes = [60]
+exec_regression_step_in_minutes = [1]
 exec_regression_window_in_minutes = [60]
 
 exec_moving_average = [
@@ -217,8 +220,9 @@ exec_ranges = (;
 dataset_function = (datadirname, binning, ignore_last_minutes, moving_average, regression_window_in_minutes, regression_step_in_minutes)->begin
 	SiemensDataset_regression(datadirname;
 		moving_average...,
-		only_consider_trip_days = true,
 		binning = binning,
+		sortby_datasource = true,
+		only_consider_trip_days = true,
 		ignore_last_minutes = ignore_last_minutes,
 		regression_window_in_minutes = regression_window_in_minutes,
 		regression_step_in_minutes = regression_step_in_minutes,
@@ -475,7 +479,9 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	end
 
 	# Load Dataset
-	dataset, class_counts = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
+	dataset, datasource_counts = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
+
+	# class_counts = get_class_counts(dataset)
 
 	X, Y = dataset
 
@@ -505,7 +511,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 		# println(mfd)
 
-		p = SoleVisualizations.plotdescription(mfd)[1]
+		p = SoleViz.plotdescription(mfd)[1]
 
 		plot!(p; size = (1920, 1080))
 		savefig(p, "plotdescription-$(run_name).png")
@@ -622,15 +628,36 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	
 
-	println("class_distribution: ")
-	println(StatsBase.countmap(dataset[2]))
-	println("class_counts: $(class_counts)")
+	# println("class_distribution: ")
+	# println(StatsBase.countmap(dataset[2]))
+	# println("class_counts: $(class_counts)")
 
 	## Dataset slices
 	# obtain dataseeds that are were not done before
 	todo_dataseeds = filter((dataseed)->!iteration_in_history(history, (params_namedtuple, dataseed)), exec_dataseed)
-	dataset_slices = [(dataseed, balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = floor(Int, minimum(class_counts)*traintest_threshold), also_return_discarted = true)) for dataseed in todo_dataseeds]
-	# dataset_slices = [(dataseed, balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = train_instances_per_class, also_return_discarted = true)) for dataseed in todo_dataseeds]
+
+	dataset_slices = begin
+		n_insts = length(Y)
+		# @assert (n_insts % n_cv_folds == 0) "$(n_insts) % $(n_cv_folds) != 0"
+		# n_insts_fold = div(n_insts, n_cv_folds)
+		
+		# todo_dataseeds = 1:10
+		[(dataseed, begin
+				if dataseed == 0
+					(Vector{Integer}(collect(1:n_insts)), Vector{Integer}(collect(1:n_insts)))
+				else
+					# balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = floor(Int, minimum(class_counts)*traintest_threshold), also_return_discarted = true)
+					# balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = train_instances_per_class, also_return_discarted = true)
+					@assert dataseed in 1:length(datasource_counts)
+					@assert datasource_counts[dataseed] > 0
+					a = datasource_counts[1:dataseed-1];
+					idx_base = (length(a) == 0 ? 0 : sum(a))
+					test_idxs = idx_base .+ (1:datasource_counts[dataseed])
+					# test_idxs = 1+(dataseed-1)*n_insts_fold:(dataseed-1)*n_insts_fold+(n_insts_fold)
+					(Vector{Integer}(collect(setdiff(Set(1:n_insts), Set(test_idxs)))), Vector{Integer}(collect(test_idxs)))
+				end
+			end) for dataseed in todo_dataseeds]
+	end
 
 	println("Dataseeds = $(todo_dataseeds)")
 
@@ -654,6 +681,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		exec_scan(
 			params_namedtuple,
 			dataset;
+			is_regression_problem           =   (eltype(Y) != String),
 			### Training params
 			train_seed                      =   train_seed,
 			modal_args                      =   cur_modal_args,

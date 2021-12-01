@@ -51,7 +51,8 @@ tree_args = [
 
 for loss_function in [DecisionTree.util.entropy]
 	for min_samples_leaf in [4] # [1,2]
-		for min_purity_increase in [100.0, 50.0, 10.0, 1.0, 0.0, 0.01, 0.001] # [0.01, 0.001]
+		# for min_purity_increase in [100.0, 50.0, 10.0, 1.0, 0.0, 0.01, 0.001] # [0.01, 0.001]
+		for min_purity_increase in [0.0] # [0.01, 0.001]
 			for min_loss_at_leaf in [0.001] # [0.4, 0.6]
 				push!(tree_args,
 					(
@@ -170,9 +171,10 @@ prefer_nonaug_data = true
 exec_dataseed = 0:5
 
 exec_dataset_name = ["dataset6"]
-exec_num_brand = ["brand_1", "brand_2"]
-exec_assume_brand_independence = [false, true]
-exec_use_diff_with_12 = [false, true]
+exec_num_brand = ["brand_1"] # , "brand_2"]
+exec_assume_brand_independence = [false] # , true]
+exec_use_diff_with_12 = [false] # , true]
+exec_limit_instances = [49]
 
 wav_preprocessors = Dict(
 	"NoOp"       => identity,
@@ -216,13 +218,14 @@ ontology_dict = Dict(
 
 
 exec_ranges = (; # Order: faster-changing to slower-changing
-	dataset_name        = exec_dataset_name,
-	num_brand           = exec_num_brand,
-	assume_brand_independence           = exec_assume_brand_independence,
-	use_diff_with_12           = exec_use_diff_with_12,
+	dataset_name                 = exec_dataset_name,
+	num_brand                    = exec_num_brand,
+	assume_brand_independence    = exec_assume_brand_independence,
+	use_diff_with_12             = exec_use_diff_with_12,
+	limit_instances              = exec_limit_instances,
 	#
-	test_operators       = exec_test_operators,
-	ontology             = exec_ontology,
+	test_operators               = exec_test_operators,
+	ontology                     = exec_ontology,
 )
 
 dataset_function = (
@@ -230,6 +233,7 @@ dataset_function = (
 		num_brand,
 		assume_brand_independence,
 		use_diff_with_12,
+		limit_instances,
 		)->begin
 		X, Y = begin
 			function windowing(TD::AbstractArray{Float64, 3}, SD::AbstractArray{Float64, 2}, b_idx::NTuple{2,Int}; window_size::Int=6)
@@ -303,6 +307,8 @@ dataset_function = (
 
 			perm = Random.shuffle(Random.MersenneTwister(main_data_seed), 1:n_windows)
 			
+			perm = perm[1:limit_instances]
+
 			X_t  = X_t[:,:,perm]
 			X_s  = X_s[:,:,perm]
 
@@ -506,6 +512,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	num_brand,
 	assume_brand_independence,
 	use_diff_with_12,
+	limit_instances,
 	test_operators,
 	ontology = params_combination
 
@@ -526,6 +533,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		num_brand,
 		assume_brand_independence,
 		use_diff_with_12,
+		limit_instances,
 	)
 
 	# if dry_run == :model_study

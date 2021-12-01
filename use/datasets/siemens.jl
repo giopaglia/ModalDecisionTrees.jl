@@ -315,6 +315,7 @@ end
 function trip_no_trip(dir::String;
 		n_machine::Union{Nothing, Int64} = nothing,
 		ignore_class0 = true,
+		sortby_datasource = false,
 		only_consider_trip_days = true,
 		mode::Symbol = :classification, # :classification, :regression
 		regression_window_in_minutes = 60,
@@ -334,12 +335,18 @@ function trip_no_trip(dir::String;
 		insertcols!(X_df, attr => Array{Float64, 1}[])
 	end
 
-	for row in CSV.File(dir * "/DataInfo.csv")
+	datainfo = CSV.File(dir * "/DataInfo.csv") |> DataFrame
+	sort(datainfo, [:Datasource, :ExampleID])
+
+	datasource_counts = []
+
+	for row in eachrow(datainfo)
 		if ignore_class0 && row.Class == 0
 			continue
 		elseif only_consider_trip_days && ! (row.Class == 1 && row.Day == 4)
 			continue
 		else
+			# Only return a single machine
 			if !isnothing(n_machine) && row.Datasource != n_machine
 				continue
 			end
@@ -352,6 +359,7 @@ function trip_no_trip(dir::String;
 				ts = [moving_average(aux[:, j], ma_size, ma_step) for j in 1:length(attributes)]
 				push!(X_df, ts)
 				push!(Y, (row.Day < 4 ? "no-trip" : "trip"))
+				push!(datasource_counts, row.Datasource)
 			elseif mode == :regression
 				ts_n_points = size(aux, 1)
 				ts_filt = aux[1:end-ignore_last_minutes,:]
@@ -375,6 +383,7 @@ function trip_no_trip(dir::String;
 					# println("Window:"); display(idxs)
 					push!(X_df, ts)
 					push!(Y, distance_from_trip)
+					push!(datasource_counts, row.Datasource)
 				end
 			else
 				error("Unknown mode: $(mode) (type = $(typeof(mode)))")
@@ -382,6 +391,10 @@ function trip_no_trip(dir::String;
 		end
 	end
 	
+	@assert isgrouped(datasource_counts) "datasource_counts is not grouped: $(datasource_counts)"
+	
+	datasource_counts = get_grouped_counts(datasource_counts)
+
 	ids  = sortperm(Y)
 	X_df = X_df[ids,:]
 	Y    = Y[ids]
@@ -390,17 +403,13 @@ function trip_no_trip(dir::String;
 	# println(Y)
 
 	if mode == :classification
-		classes = unique(Y)
-		cm = StatsBase.countmap(Y)
-		class_counts = Tuple([cm[y] for y in unique(Y)])
-
-		println(classes)
-		println(cm)
-		println(class_counts)
-		println()
-
-		ds = ClassificationDataset2([ModalFrame(X_df)], CategoricalArray(Y))
-		ds, class_counts
+		@assert !sortby_datasource "TODO Double check code"
+		if !sortby_datasource
+			ClassificationDataset2([ModalFrame(X_df)], CategoricalArray(Y))
+		else
+			ClassificationDataset2([ModalFrame(X_df)], CategoricalArray(Y)), datasource_counts
+		end
+		
 	elseif mode == :regression
 		n_instances = nrow(X_df)
 		n_attrs = ncol(X_df)
@@ -412,7 +421,11 @@ function trip_no_trip(dir::String;
 			end
 		end
 		println("size: $(size(X))")
-		X, Y
+		if !sortby_datasource
+			(X, Y)
+		else
+			(X, Y), datasource_counts
+		end
 	else
 		error("Unknown mode: $(mode) (type = $(typeof(mode)))")
 	end
@@ -448,24 +461,33 @@ end
 
 function SiemensJuneDataset_not_stratified(from, to)
 	# Qua fai un nuovo dataset, cambiando il dir, con trip vs no-trip
-	ds, class_counts = trip_no_trip(data_dir * "Data_Features"); 
+	ds = trip_no_trip(data_dir * "Data_Features"); 
 	# Qua si fa una trasformazione del dataset usando la window che va dal punto 1 al punto 120, i.e., le prime due ore.
 	transform!(ds, window_slice, 1; from=from, to=to)
 	
-	ClassificationDataset22RunnerDataset(ds), class_counts
+	ClassificationDataset22RunnerDataset(ds)
 end
 
-function SiemensDataset_regression(datadirname; binning, kwargs...)
-	X, Y = trip_no_trip(data_dir * datadirname; mode = :regression, kwargs...);
-	function manual_bin(y)
-		for (threshold,label) in binning
-			y <= threshold && return label
-		end
-		error("Error! element with label $(y) falls outside binning $(binning)")
+function SiemensDataset_regression(datadirname; binning::Union{Nothing,Vector{<:Number}} = nothing, sortby_datasource = false, kwargs...)
+	if !sortby_datasource
+		(X, Y)                    = trip_no_trip(data_dir * datadirname; mode = :regression, sortby_datasource = sortby_datasource, kwargs...);
+	else
+		(X, Y), datasource_counts = trip_no_trip(data_dir * datadirname; mode = :regression, sortby_datasource = sortby_datasource, kwargs...);
 	end
-	Y = manual_bin.(Y)
-	classes = unique(Y)
-	cm = StatsBase.countmap(Y)
-	class_counts = Tuple([cm[y] for y in unique(Y)])
-	(X, Y), class_counts
+
+	if !isnothing(binning)
+		function manual_bin(y)
+			for (threshold,label) in binning
+				y <= threshold && return label
+			end
+			error("Error! element with label $(y) falls outside binning $(binning)")
+		end
+		Y = manual_bin.(Y)
+	end
+
+	if !sortby_datasource
+		(X, Y)
+	else
+		(X, Y), datasource_counts
+	end
 end

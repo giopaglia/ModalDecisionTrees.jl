@@ -1,5 +1,7 @@
 import DecisionTree.ModalLogic: concat_datasets, slice_dataset, dataset_has_nonevalues
 
+using StatsBase
+
 # TODO note that these splitting functions simply cut the dataset in two,
 #  and they don't necessarily produce balanced cuts. To produce balanced cuts,
 #  one must manually stratify the dataset beforehand
@@ -80,6 +82,20 @@ function mapArrayToDataType(type::Type{<:AbstractFloat}, array::AbstractArray{<:
 	#  (and eventually scale up or down the array). Also change mapArrayToDataType(type, Xs::Tuple) then
 	type.(array)
 end
+
+
+function get_grouped_counts(Y::AbstractVector)
+	@assert isgrouped(Y) "get_class_counts: Y is not grouped: $(Y)"
+	cm = StatsBase.countmap(Y)
+	class_counts = Tuple([cm[y] for y in unique(Y)])
+	# println(classes)
+	# println(cm)
+	# println(class_counts)
+	# println()
+	class_counts
+end
+get_class_counts((X,Y)::Tuple{Any,AbstractVector}) = get_grouped_counts(Y)
+
 
 function balanced_dataset_slice(
 		dataset::Tuple{Tuple{AbstractVector{<:GenericDataset},AbstractVector},NTuple{N,Integer}},

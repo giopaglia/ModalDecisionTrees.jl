@@ -32,6 +32,21 @@ function human_readable_time_s(ms::Dates.Millisecond)::String
 end
 
 
+function isgrouped(A::AbstractVector)
+	length(uniq(A)) == length(unique(A))
+end
+
+function uniq(A::AbstractArray{T}) where T
+	u = T[]
+	for a in A
+		if length(u) == 0 || a != last(u)
+			push!(u,a)
+		end
+	end
+	u
+end
+
+
 function printprogress(io::Base.TTY, string::String)
     print(io, "\033[2K\033[1000D" * string)
 end
