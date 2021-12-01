@@ -26,8 +26,8 @@ iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 
-# dry_run = false
-dry_run = :dataset_only
+dry_run = false
+#dry_run = :dataset_only
 # dry_run = :model_study
 # dry_run = true
 
@@ -121,10 +121,10 @@ modal_args = (;
 )
 
 data_modal_args = (;
-	# ontology = getIntervalOntologyOfDim(Val(1)),
+	ontology = getIntervalOntologyOfDim(Val(1)),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A]),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A, ModalLogic.IA_L, ModalLogic.IA_Li, ModalLogic.IA_D]),
-	# test_operators = [TestOpGeq_80, TestOpLeq_80],
+	test_operators = [TestOpGeq_80, TestOpLeq_80],
 )
 
 
@@ -187,8 +187,8 @@ exec_binning = [
 ]
 
 exec_ignore_last_minutes = [10] # , 2*60]
-# exec_regression_step_in_minutes = [1]
-exec_regression_step_in_minutes = [1]
+# exec_regression_step_in_minutes = [10]
+exec_regression_step_in_minutes = [10]
 exec_regression_window_in_minutes = [60]
 
 exec_moving_average = [
