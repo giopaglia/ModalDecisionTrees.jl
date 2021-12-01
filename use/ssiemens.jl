@@ -495,7 +495,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	# X, Y = randn(19,5,20), rand(0:1, 20)
 
-	for f in [1]
+	for f in []
 		# f = [1][1]
 
 		n_attrs = size(X,2)[end]
