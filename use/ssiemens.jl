@@ -173,7 +173,7 @@ prefer_nonaug_data = true
 ##################################### SCAN #####################################
 ################################################################################
 
-exec_dataseed = 0:4
+exec_dataseed = [1:4...,0]
 
 #exec_datadirname = ["Siemens-Data-Features", "Siemens-Data-Measures"]
 exec_datadirname = ["Siemens-Data-Measures"]
@@ -187,7 +187,6 @@ exec_binning = [
 ]
 
 exec_ignore_last_minutes = [10] # , 2*60]
-# exec_regression_step_in_minutes = [10]
 exec_regression_step_in_minutes = [10]
 exec_regression_window_in_minutes = [60]
 
@@ -654,7 +653,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 					idx_base = (length(a) == 0 ? 0 : sum(a))
 					test_idxs = idx_base .+ (1:datasource_counts[dataseed])
 					# test_idxs = 1+(dataseed-1)*n_insts_fold:(dataseed-1)*n_insts_fold+(n_insts_fold)
-					(Vector{Integer}(collect(setdiff(Set(1:n_insts), Set(test_idxs)))), Vector{Integer}(collect(test_idxs)))
+					(Vector{Integer}(collect(test_idxs)), Vector{Integer}(collect(setdiff(Set(1:n_insts), Set(test_idxs)))))
 				end
 			end) for dataseed in todo_dataseeds]
 	end
