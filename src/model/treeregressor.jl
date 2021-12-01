@@ -135,8 +135,6 @@ module treeregressor
 
 		# Preemptive leaf conditions
 		if (
-
-
 			# No binary split can honor min_samples_leaf if there aren't as many as
 			#  min_samples_leaf*2 instances in the first place
 			    (min_samples_leaf * 2 >  n_instances)
@@ -148,7 +146,15 @@ module treeregressor
 			@logmsg DTDetail "leaf created: " (min_samples_leaf * 2 >  n_instances) (tsum * node.label    > -1e-7 * nt + tssq) (tsum * node.label) (-1e-7 * nt + tssq) (max_depth <= node.depth)
 			return
 		end
-
+		
+		# TODO try this solution for rsums and lsums
+		# rsums = Vector{U}(undef, n_instances)
+		# lsums = Vector{U}(undef, n_instances)
+		# @simd for i in 1:n_instances
+		# 	rsums[i] = zero(U)
+		# 	lsums[i] = zero(U)
+		# end
+		
 		Sfs = Vector{AbstractVector{WST} where {WorldType,WST<:AbstractVector{WorldType}}}(undef, n_frames(Xs))
 		for i_frame in 1:n_frames(Xs)
 			Sfs[i_frame] = Vector{Vector{world_type(Xs, i_frame)}}(undef, n_instances)
@@ -240,8 +246,10 @@ module treeregressor
 				# rssq = zero(U)
 				rsum = zero(U)
 				nr   = zero(U)
-				# rsums = Float64[] # Vector{U}(undef, n_instances)
-				# lsums = Float64[] # Vector{U}(undef, n_instances)
+				# TODO experiment with running mean instead, because this may cause a lot of memory inefficiency
+				# https://it.wikipedia.org/wiki/Algoritmi_per_il_calcolo_della_varianza
+				rsums = Float64[] # Vector{U}(undef, n_instances)
+				lsums = Float64[] # Vector{U}(undef, n_instances)
 
 				if isa(_perform_consistency_check,Val{true})
 					consistency_sat_check[1:n_instances] .= 1
@@ -253,12 +261,14 @@ module treeregressor
 					
 					# TODO make this satisfied a fuzzy value
 					if !satisfied
-						# push!(rsums, sums[i_instance])
+						push!(rsums, sums[i_instance])
+						# rsums[i_instance] = sums[i_instance]
 						nr   += Wf[i_instance]
 						rsum += sums[i_instance]
 						# rssq += ssqs[i_instance]
 					else
-						# push!(lsums, sums[i_instance])
+						push!(lsums, sums[i_instance])
+						# lsums[i_instance] = sums[i_instance]
 						if isa(_perform_consistency_check,Val{true})
 							consistency_sat_check[i_instance] = 0
 						end
