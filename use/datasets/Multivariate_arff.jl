@@ -478,8 +478,8 @@ function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n
 
 	for fid in length(ds_train.frames)
 		if use_catch22
-			transform!(ds_train, fid, [paa for _ in 1:22], [(;n_chunks=n_chunks, f=catch22[fn]) for fn in getnames(catch22)])
-			transform!(ds_test,  fid, [paa for _ in 1:22], [(;n_chunks=n_chunks, f=catch22[fn]) for fn in getnames(catch22)])
+			transform!(ds_train, fid, [paa for _ in 1:length(catch22)], [(;n_chunks=n_chunks, f=catch22[fn]) for fn in getnames(catch22)])
+			transform!(ds_test,  fid, [paa for _ in 1:length(catch22)], [(;n_chunks=n_chunks, f=catch22[fn]) for fn in getnames(catch22)])
 		# elseif use_mean_n_var
 			# TODO more transformations
 			# transform!(ds_train, fid, [paa,paa], [(;n_chunks=2, f=mean),(;n_chunks=2, f=StatsBase.var)])

@@ -2,6 +2,8 @@ using StatsBase
 using DataFrames
 using CSV
 using Tables
+using Catch22
+
 
 size(mf::ModalFrame) = (nrow(mf.data),)
 getindex(mf::ModalFrame, i::Int) = mf.views[i]
@@ -104,6 +106,15 @@ function transform!(ds::ClassificationDataset2, f::Function, fid::Int; kwargs...
 		end
 	end
 end
+
+# function transform(X::AbstractArray, f::Function, fid::Int; kwargs...)
+# 	X = []
+# 	# for i_attr in 1:size(X)[end-1]
+# 	# 	for i in 1:nrow(ds.frames[fid].data)
+# 	# 		ds.frames[fid].data[i,attr] = f(; kwargs...)
+# 	# 	end
+# 	# end
+# end
 
 function minimum(ds::ClassificationDataset2)
 	d = Dict{Int,Array{Float64,1}}()
@@ -360,6 +371,7 @@ function trip_no_trip(dir::String;
 				push!(X_df, ts)
 				push!(Y, (row.Day < 4 ? "no-trip" : "trip"))
 				push!(datasource_counts, row.Datasource)
+				Y = Vector{String}(Y)
 			elseif mode == :regression
 				ts_n_points = size(aux, 1)
 				ts_filt = aux[1:end-ignore_last_minutes,:]
@@ -384,6 +396,7 @@ function trip_no_trip(dir::String;
 					push!(X_df, ts)
 					push!(Y, distance_from_trip)
 					push!(datasource_counts, row.Datasource)
+					Y = Vector{Float64}(Y)
 				end
 			else
 				error("Unknown mode: $(mode) (type = $(typeof(mode)))")
@@ -468,7 +481,7 @@ function SiemensJuneDataset_not_stratified(from, to)
 	ClassificationDataset22RunnerDataset(ds)
 end
 
-function SiemensDataset_regression(datadirname; binning::Union{Nothing,Vector{<:Number}} = nothing, sortby_datasource = false, kwargs...)
+function SiemensDataset_regression(datadirname; binning::Union{Nothing,Vector{<:Number}} = nothing, sortby_datasource = false, use_catch22 = false, kwargs...)
 	if !sortby_datasource
 		(X, Y)                    = trip_no_trip(data_dir * datadirname; mode = :regression, sortby_datasource = sortby_datasource, kwargs...);
 	else
@@ -484,6 +497,13 @@ function SiemensDataset_regression(datadirname; binning::Union{Nothing,Vector{<:
 		end
 		Y = manual_bin.(Y)
 	end
+
+	# if use_catch22
+	# 	TODO
+	# 	n_chunks = 1
+	# 	...transform(ds_train, fid, [paa for _ in 1:length(catch22)], [(;n_chunks=n_chunks, f=catch22[fn]) for fn in getnames(catch22)])
+	# end
+
 
 	if !sortby_datasource
 		(X, Y)
