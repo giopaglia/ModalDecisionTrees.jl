@@ -742,7 +742,7 @@ module treeregressor
 	#  worlds and relations are determined by a given Ontology.
 
 	function DecisionTree.fit(
-			# TODO Add default values for this function? loss_function = util.StatsBase.var
+			# TODO Add default values for this function?
 			Xs                      :: MultiFrameModalDataset,
 			Y                       :: AbstractVector{S},
 			# Use unary weights if no weight is supplied
