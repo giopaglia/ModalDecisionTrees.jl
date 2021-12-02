@@ -100,16 +100,20 @@ module treeclassifier
 
 		# Gather all values needed for the current set of instances
 		# TODO also slice the dataset?
-		Yf = Vector{Label}(undef, n_instances)
-		Wf = Vector{U}(undef, n_instances)
-		@simd for i in 1:n_instances
-			Yf[i] = Y[indX[i + r_start]]
-			Wf[i] = W[indX[i + r_start]]
-		end
+		# Yf = Vector{Label}(undef, n_instances)
+		# Wf = Vector{U}(undef, n_instances)
+
+		@inbounds Yf = Y[indX[region]]
+		@inbounds Wf = W[indX[region]]
+
+		# @inbounds @simd for i in 1:n_instances
+		# 	Yf[i] = Y[indX[i + r_start]]
+		# 	Wf[i] = W[indX[i + r_start]]
+		# end
 
 		# Counts
 		nc = fill(zero(U), n_classes)
-		@inbounds @simd for i in region
+		@inbounds @simd for i in 1:n_instances
 			nc[Yf[i]] += Wf[i]
 		end
 		nt = sum(nc)
