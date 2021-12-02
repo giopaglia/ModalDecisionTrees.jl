@@ -98,12 +98,15 @@ module treeregressor
 
 		# Gather all values needed for the current set of instances
 		# TODO also slice the dataset?
-		Yf = Vector{RegressionLabel}(undef, n_instances)
-		Wf = Vector{U}(undef, n_instances)
-		@simd for i in 1:n_instances
-			Yf[i] = Y[indX[i + r_start]]
-			Wf[i] = W[indX[i + r_start]]
-		end
+		@inbounds Yf = Y[indX[region]]
+		@inbounds Wf = W[indX[region]]
+
+		# Yf = Vector{RegressionLabel}(undef, n_instances)
+		# Wf = Vector{U}(undef, n_instances)
+		# @inbounds @simd for i in 1:n_instances
+		# 	Yf[i] = Y[indX[i + r_start]]
+		# 	Wf[i] = W[indX[i + r_start]]
+		# end
 
 		# Prepare counts
 		sums = [Wf[i]*Yf[i]       for i in 1:n_instances]
