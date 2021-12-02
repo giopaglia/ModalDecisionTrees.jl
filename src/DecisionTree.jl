@@ -221,7 +221,7 @@ spawn_rng(rng) = Random.MersenneTwister(abs(rand(rng, Int)))
 
 include("load_data.jl")
 include("util.jl")
-include("model/main.jl")
+include("main.jl")
 # TODO: include("ModalscikitlearnAPI.jl")
 
 #############################

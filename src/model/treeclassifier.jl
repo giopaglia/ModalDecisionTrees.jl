@@ -11,11 +11,12 @@ module treeclassifier
 	using ..ModalLogic
 	using ..DecisionTree
 	using DecisionTree.util
-	using DecisionTree.util: Label
+	const L = DecisionTree.util.Label
 	using Logging: @logmsg
 	import Random
 	import StatsBase
 	using StructuredArrays # , FillArrays # TODO choose one
+
 
 	mutable struct NodeMeta{U}
 		region             :: UnitRange{Int}                   # a slice of the samples used to decide the split of the node
@@ -23,7 +24,7 @@ module treeclassifier
 		modal_depth        :: Int
 		# worlds      :: AbstractVector{WorldSet{W}}         # current set of worlds for each training instance
 		purity             :: U                                # purity grade attained at training time
-		label              :: Label                            # most likely label
+		label              :: L                            # most likely label
 		is_leaf            :: Bool                             # whether this is a leaf node, or a split one
 		# split node-only properties
 		split_at           :: Int                              # index of samples
@@ -58,7 +59,7 @@ module treeclassifier
 	struct Tree{S}
 		root           :: NodeMeta{Float64}
 		list           :: Vector{S}
-		labels         :: Vector{Label}
+		labels         :: Vector{L}
 		initConditions :: Vector{<:DecisionTree._initCondition}
 	end
 
@@ -69,7 +70,7 @@ module treeclassifier
 		node                  :: NodeMeta{<:AbstractFloat}, # the node to split
 		####################
 		Xs                    :: MultiFrameModalDataset, # the modal dataset
-		Y                     :: AbstractVector{Label},      # the label array
+		Y                     :: AbstractVector{L},      # the label array
 		W                     :: AbstractVector{U},          # the weight vector
 		Ss                    :: AbstractVector{<:AbstractVector{WST} where {WorldType,WST<:WorldSet{WorldType}}}, # the vector of current worlds
 		####################
@@ -100,7 +101,7 @@ module treeclassifier
 
 		# Gather all values needed for the current set of instances
 		# TODO also slice the dataset?
-		# Yf = Vector{Label}(undef, n_instances)
+		# Yf = Vector{L}(undef, n_instances)
 		# Wf = Vector{U}(undef, n_instances)
 
 		@inbounds Yf = Y[indX[region]]
@@ -590,7 +591,7 @@ module treeclassifier
 
 	function _fit(
 			Xs                      :: MultiFrameModalDataset,
-			Y                       :: AbstractVector{Label},
+			Y                       :: AbstractVector{L},
 			W                       :: AbstractVector{U},
 			##########################################################################
 			loss_function           :: Function,
@@ -695,7 +696,7 @@ module treeclassifier
 	#  worlds and relations are determined by a given Ontology.
 
 	function DecisionTree.fit(
-			# TODO Add default values for this function? loss_function = util.entropy
+			# TODO Add default values for this function?
 			Xs                      :: MultiFrameModalDataset,
 			Y                       :: AbstractVector{S},
 			# Use unary weights if no weight is supplied
