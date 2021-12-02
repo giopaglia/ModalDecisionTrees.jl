@@ -741,12 +741,13 @@ module treeregressor
 	#  a graph; instead, an instance is a dimensional domain (e.g. a matrix or a 3D matrix) onto which
 	#  worlds and relations are determined by a given Ontology.
 
-	function DecisionTree.fit(;
+	function DecisionTree.fit(
 			# TODO Add default values for this function? loss_function = util.StatsBase.var
 			Xs                      :: MultiFrameModalDataset,
 			Y                       :: AbstractVector{S},
 			# Use unary weights if no weight is supplied
-			W                       :: AbstractVector{U} = UniformArray{Int}(1,n_samples(Xs)), # from StructuredArrays
+			W                       :: AbstractVector{U} = UniformArray{Int}(1,n_samples(Xs)) # from StructuredArrays
+			;
 			# W                       :: AbstractVector{U} = fill(1, n_samples(Xs)),
 			# W                       :: AbstractVector{U} = Ones{Int}(n_samples(Xs)),      # from FillArrays
 			##########################################################################
