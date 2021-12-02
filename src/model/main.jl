@@ -165,9 +165,9 @@ function build_tree(
 
 	# rng = mk_rng(rng) # TODO figure out what to do here. Maybe it can be helpful to make rng either an rng or a seed, and then mk_rng transforms it into an rng
 	t = fit(
-		Xs                  = Xs,
-		Y                   = Y,
-		W                   = W
+		Xs,
+		Y,
+		W
 		;###########################################################################
 		loss_function       = loss_function,
 		max_depth           = max_depth,
