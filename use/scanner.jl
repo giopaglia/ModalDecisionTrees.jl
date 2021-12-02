@@ -633,6 +633,7 @@ function exec_scan(
 			cm_str = begin
 				if is_regression_problem
 					display(cm)
+					println()
 				else
 					display_cm_as_row(cm)
 				end
@@ -708,6 +709,7 @@ function exec_scan(
 			cm_str = begin
 				if is_regression_problem
 					display(cm)
+					println()
 				else
 					display_cm_as_row(cm)
 				end
