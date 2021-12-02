@@ -8,8 +8,6 @@ module treeregressor
 	
 	import DecisionTree: fit
 
-	export fit
-
 	using ..ModalLogic
 	using ..DecisionTree
 	using DecisionTree.util
@@ -77,7 +75,7 @@ module treeregressor
 		loss_function         :: Function,
 		max_depth             :: Int,                         # the maximum depth of the resultant tree
 		min_samples_leaf      :: Int,                         # the minimum number of samples each leaf needs to have
-		min_loss_at_leaf      :: AbstractFloat,               # maximum purity allowed on a leaf
+		max_purity_at_leaf    :: AbstractFloat,               # maximum purity allowed on a leaf
 		min_purity_increase   :: AbstractFloat,               # minimum purity increase needed for a split
 		####################
 		n_subrelations        :: Vector{<:Function},
@@ -146,7 +144,7 @@ module treeregressor
 			@logmsg DTDetail "leaf created: " (min_samples_leaf * 2 >  n_instances) (tsum * node.label    > -1e-7 * nt + tssq) (tsum * node.label) (-1e-7 * nt + tssq) (max_depth <= node.depth)
 			return
 		end
-		
+
 		# TODO try this solution for rsums and lsums
 		# rsums = Vector{U}(undef, n_instances)
 		# lsums = Vector{U}(undef, n_instances)
@@ -154,7 +152,7 @@ module treeregressor
 		# 	rsums[i] = zero(U)
 		# 	lsums[i] = zero(U)
 		# end
-		
+
 		Sfs = Vector{AbstractVector{WST} where {WorldType,WST<:AbstractVector{WorldType}}}(undef, n_frames(Xs))
 		for i_frame in 1:n_frames(Xs)
 			Sfs[i_frame] = Vector{Vector{world_type(Xs, i_frame)}}(undef, n_instances)
@@ -292,7 +290,7 @@ module treeregressor
 
 					# TODO use loss_function instead
 
-					# ORIGINAL: TODO define wether it works
+					# ORIGINAL: TODO understand how it works
 					# purity_times_nt = (rsum * rsum / nr) + (lsum * lsum / nl)
 					
 					# Variance with ssqs
@@ -304,7 +302,7 @@ module treeregressor
 					
 					# Simil-variance that is easier to compute but it doesn't work with few samples on the leaves
 					# var = (x)->sum((x.-StatsBase.mean(x)).^2)
-					# purity_times_nt = - (var(rsums)) + var(lsums)
+					# purity_times_nt = - (var(rsums) + var(lsums))
 					
 
 					# println("purity_times_nt: $(purity_times_nt)")
@@ -346,8 +344,8 @@ module treeregressor
 		# @logmsg DTOverview "purity_times_nt increase" best_purity_times_nt node.purity_times_nt (best_purity_times_nt + node.purity_times_nt) (best_purity_times_nt - node.purity_times_nt)
 		# If the best split is good, partition and split accordingly
 		@inbounds if (best_purity_times_nt == typemin(Float64)
-									# || best_purity_times_nt - tsum * node.label < min_purity_increase * nt # ORIGINAL
-									|| (best_purity_times_nt / nt - node.purity < min_purity_increase * nt)
+									# || best_purity_times_nt - tsum * node.label <= min_purity_increase * nt # ORIGINAL
+									|| (best_purity_times_nt / nt - node.purity <= min_purity_increase * nt)
 								)
 			@logmsg DTDebug " Leaf" best_purity_times_nt tsum node.label min_purity_increase nt (best_purity_times_nt / nt - tsum * node.label) (min_purity_increase * nt)
 			node.is_leaf = true
@@ -478,7 +476,7 @@ module treeregressor
 			max_depth               :: Int,
 			min_samples_leaf        :: Int,
 			min_purity_increase     :: AbstractFloat,
-			min_loss_at_leaf        :: AbstractFloat,
+			max_purity_at_leaf      :: AbstractFloat,
 			##########################################################################
 			n_subrelations          :: Vector{<:Function},
 			n_subfeatures           :: Vector{<:Integer},
@@ -518,9 +516,9 @@ module treeregressor
 		elseif min_samples_leaf < 1
 			throw_n_log("min_samples_leaf must be a positive integer "
 				* "(given $(min_samples_leaf))")
-		elseif loss_function in [util.gini, util.zero_one] && (min_loss_at_leaf > 1.0 || min_loss_at_leaf <= 0.0)
-			throw_n_log("min_loss_at_leaf for loss $(loss_function) must be in (0,1]"
-				* "(given $(min_loss_at_leaf))")
+		elseif loss_function in [util.gini, util.zero_one] && (max_purity_at_leaf > 1.0 || max_purity_at_leaf <= 0.0)
+			throw_n_log("max_purity_at_leaf for loss $(loss_function) must be in (0,1]"
+				* "(given $(max_purity_at_leaf))")
 		elseif max_depth < -1
 			throw_n_log("unexpected value for max_depth: $(max_depth) (expected:"
 				* " max_depth >= 0, or max_depth = -1 for infinite depth)")
@@ -648,7 +646,7 @@ module treeregressor
 			max_depth               :: Int,
 			min_samples_leaf        :: Int, # TODO generalize to min_samples_leaf_relative and min_weight_leaf
 			min_purity_increase     :: AbstractFloat,
-			min_loss_at_leaf        :: AbstractFloat,
+			max_purity_at_leaf      :: AbstractFloat,
 			##########################################################################
 			n_subrelations          :: Vector{<:Function},
 			n_subfeatures           :: Vector{<:Integer},
@@ -707,7 +705,7 @@ module treeregressor
 					loss_function,
 					max_depth,
 					min_samples_leaf,
-					min_loss_at_leaf,
+					max_purity_at_leaf,
 					min_purity_increase,
 					######################################################################
 					n_subrelations,
@@ -743,7 +741,7 @@ module treeregressor
 	#  a graph; instead, an instance is a dimensional domain (e.g. a matrix or a 3D matrix) onto which
 	#  worlds and relations are determined by a given Ontology.
 
-	function fit(;
+	function DecisionTree.fit(;
 			# TODO Add default values for this function? loss_function = util.StatsBase.var
 			Xs                      :: MultiFrameModalDataset,
 			Y                       :: AbstractVector{S},
@@ -753,11 +751,11 @@ module treeregressor
 			# W                       :: AbstractVector{U} = Ones{Int}(n_samples(Xs)),      # from FillArrays
 			##########################################################################
 			# Logic-agnostic training parameters
-			loss_function           :: Function = util.variance,
+			loss_function           :: Union{Nothing,Function} = nothing,
 			max_depth               :: Int,
 			min_samples_leaf        :: Int,
 			min_purity_increase     :: AbstractFloat,
-			min_loss_at_leaf        :: AbstractFloat, # TODO add this to scikit's interface.
+			max_purity_at_leaf      :: AbstractFloat, # TODO add this to scikit's interface.
 			##########################################################################
 			# Modal parameters
 			n_subrelations          :: Vector{<:Function},
@@ -770,6 +768,10 @@ module treeregressor
 			rng = Random.GLOBAL_RNG :: Random.AbstractRNG
 		) where {S<:Float64, U}
 
+		if isnothing(loss_function)
+			loss_function = util.variance
+		end
+		
 		# Check validity of the input
 		check_input(
 			Xs,
@@ -780,7 +782,7 @@ module treeregressor
 			max_depth,
 			min_samples_leaf,
 			min_purity_increase,
-			min_loss_at_leaf,
+			max_purity_at_leaf,
 			##########################################################################
 			n_subrelations,
 			n_subfeatures,
@@ -800,7 +802,7 @@ module treeregressor
 				max_depth,
 				min_samples_leaf,
 				min_purity_increase,
-				min_loss_at_leaf,
+				max_purity_at_leaf,
 				########################################################################
 				n_subrelations,
 				n_subfeatures,
