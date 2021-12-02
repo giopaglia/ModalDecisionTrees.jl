@@ -167,8 +167,8 @@ function build_tree(
 	t = fit(
 		Xs                  = Xs,
 		Y                   = Y,
-		W                   = W,
-		############################################################################
+		W                   = W
+		;###########################################################################
 		loss_function       = loss_function,
 		max_depth           = max_depth,
 		min_samples_leaf    = min_samples_leaf,
