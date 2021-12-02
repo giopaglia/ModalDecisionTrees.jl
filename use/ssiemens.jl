@@ -653,6 +653,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 					a = datasource_counts[1:dataseed-1];
 					idx_base = (length(a) == 0 ? 0 : sum(a))
 					test_idxs = idx_base .+ (1:datasource_counts[dataseed])
+					p = Random.randperm(Random.MersenneTwister(1), round(Int, length(test_idxs)/2))
+					test_idxs = test_idxs[p]
 					# test_idxs = 1+(dataseed-1)*n_insts_fold:(dataseed-1)*n_insts_fold+(n_insts_fold)
 					(Vector{Integer}(collect(test_idxs)), Vector{Integer}(collect(setdiff(Set(1:n_insts), Set(test_idxs)))))
 				end
