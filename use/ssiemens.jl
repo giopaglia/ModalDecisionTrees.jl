@@ -95,10 +95,10 @@ for n_trees in [50, 100]
 					partial_sampling    = partial_sampling,
 					n_subrelations      = n_subrelations,
 					# Optimization arguments for trees in a forest (no pruning is performed)
-					loss_function       = DecisionTree.util.entropy,
-					# min_samples_leaf    = 1,
-					# min_purity_increase = 0.0,
-					# max_purity_at_leaf  = Inf,
+					loss_function       = DecisionTree.util.variance,
+					min_samples_leaf    = 1,
+					#min_purity_increase = 0.0,
+					#max_purity_at_leaf  = Inf,
 					perform_consistency_check = perform_consistency_check,
 				))
 			end
