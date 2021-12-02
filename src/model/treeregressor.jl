@@ -11,7 +11,7 @@ module treeregressor
 	using ..ModalLogic
 	using ..DecisionTree
 	using DecisionTree.util
-	using DecisionTree.util: RegressionLabel
+	const L = DecisionTree.util.RegressionLabel
 	using Logging: @logmsg
 	import Random
 	import StatsBase
@@ -23,7 +23,7 @@ module treeregressor
 		modal_depth        :: Int
 		# worlds      :: AbstractVector{WorldSet{W}}         # current set of worlds for each training instance
 		purity             :: U                                # purity grade attained at training time
-		label              :: RegressionLabel                            # most likely label
+		label              :: L                            # most likely label
 		is_leaf            :: Bool                             # whether this is a leaf node, or a split one
 		# split node-only properties
 		split_at           :: Int                              # index of samples
@@ -68,7 +68,7 @@ module treeregressor
 		node                  :: NodeMeta{<:AbstractFloat}, # the node to split
 		####################
 		Xs                    :: MultiFrameModalDataset, # the modal dataset
-		Y                     :: AbstractVector{RegressionLabel},      # the label array
+		Y                     :: AbstractVector{L},      # the label array
 		W                     :: AbstractVector{U},          # the weight vector
 		Ss                    :: AbstractVector{<:AbstractVector{WST} where {WorldType,WST<:WorldSet{WorldType}}}, # the vector of current worlds
 		####################
@@ -101,7 +101,7 @@ module treeregressor
 		@inbounds Yf = Y[indX[region]]
 		@inbounds Wf = W[indX[region]]
 
-		# Yf = Vector{RegressionLabel}(undef, n_instances)
+		# Yf = Vector{L}(undef, n_instances)
 		# Wf = Vector{U}(undef, n_instances)
 		# @inbounds @simd for i in 1:n_instances
 		# 	Yf[i] = Y[indX[i + r_start]]
@@ -642,7 +642,7 @@ module treeregressor
 
 	function _fit(
 			Xs                      :: MultiFrameModalDataset,
-			Y                       :: AbstractVector{<:RegressionLabel},
+			Y                       :: AbstractVector{L},
 			W                       :: AbstractVector{U},
 			##########################################################################
 			loss_function           :: Function,
