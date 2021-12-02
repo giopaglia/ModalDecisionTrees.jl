@@ -1,3 +1,4 @@
+☐	Sort out optimization TODOs into a thesis
 ☐	Maybe there is an implementation of multi-dimensional array where one can specify that along one axis subArrays have non-uniform size?! https://juliaarrays.github.io/ArraysOfArrays.jl/stable/ https://github.com/JuliaArrays/BlockArrays.jl
 ☐	different ontologies for different frames
 ☐	Add the use of an unbalanced test set, and make ConfusionMatrix compute the average recall
@@ -10,7 +11,9 @@
 ☐	Check whether CatWalk.jl can help runtime dispatch look-up time
 ☐	Migliora stile (https://github.com/invenia/BlueStyle), e non usare import! Usa Base.length, invece!
 ☐	Add the info gain of the split to each internal node
+☐	Use streaming algorithms for the computation of the variance and of the entropy!!! Actually entropy only uses O(n_classes) memory, while variance is more problematic https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
 ☐	Functio-symbolic: tree partitions according to logical rules, but occasionally on math relations (e.g., on leaves)
+☐	write specific code for unpruned tree (essentially, skip checks for leaf)
 
 
 ☐	save pre-process pipeline together with the models
