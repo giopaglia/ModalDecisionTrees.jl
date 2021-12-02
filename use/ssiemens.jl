@@ -21,7 +21,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./siemens/TURBOEXPO-regression-v3-fix-leakage-n-true-reg"
+results_dir = "./siemens/TURBOEXPO-regression-v4-fix-leakage-n-true-reg"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
@@ -55,9 +55,9 @@ tree_args = [
 #	)
 ]
 
-for loss_function in [nothing] # DecisionTree.util.variance]
+for loss_function in [DecisionTree.util.variance]
 	for min_samples_leaf in [4] # [1,2]
-		for min_purity_increase in [10.0, 1.0, 0.1, 0.01, 0.001, 0.0001, 0.00001, 0.0] # [0.01, 0.001]
+		for min_purity_increase in [0.1, 0.01, 0.001, 0.0001, 0.00005, 0.00002, 0.00001, 0.0] # [0.01, 0.001]
 		# for min_purity_increase in [0.0] # ,0.01, 0.001]
 			for max_purity_at_leaf in [0.001] # [0.4, 0.6]
 				push!(tree_args,
