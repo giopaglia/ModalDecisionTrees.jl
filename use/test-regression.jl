@@ -20,8 +20,8 @@ X, Y = begin
 
 	include("windowing.jl")
 
-	X_t = npzread("dataset2-temp.npy")
-	X_s = npzread("dataset2-static.npy")
+	X_t = npzread("dataset6-train-temp.npy")
+	X_s = npzread("dataset6-train-static.npy")
 
 	index_b1, index_b2 = 1, 2
 	# pwd(pw)
@@ -129,11 +129,11 @@ T = build_tree(
 	Y,
 	nothing;
 	##############################################################################
-	loss_function       = util.entropy,
+	loss_function       = util.variance,
 	max_depth           = typemax(Int),
 	min_samples_leaf    = 2,
 	min_purity_increase = 0.01,
-	min_loss_at_leaf    = 0.4,
+	max_purity_at_leaf  = 0.4,
 	##############################################################################
 	n_subrelations      = sqrt_f,
 	n_subfeatures       = sqrt_f,
@@ -155,7 +155,7 @@ F = build_forest(
 	Y;
 	##############################################################################
 	# Forest logic-agnostic parameters
-	n_trees             = 100,
+	n_trees             = 10,
 	partial_sampling    = 0.7,      # portion of instances sampled (without replacement) by each tree
 	##############################################################################
 	# Tree logic-agnostic parameters
@@ -163,7 +163,7 @@ F = build_forest(
 	max_depth           = typemax(Int),
 	min_samples_leaf    = 1,
 	min_purity_increase = 0.0,
-	min_loss_at_leaf    = -Inf,
+	max_purity_at_leaf  = -Inf,
 	##############################################################################
 	# Modal parameters
 	n_subrelations      = sqrt_f,

@@ -50,21 +50,21 @@ tree_args = [
 #		loss_function = DecisionTree.util.entropy,
 #		min_samples_leaf = 1,
 #		min_purity_increase = 0.01,
-#		min_loss_at_leaf = 0.6,
+#		max_purity_at_leaf = 0.6,
 #	)
 ]
 
-for loss_function in [DecisionTree.util.entropy]
-	for min_samples_leaf in [1] # [1,2]
-		for min_purity_increase in [100.0, 50.0, 10.0, 1.0, 0.0, 0.01, 0.001] # [0.01, 0.001]
+for loss_function in [nothing] # DecisionTree.util.variance]
+	for min_samples_leaf in [4] # [1,2]
+		for min_purity_increase in [10.0, 1.0, 0.1, 0.01, 0.001, 0.0001, 0.00001, 0.0] # [0.01, 0.001]
 		# for min_purity_increase in [0.0] # ,0.01, 0.001]
-			for min_loss_at_leaf in [0.001] # [0.4, 0.6]
+			for max_purity_at_leaf in [0.001] # [0.4, 0.6]
 				push!(tree_args,
 					(
 						loss_function       = loss_function,
 						min_samples_leaf    = min_samples_leaf,
 						min_purity_increase = min_purity_increase,
-						min_loss_at_leaf    = min_loss_at_leaf,
+						max_purity_at_leaf  = max_purity_at_leaf,
 						perform_consistency_check = perform_consistency_check,
 					)
 				)
@@ -98,7 +98,7 @@ for n_trees in [50, 100]
 					loss_function       = DecisionTree.util.entropy,
 					# min_samples_leaf    = 1,
 					# min_purity_increase = 0.0,
-					# min_loss_at_leaf    = 0.0,
+					# max_purity_at_leaf  = Inf,
 					perform_consistency_check = perform_consistency_check,
 				))
 			end
@@ -652,6 +652,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 					a = datasource_counts[1:dataseed-1];
 					idx_base = (length(a) == 0 ? 0 : sum(a))
 					test_idxs = idx_base .+ (1:datasource_counts[dataseed])
+					p = Random.randperm(Random.MersenneTwister(1), round(Int, length(test_idxs)/2))
+					test_idxs = test_idxs[p]
 					# test_idxs = 1+(dataseed-1)*n_insts_fold:(dataseed-1)*n_insts_fold+(n_insts_fold)
 					(Vector{Integer}(collect(test_idxs)), Vector{Integer}(collect(setdiff(Set(1:n_insts), Set(test_idxs)))))
 				end

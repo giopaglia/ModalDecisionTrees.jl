@@ -119,6 +119,7 @@ function build_stump(
 	build_tree(X, Y, W; max_depth = 1, kwargs...)
 end
 
+# TODO set default pruning arguments for tree, and make sure that forests override these
 # Build a tree
 function build_tree(
 	Xs                  :: MultiFrameModalDataset,
@@ -128,8 +129,8 @@ function build_tree(
 	loss_function       :: Union{Nothing,Function}            = nothing,
 	max_depth           :: Int                                = typemax(Int),
 	min_samples_leaf    :: Int                                = 1,
-	min_purity_increase :: AbstractFloat                      = 0.0,
-	min_loss_at_leaf    :: AbstractFloat                      = -Inf,
+	min_purity_increase :: AbstractFloat                      = -Inf,
+	max_purity_at_leaf  :: AbstractFloat                      = Inf,
 	##############################################################################
 	n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
 	n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = identity,
@@ -172,7 +173,7 @@ function build_tree(
 		max_depth           = max_depth,
 		min_samples_leaf    = min_samples_leaf,
 		min_purity_increase = min_purity_increase,
-		min_loss_at_leaf    = min_loss_at_leaf,
+		max_purity_at_leaf  = max_purity_at_leaf,
 		############################################################################
 		n_subrelations      = n_subrelations,
 		n_subfeatures       = [ n_subfeatures[i](n_features(frame)) for (i,frame) in enumerate(frames(Xs)) ],
@@ -208,11 +209,11 @@ function build_forest(
 	partial_sampling    = 0.7,      # portion of instances sampled (without replacement) by each tree
 	##############################################################################
 	# Tree logic-agnostic parameters
-	loss_function       :: Union{Nothing,Function}           = nothing,
-	max_depth           :: Int                = typemax(Int),
-	min_samples_leaf    :: Int                = 1,
-	min_purity_increase :: AbstractFloat      = 0.0,
-	min_loss_at_leaf    :: AbstractFloat      = -Inf,
+	loss_function       :: Union{Nothing,Function}         = nothing,
+	max_depth           :: Int                             = typemax(Int),
+	min_samples_leaf    :: Int                             = 1,
+	min_purity_increase :: AbstractFloat                   = -Inf,
+	max_purity_at_leaf  :: AbstractFloat                   = Inf,
 	##############################################################################
 	# Modal parameters
 	n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
@@ -289,7 +290,7 @@ function build_forest(
 			max_depth            = max_depth,
 			min_samples_leaf     = min_samples_leaf,
 			min_purity_increase  = min_purity_increase,
-			min_loss_at_leaf     = min_loss_at_leaf,
+			max_purity_at_leaf   = max_purity_at_leaf,
 			####
 			n_subrelations       = n_subrelations,
 			n_subfeatures        = n_subfeatures,
@@ -342,7 +343,6 @@ function build_forest(
 	return Forest{S}(trees, cms, oob_error)
 end
 
-
 function build_forest(
 	Xs                  :: MultiFrameModalDataset,
 	Y                   :: AbstractVector{S},
@@ -356,11 +356,11 @@ function build_forest(
 	partial_sampling    = 0.7,      # portion of instances sampled (without replacement) by each tree
 	##############################################################################
 	# Tree logic-agnostic parameters
-	loss_function       :: Union{Nothing,Function}           = nothing,
-	max_depth           :: Int                = typemax(Int),
-	min_samples_leaf    :: Int                = 1,
-	min_purity_increase :: AbstractFloat      = 0.0,
-	min_loss_at_leaf    :: AbstractFloat      = -Inf,
+	loss_function       :: Union{Nothing,Function}          = nothing,
+	max_depth           :: Int                              = typemax(Int),
+	min_samples_leaf    :: Int                              = 1,
+	min_purity_increase :: AbstractFloat                    = -Inf,
+	max_purity_at_leaf  :: AbstractFloat                    = Inf,
 	##############################################################################
 	# Modal parameters
 	n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
@@ -437,7 +437,7 @@ function build_forest(
 			max_depth            = max_depth,
 			min_samples_leaf     = min_samples_leaf,
 			min_purity_increase  = min_purity_increase,
-			min_loss_at_leaf     = min_loss_at_leaf,
+			max_purity_at_leaf   = max_purity_at_leaf,
 			####
 			n_subrelations       = n_subrelations,
 			n_subfeatures        = n_subfeatures,
