@@ -9,6 +9,7 @@ include("scanner.jl")
 using SoleBase
 using SoleBase: dimension
 using SoleViz
+using Catch22
 using StatsPlots
 using Plots.PlotMeasures
 
@@ -26,8 +27,8 @@ iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 
-dry_run = false
-#dry_run = :dataset_only
+# dry_run = false
+dry_run = :dataset_only
 # dry_run = :model_study
 # dry_run = true
 
@@ -494,7 +495,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	# X, Y = randn(19,5,20), rand(0:1, 20)
 
-	for f in []
+	for f in [1]
 		# f = [1][1]
 
 		n_attrs = size(X,2)[end]
@@ -517,101 +518,107 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 		display(p)
 
-	# 	for t in [1] # ,2,4,8,16] # TODO eventualmente fissarlo.
-	# 		# t = 4
-	# 		# description = describe(mfd; desc = [:mean_m], t = [(t,0,0)])[1]
-	# 		# TODO add catch22
-	# 		description = describe(mfd; desc = [:mean_m, :min_m, :max_m], t = [(t,0,0)])[1]
-	# 		attr_descr_cols = names(description)[2:end]
-	# 		# println(description)
-	# 		# println(attr_descr_cols)
+		for t in [] # ,2,4,8,16] # TODO eventualmente fissarlo.
+			# t = 4
+			# description = describe(mfd; desc = [:mean_m], t = [(t,0,0)])[1]
+			# TODO add catch22
+			descrs = [:mean_m, :min_m, :max_m, catch22...]
 
-	# 		# max_mean = mean([v for values in description[:,:mean_m] for v in values])
-	# 		# plot(collect(1:n_attrs), [description[band,:mean_m][1] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
-	# 		# for i_inst in 2:(nrow(new_dataset)-1)
-	# 		# 	plot!(collect(1:n_attrs), [description[band,:mean_m][i_inst] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
-	# 		# end
-	# 		# all_plot = plot!(collect(1:n_attrs), [description[band,:mean_m][nrow(new_dataset)] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
+			description = describe(mfd; desc = descrs, t = [(t,0,0)])[1]
+			attr_descr_cols = names(description)[2:end]
+			# println(description)
+			# println(attr_descr_cols)
 
-	# 		d = SoleBase.SoleData.SoleDataset._stat_description(description; functions = Function[mean, var, std])
-	# 		# p = plot(
-	# 		# 	[
-	# 		# 		plot(collect(1:n_attrs), [v[1] for v in d[:,feat_symb]], size = (1080, 1080), title = string(feat_symb), xticks = 1:n_attrs)
-	# 		# 		for feat_symb in [
-	# 		# 				:mean_m_mean, :mean_m_var, :mean_m_std,
-	# 		# 				:min_m_mean, :min_m_var, :min_m_std,
-	# 		# 				:max_m_mean, :max_m_var, :max_m_std]
-	# 		# 	]...
-	# 		# 	layout = (3, 3),
-	# 		# )
+			# max_mean = mean([v for values in description[:,:mean_m] for v in values])
+			# plot(collect(1:n_attrs), [description[band,:mean_m][1] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
+			# for i_inst in 2:(nrow(new_dataset)-1)
+			# 	plot!(collect(1:n_attrs), [description[band,:mean_m][i_inst] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
+			# end
+			# all_plot = plot!(collect(1:n_attrs), [description[band,:mean_m][nrow(new_dataset)] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
 
-	# 		# display(p)
-	# 		# readline()
-			
-	# 		p = begin
-	# 			feat_symb = :mean_m_var
-	# 			ys = [v[1] for v in d[:,feat_symb]]
-	# 			sp = sortperm(ys, rev = true)
-	# 			println(sp)
-	# 			plot(collect(1:n_attrs), ys[sp]; size = (1080, 1080), title = string(feat_symb), xticks = (1:n_attrs,sp))
-	# 		end
+			d = SoleBase.SoleData.SoleDataset._stat_description(description; functions = Function[var])
+			# p = plot(
+			# 	[
+			# 		plot(collect(1:n_attrs), [v[1] for v in d[:,feat_symb]], size = (1080, 1080), title = string(feat_symb), xticks = 1:n_attrs)
+			# 		for feat_symb in [
+			# 				:mean_m_mean, :mean_m_var, :mean_m_std,
+			# 				:min_m_mean, :min_m_var, :min_m_std,
+			# 				:max_m_mean, :max_m_var, :max_m_std]
+			# 	]...
+			# 	layout = (3, 3),
+			# )
 
-	# 		# p = plot(
-	# 		# 	[
-	# 		# 		begin
-	# 		# 			ys = [v[1] for v in d[:,feat_symb]]
-	# 		# 			sp = sortperm(ys, rev=true)
-	# 		# 			println(sp)
-	# 		# 			plot(collect(1:n_attrs), ys[sp]; size = (1080, 1080), title = string(feat_symb), xticks = sp)
-	# 		# 		end for feat_symb in [
-	# 		# 			:mean_m_var,
-	# 		# 			:min_m_var,
-	# 		# 			:max_m_var,
-	# 		# 		]
-	# 		# 	]...;
-	# 		# 	layout = (3, 1),
-	# 		# 	xticks = (ys = [v[1] for v in d[:,:mean_m_var]]; sp = sortperm(ys, rev=true)),
-	# 		# )
+			# display(p)
+			# readline()
+			for descr in descrs
+				println(descr)
+				p = begin
+					# feat_symb = :mean_m_var
+					feat_symb = Symbol(string(descr) * "_var")
+					ys = [v[1] for v in d[:,feat_symb]]
+					sp = sortperm(ys, rev = true)
+					println(sp)
+					plot(collect(1:n_attrs), ys[sp]; size = (1080, 1080), title = string(feat_symb), xticks = (1:n_attrs,sp))
+				end
 
-	# 		display(p)
+				# p = plot(
+				# 	[
+				# 		begin
+				# 			ys = [v[1] for v in d[:,feat_symb]]
+				# 			sp = sortperm(ys, rev=true)
+				# 			println(sp)
+				# 			plot(collect(1:n_attrs), ys[sp]; size = (1080, 1080), title = string(feat_symb), xticks = sp)
+				# 		end for feat_symb in [
+				# 			:mean_m_var,
+				# 			:min_m_var,
+				# 			:max_m_var,
+				# 		]
+				# 	]...;
+				# 	layout = (3, 1),
+				# 	xticks = (ys = [v[1] for v in d[:,:mean_m_var]]; sp = sortperm(ys, rev=true)),
+				# )
 
-	# 		# for (i_op, op_descr) in enumerate(eachcol(description[:,2:end]))
-	# 		# 	# (i_op, op_descr) = collect(enumerate(eachcol(description[:,2:end])))[1]
+				display(p)
+				readline()
+			end
 
-	# 		# 	stackedhists = []
-	# 		# 	op = attr_descr_cols[i_op]
-	# 		# 	for (i_attr, matrix) in enumerate(op_descr)
-	# 		# 		# (i_attr, matrix) = collect(enumerate(op_descr))[1]
-	# 		# 		# matrix = op_descr[1]
-	# 		# 		# println(i_op, op_descr)
-	# 		# 		println(size(matrix))
-	# 		# 		gr()
-	# 		# 		for w in 1:t
-	# 		# 			# w = (1:t)[1]
-	# 		# 			kwargs = begin
-	# 		# 				if w == 1
-	# 		# 					(title = "Histograms",)
-	# 		# 				elseif w == t
-	# 		# 					(xlabel = "Response",)
-	# 		# 				else
-	# 		# 					(;)
-	# 		# 				end
-	# 		# 			end
-	# 		# 			# push!(stackedhists, histogram(matrix[:,w], bins=20, legend=false, ylabel="$(op), $(w)/$(t)", xticks=nothing, kwargs...))
-	# 		# 			push!(stackedhists, histogram(matrix[:,w], bins=20, legend=false, ylabel="$(w), $(i_attr)", xticks=nothing))
-	# 		# 		end
-	# 		# 		# h = histogram([matrix[:,w] for w in 1:t]; bins=20, legend=false, ylabel="$(op), $(t) chunks, $(i_attr) attribute", xticks=nothing, title = "Histograms", xlabel = "Response")
-	# 		# 		# readline()
-	# 		# 		# println(stackedhists |> typeof)
-	# 		# 		# break
-	# 		# 		# println(names(col))
-	# 		# 		# println(matrix)
-	# 		# 		# println(matrix |> typeof)
-	# 		# 	end
-	# 		# 	plot(stackedhists..., layout=(n_attrs,t), size = (1000,500), margin=1mm, title = "$(op)")
-	# 		# end
-	# 		readline()
-	# 	end
+			# for (i_op, op_descr) in enumerate(eachcol(description[:,2:end]))
+			# 	# (i_op, op_descr) = collect(enumerate(eachcol(description[:,2:end])))[1]
+
+			# 	stackedhists = []
+			# 	op = attr_descr_cols[i_op]
+			# 	for (i_attr, matrix) in enumerate(op_descr)
+			# 		# (i_attr, matrix) = collect(enumerate(op_descr))[1]
+			# 		# matrix = op_descr[1]
+			# 		# println(i_op, op_descr)
+			# 		println(size(matrix))
+			# 		gr()
+			# 		for w in 1:t
+			# 			# w = (1:t)[1]
+			# 			kwargs = begin
+			# 				if w == 1
+			# 					(title = "Histograms",)
+			# 				elseif w == t
+			# 					(xlabel = "Response",)
+			# 				else
+			# 					(;)
+			# 				end
+			# 			end
+			# 			# push!(stackedhists, histogram(matrix[:,w], bins=20, legend=false, ylabel="$(op), $(w)/$(t)", xticks=nothing, kwargs...))
+			# 			push!(stackedhists, histogram(matrix[:,w], bins=20, legend=false, ylabel="$(w), $(i_attr)", xticks=nothing))
+			# 		end
+			# 		# h = histogram([matrix[:,w] for w in 1:t]; bins=20, legend=false, ylabel="$(op), $(t) chunks, $(i_attr) attribute", xticks=nothing, title = "Histograms", xlabel = "Response")
+			# 		# readline()
+			# 		# println(stackedhists |> typeof)
+			# 		# break
+			# 		# println(names(col))
+			# 		# println(matrix)
+			# 		# println(matrix |> typeof)
+			# 	end
+			# 	plot(stackedhists..., layout=(n_attrs,t), size = (1000,500), margin=1mm, title = "$(op)")
+			# end
+			# readline()
+		end
 
 	end
 
