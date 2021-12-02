@@ -497,6 +497,7 @@ function exec_scan(
 	base_metrics_names = begin
 			if is_regression_problem
 			[
+				"cor",
 				"MAE",
 				"RMSE",
 			]

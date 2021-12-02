@@ -44,7 +44,7 @@ function backup_file_using_creation_date(file_name::String; out_path = "", copy_
 end
 
 function string_tree_head(tree_args)::String
-	string("T($(print_function(tree_args.loss_function)),$(tree_args.min_samples_leaf),$(tree_args.min_purity_increase),$(tree_args.min_loss_at_leaf))")
+	string("T($(print_function(tree_args.loss_function)),$(tree_args.min_samples_leaf),$(tree_args.min_purity_increase),$(tree_args.max_purity_at_leaf))")
 end
 
 function string_forest_head(forest_args)::String
@@ -164,6 +164,8 @@ function data_to_string(
 				height(M)
 			elseif column == "modal_height"
 				modal_height(M)
+			elseif column == "cor"
+				cm.cor
 			elseif column == "MAE"
 				cm.MAE
 			elseif column == "RMSE"
@@ -227,6 +229,8 @@ function data_to_string(
 				percent(mean(num_nodes.(Ms)))
 			elseif column == "oob_error"
 				percent(mean(map(M->M.oob_error, Ms)))
+			elseif column == "cor"
+				mean(map(cm->cm.cor,          cms))
 			elseif column == "MAE"
 				mean(map(cm->cm.MAE,          cms))
 			elseif column == "RMSE"
@@ -264,6 +268,8 @@ function data_to_string(
 				percent(var(num_nodes.(Ms)))
 			elseif column == "oob_error"
 				percent(var(map(M->M.oob_error, Ms)))
+			elseif column == "cor"
+				var(map(cm->cm.cor,          cms))
 			elseif column == "MAE"
 				var(map(cm->cm.MAE,          cms))
 			elseif column == "RMSE"

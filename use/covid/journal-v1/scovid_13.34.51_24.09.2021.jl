@@ -41,20 +41,20 @@ tree_args = [
 #		loss_function = DecisionTree.util.entropy,
 #		min_samples_leaf = 1,
 #		min_purity_increase = 0.01,
-#		min_loss_at_leaf = 0.6,
+#		max_purity_at_leaf = 0.6,
 #	)
 ]
 
 for loss_function in [DecisionTree.util.entropy]
 	for min_samples_leaf in [2,4] # [1,2]
 		for min_purity_increase in [0.01] # [0.01, 0.001]
-			for min_loss_at_leaf in [0.4, 0.5, 0.6] # [0.4, 0.6]
+			for max_purity_at_leaf in [0.4, 0.5, 0.6] # [0.4, 0.6]
 				push!(tree_args, 
 					(
 						loss_function       = loss_function,
 						min_samples_leaf    = min_samples_leaf,
 						min_purity_increase = min_purity_increase,
-						min_loss_at_leaf    = min_loss_at_leaf,
+						max_purity_at_leaf  = max_purity_at_leaf,
 						perform_consistency_check = perform_consistency_check,
 					)
 				)
@@ -88,7 +88,7 @@ for n_trees in [50,100]
 					loss_function       = DecisionTree.util.entropy,
 					# min_samples_leaf    = 1,
 					# min_purity_increase = 0.0,
-					# min_loss_at_leaf    = 0.0,
+					# max_purity_at_leaf  = Inf,
 					perform_consistency_check = perform_consistency_check,
 				))
 	    end
