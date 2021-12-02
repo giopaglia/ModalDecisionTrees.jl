@@ -129,7 +129,7 @@ T = build_tree(
 	Y,
 	nothing;
 	##############################################################################
-	loss_function       = util.variance,
+	loss_function       = nothing,
 	max_depth           = typemax(Int),
 	min_samples_leaf    = 2,
 	min_purity_increase = 0.01,
@@ -159,11 +159,11 @@ F = build_forest(
 	partial_sampling    = 0.7,      # portion of instances sampled (without replacement) by each tree
 	##############################################################################
 	# Tree logic-agnostic parameters
-	loss_function       = util.variance,
+	loss_function       = nothing,
 	max_depth           = typemax(Int),
 	min_samples_leaf    = 1,
-	min_purity_increase = 0.0,
-	max_purity_at_leaf  = -Inf,
+	min_purity_increase = -Inf,
+	max_purity_at_leaf  = Inf,
 	##############################################################################
 	# Modal parameters
 	n_subrelations      = sqrt_f,

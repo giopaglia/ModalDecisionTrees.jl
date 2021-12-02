@@ -32,6 +32,10 @@ import Dates
 include("lib.jl")
 include("scanner-utils/load-model.jl")
 
+id_f      = identity
+half_f(x) = ceil(Int, x/2)
+sqrt_f(x) = ceil(Int, sqrt(x))
+
 abstract type Support end
 
 mutable struct ForestEvaluationSupport <: Support
@@ -497,6 +501,9 @@ function exec_scan(
 	base_metrics_names = begin
 			if is_regression_problem
 			[
+				"train_cor",
+				"train_MAE",
+				"train_RMSE",
 				"cor",
 				"MAE",
 				"RMSE",

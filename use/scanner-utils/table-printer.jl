@@ -7,25 +7,6 @@ include("../lib.jl")
 ############################ OUTPUT HANDLERS ##################################
 ###############################################################################
 
-id_f = x->x
-half_f = x->ceil(Int, x/2)
-sqrt_f = x->ceil(Int, sqrt(x))
-
-function print_function(func::Core.Function)::String
-	if func === id_f
-		"all"
-	elseif func === half_f
-		"half"
-	elseif func === sqrt_f
-		"sqrt"
-	elseif func === DecisionTree.util.entropy
-		"entropy"
-	elseif func === DecisionTree.util.gini
-		"gini"
-	else
-		string(func)
-	end
-end
 
 function get_creation_date_string_format(file_name::String)::String
 	Dates.format(Dates.unix2datetime(ctime(file_name)), "HH.MM.SS_dd.mm.yyyy")
@@ -43,22 +24,10 @@ function backup_file_using_creation_date(file_name::String; out_path = "", copy_
 	end
 end
 
-function string_tree_head(tree_args)::String
-	string("T($(print_function(tree_args.loss_function)),$(tree_args.min_samples_leaf),$(tree_args.min_purity_increase),$(tree_args.max_purity_at_leaf))")
-end
-
-function string_forest_head(forest_args)::String
-	if haskey(forest_args, :partial_sampling)
-		string("RF($(forest_args.partial_sampling),$(forest_args.n_trees),$(print_function(forest_args.n_subfeatures)),$(print_function(forest_args.n_subrelations)))")
-	else
-		string("RF($(forest_args.n_trees),$(print_function(forest_args.n_subfeatures)),$(print_function(forest_args.n_subrelations)))")
-	end
-end
-
 function string_head(
 		tree_args::AbstractArray,
 		forest_args::AbstractArray;
-		separator = "\t",
+		separator::String = "\t",
 		tree_columns,
 		forest_columns,
 		columns_before::Union{Integer,Vector{<:AbstractString}} = 1
@@ -71,22 +40,22 @@ function string_head(
 	result = ""
 	for str_col in columns_before
 		result *= str_col
-		result *= string(separator)
+		result *= string
 	end
 
 	for i in 1:length(tree_args)
 		for j in 1:length(tree_columns)
-			result *= string_tree_head(tree_args[i])
+			result *= "T,$(Tuple(tree_args[i]))"
 			result *= string(tree_columns[j])
-			result *= string(separator)
+			result *= string
 		end
 	end
 
 	for i in 1:length(forest_args)
 		for j in 1:length(forest_columns)
-			result *= string_forest_head(forest_args[i])
+			result *= "RF,$(Tuple(forest_args[i]))"
 			result *= string(forest_columns[j])
-			result *= string(separator)
+			result *= string
 		end
 	end
 
@@ -164,6 +133,12 @@ function data_to_string(
 				height(M)
 			elseif column == "modal_height"
 				modal_height(M)
+			elseif column == "train_cor"
+				train_cm.cor
+			elseif column == "train_MAE"
+				train_cm.MAE
+			elseif column == "train_RMSE"
+				train_cm.RMSE
 			elseif column == "cor"
 				cm.cor
 			elseif column == "MAE"
@@ -229,6 +204,12 @@ function data_to_string(
 				percent(mean(num_nodes.(Ms)))
 			elseif column == "oob_error"
 				percent(mean(map(M->M.oob_error, Ms)))
+			elseif column == "train_cor"
+				mean(map(cm->train_cm.cor,          cms))
+			elseif column == "train_MAE"
+				mean(map(cm->train_cm.MAE,          cms))
+			elseif column == "train_RMSE"
+				mean(map(cm->train_cm.RMSE,          cms))
 			elseif column == "cor"
 				mean(map(cm->cm.cor,          cms))
 			elseif column == "MAE"
@@ -268,6 +249,12 @@ function data_to_string(
 				percent(var(num_nodes.(Ms)))
 			elseif column == "oob_error"
 				percent(var(map(M->M.oob_error, Ms)))
+			elseif column == "train_cor"
+				var(map(cm->train_cm.cor,          cms))
+			elseif column == "train_MAE"
+				var(map(cm->train_cm.MAE,          cms))
+			elseif column == "train_RMSE"
+				var(map(cm->train_cm.RMSE,          cms))
 			elseif column == "cor"
 				var(map(cm->cm.cor,          cms))
 			elseif column == "MAE"

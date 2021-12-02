@@ -21,7 +21,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./siemens/TURBOEXPO-regression-v4-fix-leakage-n-true-reg"
+results_dir = "./siemens/TURBOEXPO-regression-v5-fix-leakage-n-true-reg"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
@@ -48,14 +48,14 @@ iteration_blacklist = []
 # Optimization arguments for single-tree
 tree_args = [
 #	(
-#		loss_function = DecisionTree.util.entropy,
+#		loss_function = nothing, # DecisionTree.util.entropy
 #		min_samples_leaf = 1,
 #		min_purity_increase = 0.01,
 #		max_purity_at_leaf = 0.6,
 #	)
 ]
 
-for loss_function in [DecisionTree.util.variance]
+for loss_function in [nothing] # DecisionTree.util.variance
 	for min_samples_leaf in [4] # [1,2]
 		for min_purity_increase in [0.1, 0.01, 0.001, 0.0001, 0.00005, 0.00002, 0.00001, 0.0] # [0.01, 0.001]
 		# for min_purity_increase in [0.0] # ,0.01, 0.001]
@@ -96,7 +96,7 @@ for n_trees in [50, 100]
 					partial_sampling    = partial_sampling,
 					n_subrelations      = n_subrelations,
 					# Optimization arguments for trees in a forest (no pruning is performed)
-					loss_function       = DecisionTree.util.entropy,
+					loss_function       = nothing, # DecisionTree.util.entropy
 					# min_samples_leaf    = 1,
 					# min_purity_increase = 0.0,
 					# max_purity_at_leaf  = Inf,
@@ -494,7 +494,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	# using Plots.PlotMeasures
 
 	# X, Y = randn(19,5,20), rand(0:1, 20)
-
+	p = nothing
 	for f in [1]
 		# f = [1][1]
 
@@ -511,114 +511,176 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 		# println(mfd)
 
-		p = SoleViz.plotdescription(mfd)[1]
+		descrs = Symbol[:mean_m, :min_m, :max_m, getnames(catch22)...]
+		t = 1
+		p = SoleViz.plotdescription(mfd, descriptors = descrs, windows = [[[(t,0,0)]]])
+		p = getindex.(p,1)
 
-		plot!(p; size = (1920, 1080))
-		savefig(p, "plotdescription-$(run_name).png")
+		println(typeof(p))
+		println(length(p))
+		
+		function average_plot(plots)
+			p_avg = Base.deepcopy(plots[1])
+			p_avg[1][1][:y] = [mean(filter(!isnan, [p_i[1][1][:y][i_attr] for p_i in plots])) for i_attr in 1:length(plots[1][1][1][:y])]
+			p_avg
+		end
+
+		############################################################################
+		############################################################################
+		############################################################################
+		savefig(plot(p...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name).png")
+
+		p_avg = average_plot(p)
+		savefig(plot(p_avg; size = (1920, 1080)), "plotdescription-$(run_name)-avg.png")
+		############################################################################
+		############################################################################
+		############################################################################
+		perm = sortperm(p_avg[1][1][:y], rev=true)
+		p_sorted = Base.deepcopy(p)
+		for p_i in p_sorted
+			p_i[1][1][:y] = p_i[1][1][:y][perm]
+			plot!(p_i, xticks = (1:length(perm), string.(perm)))
+		end
+		savefig(plot(p_sorted...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name)-sorted.png")
+
+		p_sorted_avg = Base.deepcopy(p_avg)
+		p_sorted_avg[1][1][:y] = p_sorted_avg[1][1][:y][perm]
+		plot!(p_sorted_avg, xticks = (1:length(perm), string.(perm)))
+		savefig(plot(p_sorted_avg; size = (1920, 1080)), "plotdescription-$(run_name)-sorted-avg.png")
+		############################################################################
+		############################################################################
+		############################################################################
+		p_norm = Base.deepcopy(p)
+		for p_i in p_norm
+			p_i[1][1][:y] /= sum(p_i[1][1][:y])
+			plot!(p_i, ylims = (minimum(p_i[1][1][:y]),maximum(p_i[1][1][:y])))
+		end
+		savefig(plot(p_norm...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name)-norm.png")
+
+		p_norm_avg = average_plot(p_norm)
+		savefig(plot(p_norm_avg; size = (1920, 1080)), "plotdescription-$(run_name)-norm-avg.png")
+		############################################################################
+		############################################################################
+		############################################################################
+		perm = sortperm(p_norm_avg[1][1][:y], rev=true)
+		p_sorted = Base.deepcopy(p_norm)
+		for p_i in p_sorted
+			p_i[1][1][:y] = p_i[1][1][:y][perm]
+			plot!(p_i, xticks = (1:length(perm), string.(perm)))
+		end
+		savefig(plot(p_sorted...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name)-norm-sorted.png")
+
+		p_sorted_avg = Base.deepcopy(p_norm_avg)
+		p_sorted_avg[1][1][:y] = p_sorted_avg[1][1][:y][perm]
+		plot!(p_sorted_avg, xticks = (1:length(perm), string.(perm)))
+		savefig(plot(p_sorted_avg; size = (1920, 1080)), "plotdescription-$(run_name)-norm-sorted-avg.png")
+		############################################################################
+		############################################################################
+		############################################################################
 
 		display(p)
 
-		for t in [] # ,2,4,8,16] # TODO eventualmente fissarlo.
-			# t = 4
-			# description = describe(mfd; desc = [:mean_m], t = [(t,0,0)])[1]
-			# TODO add catch22
-			descrs = [:mean_m, :min_m, :max_m, catch22...]
+		# for t in [1] # ,2,4,8,16] # TODO eventualmente fissarlo.
+		# 	# t = 4
+		# 	# description = describe(mfd; desc = [:mean_m], t = [(t,0,0)])[1]
+		# 	# TODO add catch22
+		# 	descrs = [:mean_m, :min_m, :max_m, catch22...]
 
-			description = describe(mfd; desc = descrs, t = [(t,0,0)])[1]
-			attr_descr_cols = names(description)[2:end]
-			# println(description)
-			# println(attr_descr_cols)
+		# 	description = describe(mfd; desc = descrs, t = [(t,0,0)])[1]
+		# 	attr_descr_cols = names(description)[2:end]
+		# 	# println(description)
+		# 	# println(attr_descr_cols)
 
-			# max_mean = mean([v for values in description[:,:mean_m] for v in values])
-			# plot(collect(1:n_attrs), [description[band,:mean_m][1] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
-			# for i_inst in 2:(nrow(new_dataset)-1)
-			# 	plot!(collect(1:n_attrs), [description[band,:mean_m][i_inst] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
-			# end
-			# all_plot = plot!(collect(1:n_attrs), [description[band,:mean_m][nrow(new_dataset)] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
+		# 	# max_mean = mean([v for values in description[:,:mean_m] for v in values])
+		# 	# plot(collect(1:n_attrs), [description[band,:mean_m][1] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
+		# 	# for i_inst in 2:(nrow(new_dataset)-1)
+		# 	# 	plot!(collect(1:n_attrs), [description[band,:mean_m][i_inst] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
+		# 	# end
+		# 	# all_plot = plot!(collect(1:n_attrs), [description[band,:mean_m][nrow(new_dataset)] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
 
-			d = SoleBase.SoleData.SoleDataset._stat_description(description; functions = Function[var])
-			# p = plot(
-			# 	[
-			# 		plot(collect(1:n_attrs), [v[1] for v in d[:,feat_symb]], size = (1080, 1080), title = string(feat_symb), xticks = 1:n_attrs)
-			# 		for feat_symb in [
-			# 				:mean_m_mean, :mean_m_var, :mean_m_std,
-			# 				:min_m_mean, :min_m_var, :min_m_std,
-			# 				:max_m_mean, :max_m_var, :max_m_std]
-			# 	]...
-			# 	layout = (3, 3),
-			# )
+		# 	d = SoleBase.SoleData.SoleDataset._stat_description(description; functions = Function[var])
+		# 	# p = plot(
+		# 	# 	[
+		# 	# 		plot(collect(1:n_attrs), [v[1] for v in d[:,feat_symb]], size = (1080, 1080), title = string(feat_symb), xticks = 1:n_attrs)
+		# 	# 		for feat_symb in [
+		# 	# 				:mean_m_mean, :mean_m_var, :mean_m_std,
+		# 	# 				:min_m_mean, :min_m_var, :min_m_std,
+		# 	# 				:max_m_mean, :max_m_var, :max_m_std]
+		# 	# 	]...
+		# 	# 	layout = (3, 3),
+		# 	# )
 
-			# display(p)
-			# readline()
-			for descr in descrs
-				println(descr)
-				p = begin
-					# feat_symb = :mean_m_var
-					feat_symb = Symbol(string(descr) * "_var")
-					ys = [v[1] for v in d[:,feat_symb]]
-					sp = sortperm(ys, rev = true)
-					println(sp)
-					plot(collect(1:n_attrs), ys[sp]; size = (1080, 1080), title = string(feat_symb), xticks = (1:n_attrs,sp))
-				end
+		# 	# display(p)
+		# 	# readline()
+		# 	for descr in descrs
+		# 		println(descr)
+		# 		p = begin
+		# 			# feat_symb = :mean_m_var
+		# 			feat_symb = Symbol(string(descr) * "_var")
+		# 			ys = [v[1] for v in d[:,feat_symb]]
+		# 			sp = sortperm(ys, rev = true)
+		# 			println(sp)
+		# 			plot(collect(1:n_attrs), ys[sp]; size = (1080, 1080), title = string(feat_symb), xticks = (1:n_attrs,sp))
+		# 		end
 
-				# p = plot(
-				# 	[
-				# 		begin
-				# 			ys = [v[1] for v in d[:,feat_symb]]
-				# 			sp = sortperm(ys, rev=true)
-				# 			println(sp)
-				# 			plot(collect(1:n_attrs), ys[sp]; size = (1080, 1080), title = string(feat_symb), xticks = sp)
-				# 		end for feat_symb in [
-				# 			:mean_m_var,
-				# 			:min_m_var,
-				# 			:max_m_var,
-				# 		]
-				# 	]...;
-				# 	layout = (3, 1),
-				# 	xticks = (ys = [v[1] for v in d[:,:mean_m_var]]; sp = sortperm(ys, rev=true)),
-				# )
+		# 		# p = plot(
+		# 		# 	[
+		# 		# 		begin
+		# 		# 			ys = [v[1] for v in d[:,feat_symb]]
+		# 		# 			sp = sortperm(ys, rev=true)
+		# 		# 			println(sp)
+		# 		# 			plot(collect(1:n_attrs), ys[sp]; size = (1080, 1080), title = string(feat_symb), xticks = sp)
+		# 		# 		end for feat_symb in [
+		# 		# 			:mean_m_var,
+		# 		# 			:min_m_var,
+		# 		# 			:max_m_var,
+		# 		# 		]
+		# 		# 	]...;
+		# 		# 	layout = (3, 1),
+		# 		# 	xticks = (ys = [v[1] for v in d[:,:mean_m_var]]; sp = sortperm(ys, rev=true)),
+		# 		# )
 
-				display(p)
-				readline()
-			end
+		# 		display(p)
+		# 		readline()
+		# 	end
 
-			# for (i_op, op_descr) in enumerate(eachcol(description[:,2:end]))
-			# 	# (i_op, op_descr) = collect(enumerate(eachcol(description[:,2:end])))[1]
+		# 	# for (i_op, op_descr) in enumerate(eachcol(description[:,2:end]))
+		# 	# 	# (i_op, op_descr) = collect(enumerate(eachcol(description[:,2:end])))[1]
 
-			# 	stackedhists = []
-			# 	op = attr_descr_cols[i_op]
-			# 	for (i_attr, matrix) in enumerate(op_descr)
-			# 		# (i_attr, matrix) = collect(enumerate(op_descr))[1]
-			# 		# matrix = op_descr[1]
-			# 		# println(i_op, op_descr)
-			# 		println(size(matrix))
-			# 		gr()
-			# 		for w in 1:t
-			# 			# w = (1:t)[1]
-			# 			kwargs = begin
-			# 				if w == 1
-			# 					(title = "Histograms",)
-			# 				elseif w == t
-			# 					(xlabel = "Response",)
-			# 				else
-			# 					(;)
-			# 				end
-			# 			end
-			# 			# push!(stackedhists, histogram(matrix[:,w], bins=20, legend=false, ylabel="$(op), $(w)/$(t)", xticks=nothing, kwargs...))
-			# 			push!(stackedhists, histogram(matrix[:,w], bins=20, legend=false, ylabel="$(w), $(i_attr)", xticks=nothing))
-			# 		end
-			# 		# h = histogram([matrix[:,w] for w in 1:t]; bins=20, legend=false, ylabel="$(op), $(t) chunks, $(i_attr) attribute", xticks=nothing, title = "Histograms", xlabel = "Response")
-			# 		# readline()
-			# 		# println(stackedhists |> typeof)
-			# 		# break
-			# 		# println(names(col))
-			# 		# println(matrix)
-			# 		# println(matrix |> typeof)
-			# 	end
-			# 	plot(stackedhists..., layout=(n_attrs,t), size = (1000,500), margin=1mm, title = "$(op)")
-			# end
-			# readline()
-		end
+		# 	# 	stackedhists = []
+		# 	# 	op = attr_descr_cols[i_op]
+		# 	# 	for (i_attr, matrix) in enumerate(op_descr)
+		# 	# 		# (i_attr, matrix) = collect(enumerate(op_descr))[1]
+		# 	# 		# matrix = op_descr[1]
+		# 	# 		# println(i_op, op_descr)
+		# 	# 		println(size(matrix))
+		# 	# 		gr()
+		# 	# 		for w in 1:t
+		# 	# 			# w = (1:t)[1]
+		# 	# 			kwargs = begin
+		# 	# 				if w == 1
+		# 	# 					(title = "Histograms",)
+		# 	# 				elseif w == t
+		# 	# 					(xlabel = "Response",)
+		# 	# 				else
+		# 	# 					(;)
+		# 	# 				end
+		# 	# 			end
+		# 	# 			# push!(stackedhists, histogram(matrix[:,w], bins=20, legend=false, ylabel="$(op), $(w)/$(t)", xticks=nothing, kwargs...))
+		# 	# 			push!(stackedhists, histogram(matrix[:,w], bins=20, legend=false, ylabel="$(w), $(i_attr)", xticks=nothing))
+		# 	# 		end
+		# 	# 		# h = histogram([matrix[:,w] for w in 1:t]; bins=20, legend=false, ylabel="$(op), $(t) chunks, $(i_attr) attribute", xticks=nothing, title = "Histograms", xlabel = "Response")
+		# 	# 		# readline()
+		# 	# 		# println(stackedhists |> typeof)
+		# 	# 		# break
+		# 	# 		# println(names(col))
+		# 	# 		# println(matrix)
+		# 	# 		# println(matrix |> typeof)
+		# 	# 	end
+		# 	# 	plot(stackedhists..., layout=(n_attrs,t), size = (1000,500), margin=1mm, title = "$(op)")
+		# 	# end
+		# 	# readline()
+		# end
 
 	end
 
