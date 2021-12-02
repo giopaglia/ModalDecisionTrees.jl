@@ -243,7 +243,11 @@ end
 const PerformanceStruct = NamedTuple
 const GenericPerformanceType = Union{ConfusionMatrix,PerformanceStruct}
 function confusion_matrix(actual::AbstractVector{Float64}, predicted::AbstractVector{Float64}, weights = nothing)
-	(MAE = sum(abs.(actual .- predicted)) / length(predicted), RMSE = StatsBase.rmsd(actual, predicted))
+	(
+		cor   = cor(actual, predicted),
+		MAE   = sum(abs.(actual .- predicted)) / length(predicted),
+		RMSE  = StatsBase.rmsd(actual, predicted),
+	)
 end
 
 function confusion_matrix(actual::AbstractVector, predicted::AbstractVector, weights = nothing)

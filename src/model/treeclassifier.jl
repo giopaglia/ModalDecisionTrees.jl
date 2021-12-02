@@ -7,8 +7,6 @@
 module treeclassifier
 	
 	import DecisionTree: fit
-	
-	export fit
 
 	using ..ModalLogic
 	using ..DecisionTree
@@ -78,7 +76,7 @@ module treeclassifier
 		loss_function         :: Function,
 		max_depth             :: Int,                         # the maximum depth of the resultant tree
 		min_samples_leaf      :: Int,                         # the minimum number of samples each leaf needs to have
-		min_loss_at_leaf      :: AbstractFloat,               # maximum purity allowed on a leaf
+		max_purity_at_leaf    :: AbstractFloat,               # maximum purity allowed on a leaf
 		min_purity_increase   :: AbstractFloat,               # minimum purity increase needed for a split
 		####################
 		n_subrelations        :: Vector{<:Function},
@@ -108,16 +106,16 @@ module treeclassifier
 			Yf[i] = Y[indX[i + r_start]]
 			Wf[i] = W[indX[i + r_start]]
 		end
-		
+
 		# Counts
 		nc = fill(zero(U), n_classes)
 		@inbounds @simd for i in region
 			nc[Yf[i]] += Wf[i]
 		end
 		nt = sum(nc)
-		node.purity = loss_function(nc, nt)
+		node.purity = -(loss_function(nc, nt))
 		node.label = argmax(nc) # Assign the most likely label before the split
-		
+
 		@logmsg DTDebug "_split!(...) " n_instances region nt
 
 		# Preemptive leaf conditions
@@ -128,11 +126,11 @@ module treeclassifier
 			#  min_samples_leaf*2 instances in the first place
 			 || (min_samples_leaf * 2 >  n_instances)
 			# If the node is pure enough, avoid splitting # TODO rename purity to loss
-			 || (node.purity          <= min_loss_at_leaf)
+			 || (node.purity          >= max_purity_at_leaf)
 			# Honor maximum depth constraint
 			 || (max_depth            <= node.depth))
 			node.is_leaf = true
-			@logmsg DTDetail "leaf created: " (min_samples_leaf * 2 >  n_instances) (nc[node.label] == nt) (node.purity  <= min_loss_at_leaf) (max_depth <= node.depth)
+			@logmsg DTDetail "leaf created: " (min_samples_leaf * 2 >  n_instances) (nc[node.label] == nt) (node.purity  >= max_purity_at_leaf) (max_depth <= node.depth)
 			return
 		end
 
@@ -285,8 +283,8 @@ module treeclassifier
 		# @logmsg DTOverview "purity increase" best_purity_times_nt/nt node.purity (best_purity_times_nt/nt + node.purity) (best_purity_times_nt/nt - node.purity)
 		# If the best split is good, partition and split accordingly
 		@inbounds if (best_purity_times_nt == typemin(Float64)
-									|| (best_purity_times_nt/nt + node.purity <= min_purity_increase))
-			@logmsg DTDebug " Leaf" best_purity_times_nt min_purity_increase (best_purity_times_nt/nt) node.purity ((best_purity_times_nt/nt) + node.purity)
+									|| (best_purity_times_nt/nt - node.purity <= min_purity_increase))
+			@logmsg DTDebug " Leaf" best_purity_times_nt min_purity_increase (best_purity_times_nt/nt) node.purity ((best_purity_times_nt/nt) - node.purity)
 			node.is_leaf = true
 			return
 		else
@@ -415,7 +413,7 @@ module treeclassifier
 			max_depth               :: Int,
 			min_samples_leaf        :: Int,
 			min_purity_increase     :: AbstractFloat,
-			min_loss_at_leaf        :: AbstractFloat,
+			max_purity_at_leaf      :: AbstractFloat,
 			##########################################################################
 			n_subrelations          :: Vector{<:Function},
 			n_subfeatures           :: Vector{<:Integer},
@@ -456,18 +454,18 @@ module treeclassifier
 			throw_n_log("min_samples_leaf must be a positive integer "
 				* "(given $(min_samples_leaf))")
 		# if loss_function in [util.entropy]
-		# 	min_loss_at_leaf_thresh = 0.75 # min_purity_increase 0.01
+		# 	max_purity_at_leaf_thresh = 0.75 # min_purity_increase 0.01
 		# 	min_purity_increase_thresh = 0.5
-		# 	if (min_loss_at_leaf >= min_loss_at_leaf_thresh)
-		# 		println("Warning! It is advised to use min_loss_at_leaf<$(min_loss_at_leaf_thresh) with loss $(loss_function)"
-		# 			* "(given $(min_loss_at_leaf))")
+		# 	if (max_purity_at_leaf >= max_purity_at_leaf_thresh)
+		# 		println("Warning! It is advised to use max_purity_at_leaf<$(max_purity_at_leaf_thresh) with loss $(loss_function)"
+		# 			* "(given $(max_purity_at_leaf))")
 		# 	elseif (min_purity_increase >= min_purity_increase_thresh)
-		# 		println("Warning! It is advised to use min_loss_at_leaf<$(min_purity_increase_thresh) with loss $(loss_function)"
+		# 		println("Warning! It is advised to use max_purity_at_leaf<$(min_purity_increase_thresh) with loss $(loss_function)"
 		# 			* "(given $(min_purity_increase))")
 		# end
-		elseif loss_function in [util.gini, util.zero_one] && (min_loss_at_leaf > 1.0 || min_loss_at_leaf <= 0.0)
-			throw_n_log("min_loss_at_leaf for loss $(loss_function) must be in (0,1]"
-				* "(given $(min_loss_at_leaf))")
+		elseif loss_function in [util.gini, util.zero_one] && (max_purity_at_leaf > 1.0 || max_purity_at_leaf <= 0.0)
+			throw_n_log("max_purity_at_leaf for loss $(loss_function) must be in (0,1]"
+				* "(given $(max_purity_at_leaf))")
 		elseif max_depth < -1
 			throw_n_log("unexpected value for max_depth: $(max_depth) (expected:"
 				* " max_depth >= 0, or max_depth = -1 for infinite depth)")
@@ -596,7 +594,7 @@ module treeclassifier
 			max_depth               :: Int,
 			min_samples_leaf        :: Int, # TODO generalize to min_samples_leaf_relative and min_weight_leaf
 			min_purity_increase     :: AbstractFloat,
-			min_loss_at_leaf        :: AbstractFloat,
+			max_purity_at_leaf      :: AbstractFloat,
 			##########################################################################
 			n_subrelations          :: Vector{<:Function},
 			n_subfeatures           :: Vector{<:Integer},
@@ -655,7 +653,7 @@ module treeclassifier
 					loss_function,
 					max_depth,
 					min_samples_leaf,
-					min_loss_at_leaf,
+					max_purity_at_leaf,
 					min_purity_increase,
 					######################################################################
 					n_subrelations,
@@ -692,7 +690,7 @@ module treeclassifier
 	#  a graph; instead, an instance is a dimensional domain (e.g. a matrix or a 3D matrix) onto which
 	#  worlds and relations are determined by a given Ontology.
 
-	function fit(;
+	function DecisionTree.fit(;
 			# TODO Add default values for this function? loss_function = util.entropy
 			Xs                      :: MultiFrameModalDataset,
 			Y                       :: AbstractVector{S},
@@ -702,11 +700,11 @@ module treeclassifier
 			# W                       :: AbstractVector{U} = Ones{Int}(n_samples(Xs)),      # from FillArrays
 			##########################################################################
 			# Logic-agnostic training parameters
-			loss_function           :: Function = util.entropy,
+			loss_function           :: Union{Nothing,Function} = nothing,
 			max_depth               :: Int,
 			min_samples_leaf        :: Int,
 			min_purity_increase     :: AbstractFloat,
-			min_loss_at_leaf        :: AbstractFloat, # TODO add this to scikit's interface.
+			max_purity_at_leaf      :: AbstractFloat, # TODO add this to scikit's interface.
 			##########################################################################
 			# Modal parameters
 			n_subrelations          :: Vector{<:Function},
@@ -719,6 +717,10 @@ module treeclassifier
 			rng = Random.GLOBAL_RNG :: Random.AbstractRNG
 		) where {S<:String, U}
 
+		if isnothing(loss_function)
+			loss_function = util.entropy
+		end
+		
 		# Check validity of the input
 		check_input(
 			Xs,
@@ -729,7 +731,7 @@ module treeclassifier
 			max_depth,
 			min_samples_leaf,
 			min_purity_increase,
-			min_loss_at_leaf,
+			max_purity_at_leaf,
 			##########################################################################
 			n_subrelations,
 			n_subfeatures,
@@ -754,7 +756,7 @@ module treeclassifier
 				max_depth,
 				min_samples_leaf,
 				min_purity_increase,
-				min_loss_at_leaf,
+				max_purity_at_leaf,
 				########################################################################
 				n_subrelations,
 				n_subfeatures,
