@@ -495,7 +495,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	# X, Y = randn(19,5,20), rand(0:1, 20)
 
-	for f in []
+	for f in [1]
 		# f = [1][1]
 
 		n_attrs = size(X,2)[end]
@@ -518,11 +518,13 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 		display(p)
 
-		for t in [1] # ,2,4,8,16] # TODO eventualmente fissarlo.
+		for t in [] # ,2,4,8,16] # TODO eventualmente fissarlo.
 			# t = 4
 			# description = describe(mfd; desc = [:mean_m], t = [(t,0,0)])[1]
 			# TODO add catch22
-			description = describe(mfd; desc = [:mean_m, :min_m, :max_m, catch22...], t = [(t,0,0)])[1]
+			descrs = [:mean_m, :min_m, :max_m, catch22...]
+
+			description = describe(mfd; desc = descrs, t = [(t,0,0)])[1]
 			attr_descr_cols = names(description)[2:end]
 			# println(description)
 			# println(attr_descr_cols)
@@ -534,7 +536,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			# end
 			# all_plot = plot!(collect(1:n_attrs), [description[band,:mean_m][nrow(new_dataset)] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
 
-			d = SoleBase.SoleData.SoleDataset._stat_description(description; functions = Function[mean, var, std])
+			d = SoleBase.SoleData.SoleDataset._stat_description(description; functions = Function[var])
 			# p = plot(
 			# 	[
 			# 		plot(collect(1:n_attrs), [v[1] for v in d[:,feat_symb]], size = (1080, 1080), title = string(feat_symb), xticks = 1:n_attrs)
@@ -548,33 +550,37 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 			# display(p)
 			# readline()
-			
-			p = begin
-				feat_symb = :mean_m_var
-				ys = [v[1] for v in d[:,feat_symb]]
-				sp = sortperm(ys, rev = true)
-				println(sp)
-				plot(collect(1:n_attrs), ys[sp]; size = (1080, 1080), title = string(feat_symb), xticks = (1:n_attrs,sp))
+			for descr in descrs
+				println(descr)
+				p = begin
+					# feat_symb = :mean_m_var
+					feat_symb = Symbol(string(descr) * "_var")
+					ys = [v[1] for v in d[:,feat_symb]]
+					sp = sortperm(ys, rev = true)
+					println(sp)
+					plot(collect(1:n_attrs), ys[sp]; size = (1080, 1080), title = string(feat_symb), xticks = (1:n_attrs,sp))
+				end
+
+				# p = plot(
+				# 	[
+				# 		begin
+				# 			ys = [v[1] for v in d[:,feat_symb]]
+				# 			sp = sortperm(ys, rev=true)
+				# 			println(sp)
+				# 			plot(collect(1:n_attrs), ys[sp]; size = (1080, 1080), title = string(feat_symb), xticks = sp)
+				# 		end for feat_symb in [
+				# 			:mean_m_var,
+				# 			:min_m_var,
+				# 			:max_m_var,
+				# 		]
+				# 	]...;
+				# 	layout = (3, 1),
+				# 	xticks = (ys = [v[1] for v in d[:,:mean_m_var]]; sp = sortperm(ys, rev=true)),
+				# )
+
+				display(p)
+				readline()
 			end
-
-			# p = plot(
-			# 	[
-			# 		begin
-			# 			ys = [v[1] for v in d[:,feat_symb]]
-			# 			sp = sortperm(ys, rev=true)
-			# 			println(sp)
-			# 			plot(collect(1:n_attrs), ys[sp]; size = (1080, 1080), title = string(feat_symb), xticks = sp)
-			# 		end for feat_symb in [
-			# 			:mean_m_var,
-			# 			:min_m_var,
-			# 			:max_m_var,
-			# 		]
-			# 	]...;
-			# 	layout = (3, 1),
-			# 	xticks = (ys = [v[1] for v in d[:,:mean_m_var]]; sp = sortperm(ys, rev=true)),
-			# )
-
-			display(p)
 
 			# for (i_op, op_descr) in enumerate(eachcol(description[:,2:end]))
 			# 	# (i_op, op_descr) = collect(enumerate(eachcol(description[:,2:end])))[1]
@@ -611,7 +617,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			# 	end
 			# 	plot(stackedhists..., layout=(n_attrs,t), size = (1000,500), margin=1mm, title = "$(op)")
 			# end
-			readline()
+			# readline()
 		end
 
 	end
