@@ -1296,8 +1296,6 @@ end
 # END Dataset types
 ################################################################################
 
-include("testOperators.jl")
-
 display_decision_inverse(i_frame::Integer, relation::AbstractRelation, feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number; threshold_display_method::Function = x -> x) = begin
 	inv_test_operator = test_operator_inverse(test_operator)
 	display_decision(i_frame, relation, feature, inv_test_operator, threshold; threshold_display_method = threshold_display_method, inverse = true)
@@ -1395,8 +1393,8 @@ struct _ReprMax{WorldType<:AbstractWorld}  <: _ReprTreatment w :: WorldType end
 struct _ReprMin{WorldType<:AbstractWorld}  <: _ReprTreatment w :: WorldType end
 struct _ReprVal{WorldType<:AbstractWorld}  <: _ReprTreatment w :: WorldType end
 struct _ReprNone{WorldType<:AbstractWorld} <: _ReprTreatment end
-enumAccRepr(::_TestOpGeq, w::WorldType, ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = _ReprMin(w)
-enumAccRepr(::_TestOpLeq, w::WorldType, ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = _ReprMax(w)
+# enumAccRepr(::_TestOpGeq, w::WorldType, ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = _ReprMin(w)
+# enumAccRepr(::_TestOpLeq, w::WorldType, ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = _ReprMax(w)
 
 ################################################################################
 ################################################################################

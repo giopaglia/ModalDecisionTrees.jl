@@ -8,6 +8,8 @@ goesWith(::Type{Interval2D}, ::R where R<:_TopoRel) = true
 enumAccBare(w::Interval2D, r::R where R<:_TopoRelRCC5,  XYZ::Vararg{Integer,2}) =
 	Iterators.flatten((enumAccBare(w, RCC8_r,  XYZ...) for RCC8_r in RCC52RCC8Relations(r)))
 
+#=
+
 computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval2D, r::R where R<:_TopoRelRCC5, channel::MatricialChannel{T,2}) where {T} = begin
 	maxExtrema(
 		map((RCC8_r)->(computeModalThresholdDual(test_operator, w, RCC8_r, channel)), RCC52RCC8Relations(r))
@@ -24,6 +26,7 @@ computeModalThreshold(test_operator::_TestOpLeq, w::Interval2D, r::R where R<:_T
 	)
 end
 
+=#
 
 # More efficient implementations for edge cases
 # ?
@@ -124,6 +127,7 @@ enumAccBare(w::Interval2D, ::_Topo_NTPPi, X::Integer, Y::Integer) =
 # TODO optimize RCC5
 # enumAccBare(w::Interval2D, ::_RCC5TopoRel,    X::Integer, Y::Integer) =
 	
+#=
 
 # Virtual relation used for computing Topo_DC on Interval2D
 struct _Virtual_Enlarge <: AbstractRelation end; const Virtual_Enlarge = _Virtual_Enlarge();     # Virtual_Enlarge
@@ -490,6 +494,7 @@ end
 enumAccRepr(test_operator::TestOperator, w::Interval2D, ::_Topo_NTPP,  X::Integer, Y::Integer) = enumAccRepr(test_operator, w, _IA2DRel(IA_D,IA_D), X, Y)
 enumAccRepr(test_operator::TestOperator, w::Interval2D, ::_Topo_NTPPi, X::Integer, Y::Integer) = enumAccRepr(test_operator, w, _IA2DRel(IA_Di,IA_Di), X, Y)
 
+=#
 #=
 
 

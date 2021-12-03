@@ -1,71 +1,121 @@
-☐	Sort out optimization TODOs into a thesis
-☐	Maybe there is an implementation of multi-dimensional array where one can specify that along one axis subArrays have non-uniform size?! https://juliaarrays.github.io/ArraysOfArrays.jl/stable/ https://github.com/JuliaArrays/BlockArrays.jl
-☐	different ontologies for different frames
-☐	Add the use of an unbalanced test set, and make ConfusionMatrix compute the average recall
-☐	gammas contain a lot of redundance: perhaps use PooledArrays.jl, IndirectArrays.jl, CategoricalArrays.jl for saving space, both for saving to file AND for learing (might be beneficial for caching)?
-☐	Add attribute filters: primarily, derivatives
-☐	roc and pr curve, if the result is a numerical confidence: i) in Random Forest, one could aggregate tree answers in a continuous manner, and output confidence values, in this context, roc and pr curve can be computed; ii) in Decision Tree there are other approaches
-☐	Different array implementations? Array with named dimensions? staticArrays for small domains (matrices/vectors) https://github.com/JuliaArrays/StaticArrays.jl Etc.
-☐	Extend to regression
-☐	give names to features
-☐	Check whether CatWalk.jl can help runtime dispatch look-up time
-☐	Migliora stile (https://github.com/invenia/BlueStyle), e non usare import! Usa Base.length, invece!
-☐	Add the info gain of the split to each internal node
-☐	Use streaming algorithms for the computation of the variance and of the entropy!!! Actually entropy only uses O(n_classes) memory, while variance is more problematic https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-☐	Functio-symbolic: tree partitions according to logical rules, but occasionally on math relations (e.g., on leaves)
-☐	write specific code for unpruned tree (essentially, skip checks for leaf)
-
-
-☐	save pre-process pipeline together with the models
-☐	problem with argmax when testing (e.g. RF), especially on unbalanced datasets
-☐	Support for learning on dataframes
-☐	Fix naming style (e.g. variables/features/attributes, etc. Order of struct's members)
-☐	Edge detection as a spatial feature https://juliahub.com/docs/ImageEdgeDetection/5h14T/0.1.0/#ImageEdgeDetection.jl-Documentation
-☐	Add comments
-☐	Add a symbol parameter to computeModalDataset for selecting a trade-off between time and space
-☐	NamedArrays for gammas dimensions https://github.com/davidavdav/NamedArrays.jl
-☐	Remove useRelationAll and make that choice equivalent to adding relationAll to the OntologicalDataset?
-☐	Custom pretty printing, instead of display_... See https://docs.julialang.org/en/v1/manual/types/#man-custom-pretty-printing
-☐	Random Forest -> Decision Forest
-☐	Improve type stability for better time performance: https://docs.julialang.org/en/v1/devdocs/reflection/#Intermediate-and-compiled-representations  @code_warntype https://www.johnmyleswhite.com/notebook/2013/12/06/writing-type-stable-code-in-julia/ e.g. type-stable slicing with JuliennedArrays ( from https://discourse.julialang.org/t/way-to-slice-an-array-of-unknown-number-of-dimensions/27246 ), EllipsisNotation https://github.com/ChrisRackauckas/EllipsisNotation.jl. Use \@code_warntype as in https://discourse.julialang.org/t/why-selectdim-is-type-instable/25271/2 to double check each function https://nextjournal.com/jbieler/adding-static-type-checking-to-julia-in-100-lines-of-code/
-☐	add purity measure to DTLeaf e DTInternal
-
-☐	Check whether \@inbounds improves performances. @propagate_inbounds, @inbounds (and @boundscheck): "In general, bounds-check removal should be the last optimization you make after ensuring everything else works, is well-tested, and follows the usual performance tips." https://stackoverflow.com/questions/38901275/inbounds-propagation-rules-in-julia?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
-
-☐	computation of softened operators takes too much time (optimize at least <A> in the temporal case?)
-☐	Add the generalized solution for union of relations: _UnionOfRelations and its WExtremaModal, WExtrema, WExtremeModal, WExtreme, enumAcc, enumAccRepr. _UnionOfRelations{typeof((RelationId,))} _UnionOfRelations{typeof((RelationId,))} Tuple{_RelationId} (so you can rewrite RCC5 from RCC8 relations and RCC8 from IA, maybe it's cleaner in some cases?)
-☐	Add tree parser and convenience methods for tree editing.
-
-☐	Find out whether it's faster to use gammasId or recalculate them.
-☐	Test whether zipping is better than writing custom iterators with https://schlichtanders.github.io/Continuables.jl/dev/
-☐	Add IA3^7 and IA7^2 relations.
-
-☐	cache-efficient parallelization of gamma calculation? https://github.com/JuliaArrays/TiledIteration.jl
-☐	For temporal series, one may want to have timepoints that are scattered along the time axis. See if https://github.com/JuliaArrays/AxisArrays.jl can be of any help here; but note that one may need to know how to handle missing's
-☐	Optimize RCC5
-☐	Parametrize worldTypes forcing things such as minimum size?
-
-☐	Keep this: throw, error(), @error -> throw_n_log()
-☐	Restyle package and add to Julia Registries https://juliahub.com/lp/ https://github.com/JuliaRegistries/Registrator.jl#via-the-github-app
-☐	An ontology interpreted over an N-dimensional domain gives rise to a Kripke model/frame, but one can *generalize for a Kripke model/frame in graph form*.
+################################################################################
+☐	Sort out optimization TODOs into a thesis?
+################################################################################
+☐	CODE: Check type-stability with code_warntype!
+	- https://docs.julialang.org/en/v1/devdocs/reflection/#Intermediate-and-compiled-representations
+	- https://www.johnmyleswhite.com/notebook/2013/12/06/writing-type-stable-code-in-julia/ e.g. type-stable slicing with JuliennedArrays ( from https://discourse.julialang.org/t/way-to-slice-an-array-of-unknown-number-of-dimensions/27246 ), EllipsisNotation https://github.com/ChrisRackauckas/EllipsisNotation.jl. Use \@code_warntype as in https://discourse.julialang.org/t/why-selectdim-is-type-instable/25271/2 to double check each function https://nextjournal.com/jbieler/adding-static-type-checking-to-julia-in-100-lines-of-code/
+☐	CODE: Add test suite for each piece of code
+☐	CODE: try improving performances with @inbounds. @propagate_inbounds (and @boundscheck): "In general, bounds-check removal should be the last optimization you make after ensuring everything else works, is well-tested, and follows the usual performance tips." https://stackoverflow.com/questions/38901275/inbounds-propagation-rules-in-julia?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+☐	CODE: adhere to style https://github.com/invenia/BlueStyle
+☐	CODE: Add proper comments, docs and authors
+☐	CODE: Fix naming style (e.g. variables/features/attributes, etc. Order of struct's members)
+☐	CODE: Custom pretty printing, instead of display_. Figure out print/show/display See https://docs.julialang.org/en/v1/manual/types/#man-custom-pretty-printing https://schurkus.com/2018/01/05/julia-print-show-display-dump-what-to-override-what-to-use/
+☐	CODE: Keep this: throw, error(), @error -> throw_n_log()
+☐	CODE: Improve output/logging
+################################################################################
+☐	useRelationAll -> allowRelationAll
+################################################################################
+☐	MODEL rename: DTree->ModalTree; Forest->ModalForest; Random Forest -> Decision Forest.
+☐	MODEL: Bagging, XGBoost
+☐	MODEL: Model may not have an answer? problem with argmax when testing (e.g. RF), especially on unbalanced datasets
+☐	MODEL: save more info together with the models: parameters, pre-process pipeline, info gain of the split to each internal node, purity to each node/leaf
+☐	MODEL: Add tree parser and convenience methods for tree editing.
+☐	MODEL: introduce post pruning (improve pre-pruning/post-pruning against a dataset and introduce validation/test set distinction)
+################################################################################
+☐	SCANNER.JL: different frames with different ontologies: FingerMovements+add_dim e include_static_data!
+☐	SCANNER.JL: Train with less stringent parameters, and post-prune
+################################################################################
+☐	MODALLOGIC.JL: OPTIMIZE: add enumAccReprAggr for relationAll, and for all worldtypes and relations
+☐	? MODALLOGIC.JL: also remove enumAccRepr.
+☐	? MODALLOGIC.JL: Remove n_relations()?
+☐	MODALLOGIC.JL: OPTIMIZE: enumAccessibles and others for sets. But wait, maybe they are not that useful?
+☐	MODALLOGIC.JL computePropositionalThreshold, computeModalThreshold, test_decision seem to do similar things. Maybe uniform their style and naming
+☐	MODALLOGIC.JL Add the generalized solution for union of relations: _UnionOfRelations and its WExtremaModal, WExtrema, WExtremeModal, WExtreme, enumAcc, enumAccRepr. _UnionOfRelations{typeof((RelationId,))} _UnionOfRelations{typeof((RelationId,))} Tuple{_RelationId} (so you can rewrite RCC5 from RCC8 relations and RCC8 from IA, maybe it's cleaner in some cases?)
+☐	MODALLOGIC.JL: DIMENSIONAL/MODAL difference, An ontology interpreted over an N-dimensional domain gives rise to a Kripke model/frame, but one can *generalize for a Kripke model/frame in graph form*.
 	abstract type AbstractKripkeFrame end
 	Generic Kripke frame: worlds & relations
 	struct KripkeFrame{T} <: AbstractKripkeFrame{T}
-☐	Methodically check the consistency of thresholds lookup table with the actual computed values; not only for the best split
-☐	Obtain best_threshold by interpolation of the loss
-☐	Further optimize the decision selection for the binary case: in fact, no need to test all of the thresholds: for some test_operators, one can optimize this step and test only those where you know that the loss function went down.
+☐	MODALLOGIC.JL Synthesis of SoleLogic module
+☐	MODALLOGIC.JL Add TESTs for enumAcc optimizations
+################################################################################
+☐	DATA: _split!: enable learning in implicit form (allow training directly on OntologicalDataset) and study parallelization.
+☐	DATA: Create class for labeled datasets, and remove slice_mf_dataset.
+☐	? DATA: test round_dataset_to_datatype/mapArrayToDataType in multiframe version
+☐	DATA: Clean dataset creation pipeline
+☐	DATA: add filters (e.g., derivatives, Edge detection, which is spatial https://juliahub.com/docs/ImageEdgeDetection/5h14T/0.1.0/#ImageEdgeDetection.jl-Documentation)!
+☐	DATA: give names to features
+☐	DATA: Instances with different channel size: find implementation of multi-dimensional array where one can specify that along one axis subArrays have non-uniform size?! And highlight difference between channel_size and max_channel_size ArraysOfVector https://juliaarrays.github.io/ArraysOfArrays.jl/stable/ https://github.com/JuliaArrays/BlockArrays.jl
+################################################################################
+☐	INTERFACE: Support for learning on dataframes
+☐	INTERFACE: Add a symbol parameter for selecting a trade-off between time and space
+☐	INTERFACE: build_random_forest calls Decision Forest with ...
+☐	INTERFACE: build_forest Add (Val{Bool}?) oob_error parameter (note that oob computation is expensive)
+☐	INTERFACE: Restore optimizations for edge cases (remember optimize_tree_parameters!?)
+################################################################################
+
+
+
+
+
 
 ☐	Generalize World as a tuple of parameters ( https://stackoverflow.com/questions/40160120/generic-constructors-for-subtypes-of-an-abstract-type )
+☐	Generalize to beam-search and then beam-search-n?
+
+☐	Check whether CatWalk.jl can help runtime dispatch look-up time
+
+
+☐	OPTIMIZE: yield said to be fast with Continuables.jl. https://schlichtanders.github.io/Continuables.jl/dev/
+
+☐	Use streaming algorithms for the computation of the variance and of the entropy!!! Actually entropy only uses O(n_classes) memory, while variance is more problematic https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+
+☐	In general, remove all gamma infrastructure. But maybe in the future it will make useful code for an edge case? In that case, make sure it can't be cache-efficiently parallelized. https://github.com/JuliaArrays/TiledIteration.jl
+☐	Decision Tree Lookahead (e.g. two levels of decisions in one)
+☐	CHECKS: Add checks for enumAcc optimizations: compute one without optimizations and one with optimizations and check that they are equivalent
+☐	OPTIMIZE: Try running with: --compile=min -O0, and then with -O3
+☐	OPTIMIZE: Test whether it's better to use that thresholds[:,i_instance] = map(aggr->aggr(values), aggregators)
+☐	OPTIMIZE: write specific code for unpruned tree (essentially, skip checks at leaves)
+☐	OPTIMIZE: IA3 and IA7 and relaunch comparison
+
+☐	Note: does save_datasets error when using resumable functions?
+
+☐	OPTIMIZE: check whether threading il actually better ( JULIA_EXCLUSIVE=1 julia -i -t30 scovid.jl -f 2>&1 | tee scan-covid-t30.out; JULIA_EXCLUSIVE=1 julia -i -t20 scovid.jl -f 2>&1 | tee scan-covid-t20.out; JULIA_EXCLUSIVE=1 julia -i -t16 scovid.jl -f 2>&1 | tee scan-covid-t16.out; JULIA_EXCLUSIVE=1 julia -i -t12 scovid.jl -f 2>&1 | tee scan-covid-t12.out; JULIA_EXCLUSIVE=1 julia -i -t8 scovid.jl -f 2>&1 | tee scan-covid-t8.out; JULIA_EXCLUSIVE=1 julia -i -t4 scovid.jl -f 2>&1 | tee scan-covid-t4.out ) &
+
+☐	Profiling: @profile to certify the memory bottleneck
+
+☐	tables contain a lot of redundance: perhaps use PooledArrays.jl, IndirectArrays.jl, CategoricalArrays.jl for saving space, both for saving to file AND for learing (might be beneficial for caching)?
+☐	Different array implementations? Array with named dimensions? staticArrays for small domains (matrices/vectors) https://github.com/JuliaArrays/StaticArrays.jl https://github.com/davidavdav/NamedArrays.jl Etc.
+☐	Functio-symbolic: tree partitions according to logical rules, but occasionally on math relations (e.g., on leaves)
+
+☐	OPTIMIZE: Test hybrid memoization: use memoization only x% of the times
+☐	Future: OPTIMIZE: Use Sys.total_memory() and Sys.free_memory() to limit load https://stackoverflow.com/questions/42599273/get-system-memory-information-from-julia#42610074
+
+
+☐	Obtain best_threshold by interpolation of the loss
+
+☐	OPTIMIZE: computation of softened operators takes too much time (optimize at least <A> in the temporal case?). Actually, this is currently not a big deal, if we don't train on OntologicalDataset.
+
+☐	For temporal series, one may want to have timepoints that are scattered along the time axis. See if https://github.com/JuliaArrays/AxisArrays.jl can be of any help here; but note that one may need to know how to handle missing's
+☐	Optimize RCC5
+☐	Parametrize worldTypes forcing things such as MINIMUM SIZE?
+
+☐	add parameter controlling how many thresholds are considered
+
 ☐	Maybe add new hard operator valuesbetween(a,b) (doesn't make the tree more expressive, just maybe faster at capturing patterns)
 ☐	Try adding ProgressMeter? https://github.com/timholy/ProgressMeter.jl
-☐	Generalize greedy step to greedy-n step.
-☐	Generalize to beam-search and then beam-search-n?
+
+☐	Trasducers instead of iterators https://juliafolds.github.io/Transducers.jl/dev/explanation/comparison_to_iterators/#comparison-to-iterators
 
 ☐	Add point-based ontology, and test point-based + rectangle algebra?
 ☐	Try different optimization method: SAM https://arxiv.org/abs/2010.01412
 
+☐	Future: ROC and pr curve, if the result is a numerical confidence: i) in Random Forest, one could aggregate tree answers in a continuous manner, and output confidence values, in this context, roc and pr curve can be computed; ii) in Decision Tree there are other approaches. Also compute ROC-AUC
+
+☐	Future: Feature importance with mean decreased impurity https://medium.com/the-artificial-impostor/feature-importance-measures-for-tree-models-part-i-47f187c1a2c3
+☐	Future: Feature importance with one could first consider the propositional problem, the associated attributes (avg A1, max A1, min A1, std A1, avg A2, etc...), and select features using the Mutual Information Score! [https://www.kaggle.com/ryanholbrook/mutual-information]
+
 
 Archive:
+	✔	Add the use of an unbalanced test set, and make ConfusionMatrix compute the average recall @done (21-12-03 00:37)
 	✔	Write optimized ArrayOfOnes struct for W. Someone did this already and it looks ok: https://github.com/emmt/StructuredArrays.jl . Also try: https://github.com/JuliaArrays/FillArrays.jl @done (21-10-08 00:24)
 	✔	dataset-loading functions should tell about how they balanced, and how they randomized @done (21-10-07 23:35)
 	✔	Parallelize tree construction? Does this require manual copy of dynamic structures used in _split! ? @done (21-10-07 23:25)
@@ -74,7 +124,7 @@ Archive:
 	✔	Add IA7 relations: Complete by writing enumAccBare, enumAcc, enumAccRepr. @done (21-10-07 23:18)
 	✔	multi-frame extension! @done (21-10-07 23:16)
 	✔	rename n_instances -> n_samples @done (21-10-07 23:14)
-	✔	clean ModalLogic.jl @done (21-05-06 12:55)
+	✔	clean modallogic.jl @done (21-05-06 12:55)
 	✔	timeit -> symbol @done (21-05-06 10:51)
 	✔	Clean initCondition and worldType code @done (21-05-06 10:36)
 	✔	check that missing is not in X or Y @done (21-05-06 10:18)

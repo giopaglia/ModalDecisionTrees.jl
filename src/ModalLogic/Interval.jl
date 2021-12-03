@@ -52,6 +52,8 @@ enumAccessibles(S::Union{Interval,AbstractWorldSet{Interval}}, r::_RelationGlob,
 ################################################################################
 ################################################################################
 
+#=
+
 # needed for GAMMAS
 
 yieldReprs(test_operator::_TestOpGeq, repr::_ReprMax{Interval},  channel::MatricialChannel{T,1}) where {T} =
@@ -108,5 +110,8 @@ computeModalThreshold(test_operator::Union{_TestOpGeq,_TestOpLeq}, w::Interval, 
 # 	# minimum(ch_readWorld(Interval(1,X+1),channel))
 # 	minimum(channel)
 # end
+
 	
 ch_readWorld(w::Interval, channel::MatricialChannel{T,1}) where {T} = channel[w.x:w.y-1]
+
+=#
