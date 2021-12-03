@@ -13,7 +13,7 @@
 ☐	CODE: Keep this: throw, error(), @error -> throw_n_log()
 ☐	CODE: Improve output/logging
 ################################################################################
-☐	useRelationAll -> allowRelationAll
+☐	useRelationGlob -> allowRelationGlob
 ################################################################################
 ☐	MODEL rename: DTree->ModalTree; Forest->ModalForest; Random Forest -> Decision Forest.
 ☐	MODEL: Bagging, XGBoost
@@ -25,7 +25,7 @@
 ☐	SCANNER.JL: different frames with different ontologies: FingerMovements+add_dim e include_static_data!
 ☐	SCANNER.JL: Train with less stringent parameters, and post-prune
 ################################################################################
-☐	MODALLOGIC.JL: OPTIMIZE: add enumAccReprAggr for relationAll, and for all worldtypes and relations
+☐	MODALLOGIC.JL: OPTIMIZE: add enumAccReprAggr for relationGlob, and for all worldtypes and relations
 ☐	? MODALLOGIC.JL: also remove enumAccRepr.
 ☐	? MODALLOGIC.JL: Remove n_relations()?
 ☐	MODALLOGIC.JL: OPTIMIZE: enumAccessibles and others for sets. But wait, maybe they are not that useful?
