@@ -108,6 +108,7 @@ const _IA2DRelSingleVal = Union{_IA_A,_IA_Ai,_IA_B,_IA_E}
 	return _ReprConstructor(Interval2D(x.w, y.w))
 end
 
+#=
 # 3*3 = 9 cases ((13+1)^2 = 196 relations)
 # Maximizer operators
 enumAccRepr(test_operator::_TestOpGeq, w::Interval2D, r::_IA2DRel{R1,R2} where {R1<:_IA2DRelMaximizer,R2<:_IA2DRelMaximizer}, X::Integer, Y::Integer) =
@@ -187,6 +188,7 @@ computeModalThreshold(test_operator::Union{_TestOpGeq,_TestOpLeq}, w::Interval2D
 	yieldMinMaxCombination(test_operator, enumAccRepr2D(test_operator, w, r.x, r.y, size(channel)..., _ReprFake), channel, 2)
 end
 
+=#
 
 # TODO: per _TestOpLeq gli operatori si invertono
 
