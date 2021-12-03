@@ -1,3 +1,4 @@
+export GammaType, GammaSliceType, spawn_rng
 
 # gammas is a structure holding threshold values for which propositional and modal split labels
 #  are on the verge of truth 

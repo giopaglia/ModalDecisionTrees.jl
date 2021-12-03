@@ -37,10 +37,21 @@ enumAccReprAggr(f::Union{AttributeSoftMinimumFeatureType,AttributeSoftMaximumFea
 enumAccReprAggr(f::Union{AttributeSoftMaximumFeatureType}, a::typeof(maximum), ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = Interval2D[Interval2D(Interval(1,X+1), Interval(1,Y+1))  ]
 enumAccReprAggr(f::Union{AttributeSoftMinimumFeatureType}, a::typeof(minimum), ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = Interval2D[Interval2D(Interval(1,X+1), Interval(1,Y+1))  ]
 
+enumAccessibles(S::Union{Interval2D,AbstractWorldSet{Interval2D}}, r::_RelationGlob, X::Integer, Y::Integer) =
+	IterTools.imap(Interval2D,
+		Iterators.product(enumPairsIn(1, X+1), enumPairsIn(1, Y+1))
+		# enumAccBare(w..., IA2DRel(RelationGlob,RelationGlob), X, Y)
+	)
+	# IterTools.imap(Interval2D, enumPairsIn(1, X+1), enumPairsIn(1, Y+1))
+		# enumAccBare(w, IA2DRel(RelationGlob,RelationGlob), X, Y)
+# enumAccBare(w::Interval2D, r::_RelationGlob, X::Integer, Y::Integer) =
+# 	enumAccBare(w, _IA2DRel(RelationGlob,RelationGlob), X, Y)
+
 ################################################################################
 ################################################################################
 ################################################################################
 
+#=
 # needed for GAMMAS
 
 yieldReprs(test_operator::_TestOpGeq, repr::_ReprMax{Interval2D},  channel::MatricialChannel{T,2}) where {T} =
@@ -124,14 +135,8 @@ computeModalThreshold(test_operator::Union{_TestOpGeq,_TestOpLeq}, w::Interval2D
 # 	minimum(channel)
 # end
 # enumAccBare(w::Interval2D, ::_RelationId, XYZ::Vararg{Integer,N}) where N = [(w.x, w.y)]
-enumAccessibles(S::Union{Interval2D,AbstractWorldSet{Interval2D}}, r::_RelationGlob, X::Integer, Y::Integer) =
-	IterTools.imap(Interval2D,
-		Iterators.product(enumPairsIn(1, X+1), enumPairsIn(1, Y+1))
-		# enumAccBare(w..., IA2DRel(RelationGlob,RelationGlob), X, Y)
-	)
-	# IterTools.imap(Interval2D, enumPairsIn(1, X+1), enumPairsIn(1, Y+1))
-		# enumAccBare(w, IA2DRel(RelationGlob,RelationGlob), X, Y)
-# enumAccBare(w::Interval2D, r::_RelationGlob, X::Integer, Y::Integer) =
-# 	enumAccBare(w, _IA2DRel(RelationGlob,RelationGlob), X, Y)
+
 
 @inline ch_readWorld(w::Interval2D, channel::MatricialChannel{T,2}) where {T} = channel[w.x.x:w.x.y-1,w.y.x:w.y.y-1]
+
+=#
