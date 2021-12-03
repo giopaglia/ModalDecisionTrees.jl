@@ -108,8 +108,8 @@ println(" $(length(forest_args)) forests " * (length(forest_args) > 0 ? "(repeat
 modal_args = (;
 	initConditions = DecisionTree.startWithRelationGlob,
 	# initConditions = DecisionTree.startAtCenter,
-	# useRelationGlob = true,
-	useRelationGlob = false,
+	# allowRelationGlob = true,
+	allowRelationGlob = false,
 )
 
 data_modal_args = (;

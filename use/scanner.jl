@@ -276,7 +276,7 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 
 		needToComputeRelationGlob =
 			WorldType != OneWorld && (
-				(modal_args.useRelationGlob || (modal_args.initConditions == DecisionTree.startWithRelationGlob))
+				(modal_args.allowRelationGlob || (modal_args.initConditions == DecisionTree.startWithRelationGlob))
 					|| ((modal_args.initConditions isa AbstractVector) && modal_args.initConditions[i_frame] == DecisionTree.startWithRelationGlob)
 			)
 		########################################################################

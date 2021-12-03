@@ -36,7 +36,7 @@ module treeregressor
 		test_operator      :: TestOperatorFun                  # test_operator (e.g. <=)
 		threshold          :: T where T                                # threshold value
 		
-		onlyUseRelationGlob:: Vector{Bool}
+		onlyallowRelationGlob:: Vector{Bool}
 
 		function NodeMeta{U}(
 				region      :: UnitRange{Int},
@@ -50,7 +50,7 @@ module treeregressor
 			node.modal_depth = modal_depth
 			node.purity = U(NaN)
 			node.is_leaf = false
-			node.onlyUseRelationGlob = oura
+			node.onlyallowRelationGlob = oura
 			node
 		end
 	end
@@ -80,7 +80,7 @@ module treeregressor
 		####################
 		n_subrelations        :: Vector{<:Function},
 		n_subfeatures         :: Vector{<:Integer},           # number of features to use to split
-		useRelationGlob       :: Vector{Bool},
+		allowRelationGlob     :: Vector{Bool},
 		####################
 		indX                  :: AbstractVector{<:Integer},   # an array of sample indices (we split using samples in indX[node.region])
 		####################
@@ -186,8 +186,8 @@ module treeregressor
 					frame_Sf,
 					frame_n_subrelations,
 					frame_n_subfeatures,
-					frame_useRelationGlob,
-					frame_onlyUseRelationGlob)) in enumerate(zip(frames(Xs), Sfs, n_subrelations, n_subfeatures, useRelationGlob, node.onlyUseRelationGlob))
+					frame_allowRelationGlob,
+					frame_onlyallowRelationGlob)) in enumerate(zip(frames(Xs), Sfs, n_subrelations, n_subfeatures, allowRelationGlob, node.onlyallowRelationGlob))
 
 			@logmsg DTDetail "  Frame $(best_frame)/$(length(frames(Xs)))"
 
@@ -202,10 +202,10 @@ module treeregressor
 				allow_propositional_decisions, allow_modal_decisions, allow_global_decisions = begin
 					if world_type(X) == OneWorld
 						true, false, false
-					elseif frame_onlyUseRelationGlob
+					elseif frame_onlyallowRelationGlob
 						false, false, true
 					else
-						true, true, frame_useRelationGlob
+						true, true, frame_allowRelationGlob
 					end
 				end
 
@@ -459,11 +459,11 @@ module treeregressor
 		mdepth = (node.relation == RelationId ? node.modal_depth : node.modal_depth+1)
 		@logmsg DTDetail "fork!(...): " node ind region mdepth
 
-		# onlyUseRelationGlob changes:
+		# onlyallowRelationGlob changes:
 		# on the left node, the frame where the decision was taken
-		l_oura = copy(node.onlyUseRelationGlob)
+		l_oura = copy(node.onlyallowRelationGlob)
 		l_oura[node.i_frame] = false
-		r_oura = node.onlyUseRelationGlob
+		r_oura = node.onlyallowRelationGlob
 
 		# no need to copy because we will copy at the end
 		node.l = NodeMeta{U}(region[    1:ind], depth, mdepth, l_oura)
@@ -484,7 +484,7 @@ module treeregressor
 			n_subrelations          :: Vector{<:Function},
 			n_subfeatures           :: Vector{<:Integer},
 			initConditions          :: Vector{<:DecisionTree._initCondition},
-			useRelationGlob         :: Vector{Bool},
+			allowRelationGlob       :: Vector{Bool},
 		) where {S, U}
 		n_instances = n_samples(Xs)
 
@@ -499,8 +499,8 @@ module treeregressor
 			throw_n_log("mismatching number of n_subfeatures with number of frames: $(length(n_subfeatures)) vs $(n_frames(Xs))")
 		elseif length(initConditions) != n_frames(Xs)
 			throw_n_log("mismatching number of initConditions with number of frames: $(length(initConditions)) vs $(n_frames(Xs))")
-		elseif length(useRelationGlob) != n_frames(Xs)
-			throw_n_log("mismatching number of useRelationGlob with number of frames: $(length(useRelationGlob)) vs $(n_frames(Xs))")
+		elseif length(allowRelationGlob) != n_frames(Xs)
+			throw_n_log("mismatching number of allowRelationGlob with number of frames: $(length(allowRelationGlob)) vs $(n_frames(Xs))")
 		############################################################################
 		# elseif any(n_relations(Xs) .< n_subrelations)
 		# 	throw_n_log("in at least one frame the total number of relations is less than the number "
@@ -560,7 +560,7 @@ module treeregressor
 			n_subrelations          :: Vector{<:Function},
 			n_subfeatures           :: Vector{<:Integer},
 			initConditions          :: Vector{<:DecisionTree._initCondition},
-			useRelationGlob         :: Vector{Bool},
+			allowRelationGlob       :: Vector{Bool},
 			##########################################################################
 			_perform_consistency_check :: Union{Val{true},Val{false}},
 			##########################################################################
@@ -590,8 +590,8 @@ module treeregressor
 		# Let the core algorithm begin!
 
 		# Create root node
-		onlyUseRelationGlob = [(iC == startWithRelationGlob) for iC in initConditions]
-		root = NodeMeta{Float64}(1:n_instances, 0, 0, onlyUseRelationGlob)
+		onlyallowRelationGlob = [(iC == startWithRelationGlob) for iC in initConditions]
+		root = NodeMeta{Float64}(1:n_instances, 0, 0, onlyallowRelationGlob)
 		# Process stack of nodes
 		stack = NodeMeta{Float64}[root]
 		currently_processed_nodes::Vector{NodeMeta{Float64}} = []
@@ -619,7 +619,7 @@ module treeregressor
 					######################################################################
 					n_subrelations,
 					n_subfeatures,
-					useRelationGlob,
+					allowRelationGlob,
 					######################################################################
 					indX,
 					######################################################################
@@ -671,7 +671,7 @@ module treeregressor
 			n_subrelations          :: Vector{<:Function},
 			n_subfeatures           :: Vector{<:Integer},
 			initConditions          :: Vector{<:DecisionTree._initCondition},
-			useRelationGlob         :: Vector{Bool},
+			allowRelationGlob       :: Vector{Bool},
 			##########################################################################
 			perform_consistency_check :: Bool,
 			##########################################################################
@@ -697,7 +697,7 @@ module treeregressor
 			n_subrelations,
 			n_subfeatures,
 			initConditions,
-			useRelationGlob,
+			allowRelationGlob,
 		)
 
 		Y_ = Y
@@ -717,7 +717,7 @@ module treeregressor
 				n_subrelations,
 				n_subfeatures,
 				initConditions,
-				useRelationGlob,
+				allowRelationGlob,
 				########################################################################
 				Val(perform_consistency_check),
 				########################################################################

@@ -138,7 +138,7 @@ T = build_tree(
 	n_subrelations      = sqrt_f,
 	n_subfeatures       = sqrt_f,
 	initConditions      = DecisionTree.startWithRelationGlob,
-	useRelationGlob     = true,
+	allowRelationGlob   = true,
 	##############################################################################
 	perform_consistency_check = true
 )
@@ -169,7 +169,7 @@ F = build_forest(
 	n_subrelations      = sqrt_f,
 	n_subfeatures       = sqrt_f,
 	initConditions      = DecisionTree.startWithRelationGlob,
-	useRelationGlob     = true,
+	allowRelationGlob   = true,
 	##############################################################################
 	perform_consistency_check = true);
 
