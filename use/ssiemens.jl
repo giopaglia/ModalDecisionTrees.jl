@@ -647,15 +647,17 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			p_norm;
 		end
 
+		# _savefig = savefig
+		_savefig = (x...)->(;)
 		############################################################################
 		############################################################################
 		############################################################################
 		@assert length(descrs) == 25 "TODO change layout"
 		
-		savefig(plot(p...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name).png");
+		_savefig(plot(p...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name).png");
 
 		p_avg = average_plot(p);
-		savefig(plot(p_avg; size = (1920, 1080)), "plotdescription-$(run_name)-avg.png");
+		_savefig(plot(p_avg; size = (1920, 1080)), "plotdescription-$(run_name)-avg.png");
 		############################################################################
 		############################################################################
 		############################################################################
@@ -667,21 +669,21 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			end
 			plot!(p_i, xticks = (1:length(perm), string.(perm)));
 		end
-		savefig(plot(p_sorted...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name)-sorted.png");
+		_savefig(plot(p_sorted...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name)-sorted.png");
 
 		p_sorted_avg = Base.deepcopy(p_avg);
 		p_sorted_avg[1][1][:y] = p_sorted_avg[1][1][:y][perm]
 		plot!(p_sorted_avg, xticks = (1:length(perm), ["$(t). $(collect(keys(attribute_names))[t])" for t in perm]));
 		# plot!(p_sorted_avg, xticks = (1:length(perm), string.(perm)))
-		savefig(plot(p_sorted_avg; size = (1920, 1080)), "plotdescription-$(run_name)-sorted-avg.png");
+		_savefig(plot(p_sorted_avg; size = (1920, 1080)), "plotdescription-$(run_name)-sorted-avg.png");
 		############################################################################
 		############################################################################
 		############################################################################
 		p_norm = normalize_plot.(p);
-		savefig(plot(p_norm...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name)-norm.png");
+		_savefig(plot(p_norm...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name)-norm.png");
 
 		p_norm_avg = average_plot(p_norm);
-		savefig(plot(p_norm_avg; size = (1920, 1080)), "plotdescription-$(run_name)-norm-avg.png");
+		_savefig(plot(p_norm_avg; size = (1920, 1080)), "plotdescription-$(run_name)-norm-avg.png");
 		############################################################################
 		############################################################################
 		############################################################################
@@ -693,7 +695,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			end
 			plot!(p_i, xticks = (1:length(perm), string.(perm)));
 		end
-		savefig(plot(p_sorted...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name)-norm-sorted.png");
+		_savefig(plot(p_sorted...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name)-norm-sorted.png");
 
 		p_sorted_avg = Base.deepcopy(p_norm_avg);
 		for i in 1:length(p_sorted_avg[1])
@@ -701,7 +703,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		end
 		plot!(p_sorted_avg, xticks = (1:length(perm), ["$(t). $(collect(keys(attribute_names))[t])" for t in perm]));
 		# plot!(p_sorted_avg, xticks = (1:length(perm), string.(perm)))
-		savefig(plot(p_sorted_avg; size = (1920, 1080)), "plotdescription-$(run_name)-norm-sorted-avg.png");
+		_savefig(plot(p_sorted_avg; size = (1920, 1080)), "plotdescription-$(run_name)-norm-sorted-avg.png");
 		############################################################################
 		############################################################################
 		############################################################################
@@ -717,7 +719,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		############################################################################
 		@assert length(grouped_descrs) == 8 "TODO change layout"
 		
-		savefig(plot(p...; layout = (4,2), size = (1920, 1080)), "plotdescription-$(run_name)-grouped.png");
+		_savefig(plot(p...; layout = (4,2), size = (1920, 1080)), "plotdescription-$(run_name)-grouped.png");
 
 		############################################################################
 		############################################################################
@@ -729,13 +731,13 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			end
 			plot!(p_i, xticks = (1:length(perm), string.(perm)));
 		end
-		savefig(plot(p_sorted...; layout = (4,2), size = (1920, 1080)), "plotdescription-$(run_name)-grouped-sorted.png");
+		_savefig(plot(p_sorted...; layout = (4,2), size = (1920, 1080)), "plotdescription-$(run_name)-grouped-sorted.png");
 
 		############################################################################
 		############################################################################
 		############################################################################
 		p_norm = normalize_plot.(p);
-		savefig(plot(p_norm...; layout = (4,2), size = (1920, 1080)), "plotdescription-$(run_name)-grouped-norm.png");
+		_savefig(plot(p_norm...; layout = (4,2), size = (1920, 1080)), "plotdescription-$(run_name)-grouped-norm.png");
 
 		############################################################################
 		############################################################################
@@ -748,7 +750,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			end
 			plot!(p_i, xticks = (1:length(perm), string.(perm)));
 		end
-		savefig(plot(p_sorted...; layout = (4,2), size = (1920, 1080)), "plotdescription-$(run_name)-grouped-norm-sorted.png");
+		_savefig(plot(p_sorted...; layout = (4,2), size = (1920, 1080)), "plotdescription-$(run_name)-grouped-norm-sorted.png");
 
 		############################################################################
 		############################################################################
@@ -771,10 +773,10 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		############################################################################
 		############################################################################
 		
-		savefig(plot(p...; layout = (1,5), size = (1920, 1080)), "plotdescription-$(run_name)-transposed.png");
+		_savefig(plot(p...; layout = (1,5), size = (1920, 1080)), "plotdescription-$(run_name)-transposed.png");
 
 		p_avg = average_plot(p);
-		savefig(plot(p_avg; size = (1920, 1080)), "plotdescription-$(run_name)-transposed-avg.png");
+		_savefig(plot(p_avg; size = (1920, 1080)), "plotdescription-$(run_name)-transposed-avg.png");
 		############################################################################
 		############################################################################
 		############################################################################
@@ -786,16 +788,16 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			end
 			plot!(p_i, xticks = (1:length(perm), string.(perm)));
 		end
-		savefig(plot(p_sorted...; layout = (1,5), size = (1920, 1080)), "plotdescription-$(run_name)-transposed-sorted.png");
+		_savefig(plot(p_sorted...; layout = (1,5), size = (1920, 1080)), "plotdescription-$(run_name)-transposed-sorted.png");
 
 		############################################################################
 		############################################################################
 		############################################################################
 		p_norm = normalize_plot.(p);
-		savefig(plot(p_norm...; layout = (1,5), size = (1920, 1080)), "plotdescription-$(run_name)-transposed-norm.png");
+		_savefig(plot(p_norm...; layout = (1,5), size = (1920, 1080)), "plotdescription-$(run_name)-transposed-norm.png");
 
 		p_norm_avg = average_plot(p_norm);
-		savefig(plot(p_norm_avg; size = (1920, 1080)), "plotdescription-$(run_name)-transposed-norm-avg.png");
+		_savefig(plot(p_norm_avg; size = (1920, 1080)), "plotdescription-$(run_name)-transposed-norm-avg.png");
 		############################################################################
 		############################################################################
 		############################################################################
@@ -807,7 +809,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			end
 			plot!(p_i, xticks = (1:length(perm), string.(perm)));
 		end
-		savefig(plot(p_sorted...; layout = (1,5), size = (1920, 1080)), "plotdescription-$(run_name)-transposed-norm-sorted.png");
+		_savefig(plot(p_sorted...; layout = (1,5), size = (1920, 1080)), "plotdescription-$(run_name)-transposed-norm-sorted.png");
 
 		############################################################################
 		############################################################################
