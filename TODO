@@ -1,5 +1,5 @@
 ################################################################################
-☐	Sort out optimization TODOs into a thesis?
+☐	Sort out TODOs into a thesis?
 ################################################################################
 ☐	CODE: Check type-stability with code_warntype!
 	- https://docs.julialang.org/en/v1/devdocs/reflection/#Intermediate-and-compiled-representations
@@ -12,8 +12,6 @@
 ☐	CODE: Custom pretty printing, instead of display_. Figure out print/show/display See https://docs.julialang.org/en/v1/manual/types/#man-custom-pretty-printing https://schurkus.com/2018/01/05/julia-print-show-display-dump-what-to-override-what-to-use/
 ☐	CODE: Keep this: throw, error(), @error -> throw_n_log()
 ☐	CODE: Improve output/logging
-################################################################################
-☐	useRelationGlob -> allowRelationGlob
 ################################################################################
 ☐	MODEL rename: DTree->ModalTree; Forest->ModalForest; Random Forest -> Decision Forest.
 ☐	MODEL: Bagging, XGBoost

@@ -476,7 +476,7 @@ function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n
 	ds_train = readARFF(data_dir * "Multivariate_arff/$(dataset_name)/$(dataset_name)_TRAIN.arff");
 	ds_test  = readARFF(data_dir * "Multivariate_arff/$(dataset_name)/$(dataset_name)_TEST.arff");
 
-	for fid in length(ds_train.frames)
+	for fid in 1:length(ds_train.frames)
 		if use_catch22
 			transform!(ds_train, fid, [paa for _ in 1:length(catch22)], [(;n_chunks=n_chunks, f=catch22[fn]) for fn in getnames(catch22)])
 			transform!(ds_test,  fid, [paa for _ in 1:length(catch22)], [(;n_chunks=n_chunks, f=catch22[fn]) for fn in getnames(catch22)])
@@ -493,7 +493,7 @@ function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n
 	@assert !(flatten == true && mode != false) "flatten=$(flatten), mode=$(mode)"
 
 	if flatten
-		for fid in length(ds_train.frames)
+		for fid in 1:length(ds_train.frames)
 			flatten!(ds_train, fid)
 			flatten!(ds_test,  fid)
 		end

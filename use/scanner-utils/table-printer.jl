@@ -40,14 +40,14 @@ function string_head(
 	result = ""
 	for str_col in columns_before
 		result *= str_col
-		result *= string
+		result *= separator
 	end
 
 	for i in 1:length(tree_args)
 		for j in 1:length(tree_columns)
 			result *= "T,$(Tuple(tree_args[i]))"
 			result *= string(tree_columns[j])
-			result *= string
+			result *= separator
 		end
 	end
 
@@ -55,7 +55,7 @@ function string_head(
 		for j in 1:length(forest_columns)
 			result *= "RF,$(Tuple(forest_args[i]))"
 			result *= string(forest_columns[j])
-			result *= string
+			result *= separator
 		end
 	end
 

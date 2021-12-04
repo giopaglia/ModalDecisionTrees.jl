@@ -94,6 +94,8 @@ const _IA2DRelMaximizer = Union{_RelationGlob,_IA_L,_IA_Li,_IA_D}
 const _IA2DRelMinimizer = Union{_RelationId,_IA_O,_IA_Oi,_IA_Bi,_IA_Ei,_IA_Di}
 const _IA2DRelSingleVal = Union{_IA_A,_IA_Ai,_IA_B,_IA_E}
 
+#=
+
 @inline enumAccRepr2D(test_operator::TestOperator, w::Interval2D, rx::R1 where R1<:AbstractRelation, ry::R2 where R2<:AbstractRelation, X::Integer, Y::Integer, _ReprConstructor::Type{rT}) where {rT<:_ReprTreatment} = begin
 	x = enumAccRepr(test_operator, w.x, rx, X)
 	# println(x)
@@ -108,7 +110,6 @@ const _IA2DRelSingleVal = Union{_IA_A,_IA_Ai,_IA_B,_IA_E}
 	return _ReprConstructor(Interval2D(x.w, y.w))
 end
 
-#=
 # 3*3 = 9 cases ((13+1)^2 = 196 relations)
 # Maximizer operators
 enumAccRepr(test_operator::_TestOpGeq, w::Interval2D, r::_IA2DRel{R1,R2} where {R1<:_IA2DRelMaximizer,R2<:_IA2DRelMaximizer}, X::Integer, Y::Integer) =

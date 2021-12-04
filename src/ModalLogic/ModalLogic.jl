@@ -144,6 +144,46 @@ subscriptnumber(i::AbstractFloat) = subscriptnumber(string(i))
 include("operators.jl")
 include("featureTypes.jl")
 
+
+abstract type CanonicalFeature end
+
+export CanonicalFeatureGeq, CanonicalFeatureLeq
+
+# ⪴ and ⪳, that is, "*all* of the values on this world are at least, or at most ..."
+struct _CanonicalFeatureGeq <: CanonicalFeature end; const CanonicalFeatureGeq  = _CanonicalFeatureGeq();
+struct _CanonicalFeatureLeq <: CanonicalFeature end; const CanonicalFeatureLeq  = _CanonicalFeatureLeq();
+
+export CanonicalFeatureGeq_95, CanonicalFeatureGeq_90, CanonicalFeatureGeq_85, CanonicalFeatureGeq_80, CanonicalFeatureGeq_75, CanonicalFeatureGeq_70, CanonicalFeatureGeq_60,
+				CanonicalFeatureLeq_95, CanonicalFeatureLeq_90, CanonicalFeatureLeq_85, CanonicalFeatureLeq_80, CanonicalFeatureLeq_75, CanonicalFeatureLeq_70, CanonicalFeatureLeq_60
+
+# ⪴_α and ⪳_α, that is, "*at least α⋅100 percent* of the values on this world are at least, or at most ..."
+
+struct _CanonicalFeatureGeqSoft  <: CanonicalFeature
+  alpha :: AbstractFloat
+  _CanonicalFeatureGeqSoft(a::T) where {T<:Real} = (a > 0 && a < 1) ? new(a) : throw_n_log("Invalid instantiation for test operator: _CanonicalFeatureGeqSoft($(a))")
+end;
+struct _CanonicalFeatureLeqSoft  <: CanonicalFeature
+  alpha :: AbstractFloat
+  _CanonicalFeatureLeqSoft(a::T) where {T<:Real} = (a > 0 && a < 1) ? new(a) : throw_n_log("Invalid instantiation for test operator: _CanonicalFeatureLeqSoft($(a))")
+end;
+
+const CanonicalFeatureGeq_95  = _CanonicalFeatureGeqSoft((Rational(95,100)));
+const CanonicalFeatureGeq_90  = _CanonicalFeatureGeqSoft((Rational(90,100)));
+const CanonicalFeatureGeq_85  = _CanonicalFeatureGeqSoft((Rational(85,100)));
+const CanonicalFeatureGeq_80  = _CanonicalFeatureGeqSoft((Rational(80,100)));
+const CanonicalFeatureGeq_75  = _CanonicalFeatureGeqSoft((Rational(75,100)));
+const CanonicalFeatureGeq_70  = _CanonicalFeatureGeqSoft((Rational(70,100)));
+const CanonicalFeatureGeq_60  = _CanonicalFeatureGeqSoft((Rational(60,100)));
+
+const CanonicalFeatureLeq_95  = _CanonicalFeatureLeqSoft((Rational(95,100)));
+const CanonicalFeatureLeq_90  = _CanonicalFeatureLeqSoft((Rational(90,100)));
+const CanonicalFeatureLeq_85  = _CanonicalFeatureLeqSoft((Rational(85,100)));
+const CanonicalFeatureLeq_80  = _CanonicalFeatureLeqSoft((Rational(80,100)));
+const CanonicalFeatureLeq_75  = _CanonicalFeatureLeqSoft((Rational(75,100)));
+const CanonicalFeatureLeq_70  = _CanonicalFeatureLeqSoft((Rational(70,100)));
+const CanonicalFeatureLeq_60  = _CanonicalFeatureLeqSoft((Rational(60,100)));
+
+
 ################################################################################
 # BEGIN Dataset types
 ################################################################################
@@ -1560,7 +1600,7 @@ function modal_step(
 
 		for w in acc_worlds
 			if test_decision(X, i_instance, w, feature, test_operator, threshold)
-				# @logmsg DTDetail " Found world " w ch_readWorld(w, channel)
+				# @logmsg DTDetail " Found world " w ch_readWorld ... ch_readWorld(w, channel)
 				satisfied = true
 				push!(new_worlds, w)
 			end

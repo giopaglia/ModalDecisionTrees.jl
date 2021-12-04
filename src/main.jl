@@ -268,6 +268,9 @@ function build_forest(
 	_get_weights(W::UniformArray, inds) = nothing
 	_get_weights(W::Any, inds) = @view W[inds]
 
+	# TODO remove this and this of a better representation of Y?
+	n_classes = length(StatsBase.countmap(Y))
+
 	Threads.@threads for i_tree in 1:n_trees
 		inds = rand(rngs[i_tree], 1:t_samples, num_samples)
 
@@ -329,7 +332,7 @@ function build_forest(
 		pred = apply_trees(trees[index_of_trees_to_test_with], X_slice)
 		cm = confusion_matrix(Y_slice, pred)
 
-		push!(oob_classified, overall_accuracy(cm) > 1/classes)
+		push!(oob_classified, overall_accuracy(cm) > 1/n_classes)
 	end
 
 	oob_error = 1.0 - (sum(W[findall(oob_classified)]) / sum(W))

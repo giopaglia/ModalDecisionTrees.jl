@@ -336,21 +336,24 @@ function trip_no_trip(dir::String;
 		ma_step = nothing,
 		ignore_uneven_cuts = true,
 		)
-	X_df = DataFrame()
-	Y = []
 	attributes = CSV.File(dir * "/Example_1.csv", drop = [1, 2]) |> DataFrame |> names
-
 	println("Attributes: $(attributes)")
-
-	for attr in attributes
-		insertcols!(X_df, attr => Array{Float64, 1}[])
+	function init_X_df()
+		ret = DataFrame()
+		for attr in attributes
+			insertcols!(ret, attr => Array{Float64, 1}[])
+		end
+		ret
 	end
+	X_df = init_X_df()
+	Y = []
 
 	datainfo = CSV.File(dir * "/DataInfo.csv") |> DataFrame
 	sort(datainfo, [:Datasource, :ExampleID])
 
 	datasource_counts = []
 
+	samples_refs = []
 	for row in eachrow(datainfo)
 		if ignore_class0 && row.Class == 0
 			continue
@@ -362,16 +365,32 @@ function trip_no_trip(dir::String;
 				continue
 			end
 
-			aux = CSV.File(dir * "/Example_$(row.ExampleID).csv", drop = [1, 2]) |> Tables.matrix
+			push!(samples_refs, (row.Datasource, (row.ExampleID, Day)))
+		end
+	end
+
+	sort!(samples_refs)
+	datasources = unique(getindex.(samples_refs, 1))
+	samples_by_datasources = Dict([d => [] for d in datasources])
+	for (Datasource, info) in samples_refs
+		push!(samples_by_datasources[Datasource], info)
+	end
+
+	# nrow(X_df) |> println
+
+	for Datasource in datasources
+		_X_df = init_X_df()
+		_Y = []
+		for (ExampleID, Day) in samples_by_datasources[Datasource]
+			aux = CSV.File(dir * "/Example_$(ExampleID).csv", drop = [1, 2]) |> Tables.matrix
 
 			# println(size(aux))
 
 			if mode == :classification
 				ts = [moving_average(aux[:, j], ma_size, ma_step) for j in 1:length(attributes)]
-				push!(X_df, ts)
-				push!(Y, (row.Day < 4 ? "no-trip" : "trip"))
-				push!(datasource_counts, row.Datasource)
-				Y = Vector{String}(Y)
+				push!(_X_df, ts)
+				push!(_Y, (Day < 4 ? "no-trip" : "trip"))
+				push!(datasource_counts, Datasource)
 			elseif mode == :regression
 				ts_n_points = size(aux, 1)
 				ts_filt = aux[1:end-ignore_last_minutes,:]
@@ -393,24 +412,46 @@ function trip_no_trip(dir::String;
 					# a .|> (last_minute)-> distance_from_trip = (1440-last_minute)/60
 					distance_from_trip = (ts_n_points-last_minute)/60
 					# println("Window:"); display(idxs)
-					push!(X_df, ts)
-					push!(Y, distance_from_trip)
-					push!(datasource_counts, row.Datasource)
-					Y = Vector{Float64}(Y)
+					push!(_X_df, ts)
+					push!(_Y, distance_from_trip)
+					push!(datasource_counts, Datasource)
+					# push!(datasource_counts, get_grouped_counts(_Y))
 				end
+
 			else
 				error("Unknown mode: $(mode) (type = $(typeof(mode)))")
 			end
 		end
+		ids  = sortperm(_Y)
+		_X_df = _X_df[ids,:]
+		_Y    = _Y[ids]
+
+		append!(X_df, _X_df)
+		append!(Y,    _Y)
+
+		# nrow(_X_df) |> println
+		# length(_Y) |> println
+		# nrow(X_df) |> println
+		# length(Y) |> println
+		# println()
 	end
-	
+
+	if mode == :classification
+		Y = Vector{String}(Y)
+	elseif mode == :regression
+		Y = Vector{Float64}(Y)
+	else
+		error("Unknown mode: $(mode) (type = $(typeof(mode)))")
+	end
+
 	@assert isgrouped(datasource_counts) "datasource_counts is not grouped: $(datasource_counts)"
-	
 	datasource_counts = get_grouped_counts(datasource_counts)
 
-	ids  = sortperm(Y)
-	X_df = X_df[ids,:]
-	Y    = Y[ids]
+	if !sortby_datasource
+		ids  = sortperm(Y)
+		X_df = X_df[ids,:]
+		Y    = Y[ids]
+	end
 
 	# println(X_df)
 	# println(Y)
@@ -481,21 +522,23 @@ function SiemensJuneDataset_not_stratified(from, to)
 	ClassificationDataset22RunnerDataset(ds)
 end
 
-function SiemensDataset_regression(datadirname; binning::Union{Nothing,Vector{<:Number}} = nothing, sortby_datasource = false, use_catch22 = false, kwargs...)
+function SiemensDataset_regression(datadirname; binning::Binning = nothing, sortby_datasource = false, use_catch22 = false, kwargs...)
 	if !sortby_datasource
 		(X, Y)                    = trip_no_trip(data_dir * datadirname; mode = :regression, sortby_datasource = sortby_datasource, kwargs...);
 	else
 		(X, Y), datasource_counts = trip_no_trip(data_dir * datadirname; mode = :regression, sortby_datasource = sortby_datasource, kwargs...);
 	end
 
-	if !isnothing(binning)
-		function manual_bin(y)
-			for (threshold,label) in binning
-				y <= threshold && return label
-			end
-			error("Error! element with label $(y) falls outside binning $(binning)")
-		end
-		Y = manual_bin.(Y)
+	Y = apply_binning(Y, binning)
+
+	if sortby_datasource && !isnothing(binning)
+		datasource_counts = Tuple([begin
+			a = datasource_counts[1:d-1];
+			idx_base = (length(a) == 0 ? 0 : sum(a))
+			datasource_idxs = idx_base .+ (1:datasource_counts[d])
+			println(datasource_idxs)
+			get_grouped_counts(Y[datasource_idxs])
+		end for d in 1:length(datasource_counts)])
 	end
 
 	# if use_catch22
@@ -503,7 +546,6 @@ function SiemensDataset_regression(datadirname; binning::Union{Nothing,Vector{<:
 	# 	n_chunks = 1
 	# 	...transform(ds_train, fid, [paa for _ in 1:length(catch22)], [(;n_chunks=n_chunks, f=catch22[fn]) for fn in getnames(catch22)])
 	# end
-
 
 	if !sortby_datasource
 		(X, Y)
