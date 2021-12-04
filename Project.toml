@@ -6,6 +6,7 @@ version = "0.10.10"
 
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 Cairo = "159f3aea-2a34-519c-b102-8c37f9878175"
 Catch22 = "acdeb78f-3d39-4310-8fdf-6d75c17c6d5a"
 CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"
