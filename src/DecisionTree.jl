@@ -36,8 +36,6 @@ export DTNode, DTLeaf, DTInternal,
 				startWithRelationGlob, startAtCenter,
 				DTOverview, DTDebug, DTDetail,
 				#
-				GammaType, GammaSliceType, spawn_rng,
-				#
 				initWorldSet,
 				#
 				throw_n_log
@@ -63,7 +61,6 @@ using .ModalLogic
 
 import .ModalLogic: n_samples # TODO make this a DecisionTree.n_samples export, and make ModalLogic import it?
 
-include("gammas.jl")
 # include("modalDataset.jl")
 include("measures.jl")
 
@@ -221,7 +218,7 @@ spawn_rng(rng) = Random.MersenneTwister(abs(rand(rng, Int)))
 
 include("load_data.jl")
 include("util.jl")
-include("model/main.jl")
+include("main.jl")
 # TODO: include("ModalscikitlearnAPI.jl")
 
 #############################
