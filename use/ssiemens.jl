@@ -606,7 +606,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 		# println(typeof(p))
 		# println(length(p))
-		
+
 		function update_ylims!(p)
 			_min, _max = Inf, -Inf
 			i = 1
@@ -649,114 +649,118 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 		# _savefig = savefig
 		_savefig = (x...)->(;)
-		############################################################################
-		############################################################################
-		############################################################################
-		@assert length(descrs) == 25 "TODO change layout"
-		
-		_savefig(plot(p...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name).png");
 
-		p_avg = average_plot(p);
-		_savefig(plot(p_avg; size = (1920, 1080)), "plotdescription-$(run_name)-avg.png");
-		############################################################################
-		############################################################################
-		############################################################################
-		perm = sortperm(p_avg[1][1][:y], rev=true);
-		p_sorted = Base.deepcopy(p);
-		for p_i in p_sorted
-			for i in 1:length(p_i[1])
-				p_i[1][i][:y] = p_i[1][i][:y][perm]
-			end
-			plot!(p_i, xticks = (1:length(perm), string.(perm)));
-		end
-		_savefig(plot(p_sorted...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name)-sorted.png");
+		best_attributes_idxs = [1,4,25,9,10]
+		# best_attributes_idxs = begin
 
-		p_sorted_avg = Base.deepcopy(p_avg);
-		p_sorted_avg[1][1][:y] = p_sorted_avg[1][1][:y][perm]
-		plot!(p_sorted_avg, xticks = (1:length(perm), ["$(t). $(collect(keys(attribute_names))[t])" for t in perm]));
-		# plot!(p_sorted_avg, xticks = (1:length(perm), string.(perm)))
-		_savefig(plot(p_sorted_avg; size = (1920, 1080)), "plotdescription-$(run_name)-sorted-avg.png");
-		############################################################################
-		############################################################################
-		############################################################################
-		p_norm = normalize_plot.(p);
-		_savefig(plot(p_norm...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name)-norm.png");
+		# 	############################################################################
+		# 	############################################################################
+		# 	############################################################################
+		# 	@assert length(descrs) == 25 "TODO change layout"
+			
+		# 	_savefig(plot(p...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name).png");
 
-		p_norm_avg = average_plot(p_norm);
-		_savefig(plot(p_norm_avg; size = (1920, 1080)), "plotdescription-$(run_name)-norm-avg.png");
-		############################################################################
-		############################################################################
-		############################################################################
-		perm = sortperm(p_norm_avg[1][1][:y], rev=true);
-		p_sorted = Base.deepcopy(p_norm);
-		for p_i in p_sorted
-			for i in 1:length(p_i[1])
-				p_i[1][i][:y] = p_i[1][i][:y][perm]
-			end
-			plot!(p_i, xticks = (1:length(perm), string.(perm)));
-		end
-		_savefig(plot(p_sorted...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name)-norm-sorted.png");
+		# 	p_avg = average_plot(p);
+		# 	_savefig(plot(p_avg; size = (1920, 1080)), "plotdescription-$(run_name)-avg.png");
+		# 	############################################################################
+		# 	############################################################################
+		# 	############################################################################
+		# 	perm = sortperm(p_avg[1][1][:y], rev=true);
+		# 	p_sorted = Base.deepcopy(p);
+		# 	for p_i in p_sorted
+		# 		for i in 1:length(p_i[1])
+		# 			p_i[1][i][:y] = p_i[1][i][:y][perm]
+		# 		end
+		# 		plot!(p_i, xticks = (1:length(perm), string.(perm)));
+		# 	end
+		# 	_savefig(plot(p_sorted...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name)-sorted.png");
 
-		p_sorted_avg = Base.deepcopy(p_norm_avg);
-		for i in 1:length(p_sorted_avg[1])
-			p_sorted_avg[1][i][:y] = p_sorted_avg[1][i][:y][perm]
-		end
-		plot!(p_sorted_avg, xticks = (1:length(perm), ["$(t). $(collect(keys(attribute_names))[t])" for t in perm]));
-		# plot!(p_sorted_avg, xticks = (1:length(perm), string.(perm)))
-		_savefig(plot(p_sorted_avg; size = (1920, 1080)), "plotdescription-$(run_name)-norm-sorted-avg.png");
-		############################################################################
-		############################################################################
-		############################################################################
+		# 	p_sorted_avg = Base.deepcopy(p_avg);
+		# 	p_sorted_avg[1][1][:y] = p_sorted_avg[1][1][:y][perm]
+		# 	plot!(p_sorted_avg, xticks = (1:length(perm), ["$(t). $(collect(keys(attribute_names))[t])" for t in perm]));
+		# 	# plot!(p_sorted_avg, xticks = (1:length(perm), string.(perm)))
+		# 	_savefig(plot(p_sorted_avg; size = (1920, 1080)), "plotdescription-$(run_name)-sorted-avg.png");
+		# 	############################################################################
+		# 	############################################################################
+		# 	############################################################################
+		# 	p_norm = normalize_plot.(p);
+		# 	_savefig(plot(p_norm...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name)-norm.png");
 
-		# display(p_norm_avg)
+		# 	p_norm_avg = average_plot(p_norm);
+		# 	_savefig(plot(p_norm_avg; size = (1920, 1080)), "plotdescription-$(run_name)-norm-avg.png");
+		# 	############################################################################
+		# 	############################################################################
+		# 	############################################################################
+		# 	perm = sortperm(p_norm_avg[1][1][:y], rev=true);
+		# 	p_sorted = Base.deepcopy(p_norm);
+		# 	for p_i in p_sorted
+		# 		for i in 1:length(p_i[1])
+		# 			p_i[1][i][:y] = p_i[1][i][:y][perm]
+		# 		end
+		# 		plot!(p_i, xticks = (1:length(perm), string.(perm)));
+		# 	end
+		# 	_savefig(plot(p_sorted...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name)-norm-sorted.png");
 
-		p = SoleViz.plotdescription(mfd, descriptors = grouped_descrs, windows = [[[(t,0,0)]]])
-		# println(size(p))
-		p = p[:]
+		# 	p_sorted_avg = Base.deepcopy(p_norm_avg);
+		# 	for i in 1:length(p_sorted_avg[1])
+		# 		p_sorted_avg[1][i][:y] = p_sorted_avg[1][i][:y][perm]
+		# 	end
+		# 	plot!(p_sorted_avg, xticks = (1:length(perm), ["$(t). $(collect(keys(attribute_names))[t])" for t in perm]));
+		# 	# plot!(p_sorted_avg, xticks = (1:length(perm), string.(perm)))
+		# 	_savefig(plot(p_sorted_avg; size = (1920, 1080)), "plotdescription-$(run_name)-norm-sorted-avg.png");
+		# 	############################################################################
+		# 	############################################################################
+		# 	############################################################################
 
-		############################################################################
-		############################################################################
-		############################################################################
-		@assert length(grouped_descrs) == 8 "TODO change layout"
-		
-		_savefig(plot(p...; layout = (4,2), size = (1920, 1080)), "plotdescription-$(run_name)-grouped.png");
+		# 	# display(p_norm_avg)
 
-		############################################################################
-		############################################################################
-		############################################################################
-		p_sorted = Base.deepcopy(p);
-		for p_i in p_sorted
-			for i in 1:length(p_i[1])
-				p_i[1][i][:y] = p_i[1][i][:y][perm]
-			end
-			plot!(p_i, xticks = (1:length(perm), string.(perm)));
-		end
-		_savefig(plot(p_sorted...; layout = (4,2), size = (1920, 1080)), "plotdescription-$(run_name)-grouped-sorted.png");
+		# 	p = SoleViz.plotdescription(mfd, descriptors = grouped_descrs, windows = [[[(t,0,0)]]])
+		# 	# println(size(p))
+		# 	p = p[:]
 
-		############################################################################
-		############################################################################
-		############################################################################
-		p_norm = normalize_plot.(p);
-		_savefig(plot(p_norm...; layout = (4,2), size = (1920, 1080)), "plotdescription-$(run_name)-grouped-norm.png");
+		# 	############################################################################
+		# 	############################################################################
+		# 	############################################################################
+		# 	@assert length(grouped_descrs) == 8 "TODO change layout"
+			
+		# 	_savefig(plot(p...; layout = (4,2), size = (1920, 1080)), "plotdescription-$(run_name)-grouped.png");
 
-		############################################################################
-		############################################################################
-		############################################################################
-		perm = sortperm(p_norm_avg[1][1][:y], rev=true)
-		p_sorted = Base.deepcopy(p_norm);
-		for p_i in p_sorted
-			for i in 1:length(p_i[1])
-				p_i[1][i][:y] = p_i[1][i][:y][perm]
-			end
-			plot!(p_i, xticks = (1:length(perm), string.(perm)));
-		end
-		_savefig(plot(p_sorted...; layout = (4,2), size = (1920, 1080)), "plotdescription-$(run_name)-grouped-norm-sorted.png");
+		# 	############################################################################
+		# 	############################################################################
+		# 	############################################################################
+		# 	p_sorted = Base.deepcopy(p);
+		# 	for p_i in p_sorted
+		# 		for i in 1:length(p_i[1])
+		# 			p_i[1][i][:y] = p_i[1][i][:y][perm]
+		# 		end
+		# 		plot!(p_i, xticks = (1:length(perm), string.(perm)));
+		# 	end
+		# 	_savefig(plot(p_sorted...; layout = (4,2), size = (1920, 1080)), "plotdescription-$(run_name)-grouped-sorted.png");
 
-		############################################################################
-		############################################################################
-		############################################################################
+		# 	############################################################################
+		# 	############################################################################
+		# 	############################################################################
+		# 	p_norm = normalize_plot.(p);
+		# 	_savefig(plot(p_norm...; layout = (4,2), size = (1920, 1080)), "plotdescription-$(run_name)-grouped-norm.png");
 
-		best_attributes_idxs = perm[1:n_selected_attributes]
+		# 	############################################################################
+		# 	############################################################################
+		# 	############################################################################
+		# 	perm = sortperm(p_norm_avg[1][1][:y], rev=true)
+		# 	p_sorted = Base.deepcopy(p_norm);
+		# 	for p_i in p_sorted
+		# 		for i in 1:length(p_i[1])
+		# 			p_i[1][i][:y] = p_i[1][i][:y][perm]
+		# 		end
+		# 		plot!(p_i, xticks = (1:length(perm), string.(perm)));
+		# 	end
+		# 	_savefig(plot(p_sorted...; layout = (4,2), size = (1920, 1080)), "plotdescription-$(run_name)-grouped-norm-sorted.png");
+
+		# 	############################################################################
+		# 	############################################################################
+		# 	############################################################################
+		# 	perm[1:n_selected_attributes]
+		# end
 
 		X_sub = X[:,best_attributes_idxs,:]
 		Y_sub = Y[:]
@@ -769,53 +773,57 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		# println(size(p))
 		p = p[:]
 
-		############################################################################
-		############################################################################
-		############################################################################
-		
-		_savefig(plot(p...; layout = (1,5), size = (1920, 1080)), "plotdescription-$(run_name)-transposed.png");
+		best_descriptors = [:min_m, :max_m, :mean_m, :CO_FirstMin_ac, :SB_BinaryStats_mean_longstretch1]
+		# best_descriptors = begin
+		# 	############################################################################
+		# 	############################################################################
+		# 	############################################################################
+			
+		# 	_savefig(plot(p...; layout = (1,5), size = (1920, 1080)), "plotdescription-$(run_name)-transposed.png");
 
-		p_avg = average_plot(p);
-		_savefig(plot(p_avg; size = (1920, 1080)), "plotdescription-$(run_name)-transposed-avg.png");
-		############################################################################
-		############################################################################
-		############################################################################
-		perm = sortperm(p_avg[1][1][:y], rev=true)
-		p_sorted = Base.deepcopy(p);
-		for p_i in p_sorted
-			for i in 1:length(p_i[1])
-				p_i[1][i][:y] = p_i[1][i][:y][perm]
-			end
-			plot!(p_i, xticks = (1:length(perm), string.(perm)));
-		end
-		_savefig(plot(p_sorted...; layout = (1,5), size = (1920, 1080)), "plotdescription-$(run_name)-transposed-sorted.png");
+		# 	p_avg = average_plot(p);
+		# 	_savefig(plot(p_avg; size = (1920, 1080)), "plotdescription-$(run_name)-transposed-avg.png");
+		# 	############################################################################
+		# 	############################################################################
+		# 	############################################################################
+		# 	perm = sortperm(p_avg[1][1][:y], rev=true)
+		# 	p_sorted = Base.deepcopy(p);
+		# 	for p_i in p_sorted
+		# 		for i in 1:length(p_i[1])
+		# 			p_i[1][i][:y] = p_i[1][i][:y][perm]
+		# 		end
+		# 		plot!(p_i, xticks = (1:length(perm), string.(perm)));
+		# 	end
+		# 	_savefig(plot(p_sorted...; layout = (1,5), size = (1920, 1080)), "plotdescription-$(run_name)-transposed-sorted.png");
 
-		############################################################################
-		############################################################################
-		############################################################################
-		p_norm = normalize_plot.(p);
-		_savefig(plot(p_norm...; layout = (1,5), size = (1920, 1080)), "plotdescription-$(run_name)-transposed-norm.png");
+		# 	############################################################################
+		# 	############################################################################
+		# 	############################################################################
+		# 	p_norm = normalize_plot.(p);
+		# 	_savefig(plot(p_norm...; layout = (1,5), size = (1920, 1080)), "plotdescription-$(run_name)-transposed-norm.png");
 
-		p_norm_avg = average_plot(p_norm);
-		_savefig(plot(p_norm_avg; size = (1920, 1080)), "plotdescription-$(run_name)-transposed-norm-avg.png");
-		############################################################################
-		############################################################################
-		############################################################################
-		perm = sortperm(p_norm_avg[1][1][:y], rev=true)
-		p_sorted = Base.deepcopy(p_norm);
-		for p_i in p_sorted
-			for i in 1:length(p_i[1])
-				p_i[1][i][:y] = p_i[1][i][:y][perm]
-			end
-			plot!(p_i, xticks = (1:length(perm), string.(perm)));
-		end
-		_savefig(plot(p_sorted...; layout = (1,5), size = (1920, 1080)), "plotdescription-$(run_name)-transposed-norm-sorted.png");
+		# 	p_norm_avg = average_plot(p_norm);
+		# 	_savefig(plot(p_norm_avg; size = (1920, 1080)), "plotdescription-$(run_name)-transposed-norm-avg.png");
+		# 	############################################################################
+		# 	############################################################################
+		# 	############################################################################
+		# 	perm = sortperm(p_norm_avg[1][1][:y], rev=true)
+		# 	p_sorted = Base.deepcopy(p_norm);
+		# 	for p_i in p_sorted
+		# 		for i in 1:length(p_i[1])
+		# 			p_i[1][i][:y] = p_i[1][i][:y][perm]
+		# 		end
+		# 		plot!(p_i, xticks = (1:length(perm), string.(perm)));
+		# 	end
+		# 	_savefig(plot(p_sorted...; layout = (1,5), size = (1920, 1080)), "plotdescription-$(run_name)-transposed-norm-sorted.png");
 
-		############################################################################
-		############################################################################
-		############################################################################
+		# 	############################################################################
+		# 	############################################################################
+		# 	############################################################################
 
-		best_descriptors = descrs[perm[1:n_selected_features]]
+		# 	
+		# descrs[perm[1:n_selected_features]]
+		# end
 		
 		println("Selecting $(length(best_descriptors)) descriptors: $(best_descriptors)...")
 		println()
