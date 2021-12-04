@@ -552,7 +552,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			mfd = MultiFrameDataset([1:ncol(df)], df)
 		end
 		
-		mfd = compute_mfd(X)
+		mfd = compute_mfd(X);
 		# ClassificationMultiFrameDataset(Y, mfd)
 
 		# println(mfd)
@@ -621,19 +621,19 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			end
 			# println("updated ylims for $(i-1) series")
 			tiny_margin(x) = min(x*.1,0.1)
-			plot!(p, ylims = (_min-tiny_margin(_min),_max+tiny_margin(_max))) # TODO improv
+			plot!(p, ylims = (_min-tiny_margin(_min),_max+tiny_margin(_max))); # TODO improve
 		end
 
 		function average_plot(plots)
-			p_avg = Base.deepcopy(plots[1])
+			p_avg = Base.deepcopy(plots[1]);
 			i = 1
 			p_avg[1][i][:y] = [mean(filter(!isnan, [p_i[1][i][:y][i_attr] for p_i in plots])) for i_attr in 1:length(plots[1][1][i][:y])]
-			update_ylims!(p_avg)
-			p_avg
+			update_ylims!(p_avg);
+			p_avg;
 		end
 
 		function normalize_plot(p)
-			p_norm = Base.deepcopy(p)
+			p_norm = Base.deepcopy(p);
 			i = 1
 			while true
 				try p_norm[1][i]
@@ -643,8 +643,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 					break
 				end
 			end
-			update_ylims!(p_norm)
-			p_norm
+			update_ylims!(p_norm);
+			p_norm;
 		end
 
 		############################################################################
@@ -660,7 +660,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		############################################################################
 		############################################################################
 		perm = sortperm(p_avg[1][1][:y], rev=true);
-		p_sorted = Base.deepcopy(p)
+		p_sorted = Base.deepcopy(p);
 		for p_i in p_sorted
 			for i in 1:length(p_i[1])
 				p_i[1][i][:y] = p_i[1][i][:y][perm]
@@ -761,7 +761,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		println("Selecting $(length(best_attributes_idxs)) attributes: $(best_attributes_idxs)...")
 		println(["$(t). $(collect(keys(attribute_names))[t])" for t in best_attributes_idxs])
 
-		mfd_sub = compute_mfd(X_sub)
+		mfd_sub = compute_mfd(X_sub);
 
 		p = SoleViz.plotdescription(mfd_sub, descriptors = descrs, windows = [[[(t,0,0)]]], on_x_axis = :descriptors)
 		# println(size(p))
