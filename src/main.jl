@@ -1,9 +1,3 @@
-# Utilities
-
-# include("../util.jl")
-using .util: Label
-using .util: RegressionLabel
-
 using .ModalLogic
 using StatsBase
 
@@ -12,8 +6,8 @@ using StructuredArrays # , FillArrays # TODO choose one
 # TODO this is ugly but... https://stackoverflow.com/a/30229723/5646732
 fit(::Union{}) = nothing
 
-include("treeclassifier.jl")
-include("treeregressor.jl")
+include("model/treeclassifier.jl")
+include("model/treeregressor.jl")
 
 # Conversion: NodeMeta (node + training info) -> DTNode (bare decision tree model)
 function _convert(
@@ -135,7 +129,7 @@ function build_tree(
 	n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
 	n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = identity,
 	initConditions      :: Union{_initCondition,AbstractVector{<:_initCondition}} = startWithRelationGlob,
-	useRelationGlob     :: Union{Bool,AbstractVector{Bool}}                       = true,
+	allowRelationGlob   :: Union{Bool,AbstractVector{Bool}}                       = true,
 	##############################################################################
 	perform_consistency_check :: Bool = true,
 	##############################################################################
@@ -145,8 +139,8 @@ function build_tree(
 		W = UniformArray{Int}(1,n_samples(Xs))
 	end
 	
-	if useRelationGlob isa Bool
-		useRelationGlob = fill(useRelationGlob, n_frames(Xs))
+	if allowRelationGlob isa Bool
+		allowRelationGlob = fill(allowRelationGlob, n_frames(Xs))
 	end
 	if n_subrelations isa Function
 		n_subrelations = fill(n_subrelations, n_frames(Xs))
@@ -178,7 +172,7 @@ function build_tree(
 		n_subrelations      = n_subrelations,
 		n_subfeatures       = [ n_subfeatures[i](n_features(frame)) for (i,frame) in enumerate(frames(Xs)) ],
 		initConditions      = initConditions,
-		useRelationGlob     = useRelationGlob,
+		allowRelationGlob   = allowRelationGlob,
 		############################################################################
 		perform_consistency_check = perform_consistency_check,
 		############################################################################
@@ -219,7 +213,7 @@ function build_forest(
 	n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
 	n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = x -> ceil(Int, sqrt(x)),
 	initConditions      :: Union{_initCondition,AbstractVector{<:_initCondition}} = startWithRelationGlob,
-	useRelationGlob     :: Union{Bool,AbstractVector{Bool}}                       = true,
+	allowRelationGlob   :: Union{Bool,AbstractVector{Bool}}                       = true,
 	##############################################################################
 	perform_consistency_check :: Bool = true,
 	##############################################################################
@@ -236,8 +230,8 @@ function build_forest(
 	if initConditions isa _initCondition
 		initConditions = fill(initConditions, n_frames(Xs))
 	end
-	if useRelationGlob isa Bool
-		useRelationGlob = fill(useRelationGlob, n_frames(Xs))
+	if allowRelationGlob isa Bool
+		allowRelationGlob = fill(allowRelationGlob, n_frames(Xs))
 	end
 
 	if n_trees < 1
@@ -274,6 +268,9 @@ function build_forest(
 	_get_weights(W::UniformArray, inds) = nothing
 	_get_weights(W::Any, inds) = @view W[inds]
 
+	# TODO remove this and this of a better representation of Y?
+	n_classes = length(StatsBase.countmap(Y))
+
 	Threads.@threads for i_tree in 1:n_trees
 		inds = rand(rngs[i_tree], 1:t_samples, num_samples)
 
@@ -295,7 +292,7 @@ function build_forest(
 			n_subrelations       = n_subrelations,
 			n_subfeatures        = n_subfeatures,
 			initConditions       = initConditions,
-			useRelationGlob      = useRelationGlob,
+			allowRelationGlob    = allowRelationGlob,
 			####
 			perform_consistency_check = perform_consistency_check,
 			####
@@ -335,7 +332,7 @@ function build_forest(
 		pred = apply_trees(trees[index_of_trees_to_test_with], X_slice)
 		cm = confusion_matrix(Y_slice, pred)
 
-		push!(oob_classified, overall_accuracy(cm) > 0.5)
+		push!(oob_classified, overall_accuracy(cm) > 1/n_classes)
 	end
 
 	oob_error = 1.0 - (sum(W[findall(oob_classified)]) / sum(W))
@@ -366,7 +363,7 @@ function build_forest(
 	n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
 	n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = x -> ceil(Int, sqrt(x)),
 	initConditions      :: Union{_initCondition,AbstractVector{<:_initCondition}} = startWithRelationGlob,
-	useRelationGlob     :: Union{Bool,AbstractVector{Bool}}                       = true,
+	allowRelationGlob   :: Union{Bool,AbstractVector{Bool}}                       = true,
 	##############################################################################
 	perform_consistency_check :: Bool = true,
 	##############################################################################
@@ -383,8 +380,8 @@ function build_forest(
 	if initConditions isa _initCondition
 		initConditions = fill(initConditions, n_frames(Xs))
 	end
-	if useRelationGlob isa Bool
-		useRelationGlob = fill(useRelationGlob, n_frames(Xs))
+	if allowRelationGlob isa Bool
+		allowRelationGlob = fill(allowRelationGlob, n_frames(Xs))
 	end
 
 	if n_trees < 1
@@ -442,7 +439,7 @@ function build_forest(
 			n_subrelations       = n_subrelations,
 			n_subfeatures        = n_subfeatures,
 			initConditions       = initConditions,
-			useRelationGlob      = useRelationGlob,
+			allowRelationGlob    = allowRelationGlob,
 			####
 			perform_consistency_check = perform_consistency_check,
 			####
@@ -485,7 +482,7 @@ function build_forest(
 	# 	pred = apply_trees(trees[index_of_trees_to_test_with], X_slice)
 	# 	cm = confusion_matrix(Y_slice, pred)
 
-	# 	# push!(oob_classified, overall_accuracy(cm) > 0.5)
+	# 	# push!(oob_classified, overall_accuracy(cm) > 1/classes)
 	# end
 
 	# oob_error = 1.0 - (sum(W[findall(oob_classified)]) / sum(W))

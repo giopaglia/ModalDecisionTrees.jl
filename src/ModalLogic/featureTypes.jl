@@ -4,28 +4,19 @@ export FeatureTypeNone, FeatureTypeFun,
 
 import Base.vec
 
+Base.vec(x::Number) = [x]
+
 ################################################################################
 ################################################################################
 
 abstract type FeatureTypeFun end
 
 struct _FeatureTypeNone  <: FeatureTypeFun end; const FeatureTypeNone  = _FeatureTypeNone();
-
 yieldFunction(f::_FeatureTypeNone) = @error " Can't intepret FeatureTypeNone in any possible form"
-
-# struct AggregateFeatureType{worldType<:AbstractWorld} <: FeatureTypeFun
-# struct SingleAttributeAggregateFeatureType <: FeatureTypeFun
-# 	i_attribute::Integer
-# 	aggregator::Function
-# end
-
-# yieldFunction(f::SingleAttributeAggregateFeatureType) = f.aggregator ∘ (x)->ModalLogic.getInstanceAttribute(x,f.i_attr)
-
-
-
-# TODO
-# AttributeSoftMinimumFeatureType
-# AttributeSoftMaximumFeatureType
+# Base.show(io::IO, f::_FeatureTypeNone) = Base.print(io, "<Empty FeatureType>")
+################################################################################
+################################################################################
+################################################################################
 
 struct AttributeMinimumFeatureType <: FeatureTypeFun
 	i_attribute::Integer
@@ -40,6 +31,10 @@ yieldFunction(f::AttributeMaximumFeatureType) = maximum ∘ (x)->ModalLogic.getI
 Base.show(io::IO, f::AttributeMinimumFeatureType) = Base.print(io, "min(A$(f.i_attribute))")
 Base.show(io::IO, f::AttributeMaximumFeatureType) = Base.print(io, "max(A$(f.i_attribute))")
 
+################################################################################
+################################################################################
+################################################################################
+
 struct AttributeSoftMinimumFeatureType{T<:AbstractFloat} <: FeatureTypeFun
 	i_attribute::Integer
 	alpha::T
@@ -47,7 +42,7 @@ struct AttributeSoftMinimumFeatureType{T<:AbstractFloat} <: FeatureTypeFun
 		i_attribute::Integer,
 		alpha::T,
 	) where {T}
-		@assert !iszero(alpha) "Can't instantiate AttributeSoftMinimumFeatureType with alpha = $(alpha)"
+		@assert !(alpha > 1.0 || alpha < 0.0) "Can't instantiate AttributeSoftMinimumFeatureType with alpha = $(alpha)"
 		@assert !isone(alpha) "Can't instantiate AttributeSoftMinimumFeatureType with alpha = $(alpha). Use AttributeMinimumFeatureType instead!"
 		new{T}(i_attribute, alpha)
 	end
@@ -60,7 +55,7 @@ struct AttributeSoftMaximumFeatureType{T<:AbstractFloat} <: FeatureTypeFun
 		i_attribute::Integer,
 		alpha::T,
 	) where {T}
-		@assert !iszero(alpha) "Can't instantiate AttributeSoftMaximumFeatureType with alpha = $(alpha)"
+		@assert !(alpha > 1.0 || alpha < 0.0) "Can't instantiate AttributeSoftMaximumFeatureType with alpha = $(alpha)"
 		@assert !isone(alpha) "Can't instantiate AttributeSoftMaximumFeatureType with alpha = $(alpha). Use AttributeMaximumFeatureType instead!"
 		new{T}(i_attribute, alpha)
 	end
@@ -77,12 +72,29 @@ alpha(f::AttributeSoftMaximumFeatureType) = f.alpha
 
 # TODO simplify OneWorld case!! Maybe features must dispatch on WorldType as well or on the type of underlying data!
 # For now, OneWorld falls into the generic case through this definition of vec()
-vec(x::Number) = [x]
 # yieldFunction(f::AttributeSoftMinimumFeatureType) = ModalLogic.getInstanceAttribute(x,f.i_attribute)
 # yieldFunction(f::AttributeSoftMaximumFeatureType) = ModalLogic.getInstanceAttribute(x,f.i_attribute)
 
 Base.show(io::IO, f::AttributeSoftMinimumFeatureType) = Base.print(io, "min" * subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
 Base.show(io::IO, f::AttributeSoftMaximumFeatureType) = Base.print(io, "max" * subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
+
+################################################################################
+################################################################################
+################################################################################
+
+struct AttributeFunctionFeatureType <: FeatureTypeFun
+	i_attribute::Integer
+	f::Function
+end
+
+yieldFunction(f::AttributeFunctionFeatureType) =
+	f.f ∘ (x)->(vals = vec(ModalLogic.getInstanceAttribute(x,f.i_attribute));)
+
+Base.show(io::IO, f::AttributeFunctionFeatureType) = Base.print(io, "$(f.f)(A$(f.i_attribute))")
+
+################################################################################
+################################################################################
+################################################################################
 
 # yieldFunction(AttributeSoftMaximumFeatureType(1,0.8))
 
