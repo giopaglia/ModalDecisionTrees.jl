@@ -597,7 +597,7 @@ module treeregressor
 		currently_processed_nodes::Vector{NodeMeta{Float64}} = []
 		writing_lock = Threads.Condition()
 		@inbounds while length(stack) > 0
-			rngs = [spawn_rng(rng) for _n in 1:length(stack)]
+			rngs = [DecisionTree.spawn_rng(rng) for _n in 1:length(stack)]
 			# Pop nodes and queue them to be processed
 			while length(stack) > 0
 				push!(currently_processed_nodes, pop!(stack))
