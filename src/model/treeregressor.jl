@@ -11,7 +11,7 @@ module treeregressor
 	using ..ModalLogic
 	using ..DecisionTree
 	using DecisionTree.util
-	using DecisionTree.util: RegressionLabel
+	const L = DecisionTree.util.RegressionLabel
 	using Logging: @logmsg
 	import Random
 	import StatsBase
@@ -23,7 +23,7 @@ module treeregressor
 		modal_depth        :: Int
 		# worlds      :: AbstractVector{WorldSet{W}}         # current set of worlds for each training instance
 		purity             :: U                                # purity grade attained at training time
-		label              :: RegressionLabel                            # most likely label
+		label              :: L                            # most likely label
 		is_leaf            :: Bool                             # whether this is a leaf node, or a split one
 		# split node-only properties
 		split_at           :: Int                              # index of samples
@@ -36,7 +36,7 @@ module treeregressor
 		test_operator      :: TestOperatorFun                  # test_operator (e.g. <=)
 		threshold          :: T where T                                # threshold value
 		
-		onlyUseRelationGlob:: Vector{Bool}
+		onlyallowRelationGlob:: Vector{Bool}
 
 		function NodeMeta{U}(
 				region      :: UnitRange{Int},
@@ -50,7 +50,7 @@ module treeregressor
 			node.modal_depth = modal_depth
 			node.purity = U(NaN)
 			node.is_leaf = false
-			node.onlyUseRelationGlob = oura
+			node.onlyallowRelationGlob = oura
 			node
 		end
 	end
@@ -68,7 +68,7 @@ module treeregressor
 		node                  :: NodeMeta{<:AbstractFloat}, # the node to split
 		####################
 		Xs                    :: MultiFrameModalDataset, # the modal dataset
-		Y                     :: AbstractVector{RegressionLabel},      # the label array
+		Y                     :: AbstractVector{L},      # the label array
 		W                     :: AbstractVector{U},          # the weight vector
 		Ss                    :: AbstractVector{<:AbstractVector{WST} where {WorldType,WST<:WorldSet{WorldType}}}, # the vector of current worlds
 		####################
@@ -80,7 +80,7 @@ module treeregressor
 		####################
 		n_subrelations        :: Vector{<:Function},
 		n_subfeatures         :: Vector{<:Integer},           # number of features to use to split
-		useRelationGlob       :: Vector{Bool},
+		allowRelationGlob     :: Vector{Bool},
 		####################
 		indX                  :: AbstractVector{<:Integer},   # an array of sample indices (we split using samples in indX[node.region])
 		####################
@@ -101,7 +101,7 @@ module treeregressor
 		@inbounds Yf = Y[indX[region]]
 		@inbounds Wf = W[indX[region]]
 
-		# Yf = Vector{RegressionLabel}(undef, n_instances)
+		# Yf = Vector{L}(undef, n_instances)
 		# Wf = Vector{U}(undef, n_instances)
 		# @inbounds @simd for i in 1:n_instances
 		# 	Yf[i] = Y[indX[i + r_start]]
@@ -186,8 +186,8 @@ module treeregressor
 					frame_Sf,
 					frame_n_subrelations,
 					frame_n_subfeatures,
-					frame_useRelationGlob,
-					frame_onlyUseRelationGlob)) in enumerate(zip(frames(Xs), Sfs, n_subrelations, n_subfeatures, useRelationGlob, node.onlyUseRelationGlob))
+					frame_allowRelationGlob,
+					frame_onlyallowRelationGlob)) in enumerate(zip(frames(Xs), Sfs, n_subrelations, n_subfeatures, allowRelationGlob, node.onlyallowRelationGlob))
 
 			@logmsg DTDetail "  Frame $(best_frame)/$(length(frames(Xs)))"
 
@@ -202,10 +202,10 @@ module treeregressor
 				allow_propositional_decisions, allow_modal_decisions, allow_global_decisions = begin
 					if world_type(X) == OneWorld
 						true, false, false
-					elseif frame_onlyUseRelationGlob
+					elseif frame_onlyallowRelationGlob
 						false, false, true
 					else
-						true, true, frame_useRelationGlob
+						true, true, frame_allowRelationGlob
 					end
 				end
 
@@ -459,11 +459,11 @@ module treeregressor
 		mdepth = (node.relation == RelationId ? node.modal_depth : node.modal_depth+1)
 		@logmsg DTDetail "fork!(...): " node ind region mdepth
 
-		# onlyUseRelationGlob changes:
+		# onlyallowRelationGlob changes:
 		# on the left node, the frame where the decision was taken
-		l_oura = copy(node.onlyUseRelationGlob)
+		l_oura = copy(node.onlyallowRelationGlob)
 		l_oura[node.i_frame] = false
-		r_oura = node.onlyUseRelationGlob
+		r_oura = node.onlyallowRelationGlob
 
 		# no need to copy because we will copy at the end
 		node.l = NodeMeta{U}(region[    1:ind], depth, mdepth, l_oura)
@@ -484,7 +484,7 @@ module treeregressor
 			n_subrelations          :: Vector{<:Function},
 			n_subfeatures           :: Vector{<:Integer},
 			initConditions          :: Vector{<:DecisionTree._initCondition},
-			useRelationGlob         :: Vector{Bool},
+			allowRelationGlob       :: Vector{Bool},
 		) where {S, U}
 		n_instances = n_samples(Xs)
 
@@ -499,8 +499,8 @@ module treeregressor
 			throw_n_log("mismatching number of n_subfeatures with number of frames: $(length(n_subfeatures)) vs $(n_frames(Xs))")
 		elseif length(initConditions) != n_frames(Xs)
 			throw_n_log("mismatching number of initConditions with number of frames: $(length(initConditions)) vs $(n_frames(Xs))")
-		elseif length(useRelationGlob) != n_frames(Xs)
-			throw_n_log("mismatching number of useRelationGlob with number of frames: $(length(useRelationGlob)) vs $(n_frames(Xs))")
+		elseif length(allowRelationGlob) != n_frames(Xs)
+			throw_n_log("mismatching number of allowRelationGlob with number of frames: $(length(allowRelationGlob)) vs $(n_frames(Xs))")
 		############################################################################
 		# elseif any(n_relations(Xs) .< n_subrelations)
 		# 	throw_n_log("in at least one frame the total number of relations is less than the number "
@@ -545,104 +545,10 @@ module treeregressor
 
 	end
 
-	# function optimize_tree_parameters!(
-	# 		X               :: OntologicalDataset{T, N},
-	# 		initCondition   :: DecisionTree._initCondition,
-	# 		useRelationGlob :: Bool,
-	# 		test_operators  :: AbstractVector{<:TestOperator}
-	# 	) where {T, N}
-
-	# 	# Adimensional ontological datasets:
-	# 	#  flatten to adimensional case + strip of all relations from the ontology
-	# 	if prod(channel_size(X)) == 1
-	# 		if (length(ontology(X).relationSet) > 0)
-	# 			warn("The OntologicalDataset provided has degenerate channel_size $(channel_size(X)), and more than 0 relations: $(ontology(X).relationSet).")
-	# 		end
-	# 		# X = OntologicalDataset{T, 0}(ModalLogic.strip_ontology(ontology(X)), @views ModalLogic.strip_domain(domain(X)))
-	# 	end
-
-	# 	ontology_relations = deepcopy(ontology(X).relationSet)
-
-	# 	# Fix test_operators order
-	# 	test_operators = unique(test_operators)
-	# 	ModalLogic.sort_test_operators!(test_operators)
-		
-	# 	# Adimensional operators:
-	# 	#  in the adimensional case, some pairs of operators (e.g. <= and >)
-	# 	#  are complementary, and thus it is redundant to check both at the same node.
-	# 	#  We avoid this by only keeping one of the two operators.
-	# 	if prod(channel_size(X)) == 1
-	# 		# No ontological relation
-	# 		ontology_relations = []
-	# 		if test_operators ⊆ ModalLogic.all_lowlevel_test_operators
-	# 			test_operators = [TestOpGeq]
-	# 			# test_operators = filter(e->e ≠ TestOpGeq,test_operators)
-	# 		else
-	# 			warn("Test operators set includes non-lowlevel test operators. Update this part of the code accordingly.")
-	# 		end
-	# 	end
-
-	# 	# Softened operators:
-	# 	#  when the biggest world only has a few values, softened operators fallback
-	# 	#  to being hard operators
-	# 	# max_world_wratio = 1/prod(max_channel_size(X))
-	# 	# if TestOpGeq in test_operators
-	# 	# 	test_operators = filter((e)->(typeof(e) != _TestOpGeqSoft || e.alpha < 1-max_world_wratio), test_operators)
-	# 	# end
-	# 	# if TestOpLeq in test_operators
-	# 	# 	test_operators = filter((e)->(typeof(e) != _TestOpLeqSoft || e.alpha < 1-max_world_wratio), test_operators)
-	# 	# end
-
-
-	# 	# Binary relations (= unary modal operators)
-	# 	# Note: the identity relation is the first, and it is the one representing
-	# 	#  propositional splits.
-		
-	# 	if RelationId in ontology_relations
-	# 		throw_n_log("Found RelationId in ontology provided. No need.")
-	# 		# ontology_relations = filter(e->e ≠ RelationId, ontology_relations)
-	# 	end
-
-	# 	if RelationGlob in ontology_relations
-	# 		throw_n_log("Found RelationGlob in ontology provided. Use useRelationGlob = true instead.")
-	# 		# ontology_relations = filter(e->e ≠ RelationGlob, ontology_relations)
-	# 		# useRelationGlob = true
-	# 	end
-
-	# 	relationSet = [RelationId, RelationGlob, ontology_relations...]
-	# 	relationId_id = 1
-	# 	relationGlob_id = 2
-	# 	ontology_relation_ids = map((x)->x+2, 1:length(ontology_relations))
-
-	# 	needToComputeRelationGlob = (useRelationGlob || (initCondition == startWithRelationGlob))
-
-	# 	# Modal relations to compute gammas for
-	# 	inUseRelation_ids = if needToComputeRelationGlob
-	# 		[relationGlob_id, ontology_relation_ids...]
-	# 	else
-	# 		ontology_relation_ids
-	# 	end
-
-	# 	# Relations to use at each split
-	# 	availableRelation_ids = []
-
-	# 	push!(availableRelation_ids, relationId_id)
-	# 	if useRelationGlob
-	# 		push!(availableRelation_ids, relationGlob_id)
-	# 	end
-
-	# 	availableRelation_ids = [availableRelation_ids..., ontology_relation_ids...]
-
-	# 	(
-	# 		test_operators, relationSet,
-	# 		relationId_id, relationGlob_id,
-	# 		inUseRelation_ids, availableRelation_ids
-	# 	)
-	# end
 
 	function _fit(
 			Xs                      :: MultiFrameModalDataset,
-			Y                       :: AbstractVector{<:RegressionLabel},
+			Y                       :: AbstractVector{L},
 			W                       :: AbstractVector{U},
 			##########################################################################
 			loss_function           :: Function,
@@ -654,7 +560,7 @@ module treeregressor
 			n_subrelations          :: Vector{<:Function},
 			n_subfeatures           :: Vector{<:Integer},
 			initConditions          :: Vector{<:DecisionTree._initCondition},
-			useRelationGlob         :: Vector{Bool},
+			allowRelationGlob       :: Vector{Bool},
 			##########################################################################
 			_perform_consistency_check :: Union{Val{true},Val{false}},
 			##########################################################################
@@ -684,14 +590,14 @@ module treeregressor
 		# Let the core algorithm begin!
 
 		# Create root node
-		onlyUseRelationGlob = [(iC == startWithRelationGlob) for iC in initConditions]
-		root = NodeMeta{Float64}(1:n_instances, 0, 0, onlyUseRelationGlob)
+		onlyallowRelationGlob = [(iC == startWithRelationGlob) for iC in initConditions]
+		root = NodeMeta{Float64}(1:n_instances, 0, 0, onlyallowRelationGlob)
 		# Process stack of nodes
 		stack = NodeMeta{Float64}[root]
 		currently_processed_nodes::Vector{NodeMeta{Float64}} = []
 		writing_lock = Threads.Condition()
 		@inbounds while length(stack) > 0
-			rngs = [spawn_rng(rng) for _n in 1:length(stack)]
+			rngs = [DecisionTree.spawn_rng(rng) for _n in 1:length(stack)]
 			# Pop nodes and queue them to be processed
 			while length(stack) > 0
 				push!(currently_processed_nodes, pop!(stack))
@@ -713,7 +619,7 @@ module treeregressor
 					######################################################################
 					n_subrelations,
 					n_subfeatures,
-					useRelationGlob,
+					allowRelationGlob,
 					######################################################################
 					indX,
 					######################################################################
@@ -765,7 +671,7 @@ module treeregressor
 			n_subrelations          :: Vector{<:Function},
 			n_subfeatures           :: Vector{<:Integer},
 			initConditions          :: Vector{<:DecisionTree._initCondition},
-			useRelationGlob         :: Vector{Bool},
+			allowRelationGlob       :: Vector{Bool},
 			##########################################################################
 			perform_consistency_check :: Bool,
 			##########################################################################
@@ -791,7 +697,7 @@ module treeregressor
 			n_subrelations,
 			n_subfeatures,
 			initConditions,
-			useRelationGlob,
+			allowRelationGlob,
 		)
 
 		Y_ = Y
@@ -811,7 +717,7 @@ module treeregressor
 				n_subrelations,
 				n_subfeatures,
 				initConditions,
-				useRelationGlob,
+				allowRelationGlob,
 				########################################################################
 				Val(perform_consistency_check),
 				########################################################################

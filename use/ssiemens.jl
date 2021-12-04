@@ -10,6 +10,7 @@ using SoleBase
 using SoleBase: dimension
 using SoleViz
 using Catch22
+using DataStructures
 using StatsPlots
 using Plots.PlotMeasures
 
@@ -21,14 +22,14 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./siemens/TURBOEXPO-regression-v4-fix-leakage-n-true-reg"
+results_dir = "./siemens/TURBOEXPO-regression-v6-back-to-classification"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 
-# dry_run = false
-dry_run = :dataset_only
+dry_run = false
+# dry_run = :dataset_only
 # dry_run = :model_study
 # dry_run = true
 
@@ -48,14 +49,14 @@ iteration_blacklist = []
 # Optimization arguments for single-tree
 tree_args = [
 #	(
-#		loss_function = DecisionTree.util.entropy,
+#		loss_function = nothing, # DecisionTree.util.entropy
 #		min_samples_leaf = 1,
 #		min_purity_increase = 0.01,
 #		max_purity_at_leaf = 0.6,
 #	)
 ]
 
-for loss_function in [DecisionTree.util.variance]
+for loss_function in [nothing] # DecisionTree.util.variance
 	for min_samples_leaf in [4] # [1,2]
 		for min_purity_increase in [0.1, 0.01, 0.001, 0.0001, 0.00005, 0.00002, 0.00001, 0.0] # [0.01, 0.001]
 		# for min_purity_increase in [0.0] # ,0.01, 0.001]
@@ -96,10 +97,10 @@ for n_trees in [50, 100]
 					partial_sampling    = partial_sampling,
 					n_subrelations      = n_subrelations,
 					# Optimization arguments for trees in a forest (no pruning is performed)
-					loss_function       = DecisionTree.util.variance,
-					min_samples_leaf    = 1,
-					#min_purity_increase = 0.0,
-					#max_purity_at_leaf  = Inf,
+					loss_function       = nothing, # DecisionTree.util.entropy
+					# min_samples_leaf    = 1,
+					# min_purity_increase = ...,
+					# max_purity_at_leaf  = ..,
 					perform_consistency_check = perform_consistency_check,
 				))
 			end
@@ -117,15 +118,15 @@ println(" $(length(forest_args)) forests " * (length(forest_args) > 0 ? "(repeat
 modal_args = (;
 	initConditions = DecisionTree.startWithRelationGlob,
 	# initConditions = DecisionTree.startAtCenter,
-	# useRelationGlob = true,
-	useRelationGlob = false,
+	# allowRelationGlob = true,
+	allowRelationGlob = false,
 )
 
 data_modal_args = (;
 	ontology = getIntervalOntologyOfDim(Val(1)),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A]),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A, ModalLogic.IA_L, ModalLogic.IA_Li, ModalLogic.IA_D]),
-	test_operators = [TestOpGeq_80, TestOpLeq_80],
+	canonical_features = [CanonicalFeatureGeq_80, CanonicalFeatureLeq_80],
 )
 
 
@@ -182,9 +183,10 @@ exec_datadirname = ["Siemens-Data-Measures"]
 exec_use_training_form = [:stump_with_memoization]
 
 exec_binning = [
-	nothing,
+	# nothing,
 	# (1.0 => "High-Risk", 3.0 => "Risky", Inf => "Low-Risk"),
 	# (4.0 => "High-Risk", 8.0 => "Risky", Inf => "Low-Risk"),
+	(4.0 => "High-Risk", Inf => "Low-Risk"),
 ]
 
 exec_ignore_last_minutes = [10] # , 2*60]
@@ -218,6 +220,7 @@ exec_ranges = (;
 
 
 dataset_function = (datadirname, binning, ignore_last_minutes, moving_average, regression_window_in_minutes, regression_step_in_minutes)->begin
+	@assert datadirname == "Siemens-Data-Measures" "TODO Change attribute names"
 	SiemensDataset_regression(datadirname;
 		moving_average...,
 		binning = binning,
@@ -226,7 +229,34 @@ dataset_function = (datadirname, binning, ignore_last_minutes, moving_average, r
 		ignore_last_minutes = ignore_last_minutes,
 		regression_window_in_minutes = regression_window_in_minutes,
 		regression_step_in_minutes = regression_step_in_minutes,
-	)
+	), OrderedDict([
+"Ambient_air_humidity"                  => "red",
+"Compr_IGV_position"                    => "green",
+"Gas_fuel_valve_position"               => "green",
+"Ambient_air_temperature"               => "yellow",
+"Compressor_outlet_temperature"         => "yellow",
+"Exhaust_temperature_1"                 => "yellow",
+"Exhaust_temperature_2"                 => "yellow",
+"Exhaust_temperature_3"                 => "yellow",
+"Exhaust_temperature_4"                 => "yellow",
+"Exhaust_temperature_5"                 => "yellow",
+"Exhaust_temperature_6"                 => "yellow",
+"Exhaust_temperature_7"                 => "yellow",
+"Exhaust_temperature_8"                 => "yellow",
+"Exhaust_temperature_9"                 => "yellow",
+"Exhaust_temperature_10"                => "yellow",
+"Exhaust_temperature_11"                => "yellow",
+"Exhaust_temperature_12"                => "yellow",
+"Exhaust_temperature_13"                => "yellow",
+"Exhaust_temperature_14"                => "yellow",
+"Exhaust_temperature_15"                => "yellow",
+"Exhaust_temperature_16"                => "yellow",
+"Compressor_outlet_pressure"            => "red",
+"Gas_fuel_mass_flow_rate"               => "blue",
+"Compressor_inlet_air_mass_flow_rate"   => "blue",
+"Rotational_speed"                      => "red",
+"Power_output"                          => "red",
+])
 end
 
 ################################################################################
@@ -250,41 +280,41 @@ models_to_study = Dict([
 
 models_to_study = Dict(JSON.json(k) => v for (k,v) in models_to_study)
 
-MakeOntologicalDataset(Xs, test_operators, ontology) = begin
-	MultiFrameModalDataset([
-		begin
-			features = FeatureTypeFun[]
+# MakeOntologicalDataset(Xs, test_operators, ontology) = begin
+# 	MultiFrameModalDataset([
+# 		begin
+# 			features = FeatureTypeFun[]
 
-			for i_attr in 1:n_attributes(X)
-				for test_operator in test_operators
-					if test_operator == TestOpGeq
-						push!(features, ModalLogic.AttributeMinimumFeatureType(i_attr))
-					elseif test_operator == TestOpLeq
-						push!(features, ModalLogic.AttributeMaximumFeatureType(i_attr))
-					elseif test_operator isa _TestOpGeqSoft
-						push!(features, ModalLogic.AttributeSoftMinimumFeatureType(i_attr, test_operator.alpha))
-					elseif test_operator isa _TestOpLeqSoft
-						push!(features, ModalLogic.AttributeSoftMaximumFeatureType(i_attr, test_operator.alpha))
-					else
-						throw_n_log("Unknown test_operator type: $(test_operator), $(typeof(test_operator))")
-					end
-				end
-			end
+# 			for i_attr in 1:n_attributes(X)
+# 				for test_operator in test_operators
+# 					if test_operator == TestOpGeq
+# 						push!(features, ModalLogic.AttributeMinimumFeatureType(i_attr))
+# 					elseif test_operator == TestOpLeq
+# 						push!(features, ModalLogic.AttributeMaximumFeatureType(i_attr))
+# 					elseif test_operator isa _TestOpGeqSoft
+# 						push!(features, ModalLogic.AttributeSoftMinimumFeatureType(i_attr, test_operator.alpha))
+# 					elseif test_operator isa _TestOpLeqSoft
+# 						push!(features, ModalLogic.AttributeSoftMaximumFeatureType(i_attr, test_operator.alpha))
+# 					else
+# 						throw_n_log("Unknown test_operator type: $(test_operator), $(typeof(test_operator))")
+# 					end
+# 				end
+# 			end
 
-			featsnops = Vector{<:TestOperatorFun}[
-				if any(map(t->isa(feature,t), [AttributeMinimumFeatureType, AttributeSoftMinimumFeatureType]))
-					[≥]
-				elseif any(map(t->isa(feature,t), [AttributeMaximumFeatureType, AttributeSoftMaximumFeatureType]))
-					[≤]
-				else
-					throw_n_log("Unknown feature type: $(feature), $(typeof(feature))")
-					[≥, ≤]
-				end for feature in features
-			]
+# 			featsnops = Vector{<:TestOperatorFun}[
+# 				if any(map(t->isa(feature,t), [AttributeMinimumFeatureType, AttributeSoftMinimumFeatureType]))
+# 					[≥]
+# 				elseif any(map(t->isa(feature,t), [AttributeMaximumFeatureType, AttributeSoftMaximumFeatureType]))
+# 					[≤]
+# 				else
+# 					throw_n_log("Unknown feature type: $(feature), $(typeof(feature))")
+# 					[≥, ≤]
+# 				end for feature in features
+# 			]
 
-			OntologicalDataset(X, ontology, features, featsnops)
-		end for X in Xs])
-end
+# 			OntologicalDataset(X, ontology, features, featsnops)
+# 		end for X in Xs])
+# end
 
 ################################################################################
 ################################################################################
@@ -387,8 +417,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	datadirname, use_training_form, binning, ignore_last_minutes, moving_average, regression_window_in_minutes, regression_step_in_minutes = params_combination
 	dataset_fun_sub_params = (datadirname, binning, ignore_last_minutes, moving_average, regression_window_in_minutes, regression_step_in_minutes)
 	
-	cur_modal_args = modal_args
-	cur_data_modal_args = data_modal_args
+	cur_modal_args = deepcopy(modal_args)
+	cur_data_modal_args = deepcopy(data_modal_args)
 
 	if dry_run == :model_study
 		# println(JSON.json(params_combination))
@@ -479,7 +509,9 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	end
 
 	# Load Dataset
-	dataset, datasource_counts = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
+	(dataset, datasource_counts), attribute_names = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
+	
+	# (dataset, datasource_counts), attribute_names = Serialization.deserialize("./siemens/TURBOEXPO-regression-v6-back-to-classification/data_cache/dataset_974bfd893a83f72736de7c87703bdae6c97250b34ffe1801231e306acb98798b.jld")
 
 	# class_counts = get_class_counts(dataset)
 
@@ -494,134 +526,429 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	# using Plots.PlotMeasures
 
 	# X, Y = randn(19,5,20), rand(0:1, 20)
-
+	p = nothing
 	for f in [1]
 		# f = [1][1]
 
-		n_attrs = size(X,2)[end]
-		n_insts = size(X)[end]
-		columns = []
-		for i_attr in 1:n_attrs
-			push!(columns, ([X[:,i_attr,i_inst] for i_inst in 1:n_insts]))
+		n_selected_attributes = 5
+		n_selected_features = 5
+
+		println("Performing dataset pre-analysis!")
+		println("n_selected_attributes = $(n_selected_attributes)")
+		println("n_selected_features   = $(n_selected_features)")
+
+		println()
+		println("size(X) = $(size(X))")
+
+		function compute_mfd(X)
+			n_attrs = size(X,2)[end]
+			n_insts = size(X)[end]
+			columns = []
+			for i_attr in 1:n_attrs
+				push!(columns, ([X[:,i_attr,i_inst] for i_inst in 1:n_insts]))
+			end
+			colnames = [string(i) for i in 1:n_attrs]
+			df = DataFrame(columns, colnames)
+			mfd = MultiFrameDataset([1:ncol(df)], df)
 		end
-		colnames = [string(i) for i in 1:n_attrs]
-		df = DataFrame(columns, colnames)
-		mfd = MultiFrameDataset([1:ncol(df)], df)
+		
+		mfd = compute_mfd(X)
 		# ClassificationMultiFrameDataset(Y, mfd)
 
 		# println(mfd)
 
-		p = SoleViz.plotdescription(mfd)[1]
+		grouped_descrs = OrderedDict([
+			"Basic stats" => [
+				:mean_m
+				:min_m
+				:max_m
+			], "Distribution" => [
+				:DN_HistogramMode_5
+				:DN_HistogramMode_10
+			], "Simple temporal statistics" => [
+				:SB_BinaryStats_mean_longstretch1
+				:DN_OutlierInclude_p_001_mdrmd
+				:DN_OutlierInclude_n_001_mdrmd
+			], "Linear autocorrelation" => [
+				:CO_f1ecac
+				:CO_FirstMin_ac
+				:SP_Summaries_welch_rect_area_5_1
+				:SP_Summaries_welch_rect_centroid
+				:FC_LocalSimple_mean3_stderr
+			], "Nonlinear autocorrelation" => [
+				:CO_trev_1_num
+				:CO_HistogramAMI_even_2_5
+				:IN_AutoMutualInfoStats_40_gaussian_fmmi
+			], "Successive differences" => [
+				:MD_hrv_classic_pnn40
+				:SB_BinaryStats_diff_longstretch0
+				:SB_MotifThree_quantile_hh
+				:FC_LocalSimple_mean1_tauresrat
+				:CO_Embed2_Dist_tau_d_expfit_meandiff
+			], "Fluctuation Analysis" => [
+				:SC_FluctAnal_2_dfa_50_1_2_logi_prop_r1
+				:SC_FluctAnal_2_rsrangefit_50_1_logi_prop_r1
+			], "Others" => [
+				:SB_TransitionMatrix_3ac_sumdiagcov
+				:PD_PeriodicityWang_th0_01
+			],
+		])
 
-		plot!(p; size = (1920, 1080))
-		savefig(p, "plotdescription-$(run_name).png")
+		# descrs = Symbol[:mean_m, :min_m, :max_m, getnames(catch22)...]
+		descrs = collect(Iterators.flatten([values(grouped_descrs)...]))
+		
+		# run_name = "example"
 
-		display(p)
+		t = 1
+		p = SoleViz.plotdescription(mfd, descriptors = descrs, windows = [[[(t,0,0)]]])
+		println(size(p))
+		p = p[:]
 
-		for t in [] # ,2,4,8,16] # TODO eventualmente fissarlo.
-			# t = 4
-			# description = describe(mfd; desc = [:mean_m], t = [(t,0,0)])[1]
-			# TODO add catch22
-			descrs = [:mean_m, :min_m, :max_m, catch22...]
-
-			description = describe(mfd; desc = descrs, t = [(t,0,0)])[1]
-			attr_descr_cols = names(description)[2:end]
-			# println(description)
-			# println(attr_descr_cols)
-
-			# max_mean = mean([v for values in description[:,:mean_m] for v in values])
-			# plot(collect(1:n_attrs), [description[band,:mean_m][1] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
-			# for i_inst in 2:(nrow(new_dataset)-1)
-			# 	plot!(collect(1:n_attrs), [description[band,:mean_m][i_inst] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
-			# end
-			# all_plot = plot!(collect(1:n_attrs), [description[band,:mean_m][nrow(new_dataset)] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
-
-			d = SoleBase.SoleData.SoleDataset._stat_description(description; functions = Function[var])
-			# p = plot(
-			# 	[
-			# 		plot(collect(1:n_attrs), [v[1] for v in d[:,feat_symb]], size = (1080, 1080), title = string(feat_symb), xticks = 1:n_attrs)
-			# 		for feat_symb in [
-			# 				:mean_m_mean, :mean_m_var, :mean_m_std,
-			# 				:min_m_mean, :min_m_var, :min_m_std,
-			# 				:max_m_mean, :max_m_var, :max_m_std]
-			# 	]...
-			# 	layout = (3, 3),
-			# )
-
-			# display(p)
-			# readline()
-			for descr in descrs
-				println(descr)
-				p = begin
-					# feat_symb = :mean_m_var
-					feat_symb = Symbol(string(descr) * "_var")
-					ys = [v[1] for v in d[:,feat_symb]]
-					sp = sortperm(ys, rev = true)
-					println(sp)
-					plot(collect(1:n_attrs), ys[sp]; size = (1080, 1080), title = string(feat_symb), xticks = (1:n_attrs,sp))
+		# println(typeof(p))
+		# println(length(p))
+		
+		function update_ylims!(p)
+			_min, _max = Inf, -Inf
+			i = 1
+			while true
+				try p[1][i]
+					_min = min(_min,minimum(p[1][i][:y]))
+					_max = max(_max,maximum(p[1][i][:y]))
+					i += 1
+				catch Error
+					break
 				end
-
-				# p = plot(
-				# 	[
-				# 		begin
-				# 			ys = [v[1] for v in d[:,feat_symb]]
-				# 			sp = sortperm(ys, rev=true)
-				# 			println(sp)
-				# 			plot(collect(1:n_attrs), ys[sp]; size = (1080, 1080), title = string(feat_symb), xticks = sp)
-				# 		end for feat_symb in [
-				# 			:mean_m_var,
-				# 			:min_m_var,
-				# 			:max_m_var,
-				# 		]
-				# 	]...;
-				# 	layout = (3, 1),
-				# 	xticks = (ys = [v[1] for v in d[:,:mean_m_var]]; sp = sortperm(ys, rev=true)),
-				# )
-
-				display(p)
-				readline()
 			end
-
-			# for (i_op, op_descr) in enumerate(eachcol(description[:,2:end]))
-			# 	# (i_op, op_descr) = collect(enumerate(eachcol(description[:,2:end])))[1]
-
-			# 	stackedhists = []
-			# 	op = attr_descr_cols[i_op]
-			# 	for (i_attr, matrix) in enumerate(op_descr)
-			# 		# (i_attr, matrix) = collect(enumerate(op_descr))[1]
-			# 		# matrix = op_descr[1]
-			# 		# println(i_op, op_descr)
-			# 		println(size(matrix))
-			# 		gr()
-			# 		for w in 1:t
-			# 			# w = (1:t)[1]
-			# 			kwargs = begin
-			# 				if w == 1
-			# 					(title = "Histograms",)
-			# 				elseif w == t
-			# 					(xlabel = "Response",)
-			# 				else
-			# 					(;)
-			# 				end
-			# 			end
-			# 			# push!(stackedhists, histogram(matrix[:,w], bins=20, legend=false, ylabel="$(op), $(w)/$(t)", xticks=nothing, kwargs...))
-			# 			push!(stackedhists, histogram(matrix[:,w], bins=20, legend=false, ylabel="$(w), $(i_attr)", xticks=nothing))
-			# 		end
-			# 		# h = histogram([matrix[:,w] for w in 1:t]; bins=20, legend=false, ylabel="$(op), $(t) chunks, $(i_attr) attribute", xticks=nothing, title = "Histograms", xlabel = "Response")
-			# 		# readline()
-			# 		# println(stackedhists |> typeof)
-			# 		# break
-			# 		# println(names(col))
-			# 		# println(matrix)
-			# 		# println(matrix |> typeof)
-			# 	end
-			# 	plot(stackedhists..., layout=(n_attrs,t), size = (1000,500), margin=1mm, title = "$(op)")
-			# end
-			# readline()
+			# println("updated ylims for $(i-1) series")
+			tiny_margin(x) = min(x*.1,0.1)
+			plot!(p, ylims = (_min-tiny_margin(_min),_max+tiny_margin(_max))) # TODO improv
 		end
+
+		function average_plot(plots)
+			p_avg = Base.deepcopy(plots[1])
+			i = 1
+			p_avg[1][i][:y] = [mean(filter(!isnan, [p_i[1][i][:y][i_attr] for p_i in plots])) for i_attr in 1:length(plots[1][1][i][:y])]
+			update_ylims!(p_avg)
+			p_avg
+		end
+
+		function normalize_plot(p)
+			p_norm = Base.deepcopy(p)
+			i = 1
+			while true
+				try p_norm[1][i]
+					p_norm[1][i][:y] /= sum(p_norm[1][i][:y])
+					i += 1
+				catch Error
+					break
+				end
+			end
+			update_ylims!(p_norm)
+			p_norm
+		end
+
+		############################################################################
+		############################################################################
+		############################################################################
+		@assert length(descrs) == 25 "TODO change layout"
+		
+		savefig(plot(p...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name).png");
+
+		p_avg = average_plot(p);
+		savefig(plot(p_avg; size = (1920, 1080)), "plotdescription-$(run_name)-avg.png");
+		############################################################################
+		############################################################################
+		############################################################################
+		perm = sortperm(p_avg[1][1][:y], rev=true);
+		p_sorted = Base.deepcopy(p)
+		for p_i in p_sorted
+			for i in 1:length(p_i[1])
+				p_i[1][i][:y] = p_i[1][i][:y][perm]
+			end
+			plot!(p_i, xticks = (1:length(perm), string.(perm)));
+		end
+		savefig(plot(p_sorted...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name)-sorted.png");
+
+		p_sorted_avg = Base.deepcopy(p_avg);
+		p_sorted_avg[1][1][:y] = p_sorted_avg[1][1][:y][perm]
+		plot!(p_sorted_avg, xticks = (1:length(perm), ["$(t). $(collect(keys(attribute_names))[t])" for t in perm]));
+		# plot!(p_sorted_avg, xticks = (1:length(perm), string.(perm)))
+		savefig(plot(p_sorted_avg; size = (1920, 1080)), "plotdescription-$(run_name)-sorted-avg.png");
+		############################################################################
+		############################################################################
+		############################################################################
+		p_norm = normalize_plot.(p);
+		savefig(plot(p_norm...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name)-norm.png");
+
+		p_norm_avg = average_plot(p_norm);
+		savefig(plot(p_norm_avg; size = (1920, 1080)), "plotdescription-$(run_name)-norm-avg.png");
+		############################################################################
+		############################################################################
+		############################################################################
+		perm = sortperm(p_norm_avg[1][1][:y], rev=true);
+		p_sorted = Base.deepcopy(p_norm);
+		for p_i in p_sorted
+			for i in 1:length(p_i[1])
+				p_i[1][i][:y] = p_i[1][i][:y][perm]
+			end
+			plot!(p_i, xticks = (1:length(perm), string.(perm)));
+		end
+		savefig(plot(p_sorted...; layout = (5,5), size = (1920, 1080)), "plotdescription-$(run_name)-norm-sorted.png");
+
+		p_sorted_avg = Base.deepcopy(p_norm_avg);
+		for i in 1:length(p_sorted_avg[1])
+			p_sorted_avg[1][i][:y] = p_sorted_avg[1][i][:y][perm]
+		end
+		plot!(p_sorted_avg, xticks = (1:length(perm), ["$(t). $(collect(keys(attribute_names))[t])" for t in perm]));
+		# plot!(p_sorted_avg, xticks = (1:length(perm), string.(perm)))
+		savefig(plot(p_sorted_avg; size = (1920, 1080)), "plotdescription-$(run_name)-norm-sorted-avg.png");
+		############################################################################
+		############################################################################
+		############################################################################
+
+		# display(p_norm_avg)
+
+		p = SoleViz.plotdescription(mfd, descriptors = grouped_descrs, windows = [[[(t,0,0)]]])
+		# println(size(p))
+		p = p[:]
+
+		############################################################################
+		############################################################################
+		############################################################################
+		@assert length(grouped_descrs) == 8 "TODO change layout"
+		
+		savefig(plot(p...; layout = (4,2), size = (1920, 1080)), "plotdescription-$(run_name)-grouped.png");
+
+		############################################################################
+		############################################################################
+		############################################################################
+		p_sorted = Base.deepcopy(p);
+		for p_i in p_sorted
+			for i in 1:length(p_i[1])
+				p_i[1][i][:y] = p_i[1][i][:y][perm]
+			end
+			plot!(p_i, xticks = (1:length(perm), string.(perm)));
+		end
+		savefig(plot(p_sorted...; layout = (4,2), size = (1920, 1080)), "plotdescription-$(run_name)-grouped-sorted.png");
+
+		############################################################################
+		############################################################################
+		############################################################################
+		p_norm = normalize_plot.(p);
+		savefig(plot(p_norm...; layout = (4,2), size = (1920, 1080)), "plotdescription-$(run_name)-grouped-norm.png");
+
+		############################################################################
+		############################################################################
+		############################################################################
+		perm = sortperm(p_norm_avg[1][1][:y], rev=true)
+		p_sorted = Base.deepcopy(p_norm);
+		for p_i in p_sorted
+			for i in 1:length(p_i[1])
+				p_i[1][i][:y] = p_i[1][i][:y][perm]
+			end
+			plot!(p_i, xticks = (1:length(perm), string.(perm)));
+		end
+		savefig(plot(p_sorted...; layout = (4,2), size = (1920, 1080)), "plotdescription-$(run_name)-grouped-norm-sorted.png");
+
+		############################################################################
+		############################################################################
+		############################################################################
+
+		best_attributes_idxs = perm[1:n_selected_attributes]
+
+		X_sub = X[:,best_attributes_idxs,:]
+		Y_sub = Y[:]
+		println("Selecting $(length(best_attributes_idxs)) attributes: $(best_attributes_idxs)...")
+		println(["$(t). $(collect(keys(attribute_names))[t])" for t in best_attributes_idxs])
+
+		mfd_sub = compute_mfd(X_sub)
+
+		p = SoleViz.plotdescription(mfd_sub, descriptors = descrs, windows = [[[(t,0,0)]]], on_x_axis = :descriptors)
+		# println(size(p))
+		p = p[:]
+
+		############################################################################
+		############################################################################
+		############################################################################
+		
+		savefig(plot(p...; layout = (1,5), size = (1920, 1080)), "plotdescription-$(run_name)-transposed.png");
+
+		p_avg = average_plot(p);
+		savefig(plot(p_avg; size = (1920, 1080)), "plotdescription-$(run_name)-transposed-avg.png");
+		############################################################################
+		############################################################################
+		############################################################################
+		perm = sortperm(p_avg[1][1][:y], rev=true)
+		p_sorted = Base.deepcopy(p);
+		for p_i in p_sorted
+			for i in 1:length(p_i[1])
+				p_i[1][i][:y] = p_i[1][i][:y][perm]
+			end
+			plot!(p_i, xticks = (1:length(perm), string.(perm)));
+		end
+		savefig(plot(p_sorted...; layout = (1,5), size = (1920, 1080)), "plotdescription-$(run_name)-transposed-sorted.png");
+
+		############################################################################
+		############################################################################
+		############################################################################
+		p_norm = normalize_plot.(p);
+		savefig(plot(p_norm...; layout = (1,5), size = (1920, 1080)), "plotdescription-$(run_name)-transposed-norm.png");
+
+		p_norm_avg = average_plot(p_norm);
+		savefig(plot(p_norm_avg; size = (1920, 1080)), "plotdescription-$(run_name)-transposed-norm-avg.png");
+		############################################################################
+		############################################################################
+		############################################################################
+		perm = sortperm(p_norm_avg[1][1][:y], rev=true)
+		p_sorted = Base.deepcopy(p_norm);
+		for p_i in p_sorted
+			for i in 1:length(p_i[1])
+				p_i[1][i][:y] = p_i[1][i][:y][perm]
+			end
+			plot!(p_i, xticks = (1:length(perm), string.(perm)));
+		end
+		savefig(plot(p_sorted...; layout = (1,5), size = (1920, 1080)), "plotdescription-$(run_name)-transposed-norm-sorted.png");
+
+		############################################################################
+		############################################################################
+		############################################################################
+
+		best_descriptors = descrs[perm[1:n_selected_features]]
+		
+		println("Selecting $(length(best_descriptors)) descriptors: $(best_descriptors)...")
+		println()
+
+		function getCanonicalFeature(s)
+			if s == :min_m
+				CanonicalFeatureGeq_80
+			elseif s == :max_m
+				CanonicalFeatureLeq_80
+			elseif s == :mean_m
+				StatsBase.mean
+			else
+				catch22[s]
+			end
+		end
+		cur_data_modal_args = merge(cur_data_modal_args, (;
+			canonical_features = Vector{Union{ModalLogic.CanonicalFeature,Function}}(getCanonicalFeature.(best_descriptors))
+		))
+
+		X = X_sub
+		Y = Y_sub
+
+		# display(p)
+
+		# for t in [1] # ,2,4,8,16] # TODO eventualmente fissarlo.
+		# 	# t = 4
+		# 	# description = describe(mfd; desc = [:mean_m], t = [(t,0,0)])[1]
+		# 	# TODO add catch22
+		# 	descrs = [:mean_m, :min_m, :max_m, catch22...]
+
+		# 	description = describe(mfd; desc = descrs, t = [(t,0,0)])[1]
+		# 	attr_descr_cols = names(description)[2:end]
+		# 	# println(description)
+		# 	# println(attr_descr_cols)
+
+		# 	# max_mean = mean([v for values in description[:,:mean_m] for v in values])
+		# 	# plot(collect(1:n_attrs), [description[band,:mean_m][1] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
+		# 	# for i_inst in 2:(nrow(new_dataset)-1)
+		# 	# 	plot!(collect(1:n_attrs), [description[band,:mean_m][i_inst] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
+		# 	# end
+		# 	# all_plot = plot!(collect(1:n_attrs), [description[band,:mean_m][nrow(new_dataset)] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
+
+		# 	d = SoleBase.SoleData.SoleDataset._stat_description(description; functions = Function[var])
+		# 	# p = plot(
+		# 	# 	[
+		# 	# 		plot(collect(1:n_attrs), [v[1] for v in d[:,feat_symb]], size = (1080, 1080), title = string(feat_symb), xticks = 1:n_attrs)
+		# 	# 		for feat_symb in [
+		# 	# 				:mean_m_mean, :mean_m_var, :mean_m_std,
+		# 	# 				:min_m_mean, :min_m_var, :min_m_std,
+		# 	# 				:max_m_mean, :max_m_var, :max_m_std]
+		# 	# 	]...
+		# 	# 	layout = (3, 3),
+		# 	# )
+
+		# 	# display(p)
+		# 	# readline()
+		# 	for descr in descrs
+		# 		println(descr)
+		# 		p = begin
+		# 			# feat_symb = :mean_m_var
+		# 			feat_symb = Symbol(string(descr) * "_var")
+		# 			ys = [v[1] for v in d[:,feat_symb]]
+		# 			sp = sortperm(ys, rev = true)
+		# 			println(sp)
+		# 			plot(collect(1:n_attrs), ys[sp]; size = (1080, 1080), title = string(feat_symb), xticks = (1:n_attrs,sp))
+		# 		end
+
+		# 		# p = plot(
+		# 		# 	[
+		# 		# 		begin
+		# 		# 			ys = [v[1] for v in d[:,feat_symb]]
+		# 		# 			sp = sortperm(ys, rev=true)
+		# 		# 			println(sp)
+		# 		# 			plot(collect(1:n_attrs), ys[sp]; size = (1080, 1080), title = string(feat_symb), xticks = sp)
+		# 		# 		end for feat_symb in [
+		# 		# 			:mean_m_var,
+		# 		# 			:min_m_var,
+		# 		# 			:max_m_var,
+		# 		# 		]
+		# 		# 	]...;
+		# 		# 	layout = (3, 1),
+		# 		# 	xticks = (ys = [v[1] for v in d[:,:mean_m_var]]; sp = sortperm(ys, rev=true)),
+		# 		# )
+
+		# 		display(p)
+		# 		readline()
+		# 	end
+
+		# 	# for (i_op, op_descr) in enumerate(eachcol(description[:,2:end]))
+		# 	# 	# (i_op, op_descr) = collect(enumerate(eachcol(description[:,2:end])))[1]
+
+		# 	# 	stackedhists = []
+		# 	# 	op = attr_descr_cols[i_op]
+		# 	# 	for (i_attr, matrix) in enumerate(op_descr)
+		# 	# 		# (i_attr, matrix) = collect(enumerate(op_descr))[1]
+		# 	# 		# matrix = op_descr[1]
+		# 	# 		# println(i_op, op_descr)
+		# 	# 		println(size(matrix))
+		# 	# 		gr()
+		# 	# 		for w in 1:t
+		# 	# 			# w = (1:t)[1]
+		# 	# 			kwargs = begin
+		# 	# 				if w == 1
+		# 	# 					(title = "Histograms",)
+		# 	# 				elseif w == t
+		# 	# 					(xlabel = "Response",)
+		# 	# 				else
+		# 	# 					(;)
+		# 	# 				end
+		# 	# 			end
+		# 	# 			# push!(stackedhists, histogram(matrix[:,w], bins=20, legend=false, ylabel="$(op), $(w)/$(t)", xticks=nothing, kwargs...))
+		# 	# 			push!(stackedhists, histogram(matrix[:,w], bins=20, legend=false, ylabel="$(w), $(i_attr)", xticks=nothing))
+		# 	# 		end
+		# 	# 		# h = histogram([matrix[:,w] for w in 1:t]; bins=20, legend=false, ylabel="$(op), $(t) chunks, $(i_attr) attribute", xticks=nothing, title = "Histograms", xlabel = "Response")
+		# 	# 		# readline()
+		# 	# 		# println(stackedhists |> typeof)
+		# 	# 		# break
+		# 	# 		# println(names(col))
+		# 	# 		# println(matrix)
+		# 	# 		# println(matrix |> typeof)
+		# 	# 	end
+		# 	# 	plot(stackedhists..., layout=(n_attrs,t), size = (1000,500), margin=1mm, title = "$(op)")
+		# 	# end
+		# 	# readline()
+		# end
 
 	end
 
+	dataset = (X, Y)
+
+	println()
+	println("cur_data_modal_args.canonical_features = $(cur_data_modal_args.canonical_features)")
+	println("new size(X) = $(size(X))")
+	println()
+	
 	# histogram2d(x, y)
 
 	# using StatsBase, Plots
@@ -642,27 +969,90 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	# obtain dataseeds that are were not done before
 	todo_dataseeds = filter((dataseed)->!iteration_in_history(history, (params_namedtuple, dataseed)), exec_dataseed)
 
+	# println(datasource_counts)
+	# println(uniq(Y))
+
+	# println(datasource_counts)
+
 	dataset_slices = begin
 		n_insts = length(Y)
 		# @assert (n_insts % n_cv_folds == 0) "$(n_insts) % $(n_cv_folds) != 0"
 		# n_insts_fold = div(n_insts, n_cv_folds)
 		
+		
+		# [(datasource_counts[1:(i-1)], datasource_counts[(i+1):end]) for i in 1:length(datasource_counts)]
+		base_idxs = begin
+			base_idxs = []
+			cur_idx = 1
+			for i in 1:length(datasource_counts)
+				_cur_idxs = []
+				for j in 1:length(datasource_counts[i])
+					x = cur_idx
+					cur_idx += datasource_counts[i][j]
+					push!(_cur_idxs, x:(cur_idx-1))
+				end
+				push!(base_idxs, Tuple(_cur_idxs))
+				# [[datasource_counts[1:(i-1)]..., datasource_counts[(i+1):end]...] ]
+			end
+			@assert length(unique([length(base_idxs[i]) for i in 1:length(base_idxs)])) == 1 "This part of code expects at least all classes to appear for each group. $(datasource_counts) $(base_idxs)"
+			base_idxs
+		end
+
+		println(datasource_counts)
+		println(base_idxs)
+
+		# datasource_counts
+		# base_idxs
+		class_counts, class_grouped_idxs = begin
+			class_counts = []
+			class_grouped_idxs = []
+			for j in 1:length(base_idxs[1])
+				idxs = collect(Iterators.flatten(getindex.(base_idxs,j)))
+				push!(class_counts, length(idxs))
+				append!(class_grouped_idxs, idxs)
+			end
+			Tuple(class_counts), class_grouped_idxs
+		end
+
+		println(class_counts)
+		println(class_grouped_idxs)
+
 		# todo_dataseeds = 1:10
 		[(dataseed, begin
 				if dataseed == 0
 					(Vector{Integer}(collect(1:n_insts)), Vector{Integer}(collect(1:n_insts)))
 				else
+					@assert dataseed in 1:length(datasource_counts)
+					# @assert datasource_counts[dataseed] .> 0
+
 					# balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = floor(Int, minimum(class_counts)*traintest_threshold), also_return_discarted = true)
 					# balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = train_instances_per_class, also_return_discarted = true)
-					@assert dataseed in 1:length(datasource_counts)
-					@assert datasource_counts[dataseed] > 0
-					a = datasource_counts[1:dataseed-1];
-					idx_base = (length(a) == 0 ? 0 : sum(a))
-					test_idxs = idx_base .+ (1:datasource_counts[dataseed])
-					p = Random.randperm(Random.MersenneTwister(1), round(Int, length(test_idxs)/2))
-					test_idxs = test_idxs[p]
-					# test_idxs = 1+(dataseed-1)*n_insts_fold:(dataseed-1)*n_insts_fold+(n_insts_fold)
-					(Vector{Integer}(collect(test_idxs)), Vector{Integer}(collect(setdiff(Set(1:n_insts), Set(test_idxs)))))
+
+					# train_idxs = ...balanced_dataset_slice
+					
+					perm = balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = floor(Int, minimum(class_counts)*traintest_threshold), also_return_discarted = false)
+					
+					train_idxs = class_grouped_idxs[perm]
+
+					# println(Y[1:4])
+					# println(unique(Y[train_idxs]))
+					# println(uniq(Y[train_idxs]))
+					println(StatsBase.countmap(Y[train_idxs]))
+					# readline()
+
+					# train_idxs = train_idxs[1:10]
+
+					@assert all(train_idxs .<= n_insts)
+					(Vector{Integer}(collect(train_idxs)), Vector{Integer}(collect(setdiff(Set(1:n_insts), Set(train_idxs)))))
+
+					# a = datasource_counts[1:dataseed-1];
+					# idx_base = (length(a) == 0 ? 0 : sum(a))
+					# test_idxs = idx_base .+ (1:datasource_counts[dataseed])
+					# p = Random.randperm(Random.MersenneTwister(1), round(Int, length(test_idxs)/2))
+					# test_idxs = test_idxs[p]
+					# # test_idxs = 1+(dataseed-1)*n_insts_fold:(dataseed-1)*n_insts_fold+(n_insts_fold)
+					# (Vector{Integer}(collect(test_idxs)), Vector{Integer}(collect(setdiff(Set(1:n_insts), Set(test_idxs)))))
+
 				end
 			end) for dataseed in todo_dataseeds]
 	end

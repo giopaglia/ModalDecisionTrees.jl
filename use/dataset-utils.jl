@@ -83,6 +83,18 @@ function mapArrayToDataType(type::Type{<:AbstractFloat}, array::AbstractArray{<:
 	type.(array)
 end
 
+_Binning = NTuple{N,Pair{<:T,String}} where {N,T}
+Binning = Union{Nothing,_Binning}
+function apply_binning(y::T, binning::_Binning{N,T}) where {N,T}
+	for (threshold,label) in binning
+		y <= threshold && return label
+	end
+	error("Error! element with label $(y) falls outside binning $(binning)")
+end
+function apply_binning(Y::AbstractVector{<:T}, binning::_Binning{N,T}) where {N,T}
+	map((y)->apply_binning(y, binning), Y)
+end
+apply_binning(y_or_Y, binning::Nothing) = y_or_Y
 
 function get_grouped_counts(Y::AbstractVector)
 	@assert isgrouped(Y) "get_class_counts: Y is not grouped: $(Y)"

@@ -67,6 +67,8 @@ enumAccBare(w::Interval, ::_Topo_NTPPi, X::Integer) = enumAccBare(w, IA_Di, X)
 enumAccBare(w::Interval, r::R where R<:_TopoRelRCC5,  XYZ::Vararg{Integer,1}) =
 	Iterators.flatten((enumAccBare(w, IA_r,  XYZ...) for RCC8_r in RCC52RCC8Relations(r) for IA_r in topo2IARelations(RCC8_r)))
 
+#=
+
 computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval, r::R where R<:_TopoRelRCC8FromIA, channel::MatricialChannel{T,1}) where {T} = begin
 	maxExtrema(
 		map((IA_r)->(yieldReprs(test_operator, enumAccRepr(test_operator, w, IA_r, length(channel)), channel)), topo2IARelations(r))
@@ -102,6 +104,8 @@ computeModalThreshold(test_operator::_TestOpLeq, w::Interval, r::R where R<:_Top
 	)
 end
 
+=#
+	
 ################################################################################
 # END Topological relations
 ################################################################################

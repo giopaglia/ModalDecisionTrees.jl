@@ -297,7 +297,7 @@ Default values for `audio_kwargs`, `modal_args` and `data_modal_args` are:
 
 	default_modal_args = (;
 		initConditions = DecisionTree.startWithRelationGlob,
-		useRelationGlob = false,
+		allowRelationGlob = false,
 	)
 
 	default_data_modal_args = (;
@@ -359,7 +359,7 @@ function dataset_from_wav_paths(
 
 	default_modal_args = (;
 		initConditions = DecisionTree.startWithRelationGlob,
-		useRelationGlob = false,
+		allowRelationGlob = false,
 	)
 
 	default_data_modal_args = (;

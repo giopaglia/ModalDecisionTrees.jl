@@ -32,6 +32,10 @@ import Dates
 include("lib.jl")
 include("scanner-utils/load-model.jl")
 
+id_f      = identity
+half_f(x) = ceil(Int, x/2)
+sqrt_f(x) = ceil(Int, sqrt(x))
+
 abstract type Support end
 
 mutable struct ForestEvaluationSupport <: Support
@@ -97,8 +101,8 @@ end
 include("caching.jl")
 include("scanner-utils/table-printer.jl")
 include("scanner-utils/progressive-iterator-manager.jl")
-include("datasets.jl")
 include("dataset-utils.jl")
+include("datasets.jl")
 
 
 # Slice & split the dataset according to dataset_slices & split_threshold
@@ -272,7 +276,7 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 
 		needToComputeRelationGlob =
 			WorldType != OneWorld && (
-				(modal_args.useRelationGlob || (modal_args.initConditions == DecisionTree.startWithRelationGlob))
+				(modal_args.allowRelationGlob || (modal_args.initConditions == DecisionTree.startWithRelationGlob))
 					|| ((modal_args.initConditions isa AbstractVector) && modal_args.initConditions[i_frame] == DecisionTree.startWithRelationGlob)
 			)
 		########################################################################
@@ -280,36 +284,32 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 		########################################################################
 		
 		# Prepare features
-		# TODO generalize
 		
 		features = FeatureTypeFun[]
+		featsnops = Vector{<:TestOperatorFun}[]
 
 		for i_attr in 1:n_attributes(X)
-			for test_operator in data_modal_args.test_operators
-				if test_operator == TestOpGeq
+			for canonical_feature in data_modal_args.canonical_features
+				if canonical_feature == CanonicalFeatureGeq
 					push!(features, ModalLogic.AttributeMinimumFeatureType(i_attr))
-				elseif test_operator == TestOpLeq
+					push!(featsnops, [≥])
+				elseif canonical_feature == CanonicalFeatureLeq
 					push!(features, ModalLogic.AttributeMaximumFeatureType(i_attr))
-				elseif test_operator isa _TestOpGeqSoft
-					push!(features, ModalLogic.AttributeSoftMinimumFeatureType(i_attr, test_operator.alpha))
-				elseif test_operator isa _TestOpLeqSoft
-					push!(features, ModalLogic.AttributeSoftMaximumFeatureType(i_attr, test_operator.alpha))
+					push!(featsnops, [≤])
+				elseif canonical_feature isa ModalLogic._CanonicalFeatureGeqSoft
+					push!(features, ModalLogic.AttributeSoftMinimumFeatureType(i_attr, canonical_feature.alpha))
+					push!(featsnops, [≥])
+				elseif canonical_feature isa ModalLogic._CanonicalFeatureLeqSoft
+					push!(features, ModalLogic.AttributeSoftMaximumFeatureType(i_attr, canonical_feature.alpha))
+					push!(featsnops, [≤])
+				elseif canonical_feature isa Function
+					push!(features, ModalLogic.AttributeFunctionFeatureType(i_attr, canonical_feature))
+					push!(featsnops, [≥, ≤])
 				else
-					throw_n_log("Unknown test_operator type: $(test_operator), $(typeof(test_operator))")
+					throw_n_log("Unknown canonical_feature type: $(canonical_feature), $(typeof(canonical_feature))")
 				end
 			end
 		end
-
-		featsnops = Vector{<:TestOperatorFun}[
-			if any(map(t->isa(feature,t), [AttributeMinimumFeatureType, AttributeSoftMinimumFeatureType]))
-				[≥]
-			elseif any(map(t->isa(feature,t), [AttributeMaximumFeatureType, AttributeSoftMaximumFeatureType]))
-				[≤]
-			else
-				throw_n_log("Unknown feature type: $(feature), $(typeof(feature))")
-				[≥, ≤]
-			end for feature in features
-		]
 
 		########################################################################
 		########################################################################
@@ -497,6 +497,9 @@ function exec_scan(
 	base_metrics_names = begin
 			if is_regression_problem
 			[
+				"train_cor",
+				"train_MAE",
+				"train_RMSE",
 				"cor",
 				"MAE",
 				"RMSE",

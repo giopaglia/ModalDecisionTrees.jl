@@ -76,7 +76,7 @@ dataset_func_kwparams = (
 
 modal_args = (;
 	initConditions = DecisionTree.startWithRelationGlob,
-	useRelationGlob = false,
+	allowRelationGlob = false,
 )
 
 data_modal_args = (;

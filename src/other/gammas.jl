@@ -1,3 +1,4 @@
+export GammaType, GammaSliceType, spawn_rng
 
 # gammas is a structure holding threshold values for which propositional and modal split labels
 #  are on the verge of truth 
@@ -132,7 +133,7 @@ end
 	i_relation      :: Integer,
 	i_feature       :: Integer) where {T}
 	gammas[w.x, w.y, i_test_operator, i_instance, i_feature, i_relation]
-	# (optimized) modal_args = (initCondition = DecisionTree._startWithRelationGlob(), useRelationId = true, useRelationGlob = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = DecisionTree.TestOperator[DecisionTree.ModalLogic._TestOpGeq(), DecisionTree.ModalLogic._TestOpLeq()])
+	# (optimized) modal_args = (initCondition = DecisionTree._startWithRelationGlob(), useRelationId = true, allowRelationGlob = false, ontology = Ontology(DecisionTree.ModalLogic.Interval,IARelations), test_operators = DecisionTree.TestOperator[DecisionTree.ModalLogic._TestOpGeq(), DecisionTree.ModalLogic._TestOpLeq()])
 	# train size = (5, 226, 40)
 	# gammas[i_test_operator, w.x, w.y, i, i_relation, feature]     # 3.981 ms (92645 allocations: 4.01 MiB)
 	# @view gammas[:,w.x, w.y, i, i_relation, feature]           # 6.813 ms (119765 allocations: 5.66 MiB)

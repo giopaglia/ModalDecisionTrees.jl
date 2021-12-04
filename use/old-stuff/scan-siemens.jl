@@ -28,7 +28,7 @@ column_separator = ";"
 modal_args = (
 	initCondition = DecisionTree.startWithRelationGlob,
 	useRelationId = true,
-	useRelationGlob = false,
+	allowRelationGlob = false,
 	ontology = getIntervalOntologyOfDim(Val(1)),
 	test_operators = [TestOpGeq_70, TestOpLeq_70],
 )
