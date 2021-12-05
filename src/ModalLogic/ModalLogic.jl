@@ -1384,7 +1384,7 @@ display_propositional_decision(feature::AttributeSoftMaximumFeatureType, test_op
 
 # Fallback: enumAccessibles works with domains AND their dimensions
 enumAccessibles(S::AbstractWorldSet{WorldType}, r::AbstractRelation, channel::MatricialChannel{T,N}) where {T,N,WorldType<:AbstractWorld} = enumAccessibles(S, r, size(channel)...)
-enumAccRepr(S::Any, r::AbstractRelation, channel::MatricialChannel{T,N}) where {T,N} = enumAccRepr(S, r, size(channel)...)
+# enumAccRepr(S::Any, r::AbstractRelation, channel::MatricialChannel{T,N}) where {T,N} = enumAccRepr(S, r, size(channel)...)
 # Fallback: enumAccessibles for world sets maps to enumAcc-ing their elements
 #  (note: one may overload this function to provide improved implementations for special cases (e.g. <L> of a world set in interval algebra))
 enumAccessibles(S::AbstractWorldSet{WorldType}, r::AbstractRelation, XYZ::Vararg{Integer,N}) where {T,N,WorldType<:AbstractWorld} = begin
@@ -1410,8 +1410,9 @@ struct _RelationId    <: AbstractRelation end; const RelationId   = _RelationId(
 enumAccessibles(w::WorldType,           ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = [w] # IterTools.imap(identity, [w])
 enumAccessibles(S::AbstractWorldSet{W}, ::_RelationId, XYZ::Vararg{Integer,N}) where {W<:AbstractWorld,N} = S # TODO try IterTools.imap(identity, S) ?
 
-enumAccReprAggr(f::FeatureTypeFun, a::Aggregator, w::WorldType, r::AbstractRelation, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = enumAccessibles(w, r, XYZ...)
-enumAccReprAggr(::FeatureTypeFun, ::Aggregator, w::WorldType, r::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = enumAccessibles(w, r, XYZ...)
+enumAccReprAggr(::FeatureTypeFun, ::Aggregator, w::WorldType, r::AbstractRelation, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = enumAccessibles(w, r, XYZ...)
+enumAccReprAggr(::FeatureTypeFun, ::Aggregator, w::WorldType, r::_RelationId,      XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = enumAccessibles(w, r, XYZ...)
+
 
 # computeModalThresholdDual(test_operator::TestOperatorFun, w::WorldType, relation::_RelationId, channel::MatricialChannel{T,N}) where {WorldType<:AbstractWorld,T,N} =
 # 	computePropositionalThresholdDual(test_operator, w, channel)

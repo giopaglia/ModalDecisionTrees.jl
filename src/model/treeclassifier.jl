@@ -89,7 +89,7 @@ module treeclassifier
 		####################
 		_perform_consistency_check :: Union{Val{true},Val{false}},
 		####################
-		writing_lock          :: Threads.Condition,
+		# writing_lock          :: Threads.Condition,
 		####################
 		rng                   :: Random.AbstractRNG,
 	) where {U}
@@ -322,9 +322,9 @@ module treeclassifier
 				# println(instance)
 				# println(Sf[i_instance])
 				_sat, _ss = ModalLogic.modal_step(X, indX[i_instance + r_start], Sf[i_instance], node.relation, node.feature, node.test_operator, node.threshold)
-				Threads.lock(writing_lock)
+				# Threads.lock(writing_lock)
 				(satisfied,Ss[node.i_frame][indX[i_instance + r_start]]) = _sat, _ss
-				Threads.unlock(writing_lock)
+				# Threads.unlock(writing_lock)
 				@logmsg DTDetail " [$satisfied] Instance $(i_instance)/$(n_instances)" Sf[i_instance] (if satisfied Ss[node.i_frame][indX[i_instance + r_start]] end)
 				# println(satisfied)
 				# println(Ss[node.i_frame][indX[i_instance + r_start]])
@@ -352,6 +352,7 @@ module treeclassifier
 			if best_consistency != consistency
 				errStr = "Something's wrong with the optimization steps for relation $(node.relation), feature $(node.feature) and test_operator $(node.test_operator).\n"
 				errStr *= "Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(node.i_frame) with decision: $(decision_str), purity $(best_purity)\n"
+				errStr *= "$(length(indX[region])) Instances: $(indX[region])\n"
 				errStr *= "Different partition was expected:\n"
 				if isa(_perform_consistency_check,Val{true})
 					errStr *= "Actual: $(consistency) ($(sum(consistency)))\n"
@@ -639,7 +640,7 @@ module treeclassifier
 		# Process stack of nodes
 		stack = NodeMeta{Float64}[root]
 		currently_processed_nodes::Vector{NodeMeta{Float64}} = []
-		writing_lock = Threads.Condition()
+		# writing_lock = Threads.Condition()
 		@inbounds while length(stack) > 0
 			rngs = [DecisionTree.spawn_rng(rng) for _n in 1:length(stack)]
 			# Pop nodes and queue them to be processed
@@ -670,7 +671,7 @@ module treeclassifier
 					######################################################################
 					_perform_consistency_check,
 					######################################################################
-					writing_lock,
+					# writing_lock,
 					######################################################################
 					rngs[i_node]
 				)
