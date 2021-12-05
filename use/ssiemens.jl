@@ -126,7 +126,7 @@ data_modal_args = (;
 	ontology = getIntervalOntologyOfDim(Val(1)),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A]),
 	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A, ModalLogic.IA_L, ModalLogic.IA_Li, ModalLogic.IA_D]),
-	canonical_features = [CanonicalFeatureGeq_80, CanonicalFeatureLeq_80],
+	canonical_features	 = [CanonicalFeatureGeq_80, CanonicalFeatureLeq_80],
 )
 
 
@@ -153,7 +153,7 @@ round_dataset_to_datatype = false
 # round_dataset_to_datatype = Float32
 # round_dataset_to_datatype = Float64
 
-traintest_threshold = 0.5
+traintest_threshold = 1.0
 # train_instances_per_class = 100
 
 split_threshold = 0.0
@@ -1062,22 +1062,6 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		println(datasource_counts)
 		println(base_idxs)
 
-		# datasource_counts
-		# base_idxs
-		class_counts, class_grouped_idxs = begin
-			class_counts = []
-			class_grouped_idxs = []
-			for j in 1:length(base_idxs[1])
-				idxs = collect(Iterators.flatten(getindex.(base_idxs,j)))
-				push!(class_counts, length(idxs))
-				append!(class_grouped_idxs, idxs)
-			end
-			Tuple(class_counts), class_grouped_idxs
-		end
-
-		println(class_counts)
-		println(class_grouped_idxs)
-
 		# todo_dataseeds = 1:10
 		[(dataseed, begin
 				if dataseed == 0
@@ -1091,6 +1075,27 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 					# train_idxs = ...balanced_dataset_slice
 					
+					# datasource_counts
+					# base_idxs
+					class_counts, class_grouped_idxs, test_idxs = begin
+						class_counts = []
+						class_grouped_idxs = []
+						test_idxs = []
+						for cl in 1:length(base_idxs[1])
+							idxs_groups      = getindex.(base_idxs,cl)[[1:(dataseed-1)...,(dataseed+1):end...]]
+							test_idxs_groups = getindex.(base_idxs,cl)[[dataseed]]
+							idxs       = collect(Iterators.flatten(idxs_groups))
+							_test_idxs = collect(Iterators.flatten(idxs_groups))
+							push!(class_counts, length(idxs))
+							append!(class_grouped_idxs, idxs)
+							append!(test_idxs, _test_idxs)
+						end
+						Tuple(class_counts), class_grouped_idxs, test_idxs
+					end
+
+					println(class_counts)
+					println(class_grouped_idxs)
+
 					perm = balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = floor(Int, minimum(class_counts)*traintest_threshold), also_return_discarted = false)
 					
 					train_idxs = class_grouped_idxs[perm]
@@ -1104,7 +1109,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 					# train_idxs = train_idxs[1:10]
 
 					@assert all(train_idxs .<= n_insts)
-					(Vector{Integer}(collect(train_idxs)), Vector{Integer}(collect(setdiff(Set(1:n_insts), Set(train_idxs)))))
+					(Vector{Integer}(collect(train_idxs)), Vector{Integer}(collect(test_idxs)))
+					# (Vector{Integer}(collect(train_idxs)), Vector{Integer}(collect(setdiff(Set(1:n_insts), Set(train_idxs)))))
 
 					# a = datasource_counts[1:dataseed-1];
 					# idx_base = (length(a) == 0 ? 0 : sum(a))
