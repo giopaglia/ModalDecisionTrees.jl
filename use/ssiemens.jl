@@ -156,7 +156,7 @@ round_dataset_to_datatype = false
 traintest_threshold = 0.8
 # train_instances_per_class = 100
 
-split_threshold = 1.0
+split_threshold = 0.0
 # split_threshold = 0.8
 # split_threshold = 1.0
 # split_threshold = false

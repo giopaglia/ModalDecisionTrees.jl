@@ -257,7 +257,7 @@ module treeclassifier
 				# Honor min_samples_leaf
 				if nl >= min_samples_leaf && (n_instances - nl) >= min_samples_leaf
 					purity_times_nt = - (nl * loss_function(ncl, nl) + nr * loss_function(ncr, nr))
-					if purity_times_nt > best_purity_times_nt && !isapprox(purity_times_nt, best_purity_times_nt)
+					if purity_times_nt > best_purity_times_nt # && !isapprox(purity_times_nt, best_purity_times_nt)
 						#################################
 						best_frame          = i_frame
 						#################################
@@ -311,6 +311,9 @@ module treeclassifier
 			
 			# TODO instead of using memory, here, just use two opposite indices and perform substitutions. indj = n_instances
 			unsatisfied_flags = fill(1, n_instances)
+			if isa(_perform_consistency_check,Val{true})
+				world_refs = []
+			end
 			for i_instance in 1:n_instances
 				# TODO perform step with an OntologicalModalDataset
 
@@ -332,6 +335,9 @@ module treeclassifier
 
 				# I'm using unsatisfied because sorting puts YES instances first, but TODO use the inverse sorting and use satisfied flag instead
 				unsatisfied_flags[i_instance] = !satisfied
+				if isa(_perform_consistency_check,Val{true})
+					push!(world_refs, _ss)
+				end
 			end
 
 			@logmsg DTOverview " Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(node.i_frame) with decision: $(decision_str), purity $(node.purity)"
@@ -364,6 +370,12 @@ module treeclassifier
 					errStr *= "Expected: $(best_consistency)\n"
 					diff = best_consistency-consistency
 					errStr *= "Difference: $(diff)\n"
+				end
+				errStr *= "unsatisfied_flags = $(unsatisfied_flags)\n"
+
+				if isa(_perform_consistency_check,Val{true})
+					errStr *= "world_refs = $(world_refs)\n"
+					errStr *= "new world_refs = $([Ss[node.i_frame][indX[i_instance + r_start]] for i_instance in 1:n_instances])\n"
 				end
 				
 				# for i in 1:n_instances
