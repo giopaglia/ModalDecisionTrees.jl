@@ -305,6 +305,10 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 				elseif canonical_feature isa Function
 					push!(features, ModalLogic.AttributeFunctionFeatureType(i_attr, canonical_feature))
 					push!(featsnops, [≥, ≤])
+				elseif canonical_feature isa Tuple{TestOperatorFun,Function}
+					(test_op,canonical_feature) = canonical_feature
+					push!(features, ModalLogic.AttributeFunctionFeatureType(i_attr, canonical_feature))
+					push!(featsnops, [test_op])
 				else
 					throw_n_log("Unknown canonical_feature type: $(canonical_feature), $(typeof(canonical_feature))")
 				end

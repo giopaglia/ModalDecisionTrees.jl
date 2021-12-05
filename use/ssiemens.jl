@@ -599,11 +599,6 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		
 		# run_name = "example"
 
-		t = 1
-		p = SoleViz.plotdescription(mfd, descriptors = descrs, windows = [[[(t,0,0)]]])
-		println(size(p))
-		p = p[:]
-
 		# println(typeof(p))
 		# println(length(p))
 
@@ -651,6 +646,12 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		_savefig = (x...)->(;)
 
 		best_attributes_idxs = [1,4,25,9,10]
+
+		# t = 1
+		# p = SoleViz.plotdescription(mfd, descriptors = descrs, windows = [[[(t,0,0)]]])
+		# println(size(p))
+		# p = p[:]
+
 		# best_attributes_idxs = begin
 
 		# 	############################################################################
@@ -769,12 +770,13 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 		mfd_sub = compute_mfd(X_sub);
 
-		p = SoleViz.plotdescription(mfd_sub, descriptors = descrs, windows = [[[(t,0,0)]]], on_x_axis = :descriptors)
+		# p = SoleViz.plotdescription(mfd_sub, descriptors = descrs, windows = [[[(t,0,0)]]], on_x_axis = :descriptors)
 		# println(size(p))
-		p = p[:]
+		# p = p[:]
 
 		best_descriptors = [:min_m, :max_m, :mean_m, :CO_FirstMin_ac, :SB_BinaryStats_mean_longstretch1]
 		# best_descriptors = begin
+
 		# 	############################################################################
 		# 	############################################################################
 		# 	############################################################################
@@ -828,19 +830,68 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		println("Selecting $(length(best_descriptors)) descriptors: $(best_descriptors)...")
 		println()
 
-		function getCanonicalFeature(s)
-			if s == :min_m
-				CanonicalFeatureGeq_80
-			elseif s == :max_m
-				CanonicalFeatureLeq_80
-			elseif s == :mean_m
-				StatsBase.mean
+		# catch22_min_channel_length = Dict([
+		# 	:DN_HistogramMode_5                            => 3,
+		# 	:DN_HistogramMode_10                           => 3,
+		# 	:CO_Embed2_Dist_tau_d_expfit_meandiff          => 3,
+		# 	:CO_f1ecac                                     => 3,
+		# 	:CO_FirstMin_ac                                => 3,
+		# 	:CO_HistogramAMI_even_2_5                      => 3,
+		# 	:CO_trev_1_num                                 => 3,
+		# 	:DN_OutlierInclude_p_001_mdrmd                 => 3,
+		# 	:DN_OutlierInclude_n_001_mdrmd                 => 3,
+		# 	:FC_LocalSimple_mean1_tauresrat                => 3,
+		# 	:FC_LocalSimple_mean3_stderr                   => 5,
+		# 	:IN_AutoMutualInfoStats_40_gaussian_fmmi       => 3,
+		# 	:MD_hrv_classic_pnn40                          => 3,
+		# 	:SB_BinaryStats_diff_longstretch0              => 3,
+		# 	:SB_BinaryStats_mean_longstretch1              => 3,
+		# 	:SB_MotifThree_quantile_hh                     => 3,
+		# 	:SC_FluctAnal_2_rsrangefit_50_1_logi_prop_r1   => 3,
+		# 	:SC_FluctAnal_2_dfa_50_1_2_logi_prop_r1        => 3,
+		# 	:SP_Summaries_welch_rect_area_5_1              => 3,
+		# 	:SP_Summaries_welch_rect_centroid              => 3,
+		# 	:SB_TransitionMatrix_3ac_sumdiagcov            => 3,
+		# 	:PD_PeriodicityWang_th0_01                     => 3,
+		# ])
+
+		for f_name in getnames(catch22)
+			@eval (function $(Symbol(string(f_name)*"_pos"))(channel)
+				val = $(catch22[f_name])(channel)
+
+				if isnan(val)
+					# println("WARNING!!! NaN value found! channel = $(channel)")
+					-Inf # aggregator_bottom(existential_aggregator(≥), Float64)
+				else
+					val
+				end
+			end)
+			@eval (function $(Symbol(string(f_name)*"_neg"))(channel)
+				val = $(catch22[f_name])(channel)
+
+				if isnan(val)
+					# println("WARNING!!! NaN value found! channel = $(channel)")
+					Inf # aggregator_bottom(existential_aggregator(≤), Float64)
+				else
+					val
+				end
+			end)
+		end
+
+		function getCanonicalFeature(f_name)
+			if f_name == :min_m
+				[CanonicalFeatureGeq_80]
+			elseif f_name == :max_m
+				[CanonicalFeatureLeq_80]
+			elseif f_name == :mean_m
+				[StatsBase.mean]
 			else
-				catch22[s]
+				[(≥, @eval $(Symbol(string(f_name)*"_pos"))),(≤, @eval $(Symbol(string(f_name)*"_neg")))]
 			end
 		end
+
 		cur_data_modal_args = merge(cur_data_modal_args, (;
-			canonical_features = Vector{Union{ModalLogic.CanonicalFeature,Function}}(getCanonicalFeature.(best_descriptors))
+			canonical_features = Vector{Union{ModalLogic.CanonicalFeature,Function,Tuple{TestOperatorFun,Function}}}(collect(Iterators.flatten(getCanonicalFeature.(best_descriptors))))
 		))
 
 		X = X_sub
