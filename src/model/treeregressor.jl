@@ -310,7 +310,7 @@ module treeregressor
 
 					# println("purity_times_nt: $(purity_times_nt)")
 
-					if purity_times_nt > best_purity_times_nt && !isapprox(purity_times_nt, best_purity_times_nt)
+					if purity_times_nt > best_purity_times_nt # && !isapprox(purity_times_nt, best_purity_times_nt)
 						#################################
 						best_frame          = i_frame
 						#################################
