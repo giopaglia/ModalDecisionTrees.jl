@@ -38,7 +38,7 @@ skip_training = false
 #save_datasets = true
 save_datasets = false
 
-perform_consistency_check = true
+perform_consistency_check = false # true
 
 iteration_blacklist = []
 
@@ -58,7 +58,7 @@ tree_args = [
 
 for loss_function in [nothing] # DecisionTree.util.variance
 	for min_samples_leaf in [4] # [1,2]
-		for min_purity_increase in [0.1, 0.01, 0.001, 0.0001, 0.00005, 0.00002, 0.00001, 0.0] # [0.01, 0.001]
+		for min_purity_increase in [0.1, 0.01] # , 0.001, 0.0001, 0.00005, 0.00002, 0.00001, 0.0] # [0.01, 0.001]
 		# for min_purity_increase in [0.0] # ,0.01, 0.001]
 			for max_purity_at_leaf in [0.001] # [0.4, 0.6]
 				push!(tree_args,
@@ -153,7 +153,7 @@ round_dataset_to_datatype = false
 # round_dataset_to_datatype = Float32
 # round_dataset_to_datatype = Float64
 
-traintest_threshold = 0.8
+traintest_threshold = 0.5
 # train_instances_per_class = 100
 
 split_threshold = 0.0
