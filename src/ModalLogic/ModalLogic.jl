@@ -183,6 +183,24 @@ const CanonicalFeatureLeq_75  = _CanonicalFeatureLeqSoft((Rational(75,100)));
 const CanonicalFeatureLeq_70  = _CanonicalFeatureLeqSoft((Rational(70,100)));
 const CanonicalFeatureLeq_60  = _CanonicalFeatureLeqSoft((Rational(60,100)));
 
+# TODO deprecated, remove
+export TestOpGeq_95, TestOpGeq_90, TestOpGeq_85, TestOpGeq_80, TestOpGeq_75, TestOpGeq_70, TestOpGeq_60, TestOpLeq_95, TestOpLeq_90, TestOpLeq_85, TestOpLeq_80, TestOpLeq_75, TestOpLeq_70, TestOpLeq_60, TestOpGeq, TestOpLeq
+TestOpGeq_95 = CanonicalFeatureGeq_95
+TestOpGeq_90 = CanonicalFeatureGeq_90
+TestOpGeq_85 = CanonicalFeatureGeq_85
+TestOpGeq_80 = CanonicalFeatureGeq_80
+TestOpGeq_75 = CanonicalFeatureGeq_75
+TestOpGeq_70 = CanonicalFeatureGeq_70
+TestOpGeq_60 = CanonicalFeatureGeq_60
+TestOpLeq_95 = CanonicalFeatureLeq_95
+TestOpLeq_90 = CanonicalFeatureLeq_90
+TestOpLeq_85 = CanonicalFeatureLeq_85
+TestOpLeq_80 = CanonicalFeatureLeq_80
+TestOpLeq_75 = CanonicalFeatureLeq_75
+TestOpLeq_70 = CanonicalFeatureLeq_70
+TestOpLeq_60 = CanonicalFeatureLeq_60
+TestOpGeq    = CanonicalFeatureGeq
+TestOpLeq    = CanonicalFeatureLeq
 
 ################################################################################
 # BEGIN Dataset types
