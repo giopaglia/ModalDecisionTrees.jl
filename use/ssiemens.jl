@@ -193,6 +193,18 @@ exec_regression_window_in_minutes = [60]
 
 exec_moving_average = [
 	(
+		ma_size = 10,
+		ma_step = 10,
+	),
+	(
+		ma_size = 6,
+		ma_step = 6,
+	),
+	(
+		ma_size = 5,
+		ma_step = 5,
+	),
+	(
 		ma_size = 4,
 		ma_step = 4,
 	),
@@ -601,18 +613,18 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		run_file_prefix = strip("$(results_dir)/plotdescription-$(run_name)", '"')
 
 		best_attributes_idxs, best_descriptors = [1,2,8,13,14], [:min_m, :max_m, :mean_m, :CO_FirstMin_ac, :SB_BinaryStats_mean_longstretch1]
-		# best_attributes_idxs, best_descriptors = single_frame_blind_feature_selection((X,Y), attribute_names, grouped_descriptors, run_file_prefix, n_desired_attributes, n_desired_features; savefigs = savefigs, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr)
+		# best_attributes_idxs, best_descriptors = single_frame_blind_feature_selection((X,Y), attribute_names, grouped_descriptors, run_file_prefix, n_desired_attributes, n_desired_features; savefigs = savefigs, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr, export_dat = true)
 		
 		if savefigs
 			descriptors = collect(Iterators.flatten([values(grouped_descriptors)...]))
-			single_frame_target_aware_analysis((X,Y), attribute_names, descriptors, run_file_prefix; savefigs = savefigs, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr)
+			single_frame_target_aware_analysis((X,Y), attribute_names, descriptors, run_file_prefix; savefigs = savefigs, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr, export_dat = true)
 		end
 
 		X = X[:,best_attributes_idxs,:]
 		Y = Y[:]
 
 		if savefigs
-			single_frame_target_aware_analysis((X,Y), attribute_names[best_attributes_idxs], best_descriptors, run_file_prefix*"-best"; savefigs = savefigs, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr)
+			single_frame_target_aware_analysis((X,Y), attribute_names[best_attributes_idxs], best_descriptors, run_file_prefix*"-best"; savefigs = savefigs, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr, export_dat = true)
 		end
 		
 		# println(typeof(p))
