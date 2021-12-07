@@ -274,7 +274,7 @@ module treeclassifier
 						#################################
 						best_consistency = begin
 							if isa(_perform_consistency_check,Val{true})
-								consistency_sat_check[:]
+								consistency_sat_check[1:n_instances]
 							else
 								nr
 							end
@@ -381,7 +381,8 @@ module treeclassifier
 					# errStr *= "$(ModalLogic.getChannel(Xs, indX[i + r_start], best_feature))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[node.i_frame][indX[i + r_start]])\n";
 				# end
 
-				throw_n_log("ERROR! " * errStr)
+				# throw_n_log("ERROR! " * errStr)
+                                println("ERROR! " * errStr) # TODO fix
 			end
 
 			@logmsg DTDetail "pre-partition" region indX[region] unsatisfied_flags
