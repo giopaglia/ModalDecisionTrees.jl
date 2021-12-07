@@ -341,10 +341,10 @@ function KDDDataset((n_task,n_version),
 			nothing
 		else
 			# Ignore instances with NaN (careful! this may leave with just a few instances)
-			# if any(isnan.(ts))
-			# 	@warn "Instance with NaN values was ignored"
-			# 	continue
-			# end
+			if any(isnan.(ts))
+				println("WARNING! Instance with NaN values was ignored: $(ts)")
+				return nothing
+			end
 
 			# println("ts_length:	$(size(ts,1))	$(filepath)")
 			original_length = size(ts,1)
