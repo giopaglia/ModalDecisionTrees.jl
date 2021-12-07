@@ -6,14 +6,11 @@
 
 include("scanner.jl")
 
-using SoleBase
-using SoleBase: dimension
-using SoleViz
+
 using Catch22
 using DataStructures
-using StatsPlots
-using Plots.PlotMeasures
 
+include("dataset-analysis.jl")
 
 train_seed = 1
 
@@ -28,8 +25,8 @@ iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 
-dry_run = false
-# dry_run = :dataset_only
+# dry_run = false
+dry_run = :dataset_only
 # dry_run = :model_study
 # dry_run = true
 
@@ -87,7 +84,8 @@ optimize_forest_computation = true
 
 forest_args = []
 
-for n_trees in [50, 100]
+for n_trees in []
+# for n_trees in [50, 100]
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
 			for partial_sampling in [0.7]
@@ -220,43 +218,16 @@ exec_ranges = (;
 
 
 dataset_function = (datadirname, binning, ignore_last_minutes, moving_average, regression_window_in_minutes, regression_step_in_minutes)->begin
-	@assert datadirname == "Siemens-Data-Measures" "TODO Change attribute names"
 	SiemensDataset_regression(datadirname;
 		moving_average...,
 		binning = binning,
 		sortby_datasource = true,
 		only_consider_trip_days = true,
 		ignore_last_minutes = ignore_last_minutes,
+		select_attributes = [1,4,3,23,2,5,22,25,26,(6:21)...],
 		regression_window_in_minutes = regression_window_in_minutes,
 		regression_step_in_minutes = regression_step_in_minutes,
-	), OrderedDict([
-"Ambient_air_humidity"                  => "red",
-"Compr_IGV_position"                    => "green",
-"Gas_fuel_valve_position"               => "green",
-"Ambient_air_temperature"               => "yellow",
-"Compressor_outlet_temperature"         => "yellow",
-"Exhaust_temperature_1"                 => "yellow",
-"Exhaust_temperature_2"                 => "yellow",
-"Exhaust_temperature_3"                 => "yellow",
-"Exhaust_temperature_4"                 => "yellow",
-"Exhaust_temperature_5"                 => "yellow",
-"Exhaust_temperature_6"                 => "yellow",
-"Exhaust_temperature_7"                 => "yellow",
-"Exhaust_temperature_8"                 => "yellow",
-"Exhaust_temperature_9"                 => "yellow",
-"Exhaust_temperature_10"                => "yellow",
-"Exhaust_temperature_11"                => "yellow",
-"Exhaust_temperature_12"                => "yellow",
-"Exhaust_temperature_13"                => "yellow",
-"Exhaust_temperature_14"                => "yellow",
-"Exhaust_temperature_15"                => "yellow",
-"Exhaust_temperature_16"                => "yellow",
-"Compressor_outlet_pressure"            => "red",
-"Gas_fuel_mass_flow_rate"               => "blue",
-"Compressor_inlet_air_mass_flow_rate"   => "blue",
-"Rotational_speed"                      => "red",
-"Power_output"                          => "red",
-])
+	)
 end
 
 ################################################################################
@@ -521,43 +492,18 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	##############################################################################
 
-	# using SoleBase
-	# using StatsPlots
-	# using Plots.PlotMeasures
-
 	# X, Y = randn(19,5,20), rand(0:1, 20)
 	p = nothing
 	for f in [1]
 		# f = [1][1]
 
-		n_selected_attributes = 5
-		n_selected_features = 5
+		n_desired_attributes = 5
+		n_desired_features   = 5
 
-		println("Performing dataset pre-analysis!")
-		println("n_selected_attributes = $(n_selected_attributes)")
-		println("n_selected_features   = $(n_selected_features)")
+		# savefigs = true
+		savefigs = false
 
-		println()
-		println("size(X) = $(size(X))")
-
-		function compute_mfd(X)
-			n_attrs = size(X,2)[end]
-			n_insts = size(X)[end]
-			columns = []
-			for i_attr in 1:n_attrs
-				push!(columns, ([X[:,i_attr,i_inst] for i_inst in 1:n_insts]))
-			end
-			colnames = [string(i) for i in 1:n_attrs]
-			df = DataFrame(columns, colnames)
-			mfd = MultiFrameDataset([1:ncol(df)], df)
-		end
-		
-		mfd = compute_mfd(X);
-		# ClassificationMultiFrameDataset(Y, mfd)
-
-		# println(mfd)
-
-		grouped_descrs = OrderedDict([
+		grouped_descriptors = OrderedDict([
 			"Basic stats" => [
 				:mean_m
 				:min_m
@@ -593,242 +539,81 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 				:PD_PeriodicityWang_th0_01
 			],
 		])
-
-		# descrs = Symbol[:mean_m, :min_m, :max_m, getnames(catch22)...]
-		descrs = collect(Iterators.flatten([values(grouped_descrs)...]))
 		
-		# run_name = "example"
+		descriptors_abbr = Dict([
+		 	:mean_m                                        => "M",
+		 	:max_m                                         => "MAX",
+		 	:min_m                                         => "MIN",
+		 	:DN_HistogramMode_5                            => "Z5",
+		 	:DN_HistogramMode_10                           => "Z10",
+		 	:CO_Embed2_Dist_tau_d_expfit_meandiff          => "C",
+		 	:CO_f1ecac                                     => "A",
+		 	:CO_FirstMin_ac                                => "B",
+		 	:CO_HistogramAMI_even_2_5                      => "FC",
+		 	:CO_trev_1_num                                 => "FM",
+		 	:DN_OutlierInclude_p_001_mdrmd                 => "TP",
+		 	:DN_OutlierInclude_n_001_mdrmd                 => "C",
+		 	:FC_LocalSimple_mean1_tauresrat                => "ME",
+		 	:FC_LocalSimple_mean3_stderr                   => "TR",
+		 	:IN_AutoMutualInfoStats_40_gaussian_fmmi       => "AI",
+		 	:MD_hrv_classic_pnn40                          => "FMAI",
+		 	:SB_BinaryStats_diff_longstretch0              => "PD",
+		 	:SB_BinaryStats_mean_longstretch1              => "LP",
+		 	:SB_MotifThree_quantile_hh                     => "EN",
+		 	:SC_FluctAnal_2_rsrangefit_50_1_logi_prop_r1   => "CC",
+		 	:SC_FluctAnal_2_dfa_50_1_2_logi_prop_r1        => "EF",
+		 	:SP_Summaries_welch_rect_area_5_1              => "FDFA",
+		 	:SP_Summaries_welch_rect_centroid              => "FLF",
+		 	:SB_TransitionMatrix_3ac_sumdiagcov            => "TC",
+		 	:PD_PeriodicityWang_th0_01                     => "PM",
+		 ])
 
+		_attributes_abbr = Dict([
+		  "Ambient_air_humidity"                         => "AMB_HUM",
+		  "Ambient_air_temperature"                      => "AMB_TEMP",
+		  "Gas_fuel_valve_position"                      => "GAS_POS",
+		  "Gas_fuel_mass_flow_rate"                      => "GAS_FLOW",
+		  "Compr_IGV_position"                           => "IGV_POS",
+		  "Compressor_outlet_temperature"                => "IGV_TEMP",
+		  "Compressor_outlet_pressure"                   => "IGV_TEMP",
+		  "Rotational_speed"                             => "SPEED",
+		  "Power_output"                                 => "POWER",
+		  "Exhaust_temperature_1"                        => "EX_TEMP1",
+		  "Exhaust_temperature_2"                        => "EX_TEMP2",
+		  "Exhaust_temperature_3"                        => "EX_TEMP3",
+		  "Exhaust_temperature_4"                        => "EX_TEMP4",
+		  "Exhaust_temperature_5"                        => "EX_TEMP5",
+		  "Exhaust_temperature_6"                        => "EX_TEMP6",
+		  "Exhaust_temperature_7"                        => "EX_TEMP7",
+		  "Exhaust_temperature_8"                        => "EX_TEMP8",
+		  "Exhaust_temperature_9"                        => "EX_TEMP9",
+		  "Exhaust_temperature_10"                       => "EX_TEMP10",
+		  "Exhaust_temperature_11"                       => "EX_TEMP11",
+		  "Exhaust_temperature_12"                       => "EX_TEMP12",
+		  "Exhaust_temperature_13"                       => "EX_TEMP13",
+		  "Exhaust_temperature_14"                       => "EX_TEMP14",
+		  "Exhaust_temperature_15"                       => "EX_TEMP15",
+		  "Exhaust_temperature_16"                       => "EX_TEMP16",
+		 ])
+
+		attributes_abbr = [_attributes_abbr[attr_name] for attr_name in attribute_names]
+
+		run_file_prefix = strip("$(results_dir)/plotdescription-$(run_name)", '"')
+		println(run_file_prefix)
+		best_attributes_idxs, best_descriptors = [1,2,8,13,14], [:min_m, :max_m, :mean_m, :CO_FirstMin_ac, :SB_BinaryStats_mean_longstretch1]
+		# TODO
+		# best_attributes_idxs, best_descriptors = single_frame_blind_feature_selection((X,Y), attribute_names, grouped_descriptors, run_file_prefix, n_desired_attributes, n_desired_features; savefigs = savefigs, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr)
+	
+		descriptors = collect(Iterators.flatten([values(grouped_descriptors)...]))
+		# single_frame_target_aware_analysis((X,Y), attribute_names, descriptors, run_file_prefix; savefigs = savefigs, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr)
+
+		X = X[:,best_attributes_idxs,:]
+		Y = Y[:]
+
+		# single_frame_target_aware_analysis((X,Y), attribute_names[best_attributes_idxs], best_descriptors, run_file_prefix*"-best"; savefigs = savefigs, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr)
+		
 		# println(typeof(p))
 		# println(length(p))
-
-		function update_ylims!(p)
-			_min, _max = Inf, -Inf
-			i = 1
-			while true
-				try p[1][i]
-					_min = min(_min,minimum(p[1][i][:y]))
-					_max = max(_max,maximum(p[1][i][:y]))
-					i += 1
-				catch Error
-					break
-				end
-			end
-			# println("updated ylims for $(i-1) series")
-			tiny_margin(x) = min(x*.1,0.1)
-			plot!(p, ylims = (_min-tiny_margin(_min),_max+tiny_margin(_max))); # TODO improve
-		end
-
-		function average_plot(plots)
-			p_avg = Base.deepcopy(plots[1]);
-			i = 1
-			p_avg[1][i][:y] = [mean(filter(!isnan, [p_i[1][i][:y][i_attr] for p_i in plots])) for i_attr in 1:length(plots[1][1][i][:y])]
-			update_ylims!(p_avg);
-			p_avg;
-		end
-
-		function normalize_plot(p)
-			p_norm = Base.deepcopy(p);
-			i = 1
-			while true
-				try p_norm[1][i]
-					p_norm[1][i][:y] /= sum(p_norm[1][i][:y])
-					i += 1
-				catch Error
-					break
-				end
-			end
-			update_ylims!(p_norm);
-			p_norm;
-		end
-
-		# _savefig = savefig
-		_savefig = (x...)->(;)
-
-		best_attributes_idxs = [1,4,25,9,10]
-
-		# t = 1
-		# p = SoleViz.plotdescription(mfd, descriptors = descrs, windows = [[[(t,0,0)]]])
-		# println(size(p))
-		# p = p[:]
-
-		# best_attributes_idxs = begin
-
-		# 	############################################################################
-		# 	############################################################################
-		# 	############################################################################
-		# 	@assert length(descrs) == 25 "TODO change layout"
-			
-		# 	_savefig(plot(p...; layout = (5,5), size = (1920, 1080)), "$(results_dir)/plotdescription-$(run_name).png");
-
-		# 	p_avg = average_plot(p);
-		# 	_savefig(plot(p_avg; size = (1920, 1080)), "$(results_dir)/plotdescription-$(run_name)-avg.png");
-		# 	############################################################################
-		# 	############################################################################
-		# 	############################################################################
-		# 	perm = sortperm(p_avg[1][1][:y], rev=true);
-		# 	p_sorted = Base.deepcopy(p);
-		# 	for p_i in p_sorted
-		# 		for i in 1:length(p_i[1])
-		# 			p_i[1][i][:y] = p_i[1][i][:y][perm]
-		# 		end
-		# 		plot!(p_i, xticks = (1:length(perm), string.(perm)));
-		# 	end
-		# 	_savefig(plot(p_sorted...; layout = (5,5), size = (1920, 1080)), "$(results_dir)/plotdescription-$(run_name)-sorted.png");
-
-		# 	p_sorted_avg = Base.deepcopy(p_avg);
-		# 	p_sorted_avg[1][1][:y] = p_sorted_avg[1][1][:y][perm]
-		# 	plot!(p_sorted_avg, xticks = (1:length(perm), ["$(t). $(collect(keys(attribute_names))[t])" for t in perm]));
-		# 	# plot!(p_sorted_avg, xticks = (1:length(perm), string.(perm)))
-		# 	_savefig(plot(p_sorted_avg; size = (1920, 1080)), "$(results_dir)/plotdescription-$(run_name)-sorted-avg.png");
-		# 	############################################################################
-		# 	############################################################################
-		# 	############################################################################
-		# 	p_norm = normalize_plot.(p);
-		# 	_savefig(plot(p_norm...; layout = (5,5), size = (1920, 1080)), "$(results_dir)/plotdescription-$(run_name)-norm.png");
-
-		# 	p_norm_avg = average_plot(p_norm);
-		# 	_savefig(plot(p_norm_avg; size = (1920, 1080)), "$(results_dir)/plotdescription-$(run_name)-norm-avg.png");
-		# 	############################################################################
-		# 	############################################################################
-		# 	############################################################################
-		# 	perm = sortperm(p_norm_avg[1][1][:y], rev=true);
-		# 	p_sorted = Base.deepcopy(p_norm);
-		# 	for p_i in p_sorted
-		# 		for i in 1:length(p_i[1])
-		# 			p_i[1][i][:y] = p_i[1][i][:y][perm]
-		# 		end
-		# 		plot!(p_i, xticks = (1:length(perm), string.(perm)));
-		# 	end
-		# 	_savefig(plot(p_sorted...; layout = (5,5), size = (1920, 1080)), "$(results_dir)/plotdescription-$(run_name)-norm-sorted.png");
-
-		# 	p_sorted_avg = Base.deepcopy(p_norm_avg);
-		# 	for i in 1:length(p_sorted_avg[1])
-		# 		p_sorted_avg[1][i][:y] = p_sorted_avg[1][i][:y][perm]
-		# 	end
-		# 	plot!(p_sorted_avg, xticks = (1:length(perm), ["$(t). $(collect(keys(attribute_names))[t])" for t in perm]));
-		# 	# plot!(p_sorted_avg, xticks = (1:length(perm), string.(perm)))
-		# 	_savefig(plot(p_sorted_avg; size = (1920, 1080)), "$(results_dir)/plotdescription-$(run_name)-norm-sorted-avg.png");
-		# 	############################################################################
-		# 	############################################################################
-		# 	############################################################################
-
-		# 	# display(p_norm_avg)
-
-		# 	p = SoleViz.plotdescription(mfd, descriptors = grouped_descrs, windows = [[[(t,0,0)]]])
-		# 	# println(size(p))
-		# 	p = p[:]
-
-		# 	############################################################################
-		# 	############################################################################
-		# 	############################################################################
-		# 	@assert length(grouped_descrs) == 8 "TODO change layout"
-			
-		# 	_savefig(plot(p...; layout = (4,2), size = (1920, 1080)), "$(results_dir)/plotdescription-$(run_name)-grouped.png");
-
-		# 	############################################################################
-		# 	############################################################################
-		# 	############################################################################
-		# 	p_sorted = Base.deepcopy(p);
-		# 	for p_i in p_sorted
-		# 		for i in 1:length(p_i[1])
-		# 			p_i[1][i][:y] = p_i[1][i][:y][perm]
-		# 		end
-		# 		plot!(p_i, xticks = (1:length(perm), string.(perm)));
-		# 	end
-		# 	_savefig(plot(p_sorted...; layout = (4,2), size = (1920, 1080)), "$(results_dir)/plotdescription-$(run_name)-grouped-sorted.png");
-
-		# 	############################################################################
-		# 	############################################################################
-		# 	############################################################################
-		# 	p_norm = normalize_plot.(p);
-		# 	_savefig(plot(p_norm...; layout = (4,2), size = (1920, 1080)), "$(results_dir)/plotdescription-$(run_name)-grouped-norm.png");
-
-		# 	############################################################################
-		# 	############################################################################
-		# 	############################################################################
-		# 	perm = sortperm(p_norm_avg[1][1][:y], rev=true)
-		# 	p_sorted = Base.deepcopy(p_norm);
-		# 	for p_i in p_sorted
-		# 		for i in 1:length(p_i[1])
-		# 			p_i[1][i][:y] = p_i[1][i][:y][perm]
-		# 		end
-		# 		plot!(p_i, xticks = (1:length(perm), string.(perm)));
-		# 	end
-		# 	_savefig(plot(p_sorted...; layout = (4,2), size = (1920, 1080)), "$(results_dir)/plotdescription-$(run_name)-grouped-norm-sorted.png");
-
-		# 	############################################################################
-		# 	############################################################################
-		# 	############################################################################
-		# 	perm[1:n_selected_attributes]
-		# end
-
-		X_sub = X[:,best_attributes_idxs,:]
-		Y_sub = Y[:]
-		println("Selecting $(length(best_attributes_idxs)) attributes: $(best_attributes_idxs)...")
-		println(["$(t). $(collect(keys(attribute_names))[t])" for t in best_attributes_idxs])
-
-		mfd_sub = compute_mfd(X_sub);
-
-		# p = SoleViz.plotdescription(mfd_sub, descriptors = descrs, windows = [[[(t,0,0)]]], on_x_axis = :descriptors)
-		# println(size(p))
-		# p = p[:]
-
-		best_descriptors = [:min_m, :max_m, :mean_m, :CO_FirstMin_ac, :SB_BinaryStats_mean_longstretch1]
-		# best_descriptors = begin
-
-		# 	############################################################################
-		# 	############################################################################
-		# 	############################################################################
-			
-		# 	_savefig(plot(p...; layout = (1,5), size = (1920, 1080)), "$(results_dir)/plotdescription-$(run_name)-transposed.png");
-
-		# 	p_avg = average_plot(p);
-		# 	_savefig(plot(p_avg; size = (1920, 1080)), "$(results_dir)/plotdescription-$(run_name)-transposed-avg.png");
-		# 	############################################################################
-		# 	############################################################################
-		# 	############################################################################
-		# 	perm = sortperm(p_avg[1][1][:y], rev=true)
-		# 	p_sorted = Base.deepcopy(p);
-		# 	for p_i in p_sorted
-		# 		for i in 1:length(p_i[1])
-		# 			p_i[1][i][:y] = p_i[1][i][:y][perm]
-		# 		end
-		# 		plot!(p_i, xticks = (1:length(perm), string.(perm)));
-		# 	end
-		# 	_savefig(plot(p_sorted...; layout = (1,5), size = (1920, 1080)), "$(results_dir)/plotdescription-$(run_name)-transposed-sorted.png");
-
-		# 	############################################################################
-		# 	############################################################################
-		# 	############################################################################
-		# 	p_norm = normalize_plot.(p);
-		# 	_savefig(plot(p_norm...; layout = (1,5), size = (1920, 1080)), "$(results_dir)/plotdescription-$(run_name)-transposed-norm.png");
-
-		# 	p_norm_avg = average_plot(p_norm);
-		# 	_savefig(plot(p_norm_avg; size = (1920, 1080)), "$(results_dir)/plotdescription-$(run_name)-transposed-norm-avg.png");
-		# 	############################################################################
-		# 	############################################################################
-		# 	############################################################################
-		# 	perm = sortperm(p_norm_avg[1][1][:y], rev=true)
-		# 	p_sorted = Base.deepcopy(p_norm);
-		# 	for p_i in p_sorted
-		# 		for i in 1:length(p_i[1])
-		# 			p_i[1][i][:y] = p_i[1][i][:y][perm]
-		# 		end
-		# 		plot!(p_i, xticks = (1:length(perm), string.(perm)));
-		# 	end
-		# 	_savefig(plot(p_sorted...; layout = (1,5), size = (1920, 1080)), "$(results_dir)/plotdescription-$(run_name)-transposed-norm-sorted.png");
-
-		# 	############################################################################
-		# 	############################################################################
-		# 	############################################################################
-
-		# 	
-		# descrs[perm[1:n_selected_features]]
-		# end
-		
-		println("Selecting $(length(best_descriptors)) descriptors: $(best_descriptors)...")
-		println()
 
 		# catch22_min_channel_length = Dict([
 		# 	:DN_HistogramMode_5                            => 3,
@@ -893,113 +678,6 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		cur_data_modal_args = merge(cur_data_modal_args, (;
 			canonical_features = Vector{Union{ModalLogic.CanonicalFeature,Function,Tuple{TestOperatorFun,Function}}}(collect(Iterators.flatten(getCanonicalFeature.(best_descriptors))))
 		))
-
-		X = X_sub
-		Y = Y_sub
-
-		# display(p)
-
-		# for t in [1] # ,2,4,8,16] # TODO eventualmente fissarlo.
-		# 	# t = 4
-		# 	# description = describe(mfd; desc = [:mean_m], t = [(t,0,0)])[1]
-		# 	# TODO add catch22
-		# 	descrs = [:mean_m, :min_m, :max_m, catch22...]
-
-		# 	description = describe(mfd; desc = descrs, t = [(t,0,0)])[1]
-		# 	attr_descr_cols = names(description)[2:end]
-		# 	# println(description)
-		# 	# println(attr_descr_cols)
-
-		# 	# max_mean = mean([v for values in description[:,:mean_m] for v in values])
-		# 	# plot(collect(1:n_attrs), [description[band,:mean_m][1] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
-		# 	# for i_inst in 2:(nrow(new_dataset)-1)
-		# 	# 	plot!(collect(1:n_attrs), [description[band,:mean_m][i_inst] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
-		# 	# end
-		# 	# all_plot = plot!(collect(1:n_attrs), [description[band,:mean_m][nrow(new_dataset)] for band in 1:n_attrs], leg = false, ylims = (0, max_mean), size = (1920, 1080))
-
-		# 	d = SoleBase.SoleData.SoleDataset._stat_description(description; functions = Function[var])
-		# 	# p = plot(
-		# 	# 	[
-		# 	# 		plot(collect(1:n_attrs), [v[1] for v in d[:,feat_symb]], size = (1080, 1080), title = string(feat_symb), xticks = 1:n_attrs)
-		# 	# 		for feat_symb in [
-		# 	# 				:mean_m_mean, :mean_m_var, :mean_m_std,
-		# 	# 				:min_m_mean, :min_m_var, :min_m_std,
-		# 	# 				:max_m_mean, :max_m_var, :max_m_std]
-		# 	# 	]...
-		# 	# 	layout = (3, 3),
-		# 	# )
-
-		# 	# display(p)
-		# 	# readline()
-		# 	for descr in descrs
-		# 		println(descr)
-		# 		p = begin
-		# 			# feat_symb = :mean_m_var
-		# 			feat_symb = Symbol(string(descr) * "_var")
-		# 			ys = [v[1] for v in d[:,feat_symb]]
-		# 			sp = sortperm(ys, rev = true)
-		# 			println(sp)
-		# 			plot(collect(1:n_attrs), ys[sp]; size = (1080, 1080), title = string(feat_symb), xticks = (1:n_attrs,sp))
-		# 		end
-
-		# 		# p = plot(
-		# 		# 	[
-		# 		# 		begin
-		# 		# 			ys = [v[1] for v in d[:,feat_symb]]
-		# 		# 			sp = sortperm(ys, rev=true)
-		# 		# 			println(sp)
-		# 		# 			plot(collect(1:n_attrs), ys[sp]; size = (1080, 1080), title = string(feat_symb), xticks = sp)
-		# 		# 		end for feat_symb in [
-		# 		# 			:mean_m_var,
-		# 		# 			:min_m_var,
-		# 		# 			:max_m_var,
-		# 		# 		]
-		# 		# 	]...;
-		# 		# 	layout = (3, 1),
-		# 		# 	xticks = (ys = [v[1] for v in d[:,:mean_m_var]]; sp = sortperm(ys, rev=true)),
-		# 		# )
-
-		# 		display(p)
-		# 		readline()
-		# 	end
-
-		# 	# for (i_op, op_descr) in enumerate(eachcol(description[:,2:end]))
-		# 	# 	# (i_op, op_descr) = collect(enumerate(eachcol(description[:,2:end])))[1]
-
-		# 	# 	stackedhists = []
-		# 	# 	op = attr_descr_cols[i_op]
-		# 	# 	for (i_attr, matrix) in enumerate(op_descr)
-		# 	# 		# (i_attr, matrix) = collect(enumerate(op_descr))[1]
-		# 	# 		# matrix = op_descr[1]
-		# 	# 		# println(i_op, op_descr)
-		# 	# 		println(size(matrix))
-		# 	# 		gr()
-		# 	# 		for w in 1:t
-		# 	# 			# w = (1:t)[1]
-		# 	# 			kwargs = begin
-		# 	# 				if w == 1
-		# 	# 					(title = "Histograms",)
-		# 	# 				elseif w == t
-		# 	# 					(xlabel = "Response",)
-		# 	# 				else
-		# 	# 					(;)
-		# 	# 				end
-		# 	# 			end
-		# 	# 			# push!(stackedhists, histogram(matrix[:,w], bins=20, legend=false, ylabel="$(op), $(w)/$(t)", xticks=nothing, kwargs...))
-		# 	# 			push!(stackedhists, histogram(matrix[:,w], bins=20, legend=false, ylabel="$(w), $(i_attr)", xticks=nothing))
-		# 	# 		end
-		# 	# 		# h = histogram([matrix[:,w] for w in 1:t]; bins=20, legend=false, ylabel="$(op), $(t) chunks, $(i_attr) attribute", xticks=nothing, title = "Histograms", xlabel = "Response")
-		# 	# 		# readline()
-		# 	# 		# println(stackedhists |> typeof)
-		# 	# 		# break
-		# 	# 		# println(names(col))
-		# 	# 		# println(matrix)
-		# 	# 		# println(matrix |> typeof)
-		# 	# 	end
-		# 	# 	plot(stackedhists..., layout=(n_attrs,t), size = (1000,500), margin=1mm, title = "$(op)")
-		# 	# end
-		# 	# readline()
-		# end
 
 	end
 
@@ -1095,8 +773,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 						Tuple(class_counts), class_grouped_idxs, test_idxs
 					end
 
-					println(class_counts)
-					println(class_grouped_idxs)
+					# println(class_counts)
+					# println(class_grouped_idxs)
 
 					perm = balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = floor(Int, minimum(class_counts)*traintest_threshold), also_return_discarted = false)
 					

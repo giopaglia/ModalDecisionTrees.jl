@@ -522,7 +522,7 @@ function SiemensJuneDataset_not_stratified(from, to)
 	ClassificationDataset22RunnerDataset(ds)
 end
 
-function SiemensDataset_regression(datadirname; binning::Binning = nothing, sortby_datasource = false, use_catch22 = false, kwargs...)
+function SiemensDataset_regression(datadirname; binning::Binning = nothing, sortby_datasource = false, use_catch22 = false, select_attributes = nothing, kwargs...)
 	if !sortby_datasource
 		(X, Y)                    = trip_no_trip(data_dir * datadirname; mode = :regression, sortby_datasource = sortby_datasource, kwargs...);
 	else
@@ -547,9 +547,55 @@ function SiemensDataset_regression(datadirname; binning::Binning = nothing, sort
 	# 	...transform(ds_train, fid, [paa for _ in 1:length(catch22)], [(;n_chunks=n_chunks, f=catch22[fn]) for fn in getnames(catch22)])
 	# end
 
-	if !sortby_datasource
-		(X, Y)
-	else
-		(X, Y), datasource_counts
+	n_attrs = size(X)[end-1]
+
+	attribute_names = begin
+		if datadirname == "Siemens-Data-Measures"
+			[
+				"Ambient_air_humidity",
+				"Compr_IGV_position",
+				"Gas_fuel_valve_position",
+				"Ambient_air_temperature",
+				"Compressor_outlet_temperature",
+				"Exhaust_temperature_1",
+				"Exhaust_temperature_2",
+				"Exhaust_temperature_3",
+				"Exhaust_temperature_4",
+				"Exhaust_temperature_5",
+				"Exhaust_temperature_6",
+				"Exhaust_temperature_7",
+				"Exhaust_temperature_8",
+				"Exhaust_temperature_9",
+				"Exhaust_temperature_10",
+				"Exhaust_temperature_11",
+				"Exhaust_temperature_12",
+				"Exhaust_temperature_13",
+				"Exhaust_temperature_14",
+				"Exhaust_temperature_15",
+				"Exhaust_temperature_16",
+				"Compressor_outlet_pressure",
+				"Gas_fuel_mass_flow_rate",
+				"Compressor_inlet_air_mass_flow_rate",
+				"Rotational_speed",
+				"Power_output",
+			]
+		else
+			string.(1:n_attrs)
+		end
 	end
+
+	if !isnothing(select_attributes)
+		X = X[:,select_attributes,:]
+		attribute_names = attribute_names[select_attributes]
+	end
+
+	ret = begin
+		if !sortby_datasource
+			(X, Y)
+		else
+			(X, Y), datasource_counts
+		end
+	end
+
+	ret, attribute_names
 end
