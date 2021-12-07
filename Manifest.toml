@@ -49,6 +49,11 @@ git-tree-sha1 = "951c3fc1ff93497c88fb1dfa893f4de55d0b38e3"
 uuid = "4c555306-a7a7-4459-81d9-ec55ddd5c99a"
 version = "0.3.8"
 
+[[ArrayTools]]
+git-tree-sha1 = "ac94caaccbabd2688e2d1b28ce5d12248e305818"
+uuid = "1dc0ca97-c5ce-4e77-ac6d-c576ac9d7f27"
+version = "0.2.3"
+
 [[Artifacts]]
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 
@@ -97,9 +102,9 @@ version = "0.1.1"
 
 [[BenchmarkTools]]
 deps = ["JSON", "Logging", "Printf", "Profile", "Statistics", "UUIDs"]
-git-tree-sha1 = "61adeb0823084487000600ef8b1c00cc2474cd47"
+git-tree-sha1 = "365c0ea9a8d256686e97736d6b7fb0c880261a7a"
 uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
-version = "1.2.0"
+version = "1.2.1"
 
 [[BinDeps]]
 deps = ["Libdl", "Pkg", "SHA", "URIParser", "Unicode"]
@@ -186,7 +191,7 @@ version = "0.2.2"
 
 [[Catch22]]
 deps = ["Colors", "DelimitedFiles", "DimensionalData", "Libdl", "LinearAlgebra", "ProgressLogging", "Requires", "Statistics", "StatsBase", "catch22_jll"]
-git-tree-sha1 = "6b0aa3eee35286098c174269db5ab44f9f0eaee0"
+git-tree-sha1 = "d98bf1d911c069bb7a8d190f36a388de371372a6"
 repo-rev = "main"
 repo-url = "https://github.com/brendanjohnharris/Catch22.jl.git"
 uuid = "acdeb78f-3d39-4310-8fdf-6d75c17c6d5a"
@@ -212,15 +217,15 @@ version = "0.8.1"
 
 [[Clp]]
 deps = ["BinaryProvider", "CEnum", "Clp_jll", "Libdl", "MathOptInterface", "SparseArrays"]
-git-tree-sha1 = "4ef4031fda1e0df933983b23b81b83a3dd1963f3"
+git-tree-sha1 = "e6308672d1190972c6951d8154a48d41b0ea553c"
 uuid = "e2554f3b-3117-50c0-817c-e040a3ddf72d"
-version = "0.9.0"
+version = "0.9.1"
 
 [[Clp_jll]]
 deps = ["Artifacts", "CoinUtils_jll", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "METIS_jll", "MUMPS_seq_jll", "OpenBLAS32_jll", "Osi_jll", "Pkg"]
-git-tree-sha1 = "5e4f9a825408dc6356e6bf1015e75d2b16250ec8"
+git-tree-sha1 = "b1031dcfbb44553194c9e650feb5ab65e372504f"
 uuid = "06985876-5285-5a41-9fcb-8948a742cc53"
-version = "100.1700.600+0"
+version = "100.1700.601+0"
 
 [[Clustering]]
 deps = ["Distances", "LinearAlgebra", "NearestNeighbors", "Printf", "SparseArrays", "Statistics", "StatsBase"]
@@ -360,9 +365,9 @@ version = "0.5.0"
 
 [[DataFrames]]
 deps = ["Compat", "DataAPI", "Future", "InvertedIndices", "IteratorInterfaceExtensions", "LinearAlgebra", "Markdown", "Missings", "PooledArrays", "PrettyTables", "Printf", "REPL", "Reexport", "SortingAlgorithms", "Statistics", "TableTraits", "Tables", "Unicode"]
-git-tree-sha1 = "d785f42445b63fc86caa08bb9a9351008be9b765"
+git-tree-sha1 = "2e993336a3f68216be91eb8ee4625ebbaba19147"
 uuid = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
-version = "1.2.2"
+version = "1.3.0"
 
 [[DataStructures]]
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
@@ -413,10 +418,10 @@ uuid = "0703355e-b756-11e9-17c0-8b28908087d0"
 version = "0.17.14"
 
 [[Distances]]
-deps = ["LinearAlgebra", "Statistics", "StatsAPI"]
-git-tree-sha1 = "837c83e5574582e07662bbbba733964ff7c26b9d"
+deps = ["LinearAlgebra", "SparseArrays", "Statistics", "StatsAPI"]
+git-tree-sha1 = "3258d0659f812acde79e8a74b11f17ac06d0ca04"
 uuid = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
-version = "0.10.6"
+version = "0.10.7"
 
 [[Distributed]]
 deps = ["Random", "Serialization", "Sockets"]
@@ -440,9 +445,9 @@ uuid = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 
 [[DualNumbers]]
 deps = ["Calculus", "NaNMath", "SpecialFunctions"]
-git-tree-sha1 = "fe385ec95ac5533650fb9b1ba7869e9bc28cdd0a"
+git-tree-sha1 = "84f04fe68a3176a583b864e492578b9466d87f1e"
 uuid = "fa6b7ba4-c1ee-5f82-b5fc-ecf0adba8f74"
-version = "0.6.5"
+version = "0.6.6"
 
 [[EarCut_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -526,9 +531,9 @@ version = "0.8.4"
 
 [[FlameGraphs]]
 deps = ["AbstractTrees", "Colors", "FileIO", "FixedPointNumbers", "IndirectArrays", "LeftChildRightSiblingTrees", "Profile"]
-git-tree-sha1 = "1d70df6fb4969bc8e2ab04988c950f8b5b87a37e"
+git-tree-sha1 = "2afa80eb45b28221fcd3e1ddb38882e46062cd48"
 uuid = "08572546-2f56-4bcf-ba4e-bab62c3a3f89"
-version = "0.2.6"
+version = "0.2.7"
 
 [[Flux]]
 deps = ["AbstractTrees", "Adapt", "CUDA", "CodecZlib", "Colors", "DelimitedFiles", "Functors", "Juno", "LinearAlgebra", "MacroTools", "NNlib", "Pkg", "Printf", "Random", "Reexport", "SHA", "Statistics", "StatsBase", "Test", "ZipFile", "Zygote"]
@@ -587,22 +592,6 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Libglvnd_jll", "Pkg", "Xorg_libXcu
 git-tree-sha1 = "0c603255764a1fa0b61752d2bec14cfbd18f7fe8"
 uuid = "0656b61e-2033-5cc2-a64a-77c0f6c09b89"
 version = "3.3.5+1"
-
-[[GLPK]]
-deps = ["BinaryProvider", "CEnum", "GLPK_jll", "Libdl", "MathOptInterface"]
-git-tree-sha1 = "2bd86c95ad13ebe1f6811c52eb7273bd4310e99f"
-uuid = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
-version = "0.15.0"
-
-[[GLPK_jll]]
-deps = ["Artifacts", "GMP_jll", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "01de09b070d4b8e3e1250c6542e16ed5cad45321"
-uuid = "e8aa6df9-e6ca-548a-97ff-1f85fc5b8b98"
-version = "5.0.0+0"
-
-[[GMP_jll]]
-deps = ["Artifacts", "Libdl"]
-uuid = "781609d7-10c4-51f6-84f2-b8444358ff6d"
 
 [[GPUArrays]]
 deps = ["AbstractFFTs", "Adapt", "LinearAlgebra", "Printf", "Random", "Serialization", "Statistics"]
@@ -828,9 +817,9 @@ version = "0.2.11"
 
 [[InlineStrings]]
 deps = ["Parsers"]
-git-tree-sha1 = "19cb49649f8c41de7fea32d089d37de917b553da"
+git-tree-sha1 = "ca99cac337f8e0561c6a6edeeae5bf6966a78d21"
 uuid = "842dd82b-1e85-43dc-bf29-5d0ee9dffc48"
-version = "1.0.1"
+version = "1.1.0"
 
 [[IntelOpenMP_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -871,9 +860,9 @@ uuid = "92d709cd-6900-40b7-9082-c6be49f344b6"
 version = "0.1.1"
 
 [[IterTools]]
-git-tree-sha1 = "05110a2ab1fc5f932622ffea2a003221f4782c18"
+git-tree-sha1 = "fa6287a4469f5e048d763df38279ee729fbd44e5"
 uuid = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
-version = "1.3.0"
+version = "1.4.0"
 
 [[IteratorInterfaceExtensions]]
 git-tree-sha1 = "a3f24677c21f5bbe9d2a714f95dcd58337fb2856"
@@ -923,12 +912,12 @@ uuid = "aacddb02-875f-59d6-b918-886e6ef4fbf8"
 version = "2.1.0+0"
 
 [[JuMP]]
-deps = ["Calculus", "DataStructures", "ForwardDiff", "JSON", "LinearAlgebra", "MathOptInterface", "MutableArithmetics", "NaNMath", "Printf", "Random", "SparseArrays", "SpecialFunctions", "Statistics"]
-git-tree-sha1 = "4f8a5b1cad227bafa3a3303d63a1720dd299dae2"
+deps = ["Calculus", "DataStructures", "ForwardDiff", "JSON", "LinearAlgebra", "MathOptInterface", "MutableArithmetics", "NaNMath", "OrderedCollections", "Printf", "Random", "SparseArrays", "SpecialFunctions", "Statistics"]
+git-tree-sha1 = "fa75caad600b35504ba791797e4a112d300bfaa9"
 repo-rev = "master"
 repo-url = "https://github.com/jump-dev/JuMP.jl.git"
 uuid = "4076af6c-e467-56ae-b986-b466b2749572"
-version = "0.22.0"
+version = "0.22.1"
 
 [[JuliaInterpreter]]
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
@@ -1111,9 +1100,9 @@ version = "0.8.1"
 
 [[METIS_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "2dc1a9fc87e57e32b1fc186db78811157b30c118"
+git-tree-sha1 = "1d31872bb9c5e7ec1f618e8c4a56c8b0d9bddc7e"
 uuid = "d00139f3-1899-568f-a2f0-47f597d42d70"
-version = "5.1.0+5"
+version = "5.1.1+0"
 
 [[MFCC]]
 deps = ["DSP", "Distributed", "FileIO", "HDF5", "SpecialFunctions", "Statistics", "WAV"]
@@ -1129,9 +1118,9 @@ version = "2020.2.254+0"
 
 [[MUMPS_seq_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "METIS_jll", "OpenBLAS32_jll", "Pkg"]
-git-tree-sha1 = "a1d469a2a0acbfe219ef9bdfedae97daacac5a0e"
+git-tree-sha1 = "29de2841fa5aefe615dea179fcde48bb87b58f57"
 uuid = "d7ed1dd3-d0ae-5e8e-bfb4-87a502085b8d"
-version = "5.4.0+0"
+version = "5.4.1+0"
 
 [[MacroTools]]
 deps = ["Markdown", "Random"]
@@ -1150,9 +1139,9 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
 [[MathOptInterface]]
 deps = ["BenchmarkTools", "CodecBzip2", "CodecZlib", "JSON", "LinearAlgebra", "MutableArithmetics", "OrderedCollections", "Printf", "SparseArrays", "Test", "Unicode"]
-git-tree-sha1 = "4819019da9f42746851ddc39d90222d1dbe953b7"
+git-tree-sha1 = "92b7de61ecb616562fd2501334f729cc9db2a9a6"
 uuid = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
-version = "0.10.3"
+version = "0.10.6"
 
 [[MbedTLS]]
 deps = ["Dates", "MbedTLS_jll", "Random", "Sockets"]
@@ -1230,9 +1219,9 @@ version = "1.0.12"
 
 [[MutableArithmetics]]
 deps = ["LinearAlgebra", "SparseArrays", "Test"]
-git-tree-sha1 = "8d9496b2339095901106961f44718920732616bb"
+git-tree-sha1 = "7bb6853d9afec54019c1397c6eb610b9b9a19525"
 uuid = "d8a4904e-b15c-11e9-3269-09a3773c0cb0"
-version = "0.2.22"
+version = "0.3.1"
 
 [[Mux]]
 deps = ["AssetRegistry", "Base64", "HTTP", "Hiccup", "Pkg", "Sockets", "WebSockets"]
@@ -1442,9 +1431,9 @@ version = "0.18.8"
 
 [[Plots]]
 deps = ["Base64", "Contour", "Dates", "Downloads", "FFMPEG", "FixedPointNumbers", "GR", "GeometryBasics", "JSON", "Latexify", "LinearAlgebra", "Measures", "NaNMath", "PlotThemes", "PlotUtils", "Printf", "REPL", "Random", "RecipesBase", "RecipesPipeline", "Reexport", "Requires", "Scratch", "Showoff", "SparseArrays", "Statistics", "StatsBase", "UUIDs", "UnicodeFun"]
-git-tree-sha1 = "d73736030a094e8d24fdf3629ae980217bf1d59d"
+git-tree-sha1 = "3e7e9415f917db410dcc0a6b2b55711df434522c"
 uuid = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
-version = "1.24.3"
+version = "1.25.1"
 
 [[Polynomials]]
 deps = ["Intervals", "LinearAlgebra", "OffsetArrays", "RecipesBase"]
@@ -1633,9 +1622,9 @@ uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 
 [[Setfield]]
 deps = ["ConstructionBase", "Future", "MacroTools", "Requires"]
-git-tree-sha1 = "def0718ddbabeb5476e51e5a43609bee889f285d"
+git-tree-sha1 = "0afd9e6c623e379f593da01f20590bacc26d1d14"
 uuid = "efcf1570-3423-57d1-acb7-fd33fddbac46"
-version = "0.8.0"
+version = "0.8.1"
 
 [[SharedArrays]]
 deps = ["Distributed", "Mmap", "Random", "Serialization"]
@@ -1670,13 +1659,13 @@ uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 
 [[SoleBase]]
 deps = ["CSV", "Catch22", "DataFrames", "Reexport", "ScientificTypes", "Statistics"]
-path = "/home/giopaglia/.julia/dev/SoleBase"
+path = "/home/gio/.julia/dev/SoleBase"
 uuid = "142d03a6-36c4-4bac-9273-c7ed2abbbb4d"
 version = "0.1.0"
 
 [[SoleViz]]
 deps = ["Plots", "Reexport", "SoleBase", "Statistics"]
-path = "/home/giopaglia/.julia/dev/SoleViz"
+path = "/home/gio/.julia/dev/SoleViz"
 uuid = "fc840457-d78a-47de-ac4f-ba01d7af495c"
 version = "0.1.0"
 
@@ -1766,9 +1755,10 @@ uuid = "856f2bd8-1eba-4b0a-8007-ebc267875bd4"
 version = "1.8.1"
 
 [[StructuredArrays]]
-git-tree-sha1 = "0cc8436a17791431675eb229b5b16175b001055b"
+deps = ["ArrayTools"]
+git-tree-sha1 = "003ec02cfda48e9adaebc6be6724de1e7f09fa6b"
 uuid = "2e8cd123-6858-488d-b42d-068777248635"
-version = "0.2.2"
+version = "0.2.3"
 
 [[SuiteSparse]]
 deps = ["Libdl", "LinearAlgebra", "Serialization", "SparseArrays"]
@@ -1835,10 +1825,10 @@ uuid = "06e1c1a7-607b-532d-9fad-de7d9aa2abac"
 version = "0.3.1"
 
 [[TimeZones]]
-deps = ["Dates", "Downloads", "InlineStrings", "LazyArtifacts", "Mocking", "Pkg", "Printf", "RecipesBase", "Serialization", "Unicode"]
-git-tree-sha1 = "8de32288505b7db196f36d27d7236464ef50dba1"
+deps = ["Dates", "Downloads", "InlineStrings", "LazyArtifacts", "Mocking", "Printf", "RecipesBase", "Serialization", "Unicode"]
+git-tree-sha1 = "ce5aab0b0146b81efefae52f13002e19c2af57ac"
 uuid = "f269a46b-ccf7-5d73-abea-4c690281aa53"
-version = "1.6.2"
+version = "1.7.0"
 
 [[TimerOutputs]]
 deps = ["ExprTools", "Printf"]
