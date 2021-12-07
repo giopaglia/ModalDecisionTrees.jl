@@ -59,7 +59,7 @@ function compute_mfd(X)
 	mfd = MultiFrameDataset([1:ncol(df)], df)
 end
 
-function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},AbstractVector}, attribute_names::AbstractVector, grouped_descriptors, run_file_prefix, n_desired_attributes, n_desired_features; savefigs = false) where {T}
+function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},AbstractVector}, attribute_names::AbstractVector, grouped_descriptors, run_file_prefix, n_desired_attributes, n_desired_features; savefigs = false, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr) where {T}
 
 	@assert length(attribute_names) == size(X)[end-1] "$(length(attribute_names)) != $(size(X)[end-1])"
 
@@ -312,9 +312,9 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 end
 
 # descriptors = best_descriptors
-# single_frame_target_aware_analysis((X, Y), attribute_names, descriptors, run_file_prefix; savefigs = false)
+# single_frame_target_aware_analysis((X, Y), attribute_names, descriptors, run_file_prefix; savefigs = false, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr)
 
-function single_frame_target_aware_analysis((X, Y)::Tuple{AbstractArray{T,3},AbstractVector{<:String}}, attribute_names::AbstractVector, descriptors, run_file_prefix; savefigs = savefigs) where {T}
+function single_frame_target_aware_analysis((X, Y)::Tuple{AbstractArray{T,3},AbstractVector{<:String}}, attribute_names::AbstractVector, descriptors, run_file_prefix; savefigs = false, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr) where {T}
 	
 	@assert length(attribute_names) == size(X)[end-1] "$(length(attribute_names)) != $(size(X)[end-1])"
 
