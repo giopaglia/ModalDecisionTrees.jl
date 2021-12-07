@@ -274,7 +274,7 @@ module treeclassifier
 						#################################
 						best_consistency = begin
 							if isa(_perform_consistency_check,Val{true})
-								consistency_sat_check
+								consistency_sat_check[:]
 							else
 								nr
 							end
@@ -354,7 +354,7 @@ module treeclassifier
 				errStr *= "Relation $(node.relation), feature $(node.feature) and test_operator $(node.test_operator).\n"
 				errStr *= "Possible causes:\n"
 				errStr *= "- feature returning NaNs\n"
-				errStr *= "- erroroneous enumAccReprAggr for relation $(node.relation), aggregator $(ModalLogic.existential_aggregator(node.test_operator)) and feature $(node.feature)\n"
+				errStr *= "- erroneous enumAccReprAggr for relation $(node.relation), aggregator $(ModalLogic.existential_aggregator(node.test_operator)) and feature $(node.feature)\n"
 				errStr *= "\n"
 				errStr *= "Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(node.i_frame) with decision: $(decision_str), purity $(best_purity)\n"
 				errStr *= "$(length(indX[region])) Instances: $(indX[region])\n"
