@@ -28,7 +28,7 @@ skip_training = false
 # save_datasets = true
 save_datasets = false
 
-perform_consistency_check = true #  = false
+perform_consistency_check = false # true #  = false
 
 iteration_blacklist = []
 

@@ -60,11 +60,16 @@ function compute_mfd(X)
 	mfd = MultiFrameDataset([1:ncol(df)], df)
 end
 
-function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},AbstractVector}, attribute_names::AbstractVector, grouped_descriptors, run_file_prefix, n_desired_attributes, n_desired_features; savefigs = false, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr) where {T}
+function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},AbstractVector}, attribute_names::AbstractVector, grouped_descriptors, run_file_prefix, n_desired_attributes, n_desired_features; savefigs = false, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr, export_dat = false) where {T}
 
 	@assert length(attribute_names) == size(X)[end-1] "$(length(attribute_names)) != $(size(X)[end-1])"
 
-	_savefig = savefigs ? savefig : (x...)->(;)
+	_savefig = savefigs ? (plot, plot_name)->begin
+		if export_dat
+			plot_name
+		end
+		savefig(plot, "$(run_file_prefix)" * (plot_name == "" ? "" : "-$(plot_name)"))
+		end : (x...)->(;)
 	
 	mfd = compute_mfd(X);
 	# ClassificationMultiFrameDataset(Y, mfd)
@@ -92,10 +97,10 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 		############################################################################
 		@assert length(descriptors) == 25 "TODO change layout"
 		
-		_savefig(plot(p...; layout = (5,5), size = (1920, 1080), margin = 5mm), "$(run_file_prefix).png");
+		_savefig(plot(p...; layout = (5,5), size = (1920, 1080), margin = 5mm), "main");
 
 		p_avg = average_plot(p);
-		_savefig(plot(p_avg; size = (1920, 1080), margin = 5mm), "$(run_file_prefix)-avg.png");
+		_savefig(plot(p_avg; size = (1920, 1080), margin = 5mm), "avg");
 		############################################################################
 		############################################################################
 		############################################################################
@@ -117,21 +122,21 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 				plot!(p_i, xticks = false)
 			end
 		end
-		_savefig(plot(p_sorted...; layout = (5,5), size = (1920, 1080), margin = 5mm), "$(run_file_prefix)-sorted.png");
+		_savefig(plot(p_sorted...; layout = (5,5), size = (1920, 1080), margin = 5mm), "sorted");
 
 		p_sorted_avg = Base.deepcopy(p_avg);
 		p_sorted_avg[1][1][:y] = p_sorted_avg[1][1][:y][perm]
 		plot!(p_sorted_avg, xticks = (1:length(perm), [isnothing(attributes_abbr) ? attribute_names[t] : attributes_abbr[t] for t in perm]));
 		# plot!(p_sorted_avg, xticks = (1:length(perm), [isnothing(attributes_abbr) ? attribute_names[t] : attributes_abbr[t] for t in perm]));
-		_savefig(plot(p_sorted_avg; size = (1920, 1080), margin = 5mm), "$(run_file_prefix)-sorted-avg.png");
+		_savefig(plot(p_sorted_avg; size = (1920, 1080), margin = 5mm), "sorted-avg");
 		############################################################################
 		############################################################################
 		############################################################################
 		p_norm = normalize_plot.(p);
-		_savefig(plot(p_norm...; layout = (5,5), size = (1920, 1080), margin = 5mm), "$(run_file_prefix)-norm.png");
+		_savefig(plot(p_norm...; layout = (5,5), size = (1920, 1080), margin = 5mm), "norm");
 
 		p_norm_avg = average_plot(p_norm);
-		_savefig(plot(p_norm_avg; size = (1920, 1080), margin = 5mm), "$(run_file_prefix)-norm-avg.png");
+		_savefig(plot(p_norm_avg; size = (1920, 1080), margin = 5mm), "norm-avg");
 		############################################################################
 		############################################################################
 		############################################################################
@@ -153,7 +158,7 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 				plot!(p_i, xticks = false)
 			end
 		end
-		_savefig(plot(p_sorted...; layout = (5,5), size = (1920, 1080), margin = 5mm), "$(run_file_prefix)-norm-sorted.png");
+		_savefig(plot(p_sorted...; layout = (5,5), size = (1920, 1080), margin = 5mm), "norm-sorted");
 
 		p_sorted_avg = Base.deepcopy(p_norm_avg);
 		for i in 1:length(p_sorted_avg[1])
@@ -161,7 +166,7 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 		end
 		plot!(p_sorted_avg, xticks = (1:length(perm), [isnothing(attributes_abbr) ? attribute_names[t] : attributes_abbr[t] for t in perm]));
 		# plot!(p_sorted_avg, xticks = (1:length(perm), [isnothing(attributes_abbr) ? attribute_names[t] : attributes_abbr[t] for t in perm]));
-		_savefig(plot(p_sorted_avg; size = (1920, 1080), margin = 5mm), "$(run_file_prefix)-norm-sorted-avg.png");
+		_savefig(plot(p_sorted_avg; size = (1920, 1080), margin = 5mm), "norm-sorted-avg");
 		############################################################################
 		############################################################################
 		############################################################################
@@ -182,7 +187,7 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 			plot!(p_i, xticks = false)
 		end
 
-		_savefig(plot(p...; layout = (4,2), size = (1920, 1080), margin = 5mm), "$(run_file_prefix)-grouped.png");
+		_savefig(plot(p...; layout = (4,2), size = (1920, 1080), margin = 5mm), "grouped");
 
 		############################################################################
 		############################################################################
@@ -204,13 +209,13 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 				plot!(p_i, xticks = false)
 			end
 		end
-		_savefig(plot(p_sorted...; layout = (4,2), size = (1920, 1080), margin = 5mm), "$(run_file_prefix)-grouped-sorted.png");
+		_savefig(plot(p_sorted...; layout = (4,2), size = (1920, 1080), margin = 5mm), "grouped-sorted");
 
 		############################################################################
 		############################################################################
 		############################################################################
 		p_norm = normalize_plot.(p);
-		_savefig(plot(p_norm...; layout = (4,2), size = (1920, 1080), margin = 5mm), "$(run_file_prefix)-grouped-norm.png");
+		_savefig(plot(p_norm...; layout = (4,2), size = (1920, 1080), margin = 5mm), "grouped-norm");
 
 		############################################################################
 		############################################################################
@@ -233,7 +238,7 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 				plot!(p_i, xticks = false)
 			end
 		end
-		_savefig(plot(p_sorted...; layout = (4,2), size = (1920, 1080), margin = 5mm), "$(run_file_prefix)-grouped-norm-sorted.png");
+		_savefig(plot(p_sorted...; layout = (4,2), size = (1920, 1080), margin = 5mm), "grouped-norm-sorted");
 
 		############################################################################
 		############################################################################
@@ -263,10 +268,10 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 			plot!(p[i]; xticks = false)
 		end
 
-		_savefig(plot(p...; layout = (5,1), size = (1920, 1080), margin = 5mm), "$(run_file_prefix)-transposed.png");
+		_savefig(plot(p...; layout = (5,1), size = (1920, 1080), margin = 5mm), "transposed");
 
 		p_avg = average_plot(p);
-		_savefig(plot(p_avg; size = (1920, 1080), margin = 5mm), "$(run_file_prefix)-transposed-avg.png");
+		_savefig(plot(p_avg; size = (1920, 1080), margin = 5mm), "transposed-avg");
 		############################################################################
 		############################################################################
 		############################################################################
@@ -288,16 +293,16 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 				plot!(p_i, xticks = false)
 			end
 		end
-		_savefig(plot(p_sorted...; layout = (5,1), size = (1920, 1080), margin = 5mm), "$(run_file_prefix)-transposed-sorted.png");
+		_savefig(plot(p_sorted...; layout = (5,1), size = (1920, 1080), margin = 5mm), "transposed-sorted");
 
 		############################################################################
 		############################################################################
 		############################################################################
 		p_norm = normalize_plot.(p);
-		_savefig(plot(p_norm...; layout = (5,1), size = (1920, 1080), margin = 5mm), "$(run_file_prefix)-transposed-norm.png");
+		_savefig(plot(p_norm...; layout = (5,1), size = (1920, 1080), margin = 5mm), "transposed-norm");
 
 		p_norm_avg = average_plot(p_norm);
-		_savefig(plot(p_norm_avg; size = (1920, 1080), margin = 5mm), "$(run_file_prefix)-transposed-norm-avg.png");
+		_savefig(plot(p_norm_avg; size = (1920, 1080), margin = 5mm), "transposed-norm-avg");
 		############################################################################
 		############################################################################
 		############################################################################
@@ -319,7 +324,7 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 				plot!(p_i, xticks = false)
 			end
 		end
-		_savefig(plot(p_sorted...; layout = (5,1), size = (1920, 1080), margin = 5mm), "$(run_file_prefix)-transposed-norm-sorted.png");
+		_savefig(plot(p_sorted...; layout = (5,1), size = (1920, 1080), margin = 5mm), "transposed-norm-sorted");
 
 		p_sorted_avg = Base.deepcopy(p_norm_avg);
 		for i in 1:length(p_sorted_avg[1])
@@ -327,7 +332,7 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 		end
 		plot!(p_sorted_avg, xticks = (1:length(perm), [isnothing(descriptors_abbr) ? string(descriptors[t]) : descriptors_abbr[descriptors[t]] for t in perm]));
 		# plot!(p_sorted_avg, xticks = (1:length(perm), [isnothing(descriptors_abbr) ? string(descriptors[t]) : descriptors_abbr[descriptors[t]] for t in perm]));
-		_savefig(plot(p_sorted_avg; size = (1920, 1080), margin = 5mm), "$(run_file_prefix)-transposed-norm-sorted-avg.png");
+		_savefig(plot(p_sorted_avg; size = (1920, 1080), margin = 5mm), "transposed-norm-sorted-avg");
 		############################################################################
 		############################################################################
 		############################################################################
@@ -344,7 +349,7 @@ end
 # descriptors = best_descriptors
 # single_frame_target_aware_analysis((X, Y), attribute_names, descriptors, run_file_prefix; savefigs = false, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr)
 
-function single_frame_target_aware_analysis((X, Y)::Tuple{AbstractArray{T,3},AbstractVector{<:String}}, attribute_names::AbstractVector, descriptors, run_file_prefix; savefigs = false, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr, plot_normals = false) where {T}
+function single_frame_target_aware_analysis((X, Y)::Tuple{AbstractArray{T,3},AbstractVector{<:String}}, attribute_names::AbstractVector, descriptors, run_file_prefix; savefigs = false, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr, export_dat = false, plot_normals = false) where {T}
 	
 	@assert length(attribute_names) == size(X)[end-1] "$(length(attribute_names)) != $(size(X)[end-1])"
 
@@ -370,7 +375,7 @@ function single_frame_target_aware_analysis((X, Y)::Tuple{AbstractArray{T,3},Abs
 		end
 	end
 
-	plots = []
+	plots = Array(undef, length(descriptors), length(attribute_names))
 	for (i_attribute,attribute_name) in enumerate(attribute_names)
 		for (i_descriptor,descriptor) in enumerate(descriptors)
 			subp = plot() # title = string(descriptor))
@@ -398,8 +403,8 @@ function single_frame_target_aware_analysis((X, Y)::Tuple{AbstractArray{T,3},Abs
 	
 	# p = plot!(p..., title = "$(attribute_name)", size = (1920, 1080), margin = 5mm)
 	# display(p)
-	# _savefig(plot!(p..., size = (1920, 1080), margin = 5mm), "$(run_file_prefix)-$(attribute_name).png");
+	# _savefig(plot!(p..., size = (1920, 1080), margin = 5mm), "$(attribute_name)");
 	# readline()
 
-	_savefig(p, "$(run_file_prefix)-all.png");
+	_savefig(p, "all");
 end
