@@ -1,3 +1,8 @@
+☐	Perhaps writing_lock not needed? Afterall, an instance is only managed by a single node/thread at a time
+☐	Define relations as constants like E̅
+☐	enumAccessibles(set) is not needed?!
+☐	what to do with nans? Perhaps a NaN means that a world must be ignored??? In that case, one could easily design features that ignore small worlds!
+
 ################################################################################
 ☐	Sort out TODOs into a thesis?
 ################################################################################
@@ -106,7 +111,7 @@
 ☐	Add point-based ontology, and test point-based + rectangle algebra?
 ☐	Try different optimization method: SAM https://arxiv.org/abs/2010.01412
 
-☐	Future: ROC and pr curve, if the result is a numerical confidence: i) in Random Forest, one could aggregate tree answers in a continuous manner, and output confidence values, in this context, roc and pr curve can be computed; ii) in Decision Tree there are other approaches. Also compute ROC-AUC
+☐	Future: ROC and pr curve, if the result is a numerical confidence: i) in Random Forest, one could aggregate tree answers in a continuous manner, and output confidence values, in this context, roc and pr curve can be computed; ii) in Decision Tree there are other approaches. Also compute ROC-AUC, and PR curve ( The Precision-Recall Plot Is More Informative than the ROC Plot When Evaluating Binary Classifiers on Imbalanced Datasets: https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0118432 )
 
 ☐	Future: Feature importance with mean decreased impurity https://medium.com/the-artificial-impostor/feature-importance-measures-for-tree-models-part-i-47f187c1a2c3
 ☐	Future: Feature importance with one could first consider the propositional problem, the associated attributes (avg A1, max A1, min A1, std A1, avg A2, etc...), and select features using the Mutual Information Score! [https://www.kaggle.com/ryanholbrook/mutual-information]
