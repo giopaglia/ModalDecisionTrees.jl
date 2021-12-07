@@ -171,7 +171,7 @@ include("datasets.jl")
 					println("train slice: $(dataset_slice[1])")
 					println("test  slice: $(dataset_slice[2])")
 
-					@assert length(intersect(Set(dataset_slice[1]), Set(dataset_slice[2]))) == 0 "Non-empty intersection between train and test slice: $(intersect(Set(dataset_slice[1]), Set(dataset_slice[2])))"
+					@assert slice_id == 0 || length(intersect(Set(dataset_slice[1]), Set(dataset_slice[2]))) == 0 "Non-empty intersection between train and test slice: $(intersect(Set(dataset_slice[1]), Set(dataset_slice[2])))"
 
 					@assert isone(split_threshold) || iszero(split_threshold) "Can't set a split_threshold (value: $(split_threshold)) when specifying a split dataset_slice (type: $(typeof(dataset_slice)))"
 					(

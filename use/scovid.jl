@@ -272,10 +272,11 @@ exec_wintime_steptime_dataset_kwargs =   [(
 		ma_size = 45,
 		ma_step = 30,
 	)
-	# ),(
-	# combine_moving_averages((0.025,0.010),(45,30)),(
-	# 	max_points = 50,
-	# ),(
+	),(
+	combine_moving_averages((0.025,0.010),(45,30)),(
+		max_points = 50,
+	)
+        # ),(
 	# max_points = 30,
 	# 	ma_size = 120,
 	# 	ma_step = 100,
