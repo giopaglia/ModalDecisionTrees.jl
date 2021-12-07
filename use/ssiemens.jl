@@ -55,7 +55,7 @@ tree_args = [
 
 for loss_function in [nothing] # DecisionTree.util.variance
 	for min_samples_leaf in [4] # [1,2]
-		for min_purity_increase in [0.1, 0.01] # , 0.001, 0.0001, 0.00005, 0.00002, 0.00001, 0.0] # [0.01, 0.001]
+		for min_purity_increase in [0.1, 0.02, 0.01, 0.005, 0.001, 0.0005] # , 0.001, 0.0001, 0.00005, 0.00002, 0.00001, 0.0] # [0.01, 0.001]
 		# for min_purity_increase in [0.0] # ,0.01, 0.001]
 			for max_purity_at_leaf in [0.001] # [0.4, 0.6]
 				push!(tree_args,
@@ -569,48 +569,51 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		 ])
 
 		_attributes_abbr = Dict([
-		  "Ambient_air_humidity"                         => "AMB_HUM",
-		  "Ambient_air_temperature"                      => "AMB_TEMP",
-		  "Gas_fuel_valve_position"                      => "GAS_POS",
-		  "Gas_fuel_mass_flow_rate"                      => "GAS_FLOW",
-		  "Compr_IGV_position"                           => "IGV_POS",
-		  "Compressor_outlet_temperature"                => "IGV_TEMP",
-		  "Compressor_outlet_pressure"                   => "IGV_TEMP",
+		  "Ambient_air_humidity"                         => "AMB_H",
+		  "Ambient_air_temperature"                      => "AMB_T",
+		  "Gas_fuel_valve_position"                      => "GAS_P",
+		  "Gas_fuel_mass_flow_rate"                      => "GAS_F",
+		  "Compr_IGV_position"                           => "IGV_P",
+		  "Compressor_outlet_temperature"                => "IGV_T",
+		  "Compressor_outlet_pressure"                   => "IGV_T",
 		  "Rotational_speed"                             => "SPEED",
 		  "Power_output"                                 => "POWER",
-		  "Exhaust_temperature_1"                        => "EX_TEMP1",
-		  "Exhaust_temperature_2"                        => "EX_TEMP2",
-		  "Exhaust_temperature_3"                        => "EX_TEMP3",
-		  "Exhaust_temperature_4"                        => "EX_TEMP4",
-		  "Exhaust_temperature_5"                        => "EX_TEMP5",
-		  "Exhaust_temperature_6"                        => "EX_TEMP6",
-		  "Exhaust_temperature_7"                        => "EX_TEMP7",
-		  "Exhaust_temperature_8"                        => "EX_TEMP8",
-		  "Exhaust_temperature_9"                        => "EX_TEMP9",
-		  "Exhaust_temperature_10"                       => "EX_TEMP10",
-		  "Exhaust_temperature_11"                       => "EX_TEMP11",
-		  "Exhaust_temperature_12"                       => "EX_TEMP12",
-		  "Exhaust_temperature_13"                       => "EX_TEMP13",
-		  "Exhaust_temperature_14"                       => "EX_TEMP14",
-		  "Exhaust_temperature_15"                       => "EX_TEMP15",
-		  "Exhaust_temperature_16"                       => "EX_TEMP16",
+		  "Exhaust_temperature_1"                        => "EX_T1",
+		  "Exhaust_temperature_2"                        => "EX_T2",
+		  "Exhaust_temperature_3"                        => "EX_T3",
+		  "Exhaust_temperature_4"                        => "EX_T4",
+		  "Exhaust_temperature_5"                        => "EX_T5",
+		  "Exhaust_temperature_6"                        => "EX_T6",
+		  "Exhaust_temperature_7"                        => "EX_T7",
+		  "Exhaust_temperature_8"                        => "EX_T8",
+		  "Exhaust_temperature_9"                        => "EX_T9",
+		  "Exhaust_temperature_10"                       => "EX_T10",
+		  "Exhaust_temperature_11"                       => "EX_T11",
+		  "Exhaust_temperature_12"                       => "EX_T12",
+		  "Exhaust_temperature_13"                       => "EX_T13",
+		  "Exhaust_temperature_14"                       => "EX_T14",
+		  "Exhaust_temperature_15"                       => "EX_T15",
+		  "Exhaust_temperature_16"                       => "EX_T16",
 		 ])
 
 		attributes_abbr = [_attributes_abbr[attr_name] for attr_name in attribute_names]
 
 		run_file_prefix = strip("$(results_dir)/plotdescription-$(run_name)", '"')
-		println(run_file_prefix)
+
 		best_attributes_idxs, best_descriptors = [1,2,8,13,14], [:min_m, :max_m, :mean_m, :CO_FirstMin_ac, :SB_BinaryStats_mean_longstretch1]
-		# TODO
 		# best_attributes_idxs, best_descriptors = single_frame_blind_feature_selection((X,Y), attribute_names, grouped_descriptors, run_file_prefix, n_desired_attributes, n_desired_features; savefigs = savefigs, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr)
-	
-		descriptors = collect(Iterators.flatten([values(grouped_descriptors)...]))
-		# single_frame_target_aware_analysis((X,Y), attribute_names, descriptors, run_file_prefix; savefigs = savefigs, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr)
+		
+		if savefigs
+			descriptors = collect(Iterators.flatten([values(grouped_descriptors)...]))
+			single_frame_target_aware_analysis((X,Y), attribute_names, descriptors, run_file_prefix; savefigs = savefigs, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr)
+		end
 
 		X = X[:,best_attributes_idxs,:]
 		Y = Y[:]
 
-		# single_frame_target_aware_analysis((X,Y), attribute_names[best_attributes_idxs], best_descriptors, run_file_prefix*"-best"; savefigs = savefigs, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr)
+		if savefigs
+			single_frame_target_aware_analysis((X,Y), attribute_names[best_attributes_idxs], best_descriptors, run_file_prefix*"-best"; savefigs = savefigs, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr)
+		end
 		
 		# println(typeof(p))
 		# println(length(p))
