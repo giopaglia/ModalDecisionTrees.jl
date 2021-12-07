@@ -230,7 +230,7 @@ module treeclassifier
 				nr = zero(U)
 				ncr = fill(zero(U), n_classes)
 				if isa(_perform_consistency_check,Val{true})
-					consistency_sat_check[1:n_instances] .= 1
+					consistency_sat_check .= 1
 				end
 				for i_instance in 1:n_instances
 					gamma = aggr_thresholds[i_instance]
@@ -274,7 +274,7 @@ module treeclassifier
 						#################################
 						best_consistency = begin
 							if isa(_perform_consistency_check,Val{true})
-								consistency_sat_check[1:n_instances]
+								consistency_sat_check
 							else
 								nr
 							end
@@ -342,12 +342,6 @@ module treeclassifier
 
 			@logmsg DTOverview " Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(node.i_frame) with decision: $(decision_str), purity $(node.purity)"
 
-			@logmsg DTDetail " unsatisfied_flags" unsatisfied_flags
-
-			if length(unique(unsatisfied_flags)) == 1
-				throw_n_log("An uninformative split was reached. Something's off\nPurity: $(node.purity)\nSplit: $(decision_str)\nUnsatisfied flags: $(unsatisfied_flags)")
-			end
-			
 			# Check consistency
 			consistency = if isa(_perform_consistency_check,Val{true})
 					unsatisfied_flags
@@ -403,6 +397,14 @@ module treeclassifier
 			# util.q_bi_sort!(unsatisfied_flags, indX, 1, n_instances, r_start)
 			# node.split_at = searchsortedfirst(unsatisfied_flags, true)
 		end
+
+		@logmsg DTDetail " unsatisfied_flags" unsatisfied_flags
+
+		# TODO this should be satisfied, since min_samples_leaf is always > 0 and nl,nr>min_samples_leaf
+		if length(unique(unsatisfied_flags)) == 1
+			throw_n_log("An uninformative split was reached. Something's off\nPurity: $(node.purity)\nSplit: $(decision_str)\nUnsatisfied flags: $(unsatisfied_flags)")
+		end
+		
 		# println("END split!")
 		# readline()
 	end
