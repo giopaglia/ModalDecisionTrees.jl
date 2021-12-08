@@ -126,13 +126,13 @@ function data_to_string(
 			elseif column == "safe_macro_F1"
 				percent(safe_macro_F1(cm))          
 			elseif column == "n_nodes"
-				num_nodes(M)        
+				DecisionTree.num_nodes(M)        
 			elseif column == "n_leaves"
 				length(M)
 			elseif column == "height"
-				height(M)
+				DecisionTree.height(M)
 			elseif column == "modal_height"
-				modal_height(M)
+				DecisionTree.modal_height(M)
 			elseif column == "train_cor"
 				train_cm.cor
 			elseif column == "train_MAE"

@@ -148,7 +148,7 @@ module treeclassifier
 		end
 
 		# Optimization-tracking variables
-		best_frame = -1
+		best_i_frame = -1
 		best_purity_times_nt = typemin(Float64)
 		best_relation = RelationNone
 		best_feature = FeatureTypeNone
@@ -172,7 +172,7 @@ module treeclassifier
 					frame_allowRelationGlob,
 					frame_onlyallowRelationGlob)) in enumerate(zip(frames(Xs), Sfs, n_subrelations, n_subfeatures, allowRelationGlob, node.onlyallowRelationGlob))
 
-			@logmsg DTDetail "  Frame $(best_frame)/$(length(frames(Xs)))"
+			@logmsg DTDetail "  Frame $(best_i_frame)/$(length(frames(Xs)))"
 
 			allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds = begin
 				
@@ -259,7 +259,7 @@ module treeclassifier
 					purity_times_nt = - (nl * loss_function(ncl, nl) + nr * loss_function(ncr, nr))
 					if purity_times_nt > best_purity_times_nt # && !isapprox(purity_times_nt, best_purity_times_nt)
 						#################################
-						best_frame          = i_frame
+						best_i_frame             = i_frame
 						#################################
 						best_purity_times_nt     = purity_times_nt
 						#################################
@@ -269,8 +269,8 @@ module treeclassifier
 						best_threshold      = threshold
 						#################################
 						# print((relation, test_operator, feature, threshold))
-						# println(" NEW BEST $best_frame, $best_purity_times_nt/nt")
-						@logmsg DTDetail "  Found new optimum in frame $(best_frame): " (best_purity_times_nt/nt) best_relation best_feature best_test_operator best_threshold
+						# println(" NEW BEST $best_i_frame, $best_purity_times_nt/nt")
+						@logmsg DTDetail "  Found new optimum in frame $(best_i_frame): " (best_purity_times_nt/nt) best_relation best_feature best_test_operator best_threshold
 						#################################
 						best_consistency = begin
 							if isa(_perform_consistency_check,Val{true})
@@ -295,19 +295,10 @@ module treeclassifier
 		else
 			best_purity = best_purity_times_nt/nt
 
-			# split the samples into two parts:
-			#  ones for which the is satisfied and those for whom it's not
-			node.purity         = best_purity
-			node.i_frame        = best_frame
-			node.relation       = best_relation
-			node.feature        = best_feature
-			node.test_operator  = best_test_operator
-			node.threshold      = best_threshold
-			
 			# Compute new world sets (= take a modal step)
 
 			# println(decision_str)
-			decision_str = display_decision(node.i_frame, node.relation, node.feature, node.test_operator, node.threshold)
+			decision_str = display_decision(best_i_frame, best_relation, best_feature, best_test_operator, best_threshold)
 			
 			# TODO instead of using memory, here, just use two opposite indices and perform substitutions. indj = n_instances
 			unsatisfied_flags = fill(1, n_instances)
@@ -317,20 +308,20 @@ module treeclassifier
 			for i_instance in 1:n_instances
 				# TODO perform step with an OntologicalModalDataset
 
-				# instance = ModalLogic.getInstance(X, node.i_frame, indX[i_instance + r_start])
-				X = get_frame(Xs, node.i_frame)
-				Sf = Sfs[node.i_frame]
+				# instance = ModalLogic.getInstance(X, best_i_frame, indX[i_instance + r_start])
+				X = get_frame(Xs, best_i_frame)
+				Sf = Sfs[best_i_frame]
 				# instance = ModalLogic.getInstance(X, indX[i_instance + r_start])
 
 				# println(instance)
 				# println(Sf[i_instance])
-				_sat, _ss = ModalLogic.modal_step(X, indX[i_instance + r_start], Sf[i_instance], node.relation, node.feature, node.test_operator, node.threshold)
+				_sat, _ss = ModalLogic.modal_step(X, indX[i_instance + r_start], Sf[i_instance], best_relation, best_feature, best_test_operator, best_threshold)
 				# Threads.lock(writing_lock)
-				(satisfied,Ss[node.i_frame][indX[i_instance + r_start]]) = _sat, _ss
+				(satisfied,Ss[best_i_frame][indX[i_instance + r_start]]) = _sat, _ss
 				# Threads.unlock(writing_lock)
-				@logmsg DTDetail " [$satisfied] Instance $(i_instance)/$(n_instances)" Sf[i_instance] (if satisfied Ss[node.i_frame][indX[i_instance + r_start]] end)
+				@logmsg DTDetail " [$satisfied] Instance $(i_instance)/$(n_instances)" Sf[i_instance] (if satisfied Ss[best_i_frame][indX[i_instance + r_start]] end)
 				# println(satisfied)
-				# println(Ss[node.i_frame][indX[i_instance + r_start]])
+				# println(Ss[best_i_frame][indX[i_instance + r_start]])
 				# readline()
 
 				# I'm using unsatisfied because sorting puts YES instances first, but TODO use the inverse sorting and use satisfied flag instead
@@ -340,7 +331,7 @@ module treeclassifier
 				end
 			end
 
-			@logmsg DTOverview " Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(node.i_frame) with decision: $(decision_str), purity $(node.purity)"
+			@logmsg DTOverview " Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(best_i_frame) with decision: $(decision_str), purity $(best_purity)"
 
 			# Check consistency
 			consistency = if isa(_perform_consistency_check,Val{true})
@@ -351,12 +342,12 @@ module treeclassifier
 
 			if best_consistency != consistency
 				errStr = "Something's wrong with the optimization steps."
-				errStr *= "Relation $(node.relation), feature $(node.feature) and test_operator $(node.test_operator).\n"
+				errStr *= "Relation $(best_relation), feature $(best_feature) and test_operator $(best_test_operator).\n"
 				errStr *= "Possible causes:\n"
 				errStr *= "- feature returning NaNs\n"
-				errStr *= "- erroneous enumAccReprAggr for relation $(node.relation), aggregator $(ModalLogic.existential_aggregator(node.test_operator)) and feature $(node.feature)\n"
+				errStr *= "- erroneous enumAccReprAggr for relation $(best_relation), aggregator $(ModalLogic.existential_aggregator(best_test_operator)) and feature $(best_feature)\n"
 				errStr *= "\n"
-				errStr *= "Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(node.i_frame) with decision: $(decision_str), purity $(best_purity)\n"
+				errStr *= "Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(best_i_frame) with decision: $(decision_str), purity $(best_purity)\n"
 				errStr *= "$(length(indX[region])) Instances: $(indX[region])\n"
 				errStr *= "Different partition was expected:\n"
 				if isa(_perform_consistency_check,Val{true})
@@ -374,38 +365,56 @@ module treeclassifier
 
 				if isa(_perform_consistency_check,Val{true})
 					errStr *= "world_refs = $(world_refs)\n"
-					errStr *= "new world_refs = $([Ss[node.i_frame][indX[i_instance + r_start]] for i_instance in 1:n_instances])\n"
+					errStr *= "new world_refs = $([Ss[best_i_frame][indX[i_instance + r_start]] for i_instance in 1:n_instances])\n"
 				end
 				
 				# for i in 1:n_instances
-					# errStr *= "$(ModalLogic.getChannel(Xs, indX[i + r_start], best_feature))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[node.i_frame][indX[i + r_start]])\n";
+					# errStr *= "$(ModalLogic.getChannel(Xs, indX[i + r_start], best_feature))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[best_i_frame][indX[i + r_start]])\n";
 				# end
 
 				# throw_n_log("ERROR! " * errStr)
 				println("ERROR! " * errStr) # TODO fix
 			end
 
-			@logmsg DTDetail "pre-partition" region indX[region] unsatisfied_flags
-			node.split_at = util.partition!(indX, unsatisfied_flags, 0, region)
-			@logmsg DTDetail "post-partition" indX[region] node.split_at
+			@logmsg DTDetail " unsatisfied_flags" unsatisfied_flags
 
-			# For debug:
-			# indX = rand(1:10, 10)
-			# unsatisfied_flags = rand([1,0], 10)
-			# partition!(indX, unsatisfied_flags, 0, 1:10)
-			
-			# Sort [Xf, Yf, Wf, Sf and indX] by Xf
-			# util.q_bi_sort!(unsatisfied_flags, indX, 1, n_instances, r_start)
-			# node.split_at = searchsortedfirst(unsatisfied_flags, true)
+			# TODO this should be satisfied, since min_samples_leaf is always > 0 and nl,nr>min_samples_leaf
+			if length(unique(unsatisfied_flags)) == 1
+				errStr = "An uninformative split was reached. Something's off\n"
+				errStr *= "Purity: $(best_purity)\n"
+				errStr *= "Split: $(decision_str)\n"
+				errStr *= "Unsatisfied flags: $(unsatisfied_flags)"
+
+				println("ERROR! " * errStr) # TODO fix
+				# throw_n_log(errStr)
+				node.is_leaf = true
+				return
+			else
+				# split the samples into two parts:
+				#  ones for which the is satisfied and those for whom it's not
+				node.purity         = best_purity
+				node.i_frame        = best_i_frame
+				node.relation       = best_relation
+				node.feature        = best_feature
+				node.test_operator  = best_test_operator
+				node.threshold      = best_threshold
+				
+
+				@logmsg DTDetail "pre-partition" region indX[region] unsatisfied_flags
+				node.split_at = util.partition!(indX, unsatisfied_flags, 0, region)
+				@logmsg DTDetail "post-partition" indX[region] node.split_at
+
+				# For debug:
+				# indX = rand(1:10, 10)
+				# unsatisfied_flags = rand([1,0], 10)
+				# partition!(indX, unsatisfied_flags, 0, 1:10)
+				
+				# Sort [Xf, Yf, Wf, Sf and indX] by Xf
+				# util.q_bi_sort!(unsatisfied_flags, indX, 1, n_instances, r_start)
+				# node.split_at = searchsortedfirst(unsatisfied_flags, true)
+			end
 		end
 
-		@logmsg DTDetail " unsatisfied_flags" unsatisfied_flags
-
-		# TODO this should be satisfied, since min_samples_leaf is always > 0 and nl,nr>min_samples_leaf
-		if length(unique(unsatisfied_flags)) == 1
-			throw_n_log("An uninformative split was reached. Something's off\nPurity: $(node.purity)\nSplit: $(decision_str)\nUnsatisfied flags: $(unsatisfied_flags)")
-		end
-		
 		# println("END split!")
 		# readline()
 	end
