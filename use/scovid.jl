@@ -12,7 +12,7 @@ train_seed = 2
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./covid/journal-v12-breath-bigger-window"
+results_dir = "./covid/journal-v13-cough-40bands-smaller-window-rf100"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
@@ -77,8 +77,8 @@ optimize_forest_computation = true
 
 forest_args = []
 
-# for n_trees in [50, 100]
-for n_trees in [50]
+for n_trees in [50, 100]
+# for n_trees in [50]
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
 			for partial_sampling in [0.7]
@@ -173,9 +173,9 @@ exec_use_training_form = [:stump_with_memoization]
 
 exec_n_ver_n_task_use_aug_dataset_dir_preprocess = [
 
-	# ("c",1,false,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
-	# ("c",2,true, "KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
-	# ("c",3,true, "KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
+	("c",1,false,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
+	("c",2,true, "KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
+	("c",3,true, "KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
 	
 	# ("c",1,false,"KDD",["NG", "Normalize", "RemSilence"]),
 	# ("c",2,true, "KDD",["NG", "Normalize", "RemSilence"]),
@@ -185,9 +185,9 @@ exec_n_ver_n_task_use_aug_dataset_dir_preprocess = [
 	##############################################################################
 	##############################################################################
 	
-	("b",1,false,"KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
-	("b",2,true, "KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
-	("b",3,true, "KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
+	# ("b",1,false,"KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
+	# ("b",2,true, "KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
+	# ("b",3,true, "KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
 	
 	# ("b",1,false,"KDD",["Normalize", "RemSilence"]),
 	# ("b",2,true, "KDD",["Normalize", "RemSilence"]),
@@ -241,8 +241,8 @@ exec_base_freq_max = [700]
 # push!(iteration_blacklist, (fbtype    = :fcmel, base_freq = :autocor))
 # push!(iteration_blacklist, (fbtype    = :fcmel, base_freq_min = 200))
 
-exec_nbands = [30] # [20,40,60]
-# exec_nbands = [40] # [20,40,60]
+# exec_nbands = [30] # [20,40,60]
+exec_nbands = [40] # [20,40,60]
 
 combine_moving_averages((size1,step1), (size2,step2)) = begin
 	(1*size1+(size2-1)*step1,step1*step2)
@@ -253,29 +253,32 @@ exec_wintime_steptime_dataset_kwargs =   [(
 	# 	max_points = 50,
 	# 	ma_size = 15,
 	# 	ma_step = 10,
-	# ),(
-	# combine_moving_averages((0.025,0.010),(30,20)),(
-	# 	max_points = 50,
 	# )
 	# ),(
+	(0.025,0.010),(
+		max_points = 50,
+		ma_size = 20,
+		ma_step = 15,
+	)
+	),(
 	(0.025,0.010),(
 		max_points = 50,
 		ma_size = 30,
 		ma_step = 20,
 	)
-	),(
+	# ),(
 	# combine_moving_averages((0.025,0.010),(30,20)),(
 	# 	max_points = 50,
 	# ),(
-	(0.025,0.010),(
-		max_points = 50,
-		ma_size = 45,
-		ma_step = 30,
-	)
-	),(
-	combine_moving_averages((0.025,0.010),(45,30)),(
-		max_points = 50,
-	)
+	# (0.025,0.010),(
+	# 	max_points = 50,
+	# 	ma_size = 45,
+	# 	ma_step = 30,
+	# )
+	# ),(
+	# combine_moving_averages((0.025,0.010),(45,30)),(
+	# 	max_points = 50,
+	# )
         # ),(
 	# max_points = 30,
 	# 	ma_size = 120,
