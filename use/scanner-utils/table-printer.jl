@@ -130,7 +130,7 @@ function data_to_string(
 			elseif column == "n_leaves"
 				length(M)
 			elseif column == "height"
-				DecisionTree.height(M)
+				DecisionTree.height(M) # Clashes with Measures.height
 			elseif column == "modal_height"
 				DecisionTree.modal_height(M)
 			elseif column == "train_cor"
