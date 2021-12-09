@@ -19,7 +19,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./siemens/TURBOEXPO-regression-v6-back-to-classification"
+results_dir = "./siemens/TURBOEXPO-regression-v7-only-3-datasources-n-balanced-dataseed0"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
@@ -30,7 +30,7 @@ dry_run = false
 # dry_run = :model_study
 # dry_run = true
 
-skip_training = false
+skip_training = true
 
 #save_datasets = true
 save_datasets = false
@@ -55,7 +55,7 @@ tree_args = [
 
 for loss_function in [nothing] # DecisionTree.util.variance
 	for min_samples_leaf in [4] # [1,2]
-		for min_purity_increase in [0.1, 0.02, 0.01, 0.005, 0.001, 0.0005] # , 0.001, 0.0001, 0.00005, 0.00002, 0.00001, 0.0] # [0.01, 0.001]
+		for min_purity_increase in [0.1, 0.02, 0.015, 0.01, 0.0075, 0.005] # , 0.001, 0.0001, 0.00005, 0.00002, 0.00001, 0.0] # [0.01, 0.001]
 		# for min_purity_increase in [0.0] # ,0.01, 0.001]
 			for max_purity_at_leaf in [0.001] # [0.4, 0.6]
 				push!(tree_args,
@@ -173,7 +173,7 @@ prefer_nonaug_data = true
 ##################################### SCAN #####################################
 ################################################################################
 
-exec_dataseed = [1:4...,0]
+exec_dataseed = [1:3...,0]
 
 #exec_datadirname = ["Siemens-Data-Features", "Siemens-Data-Measures"]
 exec_datadirname = ["Siemens-Data-Measures"]
@@ -193,17 +193,25 @@ exec_regression_window_in_minutes = [60]
 
 exec_moving_average = [
 	(
+		ma_size = 15,
+		ma_step = 15,
+	),
+	(
+		ma_size = 12,
+		ma_step = 12,
+	),
+	(
 		ma_size = 10,
 		ma_step = 10,
 	),
-	(
-		ma_size = 6,
-		ma_step = 6,
-	),
-	(
-		ma_size = 5,
-		ma_step = 5,
-	),
+	# (
+	# 	ma_size = 6,
+	# 	ma_step = 6,
+	# ),
+	# (
+	# 	ma_size = 5,
+	# 	ma_step = 5,
+	# ),
 	(
 		ma_size = 4,
 		ma_step = 4,
@@ -218,6 +226,8 @@ exec_moving_average = [
 	),
 ]
 
+exec_ignore_datasources = [[42894], []]
+
 exec_ranges = (;
 	datadirname                                  = exec_datadirname,
 	use_training_form                            = exec_use_training_form,
@@ -226,10 +236,11 @@ exec_ranges = (;
 	moving_average                               = exec_moving_average,
 	regression_window_in_minutes                 = exec_regression_window_in_minutes,
 	regression_step_in_minutes                   = exec_regression_step_in_minutes,
+	ignore_datasources                           = exec_ignore_datasources,
 )
 
 
-dataset_function = (datadirname, binning, ignore_last_minutes, moving_average, regression_window_in_minutes, regression_step_in_minutes)->begin
+dataset_function = (datadirname, binning, ignore_last_minutes, moving_average, regression_window_in_minutes, regression_step_in_minutes, ignore_datasources)->begin
 	SiemensDataset_regression(datadirname;
 		moving_average...,
 		binning = binning,
@@ -239,6 +250,7 @@ dataset_function = (datadirname, binning, ignore_last_minutes, moving_average, r
 		select_attributes = [1,4,3,23,2,5,22,25,26,(6:21)...],
 		regression_window_in_minutes = regression_window_in_minutes,
 		regression_step_in_minutes = regression_step_in_minutes,
+		ignore_datasources = ignore_datasources,
 	)
 end
 
@@ -397,8 +409,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	##############################################################################
 	
-	datadirname, use_training_form, binning, ignore_last_minutes, moving_average, regression_window_in_minutes, regression_step_in_minutes = params_combination
-	dataset_fun_sub_params = (datadirname, binning, ignore_last_minutes, moving_average, regression_window_in_minutes, regression_step_in_minutes)
+	datadirname, use_training_form, binning, ignore_last_minutes, moving_average, regression_window_in_minutes, regression_step_in_minutes, ignore_datasources = params_combination
+	dataset_fun_sub_params = (datadirname, binning, ignore_last_minutes, moving_average, regression_window_in_minutes, regression_step_in_minutes, ignore_datasources)
 	
 	cur_modal_args = deepcopy(modal_args)
 	cur_data_modal_args = deepcopy(data_modal_args)
@@ -612,8 +624,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 		run_file_prefix = strip("$(results_dir)/plotdescription-$(run_name)", '"')
 
-		best_attributes_idxs, best_descriptors = [1,2,8,13,14], [:min_m, :max_m, :mean_m, :CO_FirstMin_ac, :SB_BinaryStats_mean_longstretch1]
-		# best_attributes_idxs, best_descriptors = single_frame_blind_feature_selection((X,Y), attribute_names, grouped_descriptors, run_file_prefix, n_desired_attributes, n_desired_features; savefigs = savefigs, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr, export_dat = true)
+		# best_attributes_idxs, best_descriptors = [1,2,8,13,14], [:min_m, :max_m, :mean_m, :CO_FirstMin_ac, :SB_BinaryStats_mean_longstretch1]
+		best_attributes_idxs, best_descriptors = single_frame_blind_feature_selection((X,Y), attribute_names, grouped_descriptors, run_file_prefix, n_desired_attributes, n_desired_features; savefigs = savefigs, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr, export_dat = true)
 		
 		if savefigs
 			descriptors = collect(Iterators.flatten([values(grouped_descriptors)...]))
@@ -760,7 +772,23 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		# todo_dataseeds = 1:10
 		[(dataseed, begin
 				if dataseed == 0
-					(Vector{Integer}(collect(1:n_insts)), Vector{Integer}(collect(1:n_insts)))
+
+					class_counts, class_grouped_idxs = begin
+						class_counts       = []
+						class_grouped_idxs = []
+						for cl in 1:length(base_idxs[1])
+							idxs_groups      = getindex.(base_idxs,cl)
+							idxs       = collect(Iterators.flatten(idxs_groups))
+							push!(class_counts, length(idxs))
+							append!(class_grouped_idxs, idxs)
+						end
+						Tuple(class_counts), class_grouped_idxs
+					end
+
+					perm = balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = floor(Int, minimum(class_counts)*1.0), also_return_discarted = false)
+
+					# (Vector{Integer}(collect(1:n_insts)), Vector{Integer}(collect(1:n_insts))) # Use all instances
+					(Vector{Integer}(class_grouped_idxs[perm]), Vector{Integer}(1:n_insts))
 				else
 					@assert dataseed in 1:length(datasource_counts)
 					# @assert datasource_counts[dataseed] .> 0
@@ -772,28 +800,28 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 					
 					# datasource_counts
 					# base_idxs
-					class_counts, class_grouped_idxs, test_idxs = begin
-						class_counts = []
-						class_grouped_idxs = []
+					train_class_counts, train_class_grouped_idxs, test_idxs = begin
+						train_class_counts       = []
+						train_class_grouped_idxs = []
 						test_idxs = []
 						for cl in 1:length(base_idxs[1])
-							idxs_groups      = getindex.(base_idxs,cl)[[1:(dataseed-1)...,(dataseed+1):end...]]
-							test_idxs_groups = getindex.(base_idxs,cl)[[dataseed]]
-							idxs       = collect(Iterators.flatten(idxs_groups))
-							_test_idxs = collect(Iterators.flatten(test_idxs_groups))
-							push!(class_counts, length(idxs))
-							append!(class_grouped_idxs, idxs)
+							train_idxs_groups = getindex.(base_idxs,cl)[[1:(dataseed-1)...,(dataseed+1):end...]]
+							test_idxs_groups  = getindex.(base_idxs,cl)[[dataseed]]
+							_train_idxs       = collect(Iterators.flatten(train_idxs_groups))
+							_test_idxs        = collect(Iterators.flatten(test_idxs_groups))
+							push!(train_class_counts, length(_train_idxs))
+							append!(train_class_grouped_idxs, _train_idxs)
 							append!(test_idxs, _test_idxs)
 						end
-						Tuple(class_counts), class_grouped_idxs, test_idxs
+						Tuple(train_class_counts), train_class_grouped_idxs, test_idxs
 					end
 
-					# println(class_counts)
-					# println(class_grouped_idxs)
+					# println(train_class_counts)
+					# println(train_class_grouped_idxs)
 
-					perm = balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = floor(Int, minimum(class_counts)*traintest_threshold), also_return_discarted = false)
+					perm = balanced_dataset_slice(train_class_counts, dataseed; n_samples_per_class = floor(Int, minimum(train_class_counts)*traintest_threshold), also_return_discarted = false)
 					
-					train_idxs = class_grouped_idxs[perm]
+					train_idxs = train_class_grouped_idxs[perm]
 
 					# println(Y[1:4])
 					# println(unique(Y[train_idxs]))
