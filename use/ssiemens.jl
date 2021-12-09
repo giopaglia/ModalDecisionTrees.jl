@@ -30,7 +30,8 @@ dry_run = false
 # dry_run = :model_study
 # dry_run = true
 
-skip_training = true
+skip_training = false
+# skip_training = true
 
 #save_datasets = true
 save_datasets = false
