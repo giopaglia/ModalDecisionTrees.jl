@@ -75,13 +75,13 @@ kdd_files_to_ignore(n_version) = begin
 				"healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_breathe.wav_aug_noise2.wav",      # semi-empty file
 				"healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_breathe.wav_aug_pitchspeed1.wav", # semi-empty file
 				"healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_breathe.wav_aug_pitchspeed2.wav", # semi-empty file
-				"healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav",                     
-				"healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_amp1.wav",        
-				"healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_amp2.wav",        
-				"healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_noise1.wav",      
-				"healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_noise2.wav",      
-				"healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_pitchspeed1.wav", 
-				"healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_pitchspeed2.wav", 
+				"healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav",
+				"healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_amp1.wav",
+				"healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_amp2.wav",
+				"healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_noise1.wav",
+				"healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_noise2.wav",
+				"healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_pitchspeed1.wav",
+				"healthywebwithcough/2020-04-09-13_30_09_391043/audio_file_cough.wav_aug_pitchspeed2.wav",
 				# asthmawebwithcough/2020-04-07-20_46_20_561555
 				"asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_breathe.wav",                      # semi-empty file
 				"asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_breathe.wav_aug_amp1.wav",         # semi-empty file
@@ -90,13 +90,13 @@ kdd_files_to_ignore(n_version) = begin
 				"asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_breathe.wav_aug_noise2.wav",       # semi-empty file
 				"asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_breathe.wav_aug_pitchspeed1.wav",  # semi-empty file
 				"asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_breathe.wav_aug_pitchspeed2.wav",  # semi-empty file
-				"asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav",                      
-				"asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_amp1.wav",         
-				"asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_amp2.wav",         
-				"asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_noise1.wav",       
-				"asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_noise2.wav",       
-				"asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_pitchspeed1.wav",  
-				"asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_pitchspeed2.wav",  
+				"asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav",
+				"asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_amp1.wav",
+				"asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_amp2.wav",
+				"asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_noise1.wav",
+				"asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_noise2.wav",
+				"asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_pitchspeed1.wav",
+				"asthmawebwithcough/2020-04-07-20_46_20_561555/audio_file_cough.wav_aug_pitchspeed2.wav",
 				#
 				"healthywebnosymp/2020-04-07-14_22_21_780211/audio_file_breathe.wav", # music in the background (what the heck?)
 				"healthywebnosymp/2020-04-07-14_22_21_780211/audio_file_cough.wav",
@@ -167,14 +167,14 @@ KDD_getSamplesList(folders::AbstractVector{<:AbstractString}, n_version, use_aug
 	global kdd_has_augmentation_data
 	global kdd_has_subfolder_structure
 	global kdd_augmentation_file_suffixes
-	
+
 	n_version =
 		if n_version == "c"         1
 		elseif n_version == "b"     2
 		else                        n_version
 	end
 
-	subfolder, file_suffix, file_prefix = 
+	subfolder, file_suffix, file_prefix =
 		if n_version == 1
 			("cough","cough","cough_")
 		elseif n_version == 2
@@ -191,7 +191,7 @@ KDD_getSamplesList(folders::AbstractVector{<:AbstractString}, n_version, use_aug
 
 		# Groups of filepaths
 		base_file_paths = files_map[folder]
-		
+
 		# Augmented data (if present)
 		aug_file_paths =
 			if use_augmentation_data && folder in kdd_has_augmentation_data && ! (folder in kdd_has_subfolder_structure)
@@ -214,7 +214,7 @@ KDD_getSamplesList(folders::AbstractVector{<:AbstractString}, n_version, use_aug
 		# https://stackoverflow.com/questions/57633477/multi-threading-julia-shows-error-with-enumerate-iterator
 		for (i_samples, (is_aug,these_samples)) in collect(enumerate(all_file_paths))
 		# Threads.@threads for (i_samples, (is_aug,these_samples)) in collect(enumerate(all_file_paths))
-			
+
 			# Correct folder/subfolder structure
 			these_samples =
 				if folder in kdd_has_subfolder_structure
@@ -223,7 +223,7 @@ KDD_getSamplesList(folders::AbstractVector{<:AbstractString}, n_version, use_aug
 					filter!((filepath)->startswith(filepath,file_prefix), these_samples)
 					map((filepath)->"$folder/$subfolder/$filepath", these_samples)
 				end
-				
+
 			# Derive augmentation data or just take this as augmentation data
 			base_samples, aug_samples =
 				if is_aug
@@ -246,7 +246,7 @@ KDD_getSamplesList(folders::AbstractVector{<:AbstractString}, n_version, use_aug
 			filter!((filepath)->! (filepath in files_to_ignore), aug_samples)
 
 			# println(removesuffix.(base_samples, ".wav"))
-			
+
 			# Interpret the filepath as a prefix
 			base_samples = [sort(glob("$(removesuffix(filepath, ".wav"))*.wav", dir)) for filepath in base_samples] |> Iterators.flatten |> collect
 			aug_samples  = [sort(glob("$(removesuffix(filepath, ".wav"))*.wav", dir)) for filepath in aug_samples]  |> Iterators.flatten |> collect
@@ -298,7 +298,7 @@ function KDDDataset((n_task,n_version),
 	)
 	@assert n_task    in [1,2,3] "KDDDataset: invalid n_task:    {$n_task}"
 	@assert n_version in [1,2,3,"c","b","c+b"] "KDDDataset: invalid n_version: {$n_version}"
-	
+
 	global kdd_task_to_folders
 
 	n_version =
@@ -327,14 +327,54 @@ function KDDDataset((n_task,n_version),
 			throw_n_log("Unknown n_version: $(n_version)")
 		end
 
+	# SUPPORT DIFFERENT AUDIO KWARGS FOR MULTIFRAME
+
+	audio_kwargs =
+		if !isa(audio_kwargs, Tuple)
+			(audio_kwargs,)
+		else
+			audio_kwargs
+		end
+
+	@assert length(n_version) == length(audio_kwargs) "Selected $(length(n_version)) " *
+		"n_version(s) $(n_version) but length(audio_kwargs) is $(length(audio_kwargs))"
+
+	# SUPPORT DIFFERENT PREPROCESS FOR MULTIFRAME
+
+	preprocess_wavs =
+		if !isa(preprocess_wavs, Tuple)
+			(preprocess_wavs,)
+		else
+			preprocess_wavs
+		end
+
+	@assert length(n_version) == length(preprocess_wavs) "Selected $(length(n_version)) " *
+		"n_version(s) $(n_version) but length(preprocess_wavs) is $(length(preprocess_wavs))"
+
+	# SUPPORT DIFFERENT DIRECTORIES FOR MULTIFRAME
+
+	dir =
+		if !isa(dir, Tuple)
+			Tuple([dir for i in 1:length(n_version)])
+		else
+			dir
+		end
+
+	@assert length(n_version) == length(dir) "Selected $(length(n_version)) " *
+		"n_version(s) $(n_version) but length(dir) is $(length(dir))"
+
+	for d in dir
+		@assert isdir(d) "$(d) is not a valid directory"
+	end
+
 	##############################################################################
 	##############################################################################
 	##############################################################################
-	
-	loadSample(filepath, ts_lengths_dict, ts_with_ma_lengths_dict, ts_cut_lengths_dict) = begin
+
+	loadSample(filepath, audio_kwargs, preprocess_wavs, ts_lengths_dict, ts_with_ma_lengths_dict, ts_cut_lengths_dict, ignore_samples_with_sr_less_than) = begin
 		# println(filepath)
 		ts = wav2stft_time_series(filepath, audio_kwargs; preprocess_sample = preprocess_wavs, use_full_mfcc = use_full_mfcc, ignore_samples_with_sr_less_than = ignore_samples_with_sr_less_than)
-		
+
 		# Some breath samples are empty or semi-empty. As such, for tasks 2 and 3 we need to ignore them, and also ignore the paired cough samples
 		if isnothing(ts)
 			println("Warning: could not read file \"$(filepath)\"")
@@ -388,23 +428,23 @@ function KDDDataset((n_task,n_version),
 		end
 		X
 	end
-	
+
 	##############################################################################
 	##############################################################################
 	##############################################################################
 
-	getTimeSeries(n_subver, return_filepaths) = begin
+	getTimeSeries(n_subver, audio_kwargs, preprocess_wavs, dir, ignore_samples_with_sr_less_than, return_filepaths) = begin
 		pos_filepaths, pos_aug_filepaths = KDD_getSamplesList(folders_Y, n_subver, use_augmentation_data; files_to_ignore = files_to_ignore, dir = dir)
 		neg_filepaths, neg_aug_filepaths = KDD_getSamplesList(folders_N, n_subver, use_augmentation_data; files_to_ignore = files_to_ignore, dir = dir)
-		
+
 		ts_lengths_dict         = Dict{String,Integer}()
 		ts_with_ma_lengths_dict = Dict{String,Integer}()
 		ts_cut_lengths_dict     = Dict{String,Integer}()
 
-		pos      = Dict(ThreadsX.collect([f => loadSample(f, ts_lengths_dict, ts_with_ma_lengths_dict, ts_cut_lengths_dict) for f in pos_filepaths]))
-		pos_aug  = Dict(ThreadsX.collect([f => loadSample(f, ts_lengths_dict, ts_with_ma_lengths_dict, ts_cut_lengths_dict) for f in pos_aug_filepaths]))
-		neg      = Dict(ThreadsX.collect([f => loadSample(f, ts_lengths_dict, ts_with_ma_lengths_dict, ts_cut_lengths_dict) for f in neg_filepaths]))
-		neg_aug  = Dict(ThreadsX.collect([f => loadSample(f, ts_lengths_dict, ts_with_ma_lengths_dict, ts_cut_lengths_dict) for f in neg_aug_filepaths]))
+		pos      = Dict(ThreadsX.collect([f => loadSample(f, audio_kwargs, preprocess_wavs, ts_lengths_dict, ts_with_ma_lengths_dict, ts_cut_lengths_dict, ignore_samples_with_sr_less_than) for f in pos_filepaths]))
+		pos_aug  = Dict(ThreadsX.collect([f => loadSample(f, audio_kwargs, preprocess_wavs, ts_lengths_dict, ts_with_ma_lengths_dict, ts_cut_lengths_dict, ignore_samples_with_sr_less_than) for f in pos_aug_filepaths]))
+		neg      = Dict(ThreadsX.collect([f => loadSample(f, audio_kwargs, preprocess_wavs, ts_lengths_dict, ts_with_ma_lengths_dict, ts_cut_lengths_dict, ignore_samples_with_sr_less_than) for f in neg_filepaths]))
+		neg_aug  = Dict(ThreadsX.collect([f => loadSample(f, audio_kwargs, preprocess_wavs, ts_lengths_dict, ts_with_ma_lengths_dict, ts_cut_lengths_dict, ignore_samples_with_sr_less_than) for f in neg_aug_filepaths]))
 
 		@assert length(ts_lengths_dict) > 0 "No sample was found! (n_subver $(n_subver), dir = $(dir)). $(length(neg_filepaths)) $(length(neg_aug_filepaths))"
 
@@ -414,7 +454,7 @@ function KDDDataset((n_task,n_version),
 		neg_filepaths     = sort(collect(keys(filter( (x)->!isnothing(x[2]), neg))))
 		neg_aug_filepaths = sort(collect(keys(filter( (x)->!isnothing(x[2]), neg_aug))))
 
-		# 
+		#
 		# sort(collect(keys(filter( (x)->!isnothing(x[2]), Dict([1=>2, 2=>nothing])))))
 
 		# Finally derive samples
@@ -454,14 +494,14 @@ function KDDDataset((n_task,n_version),
 		n_unique_freqs = unique(size(ts,  2) for ts in [timeseries..., timeseries_aug...])
 		@assert length(n_unique_freqs) == 1 "KDDDataset: length(n_unique_freqs) != 1: {$n_unique_freqs} != 1"
 		n_unique_freqs = n_unique_freqs[1]
-		
+
 		class_counts     = (length(pos),     length(neg))
 		class_counts_aug = (length(pos_aug), length(neg_aug))
 		println("Class counts: $(class_counts); Aug class counts: $(class_counts_aug); # points: $(max_timepoints)")
 
 		X     = compute_X(max_timepoints, n_unique_freqs, timeseries,     sum(class_counts))
 		X_aug = compute_X(max_timepoints, n_unique_freqs, timeseries_aug, sum(class_counts_aug))
-		
+
 		@assert n_samples(X)     == length(Y)     "$(n_samples(X))     != $(length(Y))"
 		@assert n_samples(X_aug) == length(Y_aug) "$(n_samples(X_aug)) != $(length(Y_aug))"
 
@@ -484,17 +524,60 @@ function KDDDataset((n_task,n_version),
 		end
 	end
 
+	couples_cough_n_breath(n_versions, datasets) = datasets
+	function couples_cough_n_breath(n_versions::NTuple{2,Integer}, datasets)
+		# global kdd_has_augmentation_data
+		# global kdd_has_subfolder_structure
+		# global kdd_augmentation_file_suffixes
+		#
+		# c, b = n_versions == (1, 2) ? (1, 2) : (2, 1) # to use `c` as cough index and `b` as breath index
+		#
+		# c_subfolder, c_file_suffix, c_file_prefix = ("cough","cough","cough_")
+		# b_subfolder, b_file_suffix, b_file_prefix = ("breath","breathe","breaths_")
+		#
+		# files_map = JSON.parsefile(kdd_data_dir * "files.json")
+		#
+		# cough2breath_map = Dict{String,String}()
+		# for k in filter(x -> contains("android"), keys(files_map))
+		# 	for couple in files_map[k]
+		# 		cough_file = couple[findfirst(x -> !isnothing(match(Regex("^$b_file_prefix"), x)), couple)]
+		# 		breath_file = couple[findfirst(x -> !isnothing(match(Regex("^$b_file_prefix"), x)), couple)]
+		#
+		# 		cough2breath_map["$c_folder/$subfolder/$filepath"] =
+		# 			"$folder/$subfolder/$filepath"
+		# 	end
+		# end
+		# for k in filter(x -> contains("web"), keys(files_map))
+		# 	for couple in files_map[k]
+		# 		cough2breath_map[]
+		# 		map((filepath)->"$folder/$subfolder/$filepath", these_samples)
+		# 		"$folder/$subfoldname/audio_file_$(file_suffix).wav"
+		# 	end
+		# end
+		#
+		# these_samples =
+		# 	if folder in kdd_has_subfolder_structure
+		# 		map((subfoldname)->"$folder/$subfoldname/audio_file_$(file_suffix).wav", these_samples)
+		# 	else
+		# 		filter!((filepath)->startswith(filepath,file_prefix), these_samples)
+		# 		map((filepath)->"$folder/$subfolder/$filepath", these_samples)
+		# 	end
+
+
+		return datasets
+	end
+
 	datasets = Vector(undef, length(n_version))
 	n_pos    = Vector(undef, length(n_version))
 	n_neg    = Vector(undef, length(n_version))
-	
+
 	datasets_aug = Vector(undef, length(n_version))
 	n_pos_aug    = Vector(undef, length(n_version))
 	n_neg_aug    = Vector(undef, length(n_version))
 
-	for (i, n_subver) in enumerate(n_version)
-		cur_frame_dataset = getTimeSeries(n_subver, return_filepaths)
-		
+	for (i, (n_subver, cur_audio_kwargs, cur_preprocess_wavs, cur_ignore_samples_with_sr_less_than, cur_dir)) in enumerate(zip(n_version, audio_kwargs, preprocess_wavs, ignore_samples_with_sr_less_than, dir))
+		cur_frame_dataset = getTimeSeries(n_subver, cur_audio_kwargs, cur_preprocess_wavs, cur_dir, cur_ignore_samples_with_sr_less_than, return_filepaths)
+
 		datasets[i],     (n_pos[i],     n_neg[i])     = deepcopy(cur_frame_dataset.train_n_test)
 		datasets_aug[i], (n_pos_aug[i], n_neg_aug[i]) = deepcopy(cur_frame_dataset.only_training)
 
@@ -506,6 +589,9 @@ function KDDDataset((n_task,n_version),
 		@assert n_pos_aug[1] == n_pos_aug[i] "n_pos_aug mismatching class count across frames:\n\tn_pos_aug[1] = $(n_pos_aug[1]) != n_pos_aug[i] = $(n_pos_aug[i]))"
 		@assert n_neg_aug[1] == n_neg_aug[i] "n_neg_aug mismatching class count across frames:\n\tn_neg_aug[1] = $(n_neg_aug[1]) != n_neg_aug[i] = $(n_neg_aug[i]))"
 	end
+
+	datasets = couples_cough_n_breath(n_version, datasets)
+	datasets_aug = couples_cough_n_breath(n_version, datasets_aug)
 
 	d =
 		if return_filepaths
