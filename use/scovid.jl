@@ -12,7 +12,7 @@ train_seed = 2
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./covid/journal-v13-cough-40bands-smaller-window-rf100"
+results_dir = "./covid/journal-v13-40bands-smaller-window-rf100"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
@@ -185,9 +185,9 @@ exec_n_ver_n_task_use_aug_dataset_dir_preprocess = [
 	##############################################################################
 	##############################################################################
 	
-	# ("b",1,false,"KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
-	# ("b",2,true, "KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
-	# ("b",3,true, "KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
+	("b",1,false,"KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
+	("b",2,true, "KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
+	("b",3,true, "KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
 	
 	# ("b",1,false,"KDD",["Normalize", "RemSilence"]),
 	# ("b",2,true, "KDD",["Normalize", "RemSilence"]),
@@ -241,8 +241,7 @@ exec_base_freq_max = [700]
 # push!(iteration_blacklist, (fbtype    = :fcmel, base_freq = :autocor))
 # push!(iteration_blacklist, (fbtype    = :fcmel, base_freq_min = 200))
 
-# exec_nbands = [30] # [20,40,60]
-exec_nbands = [40] # [20,40,60]
+exec_nbands = [40,30] # [20,40,60]
 
 combine_moving_averages((size1,step1), (size2,step2)) = begin
 	(1*size1+(size2-1)*step1,step1*step2)
@@ -261,20 +260,20 @@ exec_wintime_steptime_dataset_kwargs =   [(
 		ma_step = 15,
 	)
 	),(
-	(0.025,0.010),(
-		max_points = 50,
-		ma_size = 30,
-		ma_step = 20,
-	)
+	# (0.025,0.010),(
+	# 	max_points = 50,
+	# 	ma_size = 30,
+	# 	ma_step = 20,
+	# )
 	# ),(
 	# combine_moving_averages((0.025,0.010),(30,20)),(
 	# 	max_points = 50,
 	# ),(
-	# (0.025,0.010),(
-	# 	max_points = 50,
-	# 	ma_size = 45,
-	# 	ma_step = 30,
-	# )
+	(0.025,0.010),(
+		max_points = 50,
+		ma_size = 45,
+		ma_step = 30,
+	)
 	# ),(
 	# combine_moving_averages((0.025,0.010),(45,30)),(
 	# 	max_points = 50,
