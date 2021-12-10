@@ -634,14 +634,11 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			base_freq_min = makecouple(base_freq_min)
 			base_freq_max = makecouple(base_freq_max)
 
-			t = Tuple([
+			Tuple([
 				merge(
 					audio_kwargs_partial_mfcc(max_sample_rate[i], wintime[i], steptime[i], nbands[i], fbtype[i], minfreq[i], base_freq[i], base_freq_min[i], base_freq_max[i])
 				, (;))
 			for i in 1:2])
-
-			println(t)
-			t
 		else
 			merge(
 				audio_kwargs_partial_mfcc(max_sample_rate, wintime, steptime, nbands, fbtype, minfreq, base_freq, base_freq_min, base_freq_max)

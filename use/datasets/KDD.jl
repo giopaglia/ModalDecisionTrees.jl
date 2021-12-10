@@ -251,6 +251,14 @@ KDD_getSamplesList(folders::AbstractVector{<:AbstractString}, n_version, use_aug
 			base_samples = [sort(glob("$(removesuffix(filepath, ".wav"))*.wav", dir)) for filepath in base_samples] |> Iterators.flatten |> collect
 			aug_samples  = [sort(glob("$(removesuffix(filepath, ".wav"))*.wav", dir)) for filepath in aug_samples]  |> Iterators.flatten |> collect
 
+			# filter out possible duplicates
+			filter!((filepath)-> !contains(filepath, "_aug"), base_samples)
+			filter!((filepath)-> contains(filepath, "_aug"), aug_samples)
+
+			# filter out _mono files
+			filter!((filepath)-> !contains(filepath, "_mono.wav"), base_samples)
+			filter!((filepath)-> !contains(filepath, "_mono.wav"), aug_samples)
+
 			# println(base_samples)
 
 			if rel_path
@@ -524,47 +532,88 @@ function KDDDataset((n_task,n_version),
 		end
 	end
 
-	couples_cough_n_breath(n_versions, datasets) = datasets
-	function couples_cough_n_breath(n_versions::NTuple{2,Integer}, datasets)
-		# global kdd_has_augmentation_data
-		# global kdd_has_subfolder_structure
-		# global kdd_augmentation_file_suffixes
-		#
-		# c, b = n_versions == (1, 2) ? (1, 2) : (2, 1) # to use `c` as cough index and `b` as breath index
-		#
-		# c_subfolder, c_file_suffix, c_file_prefix = ("cough","cough","cough_")
-		# b_subfolder, b_file_suffix, b_file_prefix = ("breath","breathe","breaths_")
-		#
-		# files_map = JSON.parsefile(kdd_data_dir * "files.json")
-		#
-		# cough2breath_map = Dict{String,String}()
-		# for k in filter(x -> contains("android"), keys(files_map))
-		# 	for couple in files_map[k]
-		# 		cough_file = couple[findfirst(x -> !isnothing(match(Regex("^$b_file_prefix"), x)), couple)]
-		# 		breath_file = couple[findfirst(x -> !isnothing(match(Regex("^$b_file_prefix"), x)), couple)]
-		#
-		# 		cough2breath_map["$c_folder/$subfolder/$filepath"] =
-		# 			"$folder/$subfolder/$filepath"
-		# 	end
-		# end
-		# for k in filter(x -> contains("web"), keys(files_map))
-		# 	for couple in files_map[k]
-		# 		cough2breath_map[]
-		# 		map((filepath)->"$folder/$subfolder/$filepath", these_samples)
-		# 		"$folder/$subfoldname/audio_file_$(file_suffix).wav"
-		# 	end
-		# end
-		#
-		# these_samples =
-		# 	if folder in kdd_has_subfolder_structure
-		# 		map((subfoldname)->"$folder/$subfoldname/audio_file_$(file_suffix).wav", these_samples)
-		# 	else
-		# 		filter!((filepath)->startswith(filepath,file_prefix), these_samples)
-		# 		map((filepath)->"$folder/$subfolder/$filepath", these_samples)
-		# 	end
+	couples_cough_n_breath(n_versions, datasets, n_pos, n_neg) = datasets, n_pos, n_neg
+	function couples_cough_n_breath(n_versions::NTuple{2,Integer}, datasets, n_pos, n_neg)
+		global kdd_has_augmentation_data
+		global kdd_has_subfolder_structure
+		global kdd_augmentation_file_suffixes
 
+		c, b = n_versions == (1, 2) ? (1, 2) : (2, 1) # to use `c` as cough index and `b` as breath index
 
-		return datasets
+		c_subfolder, c_file_suffix, c_file_prefix = ("cough","cough","cough_")
+		b_subfolder, b_file_suffix, b_file_prefix = ("breath","breathe","breaths_")
+
+		files_map = JSON.parsefile(kdd_data_dir * "files.json")
+
+		cough2breath_map = Dict{String,String}()
+		for k in filter(x -> contains(x, "android"), keys(files_map))
+			for couple in files_map[k]
+				cough_file = couple[findfirst(x -> !isnothing(match(Regex("^$c_file_prefix"), x)), couple)]
+				breath_file = couple[findfirst(x -> !isnothing(match(Regex("^$b_file_prefix"), x)), couple)]
+
+				cough2breath_map["$k/$c_subfolder/$cough_file"] = "$k/$b_subfolder/$breath_file"
+			end
+		end
+		for k in filter(x -> contains(x, "web"), keys(files_map))
+			for folder_name in files_map[k]
+				cough2breath_map["$k/$(folder_name[1])/audio_file_$(c_file_suffix).wav"] =
+					"$k/$(folder_name[1])/audio_file_$(b_file_suffix).wav"
+			end
+		end
+
+		# cut to first wav found in filepath
+		cs(s::AbstractString) = s[1:findfirst(".wav", s).stop]
+		c_csr(s::AbstractString) = replace(cs(s), dir[c] => "")
+		b_csr(s::AbstractString) = replace(cs(s), dir[b] => "")
+
+		println("#######################################################")
+		println("#######################################################")
+		println("#######################################################")
+
+		c_files = datasets[c][3]
+		b_files = datasets[b][3]
+		final_slices = Vector{Tuple{Int64,Int64}}()
+		println("Binding loaded instances for multiframe version...")
+		for (i, c_f) in enumerate(c_files)
+			if contains(c_csr(c_f), "_mono.wav")
+				# ignore _mono files to avoid dupicates in dataset (since all channels will be merged in all tracks)
+				continue
+			end
+
+			corr_b_file = findall(x -> startswith(x, b_csr(cough2breath_map[c_csr(c_f)])), b_csr.(b_files))
+
+			if length(corr_b_file) > 0
+				println("○┬─ $(c_f) [$(i)]")
+				for c_b_i in corr_b_file[1:(end-1)]
+					println(" ├─ $(b_files[c_b_i]) [$(c_b_i)]")
+				end
+				println(" └─ $(b_files[corr_b_file[end]]) [$(length(corr_b_file))]")
+			end
+
+			for b_f_i in corr_b_file
+				push!(final_slices, (i, b_f_i))
+			end
+		end
+
+		println("final_slices length: $(length(final_slices))")
+		println(final_slices)
+
+		if length(final_slices) > 0
+			for i in 1:length(datasets)
+				datasets[i] = (
+					datasets[i][1][:,:,[couple[i] for couple in final_slices]],
+					datasets[i][2][[couple[i] for couple in final_slices]],
+					datasets[i][3][[couple[i] for couple in final_slices]]
+				)
+			end
+		end
+
+		for i in 1:length(datasets)
+			n_pos[i] = length(filter(x -> startswith(x, "YES"), datasets[i][2]))
+			n_neg[i] = length(datasets[i][2]) - n_pos[i]
+		end
+
+		return datasets, n_pos, n_neg
 	end
 
 	datasets = Vector(undef, length(n_version))
@@ -576,11 +625,23 @@ function KDDDataset((n_task,n_version),
 	n_neg_aug    = Vector(undef, length(n_version))
 
 	for (i, (n_subver, cur_audio_kwargs, cur_preprocess_wavs, cur_ignore_samples_with_sr_less_than, cur_dir)) in enumerate(zip(n_version, audio_kwargs, preprocess_wavs, ignore_samples_with_sr_less_than, dir))
-		cur_frame_dataset = getTimeSeries(n_subver, cur_audio_kwargs, cur_preprocess_wavs, cur_dir, cur_ignore_samples_with_sr_less_than, return_filepaths)
+		cur_frame_dataset = getTimeSeries(n_subver, cur_audio_kwargs, cur_preprocess_wavs, cur_dir, cur_ignore_samples_with_sr_less_than, return_filepaths || length(n_version) > 1)
 
 		datasets[i],     (n_pos[i],     n_neg[i])     = deepcopy(cur_frame_dataset.train_n_test)
 		datasets_aug[i], (n_pos_aug[i], n_neg_aug[i]) = deepcopy(cur_frame_dataset.only_training)
+	end
 
+	for i in 1:length(datasets)
+		if return_filepaths || length(n_version) > 1
+			common_files = intersect(datasets[i][3], datasets_aug[i][3])
+			@assert length(common_files) == 0 "Found duplicates file in `datasets` and `datasets_aug`: $(common_files)"
+		end
+	end
+
+	datasets, n_pos, n_neg = couples_cough_n_breath(n_version, datasets, n_pos, n_neg)
+	datasets_aug, n_pos_aug, n_neg_aug = couples_cough_n_breath(n_version, datasets_aug, n_pos_aug, n_neg_aug)
+
+	for i in 2:length(datasets)
 		@assert datasets[1][2] == datasets[i][2] "mismatching classes:\n\tdatasets[1][2] = $(datasets[1][2])\n\tdatasets[i][2] = $(datasets[i][2])"
 		@assert n_pos[1] == n_pos[i] "n_pos mismatching class count across frames:\n\tn_pos[1] = $(n_pos[1]) != n_pos[i] = $(n_pos[i]))"
 		@assert n_neg[1] == n_neg[i] "n_neg mismatching class count across frames:\n\tn_neg[1] = $(n_neg[1]) != n_neg[i] = $(n_neg[i]))"
@@ -589,9 +650,6 @@ function KDDDataset((n_task,n_version),
 		@assert n_pos_aug[1] == n_pos_aug[i] "n_pos_aug mismatching class count across frames:\n\tn_pos_aug[1] = $(n_pos_aug[1]) != n_pos_aug[i] = $(n_pos_aug[i]))"
 		@assert n_neg_aug[1] == n_neg_aug[i] "n_neg_aug mismatching class count across frames:\n\tn_neg_aug[1] = $(n_neg_aug[1]) != n_neg_aug[i] = $(n_neg_aug[i]))"
 	end
-
-	datasets = couples_cough_n_breath(n_version, datasets)
-	datasets_aug = couples_cough_n_breath(n_version, datasets_aug)
 
 	d =
 		if return_filepaths
