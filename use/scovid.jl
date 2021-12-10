@@ -241,8 +241,7 @@ exec_base_freq_max = [700]
 # push!(iteration_blacklist, (fbtype    = :fcmel, base_freq = :autocor))
 # push!(iteration_blacklist, (fbtype    = :fcmel, base_freq_min = 200))
 
-# exec_nbands = [30] # [20,40,60]
-exec_nbands = [40] # [20,40,60]
+exec_nbands = [40,30] # [20,40,60]
 
 combine_moving_averages((size1,step1), (size2,step2)) = begin
 	(1*size1+(size2-1)*step1,step1*step2)
@@ -261,20 +260,20 @@ exec_wintime_steptime_dataset_kwargs =   [(
 		ma_step = 15,
 	)
 	),(
-	(0.025,0.010),(
-		max_points = 50,
-		ma_size = 30,
-		ma_step = 20,
-	)
+	# (0.025,0.010),(
+	# 	max_points = 50,
+	# 	ma_size = 30,
+	# 	ma_step = 20,
+	# )
 	# ),(
 	# combine_moving_averages((0.025,0.010),(30,20)),(
 	# 	max_points = 50,
 	# ),(
-	# (0.025,0.010),(
-	# 	max_points = 50,
-	# 	ma_size = 45,
-	# 	ma_step = 30,
-	# )
+	(0.025,0.010),(
+		max_points = 50,
+		ma_size = 45,
+		ma_step = 30,
+	)
 	# ),(
 	# combine_moving_averages((0.025,0.010),(45,30)),(
 	# 	max_points = 50,

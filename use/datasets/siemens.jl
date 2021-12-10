@@ -324,7 +324,7 @@ end
 
 
 function trip_no_trip(dir::String;
-		n_machine::Union{Nothing, Int64} = nothing,
+		n_datasource::Union{Nothing, Integer} = nothing,
 		ignore_class0 = true,
 		sortby_datasource = false,
 		only_consider_trip_days = true,
@@ -335,6 +335,7 @@ function trip_no_trip(dir::String;
 		ma_size = nothing,
 		ma_step = nothing,
 		ignore_uneven_cuts = true,
+		ignore_datasources :: AbstractVector{<:Integer} = [],
 		)
 	attributes = CSV.File(dir * "/Example_1.csv", drop = [1, 2]) |> DataFrame |> names
 	println("Attributes: $(attributes)")
@@ -354,20 +355,30 @@ function trip_no_trip(dir::String;
 	datasource_counts = []
 
 	samples_refs = []
+	n_ignored_rows = 0
 	for row in eachrow(datainfo)
 		if ignore_class0 && row.Class == 0
 			continue
 		elseif only_consider_trip_days && ! (row.Class == 1 && row.Day == 4)
 			continue
 		else
-			# Only return a single machine
-			if !isnothing(n_machine) && row.Datasource != n_machine
+			# Only return a single datasource
+			if !isnothing(n_datasource) && Int64(row.Datasource) != n_datasource
+				n_ignored_rows += 1
 				continue
 			end
 
-			push!(samples_refs, (row.Datasource, (row.ExampleID, Day)))
+			# Ignore datasources that are in ignore_datasources
+			if Int64(row.Datasource) in ignore_datasources
+				n_ignored_rows += 1
+				continue
+			end
+
+			push!(samples_refs, (Int64(row.Datasource), (row.ExampleID, Day)))
 		end
 	end
+
+	println("trip_no_trip: $(n_ignored_rows) data samples were ignored.")
 
 	sort!(samples_refs)
 	datasources = unique(getindex.(samples_refs, 1))
