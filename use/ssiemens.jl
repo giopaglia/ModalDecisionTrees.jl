@@ -19,7 +19,7 @@ train_seed = 1
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./siemens/TURBOEXPO-regression-v7-only-3-datasources-n-balanced-dataseed0"
+results_dir = "./siemens/TURBOEXPO-regression-v8-analysis-first"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
@@ -205,29 +205,34 @@ exec_moving_average = [
 		ma_size = 10,
 		ma_step = 10,
 	),
-	# (
-	# 	ma_size = 6,
-	# 	ma_step = 6,
-	# ),
-	# (
-	# 	ma_size = 5,
-	# 	ma_step = 5,
-	# ),
+	# # (
+	# # 	ma_size = 6,
+	# # 	ma_step = 6,
+	# # ),
+	# # (
+	# # 	ma_size = 5,
+	# # 	ma_step = 5,
+	# # ),
 	(
 		ma_size = 4,
 		ma_step = 4,
 	),
-	(
-		ma_size = 3,
-		ma_step = 3,
-	),
-	(
-		ma_size = 2,
-		ma_step = 2,
-	),
+	# (
+	# 	ma_size = 3,
+	# 	ma_step = 3,
+	# ),
+	# (
+	# 	ma_size = 2,
+	# 	ma_step = 2,
+	# ),
+	# (
+	# 	ma_size = 1,
+	# 	ma_step = 1,
+	# ),
 ]
 
-exec_ignore_datasources = [[42894], []]
+exec_ignore_datasources = [[42894]]
+# exec_ignore_datasources = [[], [42894]]
 
 exec_ranges = (;
 	datadirname                                  = exec_datadirname,
@@ -565,35 +570,44 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			],
 		])
 		
-		descriptors_abbr = Dict([
+		descriptor_abbrs = Dict([
+		 	##########################################################################
 		 	:mean_m                                        => "M",
 		 	:max_m                                         => "MAX",
 		 	:min_m                                         => "MIN",
+		 	##########################################################################
 		 	:DN_HistogramMode_5                            => "Z5",
 		 	:DN_HistogramMode_10                           => "Z10",
-		 	:CO_Embed2_Dist_tau_d_expfit_meandiff          => "C",
-		 	:CO_f1ecac                                     => "A",
-		 	:CO_FirstMin_ac                                => "B",
-		 	:CO_HistogramAMI_even_2_5                      => "FC",
-		 	:CO_trev_1_num                                 => "FM",
-		 	:DN_OutlierInclude_p_001_mdrmd                 => "TP",
-		 	:DN_OutlierInclude_n_001_mdrmd                 => "C",
-		 	:FC_LocalSimple_mean1_tauresrat                => "ME",
-		 	:FC_LocalSimple_mean3_stderr                   => "TR",
-		 	:IN_AutoMutualInfoStats_40_gaussian_fmmi       => "AI",
-		 	:MD_hrv_classic_pnn40                          => "FMAI",
-		 	:SB_BinaryStats_diff_longstretch0              => "PD",
-		 	:SB_BinaryStats_mean_longstretch1              => "LP",
-		 	:SB_MotifThree_quantile_hh                     => "EN",
-		 	:SC_FluctAnal_2_rsrangefit_50_1_logi_prop_r1   => "CC",
-		 	:SC_FluctAnal_2_dfa_50_1_2_logi_prop_r1        => "EF",
-		 	:SP_Summaries_welch_rect_area_5_1              => "FDFA",
-		 	:SP_Summaries_welch_rect_centroid              => "FLF",
-		 	:SB_TransitionMatrix_3ac_sumdiagcov            => "TC",
-		 	:PD_PeriodicityWang_th0_01                     => "PM",
+		 	##########################################################################
+		 	:SB_BinaryStats_mean_longstretch1              => "C",
+		 	:DN_OutlierInclude_p_001_mdrmd                 => "A",
+		 	:DN_OutlierInclude_n_001_mdrmd                 => "B",
+		 	##########################################################################
+			:CO_f1ecac                                     => "FC",
+			:CO_FirstMin_ac                                => "FM",
+			:SP_Summaries_welch_rect_area_5_1              => "TP",
+			:SP_Summaries_welch_rect_centroid              => "C",
+			:FC_LocalSimple_mean3_stderr                   => "ME",
+		 	##########################################################################
+			:CO_trev_1_num                                 => "TR",
+			:CO_HistogramAMI_even_2_5                      => "AI",
+			:IN_AutoMutualInfoStats_40_gaussian_fmmi       => "FMAI",
+		 	##########################################################################
+			:MD_hrv_classic_pnn40                          => "PD",
+			:SB_BinaryStats_diff_longstretch0              => "LP",
+			:SB_MotifThree_quantile_hh                     => "EN",
+			:FC_LocalSimple_mean1_tauresrat                => "CC",
+			:CO_Embed2_Dist_tau_d_expfit_meandiff          => "EF",
+		 	##########################################################################
+			:SC_FluctAnal_2_dfa_50_1_2_logi_prop_r1        => "FDFA",
+			:SC_FluctAnal_2_rsrangefit_50_1_logi_prop_r1   => "FLF",
+		 	##########################################################################
+			:SB_TransitionMatrix_3ac_sumdiagcov            => "TC",
+			:PD_PeriodicityWang_th0_01                     => "PM",
+		 	##########################################################################
 		 ])
 
-		_attributes_abbr = Dict([
+		_attribute_abbrs = Dict([
 		  "Ambient_air_humidity"                         => "AMB_H",
 		  "Ambient_air_temperature"                      => "AMB_T",
 		  "Gas_fuel_valve_position"                      => "GAS_P",
@@ -621,23 +635,44 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		  "Exhaust_temperature_16"                       => "EX_T16",
 		 ])
 
-		attributes_abbr = [_attributes_abbr[attr_name] for attr_name in attribute_names]
+		attribute_abbrs = [_attribute_abbrs[attr_name] for attr_name in attribute_names]
 
-		run_file_prefix = strip("$(results_dir)/plotdescription-$(run_name)", '"')
-
-		# best_attributes_idxs, best_descriptors = [1,2,8,13,14], [:min_m, :max_m, :mean_m, :CO_FirstMin_ac, :SB_BinaryStats_mean_longstretch1]
-		best_attributes_idxs, best_descriptors = single_frame_blind_feature_selection((X,Y), attribute_names, grouped_descriptors, run_file_prefix, n_desired_attributes, n_desired_features; savefigs = savefigs, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr, export_dat = true)
+		run_file_prefix = "$(results_dir)/plotdescription-$(run_name)"
+		run_file_prefix = replace(run_file_prefix, "\"" => "")
+		best_attributes_idxs, best_descriptors = [1,2,8,14,13], [:min_m, :CO_FirstMin_ac, :max_m, :mean_m, :SB_BinaryStats_mean_longstretch1]
+		# best_attributes_idxs, best_descriptors = single_frame_blind_feature_selection(
+		# 	(X,Y),
+		# 	attribute_names,
+		# 	grouped_descriptors,
+		# 	run_file_prefix,
+		# 	n_desired_attributes,
+		# 	n_desired_features;
+		# 	savefigs = savefigs,
+		# 	descriptor_abbrs = descriptor_abbrs,
+		# 	attribute_abbrs = attribute_abbrs,
+		# 	export_csv = true,
+		# 	# join_plots = [],
+		# )
 		
-		if savefigs
-			descriptors = collect(Iterators.flatten([values(grouped_descriptors)...]))
-			single_frame_target_aware_analysis((X,Y), attribute_names, descriptors, run_file_prefix; savefigs = savefigs, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr, export_dat = true)
-		end
+		# if savefigs
+		# 	descriptors = collect(Iterators.flatten([values(grouped_descriptors)...]))
+		# 	single_frame_target_aware_analysis((X,Y), attribute_names, descriptors, run_file_prefix; savefigs = savefigs, descriptor_abbrs = descriptor_abbrs, attribute_abbrs = attribute_abbrs, export_csv = true)
+		# end
 
 		X = X[:,best_attributes_idxs,:]
 		Y = Y[:]
 
 		if savefigs
-			single_frame_target_aware_analysis((X,Y), attribute_names[best_attributes_idxs], best_descriptors, run_file_prefix*"-best"; savefigs = savefigs, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr, export_dat = true)
+			single_frame_target_aware_analysis(
+				(X,Y),
+				attribute_names[best_attributes_idxs],
+				best_descriptors,
+				run_file_prefix*"-sub";
+				savefigs = savefigs,
+				descriptor_abbrs = descriptor_abbrs,
+				attribute_abbrs = attribute_abbrs[best_attributes_idxs],
+				export_csv = true,
+			)
 		end
 		
 		# println(typeof(p))

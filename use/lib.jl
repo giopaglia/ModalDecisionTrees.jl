@@ -12,6 +12,13 @@ function get_hash_sha256(var)::String
 	result
 end
 
+# # https://discourse.julialang.org/t/removing-characters-from-string/53962
+# function removechar(string::AbstractString, c::Char)
+# 	r = Regex("$(c)")
+# 	idx = eachmatch(r, string) .|> o -> o.offset
+# 	result = String(deleteat!(collect(string), idx))
+# end
+
 function checkpoint_stdout(string::String)
 	println("● ", Dates.format(Dates.now(), "[ dd/mm/yyyy HH:MM:SS ] "), string)
 	flush(stdout)
