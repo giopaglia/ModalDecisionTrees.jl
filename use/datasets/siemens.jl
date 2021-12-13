@@ -335,7 +335,7 @@ function trip_no_trip(dir::String;
 		ma_size = nothing,
 		ma_step = nothing,
 		ignore_uneven_cuts = true,
-		ignore_datasources :: AbstractVector{<:Integer} = [],
+		ignore_datasources = [], # :: AbstractVector{<:Integer} = [],
 		)
 	attributes = CSV.File(dir * "/Example_1.csv", drop = [1, 2]) |> DataFrame |> names
 	println("Attributes: $(attributes)")
