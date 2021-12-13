@@ -623,7 +623,7 @@ function exec_scan(
 		T_test =
 			if split_threshold != 1.0
 				println("Test tree:")
-				print_apply_tree(T, X_test, Y_test)
+				print_apply_tree(T, X_test, Y_test; print_relative_confidence = true)
 			else
 				print_apply_tree(T, X_test, Y_test; update_majority = true, do_print = false)
 			end
