@@ -598,7 +598,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	if dry_run == false
 		exec_scan(
 			params_namedtuple,
-			linearized_dataset;
+			dataset;
 			### Training params
 			train_seed                      =   train_seed,
 			modal_args                      =   cur_modal_args,
