@@ -567,6 +567,9 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		dataset[1][i_frame] = aggr_points(dataset[1][i_frame], curr_aggr_points)
 	end
 
+	###### convert labels to float64
+	dataset = (dataset[1], Float64[dataset[2]...])
+
 	# println("Dataset after:")
 	# for (i_frame, frame) in enumerate(dataset[1])
 	# 	println("Frame $(i_frame): $(size(frame))")
