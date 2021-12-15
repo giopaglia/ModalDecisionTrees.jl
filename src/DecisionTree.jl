@@ -253,7 +253,61 @@ apply_model(forest::Forest, args...; kwargs...) = apply_forest(forest, args...; 
 
 print_apply_model(tree::DTree, args...; kwargs...) = print_apply_tree(tree, args...; kwargs...)
 
-function print_tree(io::IO, leaf::DTLeaf{String}, depth=-1, indent=0, indent_guides=[]; n_tot_inst = nothing, rel_confidence_class_counts = nothing)
+################################################################################
+################################################################################
+################################################################################
+
+function show(io::IO, leaf::DTLeaf)
+	println(io, "Decision Leaf")
+	println(io, "Majority: $(leaf.majority)")
+	println(io, "Samples:  $(length(leaf.values))")
+	print_tree(io, leaf)
+end
+
+function show(io::IO, tree::DTInternal)
+	println(io, "Decision Node")
+	println(io, display_decision(tree))
+	println(io, "Leaves: $(length(tree))")
+	println(io, "Tot nodes: $(num_nodes(tree))")
+	println(io, "Height: $(height(tree))")
+	println(io, "Modal height:  $(modal_height(tree))")
+	print_tree(io, tree)
+end
+
+function show(io::IO, tree::DTree)
+	println(io, "Decision Tree")
+	println(io, "Leaves: $(length(tree))")
+	println(io, "Tot nodes: $(num_nodes(tree))")
+	println(io, "Height: $(height(tree))")
+	println(io, "Modal height:  $(modal_height(tree))")
+	print_tree(io, tree)
+end
+
+function show(io::IO, forest::Forest)
+	println(io, "Forest")
+	println(io, "Num trees: $(length(forest))")
+	println(io, "Out-Of-Bag Error: $(forest.oob_error)")
+	println(io, "ConfusionMatrix: $(forest.cm)")
+	println(io, "Trees:")
+	print_forest(io, forest)
+end
+
+################################################################################
+################################################################################
+################################################################################
+
+print_tree(a::Union{DTree,DTNode}, args...; kwargs...) = print_tree(stdout, a, args...; kwargs...)
+print_forest(a::Forest, args...; kwargs...) = print_forest(stdout, a, args...; kwargs...)
+
+function print_tree(
+	io::IO,
+	leaf::DTLeaf{String},
+	depth=-1,
+	indent=0,
+	indent_guides=[];
+	n_tot_inst = nothing,
+	rel_confidence_class_counts = nothing,
+)
 	matches = findall(leaf.values .== leaf.majority)
 
 	n_correct = length(matches)
@@ -300,7 +354,16 @@ function print_tree(io::IO, leaf::DTLeaf{String}, depth=-1, indent=0, indent_gui
 
 	println(io, "$(leaf.majority) : $(n_correct)/$(n_inst) ($(metrics_str))")
 end
-function print_tree(io::IO, leaf::DTLeaf{<:Float64}, depth=-1, indent=0, indent_guides=[]; n_tot_inst = nothing, rel_confidence_class_counts = nothing)
+
+function print_tree(
+	io::IO,
+	leaf::DTLeaf{<:Float64},
+	depth=-1,
+	indent=0,
+	indent_guides=[];
+	n_tot_inst = nothing,
+	rel_confidence_class_counts = nothing
+)
 	
 	n_inst = length(leaf.values)
 	
@@ -321,9 +384,16 @@ function print_tree(io::IO, leaf::DTLeaf{<:Float64}, depth=-1, indent=0, indent_
 
 	println(io, "$(leaf.majority) : $(n_inst) ($(metrics_str))")
 end
-print_tree(leaf::DTLeaf, depth=-1, indent=0, indent_guides=[]; kwargs...) = print_tree(stdout, leaf, depth, indent, indent_guides; kwargs...)
 
-function print_tree(io::IO, tree::DTInternal, depth=-1, indent=0, indent_guides=[]; n_tot_inst = nothing, rel_confidence_class_counts = nothing)
+function print_tree(
+	io::IO,
+	tree::DTInternal,
+	depth=-1,
+	indent=0,
+	indent_guides=[];
+	n_tot_inst = nothing,
+	rel_confidence_class_counts = nothing,
+)
 	if depth == indent
 		println(io, "")
 		return
@@ -347,9 +417,13 @@ function print_tree(io::IO, tree::DTInternal, depth=-1, indent=0, indent_guides=
 	print(io, indent_str * "✘ ")
 	print_tree(io, tree.right, depth, indent + 1, [indent_guides..., 0]; n_tot_inst = n_tot_inst, rel_confidence_class_counts)
 end
-print_tree(tree::DTInternal, depth=-1, indent=0, indent_guides=[]; kwargs...) = print_tree(stdout, tree, depth, indent, indent_guides; kwargs...)
 
-function print_tree(io::IO, tree::DTree; n_tot_inst = nothing, rel_confidence_class_counts = nothing)
+function print_tree(
+	io::IO,
+	tree::DTree;
+	n_tot_inst = nothing,
+	rel_confidence_class_counts = nothing,
+)
 	println(io, "worldTypes: $(tree.worldTypes)")
 	println(io, "initConditions: $(tree.initConditions)")
 
@@ -363,53 +437,23 @@ function print_tree(io::IO, tree::DTree; n_tot_inst = nothing, rel_confidence_cl
 	
 	print_tree(io, tree.root, n_tot_inst = n_tot_inst, rel_confidence_class_counts = rel_confidence_class_counts)
 end
-print_tree(tree::DTree; kwargs...) = print_tree(stdout, tree; kwargs...)
 
-function show(io::IO, leaf::DTLeaf)
-	println(io, "Decision Leaf")
-	println(io, "Majority: $(leaf.majority)")
-	println(io, "Samples:  $(length(leaf.values))")
-	print_tree(io, leaf)
-end
-
-function show(io::IO, tree::DTInternal)
-	println(io, "Decision Node")
-	println(io, display_decision(tree))
-	println(io, "Leaves: $(length(tree))")
-	println(io, "Tot nodes: $(num_nodes(tree))")
-	println(io, "Height: $(height(tree))")
-	println(io, "Modal height:  $(modal_height(tree))")
-	print_tree(io, tree)
-end
-
-function show(io::IO, tree::DTree)
-	println(io, "Decision Tree")
-	println(io, "Leaves: $(length(tree))")
-	println(io, "Tot nodes: $(num_nodes(tree))")
-	println(io, "Height: $(height(tree))")
-	println(io, "Modal height:  $(modal_height(tree))")
-	print_tree(io, tree)
-end
-
-
-function print_forest(io::IO, forest::Forest)
+function print_forest(
+	io::IO,
+	forest::Forest,
+	args...;
+	kwargs...
+)
 	n_trees = length(forest)
 	for i in 1:n_trees
 		println(io, "Tree $(i) / $(n_trees)")
-		print_tree(io, forest.trees[i])
+		print_tree(io, forest.trees[i], args...; kwargs...)
 	end
 end
-print_forest(forest::Forest) = print_forest(stdout, forest::Forest)
 
-function show(io::IO, forest::Forest)
-	println(io, "Forest")
-	println(io, "Num trees: $(length(forest))")
-	println(io, "Out-Of-Bag Error: $(forest.oob_error)")
-	println(io, "ConfusionMatrix: $(forest.cm)")
-	println(io, "Trees:")
-	print_forest(io, forest)
-end
-
+################################################################################
+################################################################################
+################################################################################
 
 # TODO fix this using specified purity
 function prune_tree(tree::DTNode, max_purity_threshold::AbstractFloat = 1.0)
@@ -461,8 +505,8 @@ end
 # TODO avoid these fallbacks?
 inst_init_world_sets(X::SingleFrameGenericDataset, tree::DTree, i_instance::Integer) = 
 	inst_init_world_sets(MultiFrameModalDataset(X), tree, i_instance)
-print_apply_tree(tree::DTree{S}, X::SingleFrameGenericDataset, Y::Vector{S}; reset_leaves = true, update_majority = false) where {S} = 
-	print_apply_tree(tree, MultiFrameModalDataset(X), Y; reset_leaves = reset_leaves, update_majority = update_majority)
+print_apply_tree(tree::DTree{S}, X::SingleFrameGenericDataset, Y::Vector{S}; kwargs...) where {S} = 
+	print_apply_tree(tree, MultiFrameModalDataset(X), Y; kwargs...)
 
 inst_init_world_sets(Xs::MultiFrameModalDataset, tree::DTree, i_instance::Integer) = begin
 	Ss = Vector{WorldSet}(undef, n_frames(Xs))
@@ -589,7 +633,14 @@ function print_apply_tree(leaf::DTLeaf{S}, X::Any, i_instance::Integer, worlds::
 	return DTLeaf(majority, vals)
 end
 
-function print_apply_tree(tree::DTInternal{T, S}, X::MultiFrameModalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, class::S; update_majority = false) where {T, S}
+function print_apply_tree(
+	tree::DTInternal{T, S},
+	X::MultiFrameModalDataset,
+	i_instance::Integer,
+	worlds::AbstractVector{<:AbstractWorldSet},
+	class::S;
+	update_majority = false,
+) where {T, S}
 	
 	(satisfied,new_worlds) = ModalLogic.modal_step(get_frame(X, tree.i_frame), i_instance, worlds[tree.i_frame], tree.relation, tree.feature, tree.test_operator, tree.threshold)
 	
@@ -610,7 +661,16 @@ function print_apply_tree(tree::DTInternal{T, S}, X::MultiFrameModalDataset, i_i
 	)
 end
 
-function print_apply_tree(io::IO, tree::DTree{S}, X::GenericDataset, Y::Vector{S}; reset_leaves = true, update_majority = false, do_print = true, print_relative_confidence = false) where {S}
+function print_apply_tree(
+	io::IO,
+	tree::DTree{S},
+	X::GenericDataset,
+	Y::Vector{S};
+	reset_leaves = true,
+	update_majority = false,
+	do_print = true,
+	print_relative_confidence = false,
+) where {S}
 	# Reset 
 	tree = (reset_leaves ? _empty_tree_leaves(tree) : tree)
 
@@ -622,7 +682,7 @@ function print_apply_tree(io::IO, tree::DTree{S}, X::GenericDataset, Y::Vector{S
 		tree = DTree(
 			print_apply_tree(tree.root, X, i_instance, worlds, Y[i_instance], update_majority = update_majority),
 			tree.worldTypes,
-			tree.initConditions
+			tree.initConditions,
 		)
 	end
 	if do_print
