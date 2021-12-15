@@ -7,13 +7,33 @@ using Measures
 
 using Distributions
 
+
+function latex_df_push_column!(df, col_name, val)
+	df[!,replace(string(col_name), "_" => "")] = val
+end
+
+
+# sort but leave NaN last, or ignore them
+function _sortperm(a; nan_mode = :last, kwargs...)
+	___perm = sortperm(a; kwargs...)
+	# println(p)
+	# println(a[p])
+	if nan_mode == :ignore
+		filter((idx)->!isnan(a[idx]), ___perm)
+	elseif nan_mode == :last
+		[filter((idx)->!isnan(a[idx]), ___perm)..., filter((idx)->isnan(a[idx]), ___perm)...]
+	else
+		error("Unknown nan_mode: $(nan_mode)")
+	end
+end
+
 function update_ylims!(p)
 	_min, _max = Inf, -Inf
 	i = 1
 	while true
 		try p[1][i]
-			_min = min(_min,minimum(p[1][i][:y]))
-			_max = max(_max,maximum(p[1][i][:y]))
+			_min = min(_min,minimum(filter(!isnan, p[1][i][:y])))
+			_max = max(_max,maximum(filter(!isnan, p[1][i][:y])))
 			i += 1
 		catch Error
 			break
@@ -27,10 +47,15 @@ end
 function average_plot(plots)
 	p_avg = Base.deepcopy(plots[length(plots)]);
 	i = 1
-	p_avg[1][i][:y] = [mean(filter(!isnan, [p_i[1][i][:y][i_attr] for p_i in plots])) for i_attr in 1:length(plots[1][1][i][:y])]
+	try p_avg[1][2]
+		error("Can't compute average plot with more than one series!")
+	catch Error
+	end
+	p_avg[1][i][:y] = [mean(filter(!isnan, [p_i[1][i][:y][x] for p_i in plots])) for x in 1:length(plots[length(plots)][1][i][:y])]
 	update_ylims!(p_avg);
+	p_avg[1][i][:label] = ""
 	p_avg[1][:title] = "mean"
-	p_avg;
+	p_avg
 end
 
 function normalize_plot(p)
@@ -38,7 +63,10 @@ function normalize_plot(p)
 	i = 1
 	while true
 		try p_norm[1][i]
-			p_norm[1][i][:y] /= sum(p_norm[1][i][:y])
+			_s = sum(filter(!isnan, p_norm[1][i][:y]))
+			if _s != 0
+				p_norm[1][i][:y] /= _s
+			end
 			i += 1
 		catch Error
 			break
@@ -60,20 +88,31 @@ function compute_mfd(X)
 	mfd = MultiFrameDataset([1:ncol(df)], df)
 end
 
-function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},AbstractVector}, attribute_names::AbstractVector, grouped_descriptors, run_file_prefix, n_desired_attributes, n_desired_features; savefigs = false, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr, export_dat = false) where {T}
+function single_frame_blind_feature_selection(
+		(X, Y)::Tuple{AbstractArray{T,3},AbstractVector},
+		attribute_names::AbstractVector,
+		grouped_descriptors,
+		file_prefix,
+		n_desired_attributes,
+		n_desired_features;
+		savefigs = false,
+		descriptor_abbrs = nothing,
+		attribute_abbrs  = nothing,
+		export_csv = false,
+		join_plots = [], # [:attributes], # array of :attributes, :descriptors
+	) where {T}
 
 	@assert length(attribute_names) == size(X)[end-1] "$(length(attribute_names)) != $(size(X)[end-1])"
 
+	@assert !(export_csv && !isempty(join_plots)) "export_csv requires empty join_plots"
+
 	_savefig = savefigs ? (plot, plot_name)->begin
-		if export_dat
-			plot_name
-		end
-		savefig(plot, "$(run_file_prefix)" * (plot_name == "" ? "" : "-$(plot_name)"))
+			savefig(plot, "$(file_prefix)$((plot_name == "" ? "" : "-$(plot_name)")).png")
 		end : (x...)->(;)
-	
+
 	mfd = compute_mfd(X);
 	# ClassificationMultiFrameDataset(Y, mfd)
-
+	
 	descriptors = collect(Iterators.flatten([values(grouped_descriptors)...]))
 
 	println("Performing dataset pre-analysis!")
@@ -83,14 +122,33 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 	println()
 	println("size(X) = $(size(X))")
 
-	# run_name = "example"
-
-	t = 1
-	p = SoleViz.plotdescription(mfd, descriptors = descriptors, windows = [[[(t,0,0)]]])
-	println(size(p))
-	p = p[:]
+	# file_prefix = "example"
 
 	best_attributes_idxs = begin
+
+		if export_csv
+			df_xattributes = DataFrame()
+			latex_df_push_column!(df_xattributes, :index, collect(0:(length(attribute_names)-1)))
+			# latex_df_push_column!(df_xattributes, :attribute_names, attribute_names)
+			# latex_df_push_column!(df_xattributes, :attribute_abbrs, begin
+			# 		if isnothing(attribute_abbrs)
+			# 			["A$i" for i in 1:length(attribute_names)]
+			# 		else
+			# 			attribute_abbrs
+			# 		end
+			# 	end
+			# )
+		end
+
+		t = 1
+		p = SoleViz.plotdescription(mfd,
+			descriptors = descriptors,
+			windows = [[[(t,0,0)]]],
+			attribute_names = attribute_names,
+			join_plots = :descriptors in join_plots,
+		)
+		println(size(p))
+		p = p[:]
 
 		############################################################################
 		############################################################################
@@ -104,7 +162,8 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 		############################################################################
 		############################################################################
 		############################################################################
-		perm = sortperm(p_avg[1][1][:y], rev=true);
+		perm = _sortperm(p_avg[1][1][:y], rev=true, nan_mode = :last);
+		# perm = sortperm(p_avg[1][1][:y], rev=true);
 		p_sorted = Base.deepcopy(p);
 		for (p_i_idx,p_i) in enumerate(collect(p_sorted))
 			i = 1
@@ -117,7 +176,7 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 				end
 			end
 			if p_i_idx == length(p_sorted)
-				plot!(p_i, xticks = (1:length(perm), [isnothing(attributes_abbr) ? attribute_names[t] : attributes_abbr[t] for t in perm]));
+				plot!(p_i, xticks = (1:length(perm), [isnothing(attribute_abbrs) ? attribute_names[t] : attribute_abbrs[t] for t in perm]));
 			else
 				plot!(p_i, xticks = false)
 			end
@@ -126,8 +185,8 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 
 		p_sorted_avg = Base.deepcopy(p_avg);
 		p_sorted_avg[1][1][:y] = p_sorted_avg[1][1][:y][perm]
-		plot!(p_sorted_avg, xticks = (1:length(perm), [isnothing(attributes_abbr) ? attribute_names[t] : attributes_abbr[t] for t in perm]));
-		# plot!(p_sorted_avg, xticks = (1:length(perm), [isnothing(attributes_abbr) ? attribute_names[t] : attributes_abbr[t] for t in perm]));
+		plot!(p_sorted_avg, xticks = (1:length(perm), [isnothing(attribute_abbrs) ? attribute_names[t] : attribute_abbrs[t] for t in perm]));
+		# plot!(p_sorted_avg, xticks = (1:length(perm), [isnothing(attribute_abbrs) ? attribute_names[t] : attribute_abbrs[t] for t in perm]));
 		_savefig(plot(p_sorted_avg; size = (1920, 1080), margin = 5mm), "sorted-avg");
 		############################################################################
 		############################################################################
@@ -140,20 +199,38 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 		############################################################################
 		############################################################################
 		############################################################################
-		perm = sortperm(p_norm_avg[1][1][:y], rev=true);
+		perm = _sortperm(p_norm_avg[1][1][:y], rev=true, nan_mode = :last);
+		if export_csv
+			_attributenames = attribute_names
+			_attributeabbrs = begin
+					if isnothing(attribute_abbrs)
+						["A$i" for i in 1:length(attribute_names)]
+					else
+						attribute_abbrs
+					end
+				end
+			latex_df_push_column!(df_xattributes, :attribute_names_norm_sorted, _attributenames[perm])
+			latex_df_push_column!(df_xattributes, :attribute_abbrs_norm_sorted, _attributeabbrs[perm])
+		end
+
 		p_sorted = Base.deepcopy(p_norm);
 		for (p_i_idx,p_i) in enumerate(collect(p_sorted))
 			i = 1
 			while true
 				try p_i[1][i]
 					p_i[1][i][:y] = p_i[1][i][:y][perm]
+					if export_csv
+						series_name = string(p_i[1][i][:label]) * "_norm_sorted"
+						println("Exporting series \"$(series_name)\"...")
+						latex_df_push_column!(df_xattributes, series_name, p_i[1][i][:y])
+					end
 					i += 1
 				catch Error
 					break
 				end
 			end
 			if p_i_idx == length(p_sorted)
-				plot!(p_i, xticks = (1:length(perm), [isnothing(attributes_abbr) ? attribute_names[t] : attributes_abbr[t] for t in perm]));
+				plot!(p_i, xticks = (1:length(perm), [isnothing(attribute_abbrs) ? attribute_names[t] : attribute_abbrs[t] for t in perm]));
 			else
 				plot!(p_i, xticks = false)
 			end
@@ -163,9 +240,15 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 		p_sorted_avg = Base.deepcopy(p_norm_avg);
 		for i in 1:length(p_sorted_avg[1])
 			p_sorted_avg[1][i][:y] = p_sorted_avg[1][i][:y][perm]
+			if export_csv
+				series_name = string(p_sorted_avg[1][:title]) * "_norm_sorted"
+				# series_name = Symbol(string(p_sorted_avg[1][:title]) * "_norm_sorted_$(p_sorted_avg[1][i][:label])")
+				println("Exporting series \"$(series_name)\"...")
+				latex_df_push_column!(df_xattributes, series_name, p_sorted_avg[1][i][:y])
+			end
 		end
-		plot!(p_sorted_avg, xticks = (1:length(perm), [isnothing(attributes_abbr) ? attribute_names[t] : attributes_abbr[t] for t in perm]));
-		# plot!(p_sorted_avg, xticks = (1:length(perm), [isnothing(attributes_abbr) ? attribute_names[t] : attributes_abbr[t] for t in perm]));
+		plot!(p_sorted_avg, xticks = (1:length(perm), [isnothing(attribute_abbrs) ? attribute_names[t] : attribute_abbrs[t] for t in perm]));
+		# plot!(p_sorted_avg, xticks = (1:length(perm), [isnothing(attribute_abbrs) ? attribute_names[t] : attribute_abbrs[t] for t in perm]));
 		_savefig(plot(p_sorted_avg; size = (1920, 1080), margin = 5mm), "norm-sorted-avg");
 		############################################################################
 		############################################################################
@@ -173,7 +256,12 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 
 		# display(p_norm_avg)
 
-		p = SoleViz.plotdescription(mfd, descriptors = grouped_descriptors, windows = [[[(t,0,0)]]])
+		p = SoleViz.plotdescription(mfd,
+			descriptors = grouped_descriptors,
+			windows = [[[(t,0,0)]]],
+			attribute_names = attribute_names,
+			join_plots = :descriptors in join_plots,
+		)
 		# println(size(p))
 		p = p[:]
 
@@ -203,8 +291,8 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 					break
 				end
 			end
-			if (p_i_idx % 4) == 0
-				plot!(p_i, xticks = (1:length(perm), [isnothing(attributes_abbr) ? attribute_names[t] : attributes_abbr[t] for t in perm]));
+			if p_i_idx in [7,8]
+				plot!(p_i, xticks = (1:length(perm), [isnothing(attribute_abbrs) ? attribute_names[t] : attribute_abbrs[t] for t in perm]));
 			else
 				plot!(p_i, xticks = false)
 			end
@@ -220,7 +308,7 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 		############################################################################
 		############################################################################
 		############################################################################
-		perm = sortperm(p_norm_avg[1][1][:y], rev=true)
+		perm = _sortperm(p_norm_avg[1][1][:y], rev=true, nan_mode = :last)
 		p_sorted = Base.deepcopy(p_norm);
 		for (p_i_idx,p_i) in enumerate(collect(p_sorted))
 			i = 1
@@ -232,8 +320,8 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 					break
 				end
 			end
-			if (p_i_idx % 4) == 0
-				plot!(p_i, xticks = (1:length(perm), [isnothing(attributes_abbr) ? attribute_names[t] : attributes_abbr[t] for t in perm]));
+			if p_i_idx in [7,8]
+				plot!(p_i, xticks = (1:length(perm), [isnothing(attribute_abbrs) ? attribute_names[t] : attribute_abbrs[t] for t in perm]));
 			else
 				plot!(p_i, xticks = false)
 			end
@@ -243,6 +331,9 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 		############################################################################
 		############################################################################
 		############################################################################
+		
+		CSV.write("$(file_prefix)-xattributes.csv",  df_xattributes)
+
 		perm[1:n_desired_attributes]
 	end
 
@@ -250,15 +341,36 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 	Y_sub = Y[:]
 
 	println("Selecting $(length(best_attributes_idxs)) attributes: $(best_attributes_idxs)...")
-	println(["$(t): $(attribute_names[t])" for t in best_attributes_idxs])
+	attribute_names_sub = attribute_names[best_attributes_idxs]
+	println(["$(t): $(n)" for (t,n) in zip(best_attributes_idxs,attribute_names_sub)])
 
 	mfd_sub = compute_mfd(X_sub);
 
-	p = SoleViz.plotdescription(mfd_sub, descriptors = descriptors, windows = [[[(t,0,0)]]], on_x_axis = :descriptors)
-	println(size(p))
-	p = p[:]
-
 	best_descriptors = begin
+		
+		if export_csv
+			df_xdescriptors = DataFrame()
+			latex_df_push_column!(df_xdescriptors, :index, collect(0:(length(descriptors)-1)))
+			# latex_df_push_column!(df_xdescriptors, :descriptor_names, string.(descriptors))
+			# latex_df_push_column!(df_xdescriptors, :descriptor_abbrs, begin
+			# 		if isnothing(descriptor_abbrs)
+			# 			string.(descriptors)
+			# 		else
+			# 			[descriptor_abbrs[d] for d in descriptors]
+			# 		end
+			# 	end
+			# )
+		end
+
+		p = SoleViz.plotdescription(mfd_sub,
+			descriptors = descriptors,
+			windows = [[[(t,0,0)]]],
+			on_x_axis = :descriptors,
+			attribute_names = attribute_names_sub,
+			join_plots = :attributes in join_plots,
+		)
+		println(size(p))
+		p = p[:]
 
 		############################################################################
 		############################################################################
@@ -275,7 +387,7 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 		############################################################################
 		############################################################################
 		############################################################################
-		perm = sortperm(p_avg[1][1][:y], rev=true)
+		perm = _sortperm(p_avg[1][1][:y], rev=true, nan_mode = :last)
 		p_sorted = Base.deepcopy(p);
 		for (p_i_idx,p_i) in enumerate(collect(p_sorted))
 			i = 1
@@ -287,8 +399,8 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 					break
 				end
 			end
-			if (p_i_idx % 4) == 0
-				plot!(p_i, xticks = (1:length(perm), [isnothing(descriptors_abbr) ? string(descriptors[t]) : descriptors_abbr[descriptors[t]] for t in perm]));
+			if (p_i_idx % 5) == 0
+				plot!(p_i, xticks = (1:length(perm), [isnothing(descriptor_abbrs) ? string(descriptors[t]) : descriptor_abbrs[descriptors[t]] for t in perm]));
 			else
 				plot!(p_i, xticks = false)
 			end
@@ -306,20 +418,37 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 		############################################################################
 		############################################################################
 		############################################################################
-		perm = sortperm(p_norm_avg[1][1][:y], rev=true)
+		perm = _sortperm(p_norm_avg[1][1][:y], rev=true, nan_mode = :last)
+		if export_csv
+			_descriptornames = string.(descriptors)
+			_descriptorabbrs = begin
+				if isnothing(descriptor_abbrs)
+					string.(descriptors)
+				else
+					[descriptor_abbrs[d] for d in descriptors]
+				end
+			end
+			latex_df_push_column!(df_xdescriptors, :descriptor_names_norm_sorted, _descriptornames[perm])
+			latex_df_push_column!(df_xdescriptors, :descriptor_abbrs_norm_sorted, _descriptorabbrs[perm])
+		end
 		p_sorted = Base.deepcopy(p_norm);
 		for (p_i_idx,p_i) in enumerate(collect(p_sorted))
 			i = 1
 			while true
 				try p_i[1][i]
 					p_i[1][i][:y] = p_i[1][i][:y][perm]
+					if export_csv
+						series_name = string(p_i[1][i][:label]) * "_norm_sorted"
+						println("Exporting series \"$(series_name)\"...")
+						latex_df_push_column!(df_xdescriptors, series_name, p_i[1][i][:y])
+					end
 					i += 1
 				catch Error
 					break
 				end
 			end
-			if (p_i_idx % 4) == 0
-				plot!(p_i, xticks = (1:length(perm), [isnothing(descriptors_abbr) ? string(descriptors[t]) : descriptors_abbr[descriptors[t]] for t in perm]));
+			if (p_i_idx % 5) == 0
+				plot!(p_i, xticks = (1:length(perm), [isnothing(descriptor_abbrs) ? string(descriptors[t]) : descriptor_abbrs[descriptors[t]] for t in perm]));
 			else
 				plot!(p_i, xticks = false)
 			end
@@ -329,15 +458,25 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 		p_sorted_avg = Base.deepcopy(p_norm_avg);
 		for i in 1:length(p_sorted_avg[1])
 			p_sorted_avg[1][i][:y] = p_sorted_avg[1][i][:y][perm]
+			if export_csv
+				series_name = string(p_sorted_avg[1][:title]) * "_norm_sorted"
+				println("Exporting series \"$(series_name)\"...")
+				latex_df_push_column!(df_xdescriptors, series_name, p_sorted_avg[1][i][:y])
+				# df_xdescriptors[!,string(p_sorted_avg[1][:title]) * "_norm_sorted_$(p_sorted_avg[1][i][:label])"] = p_sorted_avg[1][i][:y]
+			end
 		end
-		plot!(p_sorted_avg, xticks = (1:length(perm), [isnothing(descriptors_abbr) ? string(descriptors[t]) : descriptors_abbr[descriptors[t]] for t in perm]));
-		# plot!(p_sorted_avg, xticks = (1:length(perm), [isnothing(descriptors_abbr) ? string(descriptors[t]) : descriptors_abbr[descriptors[t]] for t in perm]));
+		plot!(p_sorted_avg, xticks = (1:length(perm), [isnothing(descriptor_abbrs) ? string(descriptors[t]) : descriptor_abbrs[descriptors[t]] for t in perm]));
+		# plot!(p_sorted_avg, xticks = (1:length(perm), [isnothing(descriptor_abbrs) ? string(descriptors[t]) : descriptor_abbrs[descriptors[t]] for t in perm]));
 		_savefig(plot(p_sorted_avg; size = (1920, 1080), margin = 5mm), "transposed-norm-sorted-avg");
 		############################################################################
 		############################################################################
 		############################################################################
 
-		descriptors[perm[1:n_desired_features]]
+		best_descriptors = descriptors[perm[1:n_desired_features]]
+
+		CSV.write("$(file_prefix)-xdescriptors.csv", df_xdescriptors)
+
+		best_descriptors
 	end
 	
 	println("Selecting $(length(best_descriptors)) descriptors: $(best_descriptors)...")
@@ -347,16 +486,29 @@ function single_frame_blind_feature_selection((X, Y)::Tuple{AbstractArray{T,3},A
 end
 
 # descriptors = best_descriptors
-# single_frame_target_aware_analysis((X, Y), attribute_names, descriptors, run_file_prefix; savefigs = false, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr)
+# single_frame_target_aware_analysis((X, Y), attribute_names, descriptors, file_prefix; savefigs = false, descriptor_abbrs = descriptor_abbrs, attribute_abbrs = attribute_abbrs)
 
-function single_frame_target_aware_analysis((X, Y)::Tuple{AbstractArray{T,3},AbstractVector{<:String}}, attribute_names::AbstractVector, descriptors, run_file_prefix; savefigs = false, descriptors_abbr = descriptors_abbr, attributes_abbr = attributes_abbr, export_dat = false, plot_normals = false) where {T}
+function single_frame_target_aware_analysis((X, Y)::Tuple{AbstractArray{T,3},AbstractVector{<:String}},
+		attribute_names::AbstractVector,
+		descriptors,
+		file_prefix;
+		savefigs = false,
+		descriptor_abbrs = nothing,
+		attribute_abbrs  = nothing,
+		export_csv = false,
+		plot_normals = false,
+	) where {T}
 	
 	@assert length(attribute_names) == size(X)[end-1] "$(length(attribute_names)) != $(size(X)[end-1])"
 
 	mfd = compute_mfd(X);
 
-	_savefig = savefigs ? savefig : (x...)->(;)
+	n_instances = size(X)[end]
 
+	_savefig = savefigs ? (plot, plot_name)->begin
+			savefig(plot, "$(file_prefix)$((plot_name == "" ? "" : "-$(plot_name)")).png")
+		end : (x...)->(;)
+	
 	win = 1
 
 	descriptions = SoleBase.describe(mfd; desc = descriptors, t = [[(win,0,0)]])[1]
@@ -375,7 +527,8 @@ function single_frame_target_aware_analysis((X, Y)::Tuple{AbstractArray{T,3},Abs
 		end
 	end
 
-	plots = Array(undef, length(descriptors), length(attribute_names))
+	df_distribution = DataFrame()
+	plots = Matrix{Any}(undef, length(descriptors), length(attribute_names))
 	for (i_attribute,attribute_name) in enumerate(attribute_names)
 		for (i_descriptor,descriptor) in enumerate(descriptors)
 			subp = plot() # title = string(descriptor))
@@ -383,13 +536,27 @@ function single_frame_target_aware_analysis((X, Y)::Tuple{AbstractArray{T,3},Abs
 			# class_is_normal = []
 
 			# histogram!(subp, values[i_descriptor,i_attribute]...)
-			for (v, class_name) in zip(values[i_descriptor,i_attribute], class_names)
+			for (i_class,(v, class_name)) in enumerate(zip(values[i_descriptor,i_attribute], class_names))
 
-				# histogram!(subp, v)
-				density!(subp, v, legend = false)
-				if plot_normals
-					plot!(subp, fit(Normal, v)) #, fill=(0, .5,:orange))
+				try
+					# histogram!(subp, v)
+					density!(subp, v, legend = false)
+
+					if export_csv
+						att = (isnothing(attribute_abbrs) ? attribute_name : attribute_abbrs[i_attribute])
+						desc = (isnothing(descriptor_abbrs) ? descriptor : descriptor_abbrs[descriptor])
+						latex_df_push_column!(df_distribution, "$(att)-$(desc)-$(class_name)-x", deepcopy(collect(subp[1][i_class][:x])))
+						latex_df_push_column!(df_distribution, "$(att)-$(desc)-$(class_name)-y", deepcopy(collect(subp[1][i_class][:y])))
+						# CSV.write("$(file_prefix)-distribution-$(att)-$(desc)-$(class_name).csv", df_distribution)
+					end
+				catch ArgumentError
+					println("ERROR! In plotting density for attribute $(attribute_name) and descriptor $(descriptor): $(v)")
 				end
+
+				# if plot_normals
+				# 	# ERROR: if we plot normals on subp, export_csv fails (it just has to be fixed)
+				# 	plot!(subp, fit(Normal, v)) #, fill=(0, .5,:orange))
+				# end
 
 				# push!(class_is_normal, )
 
@@ -399,12 +566,18 @@ function single_frame_target_aware_analysis((X, Y)::Tuple{AbstractArray{T,3},Abs
 		end
 	end
 
-	p = plot!(plots..., size = (1920, 1080), margin = 5mm, showaxis = false, grid = false, labels = class_names)
-	
+	CSV.write("$(file_prefix)-xdistributions.csv", df_distribution)
+
+ 	p = plot!(plots..., size = (1920, 1080), margin = 5mm, labels = class_names)
 	# p = plot!(p..., title = "$(attribute_name)", size = (1920, 1080), margin = 5mm)
 	# display(p)
 	# _savefig(plot!(p..., size = (1920, 1080), margin = 5mm), "$(attribute_name)");
 	# readline()
 
+ 	println("single_frame_target_aware_analysis:")
+ 	println("- all-plot attributes: $(attribute_names)")
+ 	println("- all-plot descriptors: $(descriptors)")
+ 	
+ 	
 	_savefig(p, "all");
 end
