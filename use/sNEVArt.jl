@@ -614,6 +614,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		exec_scan(
 			params_namedtuple,
 			dataset;
+			is_regression_problem           =   (eltype(Y) != String),
 			### Training params
 			train_seed                      =   train_seed,
 			modal_args                      =   cur_modal_args,
