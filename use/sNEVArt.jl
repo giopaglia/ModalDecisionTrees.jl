@@ -180,7 +180,7 @@ exec_dataset_params = [
 	("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Vector{Int64}}(:EEG => collect(1:25), :ECG => collect(1:7)),true)
 ]
 
-const datasets = Dict{String,Vector{Int64}}(
+const datasets_dict = Dict{String,Vector{Int64}}(
 	"sure-v1" => sure_dataset_ids
 )
 
@@ -263,7 +263,7 @@ function dataset_function(
 )
 	return NEVArtDataset(
 		"$(data_dir)/NEVArt";
-		ids = datasets[dataset_name],
+		ids = datasets_dict[dataset_name],
 		signals = signals,
 		labels = labels,
 		static_attrs = static_attrs,
