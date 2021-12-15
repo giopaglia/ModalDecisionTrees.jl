@@ -20,8 +20,8 @@ iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 
-dry_run = false
-# dry_run = :dataset_only
+# dry_run = false
+dry_run = :dataset_only
 # dry_run = :model_study
 # dry_run = true
 
@@ -79,7 +79,7 @@ optimize_forest_computation = true
 
 forest_args = []
 
-for n_trees in [50, 100]
+for n_trees in [50]
 # for n_trees in [50]
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
@@ -146,6 +146,8 @@ round_dataset_to_datatype = false
 # round_dataset_to_datatype = Float32
 # round_dataset_to_datatype = Float64
 
+n_cv_folds = 7
+
 split_threshold = 0.8
 # split_threshold = 1.0
 # split_threshold = false
@@ -158,13 +160,11 @@ split_threshold = 0.8
 test_flattened = false
 test_averaged  = false
 
-prefer_nonaug_data = true
-
 ################################################################################
 ##################################### SCAN #####################################
 ################################################################################
 
-exec_dataseed = 1:10
+exec_dataseed = 1:n_cv_folds
 
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization]
@@ -175,17 +175,17 @@ ECG_default = (nbands = 30, wintime = 0.025, steptime = 0.0175)
 exec_dataset_params = [
 	# (ids,signals,lables,static_attrs,signal_transformation,keep_only_bands,force_single_frame)
 	("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Vector{Int64}}(:EEG => collect(1:25)),false)
-	# ("sure-v1",[:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:ECG => ECG_default),Dict{Symbol,Vector{Int64}}(:ECG => collect(1:7)),false)
-	# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Vector{Int64}}(:EEG => collect(1:25), :ECG => collect(1:7)),false)
-	# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Vector{Int64}}(:EEG => collect(1:25), :ECG => collect(1:7)),true)
+	("sure-v1",[:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:ECG => ECG_default),Dict{Symbol,Vector{Int64}}(:ECG => collect(1:7)),false)
+	("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Vector{Int64}}(:EEG => collect(1:25), :ECG => collect(1:7)),false)
+	("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Vector{Int64}}(:EEG => collect(1:25), :ECG => collect(1:7)),true)
 ]
 
 const datasets = Dict{String,Vector{Int64}}(
 	"sure-v1" => sure_dataset_ids
 )
 
-exec_aggr_points = [5]#, 10, 15, 20]
-exec_length = ["1/4"]#, "2/4", "3/4", "4/4"]
+exec_aggr_points = [5, 10, 15, 20]
+exec_length = ["1/4", "2/4", "3/4", "4/4"]
 
 length_dict = Dict{String,Function}(
 	"1/4" => x -> max(1, floor(Int64, size(x, 1) * 0.25)),
@@ -579,6 +579,10 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 					(Vector{Integer}(collect(setdiff(Set(1:n_insts), Set(test_idxs)))), Vector{Integer}(collect(test_idxs)))
 				end
 			end) for dataseed in todo_dataseeds]
+	end
+
+	for ds in dataset_slices
+		println(ds)
 	end
 
 	println("Dataseeds = $(todo_dataseeds)")
