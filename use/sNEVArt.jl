@@ -48,10 +48,11 @@ tree_args = [
 #	)
 ]
 
-for loss_function in [nothing]
-	for min_samples_leaf in [2,4] # [1,2]
-		for min_purity_increase in [0.01] # [0.01, 0.001]
-			for max_purity_at_leaf in [0.4, 0.5, 0.6] # [0.4, 0.6]
+for loss_function in [nothing] # DecisionTree.util.variance
+	for min_samples_leaf in [4] # [1,2]
+		for min_purity_increase in [0.1, 0.02, 0.015, 0.01, 0.0075, 0.005] # , 0.001, 0.0001, 0.00005, 0.00002, 0.00001, 0.0] # [0.01, 0.001]
+		# for min_purity_increase in [0.0] # ,0.01, 0.001]
+			for max_purity_at_leaf in [0.001] # [0.4, 0.6]
 				push!(tree_args,
 					(
 						loss_function       = loss_function,
