@@ -199,16 +199,15 @@ cut_length(X::AbstractArray, l) = X
 
 aggr_points(X::AbstractArray, n::Integer) = X
 function aggr_points(X::AbstractArray{T,3}, n::Integer) where T
-	chunksize = min(ceil(Int64, size(X, 1) / n), 1)
+	chunksize = max(ceil(Int64, size(X, 1) / n), 1)
 
 	res = Array{T,3}(undef, (n, size(X, 2), size(X, 3)))
 
 	for i in 0:(n-1)
+		left = (i * chunksize) + 1
+		right = i == n-1 ? size(X, 1) : (i+1) * chunksize
 		for j in 1:size(X, 2)
 			for k in 1:size(X, 3)
-				left = (i * chunksize) + 1
-				right = i == n-1 ? size(X, 1) : (i+1) * chunksize
-				println(left, " ", right)
 				res[i+1,j,k] = mean(X[collect(left:right),j,k])
 			end
 		end
@@ -554,11 +553,23 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	# Load Dataset
 	dataset = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
 
+	# println("Dataset before:")
+	# for (i_frame, frame) in enumerate(dataset[1])
+	# 	println("Frame $(i_frame): $(size(frame))")
+	# end
+
 	######### aggregate points
-	# 1) cut length
-	dataset = (cut_length(dataset[1], curr_length_fraction), dataset[2])
-	# 2) real aggregation
-	dataset = (aggr_points(dataset[1], curr_aggr_points), dataset[2])
+	for (i_frame, frame) in enumerate(dataset[1])
+		# 1) cut length
+		dataset[1][i_frame] = cut_length(dataset[1][i_frame], curr_length_fraction)
+		# 2) real aggregation
+		dataset[1][i_frame] = aggr_points(dataset[1][i_frame], curr_aggr_points)
+	end
+
+	# println("Dataset after:")
+	# for (i_frame, frame) in enumerate(dataset[1])
+	# 	println("Frame $(i_frame): $(size(frame))")
+	# end
 
 	## Dataset slices
 	# obtain dataseeds that are were not done before
@@ -581,9 +592,9 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			end) for dataseed in todo_dataseeds]
 	end
 
-	for ds in dataset_slices
-		println(ds)
-	end
+	# for ds in dataset_slices
+	# 	println(ds)
+	# end
 
 	println("Dataseeds = $(todo_dataseeds)")
 
