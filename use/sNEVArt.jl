@@ -20,8 +20,8 @@ iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 
-# dry_run = false
-dry_run = :dataset_only
+dry_run = false
+# dry_run = :dataset_only
 # dry_run = :model_study
 # dry_run = true
 
@@ -148,8 +148,8 @@ round_dataset_to_datatype = false
 
 n_cv_folds = 7
 
-split_threshold = 0.8
-# split_threshold = 1.0
+# split_threshold = 0.8
+split_threshold = 1.0
 # split_threshold = false
 
 # use_training_form = :dimensional
