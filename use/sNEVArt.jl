@@ -85,18 +85,18 @@ for n_trees in [50]
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
 			for partial_sampling in [0.7]
-				push!(forest_args, (
-					n_subfeatures       = n_subfeatures,
-					n_trees             = n_trees,
-					partial_sampling    = partial_sampling,
-					n_subrelations      = n_subrelations,
-					# Optimization arguments for trees in a forest (no pruning is performed)
-					loss_function       = nothing,
-					# min_samples_leaf    = 1,
-					# min_purity_increase = 0.0,
-					# max_purity_at_leaf  = Inf,
-					perform_consistency_check = perform_consistency_check,
-				))
+				# push!(forest_args, (
+				# 	n_subfeatures       = n_subfeatures,
+				# 	n_trees             = n_trees,
+				# 	partial_sampling    = partial_sampling,
+				# 	n_subrelations      = n_subrelations,
+				# 	# Optimization arguments for trees in a forest (no pruning is performed)
+				# 	loss_function       = nothing,
+				# 	# min_samples_leaf    = 1,
+				# 	# min_purity_increase = 0.0,
+				# 	# max_purity_at_leaf  = Inf,
+				# 	perform_consistency_check = perform_consistency_check,
+				# ))
 			end
 		end
 	end
