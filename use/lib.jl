@@ -68,6 +68,23 @@ _test_function_trend(vec::Vector{<:Number}, op::Function; approx::Real = 1.0)::B
 	length(vec) > 1 ? length(findall([ op((vec[i+1] - vec[i]), 0)  for i in 1:(length(vec)-1) ])) >= round(Int64, (length(vec)-1)*clamp(approx,0,1)) : true
 
 isnondecreasing(vec::Vector{<:Number}; approx::Real = 1.0)::Bool = _test_function_trend(vec, >=; approx = approx)
-isdecreasing(vec::Vector{<:Number}; approx::Real = 1.0)::Bool = _test_function_trend(vec, <; approx = approx)
+isdecreasing(vec::Vector{<:Number}; approx::Real = 1.0)::Bool    = _test_function_trend(vec, <;  approx = approx)
 isnonincreasing(vec::Vector{<:Number}; approx::Real = 1.0)::Bool = _test_function_trend(vec, <=; approx = approx)
-isincreasing(vec::Vector{<:Number}; approx::Real = 1.0)::Bool = _test_function_trend(vec, >; approx = approx)
+isincreasing(vec::Vector{<:Number}; approx::Real = 1.0)::Bool    = _test_function_trend(vec, >;  approx = approx)
+
+function show_matrix_sans_type(m::AbstractMatrix)
+	"[$(join([show_vector_sans_type(s) for s in eachslice(m, dims=1)],","))]"
+end
+
+function show_vector_sans_type(v::AbstractVector)
+	"[$(show_vector_sans_type_no_brackets(v))]"
+end
+
+function show_vector_sans_type_no_brackets(v::AbstractVector)
+  out_str = ""
+  for (i, elt) in enumerate(v)
+    i > 1 && (out_str *= ", ")
+    out_str *= "$(elt)"
+  end
+  out_str
+end

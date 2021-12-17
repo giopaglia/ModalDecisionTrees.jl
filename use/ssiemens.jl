@@ -193,18 +193,18 @@ exec_regression_step_in_minutes = [10]
 exec_regression_window_in_minutes = [60]
 
 exec_moving_average = [
-	(
-		ma_size = 15,
-		ma_step = 15,
-	),
-	(
-		ma_size = 12,
-		ma_step = 12,
-	),
-	(
-		ma_size = 10,
-		ma_step = 10,
-	),
+	# (
+	# 	ma_size = 15,
+	# 	ma_step = 15,
+	# ),
+	# (
+	# 	ma_size = 12,
+	# 	ma_step = 12,
+	# ),
+	# (
+	# 	ma_size = 10,
+	# 	ma_step = 10,
+	# ),
 	# # (
 	# # 	ma_size = 6,
 	# # 	ma_step = 6,
@@ -213,10 +213,10 @@ exec_moving_average = [
 	# # 	ma_size = 5,
 	# # 	ma_step = 5,
 	# # ),
-	(
-		ma_size = 4,
-		ma_step = 4,
-	),
+	# (
+	# 	ma_size = 4,
+	# 	ma_step = 4,
+	# ),
 	# (
 	# 	ma_size = 3,
 	# 	ma_step = 3,
@@ -225,14 +225,14 @@ exec_moving_average = [
 	# 	ma_size = 2,
 	# 	ma_step = 2,
 	# ),
-	# (
-	# 	ma_size = 1,
-	# 	ma_step = 1,
-	# ),
+	(
+		ma_size = 1,
+		ma_step = 1,
+	),
 ]
 
-exec_ignore_datasources = [[42894]]
-# exec_ignore_datasources = [[], [42894]]
+# exec_ignore_datasources = [[42894]]
+exec_ignore_datasources = [[], [42894]]
 
 exec_ranges = (;
 	datadirname                                  = exec_datadirname,
@@ -530,8 +530,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		n_desired_attributes = 5
 		n_desired_features   = 5
 
-		# savefigs = true
-		savefigs = false
+		savefigs = true
+		# savefigs = false
 
 		grouped_descriptors = OrderedDict([
 			"Basic stats" => [
@@ -586,7 +586,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			:CO_f1ecac                                     => "FC",
 			:CO_FirstMin_ac                                => "FM",
 			:SP_Summaries_welch_rect_area_5_1              => "TP",
-			:SP_Summaries_welch_rect_centroid              => "C",
+			:SP_Summaries_welch_rect_centroid              => "CE",
 			:FC_LocalSimple_mean3_stderr                   => "ME",
 		 	##########################################################################
 			:CO_trev_1_num                                 => "TR",
@@ -739,7 +739,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		end
 
 		cur_data_modal_args = merge(cur_data_modal_args, (;
-			canonical_features = Vector{Union{ModalLogic.CanonicalFeature,Function,Tuple{TestOperatorFun,Function}}}(collect(Iterators.flatten(getCanonicalFeature.(best_descriptors))))
+			canonical_features = Vector{Union{CanonicalFeature,Function,Tuple{TestOperatorFun,Function}}}(collect(Iterators.flatten(getCanonicalFeature.(best_descriptors))))
 		))
 
 	end
