@@ -147,7 +147,7 @@ include("featureTypes.jl")
 
 abstract type CanonicalFeature end
 
-export CanonicalFeatureGeq, CanonicalFeatureLeq
+export CanonicalFeature, CanonicalFeatureGeq, CanonicalFeatureLeq
 
 # ⪴ and ⪳, that is, "*all* of the values on this world are at least, or at most ..."
 struct _CanonicalFeatureGeq <: CanonicalFeature end; const CanonicalFeatureGeq  = _CanonicalFeatureGeq();
