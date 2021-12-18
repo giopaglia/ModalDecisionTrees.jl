@@ -175,10 +175,10 @@ exec_use_training_form = [:stump_with_memoization]
 # https://github.com/JuliaIO/JSON.jl/issues/203
 # https://discourse.julialang.org/t/json-type-serialization/9794
 # TODO: make test operators types serializable
-# exec_test_operators = [ "TestOp" ]
-exec_test_operators = [ "TestOp_80" ]
+# exec_canonical_features = [ "TestOp" ]
+exec_canonical_features = [ "TestOp_80" ]
 
-test_operators_dict = Dict(
+canonical_features_dict = Dict(
 	"TestOp_70" => [TestOpGeq_70, TestOpLeq_70],
 	"TestOp_80" => [TestOpGeq_80, TestOpLeq_80],
 	"TestOp_90" => [TestOpGeq_90, TestOpLeq_90],
@@ -221,7 +221,7 @@ exec_n_chunks = [missing]
 
 exec_ranges = (;
 	use_training_form                = exec_use_training_form              ,
-	test_operators                   = exec_test_operators                 ,
+	canonical_features                   = exec_canonical_features                 ,
 	dataset_name                     = exec_dataset_name                   ,
 	use_catch22_flatten_ontology     = exec_use_catch22_flatten_ontology   ,
 	# use_catch22                      = exec_use_catch22                    ,
@@ -335,19 +335,19 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	
 	use_training_form,
-	test_operators,
+	canonical_features,
 	dataset_name,
 	(use_catch22,flatten,ontology),
 	n_chunks = params_combination
 	
-	test_operators = test_operators_dict[test_operators]
+	canonical_features = canonical_features_dict[canonical_features]
 	ontology = ontology_dict[ontology]
 
 	cur_modal_args = modal_args
 	
 	cur_data_modal_args = merge(data_modal_args,
 		(
-			test_operators = test_operators,
+			canonical_features = canonical_features,
 			ontology = ontology,
 		)
 	)
