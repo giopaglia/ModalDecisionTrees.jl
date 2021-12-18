@@ -28,7 +28,7 @@ data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 
 dry_run = false
-# dry_run = :dataset_only
+#dry_run = :dataset_only
 # dry_run = true
 
 # save_datasets = true
@@ -193,10 +193,10 @@ canonical_features_dict = Dict(
 
 exec_dataset_name = [
 	"FingerMovements",
-	"Libras",
-	"LSST",
-	"NATOPS",
-	"RacketSports",	
+	#"Libras",
+	#"LSST",
+	#"NATOPS",
+	#"RacketSports",	
 ]
 
 # exec_flatten_ontology = [(false,"interval2D")] # ,(true,"one_world")]
