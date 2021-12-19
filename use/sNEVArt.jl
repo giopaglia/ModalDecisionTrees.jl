@@ -26,8 +26,8 @@ data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 selected_features_savedir = results_dir * "/selected_features_cache"
 
-# dry_run = false
-dry_run = :dataset_only
+dry_run = false
+# dry_run = :dataset_only
 # dry_run = :model_study
 # dry_run = true
 
@@ -121,12 +121,14 @@ modal_args = (;
 	allowRelationGlob = false,
 )
 
-data_modal_args = (;
-	# ontology = getIntervalOntologyOfDim(Val(1)),
-	# ontology = getIntervalOntologyOfDim(Val(2)),
-	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A]),
-	# ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A, ModalLogic.IA_L, ModalLogic.IA_Li, ModalLogic.IA_D]),
-)
+data_modal_args = [
+# (;
+# 	ontology = getIntervalOntologyOfDim(Val(1)),
+# 	ontology = getIntervalOntologyOfDim(Val(2)),
+# 	ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A]),
+# 	ontology = Ontology{ModalLogic.Interval}([ModalLogic.IA_A, ModalLogic.IA_L, ModalLogic.IA_Li, ModalLogic.IA_D]),
+# )
+]
 
 
 ################################################################################
@@ -189,10 +191,10 @@ exec_convert_to_class_ttest = [nothing, (Tuple{Int8}(25), ("NO", "YES")), (Tuple
 
 exec_dataset_params = [
 	# (ids,signals,lables,static_attrs,signal_transformation,keep_only_bands,force_single_frame)
-	("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),false)
-	# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),false)
+	# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),false)
+	("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),false)
 	# ("sure-v1",[:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:ECG => collect(1:7)),false)
-	# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25), :ECG => collect(1:7)),false)
+	("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25), :ECG => collect(1:7)),false)
 	# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25), :ECG => collect(1:7)),true)
 ]
 
@@ -200,8 +202,8 @@ const datasets_dict = Dict{String,Vector{Int64}}(
 	"sure-v1" => sure_dataset_ids
 )
 
-exec_aggr_points = [5, 20]#, 10, 15, 20]
-exec_length = ["1/4", "4/4"]#, "2/4", "3/4", "4/4"]
+exec_aggr_points = [5]#, 10, 15, 20]
+exec_length = ["1/4"]#, "2/4", "3/4", "4/4"]
 
 length_dict = Dict{String,Function}(
 	"1/4" => x -> max(1, floor(Int64, size(x, 1) * 0.25)),
@@ -236,7 +238,7 @@ end
 # https://discourse.julialang.org/t/json-type-serialization/9794
 # TODO: make test operators types serializable
 # exec_canonical_features = [ "TestOp" ]
-exec_canonical_features = [ "TestOp_80" ]
+exec_canonical_features = [ ["TestOp_80", "TestOp_80"] ]
 
 canonical_features_dict = Dict(
 	"TestOp_70" => [ModalLogic.TestOpGeq_70, ModalLogic.TestOpLeq_70],
@@ -244,7 +246,7 @@ canonical_features_dict = Dict(
 	"TestOp"    => [ModalLogic.TestOpGeq,    ModalLogic.TestOpLeq],
 )
 
-exec_ontology = [ "IA", ] # "IA7", "IA3",
+exec_ontology = [ ["IA", "IA3"] ] # "IA7", "IA3",
 
 ontology_dict = Dict(
 	"-"     => ModalLogic.OneWorldOntology,
@@ -256,6 +258,30 @@ ontology_dict = Dict(
 	"IA2D"  => getIntervalOntologyOfDim(Val(2)),
 	# "o_ALLiDxA" => Ontology{ModalLogic.Interval2D}([ModalLogic.IA_AA, ModalLogic.IA_LA, ModalLogic.IA_LiA, ModalLogic.IA_DA]),
 )
+
+############################################################################################
+
+# exclude iterations that will change only unused parameters
+first_skipped = false
+black_list_prototype = (exec_n_desired_attributes = nothing, exec_n_desired_features = nothing, exec_convert_to_class_ttest = nothing)
+for plural_auto_combination in Base.product(exec_n_desired_attributes, exec_n_desired_features, exec_convert_to_class_ttest)
+
+	global first_skipped
+	if !first_skipped
+		first_skipped = true
+		continue
+	end
+
+	for non_auto_dataset_parameters in filter(x -> !(:auto in values(x[end-1])), exec_dataset_params)
+		push!(iteration_blacklist, merge(NamedTuple([keys(black_list_prototype)[i] => plural_auto_combination[i] for i in 1:length(black_list_prototype)]), (exec_dataset_params = non_auto_dataset_parameters,)))
+	end
+end
+
+# println("\n\nAutomatically selected iterations to be skipped:")
+# for iter in iteration_blacklist
+# 	println(iter)
+# end
+# println("")
 
 
 exec_ranges = (; # Order: faster-changing to slower-changing
@@ -477,17 +503,27 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	canonical_features,
 	ontology = params_combination
 
-	canonical_features = canonical_features_dict[canonical_features]
-	ontology       = ontology_dict[ontology]
-
 	cur_modal_args = modal_args
 
-	cur_data_modal_args = merge(data_modal_args,
-		(
-			canonical_features = canonical_features,
-			ontology       = ontology,
-		)
-	)
+	cur_n_frames = force_single_frame ? 1 : length(signals)
+
+	global data_modal_args
+	cur_dmas = deepcopy(data_modal_args)
+	if length(cur_dmas) == 0
+		# init empty cur_dmas for each frame
+		cur_dmas = fill(NamedTuple(), cur_n_frames)
+	elseif length(cur_dmas) == 1 && cur_n_frames > 1
+		# extend cur_dmas to each frame
+		cur_dmas = [cur_dmas for i in 1:cur_n_frames]
+	end
+
+	cur_data_modal_args = [
+		merge(cur_dmas[i],
+			(
+				canonical_features = canonical_features_dict[canonical_features[i]],
+				ontology           = ontology_dict[ontology[i]],
+			)
+		) for i in 1:cur_n_frames] # NOTE: times the number of frames
 
 	dataset_fun_sub_params = (
 		dataset_name,
@@ -723,7 +759,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 				safe_run_name = replace(safe_run_name, "\\" => ".")
 				safe_run_name = replace(safe_run_name, r"Dict{(?!.*\bDict\b).*}" => "")
 
-				run_file_prefix = "$(results_dir)/$(curr_signal)-$(safe_run_name)/plotdescription"
+				run_file_prefix = "$(results_dir)/plots/$(curr_signal)-$(safe_run_name)/plotdescription"
 				mkpath(dirname(run_file_prefix))
 
 				blind_feature_selection_params = (
@@ -760,8 +796,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 					)
 				end
 
-				# TODO: support multi frame canonical features
-				cur_data_modal_args = merge(cur_data_modal_args, (;
+				cur_data_modal_args[i_frame] = merge(cur_data_modal_args[i_frame], (;
 					canonical_features = Vector{Union{ModalLogic.CanonicalFeature,Function,Tuple{TestOperatorFun,Function}}}(collect(Iterators.flatten(getCanonicalFeature.(best_descriptors))))
 				))
 			else
@@ -872,7 +907,10 @@ println("Done!")
 println("# Iterations $(n_interations_done)/$(n_interations)")
 
 # Notify the Telegram Bot
-@error "Done!"
+try
+	@error "Done!"
+catch
+end
 
 close(logfile_io);
 

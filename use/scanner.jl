@@ -20,7 +20,7 @@ using Test
 # using PProf
 
 
-using DataStructures 
+using DataStructures
 
 using SHA
 using Serialization
@@ -110,7 +110,7 @@ include("datasets.jl")
 # This depends on whether the dataset is already splitted or not.
 @resumable function generate_splits(dataset, split_threshold, round_dataset_to_datatype, save_datasets, run_name, dataset_slices, data_savedir, buildModalDatasets_fun)
 	if split_threshold !== false # Dataset is to be splitted
-		
+
 		# Unpack dataset
 		X, Y = dataset
 
@@ -118,10 +118,10 @@ include("datasets.jl")
 		if round_dataset_to_datatype != false
 			X, Y = round_dataset((X, Y), round_dataset_to_datatype)
 		end
-		
+
 		# Compute mffmd for the full set of instances
 		X_to_train, X_to_test = buildModalDatasets_fun(X, X)
-		
+
 		# TODO
 		# if save_datasets
 		# 	train = (X_to_train, Y)
@@ -165,7 +165,7 @@ include("datasets.jl")
 					# Split in train/test
 					(X_train_slice, Y_train_slice), _ = traintestsplit((X_to_train_slice, Y_slice), split_threshold; return_view = true)
 					_, (X_test_slice, Y_test_slice)   = traintestsplit((X_to_test_slice,  Y_slice), split_threshold; return_view = true)
-					
+
 					(X_train_slice, Y_train_slice, X_test_slice, Y_test_slice)
 				elseif isa(dataset_slice, NTuple{2,<:AbstractVector{<:Integer}})
 					println("train slice: $(dataset_slice[1])")
@@ -184,7 +184,7 @@ include("datasets.jl")
 					throw_n_log("Unknown dataset_slice type: $(typeof(dataset_slice))")
 				end
 			end
-			
+
 			# if save_datasets
 			# 	JLD2.@save "$(data_savedir)/datasets/$(run_name)-$(slice_id)-dataset_slice.jld" dataset_slice
 			# 	sliced = (X_to_train_slice, Y_slice)
@@ -207,7 +207,7 @@ include("datasets.jl")
 		if round_dataset_to_datatype != false
 			(X_train, Y_train), (X_test,  Y_test) = round_dataset(((X_train, Y_train), (X_test,  Y_test)), round_dataset_to_datatype)
 		end
-		
+
 		# Compute mffmd for the training instances
 		X_to_train, X_to_test = buildModalDatasets_fun(X_train, X_test)
 
@@ -260,7 +260,7 @@ include("datasets.jl")
 			# 	sliced_train = (X_train_slice, Y_train_slice)
 			# 	JLD2.@save "$(data_savedir)/datasets/$(run_name)-$(slice_id)-sliced_train.jld" sliced_train
 			# end
-			
+
 			@yield ((X_to_train, X_train), slice_id, ((X_train_slice, Y_train_slice), (X_test_slice, Y_test_slice)))
 		end
 	end
@@ -269,13 +269,13 @@ end
 # TODO: decouple X_dataset_c from 'timing_mode` and 'data_savedir`
 function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_datasets, use_form)
 
-	WorldType = world_type(data_modal_args.ontology)
-
 	Xs = MultiFrameModalDataset()
 
 	# Compute stump for each frame
 	for (i_frame, X) in enumerate(X_all)
 		println("Frame $(i_frame)/$(length(X_all))")
+
+		WorldType = world_type(data_modal_args[i_frame].ontology)
 
 		needToComputeRelationGlob =
 			WorldType != OneWorld && (
@@ -285,14 +285,14 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 		########################################################################
 		########################################################################
 		########################################################################
-		
+
 		# Prepare features
-		
+
 		features = FeatureTypeFun[]
 		featsnops = Vector{<:TestOperatorFun}[]
 
 		for i_attr in 1:n_attributes(X)
-			for canonical_feature in data_modal_args.canonical_features
+			for canonical_feature in data_modal_args[i_frame].canonical_features
 				if canonical_feature == CanonicalFeatureGeq
 					push!(features, ModalLogic.AttributeMinimumFeatureType(i_attr))
 					push!(featsnops, [≥])
@@ -321,23 +321,23 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 		########################################################################
 		########################################################################
 		########################################################################
-		
+
 		X_dataset_sf_c(use_form, X, features, featsnops, needToComputeRelationGlob) = begin
 
 			if use_form == :dimensional
 				if timing_mode == :none
-					OntologicalDataset(X, data_modal_args.ontology, features, featsnops);
+					OntologicalDataset(X, data_modal_args[i_frame].ontology, features, featsnops);
 				# elseif timing_mode == :profile
-					# @profile OntologicalDataset(X, data_modal_args.ontology, features, featsnops);
+					# @profile OntologicalDataset(X, data_modal_args[i_frame].ontology, features, featsnops);
 				elseif timing_mode == :time
-					@time OntologicalDataset(X, data_modal_args.ontology, features, featsnops);
+					@time OntologicalDataset(X, data_modal_args[i_frame].ontology, features, featsnops);
 				elseif timing_mode == :btime
-					@btime OntologicalDataset($X, $data_modal_args.ontology, $features, $featsnops);
+					@btime OntologicalDataset($X, $data_modal_args[i_frame].ontology, $features, $featsnops);
 				end
 			elseif use_form in [:fmd, :stump, :stump_with_memoization]
 
-				X = OntologicalDataset(X, data_modal_args.ontology, features, featsnops)
-			
+				X = OntologicalDataset(X, data_modal_args[i_frame].ontology, features, featsnops)
+
 				if use_form == :fmd
 					if timing_mode == :none
 						FeatModalDataset(X);
@@ -373,8 +373,8 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 				throw_n_log("Unexpected value for use_form: $(use_form)!")
 			end
 		end
-		
-		X_frame = 
+
+		X_frame =
 			if save_datasets
 				# if use_form == :stump_with_memoization # label: use_training_form
 				# 	@cachefast_skipsave "$(dataset_type_str)_dataset" data_savedir (use_form, X, features, featsnops, needToComputeRelationGlob) X_dataset_sf_c
@@ -385,7 +385,7 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 			else
 				X_dataset_sf_c(use_form, X, features, featsnops, needToComputeRelationGlob)
 			end
-		
+
 		# println("Ontological form" * display_structure(X))
 		# println("Stump form" * display_structure(X_frame))
 
@@ -397,7 +397,7 @@ end
 # This function transforms bare MatricialDatasets into modal datasets in the form of ontological or featmodal dataset
 #  The train dataset, unless use_training_form, is transformed in featmodal form, which is optimized for training.
 #  The test dataset is kept in ontological form
-# function buildModalDatasets(Xs_train_all::Union{MatricialDataset,Vector{<:MatricialDataset}}, X_test::Union{MatricialDataset,Vector{<:MatricialDataset}})	
+# function buildModalDatasets(Xs_train_all::Union{MatricialDataset,Vector{<:MatricialDataset}}, X_test::Union{MatricialDataset,Vector{<:MatricialDataset}})
 function buildModalDatasets(X_train, X_test, data_modal_args, modal_args, use_training_form, data_savedir, timing_mode, save_datasets)
 
 	if X_train isa MatricialDataset
@@ -406,18 +406,18 @@ function buildModalDatasets(X_train, X_test, data_modal_args, modal_args, use_tr
 	if X_test isa MatricialDataset
 		X_test = [X_test]
 	end
-	
+
 	@assert !dataset_has_nonevalues(X_train) "dataset_has_nonevalues(X_train)"
 	@assert !dataset_has_nonevalues(X_test)  "dataset_has_nonevalues(X_test)"
 
-	WorldType = world_type(data_modal_args.ontology)
+	# WorldType = world_type(data_modal_args.ontology)
 
 	# The test dataset is kept in its ontological form
 	# X_test = MultiFrameModalDataset([OntologicalDataset(X, WorldType) for X in X_test])
 	# X_test = MultiFrameModalDataset([OntologicalDataset{eltype(X), ndims(X)-1-1, WorldType}(X, nothing, nothing, nothing) for X in X_test])
 	use_test_form = :dimensional
 	X_test = X_dataset_c("test", data_modal_args, X_test, modal_args, save_datasets, use_test_form)
-	
+
 	# The train dataset is either kept in ontological form, or processed into stump form (which allows for optimized learning)
 	X_train =
 		if use_training_form in [:dimensional, :fmd, :stump, :stump_with_memoization]
@@ -433,7 +433,7 @@ function buildModalDatasets(X_train, X_test, data_modal_args, modal_args, use_tr
 		else
 			throw_n_log("Unexpected value for use_training_form: $(use_training_form)!")
 		end
-		
+
 		# println("X_train:")
 		# println("  " * display_structure(X_train; indent_str = "  "))
 
@@ -457,7 +457,7 @@ function exec_scan(
 		test_averaged                   = false,
 		### Dataset params
 		split_threshold                 ::Union{Bool,AbstractFloat} = 1.0,
-		data_modal_args                 = (),
+		data_modal_args                 ::AbstractVector{<:NamedTuple} = [NamedTuple() for i in 1:length(dataset[1])],
 		dataset_slices                  ::Union{
 			AbstractVector{<:Tuple{<:Any,SLICE}},
 			AbstractVector{SLICE},
@@ -479,12 +479,26 @@ function exec_scan(
 		callback                        :: Function = identity,
 		dataset_shape_columns           :: Union{AbstractVector,Nothing} = nothing,
 	) where {SLICE<:Union{<:AbstractVector{<:Integer},<:NTuple{2,<:AbstractVector{<:Integer}}}}
-	
+
 	@assert timing_mode in [:none, :profile, :time, :btime] "Unknown timing_mode!"
 	@assert !legacy_gammas_check "legacy_gammas_check parameter is deprecated!" # TODO remove
-	
+
 	run_name = join([replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)], ",")
-	
+
+	# TODO: check if the use of length(dataset[1]) is always equiv to the number of frames in this context
+	if length(data_modal_args) == 0
+		data_modal_args = fill(NamedTuple(), length(dataset[1]))
+	elseif length(data_modal_args) == 1 && length(dataset[1]) > 1
+		data_modal_args = [data_modal_args for i in 1:length(dataset[1])]
+	end
+
+	@assert length(data_modal_args) >= length(dataset[1]) "Passed wrong number of `data_modal_args` ($(length(data_modal_args))): n_frames = $(length(dataset[1]))"
+
+	if length(data_modal_args) >= length(dataset[1])
+		@warn "Ignoring extra `data_modal_args` passed: n_frames = $(length(dataset[1])) and length(data_modal_args) = $(length(data_modal_args))"
+		data_modal_args = data_modal_args[1:length(dataset[1])]
+	end
+
 	if !isnothing(log_level)
 		println("Warning! scanner.log_level parameter is obsolete. Use logger = ConsoleLogger(stderr, $(log_level)) instead!")
 		logger = ConsoleLogger(stderr, log_level)
@@ -500,7 +514,7 @@ function exec_scan(
 	full_output_filepath    = results_dir * "/full_columns.tsv"
 
 	results_col_sep = "\t"
-	
+
 	base_metrics_names = begin
 			if is_regression_problem
 			[
@@ -530,7 +544,7 @@ function exec_scan(
 	# tree_columns = [base_metrics_names..., "n_nodes", ["best_rule_p $(best_rule_p)" for best_rule_p in best_rule_params]..., "t", "hash"]
 	tree_columns = [base_metrics_names..., "n_nodes", "n_leaves", "height", "modal_height",]
 	forest_columns = [base_metrics_names..., "oob_error", "n_trees", "n_nodes",]
-	
+
 	all_tree_columns = [tree_columns..., "t", "hash"]
 	all_forest_columns = [
 		forest_columns...,
@@ -627,14 +641,14 @@ function exec_scan(
 			else
 				print_apply_tree(T, X_test, Y_test; update_majority = true, do_print = false)
 			end
-		
+
 		cm_train = confusion_matrix(Y_train, apply_tree(T, X_train))
 
 		println(" test size = $(size(X_test))")
 		cm = nothing
 		for pruning_purity_threshold in sort(unique([(Float64.(tree_post_pruning_purity_thresh))...,1.0]))
 			println(" Purity threshold $pruning_purity_threshold")
-			
+
 			T_pruned = prune_tree(T, pruning_purity_threshold)
 			preds = apply_tree(T_pruned, X_test);
 			cm = confusion_matrix(Y_test, preds)
@@ -659,7 +673,7 @@ function exec_scan(
 	end
 
 	go_forest(slice_id, X_train, Y_train, X_test, Y_test, f_args, rng; prebuilt_model::Union{Nothing,AbstractVector{Forest{S}}} = nothing) where {S} = begin
-		Fs, Ft = 
+		Fs, Ft =
 			if isnothing(prebuilt_model)
 				started = Dates.now()
 				[
@@ -691,13 +705,13 @@ function exec_scan(
 		for F in Fs
 			print(F)
 		end
-		
+
 		cms = GenericPerformanceType[]
 		cms_train = GenericPerformanceType[]
 		hashes = []
 		for F in Fs
 			println(" test size = $(size(X_test))")
-			
+
 			cm_train = confusion_matrix(Y_train, apply_forest(F, X_train))
 			push!(cms_train, cm_train)
 
@@ -714,8 +728,8 @@ function exec_scan(
 
 				checkpoint_stdout("Saving random_forest to file $(model_save_path)...")
 				JLD2.@save model_save_path F
-			end    
-  
+			end
+
 			cm_str = begin
 				if is_regression_problem
 					display(cm)
@@ -845,10 +859,10 @@ function exec_scan(
 
 		##############################################################################
 		##############################################################################
-		# PRINT RESULT IN FILES 
+		# PRINT RESULT IN FILES
 		##############################################################################
 		##############################################################################
-		
+
 		function print_result_row(values_for_columns_before, tab_kwargs, output_filepath)
 			out_str = string(join(values_for_columns_before, results_col_sep), results_col_sep)
 			for j in 1:length(tree_args)
@@ -898,7 +912,7 @@ function exec_scan(
 			full_output_filepath,
 			# results_col_sep = results_col_sep, TODO?
 		)
-		
+
 		callback(slice_id)
 
 		Dict(
@@ -912,7 +926,7 @@ function exec_scan(
 			"Fts" => Fts,
 		)
 	end
-	
+
 	##############################################################################
 	##############################################################################
 	##############################################################################
@@ -956,7 +970,7 @@ function exec_scan(
 	old_logger = global_logger(logger);
 
 	rets = []
-	
+
 	buildModalDatasets_fun = (X_train, X_test)->buildModalDatasets(X_train, X_test, data_modal_args, modal_args, use_training_form, data_savedir, timing_mode, save_datasets)
 
 	X_full       = nothing
@@ -965,10 +979,10 @@ function exec_scan(
 	for (X_f_tuple, slice_id, ((X_train,Y_train), (X_test,Y_test))) in generate_splits(dataset, split_threshold, round_dataset_to_datatype, save_datasets, run_name, dataset_slices, data_savedir, buildModalDatasets_fun)
 
 		(X_full, X_full_input) = X_f_tuple
-		
+
 		@assert n_samples(X_train) == length(Y_train)
 		@assert n_samples(X_test)  == length(Y_test)
-		
+
 
 		println("train dataset:")
 		println("  " * display_structure(X_train; indent_str = "  "))
@@ -985,10 +999,10 @@ function exec_scan(
 			if test_averaged == true
 				throw_n_log("TODO handle case test_averaged = true")
 			end
-			
+
 			# TODO
 			# if test_flattened == true
-			# 	# Flatten 
+			# 	# Flatten
 			# 	X_train = ...
 			# 	X_test = ...
 			# 	push!(rets, go(slice_id, X_train, Y_train, X_test, Y_test))
@@ -996,7 +1010,7 @@ function exec_scan(
 			# test_averaged ...
 
 			push!(rets, go(slice_id, X_train, Y_train, X_test, Y_test))
-			
+
 			# try
 			# go(slice_id, X_train, Y_train, X_test, Y_test)
 			# catch e
@@ -1004,7 +1018,7 @@ function exec_scan(
 			# 	println(e)
 			# 	return;
 			# end
-			
+
 		end
 	end
 
@@ -1017,7 +1031,7 @@ function exec_scan(
 
 	# Iterators.flatten(first(rets)) |> collect
 	# rets = zip(rets...) |> collect
-	# rets = map((r)->Iterators.flatten(r) |> collect, rets)	
+	# rets = map((r)->Iterators.flatten(r) |> collect, rets)
 	# rets
 
 	# rets=[a,b] # debug
