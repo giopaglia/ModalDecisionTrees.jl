@@ -323,7 +323,7 @@ legacy_gammas_check = false
 
 exec_dataseed = [1]
 
-exec_fake_dataseed = [(1:2)...]
+exec_fake_dataseed = [(1:3)...]
 
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization]
