@@ -494,7 +494,7 @@ function exec_scan(
 
 	@assert length(data_modal_args) >= length(dataset[1]) "Passed wrong number of `data_modal_args` ($(length(data_modal_args))): n_frames = $(length(dataset[1]))"
 
-	if length(data_modal_args) >= length(dataset[1])
+	if length(data_modal_args) > length(dataset[1])
 		@warn "Ignoring extra `data_modal_args` passed: n_frames = $(length(dataset[1])) and length(data_modal_args) = $(length(data_modal_args))"
 		data_modal_args = data_modal_args[1:length(dataset[1])]
 	end
