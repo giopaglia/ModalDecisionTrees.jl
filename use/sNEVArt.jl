@@ -26,10 +26,10 @@ data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 selected_features_savedir = results_dir * "/selected_features_cache"
 
-dry_run = false
+# dry_run = false
 # dry_run = :dataset_only
 # dry_run = :model_study
-# dry_run = true
+dry_run = true
 
 skip_training = false
 
@@ -90,18 +90,18 @@ for n_trees in [50]
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
 			for partial_sampling in [0.7]
-				# push!(forest_args, (
-				# 	n_subfeatures       = n_subfeatures,
-				# 	n_trees             = n_trees,
-				# 	partial_sampling    = partial_sampling,
-				# 	n_subrelations      = n_subrelations,
-				# 	# Optimization arguments for trees in a forest (no pruning is performed)
-				# 	loss_function       = nothing,
-				# 	# min_samples_leaf    = 1,
-				# 	# min_purity_increase = 0.0,
-				# 	# max_purity_at_leaf  = Inf,
-				# 	perform_consistency_check = perform_consistency_check,
-				# ))
+				push!(forest_args, (
+					n_subfeatures       = n_subfeatures,
+					n_trees             = n_trees,
+					partial_sampling    = partial_sampling,
+					n_subrelations      = n_subrelations,
+					# Optimization arguments for trees in a forest (no pruning is performed)
+					loss_function       = nothing,
+					# min_samples_leaf    = 1,
+					# min_purity_increase = 0.0,
+					# max_purity_at_leaf  = Inf,
+					perform_consistency_check = perform_consistency_check,
+				))
 			end
 		end
 	end
@@ -191,19 +191,23 @@ exec_convert_to_class_ttest = [nothing, (Tuple{Int8}(25), ("NO", "YES")), (Tuple
 
 exec_dataset_params = [
 	# (ids,signals,lables,static_attrs,signal_transformation,keep_only_bands,force_single_frame)
-	# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),false)
-	("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),false)
-	# ("sure-v1",[:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:ECG => collect(1:7)),false)
-	("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25), :ECG => collect(1:7)),false)
-	# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25), :ECG => collect(1:7)),true)
+	("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),false),
+	# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),false),
+	# ("sure-v1",[:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:ECG => collect(1:7)),false),
+	# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25), :ECG => collect(1:7)),false),
+	# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25), :ECG => collect(1:7)),true),
+	("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto, :ECG => :auto),false),
+	("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto, :ECG => :auto),true)
 ]
 
 const datasets_dict = Dict{String,Vector{Int64}}(
 	"sure-v1" => sure_dataset_ids
 )
 
-exec_aggr_points = [5]#, 10, 15, 20]
-exec_length = ["1/4"]#, "2/4", "3/4", "4/4"]
+exec_aggr_points = [5, 20]
+exec_length = ["2/4", "4/4"]
+# exec_aggr_points = [5, 10, 15, 20]
+# exec_length = ["1/4", "2/4", "3/4", "4/4"]
 
 length_dict = Dict{String,Function}(
 	"1/4" => x -> max(1, floor(Int64, size(x, 1) * 0.25)),
@@ -246,7 +250,7 @@ canonical_features_dict = Dict(
 	"TestOp"    => [ModalLogic.TestOpGeq,    ModalLogic.TestOpLeq],
 )
 
-exec_ontology = [ ["IA", "IA3"] ] # "IA7", "IA3",
+exec_ontology = [ ["IA", "IA"] ] # "IA7", "IA3",
 
 ontology_dict = Dict(
 	"-"     => ModalLogic.OneWorldOntology,
