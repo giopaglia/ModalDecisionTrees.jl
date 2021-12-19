@@ -32,7 +32,7 @@ function string_head(
 		forest_columns,
 		columns_before::Union{Integer,Vector{<:AbstractString}} = 1
 	)::String
-	
+
 	if columns_before isa Integer
 		columns_before = fill("", columns_before)
 	end
@@ -108,25 +108,25 @@ function data_to_string(
 	for (i_col,column) in enumerate(columns)
 		result *= string(
 			if column == "train_accuracy"
-				percent(overall_accuracy(train_cm))                  
+				percent(overall_accuracy(train_cm))
 			elseif column == "K"
-				percent(kappa(cm))                  
+				percent(kappa(cm))
 			elseif column == "accuracy"
-				percent(overall_accuracy(cm)) 
-			elseif column == "macro_sensitivity"      
-				percent(macro_sensitivity(cm)) 
-			elseif column == "safe_macro_sensitivity"      
-				percent(safe_macro_sensitivity(cm)) 
+				percent(overall_accuracy(cm))
+			elseif column == "macro_sensitivity"
+				percent(macro_sensitivity(cm))
+			elseif column == "safe_macro_sensitivity"
+				percent(safe_macro_sensitivity(cm))
 			elseif column == "safe_macro_specificity"
-				percent(safe_macro_specificity(cm)) 
+				percent(safe_macro_specificity(cm))
 			elseif column == "safe_macro_PPV"
-				percent(safe_macro_PPV(cm))         
+				percent(safe_macro_PPV(cm))
 			elseif column == "safe_macro_NPV"
-				percent(safe_macro_NPV(cm))         
+				percent(safe_macro_NPV(cm))
 			elseif column == "safe_macro_F1"
-				percent(safe_macro_F1(cm))          
+				percent(safe_macro_F1(cm))
 			elseif column == "n_nodes"
-				DecisionTree.num_nodes(M)        
+				DecisionTree.num_nodes(M)
 			elseif column == "n_leaves"
 				length(M)
 			elseif column == "height"
@@ -154,7 +154,7 @@ function data_to_string(
 		# 	result *= string(m["best_rule_t=$(best_rule_p)"], alt_separator)
 		# end
 	end
-	
+
 	result *= string(human_readable_time_s(time), alt_separator)
 	result *= string(hash)
 	result *= end_s
@@ -186,9 +186,9 @@ function data_to_string(
 				percent(mean(map(cm->kappa(cm),                  cms)))
 			elseif column == "accuracy"
 				percent(mean(map(cm->overall_accuracy(cm),       cms)))
-			elseif column == "macro_sensitivity"      
+			elseif column == "macro_sensitivity"
 				percent(mean(map(cm->macro_sensitivity(cm),      cms)))
-			elseif column == "safe_macro_sensitivity"      
+			elseif column == "safe_macro_sensitivity"
 				percent(mean(map(cm->safe_macro_sensitivity(cm), cms)))
 			elseif column == "safe_macro_specificity"
 				percent(mean(map(cm->safe_macro_specificity(cm), cms)))
@@ -205,11 +205,11 @@ function data_to_string(
 			elseif column == "oob_error"
 				percent(mean(map(M->M.oob_error, Ms)))
 			elseif column == "train_cor"
-				mean(map(cm->train_cm.cor,          cms))
+				mean(map(cm->cm.cor,          train_cm))
 			elseif column == "train_MAE"
-				mean(map(cm->train_cm.MAE,          cms))
+				mean(map(cm->cm.MAE,          train_cm))
 			elseif column == "train_RMSE"
-				mean(map(cm->train_cm.RMSE,          cms))
+				mean(map(cm->cm.RMSE,          train_cm))
 			elseif column == "cor"
 				mean(map(cm->cm.cor,          cms))
 			elseif column == "MAE"
@@ -231,9 +231,9 @@ function data_to_string(
 				percent(var(map(cm->kappa(cm),                  cms)))
 			elseif column == "accuracy"
 				percent(var(map(cm->overall_accuracy(cm),       cms)))
-			elseif column == "macro_sensitivity"      
+			elseif column == "macro_sensitivity"
 				percent(var(map(cm->macro_sensitivity(cm),      cms)))
-			elseif column == "safe_macro_sensitivity"      
+			elseif column == "safe_macro_sensitivity"
 				percent(var(map(cm->safe_macro_sensitivity(cm), cms)))
 			elseif column == "safe_macro_specificity"
 				percent(var(map(cm->safe_macro_specificity(cm), cms)))
@@ -250,11 +250,11 @@ function data_to_string(
 			elseif column == "oob_error"
 				percent(var(map(M->M.oob_error, Ms)))
 			elseif column == "train_cor"
-				var(map(cm->train_cm.cor,          cms))
+				mean(map(cm->cm.cor,          train_cm))
 			elseif column == "train_MAE"
-				var(map(cm->train_cm.MAE,          cms))
+				mean(map(cm->cm.MAE,          train_cm))
 			elseif column == "train_RMSE"
-				var(map(cm->train_cm.RMSE,          cms))
+				mean(map(cm->cm.RMSE,          train_cm))
 			elseif column == "cor"
 				var(map(cm->cm.cor,          cms))
 			elseif column == "MAE"
@@ -353,14 +353,14 @@ function extract_model(
 					end
 					push!(selected_columns, i)
 				end
-			end	
+			end
 		else
 			throw_n_log("No model known of type $(type); could be \"T\" or \"RF\".")
 		end
 
 		selected_columns
 	end
-	
+
 	header = []
 	append!(header, split_line(readline(file)))
 
