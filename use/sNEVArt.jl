@@ -8,20 +8,26 @@ include("scanner.jl")
 
 using NEVArt
 
+using Catch22
+using DataStructures
+
+include("dataset-analysis.jl")
+
 train_seed = 2
 
 ################################################################################
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./NEVArt/journal-v1"
+results_dir = "./NEVArt/journal-v4-feature-selection"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
+selected_features_savedir = results_dir * "/selected_features_cache"
 
-dry_run = false
-# dry_run = :dataset_only
+# dry_run = false
+dry_run = :dataset_only
 # dry_run = :model_study
 # dry_run = true
 
@@ -48,11 +54,10 @@ tree_args = [
 #	)
 ]
 
-for loss_function in [nothing] # DecisionTree.util.variance
-	for min_samples_leaf in [4] # [1,2]
-		for min_purity_increase in [0.1, 0.02, 0.015, 0.01, 0.0075, 0.005] # , 0.001, 0.0001, 0.00005, 0.00002, 0.00001, 0.0] # [0.01, 0.001]
-		# for min_purity_increase in [0.0] # ,0.01, 0.001]
-			for max_purity_at_leaf in [0.001] # [0.4, 0.6]
+for loss_function in [nothing]
+	for min_samples_leaf in [3] # TODO try other values of this if the number of instances changes
+		for min_purity_increase in [0.02]
+			for max_purity_at_leaf in [0.001]
 				push!(tree_args,
 					(
 						loss_function       = loss_function,
@@ -173,20 +178,30 @@ exec_use_training_form = [:stump_with_memoization]
 EEG_default = (nbands = 60, wintime = 0.05, steptime = 0.025)
 ECG_default = (nbands = 30, wintime = 0.025, steptime = 0.0175)
 
+# attributes selection
+exec_n_desired_attributes = [10, 25]
+exec_n_desired_features   = [5]
+
+savefigs = true
+# savefigs = false
+
+exec_convert_to_class_ttest = [nothing, (Tuple{Int8}(25), ("NO", "YES")), (Tuple{Int8, Int8}([17, 34]), ("NO", "MAYBE", "YES"))]
+
 exec_dataset_params = [
 	# (ids,signals,lables,static_attrs,signal_transformation,keep_only_bands,force_single_frame)
-	("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Vector{Int64}}(:EEG => collect(1:25)),false)
-	("sure-v1",[:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:ECG => ECG_default),Dict{Symbol,Vector{Int64}}(:ECG => collect(1:7)),false)
-	("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Vector{Int64}}(:EEG => collect(1:25), :ECG => collect(1:7)),false)
-	("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Vector{Int64}}(:EEG => collect(1:25), :ECG => collect(1:7)),true)
+	("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),false)
+	# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),false)
+	# ("sure-v1",[:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:ECG => collect(1:7)),false)
+	# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25), :ECG => collect(1:7)),false)
+	# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25), :ECG => collect(1:7)),true)
 ]
 
 const datasets_dict = Dict{String,Vector{Int64}}(
 	"sure-v1" => sure_dataset_ids
 )
 
-exec_aggr_points = [5, 10, 15, 20]
-exec_length = ["1/4", "2/4", "3/4", "4/4"]
+exec_aggr_points = [5, 20]#, 10, 15, 20]
+exec_length = ["1/4", "4/4"]#, "2/4", "3/4", "4/4"]
 
 length_dict = Dict{String,Function}(
 	"1/4" => x -> max(1, floor(Int64, size(x, 1) * 0.25)),
@@ -244,12 +259,15 @@ ontology_dict = Dict(
 
 
 exec_ranges = (; # Order: faster-changing to slower-changing
-	exec_aggr_points     = exec_aggr_points,
-	exec_length          = exec_length,
-	exec_dataset_params  = exec_dataset_params,
-	use_training_form    = exec_use_training_form,
-	canonical_features   = exec_canonical_features,
-	ontology             = exec_ontology,
+	exec_aggr_points            = exec_aggr_points,
+	exec_length                 = exec_length,
+	exec_n_desired_attributes   = exec_n_desired_attributes,
+	exec_n_desired_features     = exec_n_desired_features,
+	exec_convert_to_class_ttest = exec_convert_to_class_ttest,
+	exec_dataset_params         = exec_dataset_params,
+	use_training_form           = exec_use_training_form,
+	canonical_features          = exec_canonical_features,
+	ontology                    = exec_ontology,
 )
 
 function dataset_function(
@@ -258,9 +276,24 @@ function dataset_function(
 	labels::AbstractVector{<:AbstractString},
 	static_attrs::AbstractVector{<:AbstractString},
 	signal_transformation::Dict{Symbol,<:NamedTuple},
-	keep_only_bands::Dict{Symbol,<:AbstractVector{<:Integer}},
+	keep_only_bands::Dict{Symbol,<:Union{<:AbstractVector{<:Integer},Symbol}},
 	force_single_frame::Bool
 )
+	copied_keep_only_bands = deepcopy(keep_only_bands)
+	for (k, v) in keep_only_bands
+		if v isa Symbol
+			@assert v in [:all, :auto] "`keep_only_bands` values can only be :all, :auto or an AbstractVector{<:Integer}"
+			# NOTE: both :all and :auto will load all bands but when keep_only_bands is :auto
+			# the auto feature selection block will be executed
+			if haskey(signal_transformation[k], :nbands)
+				copied_keep_only_bands[k] = collect(1:signal_transformation[k].nbands)
+			else
+				@warn "No `nbands` key in `signal_transformation`: defaulting value to 60"
+				copied_keep_only_bands[k] = collect(1:60)
+			end
+		end
+	end
+
 	return NEVArtDataset(
 		"$(data_dir)/NEVArt";
 		ids = datasets_dict[dataset_name],
@@ -272,7 +305,7 @@ function dataset_function(
 		normalize_after_transfer_function = true,
 		forget_samplerate = false,
 	    signal_transformation = signal_transformation,
-		keep_only_bands = keep_only_bands,
+		keep_only_bands = Dict{Symbol,Vector{Int64}}(copied_keep_only_bands),
 		return_type = :Matricial, # :MFD, :DataFrame
 		force_single_frame = force_single_frame
 	)
@@ -436,6 +469,9 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	curr_aggr_points,
 	curr_length_fraction,
+	n_desired_attributes,
+	n_desired_features,
+	make_bins,
 	(dataset_name,signals,lables,static_attrs,signal_transformation,keep_only_bands,force_single_frame),
 	use_training_form,
 	canonical_features,
@@ -553,6 +589,188 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	# Load Dataset
 	dataset = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
+
+	############### AUTOMATIC FEATURE SELECTION
+	if :auto in values(keep_only_bands)
+		new_frames = Vector{AbstractArray}(undef, length(dataset[1]))
+
+		grouped_descriptors = OrderedDict([
+			"Basic stats" => [
+				:mean_m
+				:min_m
+				:max_m
+			], "Distribution" => [
+				:DN_HistogramMode_5
+				:DN_HistogramMode_10
+			], "Simple temporal statistics" => [
+				:SB_BinaryStats_mean_longstretch1
+				:DN_OutlierInclude_p_001_mdrmd
+				:DN_OutlierInclude_n_001_mdrmd
+			], "Linear autocorrelation" => [
+				:CO_f1ecac
+				:CO_FirstMin_ac
+				:SP_Summaries_welch_rect_area_5_1
+				:SP_Summaries_welch_rect_centroid
+				:FC_LocalSimple_mean3_stderr
+			], "Nonlinear autocorrelation" => [
+				:CO_trev_1_num
+				:CO_HistogramAMI_even_2_5
+				:IN_AutoMutualInfoStats_40_gaussian_fmmi
+			], "Successive differences" => [
+				:MD_hrv_classic_pnn40
+				:SB_BinaryStats_diff_longstretch0
+				:SB_MotifThree_quantile_hh
+				:FC_LocalSimple_mean1_tauresrat
+				:CO_Embed2_Dist_tau_d_expfit_meandiff
+			], "Fluctuation Analysis" => [
+				:SC_FluctAnal_2_dfa_50_1_2_logi_prop_r1
+				:SC_FluctAnal_2_rsrangefit_50_1_logi_prop_r1
+			], "Others" => [
+				:SB_TransitionMatrix_3ac_sumdiagcov
+				:PD_PeriodicityWang_th0_01
+			],
+		])
+
+		descriptor_abbrs = Dict([
+		 	##########################################################################
+		 	:mean_m                                        => "M",
+		 	:max_m                                         => "MAX",
+		 	:min_m                                         => "MIN",
+		 	##########################################################################
+		 	:DN_HistogramMode_5                            => "Z5",
+		 	:DN_HistogramMode_10                           => "Z10",
+		 	##########################################################################
+		 	:SB_BinaryStats_mean_longstretch1              => "C",
+		 	:DN_OutlierInclude_p_001_mdrmd                 => "A",
+		 	:DN_OutlierInclude_n_001_mdrmd                 => "B",
+		 	##########################################################################
+			:CO_f1ecac                                     => "FC",
+			:CO_FirstMin_ac                                => "FM",
+			:SP_Summaries_welch_rect_area_5_1              => "TP",
+			:SP_Summaries_welch_rect_centroid              => "C",
+			:FC_LocalSimple_mean3_stderr                   => "ME",
+		 	##########################################################################
+			:CO_trev_1_num                                 => "TR",
+			:CO_HistogramAMI_even_2_5                      => "AI",
+			:IN_AutoMutualInfoStats_40_gaussian_fmmi       => "FMAI",
+		 	##########################################################################
+			:MD_hrv_classic_pnn40                          => "PD",
+			:SB_BinaryStats_diff_longstretch0              => "LP",
+			:SB_MotifThree_quantile_hh                     => "EN",
+			:FC_LocalSimple_mean1_tauresrat                => "CC",
+			:CO_Embed2_Dist_tau_d_expfit_meandiff          => "EF",
+		 	##########################################################################
+			:SC_FluctAnal_2_dfa_50_1_2_logi_prop_r1        => "FDFA",
+			:SC_FluctAnal_2_rsrangefit_50_1_logi_prop_r1   => "FLF",
+		 	##########################################################################
+			:SB_TransitionMatrix_3ac_sumdiagcov            => "TC",
+			:PD_PeriodicityWang_th0_01                     => "PM",
+		 	##########################################################################
+		])
+
+		for f_name in getnames(catch22)
+ 			@eval (function $(Symbol(string(f_name)*"_pos"))(channel)
+ 				val = $(catch22[f_name])(channel)
+
+ 				if isnan(val)
+ 					# println("WARNING!!! NaN value found! channel = $(channel)")
+ 					-Inf # aggregator_bottom(existential_aggregator(≥), Float64)
+ 				else
+ 					val
+ 				end
+ 			end)
+ 			@eval (function $(Symbol(string(f_name)*"_neg"))(channel)
+ 				val = $(catch22[f_name])(channel)
+
+ 				if isnan(val)
+ 					# println("WARNING!!! NaN value found! channel = $(channel)")
+ 					Inf # aggregator_bottom(existential_aggregator(≤), Float64)
+ 				else
+ 					val
+ 				end
+ 			end)
+ 		end
+
+ 		function getCanonicalFeature(f_name)
+ 			if f_name == :min_m
+ 				[CanonicalFeatureGeq_80]
+ 			elseif f_name == :max_m
+ 				[CanonicalFeatureLeq_80]
+ 			elseif f_name == :mean_m
+ 				[StatsBase.mean]
+ 			else
+ 				[(≥, @eval $(Symbol(string(f_name)*"_pos"))),(≤, @eval $(Symbol(string(f_name)*"_neg")))]
+ 			end
+ 		end
+
+		signal_i_offset = 0
+		for (i_frame, frame) in enumerate(dataset[1])
+			if ndims(frame) != 3
+				signal_i_offset += 1
+				new_frames[i_frame] = dataset[1][i_frame]
+			elseif keep_only_bands[signals[i_frame+signal_i_offset]] == :auto
+				curr_signal = signals[i_frame+signal_i_offset]
+
+				attribute_names =
+					if force_single_frame
+						["$(curr_signal)_B$(i_attr)" for i_attr in 1:size(dataset[1][i_frame], 2)]
+					else
+						["$(s)_B$(i_attr)" for s in signals for i_attr in 1:(haskey(signal_transformation[s], :nbands) ? signal_transformation[s].nbands : 60)]
+					end
+
+				safe_run_name = replace(run_name, "\"" => "")
+				safe_run_name = replace(safe_run_name, "/" => ".")
+				safe_run_name = replace(safe_run_name, "\\" => ".")
+				safe_run_name = replace(safe_run_name, r"Dict{(?!.*\bDict\b).*}" => "")
+
+				run_file_prefix = "$(results_dir)/$(curr_signal)-$(safe_run_name)/plotdescription"
+				mkpath(dirname(run_file_prefix))
+
+				blind_feature_selection_params = (
+					(dataset[1][i_frame],dataset[2]),
+					attribute_names,
+					grouped_descriptors,
+					run_file_prefix,
+					n_desired_attributes,
+					n_desired_features
+				)
+				blind_feature_selection_kwparams = (
+					savefigs = savefigs,
+					descriptor_abbrs = descriptor_abbrs,
+					attribute_abbrs = attribute_names, # use attirbute names as they are
+					export_csv = true,
+					# join_plots = [],
+				)
+				best_attributes_idxs, best_descriptors =
+					@cache "selected_features" selected_features_savedir blind_feature_selection_params blind_feature_selection_kwparams single_frame_blind_feature_selection
+
+				new_frames[i_frame] = dataset[1][i_frame][:,best_attributes_idxs,:]
+
+				if savefigs
+					single_frame_target_aware_analysis(
+						(new_frames[i_frame],dataset[2]),
+						attribute_names[best_attributes_idxs],
+						best_descriptors,
+						run_file_prefix*"-sub";
+						make_bins = make_bins,
+						savefigs = savefigs,
+						descriptor_abbrs = descriptor_abbrs,
+						attribute_abbrs = attribute_names[best_attributes_idxs], # use attirbute names as they are
+						export_csv = true,
+					)
+				end
+
+				# TODO: support multi frame canonical features
+				cur_data_modal_args = merge(cur_data_modal_args, (;
+					canonical_features = Vector{Union{ModalLogic.CanonicalFeature,Function,Tuple{TestOperatorFun,Function}}}(collect(Iterators.flatten(getCanonicalFeature.(best_descriptors))))
+				))
+			else
+				new_frames[i_frame] = dataset[1][i_frame]
+			end
+		end
+
+		dataset = (new_frames, dataset[2])
+	end
 
 	# println("Dataset before:")
 	# for (i_frame, frame) in enumerate(dataset[1])
