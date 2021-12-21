@@ -19,11 +19,10 @@ Base.@propagate_inbounds function FeaturedWorldDataset(
 	fwd = initFeaturedWorldDataset(X, n_features)
 	
 	# Compute features
-	# TODO restore! Threads.@threads 
-	@inbounds for i_instance in 1:n_instances
+	@inbounds Threads.@threads for i_instance in 1:n_instances
 		@logmsg DTDebug "Instance $(i_instance)/$(n_instances)"
 		
-		if i_instance == 1 || ((i_instance+1) % (floor(Int, ((n_instances)/100))+1)) == 0
+		if i_instance == 1 || ((i_instance+1) % (floor(Int, ((n_instances)/4))+1)) == 0
 			@logmsg DTOverview "Instance $(i_instance)/$(n_instances)"
 		end
 
@@ -460,7 +459,7 @@ Base.@propagate_inbounds function computeModalDatasetStumpSupport(
 	@inbounds Threads.@threads for i_instance in 1:n_instances
 		@logmsg DTDebug "Instance $(i_instance)/$(n_instances)"
 		
-		if i_instance == 1 || ((i_instance+1) % (floor(Int, ((n_instances)/100))+1)) == 0
+		if i_instance == 1 || ((i_instance+1) % (floor(Int, ((n_instances)/4))+1)) == 0
 			@logmsg DTOverview "Instance $(i_instance)/$(n_instances)"
 		end
 
