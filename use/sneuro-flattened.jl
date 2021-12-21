@@ -8,19 +8,16 @@ include("scanner.jl")
 
 # using MAT
 using NPZ
-using Base.Threads
 
 # main_rng = DecisionTree.mk_rng(1)
-train_seed = 1
 
-py_script_path = "neuro-symbolic/pipeline"
-include("$(py_script_path)/pipeline.jl")
+train_seed = 1
 
 ################################################################################
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./neuro-symbolic/IJCAI22-v1"
+results_dir = "./neuro-symbolic/IJCAI22-v1-flat"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
@@ -189,6 +186,7 @@ idxs_dict = Dict(
 ("RacketSports"	,29) => ([69, 130, 170, 301, 1, 158, 229, 262, 44, 94, 233, 259, 55, 99, 191, 280, 38, 154, 198, 256, 78, 95, 209, 243, 18, 129, 190, 268, 15, 123, 224, 273, 33, 138, 221, 238, 72, 134, 219, 255, 52, 147, 188, 302, 10, 135, 214, 291, 85, 149, 172, 282, 20, 131, 225, 265, 84, 159, 181, 258, 13, 132, 196, 263, 24, 120, 183, 248, 74, 88, 210, 253, 68, 113, 223, 284, 77, 162, 175, 295, 51, 161, 203, 249, 34, 92, 169, 250, 35, 107, 193, 281, 57, 103, 227, 234, 32, 153, 173, 300, 5, 105, 177, 247, 9, 126, 195, 254, 50, 124, 216, 271, 48, 152, 215, 296, 3, 108, 168, 299, 80, 133, 178, 240, 21, 141, 207, 270, 66, 111, 230, 252, 11, 125, 200, 236, 22, 98, 239, 70, 100, 27, 109, 42, 122, 26, 116, 2, 7, 46, 6], [4, 8, 12, 14, 16, 17, 19, 23, 25, 28, 29, 30, 31, 36, 37, 39, 40, 41, 43, 45, 47, 49, 53, 54, 56, 58, 59, 60, 61, 62, 63, 64, 65, 67, 71, 73, 75, 76, 79, 81, 82, 83, 86, 87, 89, 90, 91, 93, 96, 97, 101, 102, 104, 106, 110, 112, 114, 115, 117, 118, 119, 121, 127, 128, 136, 137, 139, 140, 142, 143, 144, 145, 146, 148, 150, 151, 155, 156, 157, 160, 163, 164, 165, 166, 167, 171, 174, 176, 179, 180, 182, 184, 185, 186, 187, 189, 192, 194, 197, 199, 201, 202, 204, 205, 206, 208, 211, 212, 213, 217, 218, 220, 222, 226, 228, 231, 232, 235, 237, 241, 242, 244, 245, 246, 251, 257, 260, 261, 264, 266, 267, 269, 272, 274, 275, 276, 277, 278, 279, 283, 285, 286, 287, 288, 289, 290, 292, 293, 294, 297, 298, 303]),
 ("RacketSports"	,30) => ([68, 134, 194, 283, 9, 104, 177, 271, 50, 127, 167, 252, 19, 153, 166, 250, 71, 98, 182, 257, 44, 125, 168, 248, 26, 120, 187, 279, 85, 109, 195, 263, 69, 103, 218, 284, 84, 139, 199, 245, 80, 131, 180, 272, 86, 117, 196, 290, 45, 148, 190, 261, 36, 115, 201, 241, 18, 163, 205, 254, 11, 118, 178, 249, 78, 157, 228, 285, 13, 155, 227, 292, 58, 124, 172, 301, 21, 119, 233, 287, 81, 128, 202, 262, 15, 150, 184, 294, 74, 90, 186, 278, 51, 143, 192, 281, 66, 129, 225, 298, 33, 101, 216, 303, 40, 91, 198, 244, 23, 108, 229, 302, 25, 160, 183, 239, 32, 165, 208, 282, 4, 116, 188, 264, 27, 114, 213, 268, 76, 107, 220, 273, 62, 102, 204, 260, 82, 93, 269, 60, 97, 34, 147, 31, 113, 53, 110, 64, 42, 65, 48], [1, 2, 3, 5, 6, 7, 8, 10, 12, 14, 16, 17, 20, 22, 24, 28, 29, 30, 35, 37, 38, 39, 41, 43, 46, 47, 49, 52, 54, 55, 56, 57, 59, 61, 63, 67, 70, 72, 73, 75, 77, 79, 83, 87, 88, 89, 92, 94, 95, 96, 99, 100, 105, 106, 111, 112, 121, 122, 123, 126, 130, 132, 133, 135, 136, 137, 138, 140, 141, 142, 144, 145, 146, 149, 151, 152, 154, 156, 158, 159, 161, 162, 164, 169, 170, 171, 173, 174, 175, 176, 179, 181, 185, 189, 191, 193, 197, 200, 203, 206, 207, 209, 210, 211, 212, 214, 215, 217, 219, 221, 222, 223, 224, 226, 230, 231, 232, 234, 235, 236, 237, 238, 240, 242, 243, 246, 247, 251, 253, 255, 256, 258, 259, 265, 266, 267, 270, 274, 275, 276, 277, 280, 286, 288, 289, 291, 293, 295, 296, 297, 299, 300]),
 )
+
 ################################################################################
 ##################################### TREES ####################################
 ################################################################################
@@ -320,9 +318,9 @@ legacy_gammas_check = false
 ##################################### SCAN #####################################
 ################################################################################
 
-exec_dataseed = [1]
-
-exec_fake_dataseed = [(1:5)...]
+# exec_dataseed = [nothing]
+# exec_dataseed = [nothing, (1:9)...]
+exec_dataseed = [(1:5)...]
 
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization]
@@ -331,13 +329,7 @@ exec_use_training_form = [:stump_with_memoization]
 # https://discourse.julialang.org/t/json-type-serialization/9794
 # TODO: make test operators types serializable
 # exec_canonical_features = [ "TestOp" ]
-exec_canonical_features = [
-	["TestOp_80", :neuro_simone],
-	["TestOp_80"],
-	# ["TestOp"],
-]
-
-neuro_feature_size = 5
+exec_canonical_features = [ "TestOp" ]
 
 canonical_features_dict = Dict(
 	"TestOp_70" => [TestOpGeq_70, TestOpLeq_70],
@@ -351,16 +343,22 @@ exec_dataset_name = [
 	"Libras",
 	"LSST",
 	"NATOPS",
-	"RacketSports",	
+	"RacketSports",
+	
+	#"AtrialFibrillation",
+	#"Cricket",
+	#"EthanolConcentration",
+	#"HandMovementDirection",
+	#"Heartbeat",
+	#"MotorImagery",
+	#"SelfRegulationSCP1",
+	#"SelfRegulationSCP2",
+	#"StandWalkJump",
 ]
 
 # exec_flatten_ontology = [(false,"interval2D")] # ,(true,"one_world")]
 # exec_use_catch22_flatten_ontology = [(false,false,"interval")]
-exec_use_catch22_flatten_ontology = [
-	(false,false,"interval"),
-	# (false,true,"one_world"),
-	# (true,true,"one_world"),
-]
+exec_use_catch22_flatten_ontology = [(false,true,"one_world")]
 
 ontology_dict = Dict(
 	"one_world"   => ModalLogic.OneWorldOntology,
@@ -375,9 +373,8 @@ exec_n_chunks = [missing]
 # exec_use_catch22 = [false]
 
 exec_ranges = (;
-	fake_dataseed                    = exec_fake_dataseed              ,
 	use_training_form                = exec_use_training_form              ,
-	canonical_features               = exec_canonical_features                 ,
+	canonical_features                   = exec_canonical_features                 ,
 	dataset_name                     = exec_dataset_name                   ,
 	use_catch22_flatten_ontology     = exec_use_catch22_flatten_ontology   ,
 	# use_catch22                      = exec_use_catch22                    ,
@@ -410,6 +407,22 @@ iteration_whitelist = [
 	# 	nbands = 40,
 	# 	dataset_kwargs = (max_points = 30, ma_size = 75, ma_step = 50),
 	# ),
+	# (
+	# 	n_version = 1,
+	# 	nbands = 60,
+	# 	dataset_kwargs = (max_points = 30, ma_size = 75, ma_step = 50),
+	# ),
+	# # TASK 2
+	# (
+	# 	n_version = 2,
+	# 	nbands = 20,
+	# 	dataset_kwargs = (max_points = 30, ma_size = 45, ma_step = 30),
+	# ),
+	# (
+	# 	n_version = 2,
+	# 	nbands = 40,
+	# 	dataset_kwargs = (max_points = 30, ma_size = 45, ma_step = 30),
+	# )
 ]
 
 iteration_blacklist = []
@@ -427,7 +440,7 @@ if "-f" in ARGS
 		backup_file_using_creation_date(iteration_progress_json_file_path)
 	end
 end
- 
+
 # Copy scan script into the results folder
 backup_file_using_creation_date(PROGRAM_FILE; copy_or_move = :copy, out_path = results_dir)
 
@@ -512,77 +525,24 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	##############################################################################
 	##############################################################################
-	fake_dataseed,
+	
 	use_training_form,
 	canonical_features,
 	dataset_name,
 	(use_catch22,flatten,ontology),
 	n_chunks = params_combination
 	
-	##############################################################################
-	##############################################################################
-	##############################################################################
-	dataset_name_abbr = lowercase(dataset_name)
-
-	py"load_model"(dataset_name_abbr, fake_dataseed)
-	# models = [deepcopy(py"get_model"(dataset_name_abbr, fake_dataseed)) for i in 1:Threads.nthreads()]
-
-	for f in 1:neuro_feature_size
-		@eval ($(Symbol("$(dataset_name_abbr)_f$(f)_ds$(fake_dataseed)_lock")) = Threads.Condition())
-		@eval (function $(Symbol("$(dataset_name_abbr)_f$(f)_ds$(fake_dataseed)"))(interval)
-			arr = begin
-				# serie_str = show_matrix_sans_type(interval)
-				# _dataset_name_abbr = $(dataset_name_abbr)
-				# out_str = readchomp(`python3 $(py_script_path) --$(_dataset_name_abbr) --serie $(serie_str)`)
-				# eval(Meta.parse(out_str))
-				# Threads.lock($(Symbol("$(dataset_name_abbr)_f$(f)_ds$(fake_dataseed)_lock")))
-				# py"validation"($(models)[(Threads.threadid())], interval)
-				arr = py"validation"(interval)
-				# Threads.unlock($(Symbol("$(dataset_name_abbr)_f$(f)_ds$(fake_dataseed)_lock")))
-				arr
-			end
-
-			# Take the i-th feature
-			val = arr[$(f)]
-			# println(interval)
-			# println(val)
-			# @assert !isnan(val) "NaN-valued feature for interval: $(interval)"
-			# Note: make sure that features have the same origin type
-			round_dataset_to_datatype(val)
-		end)
-	end
-
-	function getCanonicalFeature(f_name)
-		if f_name == :min_m
-			[CanonicalFeatureGeq_80]
-		elseif f_name == :max_m
-			[CanonicalFeatureLeq_80]
-		elseif f_name == :mean_m
-			[StatsBase.mean]
-		elseif f_name == :neuro_simone
-			# [(≥, @eval $(Symbol(string(f_name)*"_pos"))),(≤, @eval $(Symbol(string(f_name)*"_neg")))]
-			FeatureTypeFun[ChannelFunctionFeatureType(@eval $(Symbol("$(dataset_name_abbr)_f$(f)_ds$(fake_dataseed)"))) for f in 1:neuro_feature_size]
-		elseif haskey(canonical_features_dict, f_name)
-			canonical_features_dict[f_name]
-		else
-			error("Unknown feature: f_name")
-		end
-	end
-
-	canonical_features = Vector{Union{FeatureTypeFun,CanonicalFeature,Function,Tuple{TestOperatorFun,Function}}}(collect(Iterators.flatten(getCanonicalFeature.(canonical_features))))
-	
-	##############################################################################
-	##############################################################################
-	##############################################################################
-
+	canonical_features = canonical_features_dict[canonical_features]
 	ontology = ontology_dict[ontology]
 
 	cur_modal_args = modal_args
 	
-	cur_data_modal_args = merge(data_modal_args, (;
-		canonical_features = canonical_features,
-		ontology           = ontology,
-	))
+	cur_data_modal_args = merge(data_modal_args,
+		(
+			canonical_features = canonical_features,
+			ontology = ontology,
+		)
+	)
 
 	dataset_fun_sub_params = (
 		dataset_name, n_chunks, flatten, use_catch22
@@ -620,8 +580,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	todo_dataseeds = filter((dataseed)->!iteration_in_history(history, (params_namedtuple, dataseed)), exec_dataseed)
 	# dataset_slices = [(dataseed, balanced_dataset_slice(class_counts, dataseed; n_samples_per_class = class_counts)) for dataseed in todo_dataseeds]
 	@assert length(exec_dataseed) == 1 "$(exec_dataseed)"
-	dataset_slices = Tuple{Int64,Tuple{Vector{Int64}, Vector{Int64}}}[(fake_dataseed,
-		idxs_dict[(dataset_name, fake_dataseed)]) for dataseed in todo_dataseeds]
+	dataset_slices = Tuple{Int64,Tuple{Vector{Int64}, Vector{Int64}}}[(dataseed,
+		idxs_dict[(dataset_name, dataseed)]) for dataseed in todo_dataseeds]
 
 	println("Dataseeds = $(todo_dataseeds)")
 

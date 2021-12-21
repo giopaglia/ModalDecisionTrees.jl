@@ -97,6 +97,7 @@ function compute_mfd(X)
 	mfd = MultiFrameDataset([1:ncol(df)], df)
 end
 
+# TODO use PGFPlotsX?
 function single_frame_blind_feature_selection(
 		(X, Y)::Tuple{AbstractArray{T,3},AbstractVector},
 		attribute_names::AbstractVector,
