@@ -4,13 +4,14 @@
 
 # written by Poom Chiarawongse <eight1911@gmail.com>
 
-module treeclassifier
+module treeregressor
 	
-	export fit
+	import DecisionTree: fit
 
 	using ..ModalLogic
 	using ..DecisionTree
 	using DecisionTree.util
+	const L = DecisionTree.util.RegressionLabel
 	using Logging: @logmsg
 	import Random
 	import StatsBase
@@ -22,7 +23,7 @@ module treeclassifier
 		modal_depth        :: Int
 		# worlds      :: AbstractVector{WorldSet{W}}         # current set of worlds for each training instance
 		purity             :: U                                # purity grade attained at training time
-		label              :: Label                            # most likely label
+		label              :: L                            # most likely label
 		is_leaf            :: Bool                             # whether this is a leaf node, or a split one
 		# split node-only properties
 		split_at           :: Int                              # index of samples
@@ -35,7 +36,7 @@ module treeclassifier
 		test_operator      :: TestOperatorFun                  # test_operator (e.g. <=)
 		threshold          :: T where T                                # threshold value
 		
-		onlyUseRelationGlob:: Vector{Bool}
+		onlyallowRelationGlob:: Vector{Bool}
 
 		function NodeMeta{U}(
 				region      :: UnitRange{Int},
@@ -49,7 +50,7 @@ module treeclassifier
 			node.modal_depth = modal_depth
 			node.purity = U(NaN)
 			node.is_leaf = false
-			node.onlyUseRelationGlob = oura
+			node.onlyallowRelationGlob = oura
 			node
 		end
 	end
@@ -57,7 +58,6 @@ module treeclassifier
 	struct Tree{S}
 		root           :: NodeMeta{Float64}
 		list           :: Vector{S}
-		labels         :: Vector{Label}
 		initConditions :: Vector{<:DecisionTree._initCondition}
 	end
 
@@ -68,22 +68,21 @@ module treeclassifier
 		node                  :: NodeMeta{<:AbstractFloat}, # the node to split
 		####################
 		Xs                    :: MultiFrameModalDataset, # the modal dataset
-		Y                     :: AbstractVector{Label},      # the label array
+		Y                     :: AbstractVector{L},      # the label array
 		W                     :: AbstractVector{U},          # the weight vector
 		Ss                    :: AbstractVector{<:AbstractVector{WST} where {WorldType,WST<:WorldSet{WorldType}}}, # the vector of current worlds
 		####################
 		loss_function         :: Function,
 		max_depth             :: Int,                         # the maximum depth of the resultant tree
 		min_samples_leaf      :: Int,                         # the minimum number of samples each leaf needs to have
-		min_loss_at_leaf      :: AbstractFloat,               # maximum purity allowed on a leaf
+		max_purity_at_leaf    :: AbstractFloat,               # maximum purity allowed on a leaf
 		min_purity_increase   :: AbstractFloat,               # minimum purity increase needed for a split
 		####################
 		n_subrelations        :: Vector{<:Function},
 		n_subfeatures         :: Vector{<:Integer},           # number of features to use to split
-		useRelationGlob       :: Vector{Bool},
+		allowRelationGlob     :: Vector{Bool},
 		####################
 		indX                  :: AbstractVector{<:Integer},   # an array of sample indices (we split using samples in indX[node.region])
-		n_classes             :: Int,
 		####################
 		_perform_consistency_check :: Union{Val{true},Val{false}},
 		####################
@@ -97,41 +96,65 @@ module treeclassifier
 		n_instances = length(region)
 		r_start = region.start - 1
 
-		# Class counts
-		nc = fill(zero(U), n_classes)
-		@inbounds @simd for i in region
-			nc[Y[indX[i]]] += W[indX[i]]
-		end
-		nt = sum(nc)
-		node.purity = loss_function(nc, nt)
-		node.label = argmax(nc) # Assign the most likely label before the split
+		# Gather all values needed for the current set of instances
+		# TODO also slice the dataset?
+		@inbounds Yf = Y[indX[region]]
+		@inbounds Wf = W[indX[region]]
 
-		@logmsg DTDebug "_split!(...) " n_instances region nt
+		# Yf = Vector{L}(undef, n_instances)
+		# Wf = Vector{U}(undef, n_instances)
+		# @inbounds @simd for i in 1:n_instances
+		# 	Yf[i] = Y[indX[i + r_start]]
+		# 	Wf[i] = W[indX[i + r_start]]
+		# end
+
+		# Prepare counts
+		sums = [Wf[i]*Yf[i]       for i in 1:n_instances]
+		# ssqs = [Wf[i]*Yf[i]*Yf[i] for i in 1:n_instances]
+		
+		# tssq = zero(U)
+		# tssq = sum(ssqs)
+		# tsum = zero(U)
+		tsum = sum(sums)
+		# nt = zero(U)
+		nt = sum(Wf)
+		# @inbounds @simd for i in 1:n_instances
+		# 	# tssq += Wf[i]*Yf[i]*Yf[i]
+		# 	# tsum += Wf[i]*Yf[i]
+		# 	nt += Wf[i]
+		# end
+
+		node.label =  tsum / nt # Assign the most likely label before the split
+		
+		# node.purity = (tsum * node.label) # TODO use loss function
+		# node.purity = tsum * tsum # TODO use loss function
+		# tmean = tsum/nt
+		# node.purity = -((tssq - 2*tmean*tsum + (tmean^2*nt)) / (nt-1)) # TODO use loss function
+		node.purity = -(loss_function(sums, nt))
+		
+		@logmsg DTDebug "_split!(...) " n_instances region
 
 		# Preemptive leaf conditions
 		if (
-			# If all the instances belong to the same class, make this a leaf
-			 (nc[node.label]       == nt)
 			# No binary split can honor min_samples_leaf if there aren't as many as
 			#  min_samples_leaf*2 instances in the first place
-			 || (min_samples_leaf * 2 >  n_instances)
-			# If the node is pure enough, avoid splitting # TODO rename purity to loss
-			 || (node.purity          <= min_loss_at_leaf)
+			    (min_samples_leaf * 2 >  n_instances)
+		  # equivalent to old_purity > -1e-7
+			 # || (tsum * node.label    > -1e-7 * nt + tssq)
 			# Honor maximum depth constraint
 			 || (max_depth            <= node.depth))
 			node.is_leaf = true
-			@logmsg DTDetail "leaf created: " (min_samples_leaf * 2 >  n_instances) (nc[node.label] == nt) (node.purity  <= min_loss_at_leaf) (max_depth <= node.depth)
+			@logmsg DTDetail "leaf created: " (min_samples_leaf * 2 >  n_instances) (tsum * node.label    > -1e-7 * nt + tssq) (tsum * node.label) (-1e-7 * nt + tssq) (max_depth <= node.depth)
 			return
 		end
 
-		# Gather all values needed for the current set of instances
-		# TODO also slice the dataset?
-		Yf = Vector{U}(undef, n_instances)
-		Wf = Vector{U}(undef, n_instances)
-		@simd for i in 1:n_instances
-			Yf[i] = Y[indX[i + r_start]]
-			Wf[i] = W[indX[i + r_start]]
-		end
+		# TODO try this solution for rsums and lsums
+		# rsums = Vector{U}(undef, n_instances)
+		# lsums = Vector{U}(undef, n_instances)
+		# @simd for i in 1:n_instances
+		# 	rsums[i] = zero(U)
+		# 	lsums[i] = zero(U)
+		# end
 
 		Sfs = Vector{AbstractVector{WST} where {WorldType,WST<:AbstractVector{WorldType}}}(undef, n_frames(Xs))
 		for i_frame in 1:n_frames(Xs)
@@ -143,7 +166,7 @@ module treeclassifier
 
 		# Optimization-tracking variables
 		best_frame = -1
-		best_purity__nt = typemin(Float64)
+		best_purity_times_nt = typemin(Float64)
 		best_relation = RelationNone
 		best_feature = FeatureTypeNone
 		best_test_operator = nothing
@@ -163,8 +186,8 @@ module treeclassifier
 					frame_Sf,
 					frame_n_subrelations,
 					frame_n_subfeatures,
-					frame_useRelationGlob,
-					frame_onlyUseRelationGlob)) in enumerate(zip(frames(Xs), Sfs, n_subrelations, n_subfeatures, useRelationGlob, node.onlyUseRelationGlob))
+					frame_allowRelationGlob,
+					frame_onlyallowRelationGlob)) in enumerate(zip(frames(Xs), Sfs, n_subrelations, n_subfeatures, allowRelationGlob, node.onlyallowRelationGlob))
 
 			@logmsg DTDetail "  Frame $(best_frame)/$(length(frames(Xs)))"
 
@@ -179,10 +202,10 @@ module treeclassifier
 				allow_propositional_decisions, allow_modal_decisions, allow_global_decisions = begin
 					if world_type(X) == OneWorld
 						true, false, false
-					elseif frame_onlyUseRelationGlob
+					elseif frame_onlyallowRelationGlob
 						false, false, true
 					else
-						true, true, frame_useRelationGlob
+						true, true, frame_allowRelationGlob
 					end
 				end
 
@@ -220,9 +243,15 @@ module treeclassifier
 				
 				# println(display_decision(i_frame, relation, feature, test_operator, threshold))
 
-				# Re-initialize right class counts
-				nr = zero(U)
-				ncr = fill(zero(U), n_classes)
+				# Re-initialize right counts
+				# rssq = zero(U)
+				rsum = zero(U)
+				nr   = zero(U)
+				# TODO experiment with running mean instead, because this may cause a lot of memory inefficiency
+				# https://it.wikipedia.org/wiki/Algoritmi_per_il_calcolo_della_varianza
+				rsums = Float64[] # Vector{U}(undef, n_instances)
+				lsums = Float64[] # Vector{U}(undef, n_instances)
+
 				if isa(_perform_consistency_check,Val{true})
 					consistency_sat_check[1:n_instances] .= 1
 				end
@@ -233,29 +262,59 @@ module treeclassifier
 					
 					# TODO make this satisfied a fuzzy value
 					if !satisfied
-						nr += Wf[i_instance]
-						ncr[Yf[i_instance]] += Wf[i_instance]
+						push!(rsums, sums[i_instance])
+						# rsums[i_instance] = sums[i_instance]
+						nr   += Wf[i_instance]
+						rsum += sums[i_instance]
+						# rssq += ssqs[i_instance]
 					else
+						push!(lsums, sums[i_instance])
+						# lsums[i_instance] = sums[i_instance]
 						if isa(_perform_consistency_check,Val{true})
 							consistency_sat_check[i_instance] = 0
 						end
 					end
 				end
 
-				# Calculate left class counts
-				ncl = Vector{U}(undef, n_classes)
-				ncl .= nc .- ncr
-				nl = nt - nr
+				# Calculate left counts
+				lsum = tsum - rsum
+				# lssq = tssq - rssq
+				nl   = nt - nr
+
 				@logmsg DTDebug "  (n_left,n_right) = ($nl,$nr)"
 
+				########################################################################
+				########################################################################
+				########################################################################
+				
 				# Honor min_samples_leaf
 				if nl >= min_samples_leaf && (n_instances - nl) >= min_samples_leaf
-					purity__nt = -(nl * loss_function(ncl, nl) + nr * loss_function(ncr, nr))
-					if purity__nt > best_purity__nt # && !isapprox(purity__nt, best_purity__nt)
+					purity_times_nt = - (nl * loss_function(lsums, nl) + nr * loss_function(rsums, nr))
+
+					# TODO use loss_function instead
+
+					# ORIGINAL: TODO understand how it works
+					# purity_times_nt = (rsum * rsum / nr) + (lsum * lsum / nl)
+					
+					# Variance with ssqs
+					# purity_times_nt = (rmean, lmean = rsum/nr, lsum/nl; - (nr * (rssq - 2*rmean*rsum + (rmean^2*nr)) / (nr-1) + (nl * (lssq - 2*lmean*lsum + (lmean^2*nl)) / (nl-1))))
+					
+					# Variance
+					# var = (x)->sum((x.-StatsBase.mean(x)).^2) / (length(x)-1)
+					# purity_times_nt = - (nr * var(rsums)) + nl * var(lsums))
+					
+					# Simil-variance that is easier to compute but it doesn't work with few samples on the leaves
+					# var = (x)->sum((x.-StatsBase.mean(x)).^2)
+					# purity_times_nt = - (var(rsums) + var(lsums))
+					
+
+					# println("purity_times_nt: $(purity_times_nt)")
+
+					if purity_times_nt > best_purity_times_nt # && !isapprox(purity_times_nt, best_purity_times_nt)
 						#################################
 						best_frame          = i_frame
 						#################################
-						best_purity__nt     = purity__nt
+						best_purity_times_nt     = purity_times_nt
 						#################################
 						best_relation       = relation
 						best_feature        = feature
@@ -263,13 +322,15 @@ module treeclassifier
 						best_threshold      = threshold
 						#################################
 						# print((relation, test_operator, feature, threshold))
-						# println(" NEW BEST $best_frame, $best_purity__nt/nt")
-						@logmsg DTDetail "  Found new optimum in frame $(best_frame): " (best_purity__nt/nt) best_relation best_feature best_test_operator best_threshold
+						# println(" NEW BEST $best_frame, $best_purity_times_nt/nt")
+						@logmsg DTDetail "  Found new optimum in frame $(best_frame): " (best_purity_times_nt/nt) best_relation best_feature best_test_operator best_threshold
 						#################################
-						best_consistency  = if isa(_perform_consistency_check,Val{true})
+						best_consistency = begin
+							if isa(_perform_consistency_check,Val{true})
 								consistency_sat_check[1:n_instances]
 							else
 								nr
+							end
 						end
 						#################################
 					end
@@ -277,16 +338,24 @@ module treeclassifier
 			end # END decisions
 		end # END frame
 
-		# @logmsg DTOverview "purity increase" best_purity__nt/nt node.purity (best_purity__nt/nt + node.purity) (best_purity__nt/nt - node.purity)
+		# println("best_purity_times_nt = $(best_purity_times_nt)")
+		# println("nt =  $(nt)")
+		# println("node.purity =  $(node.purity)")
+		# println("best_purity_times_nt / nt - node.purity = $(best_purity_times_nt / nt - node.purity)")
+		# println("min_purity_increase * nt =  $(min_purity_increase) * $(nt) = $(min_purity_increase * nt)")
+
+		# @logmsg DTOverview "purity_times_nt increase" best_purity_times_nt node.purity_times_nt (best_purity_times_nt + node.purity_times_nt) (best_purity_times_nt - node.purity_times_nt)
 		# If the best split is good, partition and split accordingly
-		@inbounds if (best_purity__nt == typemin(Float64)
-									|| (best_purity__nt/nt + node.purity <= min_purity_increase))
-			@logmsg DTDebug " Leaf" best_purity__nt min_purity_increase (best_purity__nt/nt) node.purity ((best_purity__nt/nt) + node.purity)
+		@inbounds if (best_purity_times_nt == typemin(Float64)
+									# || best_purity_times_nt - tsum * node.label <= min_purity_increase * nt # ORIGINAL
+									|| (best_purity_times_nt / nt - node.purity <= min_purity_increase * nt)
+								)
+			@logmsg DTDebug " Leaf" best_purity_times_nt tsum node.label min_purity_increase nt (best_purity_times_nt / nt - tsum * node.label) (min_purity_increase * nt)
 			node.is_leaf = true
 			return
 		else
-			best_purity = best_purity__nt/nt
-
+			best_purity = best_purity_times_nt/nt
+			
 			# split the samples into two parts:
 			#  ones for which the is satisfied and those for whom it's not
 			node.purity         = best_purity
@@ -390,11 +459,11 @@ module treeclassifier
 		mdepth = (node.relation == RelationId ? node.modal_depth : node.modal_depth+1)
 		@logmsg DTDetail "fork!(...): " node ind region mdepth
 
-		# onlyUseRelationGlob changes:
+		# onlyallowRelationGlob changes:
 		# on the left node, the frame where the decision was taken
-		l_oura = copy(node.onlyUseRelationGlob)
+		l_oura = copy(node.onlyallowRelationGlob)
 		l_oura[node.i_frame] = false
-		r_oura = node.onlyUseRelationGlob
+		r_oura = node.onlyallowRelationGlob
 
 		# no need to copy because we will copy at the end
 		node.l = NodeMeta{U}(region[    1:ind], depth, mdepth, l_oura)
@@ -410,12 +479,12 @@ module treeclassifier
 			max_depth               :: Int,
 			min_samples_leaf        :: Int,
 			min_purity_increase     :: AbstractFloat,
-			min_loss_at_leaf        :: AbstractFloat,
+			max_purity_at_leaf      :: AbstractFloat,
 			##########################################################################
 			n_subrelations          :: Vector{<:Function},
 			n_subfeatures           :: Vector{<:Integer},
 			initConditions          :: Vector{<:DecisionTree._initCondition},
-			useRelationGlob         :: Vector{Bool},
+			allowRelationGlob       :: Vector{Bool},
 		) where {S, U}
 		n_instances = n_samples(Xs)
 
@@ -430,8 +499,8 @@ module treeclassifier
 			throw_n_log("mismatching number of n_subfeatures with number of frames: $(length(n_subfeatures)) vs $(n_frames(Xs))")
 		elseif length(initConditions) != n_frames(Xs)
 			throw_n_log("mismatching number of initConditions with number of frames: $(length(initConditions)) vs $(n_frames(Xs))")
-		elseif length(useRelationGlob) != n_frames(Xs)
-			throw_n_log("mismatching number of useRelationGlob with number of frames: $(length(useRelationGlob)) vs $(n_frames(Xs))")
+		elseif length(allowRelationGlob) != n_frames(Xs)
+			throw_n_log("mismatching number of allowRelationGlob with number of frames: $(length(allowRelationGlob)) vs $(n_frames(Xs))")
 		############################################################################
 		# elseif any(n_relations(Xs) .< n_subrelations)
 		# 	throw_n_log("in at least one frame the total number of relations is less than the number "
@@ -450,19 +519,9 @@ module treeclassifier
 		elseif min_samples_leaf < 1
 			throw_n_log("min_samples_leaf must be a positive integer "
 				* "(given $(min_samples_leaf))")
-		# if loss_function in [util.entropy]
-		# 	min_loss_at_leaf_thresh = 0.75 # min_purity_increase 0.01
-		# 	min_purity_increase_thresh = 0.5
-		# 	if (min_loss_at_leaf >= min_loss_at_leaf_thresh)
-		# 		println("Warning! It is advised to use min_loss_at_leaf<$(min_loss_at_leaf_thresh) with loss $(loss_function)"
-		# 			* "(given $(min_loss_at_leaf))")
-		# 	elseif (min_purity_increase >= min_purity_increase_thresh)
-		# 		println("Warning! It is advised to use min_loss_at_leaf<$(min_purity_increase_thresh) with loss $(loss_function)"
-		# 			* "(given $(min_purity_increase))")
-		# end
-		elseif loss_function in [util.gini, util.zero_one] && (min_loss_at_leaf > 1.0 || min_loss_at_leaf <= 0.0)
-			throw_n_log("min_loss_at_leaf for loss $(loss_function) must be in (0,1]"
-				* "(given $(min_loss_at_leaf))")
+		elseif loss_function in [util.gini, util.zero_one] && (max_purity_at_leaf > 1.0 || max_purity_at_leaf <= 0.0)
+			throw_n_log("max_purity_at_leaf for loss $(loss_function) must be in (0,1]"
+				* "(given $(max_purity_at_leaf))")
 		elseif max_depth < -1
 			throw_n_log("unexpected value for max_depth: $(max_depth) (expected:"
 				* " max_depth >= 0, or max_depth = -1 for infinite depth)")
@@ -486,117 +545,22 @@ module treeclassifier
 
 	end
 
-	# function optimize_tree_parameters!(
-	# 		X               :: OntologicalDataset{T, N},
-	# 		initCondition   :: DecisionTree._initCondition,
-	# 		useRelationGlob :: Bool,
-	# 		test_operators  :: AbstractVector{<:TestOperator}
-	# 	) where {T, N}
-
-	# 	# Adimensional ontological datasets:
-	# 	#  flatten to adimensional case + strip of all relations from the ontology
-	# 	if prod(channel_size(X)) == 1
-	# 		if (length(ontology(X).relationSet) > 0)
-	# 			warn("The OntologicalDataset provided has degenerate channel_size $(channel_size(X)), and more than 0 relations: $(ontology(X).relationSet).")
-	# 		end
-	# 		# X = OntologicalDataset{T, 0}(ModalLogic.strip_ontology(ontology(X)), @views ModalLogic.strip_domain(domain(X)))
-	# 	end
-
-	# 	ontology_relations = deepcopy(ontology(X).relationSet)
-
-	# 	# Fix test_operators order
-	# 	test_operators = unique(test_operators)
-	# 	ModalLogic.sort_test_operators!(test_operators)
-		
-	# 	# Adimensional operators:
-	# 	#  in the adimensional case, some pairs of operators (e.g. <= and >)
-	# 	#  are complementary, and thus it is redundant to check both at the same node.
-	# 	#  We avoid this by only keeping one of the two operators.
-	# 	if prod(channel_size(X)) == 1
-	# 		# No ontological relation
-	# 		ontology_relations = []
-	# 		if test_operators ⊆ ModalLogic.all_lowlevel_test_operators
-	# 			test_operators = [TestOpGeq]
-	# 			# test_operators = filter(e->e ≠ TestOpGeq,test_operators)
-	# 		else
-	# 			warn("Test operators set includes non-lowlevel test operators. Update this part of the code accordingly.")
-	# 		end
-	# 	end
-
-	# 	# Softened operators:
-	# 	#  when the biggest world only has a few values, softened operators fallback
-	# 	#  to being hard operators
-	# 	# max_world_wratio = 1/prod(max_channel_size(X))
-	# 	# if TestOpGeq in test_operators
-	# 	# 	test_operators = filter((e)->(typeof(e) != _TestOpGeqSoft || e.alpha < 1-max_world_wratio), test_operators)
-	# 	# end
-	# 	# if TestOpLeq in test_operators
-	# 	# 	test_operators = filter((e)->(typeof(e) != _TestOpLeqSoft || e.alpha < 1-max_world_wratio), test_operators)
-	# 	# end
-
-
-	# 	# Binary relations (= unary modal operators)
-	# 	# Note: the identity relation is the first, and it is the one representing
-	# 	#  propositional splits.
-		
-	# 	if RelationId in ontology_relations
-	# 		throw_n_log("Found RelationId in ontology provided. No need.")
-	# 		# ontology_relations = filter(e->e ≠ RelationId, ontology_relations)
-	# 	end
-
-	# 	if RelationGlob in ontology_relations
-	# 		throw_n_log("Found RelationGlob in ontology provided. Use useRelationGlob = true instead.")
-	# 		# ontology_relations = filter(e->e ≠ RelationGlob, ontology_relations)
-	# 		# useRelationGlob = true
-	# 	end
-
-	# 	relationSet = [RelationId, RelationGlob, ontology_relations...]
-	# 	relationId_id = 1
-	# 	relationGlob_id = 2
-	# 	ontology_relation_ids = map((x)->x+2, 1:length(ontology_relations))
-
-	# 	needToComputeRelationGlob = (useRelationGlob || (initCondition == startWithRelationGlob))
-
-	# 	# Modal relations to compute gammas for
-	# 	inUseRelation_ids = if needToComputeRelationGlob
-	# 		[relationGlob_id, ontology_relation_ids...]
-	# 	else
-	# 		ontology_relation_ids
-	# 	end
-
-	# 	# Relations to use at each split
-	# 	availableRelation_ids = []
-
-	# 	push!(availableRelation_ids, relationId_id)
-	# 	if useRelationGlob
-	# 		push!(availableRelation_ids, relationGlob_id)
-	# 	end
-
-	# 	availableRelation_ids = [availableRelation_ids..., ontology_relation_ids...]
-
-	# 	(
-	# 		test_operators, relationSet,
-	# 		relationId_id, relationGlob_id,
-	# 		inUseRelation_ids, availableRelation_ids
-	# 	)
-	# end
 
 	function _fit(
 			Xs                      :: MultiFrameModalDataset,
-			Y                       :: AbstractVector{Label},
+			Y                       :: AbstractVector{L},
 			W                       :: AbstractVector{U},
 			##########################################################################
 			loss_function           :: Function,
-			n_classes               :: Int,
 			max_depth               :: Int,
 			min_samples_leaf        :: Int, # TODO generalize to min_samples_leaf_relative and min_weight_leaf
 			min_purity_increase     :: AbstractFloat,
-			min_loss_at_leaf        :: AbstractFloat,
+			max_purity_at_leaf      :: AbstractFloat,
 			##########################################################################
 			n_subrelations          :: Vector{<:Function},
 			n_subfeatures           :: Vector{<:Integer},
 			initConditions          :: Vector{<:DecisionTree._initCondition},
-			useRelationGlob         :: Vector{Bool},
+			allowRelationGlob       :: Vector{Bool},
 			##########################################################################
 			_perform_consistency_check :: Union{Val{true},Val{false}},
 			##########################################################################
@@ -626,14 +590,14 @@ module treeclassifier
 		# Let the core algorithm begin!
 
 		# Create root node
-		onlyUseRelationGlob = [(iC == startWithRelationGlob) for iC in initConditions]
-		root = NodeMeta{Float64}(1:n_instances, 0, 0, onlyUseRelationGlob)
+		onlyallowRelationGlob = [(iC == startWithRelationGlob) for iC in initConditions]
+		root = NodeMeta{Float64}(1:n_instances, 0, 0, onlyallowRelationGlob)
 		# Process stack of nodes
 		stack = NodeMeta{Float64}[root]
 		currently_processed_nodes::Vector{NodeMeta{Float64}} = []
 		writing_lock = Threads.Condition()
 		@inbounds while length(stack) > 0
-			rngs = [spawn_rng(rng) for _n in 1:length(stack)]
+			rngs = [DecisionTree.spawn_rng(rng) for _n in 1:length(stack)]
 			# Pop nodes and queue them to be processed
 			while length(stack) > 0
 				push!(currently_processed_nodes, pop!(stack))
@@ -650,15 +614,14 @@ module treeclassifier
 					loss_function,
 					max_depth,
 					min_samples_leaf,
-					min_loss_at_leaf,
+					max_purity_at_leaf,
 					min_purity_increase,
 					######################################################################
 					n_subrelations,
 					n_subfeatures,
-					useRelationGlob,
+					allowRelationGlob,
 					######################################################################
 					indX,
-					n_classes,
 					######################################################################
 					_perform_consistency_check,
 					######################################################################
@@ -687,33 +650,38 @@ module treeclassifier
 	#  a graph; instead, an instance is a dimensional domain (e.g. a matrix or a 3D matrix) onto which
 	#  worlds and relations are determined by a given Ontology.
 
-	function fit(;
-			# TODO Add default values for this function? loss_function = util.entropy
+	function DecisionTree.fit(
+			# TODO Add default values for this function?
 			Xs                      :: MultiFrameModalDataset,
 			Y                       :: AbstractVector{S},
 			# Use unary weights if no weight is supplied
-			W                       :: AbstractVector{U} = UniformArray{Int}(1,n_samples(Xs)), # from StructuredArrays
+			W                       :: AbstractVector{U} = UniformArray{Int}(1,n_samples(Xs)) # from StructuredArrays
+			;
 			# W                       :: AbstractVector{U} = fill(1, n_samples(Xs)),
 			# W                       :: AbstractVector{U} = Ones{Int}(n_samples(Xs)),      # from FillArrays
 			##########################################################################
 			# Logic-agnostic training parameters
-			loss_function           :: Function,
+			loss_function           :: Union{Nothing,Function} = nothing,
 			max_depth               :: Int,
 			min_samples_leaf        :: Int,
 			min_purity_increase     :: AbstractFloat,
-			min_loss_at_leaf        :: AbstractFloat, # TODO add this to scikit's interface.
+			max_purity_at_leaf      :: AbstractFloat, # TODO add this to scikit's interface.
 			##########################################################################
 			# Modal parameters
 			n_subrelations          :: Vector{<:Function},
 			n_subfeatures           :: Vector{<:Integer},
 			initConditions          :: Vector{<:DecisionTree._initCondition},
-			useRelationGlob         :: Vector{Bool},
+			allowRelationGlob       :: Vector{Bool},
 			##########################################################################
 			perform_consistency_check :: Bool,
 			##########################################################################
 			rng = Random.GLOBAL_RNG :: Random.AbstractRNG
-		) where {S, U}
+		) where {S<:Float64, U}
 
+		if isnothing(loss_function)
+			loss_function = util.variance
+		end
+		
 		# Check validity of the input
 		check_input(
 			Xs,
@@ -724,20 +692,16 @@ module treeclassifier
 			max_depth,
 			min_samples_leaf,
 			min_purity_increase,
-			min_loss_at_leaf,
+			max_purity_at_leaf,
 			##########################################################################
 			n_subrelations,
 			n_subfeatures,
 			initConditions,
-			useRelationGlob,
+			allowRelationGlob,
 		)
 
-		# Transform labels to categorical form
-		labels, Y_ = util.assign(Y)
-		# print(labels, Y_)
-		# println("countmap: ")
-		# println(StatsBase.countmap(Y_))
-
+		Y_ = Y
+		
 		# Call core learning function
 		root, indX = _fit(
 				Xs,
@@ -745,16 +709,15 @@ module treeclassifier
 				W,
 				########################################################################
 				loss_function,
-				length(labels),
 				max_depth,
 				min_samples_leaf,
 				min_purity_increase,
-				min_loss_at_leaf,
+				max_purity_at_leaf,
 				########################################################################
 				n_subrelations,
 				n_subfeatures,
 				initConditions,
-				useRelationGlob,
+				allowRelationGlob,
 				########################################################################
 				Val(perform_consistency_check),
 				########################################################################
@@ -762,6 +725,6 @@ module treeclassifier
 		)
 		
 		# Create tree with labels and categorical leaves
-		return Tree{S}(root, labels, indX, initConditions)
+		return Tree{S}(root, indX, initConditions)
 	end
 end

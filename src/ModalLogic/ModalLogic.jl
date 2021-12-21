@@ -144,6 +144,64 @@ subscriptnumber(i::AbstractFloat) = subscriptnumber(string(i))
 include("operators.jl")
 include("featureTypes.jl")
 
+
+abstract type CanonicalFeature end
+
+export CanonicalFeature, CanonicalFeatureGeq, CanonicalFeatureLeq
+
+# ⪴ and ⪳, that is, "*all* of the values on this world are at least, or at most ..."
+struct _CanonicalFeatureGeq <: CanonicalFeature end; const CanonicalFeatureGeq  = _CanonicalFeatureGeq();
+struct _CanonicalFeatureLeq <: CanonicalFeature end; const CanonicalFeatureLeq  = _CanonicalFeatureLeq();
+
+export CanonicalFeatureGeq_95, CanonicalFeatureGeq_90, CanonicalFeatureGeq_85, CanonicalFeatureGeq_80, CanonicalFeatureGeq_75, CanonicalFeatureGeq_70, CanonicalFeatureGeq_60,
+				CanonicalFeatureLeq_95, CanonicalFeatureLeq_90, CanonicalFeatureLeq_85, CanonicalFeatureLeq_80, CanonicalFeatureLeq_75, CanonicalFeatureLeq_70, CanonicalFeatureLeq_60
+
+# ⪴_α and ⪳_α, that is, "*at least α⋅100 percent* of the values on this world are at least, or at most ..."
+
+struct _CanonicalFeatureGeqSoft  <: CanonicalFeature
+  alpha :: AbstractFloat
+  _CanonicalFeatureGeqSoft(a::T) where {T<:Real} = (a > 0 && a < 1) ? new(a) : throw_n_log("Invalid instantiation for test operator: _CanonicalFeatureGeqSoft($(a))")
+end;
+struct _CanonicalFeatureLeqSoft  <: CanonicalFeature
+  alpha :: AbstractFloat
+  _CanonicalFeatureLeqSoft(a::T) where {T<:Real} = (a > 0 && a < 1) ? new(a) : throw_n_log("Invalid instantiation for test operator: _CanonicalFeatureLeqSoft($(a))")
+end;
+
+const CanonicalFeatureGeq_95  = _CanonicalFeatureGeqSoft((Rational(95,100)));
+const CanonicalFeatureGeq_90  = _CanonicalFeatureGeqSoft((Rational(90,100)));
+const CanonicalFeatureGeq_85  = _CanonicalFeatureGeqSoft((Rational(85,100)));
+const CanonicalFeatureGeq_80  = _CanonicalFeatureGeqSoft((Rational(80,100)));
+const CanonicalFeatureGeq_75  = _CanonicalFeatureGeqSoft((Rational(75,100)));
+const CanonicalFeatureGeq_70  = _CanonicalFeatureGeqSoft((Rational(70,100)));
+const CanonicalFeatureGeq_60  = _CanonicalFeatureGeqSoft((Rational(60,100)));
+
+const CanonicalFeatureLeq_95  = _CanonicalFeatureLeqSoft((Rational(95,100)));
+const CanonicalFeatureLeq_90  = _CanonicalFeatureLeqSoft((Rational(90,100)));
+const CanonicalFeatureLeq_85  = _CanonicalFeatureLeqSoft((Rational(85,100)));
+const CanonicalFeatureLeq_80  = _CanonicalFeatureLeqSoft((Rational(80,100)));
+const CanonicalFeatureLeq_75  = _CanonicalFeatureLeqSoft((Rational(75,100)));
+const CanonicalFeatureLeq_70  = _CanonicalFeatureLeqSoft((Rational(70,100)));
+const CanonicalFeatureLeq_60  = _CanonicalFeatureLeqSoft((Rational(60,100)));
+
+# TODO deprecated, remove
+export TestOpGeq_95, TestOpGeq_90, TestOpGeq_85, TestOpGeq_80, TestOpGeq_75, TestOpGeq_70, TestOpGeq_60, TestOpLeq_95, TestOpLeq_90, TestOpLeq_85, TestOpLeq_80, TestOpLeq_75, TestOpLeq_70, TestOpLeq_60, TestOpGeq, TestOpLeq
+TestOpGeq_95 = CanonicalFeatureGeq_95
+TestOpGeq_90 = CanonicalFeatureGeq_90
+TestOpGeq_85 = CanonicalFeatureGeq_85
+TestOpGeq_80 = CanonicalFeatureGeq_80
+TestOpGeq_75 = CanonicalFeatureGeq_75
+TestOpGeq_70 = CanonicalFeatureGeq_70
+TestOpGeq_60 = CanonicalFeatureGeq_60
+TestOpLeq_95 = CanonicalFeatureLeq_95
+TestOpLeq_90 = CanonicalFeatureLeq_90
+TestOpLeq_85 = CanonicalFeatureLeq_85
+TestOpLeq_80 = CanonicalFeatureLeq_80
+TestOpLeq_75 = CanonicalFeatureLeq_75
+TestOpLeq_70 = CanonicalFeatureLeq_70
+TestOpLeq_60 = CanonicalFeatureLeq_60
+TestOpGeq    = CanonicalFeatureGeq
+TestOpLeq    = CanonicalFeatureLeq
+
 ################################################################################
 # BEGIN Dataset types
 ################################################################################
@@ -1296,8 +1354,6 @@ end
 # END Dataset types
 ################################################################################
 
-include("testOperators.jl")
-
 display_decision_inverse(i_frame::Integer, relation::AbstractRelation, feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number; threshold_display_method::Function = x -> x) = begin
 	inv_test_operator = test_operator_inverse(test_operator)
 	display_decision(i_frame, relation, feature, inv_test_operator, threshold; threshold_display_method = threshold_display_method, inverse = true)
@@ -1346,7 +1402,7 @@ display_propositional_decision(feature::AttributeSoftMaximumFeatureType, test_op
 
 # Fallback: enumAccessibles works with domains AND their dimensions
 enumAccessibles(S::AbstractWorldSet{WorldType}, r::AbstractRelation, channel::MatricialChannel{T,N}) where {T,N,WorldType<:AbstractWorld} = enumAccessibles(S, r, size(channel)...)
-enumAccRepr(S::Any, r::AbstractRelation, channel::MatricialChannel{T,N}) where {T,N} = enumAccRepr(S, r, size(channel)...)
+# enumAccRepr(S::Any, r::AbstractRelation, channel::MatricialChannel{T,N}) where {T,N} = enumAccRepr(S, r, size(channel)...)
 # Fallback: enumAccessibles for world sets maps to enumAcc-ing their elements
 #  (note: one may overload this function to provide improved implementations for special cases (e.g. <L> of a world set in interval algebra))
 enumAccessibles(S::AbstractWorldSet{WorldType}, r::AbstractRelation, XYZ::Vararg{Integer,N}) where {T,N,WorldType<:AbstractWorld} = begin
@@ -1372,8 +1428,9 @@ struct _RelationId    <: AbstractRelation end; const RelationId   = _RelationId(
 enumAccessibles(w::WorldType,           ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = [w] # IterTools.imap(identity, [w])
 enumAccessibles(S::AbstractWorldSet{W}, ::_RelationId, XYZ::Vararg{Integer,N}) where {W<:AbstractWorld,N} = S # TODO try IterTools.imap(identity, S) ?
 
-enumAccReprAggr(f::FeatureTypeFun, a::Aggregator, w::WorldType, r::AbstractRelation, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = enumAccessibles(w, r, XYZ...)
-enumAccReprAggr(::FeatureTypeFun, ::Aggregator, w::WorldType, r::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = enumAccessibles(w, r, XYZ...)
+enumAccReprAggr(::FeatureTypeFun, ::Aggregator, w::WorldType, r::AbstractRelation, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = enumAccessibles(w, r, XYZ...)
+enumAccReprAggr(::FeatureTypeFun, ::Aggregator, w::WorldType, r::_RelationId,      XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = enumAccessibles(w, r, XYZ...)
+
 
 # computeModalThresholdDual(test_operator::TestOperatorFun, w::WorldType, relation::_RelationId, channel::MatricialChannel{T,N}) where {WorldType<:AbstractWorld,T,N} =
 # 	computePropositionalThresholdDual(test_operator, w, channel)
@@ -1395,8 +1452,8 @@ struct _ReprMax{WorldType<:AbstractWorld}  <: _ReprTreatment w :: WorldType end
 struct _ReprMin{WorldType<:AbstractWorld}  <: _ReprTreatment w :: WorldType end
 struct _ReprVal{WorldType<:AbstractWorld}  <: _ReprTreatment w :: WorldType end
 struct _ReprNone{WorldType<:AbstractWorld} <: _ReprTreatment end
-enumAccRepr(::_TestOpGeq, w::WorldType, ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = _ReprMin(w)
-enumAccRepr(::_TestOpLeq, w::WorldType, ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = _ReprMax(w)
+# enumAccRepr(::_TestOpGeq, w::WorldType, ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = _ReprMin(w)
+# enumAccRepr(::_TestOpLeq, w::WorldType, ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = _ReprMax(w)
 
 ################################################################################
 ################################################################################
@@ -1562,7 +1619,7 @@ function modal_step(
 
 		for w in acc_worlds
 			if test_decision(X, i_instance, w, feature, test_operator, threshold)
-				# @logmsg DTDetail " Found world " w ch_readWorld(w, channel)
+				# @logmsg DTDetail " Found world " w ch_readWorld ... ch_readWorld(w, channel)
 				satisfied = true
 				push!(new_worlds, w)
 			end
