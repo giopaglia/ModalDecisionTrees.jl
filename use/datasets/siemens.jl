@@ -2,6 +2,8 @@ using StatsBase
 using DataFrames
 using CSV
 using Tables
+using Catch22
+
 
 size(mf::ModalFrame) = (nrow(mf.data),)
 getindex(mf::ModalFrame, i::Int) = mf.views[i]
@@ -104,6 +106,15 @@ function transform!(ds::ClassificationDataset2, f::Function, fid::Int; kwargs...
 		end
 	end
 end
+
+# function transform(X::AbstractArray, f::Function, fid::Int; kwargs...)
+# 	X = []
+# 	# for i_attr in 1:size(X)[end-1]
+# 	# 	for i in 1:nrow(ds.frames[fid].data)
+# 	# 		ds.frames[fid].data[i,attr] = f(; kwargs...)
+# 	# 	end
+# 	# end
+# end
 
 function minimum(ds::ClassificationDataset2)
 	d = Dict{Int,Array{Float64,1}}()
@@ -313,8 +324,9 @@ end
 
 
 function trip_no_trip(dir::String;
-		n_machine::Union{Nothing, Int64} = nothing,
+		n_datasource::Union{Nothing, Integer} = nothing,
 		ignore_class0 = true,
+		sortby_datasource = false,
 		only_consider_trip_days = true,
 		mode::Symbol = :classification, # :classification, :regression
 		regression_window_in_minutes = 60,
@@ -323,35 +335,73 @@ function trip_no_trip(dir::String;
 		ma_size = nothing,
 		ma_step = nothing,
 		ignore_uneven_cuts = true,
+		ignore_datasources = [], # :: AbstractVector{<:Integer} = [],
 		)
-	X_df = DataFrame()
-	Y = []
 	attributes = CSV.File(dir * "/Example_1.csv", drop = [1, 2]) |> DataFrame |> names
-
 	println("Attributes: $(attributes)")
-
-	for attr in attributes
-		insertcols!(X_df, attr => Array{Float64, 1}[])
+	function init_X_df()
+		ret = DataFrame()
+		for attr in attributes
+			insertcols!(ret, attr => Array{Float64, 1}[])
+		end
+		ret
 	end
+	X_df = init_X_df()
+	Y = []
 
-	for row in CSV.File(dir * "/DataInfo.csv")
+	datainfo = CSV.File(dir * "/DataInfo.csv") |> DataFrame
+	sort(datainfo, [:Datasource, :ExampleID])
+
+	datasource_counts = []
+
+	samples_refs = []
+	n_ignored_rows = 0
+	for row in eachrow(datainfo)
 		if ignore_class0 && row.Class == 0
 			continue
 		elseif only_consider_trip_days && ! (row.Class == 1 && row.Day == 4)
 			continue
 		else
-			if !isnothing(n_machine) && row.Datasource != n_machine
+			# Only return a single datasource
+			if !isnothing(n_datasource) && Int64(row.Datasource) != n_datasource
+				n_ignored_rows += 1
 				continue
 			end
 
-			aux = CSV.File(dir * "/Example_$(row.ExampleID).csv", drop = [1, 2]) |> Tables.matrix
+			# Ignore datasources that are in ignore_datasources
+			if Int64(row.Datasource) in ignore_datasources
+				n_ignored_rows += 1
+				continue
+			end
+
+			push!(samples_refs, (Int64(row.Datasource), (row.ExampleID, Day)))
+		end
+	end
+
+	println("trip_no_trip: $(n_ignored_rows) data samples were ignored.")
+
+	sort!(samples_refs)
+	datasources = unique(getindex.(samples_refs, 1))
+	samples_by_datasources = Dict([d => [] for d in datasources])
+	for (Datasource, info) in samples_refs
+		push!(samples_by_datasources[Datasource], info)
+	end
+
+	# nrow(X_df) |> println
+
+	for Datasource in datasources
+		_X_df = init_X_df()
+		_Y = []
+		for (ExampleID, Day) in samples_by_datasources[Datasource]
+			aux = CSV.File(dir * "/Example_$(ExampleID).csv", drop = [1, 2]) |> Tables.matrix
 
 			# println(size(aux))
 
 			if mode == :classification
 				ts = [moving_average(aux[:, j], ma_size, ma_step) for j in 1:length(attributes)]
-				push!(X_df, ts)
-				push!(Y, (row.Day < 4 ? "no-trip" : "trip"))
+				push!(_X_df, ts)
+				push!(_Y, (Day < 4 ? "no-trip" : "trip"))
+				push!(datasource_counts, Datasource)
 			elseif mode == :regression
 				ts_n_points = size(aux, 1)
 				ts_filt = aux[1:end-ignore_last_minutes,:]
@@ -373,34 +423,58 @@ function trip_no_trip(dir::String;
 					# a .|> (last_minute)-> distance_from_trip = (1440-last_minute)/60
 					distance_from_trip = (ts_n_points-last_minute)/60
 					# println("Window:"); display(idxs)
-					push!(X_df, ts)
-					push!(Y, distance_from_trip)
+					push!(_X_df, ts)
+					push!(_Y, distance_from_trip)
+					push!(datasource_counts, Datasource)
+					# push!(datasource_counts, get_grouped_counts(_Y))
 				end
+
 			else
 				error("Unknown mode: $(mode) (type = $(typeof(mode)))")
 			end
 		end
+		ids  = sortperm(_Y)
+		_X_df = _X_df[ids,:]
+		_Y    = _Y[ids]
+
+		append!(X_df, _X_df)
+		append!(Y,    _Y)
+
+		# nrow(_X_df) |> println
+		# length(_Y) |> println
+		# nrow(X_df) |> println
+		# length(Y) |> println
+		# println()
 	end
-	
-	ids  = sortperm(Y)
-	X_df = X_df[ids,:]
-	Y    = Y[ids]
+
+	if mode == :classification
+		Y = Vector{String}(Y)
+	elseif mode == :regression
+		Y = Vector{Float64}(Y)
+	else
+		error("Unknown mode: $(mode) (type = $(typeof(mode)))")
+	end
+
+	@assert isgrouped(datasource_counts) "datasource_counts is not grouped: $(datasource_counts)"
+	datasource_counts = get_grouped_counts(datasource_counts)
+
+	if !sortby_datasource
+		ids  = sortperm(Y)
+		X_df = X_df[ids,:]
+		Y    = Y[ids]
+	end
 
 	# println(X_df)
 	# println(Y)
 
 	if mode == :classification
-		classes = unique(Y)
-		cm = StatsBase.countmap(Y)
-		class_counts = Tuple([cm[y] for y in unique(Y)])
-
-		println(classes)
-		println(cm)
-		println(class_counts)
-		println()
-
-		ds = ClassificationDataset2([ModalFrame(X_df)], CategoricalArray(Y))
-		ds, class_counts
+		@assert !sortby_datasource "TODO Double check code"
+		if !sortby_datasource
+			ClassificationDataset2([ModalFrame(X_df)], CategoricalArray(Y))
+		else
+			ClassificationDataset2([ModalFrame(X_df)], CategoricalArray(Y)), datasource_counts
+		end
+		
 	elseif mode == :regression
 		n_instances = nrow(X_df)
 		n_attrs = ncol(X_df)
@@ -412,7 +486,11 @@ function trip_no_trip(dir::String;
 			end
 		end
 		println("size: $(size(X))")
-		X, Y
+		if !sortby_datasource
+			(X, Y)
+		else
+			(X, Y), datasource_counts
+		end
 	else
 		error("Unknown mode: $(mode) (type = $(typeof(mode)))")
 	end
@@ -448,24 +526,87 @@ end
 
 function SiemensJuneDataset_not_stratified(from, to)
 	# Qua fai un nuovo dataset, cambiando il dir, con trip vs no-trip
-	ds, class_counts = trip_no_trip(data_dir * "Data_Features"); 
+	ds = trip_no_trip(data_dir * "Data_Features"); 
 	# Qua si fa una trasformazione del dataset usando la window che va dal punto 1 al punto 120, i.e., le prime due ore.
 	transform!(ds, window_slice, 1; from=from, to=to)
 	
-	ClassificationDataset22RunnerDataset(ds), class_counts
+	ClassificationDataset22RunnerDataset(ds)
 end
 
-function SiemensDataset_regression(datadirname; binning, kwargs...)
-	X, Y = trip_no_trip(data_dir * datadirname; mode = :regression, kwargs...);
-	function manual_bin(y)
-		for (threshold,label) in binning
-			y <= threshold && return label
-		end
-		error("Error! element with label $(y) falls outside binning $(binning)")
+function SiemensDataset_regression(datadirname; binning::Binning = nothing, sortby_datasource = false, use_catch22 = false, select_attributes = nothing, kwargs...)
+	if !sortby_datasource
+		(X, Y)                    = trip_no_trip(data_dir * datadirname; mode = :regression, sortby_datasource = sortby_datasource, kwargs...);
+	else
+		(X, Y), datasource_counts = trip_no_trip(data_dir * datadirname; mode = :regression, sortby_datasource = sortby_datasource, kwargs...);
 	end
-	Y = manual_bin.(Y)
-	classes = unique(Y)
-	cm = StatsBase.countmap(Y)
-	class_counts = Tuple([cm[y] for y in unique(Y)])
-	(X, Y), class_counts
+
+	Y = apply_binning(Y, binning)
+
+	if sortby_datasource && !isnothing(binning)
+		datasource_counts = Tuple([begin
+			a = datasource_counts[1:d-1];
+			idx_base = (length(a) == 0 ? 0 : sum(a))
+			datasource_idxs = idx_base .+ (1:datasource_counts[d])
+			println(datasource_idxs)
+			get_grouped_counts(Y[datasource_idxs])
+		end for d in 1:length(datasource_counts)])
+	end
+
+	# if use_catch22
+	# 	TODO
+	# 	n_chunks = 1
+	# 	...transform(ds_train, fid, [paa for _ in 1:length(catch22)], [(;n_chunks=n_chunks, f=catch22[fn]) for fn in getnames(catch22)])
+	# end
+
+	n_attrs = size(X)[end-1]
+
+	attribute_names = begin
+		if datadirname == "Siemens-Data-Measures"
+			[
+				"Ambient_air_humidity",
+				"Compr_IGV_position",
+				"Gas_fuel_valve_position",
+				"Ambient_air_temperature",
+				"Compressor_outlet_temperature",
+				"Exhaust_temperature_1",
+				"Exhaust_temperature_2",
+				"Exhaust_temperature_3",
+				"Exhaust_temperature_4",
+				"Exhaust_temperature_5",
+				"Exhaust_temperature_6",
+				"Exhaust_temperature_7",
+				"Exhaust_temperature_8",
+				"Exhaust_temperature_9",
+				"Exhaust_temperature_10",
+				"Exhaust_temperature_11",
+				"Exhaust_temperature_12",
+				"Exhaust_temperature_13",
+				"Exhaust_temperature_14",
+				"Exhaust_temperature_15",
+				"Exhaust_temperature_16",
+				"Compressor_outlet_pressure",
+				"Gas_fuel_mass_flow_rate",
+				"Compressor_inlet_air_mass_flow_rate",
+				"Rotational_speed",
+				"Power_output",
+			]
+		else
+			string.(1:n_attrs)
+		end
+	end
+
+	if !isnothing(select_attributes)
+		X = X[:,select_attributes,:]
+		attribute_names = attribute_names[select_attributes]
+	end
+
+	ret = begin
+		if !sortby_datasource
+			(X, Y)
+		else
+			(X, Y), datasource_counts
+		end
+	end
+
+	ret, attribute_names
 end

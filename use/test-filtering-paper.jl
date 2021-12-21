@@ -90,7 +90,7 @@ for tree_config in tree_configs
 
     modal_args = (;
         initConditions = DecisionTree.startWithRelationGlob,
-        useRelationGlob = false,
+        allowRelationGlob = false,
     )
 
     data_modal_args = (;

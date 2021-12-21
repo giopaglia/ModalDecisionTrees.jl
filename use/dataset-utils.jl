@@ -1,5 +1,7 @@
 import DecisionTree.ModalLogic: concat_datasets, slice_dataset, dataset_has_nonevalues
 
+using StatsBase
+
 # TODO note that these splitting functions simply cut the dataset in two,
 #  and they don't necessarily produce balanced cuts. To produce balanced cuts,
 #  one must manually stratify the dataset beforehand
@@ -81,6 +83,32 @@ function mapArrayToDataType(type::Type{<:AbstractFloat}, array::AbstractArray{<:
 	type.(array)
 end
 
+_Binning = NTuple{N,Pair{<:T,String}} where {N,T}
+Binning = Union{Nothing,_Binning}
+function apply_binning(y::T, binning::_Binning{N,T}) where {N,T}
+	for (threshold,label) in binning
+		y <= threshold && return label
+	end
+	error("Error! element with label $(y) falls outside binning $(binning)")
+end
+function apply_binning(Y::AbstractVector{<:T}, binning::_Binning{N,T}) where {N,T}
+	map((y)->apply_binning(y, binning), Y)
+end
+apply_binning(y_or_Y, binning::Nothing) = y_or_Y
+
+function get_grouped_counts(Y::AbstractVector)
+	@assert isgrouped(Y) "get_class_counts: Y is not grouped: $(Y)"
+	cm = StatsBase.countmap(Y)
+	class_counts = Tuple([cm[y] for y in unique(Y)])
+	# println(classes)
+	# println(cm)
+	# println(class_counts)
+	# println()
+	class_counts
+end
+get_class_counts((X,Y)::Tuple{Any,AbstractVector}) = get_grouped_counts(Y)
+
+
 function balanced_dataset_slice(
 		dataset::Tuple{Tuple{AbstractVector{<:GenericDataset},AbstractVector},NTuple{N,Integer}},
 		dataseeds::Vector{<:Integer};
@@ -144,7 +172,7 @@ function balanced_dataset_slice(
 				# Note: not stratified!!!
 				dataset_slice = Vector{Int64}(filter(!isnothing, dataset_slice[:]))
 			else
-				error("Unknwon typeof(n_samples_per_class): $(typeof(n_samples_per_class))")
+				error("Unknown typeof(n_samples_per_class): $(typeof(n_samples_per_class))")
 			end
 		end
 

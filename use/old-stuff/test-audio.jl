@@ -10,7 +10,7 @@ tree_args = [(
 	loss_function = DecisionTree.util.entropy,
 	min_samples_leaf = 1,
 	min_purity_increase = 0.01,
-	min_loss_at_leaf = 0.4,
+	max_purity_at_leaf = 0.4,
 )]
 
 # TODO add parameter: allow relationGlob at all levels? Maybe it must be part of the relations... I don't know
@@ -19,7 +19,7 @@ modal_args = (
 	# n_subrelations = x -> ceil(x/2),
 	initCondition = DecisionTree.startWithRelationGlob,
 	useRelationId = true,
-	useRelationGlob = false,
+	allowRelationGlob = false,
 	ontology = getIntervalOntologyOfDim(Val(1)),
 	# test_operators = [TestOpGeq, TestOpLeq],
 	test_operators = [TestOpGeq_70, TestOpLeq_70],
@@ -36,7 +36,7 @@ forest_args = [(
 	loss_function = DecisionTree.util.entropy,
 	min_samples_leaf = 1,
 	min_purity_increase = 0.0,
-	min_loss_at_leaf = 0.0,
+	max_purity_at_leaf = 0.0,
 )]
 
 # log_level = Logging.Warn
@@ -113,7 +113,7 @@ exec_run("Test",
 # selected_args = merge(args, (loss_function = loss,
 # 															min_samples_leaf = min_samples_leaf,
 # 															min_purity_increase = min_purity_increase,
-# 															min_loss_at_leaf = min_loss_at_leaf,
+# 															max_purity_at_leaf = max_purity_at_leaf,
 # 															))
 
 

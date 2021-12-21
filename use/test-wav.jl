@@ -139,7 +139,7 @@ audio_kwargs_partial_mfcc = (
 
 modal_args = (;
     initConditions = DecisionTree.startWithRelationGlob,
-    useRelationGlob = false,
+    allowRelationGlob = false,
 )
 
 data_modal_args = (;

@@ -12,23 +12,23 @@ train_seed = 2
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./covid/journal-v12"
+results_dir = "./covid/journal-v13-40bands-smaller-window-rf100"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 
-# dry_run = false
+dry_run = false
 # dry_run = :dataset_only
 # dry_run = :model_study
-dry_run = true
+# dry_run = true
 
 skip_training = false
 
-save_datasets = true
-# save_datasets = false
+# save_datasets = true
+save_datasets = false
 
-perform_consistency_check = false
+perform_consistency_check = false # true #  = false
 
 iteration_blacklist = []
 
@@ -39,23 +39,23 @@ iteration_blacklist = []
 # Optimization arguments for single-tree
 tree_args = [
 #	(
-#		loss_function = DecisionTree.util.entropy,
+#		loss_function = nothing,
 #		min_samples_leaf = 1,
 #		min_purity_increase = 0.01,
-#		min_loss_at_leaf = 0.6,
+#		max_purity_at_leaf = 0.6,
 #	)
 ]
 
-for loss_function in [DecisionTree.util.entropy]
+for loss_function in [nothing]
 	for min_samples_leaf in [2,4] # [1,2]
 		for min_purity_increase in [0.01] # [0.01, 0.001]
-			for min_loss_at_leaf in [0.4, 0.5, 0.6] # [0.4, 0.6]
+			for max_purity_at_leaf in [0.4, 0.5, 0.6] # [0.4, 0.6]
 				push!(tree_args,
 					(
 						loss_function       = loss_function,
 						min_samples_leaf    = min_samples_leaf,
 						min_purity_increase = min_purity_increase,
-						min_loss_at_leaf    = min_loss_at_leaf,
+						max_purity_at_leaf  = max_purity_at_leaf,
 						perform_consistency_check = perform_consistency_check,
 					)
 				)
@@ -77,8 +77,8 @@ optimize_forest_computation = true
 
 forest_args = []
 
-# for n_trees in [50, 100]
-for n_trees in [50]
+for n_trees in [50, 100]
+# for n_trees in [50]
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
 			for partial_sampling in [0.7]
@@ -88,10 +88,10 @@ for n_trees in [50]
 					partial_sampling    = partial_sampling,
 					n_subrelations      = n_subrelations,
 					# Optimization arguments for trees in a forest (no pruning is performed)
-					loss_function       = DecisionTree.util.entropy,
+					loss_function       = nothing,
 					# min_samples_leaf    = 1,
 					# min_purity_increase = 0.0,
-					# min_loss_at_leaf    = 0.0,
+					# max_purity_at_leaf  = Inf,
 					perform_consistency_check = perform_consistency_check,
 				))
 			end
@@ -109,8 +109,8 @@ println(" $(length(forest_args)) forests " * (length(forest_args) > 0 ? "(repeat
 modal_args = (;
 	initConditions = DecisionTree.startWithRelationGlob,
 	# initConditions = DecisionTree.startAtCenter,
-	# useRelationGlob = true,
-	useRelationGlob = false,
+	# allowRelationGlob = true,
+	allowRelationGlob = false,
 )
 
 data_modal_args = (;
@@ -173,9 +173,9 @@ exec_use_training_form = [:stump_with_memoization]
 
 exec_n_ver_n_task_use_aug_dataset_dir_preprocess = [
 
-	# ("c",1,false,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
-	# ("c",2,true, "KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
-	# ("c",3,true, "KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
+	("c",1,false,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
+	("c",2,true, "KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
+	("c",3,true, "KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
 	
 	# ("c",1,false,"KDD",["NG", "Normalize", "RemSilence"]),
 	# ("c",2,true, "KDD",["NG", "Normalize", "RemSilence"]),
@@ -189,9 +189,9 @@ exec_n_ver_n_task_use_aug_dataset_dir_preprocess = [
 	("b",2,true, "KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
 	("b",3,true, "KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
 	
-	("b",1,false,"KDD",["Normalize", "RemSilence"]),
-	("b",2,true, "KDD",["Normalize", "RemSilence"]),
-	("b",3,true, "KDD",["Normalize", "RemSilence"]),
+	# ("b",1,false,"KDD",["Normalize", "RemSilence"]),
+	# ("b",2,true, "KDD",["Normalize", "RemSilence"]),
+	# ("b",3,true, "KDD",["Normalize", "RemSilence"]),
 	
 	##############################################################################
 	##############################################################################
@@ -241,8 +241,7 @@ exec_base_freq_max = [700]
 # push!(iteration_blacklist, (fbtype    = :fcmel, base_freq = :autocor))
 # push!(iteration_blacklist, (fbtype    = :fcmel, base_freq_min = 200))
 
-exec_nbands = [30] # [20,40,60]
-# exec_nbands = [40] # [20,40,60]
+exec_nbands = [40,30] # [20,40,60]
 
 combine_moving_averages((size1,step1), (size2,step2)) = begin
 	(1*size1+(size2-1)*step1,step1*step2)
@@ -253,11 +252,14 @@ exec_wintime_steptime_dataset_kwargs =   [(
 	# 	max_points = 50,
 	# 	ma_size = 15,
 	# 	ma_step = 10,
-	# ),(
-	# combine_moving_averages((0.025,0.010),(30,20)),(
-	# 	max_points = 50,
 	# )
 	# ),(
+	(0.025,0.010),(
+		max_points = 50,
+		ma_size = 20,
+		ma_step = 15,
+	)
+	),(
 	# (0.025,0.010),(
 	# 	max_points = 50,
 	# 	ma_size = 30,
@@ -275,7 +277,8 @@ exec_wintime_steptime_dataset_kwargs =   [(
 	# ),(
 	# combine_moving_averages((0.025,0.010),(45,30)),(
 	# 	max_points = 50,
-	# ),(
+	# )
+        # ),(
 	# max_points = 30,
 	# 	ma_size = 120,
 	# 	ma_step = 100,
@@ -342,13 +345,13 @@ exec_preprocess_wavs = [
 # https://github.com/JuliaIO/JSON.jl/issues/203
 # https://discourse.julialang.org/t/json-type-serialization/9794
 # TODO: make test operators types serializable
-# exec_test_operators = [ "TestOp" ]
-exec_test_operators = [ "TestOp_80" ]
+# exec_canonical_features = [ "TestOp" ]
+exec_canonical_features = [ "TestOp_80" ]
 
-test_operators_dict = Dict(
-	"TestOp_70" => [TestOpGeq_70, TestOpLeq_70],
-	"TestOp_80" => [TestOpGeq_80, TestOpLeq_80],
-	"TestOp"    => [TestOpGeq,    TestOpLeq],
+canonical_features_dict = Dict(
+	"TestOp_70" => [ModalLogic.TestOpGeq_70, ModalLogic.TestOpLeq_70],
+	"TestOp_80" => [ModalLogic.TestOpGeq_80, ModalLogic.TestOpLeq_80],
+	"TestOp"    => [ModalLogic.TestOpGeq,    ModalLogic.TestOpLeq],
 )
 
 exec_ontology = [ "IA", ] # "IA7", "IA3",
@@ -381,7 +384,7 @@ exec_ranges = (; # Order: faster-changing to slower-changing
 	wintime_steptime_dataset_kwargs       = exec_wintime_steptime_dataset_kwargs,
 	use_full_mfcc        = exec_use_full_mfcc,
 	# preprocess_wavs      = exec_preprocess_wavs,
-	test_operators       = exec_test_operators,
+	canonical_features       = exec_canonical_features,
 	ontology             = exec_ontology,
 )
 
@@ -454,13 +457,13 @@ models_to_study = Dict([
 
 models_to_study = Dict(JSON.json(k) => v for (k,v) in models_to_study)
 
-MakeOntologicalDataset(Xs, test_operators, ontology) = begin
+MakeOntologicalDataset(Xs, canonical_features, ontology) = begin
 	MultiFrameModalDataset([
 		begin
 			features = FeatureTypeFun[]
 
 			for i_attr in 1:n_attributes(X)
-				for test_operator in test_operators
+				for test_operator in canonical_features
 					if test_operator == TestOpGeq
 						push!(features, ModalLogic.AttributeMinimumFeatureType(i_attr))
 					elseif test_operator == TestOpLeq
@@ -601,10 +604,10 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	nbands,
 	((wintime,steptime),dataset_kwargs),
 	use_full_mfcc,
-	test_operators,
+	canonical_features,
 	ontology = params_combination
 
-	test_operators = test_operators_dict[test_operators]
+	canonical_features = canonical_features_dict[canonical_features]
 	ontology       = ontology_dict[ontology]
 
 	cur_audio_kwargs = merge(
@@ -617,7 +620,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	cur_data_modal_args = merge(data_modal_args,
 		(
-			test_operators = test_operators,
+			canonical_features = canonical_features,
 			ontology       = ontology,
 		)
 	)
@@ -672,7 +675,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			# 		# 	(X, Y, nothing), (n_pos, n_neg)
 
 			# 		# TODO should not need these at test time. Instead, extend functions so that one can use a MatricialDataset instead of an OntologicalDataset
-			# 		X = MakeOntologicalDataset(X, test_operators, ontology)
+			# 		X = MakeOntologicalDataset(X, canonical_features, ontology)
 			# 		# println(length(Y))
 			# 		# println((n_pos, n_neg))
 
