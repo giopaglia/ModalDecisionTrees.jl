@@ -36,8 +36,6 @@ export DTNode, DTLeaf, DTInternal,
 				startWithRelationGlob, startAtCenter,
 				DTOverview, DTDebug, DTDetail,
 				#
-				GammaType, GammaSliceType, spawn_rng,
-				#
 				initWorldSet,
 				#
 				throw_n_log
@@ -63,7 +61,6 @@ using .ModalLogic
 
 import .ModalLogic: n_samples # TODO make this a DecisionTree.n_samples export, and make ModalLogic import it?
 
-include("gammas.jl")
 # include("modalDataset.jl")
 include("measures.jl")
 
@@ -172,11 +169,18 @@ end
 
 struct Forest{S}
 	trees       :: AbstractVector{<:DTree{S}}
-	cm          :: AbstractVector{<:ConfusionMatrix}
+	cm          :: Union{
+		AbstractVector{<:ConfusionMatrix},
+		AbstractVector{<:PerformanceStruct}, #where {N},
+	}
 	oob_error   :: AbstractFloat
+
 	function Forest{S}(
 		trees       :: AbstractVector{<:DTree{S}},
-		cm          :: AbstractVector{<:ConfusionMatrix},
+		cm          :: Union{
+			AbstractVector{<:ConfusionMatrix},
+			AbstractVector{<:PerformanceStruct}, #where {N},
+		},
 		oob_error   :: AbstractFloat,
 	) where {S}
 	new{S}(trees, cm, oob_error)
@@ -214,7 +218,7 @@ spawn_rng(rng) = Random.MersenneTwister(abs(rand(rng, Int)))
 
 include("load_data.jl")
 include("util.jl")
-include("modal-classification/main.jl")
+include("main.jl")
 # TODO: include("ModalscikitlearnAPI.jl")
 
 #############################
@@ -249,96 +253,9 @@ apply_model(forest::Forest, args...; kwargs...) = apply_forest(forest, args...; 
 
 print_apply_model(tree::DTree, args...; kwargs...) = print_apply_tree(tree, args...; kwargs...)
 
-function print_tree(io::IO, leaf::DTLeaf, depth=-1, indent=0, indent_guides=[]; n_tot_inst = nothing, rel_confidence_class_counts = nothing)
-	matches = findall(leaf.values .== leaf.majority)
-
-	n_correct = length(matches)
-	n_inst = length(leaf.values)
-	confidence = n_correct/n_inst
-
-	metrics_str = "conf: $(@sprintf "%.4f" confidence)"
-	
-	if !isnothing(rel_confidence_class_counts)
-		if !isnothing(n_tot_inst)
-			@assert n_tot_inst == sum(values(rel_confidence_class_counts)) "n_tot_inst != sum(values(rel_confidence_class_counts)): $(n_tot_inst) $(sum(values(rel_confidence_class_counts))) sum($(values(rel_confidence_class_counts)))"
-		else
-			n_tot_inst = sum(values(rel_confidence_class_counts))
-		end
-	end
-
-
-	if !isnothing(rel_confidence_class_counts)
-		cur_class_counts = countmap(leaf.values)
-		# println(io, cur_class_counts)
-		# println(io, rel_confidence_class_counts)
-		rel_tot_inst = sum([(haskey(cur_class_counts, class) ? cur_class_counts[class] : 0)/(haskey(rel_confidence_class_counts, class) ? rel_confidence_class_counts[class] : 0) for class in keys(rel_confidence_class_counts)])
-		# "rel_conf: $(n_correct/rel_confidence_class_counts[leaf.majority])"
-		class = leaf.majority
-
-		if !isnothing(n_tot_inst)
-			class_support = (haskey(rel_confidence_class_counts, class) ? rel_confidence_class_counts[class] : 0)/n_tot_inst
-			lift = confidence/class_support
-			metrics_str *= ", lift: $(@sprintf "%.2f" lift)"
-		end
-		rel_conf = ((haskey(cur_class_counts, class) ? cur_class_counts[class] : 0)/(haskey(rel_confidence_class_counts, class) ? rel_confidence_class_counts[class] : 0))/rel_tot_inst
-		metrics_str *= ", rel_conf: $(@sprintf "%.4f" rel_conf)"
-	end
-
-	if !isnothing(n_tot_inst)
-		support = n_inst/n_tot_inst
-		metrics_str *= ", supp = $(@sprintf "%.4f" support)"
-	end
-
-	if !isnothing(rel_confidence_class_counts) && !isnothing(n_tot_inst)
-		conv = (1-class_support)/(1-confidence)
-		metrics_str *= ", conv: $(@sprintf "%.4f" conv)"
-	end
-
-	println(io, "$(leaf.majority) : $(n_correct)/$(n_inst) ($(metrics_str))")
-end
-print_tree(leaf::DTLeaf, depth=-1, indent=0, indent_guides=[]; kwargs...) = print_tree(stdout, leaf, depth, indent, indent_guides; kwargs...)
-
-function print_tree(io::IO, tree::DTInternal, depth=-1, indent=0, indent_guides=[]; n_tot_inst = nothing, rel_confidence_class_counts = nothing)
-	if depth == indent
-		println(io, "")
-		return
-	end
-
-	if !isnothing(rel_confidence_class_counts)
-		if !isnothing(n_tot_inst)
-			@assert n_tot_inst == sum(values(rel_confidence_class_counts)) "n_tot_inst != sum(values(rel_confidence_class_counts)): $(n_tot_inst) $(sum(values(rel_confidence_class_counts))) sum($(values(rel_confidence_class_counts)))"
-		else
-			n_tot_inst = sum(values(rel_confidence_class_counts))
-		end
-	end
-	
-	println(io, display_decision(tree))
-	# indent_str = " " ^ indent
-	indent_str = reduce(*, [i == 1 ? "│" : " " for i in indent_guides])
-	# print(io, indent_str * "╭✔")
-	print(io, indent_str * "✔ ")
-	print_tree(io, tree.left, depth, indent + 1, [indent_guides..., 1]; n_tot_inst = n_tot_inst, rel_confidence_class_counts)
-	# print(io, indent_str * "╰✘")
-	print(io, indent_str * "✘ ")
-	print_tree(io, tree.right, depth, indent + 1, [indent_guides..., 0]; n_tot_inst = n_tot_inst, rel_confidence_class_counts)
-end
-print_tree(tree::DTInternal, depth=-1, indent=0, indent_guides=[]; kwargs...) = print_tree(stdout, tree, depth, indent, indent_guides; kwargs...)
-
-function print_tree(io::IO, tree::DTree; n_tot_inst = nothing, rel_confidence_class_counts = nothing)
-	println(io, "worldTypes: $(tree.worldTypes)")
-	println(io, "initConditions: $(tree.initConditions)")
-
-	if !isnothing(rel_confidence_class_counts)
-		if !isnothing(n_tot_inst)
-			@assert n_tot_inst == sum(values(rel_confidence_class_counts)) "n_tot_inst != sum(values(rel_confidence_class_counts)): $(n_tot_inst) $(sum(values(rel_confidence_class_counts))) sum($(values(rel_confidence_class_counts)))"
-		else
-			n_tot_inst = sum(values(rel_confidence_class_counts))
-		end
-	end
-	
-	print_tree(io, tree.root, n_tot_inst = n_tot_inst, rel_confidence_class_counts = rel_confidence_class_counts)
-end
-print_tree(tree::DTree; kwargs...) = print_tree(stdout, tree; kwargs...)
+################################################################################
+################################################################################
+################################################################################
 
 function show(io::IO, leaf::DTLeaf)
 	println(io, "Decision Leaf")
@@ -366,16 +283,6 @@ function show(io::IO, tree::DTree)
 	print_tree(io, tree)
 end
 
-
-function print_forest(io::IO, forest::Forest)
-	n_trees = length(forest)
-	for i in 1:n_trees
-		println(io, "Tree $(i) / $(n_trees)")
-		print_tree(io, forest.trees[i])
-	end
-end
-print_forest(forest::Forest) = print_forest(stdout, forest::Forest)
-
 function show(io::IO, forest::Forest)
 	println(io, "Forest")
 	println(io, "Num trees: $(length(forest))")
@@ -385,6 +292,182 @@ function show(io::IO, forest::Forest)
 	print_forest(io, forest)
 end
 
+################################################################################
+################################################################################
+################################################################################
+
+print_tree(a::Union{DTree,DTNode}, args...; kwargs...) = print_tree(stdout, a, args...; kwargs...)
+print_forest(a::Forest, args...; kwargs...) = print_forest(stdout, a, args...; kwargs...)
+
+function print_tree(
+	io::IO,
+	leaf::DTLeaf{String},
+	depth=-1,
+	indent=0,
+	indent_guides=[];
+	n_tot_inst = nothing,
+	rel_confidence_class_counts = nothing,
+)
+	n_correct = sum(leaf.values .== leaf.majority)
+	n_inst = length(leaf.values)
+	confidence = n_correct/n_inst
+
+	metrics_str = "conf: $(@sprintf "%.4f" confidence)"
+	
+	if !isnothing(rel_confidence_class_counts)
+		if !isnothing(n_tot_inst)
+			@assert n_tot_inst == sum(values(rel_confidence_class_counts)) "n_tot_inst != sum(values(rel_confidence_class_counts)): $(n_tot_inst) $(sum(values(rel_confidence_class_counts))) sum($(values(rel_confidence_class_counts)))"
+		else
+			n_tot_inst = sum(values(rel_confidence_class_counts))
+		end
+	end
+
+
+	if !isnothing(rel_confidence_class_counts)
+		cur_class_counts = begin
+			cur_class_counts = countmap(leaf.values)
+			for class in keys(rel_confidence_class_counts)
+				if !haskey(cur_class_counts, class)
+					cur_class_counts[class] = 0
+				end
+			end
+			cur_class_counts
+		end
+
+		# println(io, cur_class_counts)
+		# println(io, rel_confidence_class_counts)
+		rel_tot_inst = sum([cur_class_counts[class]/rel_confidence_class_counts[class] for class in keys(rel_confidence_class_counts)])
+		# "rel_conf: $(n_correct/rel_confidence_class_counts[leaf.majority])"
+
+		if !isnothing(n_tot_inst)
+			class_support = get(rel_confidence_class_counts, leaf.majority, 0)/n_tot_inst
+			lift = confidence/class_support
+			metrics_str *= ", lift: $(@sprintf "%.2f" lift)"
+		end
+		# TODO what was the rationale behind this?
+		# rel_conf = (cur_class_counts[leaf.majority]/get(rel_confidence_class_counts, leaf.majority, 0))/rel_tot_inst
+		# metrics_str *= ", rel_conf: $(@sprintf "%.4f" rel_conf)"
+	end
+
+	if !isnothing(n_tot_inst)
+		support = n_inst/n_tot_inst
+		metrics_str *= ", supp = $(@sprintf "%.4f" support)"
+	end
+
+	if !isnothing(rel_confidence_class_counts) && !isnothing(n_tot_inst)
+		conv = (1-class_support)/(1-confidence)
+		metrics_str *= ", conv: $(@sprintf "%.4f" conv)"
+	end
+
+	# - , quale è la sua porzione di responsabilità per la corretta classificazione di C, ovvero della sua sensitività: per farlo, considera i due numerini a/b, e calcola a/# di istanze con classe C nel test set), e TODOrapportala alla sensitività, così
+
+	if !isnothing(rel_confidence_class_counts)
+		sensitivity_share = n_correct/get(rel_confidence_class_counts, leaf.majority, 0)
+		metrics_str *= ", sensitivity_share: $(@sprintf "%.4f" sensitivity_share)"
+	end
+
+	println(io, "$(leaf.majority) : $(n_correct)/$(n_inst) ($(metrics_str))")
+end
+
+function print_tree(
+	io::IO,
+	leaf::DTLeaf{<:Float64},
+	depth=-1,
+	indent=0,
+	indent_guides=[];
+	n_tot_inst = nothing,
+	rel_confidence_class_counts = nothing
+)
+	
+	n_inst = length(leaf.values)
+	
+	mae = sum(abs.(leaf.values .- leaf.majority)) / n_inst
+	rmse = StatsBase.rmsd(leaf.values, [leaf.majority for i in 1:length(leaf.values)])
+	var = StatsBase.var(leaf.values)
+	
+	metrics_str = ""
+	# metrics_str *= "$(leaf.values) "
+	metrics_str *= "var: $(@sprintf "%.4f" mae)"
+	metrics_str *= ", mae: $(@sprintf "%.4f" mae)"
+	metrics_str *= ", rmse: $(@sprintf "%.4f" rmse)"
+	
+	if !isnothing(n_tot_inst)
+		support = n_inst/n_tot_inst
+		metrics_str *= ", supp = $(@sprintf "%.4f" support)"
+	end
+
+	println(io, "$(leaf.majority) : $(n_inst) ($(metrics_str))")
+end
+
+function print_tree(
+	io::IO,
+	tree::DTInternal,
+	depth=-1,
+	indent=0,
+	indent_guides=[];
+	n_tot_inst = nothing,
+	rel_confidence_class_counts = nothing,
+)
+	if depth == indent
+		println(io, "")
+		return
+	end
+
+	if !isnothing(rel_confidence_class_counts)
+		if !isnothing(n_tot_inst)
+			@assert n_tot_inst == sum(values(rel_confidence_class_counts)) "n_tot_inst != sum(values(rel_confidence_class_counts)): $(n_tot_inst) $(sum(values(rel_confidence_class_counts))) sum($(values(rel_confidence_class_counts)))"
+		else
+			n_tot_inst = sum(values(rel_confidence_class_counts))
+		end
+	end
+	
+	println(io, display_decision(tree))
+	# indent_str = " " ^ indent
+	indent_str = reduce(*, [i == 1 ? "│" : " " for i in indent_guides])
+	# print(io, indent_str * "╭✔")
+	print(io, indent_str * "✔ ")
+	print_tree(io, tree.left, depth, indent + 1, [indent_guides..., 1]; n_tot_inst = n_tot_inst, rel_confidence_class_counts)
+	# print(io, indent_str * "╰✘")
+	print(io, indent_str * "✘ ")
+	print_tree(io, tree.right, depth, indent + 1, [indent_guides..., 0]; n_tot_inst = n_tot_inst, rel_confidence_class_counts)
+end
+
+function print_tree(
+	io::IO,
+	tree::DTree;
+	n_tot_inst = nothing,
+	rel_confidence_class_counts = nothing,
+)
+	println(io, "worldTypes: $(tree.worldTypes)")
+	println(io, "initConditions: $(tree.initConditions)")
+
+	if !isnothing(rel_confidence_class_counts)
+		if !isnothing(n_tot_inst)
+			@assert n_tot_inst == sum(values(rel_confidence_class_counts)) "n_tot_inst != sum(values(rel_confidence_class_counts)): $(n_tot_inst) $(sum(values(rel_confidence_class_counts))) sum($(values(rel_confidence_class_counts)))"
+		else
+			n_tot_inst = sum(values(rel_confidence_class_counts))
+		end
+	end
+	
+	print_tree(io, tree.root, n_tot_inst = n_tot_inst, rel_confidence_class_counts = rel_confidence_class_counts)
+end
+
+function print_forest(
+	io::IO,
+	forest::Forest,
+	args...;
+	kwargs...
+)
+	n_trees = length(forest)
+	for i in 1:n_trees
+		println(io, "Tree $(i) / $(n_trees)")
+		print_tree(io, forest.trees[i], args...; kwargs...)
+	end
+end
+
+################################################################################
+################################################################################
+################################################################################
 
 # TODO fix this using specified purity
 function prune_tree(tree::DTNode, max_purity_threshold::AbstractFloat = 1.0)
@@ -399,8 +482,7 @@ function prune_tree(tree::DTNode, max_purity_threshold::AbstractFloat = 1.0)
 		elseif N == 2    ## a stump
 			all_labels = [tree.left.values; tree.right.values]
 			majority = majority_vote(all_labels)
-			matches = findall(all_labels .== majority)
-			purity = length(matches) / length(all_labels)
+			purity = sum(all_labels .== majority) / length(all_labels)
 			if purity >= max_purity_threshold
 				return DTLeaf(majority, all_labels)
 			else
@@ -436,8 +518,8 @@ end
 # TODO avoid these fallbacks?
 inst_init_world_sets(X::SingleFrameGenericDataset, tree::DTree, i_instance::Integer) = 
 	inst_init_world_sets(MultiFrameModalDataset(X), tree, i_instance)
-print_apply_tree(tree::DTree{S}, X::SingleFrameGenericDataset, Y::Vector{S}; reset_leaves = true, update_majority = false) where {S} = 
-	print_apply_tree(tree, MultiFrameModalDataset(X), Y; reset_leaves = reset_leaves, update_majority = update_majority)
+print_apply_tree(tree::DTree{S}, X::SingleFrameGenericDataset, Y::Vector{S}; kwargs...) where {S} = 
+	print_apply_tree(tree, MultiFrameModalDataset(X), Y; kwargs...)
 
 inst_init_world_sets(Xs::MultiFrameModalDataset, tree::DTree, i_instance::Integer) = begin
 	Ss = Vector{WorldSet}(undef, n_frames(Xs))
@@ -523,6 +605,20 @@ function _empty_tree_leaves(tree::DTree)
 	)
 end
 
+
+function print_apply_tree(leaf::DTLeaf{<:Float64}, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, class::S; update_majority = false) where {S}
+	vals = [leaf.values..., class]
+
+	majority = 
+	if update_majority
+		StatsBase.mean(leaf.values)
+	else
+		leaf.majority
+	end
+
+	return DTLeaf(majority, vals)
+end
+
 function print_apply_tree(leaf::DTLeaf{S}, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, class::S; update_majority = false) where {S}
 	vals = S[ leaf.values..., class ] # Note: this works when leaves are reset
 
@@ -550,7 +646,14 @@ function print_apply_tree(leaf::DTLeaf{S}, X::Any, i_instance::Integer, worlds::
 	return DTLeaf(majority, vals)
 end
 
-function print_apply_tree(tree::DTInternal{T, S}, X::MultiFrameModalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, class::S; update_majority = false) where {T, S}
+function print_apply_tree(
+	tree::DTInternal{T, S},
+	X::MultiFrameModalDataset,
+	i_instance::Integer,
+	worlds::AbstractVector{<:AbstractWorldSet},
+	class::S;
+	update_majority = false,
+) where {T, S}
 	
 	(satisfied,new_worlds) = ModalLogic.modal_step(get_frame(X, tree.i_frame), i_instance, worlds[tree.i_frame], tree.relation, tree.feature, tree.test_operator, tree.threshold)
 	
@@ -571,7 +674,16 @@ function print_apply_tree(tree::DTInternal{T, S}, X::MultiFrameModalDataset, i_i
 	)
 end
 
-function print_apply_tree(io::IO, tree::DTree{S}, X::GenericDataset, Y::Vector{S}; reset_leaves = true, update_majority = false, do_print = true, print_relative_confidence = false) where {S}
+function print_apply_tree(
+	io::IO,
+	tree::DTree{S},
+	X::GenericDataset,
+	Y::Vector{S};
+	reset_leaves = true,
+	update_majority = false,
+	do_print = true,
+	print_relative_confidence = false,
+) where {S}
 	# Reset 
 	tree = (reset_leaves ? _empty_tree_leaves(tree) : tree)
 
@@ -583,7 +695,7 @@ function print_apply_tree(io::IO, tree::DTree{S}, X::GenericDataset, Y::Vector{S
 		tree = DTree(
 			print_apply_tree(tree.root, X, i_instance, worlds, Y[i_instance], update_majority = update_majority),
 			tree.worldTypes,
-			tree.initConditions
+			tree.initConditions,
 		)
 	end
 	if do_print
@@ -777,15 +889,12 @@ function apply_trees(trees::AbstractVector{DTree{S}}, X::GenericDataset; suppres
 	Threads.@threads for i in 1:n_instances
 		predictions[i] = begin
 			if S <: Float64
-				@error "apply_trees need a code expansion. The case is S = $(S) <: Float64"
+				# @error "apply_trees need a code expansion. The case is S = $(S) <: Float64"
 				if isnothing(tree_weights)
 					mean(votes[:,i])
 				else
-					weighted_votes = Vector{N}()
-					for j in 1:length(votes[:,i])
-						weighted_votes = votes[j,i] * tree_weights[j]
-					end
-					mean(weighted_votes)
+					n_trees = length(votes[:,i])
+					sum([votes[j,i] * tree_weights[j] for j in 1:n_trees]) / sum(tree_weights)
 				end
 			else
 				best_score(votes[:,i], tree_weights; suppress_parity_warning = suppress_parity_warning)
@@ -797,12 +906,14 @@ function apply_trees(trees::AbstractVector{DTree{S}}, X::GenericDataset; suppres
 end
 
 # use a proper forest to test features
-function apply_forest(forest::Forest, X::GenericDataset; weight_trees_by::Bool = false)
+function apply_forest(forest::Forest, X::GenericDataset; weight_trees_by::Union{Bool,Symbol,AbstractVector} = false)
 	if weight_trees_by == false
 		apply_trees(forest.trees, X)
+	elseif isa(weight_trees_by, AbstractVector)
+		apply_trees(forest.trees, X; tree_weights = weight_trees_by)
 	elseif weight_trees_by == :accuracy
 		# TODO: choose HOW to weight a tree... overall_accuracy is just an example (maybe can be parameterized)
-		apply_trees(forest.trees, X, tree_weights = map(cm -> overall_accuracy(cm), forest.cm))
+		apply_trees(forest.trees, X; tree_weights = map(cm -> overall_accuracy(cm), forest.cm))
 	else
 		@error "Unexpected value for weight_trees_by: $(weight_trees_by)"
 	end
