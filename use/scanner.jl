@@ -291,8 +291,20 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 		features = FeatureTypeFun[]
 		featsnops = Vector{<:TestOperatorFun}[]
 
+		canonical_features = data_modal_args.canonical_features
+
+		readymade_cfs          = filter(x->isa(x, FeatureTypeFun), canonical_features)
+		attribute_specific_cfs = filter(x->isa(x, CanonicalFeature),       canonical_features)
+
+		@assert length(readymade_cfs) + length(attribute_specific_cfs) == length(canonical_features) "Unexpected canonical_features: $(filter(x->!isa(x, CanonicalFeature) && !isa(x, FeatureTypeFun), canonical_features))"
+
+		for readymade_cf in readymade_cfs
+			push!(features, readymade_cf)
+			push!(featsnops, [≥, ≤])
+		end
+		
 		for i_attr in 1:n_attributes(X)
-			for canonical_feature in data_modal_args.canonical_features
+			for canonical_feature in attribute_specific_cfs
 				if canonical_feature == CanonicalFeatureGeq
 					push!(features, ModalLogic.AttributeMinimumFeatureType(i_attr))
 					push!(featsnops, [≥])
@@ -306,11 +318,11 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 					push!(features, ModalLogic.AttributeSoftMaximumFeatureType(i_attr, canonical_feature.alpha))
 					push!(featsnops, [≤])
 				elseif canonical_feature isa Function
-					push!(features, ModalLogic.AttributeFunctionFeatureType(i_attr, canonical_feature))
+					push!(features, AttributeFunctionFeatureType(i_attr, canonical_feature))
 					push!(featsnops, [≥, ≤])
 				elseif canonical_feature isa Tuple{TestOperatorFun,Function}
 					(test_op,canonical_feature) = canonical_feature
-					push!(features, ModalLogic.AttributeFunctionFeatureType(i_attr, canonical_feature))
+					push!(features, AttributeFunctionFeatureType(i_attr, canonical_feature))
 					push!(featsnops, [test_op])
 				else
 					throw_n_log("Unknown canonical_feature type: $(canonical_feature), $(typeof(canonical_feature))")

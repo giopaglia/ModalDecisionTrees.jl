@@ -308,9 +308,7 @@ function print_tree(
 	n_tot_inst = nothing,
 	rel_confidence_class_counts = nothing,
 )
-	matches = findall(leaf.values .== leaf.majority)
-
-	n_correct = length(matches)
+	n_correct = sum(leaf.values .== leaf.majority)
 	n_inst = length(leaf.values)
 	confidence = n_correct/n_inst
 
@@ -326,20 +324,29 @@ function print_tree(
 
 
 	if !isnothing(rel_confidence_class_counts)
-		cur_class_counts = countmap(leaf.values)
+		cur_class_counts = begin
+			cur_class_counts = countmap(leaf.values)
+			for class in keys(rel_confidence_class_counts)
+				if !haskey(cur_class_counts, class)
+					cur_class_counts[class] = 0
+				end
+			end
+			cur_class_counts
+		end
+
 		# println(io, cur_class_counts)
 		# println(io, rel_confidence_class_counts)
-		rel_tot_inst = sum([(haskey(cur_class_counts, class) ? cur_class_counts[class] : 0)/(haskey(rel_confidence_class_counts, class) ? rel_confidence_class_counts[class] : 0) for class in keys(rel_confidence_class_counts)])
+		rel_tot_inst = sum([cur_class_counts[class]/rel_confidence_class_counts[class] for class in keys(rel_confidence_class_counts)])
 		# "rel_conf: $(n_correct/rel_confidence_class_counts[leaf.majority])"
-		class = leaf.majority
 
 		if !isnothing(n_tot_inst)
-			class_support = (haskey(rel_confidence_class_counts, class) ? rel_confidence_class_counts[class] : 0)/n_tot_inst
+			class_support = get(rel_confidence_class_counts, leaf.majority, 0)/n_tot_inst
 			lift = confidence/class_support
 			metrics_str *= ", lift: $(@sprintf "%.2f" lift)"
 		end
-		rel_conf = ((haskey(cur_class_counts, class) ? cur_class_counts[class] : 0)/(haskey(rel_confidence_class_counts, class) ? rel_confidence_class_counts[class] : 0))/rel_tot_inst
-		metrics_str *= ", rel_conf: $(@sprintf "%.4f" rel_conf)"
+		# TODO what was the rationale behind this?
+		# rel_conf = (cur_class_counts[leaf.majority]/get(rel_confidence_class_counts, leaf.majority, 0))/rel_tot_inst
+		# metrics_str *= ", rel_conf: $(@sprintf "%.4f" rel_conf)"
 	end
 
 	if !isnothing(n_tot_inst)
@@ -350,6 +357,13 @@ function print_tree(
 	if !isnothing(rel_confidence_class_counts) && !isnothing(n_tot_inst)
 		conv = (1-class_support)/(1-confidence)
 		metrics_str *= ", conv: $(@sprintf "%.4f" conv)"
+	end
+
+	# - , quale è la sua porzione di responsabilità per la corretta classificazione di C, ovvero della sua sensitività: per farlo, considera i due numerini a/b, e calcola a/# di istanze con classe C nel test set), e TODOrapportala alla sensitività, così
+
+	if !isnothing(rel_confidence_class_counts)
+		sensitivity_share = n_correct/get(rel_confidence_class_counts, leaf.majority, 0)
+		metrics_str *= ", sensitivity_share: $(@sprintf "%.4f" sensitivity_share)"
 	end
 
 	println(io, "$(leaf.majority) : $(n_correct)/$(n_inst) ($(metrics_str))")
@@ -468,8 +482,7 @@ function prune_tree(tree::DTNode, max_purity_threshold::AbstractFloat = 1.0)
 		elseif N == 2    ## a stump
 			all_labels = [tree.left.values; tree.right.values]
 			majority = majority_vote(all_labels)
-			matches = findall(all_labels .== majority)
-			purity = length(matches) / length(all_labels)
+			purity = sum(all_labels .== majority) / length(all_labels)
 			if purity >= max_purity_threshold
 				return DTLeaf(majority, all_labels)
 			else

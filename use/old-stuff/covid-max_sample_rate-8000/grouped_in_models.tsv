@@ -1,1 +1,0 @@
-Dataseed	Params-combination	T(entropy,2,0.01,0.2)	T(entropy,2,0.01,0.6)	T(entropy,4,0.01,0.2)	T(entropy,4,0.01,0.6)	T(gini,2,0.01,0.2)	T(gini,2,0.01,0.6)	T(gini,4,0.01,0.2)	T(gini,4,0.01,0.6)	RF(50,half,all)	RF(50,half,all)σ²	RF(50,half,all)t	RF(100,half,all)	RF(100,half,all)σ²	RF(100,half,all)t	

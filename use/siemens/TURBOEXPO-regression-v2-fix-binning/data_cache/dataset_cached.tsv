@@ -1,0 +1,8 @@
+TIMESTAMP	FILE NAME	COMP TIME	ARGS	
+23/11/2021 16:11:20	dataset_f7bb0e9ae3ca7982a992233d43c8bf86418e49becac7202b57e2ebfe453ad278.jld	00:01:37	("Siemens-Data-Measures", (1.0 => "High-Risk", 3.0 => "Risky", Inf => "Low-Risk"), 10, (ma_size = 4, ma_step = 4), 60, 1)	
+25/11/2021 16:01:32	dataset_6b91b844461faa97f215ca1d182226d0b116464f6414a22e3fd27edb720cecfe.jld	00:01:36	("Siemens-Data-Measures", (1.0 => "High-Risk", 3.0 => "Risky", Inf => "Low-Risk"), 10, (ma_size = 4, ma_step = 4), 60, 60)	
+25/11/2021 20:41:22	dataset_26b495724114141ebab9aed662dc6f9169a4e5cfc16617392af5d43b0a2e2361.jld	00:00:00	("Siemens-Data-Measures", (4.0 => "High-Risk", 8.0 => "Risky", Inf => "Low-Risk"), 10, (ma_size = 4, ma_step = 4), 60, 60)	
+26/11/2021 18:35:08	dataset_70511817189117f4c28fa0de9edd135dfd3f05a628e5ef24f0b5b9ca927226a4.jld	00:00:00	("Siemens-Data-Measures", (1.0 => "High-Risk", 3.0 => "Risky", Inf => "Low-Risk"), 10, (ma_size = 3, ma_step = 3), 60, 60)	
+27/11/2021 03:49:10	dataset_2a28443ed27daacde288dc1dadc549629062ccf4c6e3650fddaf06bb4d583ef7.jld	00:00:01	("Siemens-Data-Measures", (4.0 => "High-Risk", 8.0 => "Risky", Inf => "Low-Risk"), 10, (ma_size = 3, ma_step = 3), 60, 60)	
+28/11/2021 18:22:02	dataset_ec55ad3a9a6fa3b6f798e9a5e120808cdc479c637b60dcc02e821e4241a920d5.jld	00:00:00	("Siemens-Data-Measures", (1.0 => "High-Risk", 3.0 => "Risky", Inf => "Low-Risk"), 10, (ma_size = 2, ma_step = 2), 60, 60)	
+29/11/2021 18:09:33	dataset_2f67cec62798b8224101d3d9fb7b521797bafbbffc82eb3d60c2397f819a88e7.jld	00:00:00	("Siemens-Data-Measures", (4.0 => "High-Risk", 8.0 => "Risky", Inf => "Low-Risk"), 10, (ma_size = 2, ma_step = 2), 60, 60)	

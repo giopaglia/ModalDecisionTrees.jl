@@ -7,6 +7,15 @@ using Measures
 
 using Distributions
 
+function show_vector_sans_type(v::AbstractVector)
+  out_str = "["
+  for (i, elt) in enumerate(v)
+    i > 1 && (out_str *= ", ")
+    out_str *= "$(elt)"
+  end
+  out_str *= "]"
+  out_str
+end
 
 function latex_df_push_column!(df, col_name, val)
 	df[!,replace(string(col_name), "_" => "")] = val
@@ -88,6 +97,7 @@ function compute_mfd(X)
 	mfd = MultiFrameDataset([1:ncol(df)], df)
 end
 
+# TODO use PGFPlotsX?
 function single_frame_blind_feature_selection(
 		(X, Y)::Tuple{AbstractArray{T,3},AbstractVector},
 		attribute_names::AbstractVector,
@@ -527,26 +537,31 @@ function single_frame_target_aware_analysis((X, Y)::Tuple{AbstractArray{T,3},Abs
 		end
 	end
 
+	# print vector Python-style https://discourse.julialang.org/t/printing-an-array-without-element-type/6731
+
 	df_distribution = DataFrame()
+	df_values = DataFrame()
+	df_values[!,:class_names] = class_names
 	plots = Matrix{Any}(undef, length(descriptors), length(attribute_names))
 	for (i_attribute,attribute_name) in enumerate(attribute_names)
 		for (i_descriptor,descriptor) in enumerate(descriptors)
 			subp = plot() # title = string(descriptor))
-
+			att = (isnothing(attribute_abbrs) ? attribute_name : attribute_abbrs[i_attribute])
+			desc = (isnothing(descriptor_abbrs) ? descriptor : descriptor_abbrs[descriptor])
+			class_vs = values[i_descriptor,i_attribute]
 			# class_is_normal = []
 
-			# histogram!(subp, values[i_descriptor,i_attribute]...)
-			for (i_class,(v, class_name)) in enumerate(zip(values[i_descriptor,i_attribute], class_names))
-
+			# histogram!(subp, class_vs...)
+			for (i_class,(v, class_name)) in enumerate(zip(class_vs, class_names))
+				
 				try
 					# histogram!(subp, v)
 					density!(subp, v, legend = false)
 
 					if export_csv
-						att = (isnothing(attribute_abbrs) ? attribute_name : attribute_abbrs[i_attribute])
-						desc = (isnothing(descriptor_abbrs) ? descriptor : descriptor_abbrs[descriptor])
 						latex_df_push_column!(df_distribution, "$(att)-$(desc)-$(class_name)-x", deepcopy(collect(subp[1][i_class][:x])))
 						latex_df_push_column!(df_distribution, "$(att)-$(desc)-$(class_name)-y", deepcopy(collect(subp[1][i_class][:y])))
+						
 						# CSV.write("$(file_prefix)-distribution-$(att)-$(desc)-$(class_name).csv", df_distribution)
 					end
 				catch ArgumentError
@@ -561,12 +576,17 @@ function single_frame_target_aware_analysis((X, Y)::Tuple{AbstractArray{T,3},Abs
 				# push!(class_is_normal, )
 
 			end
+
+			if export_csv
+				df_values[!,"$(att)-$(desc)"] = show_vector_sans_type(collect(class_vs))
+			end
 			# "$(string(descriptors))($(i_attribute))"
 			plots[i_descriptor, i_attribute] = subp
 		end
 	end
 
 	CSV.write("$(file_prefix)-xdistributions.csv", df_distribution)
+	CSV.write("$(file_prefix)-values.csv", df_values)
 
  	p = plot!(plots..., size = (1920, 1080), margin = 5mm, labels = class_names)
 	# p = plot!(p..., title = "$(attribute_name)", size = (1920, 1080), margin = 5mm)
