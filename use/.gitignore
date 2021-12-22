@@ -2,6 +2,7 @@
 filtering-results*/
 print-tree-latex/
 
+**/__pycache__
 .env
 
 **.out

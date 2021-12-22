@@ -8,4 +8,7 @@ makefile
 datasets/*
 !datasets/test-Eduard
 
+PythonCallMeta
+conda_env
+
 .vscode/

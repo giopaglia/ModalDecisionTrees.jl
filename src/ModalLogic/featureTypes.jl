@@ -1,6 +1,7 @@
 export FeatureTypeNone, FeatureTypeFun,
 				AttributeMinimumFeatureType, AttributeMaximumFeatureType,
-				AttributeSoftMinimumFeatureType, AttributeSoftMaximumFeatureType
+				AttributeSoftMinimumFeatureType, AttributeSoftMaximumFeatureType,
+				AttributeFunctionFeatureType, ChannelFunctionFeatureType
 
 import Base.vec
 
@@ -91,6 +92,16 @@ yieldFunction(f::AttributeFunctionFeatureType) =
 	f.f ∘ (x)->(vals = vec(ModalLogic.getInstanceAttribute(x,f.i_attribute));)
 
 Base.show(io::IO, f::AttributeFunctionFeatureType) = Base.print(io, "$(f.f)(A$(f.i_attribute))")
+
+################################################################################
+################################################################################
+################################################################################
+
+struct ChannelFunctionFeatureType <: FeatureTypeFun
+	f::Function
+end
+yieldFunction(f::ChannelFunctionFeatureType) = f.f
+Base.show(io::IO, f::ChannelFunctionFeatureType) = Base.print(io, "$(f.f)")
 
 ################################################################################
 ################################################################################

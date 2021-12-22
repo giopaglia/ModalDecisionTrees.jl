@@ -1,0 +1,153 @@
+714de4bd30e6096225f0f0b903faca4a7e54abceed767390d2ddd31cc384a663
+
+Test tree:
+worldTypes: DataType[DecisionTree.ModalLogic.Interval]
+initConditions: [DecisionTree._startWithRelationGlob()]
+{1} ⟨G⟩ (A1 ⪳₈₀ 77.39343474704033)
+✔ {1} A1 ⪴₈₀ 55.71764931264789
+│✔ {1} ⟨O⟩ (A5 ⪴₈₀ 590.3052196943817)
+││✔ {1} ⟨A̅⟩ (A1 ⪴₈₀ 65.77699233652947)
+│││✔ {1} ⟨A̅⟩ (A3 ⪴₈₀ 6607.329155003564)
+││││✔ Low-Risk : 45/45 (conf: 1.0000)
+││││✘ {1} A2 ⪳₈₀ 26.105331511399868
+││││ ✔ Low-Risk : 0/0 (conf: NaN)
+││││ ✘ Low-Risk : 1/1 (conf: 1.0000)
+│││✘ {1} ⟨E̅⟩ (SB_BinaryStats_mean_longstretch1_pos(A3) >= 7.0)
+│││ ✔ Low-Risk : 9/9 (conf: 1.0000)
+│││ ✘ {1} ⟨A⟩ (A3 ⪳₈₀ 6606.179517538826)
+│││  ✔ Low-Risk : 6/6 (conf: 1.0000)
+│││  ✘ High-Risk : 3/18 (conf: 0.1667)
+││✘ {1} ⟨L⟩ (A2 ⪴₈₀ 28.188733442398032)
+││ ✔ {1} ⟨D̅⟩ (A5 ⪴₈₀ 561.6231646104387)
+││ │✔ {1} ⟨L̅⟩ (A2 ⪴₈₀ 32.05950068841667)
+││ ││✔ High-Risk : 25/36 (conf: 0.6944)
+││ ││✘ {1} ⟨O⟩ (mean(A3) >= 6612.475035652875)
+││ ││ ✔ {1} A1 ⪳₈₀ 62.69217912895247
+││ ││ │✔ High-Risk : 1/2 (conf: 0.5000)
+││ ││ │✘ High-Risk : 4/4 (conf: 1.0000)
+││ ││ ✘ {1} ⟨O⟩ (A2 ⪴₈₀ 30.496937360821494)
+││ ││  ✔ {1} ⟨O̅⟩ (CO_FirstMin_ac_pos(A5) >= 12.0)
+││ ││  │✔ Low-Risk : 2/4 (conf: 0.5000)
+││ ││  │✘ {1} A2 ⪳₈₀ 30.905936686270067
+││ ││  │ ✔ High-Risk : 5/18 (conf: 0.2778)
+││ ││  │ ✘ High-Risk : 3/10 (conf: 0.3000)
+││ ││  ✘ {1} ⟨L̅⟩ (A2 ⪳₈₀ 28.769129922560797)
+││ ││   ✔ {1} ⟨E̅⟩ (mean(A1) <= 63.33971792283414)
+││ ││   │✔ Low-Risk : 26/28 (conf: 0.9286)
+││ ││   │✘ {1} ⟨L̅⟩ (CO_FirstMin_ac_pos(A2) >= 6.0)
+││ ││   │ ✔ High-Risk : 7/17 (conf: 0.4118)
+││ ││   │ ✘ {1} A2 ⪳₈₀ 28.474801341403033
+││ ││   │  ✔ {1} A1 ⪳₈₀ 70.4928216670473
+││ ││   │  │✔ Low-Risk : 10/10 (conf: 1.0000)
+││ ││   │  │✘ High-Risk : 3/6 (conf: 0.5000)
+││ ││   │  ✘ High-Risk : 1/1 (conf: 1.0000)
+││ ││   ✘ Low-Risk : 61/62 (conf: 0.9839)
+││ │✘ Low-Risk : 13/14 (conf: 0.9286)
+││ ✘ {1} ⟨O⟩ (A3 ⪳₈₀ 6606.77612624293)
+││  ✔ {1} A1 ⪳₈₀ 71.70995288220332
+││  │✔ Low-Risk : 26/26 (conf: 1.0000)
+││  │✘ High-Risk : 6/19 (conf: 0.3158)
+││  ✘ {1} ⟨O⟩ (A5 ⪳₈₀ 572.0463592787293)
+││   ✔ High-Risk : 3/43 (conf: 0.0698)
+││   ✘ {1} ⟨L̅⟩ (A2 ⪳₈₀ 25.8918194162834)
+││    ✔ {1} ⟨A⟩ (mean(A4) <= 413.42277030266035)
+││    │✔ {1} CO_FirstMin_ac_pos(A4) >= 7.0
+││    ││✔ Low-Risk : 0/0 (conf: NaN)
+││    ││✘ Low-Risk : 5/5 (conf: 1.0000)
+││    │✘ {1} ⟨A⟩ (SB_BinaryStats_mean_longstretch1_pos(A4) >= 6.0)
+││    │ ✔ High-Risk : 0/1 (conf: 0.0000)
+││    │ ✘ Low-Risk : 0/0 (conf: NaN)
+││    ✘ {1} ⟨B⟩ (A5 ⪳₈₀ 571.7495215913281)
+││     ✔ Low-Risk : 2/2 (conf: 1.0000)
+││     ✘ {1} ⟨D⟩ (A1 ⪳₈₀ 66.44724555243187)
+││      ✔ High-Risk : 0/17 (conf: 0.0000)
+││      ✘ High-Risk : 4/6 (conf: 0.6667)
+│✘ {1} ⟨D̅⟩ (A4 ⪳₈₀ 424.9970982433397)
+│ ✔ {1} ⟨L⟩ (A2 ⪴₈₀ 33.195519526398165)
+│ │✔ {1} ⟨E⟩ (A3 ⪳₈₀ 6606.09142764162)
+│ ││✔ {1} A1 ⪳₈₀ 21.1145222011998
+│ │││✔ {1} ⟨B̅⟩ (A1 ⪳₈₀ 15.3664219393564)
+│ ││││✔ Low-Risk : 0/0 (conf: NaN)
+│ ││││✘ High-Risk : 0/8 (conf: 0.0000)
+│ │││✘ Low-Risk : 33/33 (conf: 1.0000)
+│ ││✘ {1} ⟨E⟩ (CO_FirstMin_ac_pos(A1) >= 6.0)
+│ ││ ✔ Low-Risk : 72/76 (conf: 0.9474)
+│ ││ ✘ {1} A5 ⪴₈₀ 553.4034897760653
+│ ││  ✔ {1} ⟨B⟩ (A4 ⪳₈₀ 409.32725955831967)
+│ ││  │✔ {1} ⟨A̅⟩ (A5 ⪳₈₀ 564.1093467160667)
+│ ││  ││✔ High-Risk : 0/12 (conf: 0.0000)
+│ ││  ││✘ Low-Risk : 19/30 (conf: 0.6333)
+│ ││  │✘ Low-Risk : 32/32 (conf: 1.0000)
+│ ││  ✘ {1} SB_BinaryStats_mean_longstretch1_pos(A4) >= 5.0
+│ ││   ✔ Low-Risk : 4/4 (conf: 1.0000)
+│ ││   ✘ High-Risk : 0/4 (conf: 0.0000)
+│ │✘ {1} ⟨L⟩ (A1 ⪳₈₀ 19.673518848461566)
+│ │ ✔ {1} ⟨D⟩ (A5 ⪴₈₀ 580.129350158247)
+│ │ │✔ {1} A1 ⪴₈₀ 14.570621805268267
+│ │ ││✔ Low-Risk : 21/21 (conf: 1.0000)
+│ │ ││✘ Low-Risk : 5/5 (conf: 1.0000)
+│ │ │✘ {1} ⟨D⟩ (A2 ⪳₈₀ 22.850899940662433)
+│ │ │ ✔ Low-Risk : 11/11 (conf: 1.0000)
+│ │ │ ✘ {1} ⟨A⟩ (A1 ⪳₈₀ 12.767738076390765)
+│ │ │  ✔ {1} ⟨L̅⟩ (A5 ⪳₈₀ 547.0360204408323)
+│ │ │  │✔ High-Risk : 0/0 (conf: NaN)
+│ │ │  │✘ Low-Risk : 0/0 (conf: NaN)
+│ │ │  ✘ High-Risk : 0/0 (conf: NaN)
+│ │ ✘ {1} ⟨L⟩ (A2 ⪴₈₀ 23.481241872863702)
+│ │  ✔ {1} A1 ⪳₈₀ 51.4156510863493
+│ │  │✔ Low-Risk : 229/288 (conf: 0.7951)
+│ │  │✘ High-Risk : 0/11 (conf: 0.0000)
+│ │  ✘ {1} A5 ⪴₈₀ 570.2652026512907
+│ │   ✔ {1} ⟨B̅⟩ (SB_BinaryStats_mean_longstretch1_pos(A2) >= 10.0)
+│ │   │✔ {1} ⟨B⟩ (A2 ⪳₈₀ 19.619728307303433)
+│ │   ││✔ {1} A4 ⪳₈₀ 402.298484723041
+│ │   │││✔ {1} A4 ⪳₈₀ 397.6491950905567
+│ │   ││││✔ High-Risk : 8/42 (conf: 0.1905)
+│ │   ││││✘ Low-Risk : 27/28 (conf: 0.9643)
+│ │   │││✘ {1} CO_FirstMin_ac_neg(A1) <= 1.0
+│ │   │││ ✔ High-Risk : 3/10 (conf: 0.3000)
+│ │   │││ ✘ High-Risk : 6/24 (conf: 0.2500)
+│ │   ││✘ {1} CO_FirstMin_ac_pos(A2) >= 12.0
+│ │   ││ ✔ Low-Risk : 33/34 (conf: 0.9706)
+│ │   ││ ✘ Low-Risk : 1/3 (conf: 0.3333)
+│ │   │✘ {1} ⟨A̅⟩ (CO_FirstMin_ac_pos(A5) >= 8.0)
+│ │   │ ✔ High-Risk : 20/53 (conf: 0.3774)
+│ │   │ ✘ {1} A3 ⪴₈₀ 6611.416327928656
+│ │   │  ✔ High-Risk : 15/41 (conf: 0.3659)
+│ │   │  ✘ {1} ⟨E̅⟩ (CO_FirstMin_ac_pos(A3) >= 10.0)
+│ │   │   ✔ Low-Risk : 23/24 (conf: 0.9583)
+│ │   │   ✘ {1} ⟨A⟩ (A2 ⪴₈₀ 21.047666762082933)
+│ │   │    ✔ High-Risk : 2/6 (conf: 0.3333)
+│ │   │    ✘ {1} ⟨A̅⟩ (A4 ⪳₈₀ 406.00124777913896)
+│ │   │     ✔ {1} ⟨D⟩ (A5 ⪳₈₀ 603.3505716855187)
+│ │   │     │✔ {1} ⟨O⟩ (CO_FirstMin_ac_pos(A3) >= 4.0)
+│ │   │     ││✔ High-Risk : 0/10 (conf: 0.0000)
+│ │   │     ││✘ Low-Risk : 13/15 (conf: 0.8667)
+│ │   │     │✘ High-Risk : 11/17 (conf: 0.6471)
+│ │   │     ✘ Low-Risk : 4/4 (conf: 1.0000)
+│ │   ✘ {1} ⟨B⟩ (SB_BinaryStats_mean_longstretch1_pos(A2) >= 7.0)
+│ │    ✔ Low-Risk : 6/6 (conf: 1.0000)
+│ │    ✘ Low-Risk : 0/0 (conf: NaN)
+│ ✘ {1} A1 ⪴₈₀ 32.06672176278783
+│  ✔ {1} A1 ⪳₈₀ 42.900328485618026
+│  │✔ High-Risk : 37/123 (conf: 0.3008)
+│  │✘ Low-Risk : 6/6 (conf: 1.0000)
+│  ✘ {1} A5 ⪳₈₀ 542.3481441780353
+│   ✔ {1} CO_FirstMin_ac_pos(A5) >= 6.0
+│   │✔ Low-Risk : 15/15 (conf: 1.0000)
+│   │✘ High-Risk : 0/11 (conf: 0.0000)
+│   ✘ Low-Risk : 16/25 (conf: 0.6400)
+✘ Low-Risk : 75/76 (conf: 0.9868)
+ test size = [(20, 5, 1518)]
+ Purity threshold 1.0
+RESULT:	Siemens-Data-Measures,stump_with_memoization,(4.0 => "High-Risk",Inf => "Low-Risk"),10,(3,3),60,10,Any[42894]	3	(loss_function = nothing, min_samples_leaf = 4, min_purity_increase = 0.02, max_purity_at_leaf = 0.001, perform_consistency_check = false)	(initConditions = DecisionTree._startWithRelationGlob(), allowRelationGlob = false)	1.0	|	67.06%	67.86%	63.26%	89.77%	29.3%	||	21.35%	[77.29, 40.05]%	|||	67.86%	63.26%	89.77%	29.3%	77.29%		./siemens/TURBOEXPO-regression-v7-only-3-datasources-n-balanced-dataseed0/models_cache/tree_714de4bd30e6096225f0f0b903faca4a7e54abceed767390d2ddd31cc384a663.jld
+	accuracy: 67.06% kappa: 21.35% 
+ 851 403	67.86%		Low-Risk
+	97 167	63.26%		High-Risk
+
+
+1254
+264
+
+1254/1518 = 0.83
+264/1518 = 0.17

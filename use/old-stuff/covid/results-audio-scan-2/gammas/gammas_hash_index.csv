@@ -1,3 +1,0 @@
-951916721e83f69b0bc5618bacc16d2701e0624a2add874e79f2b75ee1dfbbff;TestOp_80;3;40;false;Any[];1;(max_points = 3, ma_size = 75, ma_step = 50);(wintime = 0.025, steptime = 0.01, fbtype = :mel, window_f = DSP.Windows.hamming, pre_emphasis = 0.97, nbands = 40, sumpower = false, dither = false);UInt32[0x00000001]
-c5a1045e966d2fa6114973ac5e305d5935191ecd819f706a2eb65dcc4abac159;(3,75,50),TestOp_80,1,20,false,Any["Normalize"],1,1
-5a999b83a66c35725a53d51ee0d77e4b96305318366664ae199cebef35864e6d;(3,75,50),TestOp_80,2,20,false,Any["Normalize"],1,1

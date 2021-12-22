@@ -1,7 +1,0 @@
-Dataseed	Params-combination	T(entropy,4,0.01,0.4)	
-1	stump_with_memoization,(1,false),1,40,(2400,2000),false,Any[],TestOp_80	(0.0, 50.0, 0.0, 100.0, NaN, 50.0, 0.0, 1, Dict{Any, Any}("best_confidence" => 0.5, "n_correct" => 28, "avg_confidence" => 0.5, "n_instances" => 56), 8.118, 9c77195418c27357ceb45b34a28cb1ace6baff713d8558a0764f47b8dcdefdb4)	
-2	stump_with_memoization,(1,false),1,40,(2400,2000),false,Any[],TestOp_80	(0.0, 50.0, 0.0, 100.0, NaN, 50.0, 0.0, 1, Dict{Any, Any}("best_confidence" => 0.5, "n_correct" => 28, "avg_confidence" => 0.5, "n_instances" => 56), 0.038, 9c77195418c27357ceb45b34a28cb1ace6baff713d8558a0764f47b8dcdefdb4)	
-1	stump_with_memoization,(1,false),1,40,(2400,2000),false,Any[],TestOp_80	(0.0, 50.0, 0.0, 100.0, NaN, 50.0, 0.0, 1, -Inf, -Inf, 8.275, 9c77195418c27357ceb45b34a28cb1ace6baff713d8558a0764f47b8dcdefdb4)	
-2	stump_with_memoization,(1,false),1,40,(2400,2000),false,Any[],TestOp_80	(0.0, 50.0, 0.0, 100.0, NaN, 50.0, 0.0, 1, -Inf, -Inf, 0.041, 9c77195418c27357ceb45b34a28cb1ace6baff713d8558a0764f47b8dcdefdb4)	
-1	stump_with_memoization,(1,false),1,40,(240,200),false,Any[],TestOp_80	(28.57, 64.29, 71.43, 57.14, 62.5, 66.67, 66.67, 37, 0.7285714285714286, 0.61875, 25.45, fad31d8d86a4a72e306df8239216ec7f81233934783205d90b32b05f0759cc55)	
-2	stump_with_memoization,(1,false),1,40,(240,200),false,Any[],TestOp_80	(14.29, 57.14, 57.14, 57.14, 57.14, 57.14, 57.14, 35, 0.7357142857142858, 0.6446428571428572, 8.021, 350574c7815ad9b60bd8c85624e46ea51ba36336fec8627757c866636c72ca4d)	

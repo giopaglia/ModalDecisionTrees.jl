@@ -1,0 +1,267 @@
+supp	0.00	conf	0.0000	lift	0.00		d70		│   │  │   │ ✔ Low-Risk : 0/1
+supp	0.00	conf	0.0000	lift	0.00		d70		│   │  │ │✘ Low-Risk : 0/1
+supp	0.00	conf	0.0000	lift	0.00		d70		││      ✘ Low-Risk : 0/1
+supp	0.00	conf	0.0000	lift	0.00		359		│ │ ✔ Low-Risk : 0/2
+supp	0.00	conf	0.0000	lift	0.00		359		│  │││  ✘ High-Risk : 0/1
+supp	0.00	conf	0.0000	lift	0.00		714		││    │ ✔ High-Risk : 0/1
+supp	0.00	conf	0.0000	lift	0.00		b25		│  │  │││✘ High-Risk : 0/1
+supp	0.00	conf	0.0000	lift	0.00		b25		│ │ │   │✘ High-Risk : 0/1
+supp	0.00	conf	0.0000	lift	0.00		b25		│ │ │  │✘ High-Risk : 0/1
+supp	0.00	conf	0.0000	lift	0.00		d70		││     ✔ High-Risk : 0/1
+supp	0.00	conf	0.3333	lift	0.40		714		│ │   ││ ✘ Low-Risk : 1/3
+supp	0.00	conf	0.3333	lift	0.40		d70		│  │ │✘ Low-Risk : 1/3
+supp	0.00	conf	0.4286	lift	0.52		d70		│  ││││  ✘ Low-Risk : 3/7
+supp	0.00	conf	0.5000	lift	0.60		359		││  │││  ✘ Low-Risk : 1/2
+supp	0.00	conf	0.5000	lift	0.60		714		││ ││  │✔ Low-Risk : 2/4
+supp	0.00	conf	0.5000	lift	0.60		b25		│ ││   ✔ Low-Risk : 2/4
+supp	0.00	conf	0.5000	lift	0.60		d70		│  ││ │ │   │✔ Low-Risk : 2/4
+supp	0.00	conf	0.6000	lift	0.72		b25		││  │✔ Low-Risk : 3/5
+supp	0.00	conf	0.6250	lift	0.75		d70		│  ││ │  ││││✘ Low-Risk : 5/8
+supp	0.00	conf	0.6667	lift	0.80		d70		│   │   ✔ Low-Risk : 2/3
+supp	0.00	conf	0.6667	lift	0.80		d70		│  ││      │✘ Low-Risk : 2/3
+supp	0.00	conf	0.8000	lift	0.96		b25		│ │ │   │✔ Low-Risk : 4/5
+supp	0.00	conf	0.8000	lift	0.96		d70		││ ││ ✔ Low-Risk : 4/5
+supp	0.00	conf	0.8333	lift	1.00		359		││  ││││✔ Low-Risk : 5/6
+supp	0.00	conf	0.8889	lift	1.07		d70		││   ││✘ Low-Risk : 8/9
+supp	0.00	conf	1.0000	lift	1.20		359		│  │││ ✔ Low-Risk : 1/1
+supp	0.00	conf	1.0000	lift	1.20		714		││││ ✘ Low-Risk : 1/1
+supp	0.00	conf	1.0000	lift	1.20		b25		│  │  ││✘ Low-Risk : 1/1
+supp	0.00	conf	1.0000	lift	1.20		b25		│ │ │  │✔ Low-Risk : 1/1
+supp	0.00	conf	1.0000	lift	1.20		b25		│ ││││✔ Low-Risk : 1/1
+supp	0.00	conf	1.0000	lift	1.20		d70		│  ││     ✔ Low-Risk : 1/1
+supp	0.00	conf	1.0000	lift	1.20		d70		│  ││ │ │ │✔ Low-Risk : 1/1
+supp	0.00	conf	1.0000	lift	1.20		359		││  ││✘ Low-Risk : 2/2
+supp	0.00	conf	1.0000	lift	1.20		714		││     ✔ Low-Risk : 2/2
+supp	0.00	conf	1.0000	lift	1.20		b25		│  │   │      │✘ Low-Risk : 2/2
+supp	0.00	conf	1.0000	lift	1.20		b25		││  │   ✘ Low-Risk : 2/2
+supp	0.00	conf	1.0000	lift	1.20		b25		││ │││ ✘ Low-Risk : 2/2
+supp	0.00	conf	1.0000	lift	1.20		b25		│││ ✘ Low-Risk : 2/2
+supp	0.00	conf	1.0000	lift	1.20		b25		│   │ │ │✘ Low-Risk : 3/3
+supp	0.00	conf	1.0000	lift	1.20		b25		│  │ ││✘ Low-Risk : 3/3
+supp	0.00	conf	1.0000	lift	1.20		b25		│ │    │✔ Low-Risk : 3/3
+supp	0.00	conf	1.0000	lift	1.20		b25		│ │  │ ✔ Low-Risk : 3/3
+supp	0.00	conf	1.0000	lift	1.20		d70		│  │   ✔ Low-Risk : 3/3
+supp	0.00	conf	1.0000	lift	1.20		d70		│  ││ │  ✘ Low-Risk : 3/3
+supp	0.00	conf	1.0000	lift	1.20		d70		│  │││││││ │✔ Low-Risk : 3/3
+supp	0.00	conf	1.0000	lift	1.20		714		│ │   │     ✘ Low-Risk : 4/4
+supp	0.00	conf	1.0000	lift	1.20		714		│ ││   ✔ Low-Risk : 4/4
+supp	0.00	conf	1.0000	lift	1.20		b25		│   │ │ │✔ Low-Risk : 4/4
+supp	0.00	conf	1.0000	lift	1.20		b25		│   │ ││✘ Low-Risk : 4/4
+supp	0.00	conf	1.0000	lift	1.20		b25		│  │ │  ✔ Low-Risk : 4/4
+supp	0.00	conf	1.0000	lift	1.20		d70		│  ││ │ │   ✘ Low-Risk : 4/4
+supp	0.00	conf	1.0000	lift	1.20		d70		│  ││││││✘ Low-Risk : 4/4
+supp	0.00	conf	1.0000	lift	5.88		714		││ ││   │  ✘ High-Risk : 1/1
+supp	0.00	conf	1.0000	lift	5.88		b25		│  │    ✘ High-Risk : 1/1
+supp	0.00	conf	1.0000	lift	5.88		b25		│  ││ ││✘ High-Risk : 1/1
+supp	0.00	conf	1.0000	lift	5.88		b25		││  │ ✔ High-Risk : 1/1
+supp	0.00	conf	1.0000	lift	5.88		d70		│  │││  ✘ High-Risk : 1/1
+supp	0.00	conf	1.0000	lift	5.88		d70		││      ✔ High-Risk : 1/1
+supp	0.00	conf	1.0000	lift	1.20		714		│ │ ││✘ Low-Risk : 5/5
+supp	0.00	conf	1.0000	lift	1.20		714		││    ││✘ Low-Risk : 5/5
+supp	0.00	conf	1.0000	lift	1.20		b25		│ ││││✘ Low-Risk : 5/5
+supp	0.00	conf	1.0000	lift	1.20		b25		││││ │ ✔ Low-Risk : 5/5
+supp	0.00	conf	1.0000	lift	1.20		359		││     ││ ✔ Low-Risk : 6/6
+supp	0.00	conf	1.0000	lift	1.20		714		│  │✘ Low-Risk : 6/6
+supp	0.00	conf	1.0000	lift	1.20		714		│ │    ✔ Low-Risk : 6/6
+supp	0.00	conf	1.0000	lift	1.20		714		│││  ✔ Low-Risk : 6/6
+supp	0.00	conf	1.0000	lift	1.20		b25		│ │ │││ ✘ Low-Risk : 6/6
+supp	0.00	conf	1.0000	lift	1.20		b25		│ ││   ✘ Low-Risk : 6/6
+supp	0.00	conf	1.0000	lift	1.20		d70		│  │││ │ ✘ Low-Risk : 6/6
+supp	0.00	conf	1.0000	lift	1.20		d70		│  ││  ││ ✔ Low-Risk : 9/9
+supp	0.01	conf	0.0000	lift	0.00		359		│  │  │✔ Low-Risk : 0/7
+supp	0.01	conf	0.0000	lift	0.00		b25		│  │   │  ✔ High-Risk : 0/2
+supp	0.01	conf	0.0000	lift	0.00		b25		│  │ │  ✘ High-Risk : 0/2
+supp	0.01	conf	0.0000	lift	0.00		b25		│  │ │││✘ High-Risk : 0/2
+supp	0.01	conf	0.0000	lift	0.00		b25		││  │   ✔ High-Risk : 0/2
+supp	0.01	conf	0.0000	lift	0.00		b25		││  ✘ High-Risk : 0/2
+supp	0.01	conf	0.0000	lift	0.00		359		│  ││ ✘ High-Risk : 0/3
+supp	0.01	conf	0.0000	lift	0.00		359		│ │   │ ││  ✔ High-Risk : 0/3
+supp	0.01	conf	0.0000	lift	0.00		b25		│ ││  ✔ High-Risk : 0/3
+supp	0.01	conf	0.0000	lift	0.00		d70		│  ││  ││✔ High-Risk : 0/3
+supp	0.01	conf	0.0000	lift	0.00		d70		│  ││ │ │ │✘ High-Risk : 0/3
+supp	0.01	conf	0.2500	lift	1.47		d70		│  ││ │  │││ ✔ High-Risk : 1/4
+supp	0.01	conf	0.2500	lift	1.47		d70		││ ││✔ High-Risk : 1/4
+supp	0.01	conf	0.3333	lift	1.96		d70		│  ││ │  ││││✔ High-Risk : 1/3
+supp	0.01	conf	0.3750	lift	0.45		359		││     ││  │ ✔ Low-Risk : 3/8
+supp	0.01	conf	0.4000	lift	2.35		d70		│   │  │   │ ✘ High-Risk : 2/5
+supp	0.01	conf	0.5000	lift	0.60		b25		│   │ │││ ✘ Low-Risk : 4/8
+supp	0.01	conf	0.5000	lift	2.94		714		││ ││ │✔ High-Risk : 1/2
+supp	0.01	conf	0.5000	lift	2.94		b25		│  │   │      ✘ High-Risk : 1/2
+supp	0.01	conf	0.6000	lift	0.72		359		│ │   │   │✔ Low-Risk : 6/10
+supp	0.01	conf	0.6000	lift	0.72		d70		│  ││ │││✔ Low-Risk : 15/25
+supp	0.01	conf	0.6429	lift	0.77		b25		│   │ │││ │✘ Low-Risk : 9/14
+supp	0.01	conf	0.7222	lift	0.87		b25		│  │   │ │✔ Low-Risk : 13/18
+supp	0.01	conf	0.7500	lift	4.41		d70		│  │ │✔ High-Risk : 3/4
+supp	0.01	conf	0.7500	lift	4.41		d70		│  ││      ✘ High-Risk : 3/4
+supp	0.01	conf	0.8000	lift	0.96		b25		│   │✔ Low-Risk : 12/15
+supp	0.01	conf	0.8125	lift	0.98		d70		││    │✘ Low-Risk : 13/16
+supp	0.01	conf	0.8333	lift	1.00		d70		│  ││ ││ ✔ Low-Risk : 15/18
+supp	0.01	conf	0.8571	lift	1.03		359		│││  ✘ Low-Risk : 6/7
+supp	0.01	conf	0.8571	lift	1.03		b25		││  │  ✔ Low-Risk : 6/7
+supp	0.01	conf	0.8667	lift	1.04		714		│ │   │     ││✘ Low-Risk : 13/15
+supp	0.01	conf	0.8667	lift	1.04		d70		│  ││ │ │  ✔ Low-Risk : 13/15
+supp	0.01	conf	0.9000	lift	1.08		d70		│  ││ │  ││✘ Low-Risk : 18/20
+supp	0.01	conf	0.9231	lift	1.11		359		││     ││✔ Low-Risk : 12/13
+supp	0.01	conf	0.9286	lift	1.12		359		│ │   │      ││✘ Low-Risk : 13/14
+supp	0.01	conf	0.9286	lift	1.12		714		││ │✘ Low-Risk : 13/14
+supp	0.01	conf	0.9333	lift	1.12		d70		││ ││ ✘ Low-Risk : 14/15
+supp	0.01	conf	0.9412	lift	1.13		359		│││ ✔ Low-Risk : 16/17
+supp	0.01	conf	1.0000	lift	1.20		b25		│  │   │││✔ Low-Risk : 7/7
+supp	0.01	conf	1.0000	lift	1.20		b25		││ │││✔ Low-Risk : 8/8
+supp	0.01	conf	1.0000	lift	1.20		714		│││ ✔ Low-Risk : 9/9
+supp	0.01	conf	1.0000	lift	1.20		b25		│  │    ✔ Low-Risk : 9/9
+supp	0.01	conf	1.0000	lift	1.20		b25		│  │   │    ✔ Low-Risk : 9/9
+supp	0.01	conf	1.0000	lift	5.88		b25		│││ ✔ High-Risk : 2/2
+supp	0.01	conf	1.0000	lift	1.20		714		││ ││   │  │✔ Low-Risk : 10/10
+supp	0.01	conf	1.0000	lift	1.20		359		│ │   │ ││ │ ✘ Low-Risk : 11/11
+supp	0.01	conf	1.0000	lift	1.20		359		││  │││ ✔ Low-Risk : 11/11
+supp	0.01	conf	1.0000	lift	1.20		714		│ │ │ ✔ Low-Risk : 11/11
+supp	0.01	conf	1.0000	lift	1.20		d70		│    ✔ Low-Risk : 13/13
+supp	0.01	conf	1.0000	lift	1.20		d70		│   │  │✔ Low-Risk : 13/13
+supp	0.01	conf	1.0000	lift	1.20		b25		│ │   ││✔ Low-Risk : 14/14
+supp	0.01	conf	1.0000	lift	1.20		b25		││││ │ ✘ Low-Risk : 14/14
+supp	0.01	conf	1.0000	lift	1.20		714		│   │✔ Low-Risk : 15/15
+supp	0.01	conf	1.0000	lift	1.20		d70		│  │    ✔ Low-Risk : 16/16
+supp	0.01	conf	1.0000	lift	1.20		359		││ ✔ Low-Risk : 18/18
+supp	0.01	conf	1.0000	lift	1.20		d70		│ ✔ Low-Risk : 19/19
+supp	0.02	conf	0.0000	lift	0.00		714		│ ││   ✘ High-Risk : 0/4
+supp	0.02	conf	0.0000	lift	0.00		b25		│ │││ ✔ High-Risk : 0/5
+supp	0.02	conf	0.0000	lift	0.00		b25		││ │││ ✔ High-Risk : 0/5
+supp	0.02	conf	0.0000	lift	0.00		359		│ │   │ ││  ✘ High-Risk : 0/6
+supp	0.02	conf	0.0000	lift	0.00		359		││  │││  ✔ High-Risk : 0/6
+supp	0.02	conf	0.0000	lift	0.00		d70		│  ││ │  │││ ✘ High-Risk : 0/8
+supp	0.02	conf	0.1667	lift	0.98		b25		│   │ │││││✔ High-Risk : 1/6
+supp	0.02	conf	0.2000	lift	1.18		b25		│ │    │✘ High-Risk : 1/5
+supp	0.02	conf	0.3333	lift	1.96		359		│││  ✔ High-Risk : 2/6
+supp	0.02	conf	0.3333	lift	1.96		714		│ │   │    ✔ High-Risk : 2/6
+supp	0.02	conf	0.5000	lift	2.94		714		││ ││   │  │✘ High-Risk : 3/6
+supp	0.02	conf	0.5556	lift	3.27		d70		│  ││      │✔ High-Risk : 5/9
+supp	0.02	conf	0.6333	lift	0.76		714		│ ││  ││✘ Low-Risk : 19/30
+supp	0.02	conf	0.6400	lift	0.77		714		│   ✘ Low-Risk : 16/25
+supp	0.02	conf	0.6667	lift	3.92		714		││      ✘ High-Risk : 4/6
+supp	0.02	conf	0.7083	lift	0.85		b25		│  │   │      │✔ Low-Risk : 17/24
+supp	0.02	conf	0.7949	lift	0.96		d70		│   │   ✘ Low-Risk : 31/39
+supp	0.02	conf	0.8947	lift	1.08		b25		│  │   │   ✔ Low-Risk : 17/19
+supp	0.02	conf	0.9286	lift	1.12		359		│ │   │ ││ │ ✔ Low-Risk : 26/28
+supp	0.02	conf	0.9286	lift	1.12		714		││ ││   │✔ Low-Risk : 26/28
+supp	0.02	conf	0.9412	lift	1.13		d70		│  ││││ ✔ Low-Risk : 32/34
+supp	0.02	conf	0.9583	lift	1.15		714		│ │   │   ✔ Low-Risk : 23/24
+supp	0.02	conf	0.9643	lift	1.16		714		│ │   ││││✘ Low-Risk : 27/28
+supp	0.02	conf	0.9688	lift	1.17		d70		│  ││ │ │✔ Low-Risk : 31/32
+supp	0.02	conf	1.0000	lift	5.88		714		││ ││ │✘ High-Risk : 4/4
+supp	0.02	conf	1.0000	lift	1.20		359		│ │   │      ││✔ Low-Risk : 21/21
+supp	0.02	conf	1.0000	lift	1.20		714		│ │ ││✔ Low-Risk : 21/21
+supp	0.02	conf	1.0000	lift	1.20		714		││  │✔ Low-Risk : 26/26
+supp	0.02	conf	1.0000	lift	1.20		b25		│ │ │ │ ✔ Low-Risk : 27/27
+supp	0.02	conf	1.0000	lift	1.20		d70		│   │  │   │✔ Low-Risk : 32/32
+supp	0.02	conf	1.0000	lift	1.20		d70		│  ││ │││  ✘ Low-Risk : 35/35
+supp	0.02	conf	1.0000	lift	1.20		d70		││ │✘ Low-Risk : 40/40
+supp	0.03	conf	0.0000	lift	0.00		b25		│  │ │ ✔ High-Risk : 0/7
+supp	0.03	conf	0.0000	lift	0.00		b25		││││ ✘ High-Risk : 0/7
+supp	0.03	conf	0.0000	lift	0.00		359		││     ││  │✔ High-Risk : 0/8
+supp	0.03	conf	0.0000	lift	0.00		714		│ ││││✘ High-Risk : 0/8
+supp	0.03	conf	0.0000	lift	0.00		b25		│  │   ││ ✘ High-Risk : 0/8
+supp	0.03	conf	0.1111	lift	0.65		b25		│  │   │     ✔ High-Risk : 1/9
+supp	0.03	conf	0.1429	lift	0.84		359		│ │   │      │✘ High-Risk : 1/7
+supp	0.03	conf	0.2000	lift	1.18		d70		│  ││ │  │✘ High-Risk : 2/10
+supp	0.03	conf	0.2000	lift	1.18		d70		│  ││ │ │   │✘ High-Risk : 2/10
+supp	0.03	conf	0.2000	lift	1.18		d70		│  │││││││ │✘ High-Risk : 2/10
+supp	0.03	conf	0.2000	lift	1.18		d70		││   │││✘ High-Risk : 2/10
+supp	0.03	conf	0.2727	lift	1.60		d70		│  ││   │✔ High-Risk : 3/11
+supp	0.03	conf	0.2857	lift	1.68		359		│  │  │✘ High-Risk : 2/7
+supp	0.03	conf	0.4286	lift	2.52		b25		│   │ ✘ High-Risk : 3/7
+supp	0.03	conf	0.5833	lift	3.43		d70		│  │││ │✔ High-Risk : 7/12
+supp	0.03	conf	0.8269	lift	1.00		d70		│  ││   │✘ Low-Risk : 43/52
+supp	0.03	conf	0.8333	lift	1.00		b25		│  │   ││ ✔ Low-Risk : 30/36
+supp	0.03	conf	0.8750	lift	5.15		b25		│   │ │││ ││✘ High-Risk : 7/8
+supp	0.03	conf	0.9118	lift	1.10		b25		│   │ │││││✘ Low-Risk : 31/34
+supp	0.03	conf	0.9143	lift	1.10		359		│    ✘ Low-Risk : 32/35
+supp	0.03	conf	0.9706	lift	1.17		714		│ │   ││ ✔ Low-Risk : 33/34
+supp	0.03	conf	0.9756	lift	1.18		b25		│  ││ ✘ Low-Risk : 40/41
+supp	0.03	conf	0.9825	lift	1.18		d70		│   │✔ Low-Risk : 56/57
+supp	0.03	conf	1.0000	lift	1.20		714		│ ││  │✘ Low-Risk : 32/32
+supp	0.03	conf	1.0000	lift	1.20		b25		│ │ │ │✔ Low-Risk : 32/32
+supp	0.03	conf	1.0000	lift	1.20		714		│ │││✘ Low-Risk : 33/33
+supp	0.04	conf	0.0000	lift	0.00		714		│ │   │     ││✔ High-Risk : 0/10
+supp	0.04	conf	0.0000	lift	0.00		714		│   │✘ High-Risk : 0/11
+supp	0.04	conf	0.0000	lift	0.00		714		│ │  │✘ High-Risk : 0/11
+supp	0.04	conf	0.0000	lift	0.00		d70		│  ││  ││  ✘ High-Risk : 0/14
+supp	0.04	conf	0.0909	lift	0.53		b25		│ │ │ │ ✘ High-Risk : 1/11
+supp	0.04	conf	0.2500	lift	1.47		d70		│  │││ │ ✔ High-Risk : 4/16
+supp	0.04	conf	0.3000	lift	1.76		714		│ │   │││ ✔ High-Risk : 3/10
+supp	0.04	conf	0.3000	lift	1.76		714		││ ││  │ ✘ High-Risk : 3/10
+supp	0.04	conf	0.3636	lift	2.14		b25		│ │ │││ ✔ High-Risk : 4/11
+supp	0.04	conf	0.4545	lift	2.67		359		││     ││  ✘ High-Risk : 5/11
+supp	0.04	conf	0.8000	lift	4.71		b25		│   │ │││ ││✔ High-Risk : 8/10
+supp	0.04	conf	0.8333	lift	1.00		d70		│  ││ │││  ✔ Low-Risk : 65/78
+supp	0.04	conf	1.0000	lift	1.20		714		││││✔ Low-Risk : 45/45
+supp	0.05	conf	0.0000	lift	0.00		714		│ ││  ││✔ High-Risk : 0/12
+supp	0.05	conf	0.0000	lift	0.00		b25		│ │││ ✘ High-Risk : 0/12
+supp	0.05	conf	0.0952	lift	0.56		d70		││   │✘ High-Risk : 2/21
+supp	0.05	conf	0.2500	lift	1.47		b25		│  │  │✘ High-Risk : 3/12
+supp	0.05	conf	0.8923	lift	1.08		359		││     │✘ Low-Risk : 58/65
+supp	0.05	conf	0.9344	lift	1.13		b25		│ ││ ✔ Low-Risk : 57/61
+supp	0.05	conf	0.9839	lift	1.19		714		││ ││   ✘ Low-Risk : 61/62
+supp	0.05	conf	1.0000	lift	5.88		359		│    ✔ High-Risk : 12/12
+supp	0.06	conf	0.0000	lift	0.00		714		││      ✔ High-Risk : 0/17
+supp	0.06	conf	0.0000	lift	0.00		d70		│  ││  │✘ High-Risk : 0/23
+supp	0.06	conf	0.2000	lift	1.18		b25		│  ││ ││✔ High-Risk : 3/15
+supp	0.06	conf	0.2353	lift	1.38		b25		│   │ │ ✘ High-Risk : 4/17
+supp	0.06	conf	0.2667	lift	1.57		359		│ │   │ ││ │✔ High-Risk : 4/15
+supp	0.06	conf	0.4118	lift	2.42		714		││ ││   │ ✔ High-Risk : 7/17
+supp	0.06	conf	0.5625	lift	3.31		b25		│ │ │││✔ High-Risk : 9/16
+supp	0.06	conf	0.6471	lift	3.81		714		│ │   │     │✘ High-Risk : 11/17
+supp	0.06	conf	0.8025	lift	0.97		359		│ │   │      ✘ Low-Risk : 65/81
+supp	0.06	conf	0.8519	lift	1.03		d70		││    │✔ Low-Risk : 92/108
+supp	0.06	conf	0.9444	lift	1.14		359		│││✔ Low-Risk : 68/72
+supp	0.06	conf	0.9474	lift	1.14		714		│ ││ ✔ Low-Risk : 72/76
+supp	0.06	conf	0.9868	lift	1.19		359		✘ Low-Risk : 75/76
+supp	0.06	conf	0.9868	lift	1.19		714		✘ Low-Risk : 75/76
+supp	0.06	conf	0.9868	lift	1.19		b25		✘ Low-Risk : 75/76
+supp	0.07	conf	0.1667	lift	0.98		714		│││  ✘ High-Risk : 3/18
+supp	0.07	conf	0.2308	lift	1.36		d70		│  │││││││✔ High-Risk : 6/26
+supp	0.07	conf	0.2778	lift	1.63		714		││ ││  │ ✔ High-Risk : 5/18
+supp	0.07	conf	0.3158	lift	1.86		714		││  │✘ High-Risk : 6/19
+supp	0.07	conf	0.9919	lift	1.20		d70		✘ Low-Risk : 123/124
+supp	0.08	conf	0.0000	lift	0.00		b25		│ │   ││✘ High-Risk : 0/21
+supp	0.08	conf	0.3438	lift	2.02		d70		│  │    ✘ High-Risk : 11/32
+supp	0.08	conf	0.9416	lift	1.13		d70		│  │││││✘ Low-Risk : 129/137
+supp	0.08	conf	0.9592	lift	1.16		b25		│  ││✔ Low-Risk : 94/98
+supp	0.08	conf	0.9706	lift	1.17		359		│ │   │    ✔ Low-Risk : 99/102
+supp	0.09	conf	0.0800	lift	0.47		b25		│ │ │   ✘ High-Risk : 2/25
+supp	0.09	conf	0.2000	lift	1.18		359		│ │   ✘ High-Risk : 5/25
+supp	0.09	conf	0.2500	lift	1.47		714		│ │   │││ ✘ High-Risk : 6/24
+supp	0.09	conf	0.8829	lift	1.06		359		│ │✔ Low-Risk : 98/111
+supp	0.10	conf	0.0000	lift	0.00		d70		│   │  │  │✘ High-Risk : 0/38
+supp	0.10	conf	0.3421	lift	2.01		d70		│   │  │   ✘ High-Risk : 13/38
+supp	0.10	conf	0.8148	lift	4.79		359		│   ✔ High-Risk : 22/27
+supp	0.11	conf	0.4000	lift	2.35		b25		│ │   │✘ High-Risk : 12/30
+supp	0.13	conf	0.0857	lift	0.50		b25		│  │   │││✘ High-Risk : 3/35
+supp	0.13	conf	0.5200	lift	3.06		d70		│  ││││  ✔ High-Risk : 26/50
+supp	0.14	conf	0.6944	lift	4.08		714		││ ││✔ High-Risk : 25/36
+supp	0.14	conf	0.8239	lift	0.99		b25		││ │✘ Low-Risk : 145/176
+supp	0.14	conf	0.8439	lift	1.02		b25		│  │   │ │✘ Low-Risk : 146/173
+supp	0.15	conf	0.2750	lift	1.62		b25		│ │ ││✘ High-Risk : 11/40
+supp	0.15	conf	0.8413	lift	1.01		d70		││✔ Low-Risk : 228/271
+supp	0.16	conf	0.0698	lift	0.41		714		││   ✔ High-Risk : 3/43
+supp	0.16	conf	0.1905	lift	1.12		714		│ │   ││││✔ High-Risk : 8/42
+supp	0.16	conf	0.3659	lift	2.15		714		│ │   │  ✔ High-Risk : 15/41
+supp	0.16	conf	0.6290	lift	3.70		d70		│  │  ✔ High-Risk : 39/62
+supp	0.17	conf	0.1818	lift	1.07		d70		││  │✘ High-Risk : 12/66
+supp	0.17	conf	0.6444	lift	3.79		359		││   ✔ High-Risk : 29/45
+supp	0.18	conf	0.1042	lift	0.61		359		││  │✘ High-Risk : 5/48
+supp	0.18	conf	0.1915	lift	1.13		359		││  ││││✘ High-Risk : 9/47
+supp	0.19	conf	0.4800	lift	2.82		b25		│ │    ✘ High-Risk : 24/50
+supp	0.20	conf	0.3774	lift	2.22		714		│ │   │ ✔ High-Risk : 20/53
+supp	0.21	conf	0.2143	lift	1.26		359		│ │   │ │││✔ High-Risk : 12/56
+supp	0.23	conf	0.2903	lift	1.71		b25		│   │ ││││✘ High-Risk : 18/62
+supp	0.23	conf	0.7951	lift	0.96		714		│ │  │✔ Low-Risk : 229/288
+supp	0.24	conf	0.1719	lift	1.01		359		│ │   │ │││✘ High-Risk : 11/64
+supp	0.24	conf	0.1809	lift	1.06		d70		│   │ ✔ High-Risk : 17/94
+supp	0.24	conf	0.1978	lift	1.16		d70		│   │  │  │✔ High-Risk : 18/91
+supp	0.25	conf	0.8840	lift	1.07		359		│  │  ✘ Low-Risk : 282/319
+supp	0.27	conf	0.1905	lift	1.12		d70		│  ││ ││ ✘ High-Risk : 20/105
+supp	0.27	conf	0.4857	lift	2.86		b25		│   ✘ High-Risk : 34/70
+supp	0.29	conf	0.4605	lift	2.71		359		│ │  ✔ High-Risk : 35/76
+supp	0.34	conf	0.2977	lift	1.75		d70		│  │││  ✔ High-Risk : 39/131
+supp	0.47	conf	0.3008	lift	1.77		714		│  │✔ High-Risk : 37/123
