@@ -644,8 +644,7 @@ function single_frame_target_aware_analysis(
 			# end
 
 			if export_csv
-				df_values[!,"$(att)-$(desc)"] = collect(class_vs)
-				# df_values[!,"$(att)-$(desc)"] = show_vector_sans_type(collect(class_vs))
+				df_values[!,"$(att)-$(desc)"] = show_vector_sans_type.(collect(class_vs))
 			end
 			# "$(string(descriptors))($(i_attribute))"
 			plots[i_descriptor, i_attribute] = subp
