@@ -498,7 +498,6 @@ function exec_scan(
 
 	run_name = join([replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)], ",")
 
-	# TODO: check if the use of length(dataset[1]) is always equiv to the number of frames in this context
 	if length(data_modal_args) == 0
 		data_modal_args = fill(NamedTuple(), length(dataset[1]))
 	elseif length(data_modal_args) == 1 && length(dataset[1]) > 1
