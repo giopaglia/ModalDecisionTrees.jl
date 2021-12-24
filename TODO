@@ -66,7 +66,6 @@
 
 ☐	Check whether CatWalk.jl can help runtime dispatch look-up time
 
-
 ☐	OPTIMIZE: yield said to be fast with Continuables.jl. https://schlichtanders.github.io/Continuables.jl/dev/
 
 ☐	Use streaming algorithms for the computation of the variance and of the entropy!!! Actually entropy only uses O(n_classes) memory, while variance is more problematic https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
