@@ -285,7 +285,7 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 		########################################################################
 		########################################################################
 		########################################################################
-
+		
 		# Prepare features
 
 		features = FeatureTypeFun[]
@@ -469,7 +469,7 @@ function exec_scan(
 		test_averaged                   = false,
 		### Dataset params
 		split_threshold                 ::Union{Bool,AbstractFloat} = 1.0,
-		data_modal_args                 ::AbstractVector{<:NamedTuple} = [NamedTuple() for i in 1:length(dataset[1])],
+		data_modal_args                 ::Union{NamedTuple,AbstractVector{<:NamedTuple}} = NamedTuple(),
 		dataset_slices                  ::Union{
 			AbstractVector{<:Tuple{<:Any,SLICE}},
 			AbstractVector{SLICE},
@@ -498,18 +498,14 @@ function exec_scan(
 	run_name = join([replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)], ",")
 
 	# TODO: check if the use of length(dataset[1]) is always equiv to the number of frames in this context
-	if length(data_modal_args) == 0
-		data_modal_args = fill(NamedTuple(), length(dataset[1]))
-	elseif length(data_modal_args) == 1 && length(dataset[1]) > 1
-		data_modal_args = [data_modal_args for i in 1:length(dataset[1])]
+	n_frames = length(dataset[1])
+
+	# Force data_modal_args to be an array of itself (one for each frame)
+	if isa(data_modal_args, NamedTuple)
+		data_modal_args = [deepcopy(data_modal_args) for i in 1:n_frames]
 	end
 
-	@assert length(data_modal_args) >= length(dataset[1]) "Passed wrong number of `data_modal_args` ($(length(data_modal_args))): n_frames = $(length(dataset[1]))"
-
-	if length(data_modal_args) > length(dataset[1])
-		@warn "Ignoring extra `data_modal_args` passed: n_frames = $(length(dataset[1])) and length(data_modal_args) = $(length(data_modal_args))"
-		data_modal_args = data_modal_args[1:length(dataset[1])]
-	end
+	@assert length(data_modal_args) >= n_frames "Mismatching number of `data_modal_args` provided ($(length(data_modal_args))). Must be either one, or the number of frames ($(n_frames))"
 
 	if !isnothing(log_level)
 		println("Warning! scanner.log_level parameter is obsolete. Use logger = ConsoleLogger(stderr, $(log_level)) instead!")

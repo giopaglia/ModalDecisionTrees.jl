@@ -14,13 +14,13 @@ using Base.Threads
 train_seed = 1
 
 py_script_path = "neuro-symbolic/pipeline"
-include("$(py_script_path)/pipeline.jl")
+# include("$(py_script_path)/pipeline.jl")
 
 ################################################################################
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./neuro-symbolic/IJCAI22-v1"
+results_dir = "./neuro-symbolic/IJCAI22-v2"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
@@ -332,12 +332,11 @@ exec_use_training_form = [:stump_with_memoization]
 # TODO: make test operators types serializable
 # exec_canonical_features = [ "TestOp" ]
 exec_canonical_features = [
-	["TestOp_80", :neuro_simone],
-	["TestOp_80"],
+	[:neuro_simone],
+	# ["TestOp_80"],
+	# ["TestOp_80", :neuro_simone],
 	# ["TestOp"],
 ]
-
-neuro_feature_size = 5
 
 canonical_features_dict = Dict(
 	"TestOp_70" => [TestOpGeq_70, TestOpLeq_70],
@@ -347,11 +346,11 @@ canonical_features_dict = Dict(
 )
 
 exec_dataset_name = [
+	"RacketSports",	
 	"FingerMovements",
 	"Libras",
 	"LSST",
 	"NATOPS",
-	"RacketSports",	
 ]
 
 # exec_flatten_ontology = [(false,"interval2D")] # ,(true,"one_world")]
@@ -359,7 +358,7 @@ exec_dataset_name = [
 exec_use_catch22_flatten_ontology = [
 	(false,false,"interval"),
 	# (false,true,"one_world"),
-	# (true,true,"one_world"),
+	(true,true,"one_world"),
 ]
 
 ontology_dict = Dict(
@@ -522,36 +521,6 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	##############################################################################
 	##############################################################################
-	dataset_name_abbr = lowercase(dataset_name)
-
-	py"load_model"(dataset_name_abbr, fake_dataseed)
-	# models = [deepcopy(py"get_model"(dataset_name_abbr, fake_dataseed)) for i in 1:Threads.nthreads()]
-
-	for f in 1:neuro_feature_size
-		@eval ($(Symbol("$(dataset_name_abbr)_f$(f)_ds$(fake_dataseed)_lock")) = Threads.Condition())
-		@eval (function $(Symbol("$(dataset_name_abbr)_f$(f)_ds$(fake_dataseed)"))(interval)
-			arr = begin
-				# serie_str = show_matrix_sans_type(interval)
-				# _dataset_name_abbr = $(dataset_name_abbr)
-				# out_str = readchomp(`python3 $(py_script_path) --$(_dataset_name_abbr) --serie $(serie_str)`)
-				# eval(Meta.parse(out_str))
-				# Threads.lock($(Symbol("$(dataset_name_abbr)_f$(f)_ds$(fake_dataseed)_lock")))
-				# py"validation"($(models)[(Threads.threadid())], interval)
-				arr = py"validation"(interval)
-				# Threads.unlock($(Symbol("$(dataset_name_abbr)_f$(f)_ds$(fake_dataseed)_lock")))
-				arr
-			end
-
-			# Take the i-th feature
-			val = arr[$(f)]
-			# println(interval)
-			# println(val)
-			# @assert !isnan(val) "NaN-valued feature for interval: $(interval)"
-			# Note: make sure that features have the same origin type
-			round_dataset_to_datatype(val)
-		end)
-	end
-
 	function getCanonicalFeature(f_name)
 		if f_name == :min_m
 			[CanonicalFeatureGeq_80]
@@ -560,8 +529,20 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		elseif f_name == :mean_m
 			[StatsBase.mean]
 		elseif f_name == :neuro_simone
-			# [(≥, @eval $(Symbol(string(f_name)*"_pos"))),(≤, @eval $(Symbol(string(f_name)*"_neg")))]
-			FeatureTypeFun[ChannelFunctionFeatureType(@eval $(Symbol("$(dataset_name_abbr)_f$(f)_ds$(fake_dataseed)"))) for f in 1:neuro_feature_size]
+
+			external_fmd = npzread(
+				if flatten
+					"$(py_script_path)/flattened_$(dataset_name)-$(fake_dataseed)-X.npy"
+				else
+					"$(py_script_path)/fmd_$(dataset_name)-$(fake_dataseed)-X.npy"
+				end
+			)
+			external_fmd = convert.(Float32, external_fmd)
+
+			neuro_feature_size = size(external_fmd, 1)
+			n_attribute = size(external_fmd)[end-1]
+
+			FeatureTypeFun[ExternalFWDFeatureType("NEUR$(i_feature)(A$(i_attribute))", if flatten external_fmd[i_feature,i_attribute,:] else external_fmd[i_feature,:,:,i_attribute,:] end) for i_attribute in 1:n_attribute for i_feature in 1:neuro_feature_size]
 		elseif haskey(canonical_features_dict, f_name)
 			canonical_features_dict[f_name]
 		else
@@ -569,7 +550,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		end
 	end
 
-	canonical_features = Vector{Union{FeatureTypeFun,CanonicalFeature,Function,Tuple{TestOperatorFun,Function}}}(collect(Iterators.flatten(getCanonicalFeature.(canonical_features))))
+	canonical_features = Vector{Union{FeatureTypeFun,CanonicalFeature,Function,Tuple{TestOperatorFun,Function},Tuple{Symbol,AbstractArray}}}(collect(Iterators.flatten(getCanonicalFeature.(canonical_features))))
 	
 	##############################################################################
 	##############################################################################
