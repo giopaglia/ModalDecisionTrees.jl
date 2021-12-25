@@ -20,7 +20,7 @@ py_script_path = "neuro-symbolic/pipeline"
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./neuro-symbolic/IJCAI22-v2"
+results_dir = "./neuro-symbolic/IJCAI22-v5"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
