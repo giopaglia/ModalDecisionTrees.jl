@@ -928,9 +928,9 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	# obtain dataseeds that are were not done before
 	todo_dataseeds = filter((dataseed)->!iteration_in_history(history, (params_namedtuple, dataseed)), exec_dataseed)
 
-	X, Y = dataset
 	dataset, dataset_slices =
 		if supervised_mode == :regression
+			X, Y = dataset
 			dataset_slices = begin
 				n_insts = length(Y)
 				@assert (n_insts % n_cv_folds == 0) "$(n_insts) % $(n_cv_folds) != 0"
@@ -960,6 +960,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 			linearized_dataset, dataset_slices
 		end
+
+	X, Y = dataset
 
 	println("Dataseeds = $(todo_dataseeds)")
 
