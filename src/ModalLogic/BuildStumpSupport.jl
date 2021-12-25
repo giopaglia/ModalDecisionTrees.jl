@@ -17,7 +17,21 @@ Base.@propagate_inbounds function FeaturedWorldDataset(
 	
 	# Prepare FeaturedWorldDataset (the actual implementation depends on the OntologicalDataset)
 	fwd = initFeaturedWorldDataset(X, n_features)
-	
+
+	# Load any (possible) external features
+	# TODO load also FWDFunctionFeatureType (abstract type FWDFeatureTypeFun)
+	if any(isa.(features, ExternalFWDFeatureType))
+		i_external_features = first.(filter(((i_feature,is_external_fwd),)->(is_external_fwd), collect(enumerate(isa.(features, ExternalFWDFeatureType)))))
+		for i_feature in i_external_features
+			feature = features[i_feature]
+			modalDatasetSetFeature(fwd, i_feature, feature.fwd)
+		end
+	end
+
+	# Load any internal features
+	i_features = first.(filter(((i_feature,is_external_fwd),)->!(is_external_fwd), collect(enumerate(isa.(features, ExternalFWDFeatureType)))))
+	enum_features = zip(i_features, features[i_features])
+
 	# Compute features
 	@inbounds Threads.@threads for i_instance in 1:n_instances
 		@logmsg DTDebug "Instance $(i_instance)/$(n_instances)"
@@ -35,7 +49,7 @@ Base.@propagate_inbounds function FeaturedWorldDataset(
 
 			@logmsg DTDebug "World" w
 
-			for (i_feature,feature) in enumerate(features)
+			for (i_feature,feature) in enum_features
 
 				# threshold = computePropositionalThreshold(feature, w, instance)
 				threshold = get_gamma(X, i_instance, w, feature)
@@ -89,6 +103,8 @@ initFeaturedWorldDatasetWorldSlice(fwd::OneWorldFeaturedWorldDataset{T}, w::OneW
 	nothing
 modalDatasetSet(fwd::OneWorldFeaturedWorldDataset{T}, w::OneWorld, i_instance::Integer, i_feature::Integer, threshold::T) where {T} =
 	fwd.d[i_instance, i_feature] = threshold
+modalDatasetSetFeature(fwd::OneWorldFeaturedWorldDataset{T}, i_feature::Integer, feature_fwd::Array{T, 1}) where {T} =
+	fwd.d[:, i_feature] = feature_fwd
 slice_dataset(fwd::OneWorldFeaturedWorldDataset{T}, inds::AbstractVector{<:Integer}; return_view = false) where {T} =
 	OneWorldFeaturedWorldDataset{T}(if return_view @view fwd.d[inds,:] else fwd.d[inds,:] end)
 modalDatasetChannelSlice(fwd::OneWorldFeaturedWorldDataset{T}, i_instance::Integer, i_feature::Integer) where {T} =
@@ -121,6 +137,8 @@ initFeaturedWorldDatasetWorldSlice(fwd::IntervalFeaturedWorldDataset{T}, w::Inte
 	nothing
 modalDatasetSet(fwd::IntervalFeaturedWorldDataset{T}, w::Interval, i_instance::Integer, i_feature::Integer, threshold::T) where {T} =
 	fwd.d[w.x, w.y, i_instance, i_feature] = threshold
+modalDatasetSetFeature(fwd::IntervalFeaturedWorldDataset{T}, i_feature::Integer, feature_fwd::Array{T, 3}) where {T} =
+	fwd.d[:, :, :, i_feature] = feature_fwd
 slice_dataset(fwd::IntervalFeaturedWorldDataset{T}, inds::AbstractVector{<:Integer}; return_view = false) where {T} =
 	IntervalFeaturedWorldDataset{T}(if return_view @view fwd.d[:,:,inds,:] else fwd.d[:,:,inds,:] end)
 modalDatasetChannelSlice(fwd::IntervalFeaturedWorldDataset{T}, i_instance::Integer, i_feature::Integer) where {T} =
@@ -153,6 +171,8 @@ initFeaturedWorldDatasetWorldSlice(fwd::Interval2DFeaturedWorldDataset{T}, w::In
 	nothing
 modalDatasetSet(fwd::Interval2DFeaturedWorldDataset{T}, w::Interval2D, i_instance::Integer, i_feature::Integer, threshold::T) where {T} =
 	fwd.d[w.x.x, w.x.y, w.y.x, w.y.y, i_instance, i_feature] = threshold
+modalDatasetSetFeature(fwd::Interval2DFeaturedWorldDataset{T}, i_feature::Integer, feature_fwd::Array{T, 5}) where {T} =
+	fwd.d[:, :, :, :, :, i_feature] = feature_fwd
 slice_dataset(fwd::Interval2DFeaturedWorldDataset{T}, inds::AbstractVector{<:Integer}; return_view = false) where {T} =
 	Interval2DFeaturedWorldDataset{T}(if return_view @view fwd.d[:,:,:,:,inds,:] else fwd.d[:,:,:,:,inds,:] end)
 modalDatasetChannelSlice(fwd::Interval2DFeaturedWorldDataset{T}, i_instance::Integer, i_feature::Integer) where {T} =
