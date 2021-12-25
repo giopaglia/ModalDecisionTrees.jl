@@ -1,7 +1,7 @@
 export FeatureTypeNone, FeatureTypeFun,
 				AttributeMinimumFeatureType, AttributeMaximumFeatureType,
 				AttributeSoftMinimumFeatureType, AttributeSoftMaximumFeatureType,
-				AttributeFunctionFeatureType, ChannelFunctionFeatureType
+				AttributeFunctionFeatureType, ChannelFunctionFeatureType, ExternalFWDFeatureType
 
 import Base.vec
 
@@ -102,6 +102,27 @@ struct ChannelFunctionFeatureType <: FeatureTypeFun
 end
 yieldFunction(f::ChannelFunctionFeatureType) = f.f
 Base.show(io::IO, f::ChannelFunctionFeatureType) = Base.print(io, "$(f.f)")
+
+################################################################################
+################################################################################
+################################################################################
+
+abstract type FWDFeatureTypeFun<:FeatureTypeFun end
+
+
+struct FWDFunctionFeatureType <: FWDFeatureTypeFun # TODO test
+	fwd_f::Function
+end
+yieldFunction(f::FWDFunctionFeatureType) = error("yieldFunction(::FWDFunctionFeatureType) should never be called. Check code") # TODO breaks typechecker?
+Base.show(io::IO, f::FWDFunctionFeatureType) = Base.print(io, "FWDFunctionFeatureType($(fwd_f))")
+
+struct ExternalFWDFeatureType <: FWDFeatureTypeFun
+	name::String
+	fwd::Any
+end
+yieldFunction(f::ExternalFWDFeatureType) = error("yieldFunction(::ExternalFWDFeatureType) should never be called. Check code") # TODO breaks typechecker?
+# Base.show(io::IO, f::ExternalFWDFeatureType) = Base.print(io, "ExternalFWDFeatureType(fwd of type $(typeof(f.fwd)))")
+Base.show(io::IO, f::ExternalFWDFeatureType) = Base.print(io, "$(f.name)")
 
 ################################################################################
 ################################################################################
