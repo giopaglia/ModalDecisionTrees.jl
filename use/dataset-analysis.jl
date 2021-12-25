@@ -499,7 +499,7 @@ end
 # single_frame_target_aware_analysis((X, Y), attribute_names, descriptors, file_prefix; savefigs = false, descriptor_abbrs = descriptor_abbrs, attribute_abbrs = attribute_abbrs)
 
 function single_frame_target_aware_analysis(
-		(X, Y)::Tuple{AbstractArray{T,3},<:Union{<:AbstractVector{<:AbstractString},<:AbstractVector{L}}},
+		(X, Y)::Tuple{AbstractArray{T,3},<:Union{<:AbstractVector{<:AbstractString},<:AbstractVector{<:Real}}},
 		attribute_names::AbstractVector,
 		descriptors::AbstractVector{Symbol},
 		file_prefix::AbstractString;
@@ -542,7 +542,7 @@ function single_frame_target_aware_analysis(
 		if !isnothing(make_bins) && eltype(Y) <: Real
 			cns =
 				if typeof(make_bins) <:Tuple{<:NTuple{N,<:L},<:NTuple{M,<:AbstractString}}
-					new_labels = make_bins[2]
+					new_labels = [make_bins[2]...]
 					make_bins = make_bins[1]
 					new_labels
 				else
@@ -568,7 +568,7 @@ function single_frame_target_aware_analysis(
 			cns, [new_Y .== class_name for class_name in cns]
 		else
 			if !isnothing(make_bins)
-				@warn "Making BINs is supported only for numeric labels"
+				@warn "Making BINs is supported only for numeric labels: ignoring..."
 			end
 
 			cns =
