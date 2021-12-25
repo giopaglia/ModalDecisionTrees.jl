@@ -411,7 +411,7 @@ end
 #  The train dataset, unless use_training_form, is transformed in featmodal form, which is optimized for training.
 #  The test dataset is kept in ontological form
 # function buildModalDatasets(Xs_train_all::Union{MatricialDataset,Vector{<:MatricialDataset}}, X_test::Union{MatricialDataset,Vector{<:MatricialDataset}})
-function buildModalDatasets(X_train, X_test, data_modal_args, modal_args, use_training_form, data_savedir, timing_mode, save_datasets)
+function buildModalDatasets(X_train, X_test, data_modal_args, modal_args, use_training_form, data_savedir, timing_mode, save_datasets, use_test_form)
 
 	if X_train isa MatricialDataset
 		X_train = [X_train]
@@ -428,7 +428,6 @@ function buildModalDatasets(X_train, X_test, data_modal_args, modal_args, use_tr
 	# The test dataset is kept in its ontological form
 	# X_test = MultiFrameModalDataset([OntologicalDataset(X, WorldType) for X in X_test])
 	# X_test = MultiFrameModalDataset([OntologicalDataset{eltype(X), ndims(X)-1-1, WorldType}(X, nothing, nothing, nothing) for X in X_test])
-	use_test_form = :dimensional
 	X_test = X_dataset_c("test", data_modal_args, X_test, modal_args, save_datasets, use_test_form)
 
 	# The train dataset is either kept in ontological form, or processed into stump form (which allows for optimized learning)
@@ -470,7 +469,7 @@ function exec_scan(
 		test_averaged                   = false,
 		### Dataset params
 		split_threshold                 ::Union{Bool,AbstractFloat} = 1.0,
-		data_modal_args                 ::AbstractVector{<:NamedTuple} = [NamedTuple() for i in 1:length(dataset[1])],
+		data_modal_args                 ::Union{NamedTuple,AbstractVector{<:NamedTuple}} = NamedTuple(),
 		dataset_slices                  ::Union{
 			AbstractVector{<:Tuple{<:Any,SLICE}},
 			AbstractVector{SLICE},
@@ -491,6 +490,7 @@ function exec_scan(
 		skip_training                   :: Bool = false,
 		callback                        :: Function = identity,
 		dataset_shape_columns           :: Union{AbstractVector,Nothing} = nothing,
+		use_test_form                   :: Symbol = :dimensional,
 	) where {SLICE<:Union{<:AbstractVector{<:Integer},<:NTuple{2,<:AbstractVector{<:Integer}}}}
 
 	@assert timing_mode in [:none, :profile, :time, :btime] "Unknown timing_mode!"
@@ -498,18 +498,15 @@ function exec_scan(
 
 	run_name = join([replace(string(values(value)), ", " => ",") for value in values(params_namedtuple)], ",")
 
-	if length(data_modal_args) == 0
-		data_modal_args = fill(NamedTuple(), length(dataset[1]))
-	elseif length(data_modal_args) == 1 && length(dataset[1]) > 1
-		data_modal_args = [data_modal_args for i in 1:length(dataset[1])]
+	# TODO: check if the use of length(dataset[1]) is always equiv to the number of frames in this context
+	n_frames = length(dataset[1])
+
+	# Force data_modal_args to be an array of itself (one for each frame)
+	if isa(data_modal_args, NamedTuple)
+		data_modal_args = [deepcopy(data_modal_args) for i in 1:n_frames]
 	end
 
-	@assert length(data_modal_args) >= length(dataset[1]) "Passed wrong number of `data_modal_args` ($(length(data_modal_args))): n_frames = $(length(dataset[1]))"
-
-	if length(data_modal_args) > length(dataset[1])
-		@warn "Ignoring extra `data_modal_args` passed: n_frames = $(length(dataset[1])) and length(data_modal_args) = $(length(data_modal_args))"
-		data_modal_args = data_modal_args[1:length(dataset[1])]
-	end
+	@assert length(data_modal_args) >= n_frames "Mismatching number of `data_modal_args` provided ($(length(data_modal_args))). Must be either one, or the number of frames ($(n_frames))"
 
 	if !isnothing(log_level)
 		println("Warning! scanner.log_level parameter is obsolete. Use logger = ConsoleLogger(stderr, $(log_level)) instead!")
@@ -588,7 +585,7 @@ function exec_scan(
 				#
 				# "n_attributes"     => (X_train, Y_train, X_test, Y_test)->n_attributes(X_train),
 				"n_features"       => (X_train, Y_train, X_test, Y_test)->n_features(X_train),
-				"channel_size"     => (X_train, Y_train, X_test, Y_test)->channel_size(X_test),
+				"channel_size"     => (X_train, Y_train, X_test, Y_test)->(use_test_form == :dimensional ? channel_size(X_test) : "? (fwd size $(size(X_train.fwd)))"), # TODO fix this
 				# "avg_channel_size" => (X_train, Y_train, X_test, Y_test)->?,
 			)
 		end
@@ -983,7 +980,7 @@ function exec_scan(
 
 	rets = []
 
-	buildModalDatasets_fun = (X_train, X_test)->buildModalDatasets(X_train, X_test, data_modal_args, modal_args, use_training_form, data_savedir, timing_mode, save_datasets)
+	buildModalDatasets_fun = (X_train, X_test)->buildModalDatasets(X_train, X_test, data_modal_args, modal_args, use_training_form, data_savedir, timing_mode, save_datasets, use_test_form)
 
 	X_full       = nothing
 	X_full_input = nothing
