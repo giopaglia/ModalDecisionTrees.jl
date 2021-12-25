@@ -65,22 +65,44 @@ tree_args = [
 #	)
 ]
 
-for loss_function in [nothing]
-	for min_samples_leaf in [3] # TODO try other values of this if the number of instances changes
-		for min_purity_increase in [0.02]
-			for max_purity_at_leaf in [0.001]
-				push!(tree_args,
-					(
-						loss_function       = loss_function,
-						min_samples_leaf    = min_samples_leaf,
-						min_purity_increase = min_purity_increase,
-						max_purity_at_leaf  = max_purity_at_leaf,
-						perform_consistency_check = perform_consistency_check,
+if supervised_mode == :regression
+	for loss_function in [nothing]
+		for min_samples_leaf in [3] # TODO try other values of this if the number of instances changes
+			for min_purity_increase in [0.02]
+				for max_purity_at_leaf in [0.001]
+					push!(tree_args,
+						(
+							loss_function       = loss_function,
+							min_samples_leaf    = min_samples_leaf,
+							min_purity_increase = min_purity_increase,
+							max_purity_at_leaf  = max_purity_at_leaf,
+							perform_consistency_check = perform_consistency_check,
+						)
 					)
-				)
+				end
 			end
 		end
 	end
+elseif supervised_mode == :classification
+	for loss_function in [nothing]
+		for min_samples_leaf in [2,4] # [1,2]
+			for min_purity_increase in [0.01] # [0.01, 0.001]
+				for max_purity_at_leaf in [0.4, 0.5, 0.6] # [0.4, 0.6]
+					push!(tree_args,
+						(
+							loss_function       = loss_function,
+							min_samples_leaf    = min_samples_leaf,
+							min_purity_increase = min_purity_increase,
+							max_purity_at_leaf  = max_purity_at_leaf,
+							perform_consistency_check = perform_consistency_check,
+						)
+					)
+				end
+			end
+		end
+	end
+else
+	throw(ExceptionError("Invalid `supervised_mode` passed: `:$(supervised_mode)`"))
 end
 
 println(" $(length(tree_args)) trees")
