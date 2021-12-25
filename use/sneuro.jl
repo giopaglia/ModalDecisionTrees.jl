@@ -664,6 +664,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		### Misc
 		save_datasets                   =   save_datasets,
 		skip_training                   =   skip_training,
+		use_test_form                   =   :stump_with_memoization,
 		callback                        =   (dataseed)->begin
 			# Add this step to the "history" of already computed iteration
 			push_iteration_to_history!(history, (params_namedtuple, dataseed))

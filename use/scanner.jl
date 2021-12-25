@@ -410,7 +410,7 @@ end
 #  The train dataset, unless use_training_form, is transformed in featmodal form, which is optimized for training.
 #  The test dataset is kept in ontological form
 # function buildModalDatasets(Xs_train_all::Union{MatricialDataset,Vector{<:MatricialDataset}}, X_test::Union{MatricialDataset,Vector{<:MatricialDataset}})
-function buildModalDatasets(X_train, X_test, data_modal_args, modal_args, use_training_form, data_savedir, timing_mode, save_datasets)
+function buildModalDatasets(X_train, X_test, data_modal_args, modal_args, use_training_form, data_savedir, timing_mode, save_datasets, use_test_form)
 
 	if X_train isa MatricialDataset
 		X_train = [X_train]
@@ -427,7 +427,6 @@ function buildModalDatasets(X_train, X_test, data_modal_args, modal_args, use_tr
 	# The test dataset is kept in its ontological form
 	# X_test = MultiFrameModalDataset([OntologicalDataset(X, WorldType) for X in X_test])
 	# X_test = MultiFrameModalDataset([OntologicalDataset{eltype(X), ndims(X)-1-1, WorldType}(X, nothing, nothing, nothing) for X in X_test])
-	use_test_form = :dimensional
 	X_test = X_dataset_c("test", data_modal_args, X_test, modal_args, save_datasets, use_test_form)
 
 	# The train dataset is either kept in ontological form, or processed into stump form (which allows for optimized learning)
@@ -490,6 +489,7 @@ function exec_scan(
 		skip_training                   :: Bool = false,
 		callback                        :: Function = identity,
 		dataset_shape_columns           :: Union{AbstractVector,Nothing} = nothing,
+		use_test_form                   :: Symbol = :dimensional,
 	) where {SLICE<:Union{<:AbstractVector{<:Integer},<:NTuple{2,<:AbstractVector{<:Integer}}}}
 
 	@assert timing_mode in [:none, :profile, :time, :btime] "Unknown timing_mode!"
@@ -979,7 +979,7 @@ function exec_scan(
 
 	rets = []
 
-	buildModalDatasets_fun = (X_train, X_test)->buildModalDatasets(X_train, X_test, data_modal_args, modal_args, use_training_form, data_savedir, timing_mode, save_datasets)
+	buildModalDatasets_fun = (X_train, X_test)->buildModalDatasets(X_train, X_test, data_modal_args, modal_args, use_training_form, data_savedir, timing_mode, save_datasets, use_test_form)
 
 	X_full       = nothing
 	X_full_input = nothing
