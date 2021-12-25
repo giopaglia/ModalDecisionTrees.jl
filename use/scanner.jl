@@ -285,16 +285,20 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 		########################################################################
 		########################################################################
 		########################################################################
-		
+
 		# Prepare features
 
 		features = FeatureTypeFun[]
 		featsnops = Vector{<:TestOperatorFun}[]
 
-		canonical_features = data_modal_args[i_frame].canonical_features
+		cnv_feat(cf::Any) = cf
+		cnv_feat(cf::Function) = ([≥, ≤], cf)
+		cnv_feat(cf::Tuple{TestOperatorFun,Function}) = ([cf[1]], cf[2])
+
+		canonical_features = [cnv_feat(cf) for cf in data_modal_args[i_frame].canonical_features]
 
 		readymade_cfs          = filter(x->isa(x, FeatureTypeFun), canonical_features)
-		attribute_specific_cfs = filter(x->isa(x, CanonicalFeature) || isa(x, Tuple{TestOperatorFun,Function}), canonical_features)
+		attribute_specific_cfs = filter(x->isa(x, CanonicalFeature) || isa(x, Tuple{<:AbstractVector{<:TestOperatorFun},Function}), canonical_features)
 
 		@assert length(readymade_cfs) + length(attribute_specific_cfs) == length(canonical_features) "Unexpected canonical_features: $(filter(x->!isa(x, CanonicalFeature) && !isa(x, FeatureTypeFun), canonical_features))"
 
@@ -317,13 +321,10 @@ function X_dataset_c(dataset_type_str, data_modal_args, X_all, modal_args, save_
 				elseif canonical_feature isa ModalLogic._CanonicalFeatureLeqSoft
 					push!(features, ModalLogic.AttributeSoftMaximumFeatureType(i_attr, canonical_feature.alpha))
 					push!(featsnops, [≤])
-				elseif canonical_feature isa Function
+				elseif canonical_feature isa Tuple{<:AbstractVector{<:TestOperatorFun},Function}
+					(test_ops,canonical_feature) = canonical_feature
 					push!(features, AttributeFunctionFeatureType(i_attr, canonical_feature))
-					push!(featsnops, [≥, ≤])
-				elseif canonical_feature isa Tuple{TestOperatorFun,Function}
-					(test_op,canonical_feature) = canonical_feature
-					push!(features, AttributeFunctionFeatureType(i_attr, canonical_feature))
-					push!(featsnops, [test_op])
+					push!(featsnops, test_ops)
 				else
 					throw_n_log("Unknown canonical_feature type: $(canonical_feature), $(typeof(canonical_feature))")
 				end
