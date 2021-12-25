@@ -10,8 +10,7 @@ include("scanner.jl")
 using NPZ
 using Base.Threads
 
-main_rng = DecisionTree.mk_rng(1)
-
+# main_rng = DecisionTree.mk_rng(1)
 train_seed = 1
 
 py_script_path = "neuro-symbolic/pipeline"
@@ -234,7 +233,7 @@ optimize_forest_computation = true
 
 forest_args = []
 
-for n_trees in [50]
+for n_trees in []
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
 			push!(forest_args, (
@@ -323,7 +322,7 @@ legacy_gammas_check = false
 
 exec_dataseed = [1]
 
-exec_fake_dataseed = [(1:3)...]
+exec_fake_dataseed = [(1:5)...]
 
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization]
@@ -332,9 +331,13 @@ exec_use_training_form = [:stump_with_memoization]
 # https://discourse.julialang.org/t/json-type-serialization/9794
 # TODO: make test operators types serializable
 # exec_canonical_features = [ "TestOp" ]
-exec_canonical_features = [ ["TestOp_80", :neuro_simone], ["TestOp_80"] ]
+exec_canonical_features = [
+	["TestOp_80", :neuro_simone],
+	["TestOp_80"],
+	# ["TestOp"],
+]
 
-neuro_feature_size = 1
+neuro_feature_size = 5
 
 canonical_features_dict = Dict(
 	"TestOp_70" => [TestOpGeq_70, TestOpLeq_70],
@@ -345,15 +348,19 @@ canonical_features_dict = Dict(
 
 exec_dataset_name = [
 	"FingerMovements",
-	# "Libras",
-	# "LSST",
-	# "NATOPS",
-	# "RacketSports",	
+	"Libras",
+	"LSST",
+	"NATOPS",
+	"RacketSports",	
 ]
 
 # exec_flatten_ontology = [(false,"interval2D")] # ,(true,"one_world")]
 # exec_use_catch22_flatten_ontology = [(false,false,"interval")]
-exec_use_catch22_flatten_ontology = [(false,false,"interval")] # ,(false,true,"one_world"),(true,true,"one_world")]
+exec_use_catch22_flatten_ontology = [
+	(false,false,"interval"),
+	# (false,true,"one_world"),
+	# (true,true,"one_world"),
+]
 
 ontology_dict = Dict(
 	"one_world"   => ModalLogic.OneWorldOntology,
@@ -368,9 +375,9 @@ exec_n_chunks = [missing]
 # exec_use_catch22 = [false]
 
 exec_ranges = (;
-	fake_dataseed                = exec_fake_dataseed              ,
+	fake_dataseed                    = exec_fake_dataseed              ,
 	use_training_form                = exec_use_training_form              ,
-	canonical_features                   = exec_canonical_features                 ,
+	canonical_features               = exec_canonical_features                 ,
 	dataset_name                     = exec_dataset_name                   ,
 	use_catch22_flatten_ontology     = exec_use_catch22_flatten_ontology   ,
 	# use_catch22                      = exec_use_catch22                    ,
@@ -420,18 +427,53 @@ if "-f" in ARGS
 		backup_file_using_creation_date(iteration_progress_json_file_path)
 	end
 end
+ 
+# Copy scan script into the results folder
+backup_file_using_creation_date(PROGRAM_FILE; copy_or_move = :copy, out_path = results_dir)
 
 exec_ranges_names, exec_ranges_iterators = collect(string.(keys(exec_ranges))), collect(values(exec_ranges))
 history = load_or_create_history(
 	iteration_progress_json_file_path, exec_ranges_names, exec_ranges_iterators
 )
+ 
+# Log to console AND to .out file, & send Telegram message with Errors
+using Logging, LoggingExtras
+using Telegram, Telegram.API
+using ConfigEnv
+
+i_log_filename,log_filename = 0,""
+while i_log_filename == 0 || isfile(log_filename)
+	global i_log_filename,log_filename
+	i_log_filename += 1
+	log_filename =
+		results_dir * "/" *
+		(dry_run == :dataset_only ? "datasets-" : "") *
+		"$(i_log_filename).out"
+end
+logfile_io = open(log_filename, "w+")
+dotenv()
+
+tg = TelegramClient()
+tg_logger = TelegramLogger(tg; async = false)
+
+new_logger = TeeLogger(
+	current_logger(),
+	SimpleLogger(logfile_io, log_level),
+	MinLevelLogger(tg_logger, Logging.Error), # Want to ignore Telegram? Comment out this
+)
+global_logger(new_logger)
+
 
 ################################################################################
 ################################################################################
 ################################################################################
 ################################################################################
 # TODO actually,no need to recreate the dataset when changing, say, testoperators. Make a distinction between dataset params and run params
+n_interations = 0
+n_interations_done = 0
 for params_combination in IterTools.product(exec_ranges_iterators...)
+
+	flush(logfile_io);
 
 	# Unpack params combination
 	# params_namedtuple = (zip(Symbol.(exec_ranges_names), params_combination) |> Dict |> namedtuple)
@@ -441,6 +483,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	if (!is_whitelisted_test(params_namedtuple, iteration_whitelist)) || is_blacklisted_test(params_namedtuple, iteration_blacklist)
 		continue
 	end
+
+	global n_interations += 1
 
 	##############################################################################
 	##############################################################################
@@ -458,6 +502,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	else
 		println("...")
 	end
+
+	global n_interations_done += 1
 
 	if dry_run == true
 		continue
@@ -647,5 +693,11 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 end
 
 println("Done!")
+println("# Iterations $(n_interations_done)/$(n_interations)")
+
+# Notify the Telegram Bot
+@error "Done!"
+
+close(logfile_io);
 
 exit(0)
