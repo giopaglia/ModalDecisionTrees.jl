@@ -221,6 +221,8 @@ for loss_function in [DecisionTree.util.entropy]
 	end
 end
 
+# tree_args = tree_args[1:1] # Debug
+
 println(" $(length(tree_args)) trees")
 
 ################################################################################
@@ -537,7 +539,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 					"$(py_script_path)/fmd_$(dataset_name)-$(fake_dataseed)-X.npy"
 				end
 			)
-			external_fmd = convert.(Float32, external_fmd)
+			external_fmd = convert.(round_dataset_to_datatype, external_fmd)
 
 			neuro_feature_size = size(external_fmd, 1)
 			n_attribute = size(external_fmd)[end-1]
