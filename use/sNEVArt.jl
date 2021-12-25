@@ -16,20 +16,31 @@ include("dataset-analysis.jl")
 train_seed = 2
 
 ################################################################################
+############################# SUPERVISED MODE ##################################
+################################################################################
+
+supervised_mode = :classification
+# supervised_mode = :regression
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./NEVArt/journal-v4-feature-selection"
+results_dir = "./NEVArt/journal-v4-feature-selection-$(supervised_mode)"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 selected_features_savedir = results_dir * "/selected_features_cache"
 
-# dry_run = false
+dry_run = false
 # dry_run = :dataset_only
 # dry_run = :model_study
-dry_run = true
+# dry_run = true
 
 skip_training = false
 
@@ -85,8 +96,8 @@ optimize_forest_computation = true
 
 forest_args = []
 
+# for n_trees in []
 for n_trees in [50]
-# for n_trees in [50]
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
 			for partial_sampling in [0.7]
@@ -156,9 +167,13 @@ round_dataset_to_datatype = false
 
 n_cv_folds = 7
 
-# split_threshold = 0.8
-split_threshold = 1.0
-# split_threshold = false
+# split_threshold_regression = 0.8
+split_threshold_regression = 1.0
+# split_threshold_regression = false
+
+split_threshold_classification = 0.8
+# split_threshold_classification = 1.0
+# split_threshold_classification = false
 
 # use_training_form = :dimensional
 # use_training_form = :fmd
@@ -187,17 +202,26 @@ exec_n_desired_features   = [5]
 savefigs = true
 # savefigs = false
 
-exec_convert_to_class_ttest = [nothing, (Tuple{Int8}(25), ("NO", "YES")), (Tuple{Int8, Int8}([17, 34]), ("NO", "MAYBE", "YES"))]
+perform_target_aware_analysis = false
+# perform_target_aware_analysis = true
+
+exec_convert_to_class_ttest = [(Tuple{Int8}(25), ("NO", "YES")), nothing, (Tuple{Int8, Int8}([17, 34]), ("NO", "MAYBE", "YES"))]
 
 exec_dataset_params = [
-	# (ids,signals,lables,static_attrs,signal_transformation,keep_only_bands,force_single_frame)
-	("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),false),
-	# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),false),
-	# ("sure-v1",[:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:ECG => collect(1:7)),false),
-	# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25), :ECG => collect(1:7)),false),
-	# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25), :ECG => collect(1:7)),true),
-	("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto, :ECG => :auto),false),
-	("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto, :ECG => :auto),true)
+	# (ids,signals,lables,static_attrs,signal_transformation,keep_only_bands,classification_splits,force_single_frame)
+	("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),(25,),false),
+	("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),(17,34),false),
+	("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),(25,),false),
+	("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),(17,34),false),
+
+	# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),nothing,false),
+	# ("sure-v1",[:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:ECG => collect(1:7)),nothing,false),
+
+	# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25), :ECG => collect(1:7)),nothing,false),
+	# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25), :ECG => collect(1:7)),nothing,true),
+
+	# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto, :ECG => :auto),nothing,false),
+	# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto, :ECG => :auto),nothing,true)
 ]
 
 const datasets_dict = Dict{String,Vector{Int64}}(
@@ -244,10 +268,12 @@ end
 # exec_canonical_features = [ "TestOp" ]
 exec_canonical_features = [ ["TestOp_80", "TestOp_80"] ]
 
+const canonical_features_union = Union{ModalLogic.CanonicalFeature,Function,Tuple{TestOperatorFun,Function}}
+
 canonical_features_dict = Dict(
-	"TestOp_70" => [ModalLogic.TestOpGeq_70, ModalLogic.TestOpLeq_70],
-	"TestOp_80" => [ModalLogic.TestOpGeq_80, ModalLogic.TestOpLeq_80],
-	"TestOp"    => [ModalLogic.TestOpGeq,    ModalLogic.TestOpLeq],
+	"TestOp_70" => canonical_features_union[ModalLogic.TestOpGeq_70, ModalLogic.TestOpLeq_70],
+	"TestOp_80" => canonical_features_union[ModalLogic.TestOpGeq_80, ModalLogic.TestOpLeq_80],
+	"TestOp"    => canonical_features_union[ModalLogic.TestOpGeq,    ModalLogic.TestOpLeq],
 )
 
 exec_ontology = [ ["IA", "IA"] ] # "IA7", "IA3",
@@ -265,6 +291,12 @@ ontology_dict = Dict(
 
 ############################################################################################
 
+if dry_run != :dataset_only
+	@info "Overwriting `exec_convert_to_class_ttest` to `$(exec_convert_to_class_ttest[[1]])`: allowed only in " *
+		"`supervised_mode` = `:regression` and `dry_run` = `:dataset_only`"
+	global exec_convert_to_class_ttest = exec_convert_to_class_ttest[[1]]
+end
+
 # exclude iterations that will change only unused parameters
 first_skipped = false
 black_list_prototype = (exec_n_desired_attributes = nothing, exec_n_desired_features = nothing, exec_convert_to_class_ttest = nothing)
@@ -276,9 +308,61 @@ for plural_auto_combination in Base.product(exec_n_desired_attributes, exec_n_de
 		continue
 	end
 
-	for non_auto_dataset_parameters in filter(x -> !(:auto in values(x[end-1])), exec_dataset_params)
+	for non_auto_dataset_parameters in filter(x -> !(:auto in values(x[end-2])), exec_dataset_params)
 		push!(iteration_blacklist, merge(NamedTuple([keys(black_list_prototype)[i] => plural_auto_combination[i] for i in 1:length(black_list_prototype)]), (exec_dataset_params = non_auto_dataset_parameters,)))
 	end
+end
+
+change_tuple_element(t::Tuple, value::Any, i::Integer) = Tuple(setindex!([t...], value, i))
+
+# if there is just one signal convert all `force_single_frame` in all dataset_params
+enqueued = []
+for (i_ed, ed) in enumerate(exec_dataset_params)
+	new_ed = ed
+
+	if length(ed[2]) < 2 && ed[end] != false
+		new_ed = change_tuple_element(ed, false, length(ed))
+	end
+
+	if !(new_ed in enqueued)
+		push!(enqueued, new_ed)
+	end
+end
+exec_dataset_params = deepcopy(enqueued)
+empty!(enqueued)
+
+# remove reduntant iterations in both :regression and :classification tasks
+if supervised_mode == :regression
+	## convert classification parametrizations to regression
+	global exec_dataset_params
+	local enqueued = []
+	for (i_ed, ed) in enumerate(exec_dataset_params)
+		if ed[end-1] != nothing
+			new_ed = change_tuple_element(ed, nothing, length(ed) - 1)
+			if !(new_ed in enqueued)
+				push!(enqueued, new_ed)
+			end
+		else
+			push!(enqueued, ed)
+		end
+	end
+	exec_dataset_params = enqueued
+
+else
+	global exec_convert_to_class_ttest
+	if exec_convert_to_class_ttest != [nothing]
+		@info "Overwriting `exec_convert_to_class_ttest` to `[nothing]` because `supervised_mode` = :$(supervised_mode)"
+		exec_convert_to_class_ttest = [nothing]
+	end
+
+	global exec_dataset_params
+	local enqueued = []
+	for ed in exec_dataset_params
+		if ed[end-1] != nothing
+			push!(enqueued, ed)
+		end
+	end
+	exec_dataset_params = enqueued
 end
 
 # println("\n\nAutomatically selected iterations to be skipped:")
@@ -300,6 +384,12 @@ exec_ranges = (; # Order: faster-changing to slower-changing
 	ontology                    = exec_ontology,
 )
 
+nsplits2labels = Dict{Int,Vector{String}}(
+	1 => ["NO", "YES"],
+	2 => ["NO", "MAYBE", "YES"],
+	3 => ["NO", "LITTLE", "ENOUGH", "YES"],
+)
+
 function dataset_function(
 	dataset_name::AbstractString,
 	signals::AbstractVector{Symbol},
@@ -307,8 +397,9 @@ function dataset_function(
 	static_attrs::AbstractVector{<:AbstractString},
 	signal_transformation::Dict{Symbol,<:NamedTuple},
 	keep_only_bands::Dict{Symbol,<:Union{<:AbstractVector{<:Integer},Symbol}},
+	class_splits::Union{NTuple{N,T},Nothing},
 	force_single_frame::Bool
-)
+) where {N,T}
 	copied_keep_only_bands = deepcopy(keep_only_bands)
 	for (k, v) in keep_only_bands
 		if v isa Symbol
@@ -324,6 +415,13 @@ function dataset_function(
 		end
 	end
 
+	classification =
+		if supervised_mode == :regression
+			nothing
+		else
+			(class_splits, nsplits2labels[length(class_splits)])
+		end
+
 	return NEVArtDataset(
 		"$(data_dir)/NEVArt";
 		ids = datasets_dict[dataset_name],
@@ -331,6 +429,7 @@ function dataset_function(
 		labels = labels,
 		static_attrs = static_attrs,
 		mode = :painting,
+		use_classification = classification,
 		apply_transfer_function = true,
 		normalize_after_transfer_function = true,
 		forget_samplerate = false,
@@ -502,7 +601,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	n_desired_attributes,
 	n_desired_features,
 	make_bins,
-	(dataset_name,signals,lables,static_attrs,signal_transformation,keep_only_bands,force_single_frame),
+	(dataset_name,signals,lables,static_attrs,signal_transformation,keep_only_bands,classification_splits,force_single_frame),
 	use_training_form,
 	canonical_features,
 	ontology = params_combination
@@ -536,6 +635,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		static_attrs,
 		signal_transformation,
 		keep_only_bands,
+		classification_splits,
 		force_single_frame
 	)
 
@@ -629,6 +729,19 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	# Load Dataset
 	dataset = @cachefast "dataset" data_savedir dataset_fun_sub_params dataset_function
+
+	######### aggregate points
+	for (i_frame, frame) in enumerate(dataset[1])
+		# 1) cut length
+		dataset[1][i_frame] = cut_length(dataset[1][i_frame], curr_length_fraction)
+		# 2) real aggregation
+		dataset[1][i_frame] = aggr_points(dataset[1][i_frame], curr_aggr_points)
+	end
+
+	if supervised_mode == :regression
+		###### convert labels to float64
+		dataset = (dataset[1], Float64[dataset[2]...])
+	end
 
 	############### AUTOMATIC FEATURE SELECTION
 	if :auto in values(keep_only_bands)
@@ -786,7 +899,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 				new_frames[i_frame] = dataset[1][i_frame][:,best_attributes_idxs,:]
 
-				if savefigs
+				if perform_target_aware_analysis
 					single_frame_target_aware_analysis(
 						(new_frames[i_frame],dataset[2]),
 						attribute_names[best_attributes_idxs],
@@ -801,7 +914,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 				end
 
 				cur_data_modal_args[i_frame] = merge(cur_data_modal_args[i_frame], (;
-					canonical_features = Vector{Union{ModalLogic.CanonicalFeature,Function,Tuple{TestOperatorFun,Function}}}(collect(Iterators.flatten(getCanonicalFeature.(best_descriptors))))
+					canonical_features = Vector{canonical_features_union}(collect(Iterators.flatten(getCanonicalFeature.(best_descriptors))))
 				))
 			else
 				new_frames[i_frame] = dataset[1][i_frame]
@@ -811,51 +924,42 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		dataset = (new_frames, dataset[2])
 	end
 
-	# println("Dataset before:")
-	# for (i_frame, frame) in enumerate(dataset[1])
-	# 	println("Frame $(i_frame): $(size(frame))")
-	# end
-
-	######### aggregate points
-	for (i_frame, frame) in enumerate(dataset[1])
-		# 1) cut length
-		dataset[1][i_frame] = cut_length(dataset[1][i_frame], curr_length_fraction)
-		# 2) real aggregation
-		dataset[1][i_frame] = aggr_points(dataset[1][i_frame], curr_aggr_points)
-	end
-
-	###### convert labels to float64
-	dataset = (dataset[1], Float64[dataset[2]...])
-
-	# println("Dataset after:")
-	# for (i_frame, frame) in enumerate(dataset[1])
-	# 	println("Frame $(i_frame): $(size(frame))")
-	# end
-
 	## Dataset slices
 	# obtain dataseeds that are were not done before
 	todo_dataseeds = filter((dataseed)->!iteration_in_history(history, (params_namedtuple, dataseed)), exec_dataseed)
 
-	X, Y = dataset
+	dataset, dataset_slices =
+		if supervised_mode == :regression
+			X, Y = dataset
+			dataset_slices = begin
+				n_insts = length(Y)
+				@assert (n_insts % n_cv_folds == 0) "$(n_insts) % $(n_cv_folds) != 0"
+				n_insts_fold = div(n_insts, n_cv_folds)
+				# todo_dataseeds = 1:10
+				[(dataseed, begin
+						if dataseed == 0
+							(Vector{Integer}(collect(1:n_insts)), Vector{Integer}(collect(1:n_insts)))
+						else
+							test_idxs = 1+(dataseed-1)*n_insts_fold:(dataseed-1)*n_insts_fold+(n_insts_fold)
+							(Vector{Integer}(collect(setdiff(Set(1:n_insts), Set(test_idxs)))), Vector{Integer}(collect(test_idxs)))
+						end
+					end) for dataseed in todo_dataseeds]
+			end
+			dataset, dataset_slices
+		else
+			class_names = nsplits2labels[length(classification_splits)]
+			class_counts = Tuple([length(findall(x -> x == cn, dataset[2])) for cn in class_names])
 
-	dataset_slices = begin
-		n_insts = length(Y)
-		@assert (n_insts % n_cv_folds == 0) "$(n_insts) % $(n_cv_folds) != 0"
-		n_insts_fold = div(n_insts, n_cv_folds)
-		# todo_dataseeds = 1:10
-		[(dataseed, begin
-				if dataseed == 0
-					(Vector{Integer}(collect(1:n_insts)), Vector{Integer}(collect(1:n_insts)))
-				else
-					test_idxs = 1+(dataseed-1)*n_insts_fold:(dataseed-1)*n_insts_fold+(n_insts_fold)
-					(Vector{Integer}(collect(setdiff(Set(1:n_insts), Set(test_idxs)))), Vector{Integer}(collect(test_idxs)))
-				end
-			end) for dataseed in todo_dataseeds]
-	end
+			sorted_by_class_indices = vcat([findall(x -> x == cn, dataset[2]) for cn in class_names]...)
 
-	# for ds in dataset_slices
-	# 	println(ds)
-	# end
+			linearized_dataset, dataset_slices = balanced_dataset_slice(
+				(([frame[:,:,sorted_by_class_indices] for frame in dataset[1]], dataset[2][sorted_by_class_indices]), class_counts),
+				todo_dataseeds
+			)
+			dataset_slices = collect(zip(todo_dataseeds, dataset_slices))
+
+			linearized_dataset, dataset_slices
+		end
 
 	println("Dataseeds = $(todo_dataseeds)")
 
@@ -883,7 +987,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			test_flattened                  =   test_flattened,
 			test_averaged                   =   test_averaged,
 			### Dataset params
-			split_threshold                 =   split_threshold,
+			split_threshold                 =   (eltype(Y) != String) ? split_threshold_regression : split_threshold_classification,
 			data_modal_args                 =   cur_data_modal_args,
 			dataset_slices                  =   dataset_slices,
 			round_dataset_to_datatype       =   round_dataset_to_datatype,
