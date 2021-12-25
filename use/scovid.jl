@@ -12,14 +12,14 @@ train_seed = 2
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./covid/journal-v13-40bands-smaller-window-rf100"
+results_dir = "./covid/journal-v14-partitioned-multiframe"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 
-dry_run = false
-# dry_run = :dataset_only
+# dry_run = false
+dry_run = :dataset_only
 # dry_run = :model_study
 # dry_run = true
 
@@ -173,10 +173,10 @@ exec_use_training_form = [:stump_with_memoization]
 
 exec_n_ver_n_task_use_aug_dataset_dir_preprocess = [
 
-	("c",1,false,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
-	("c",2,true, "KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
-	("c",3,true, "KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
-	
+	# ("c",1,false,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
+	# ("c",2,true, "KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
+	# ("c",3,true, "KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
+
 	# ("c",1,false,"KDD",["NG", "Normalize", "RemSilence"]),
 	# ("c",2,true, "KDD",["NG", "Normalize", "RemSilence"]),
 	# ("c",3,true, "KDD",["NG", "Normalize", "RemSilence"]),
@@ -184,31 +184,31 @@ exec_n_ver_n_task_use_aug_dataset_dir_preprocess = [
 	##############################################################################
 	##############################################################################
 	##############################################################################
-	
-	("b",1,false,"KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
-	("b",2,true, "KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
-	("b",3,true, "KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
-	
+
+	# ("b",1,false,"KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
+	# ("b",2,true, "KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
+	# ("b",3,true, "KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
+
 	# ("b",1,false,"KDD",["Normalize", "RemSilence"]),
 	# ("b",2,true, "KDD",["Normalize", "RemSilence"]),
 	# ("b",3,true, "KDD",["Normalize", "RemSilence"]),
-	
-	##############################################################################
-	##############################################################################
-	##############################################################################
-
-	# ("c+b",1,false,"KDD-norm-partitioned-v1-breath",(["NG", "Normalize", "RemSilence"],["Normalize", "RemSilence"])),
-	# ("c+b",2,true, "KDD-norm-partitioned-v1-breath",(["NG", "Normalize", "RemSilence"],["Normalize", "RemSilence"])),
-	# ("c+b",3,true, "KDD-norm-partitioned-v1-breath",(["NG", "Normalize", "RemSilence"],["Normalize", "RemSilence"])),
-	
-	# ("c+b",1,false,"KDD",(["NG", "Normalize", "RemSilence"],["Normalize", "RemSilence"])),
-	# ("c+b",2,true, "KDD",(["NG", "Normalize", "RemSilence"],["Normalize", "RemSilence"])),
-	# ("c+b",3,true, "KDD",(["NG", "Normalize", "RemSilence"],["Normalize", "RemSilence"])),
 
 	##############################################################################
 	##############################################################################
 	##############################################################################
-	
+
+	# ("c+b",1,false,("KDD-norm-partitioned-v1-cough","KDD-norm-partitioned-v1-breath"),(["NG", "Normalize", "RemSilence"],["Normalize", "RemSilence"])),
+	# ("c+b",2,true, ("KDD-norm-partitioned-v1-cough","KDD-norm-partitioned-v1-breath"),(["NG", "Normalize", "RemSilence"],["Normalize", "RemSilence"])),
+	# ("c+b",3,true, ("KDD-norm-partitioned-v1-cough","KDD-norm-partitioned-v1-breath"),(["NG", "Normalize", "RemSilence"],["Normalize", "RemSilence"])),
+
+	("c+b",1,false,"KDD",(["NG", "Normalize", "RemSilence"],["Normalize", "RemSilence"])),
+	("c+b",2,true, "KDD",(["NG", "Normalize", "RemSilence"],["Normalize", "RemSilence"])),
+	("c+b",3,true, "KDD",(["NG", "Normalize", "RemSilence"],["Normalize", "RemSilence"])),
+
+	##############################################################################
+	##############################################################################
+	##############################################################################
+
 	# ("b",1,false,"KDD",["Normalize"]),
 	# ("b",2,true,"KDD",["Normalize"]),
 	# ("b",3,true,"KDD",["Normalize"]),
@@ -408,8 +408,15 @@ dataset_function = (
 		preprocess_wavs = cur_preprocess_wavs,
 		use_full_mfcc = use_full_mfcc,
 		ignore_samples_with_sr_less_than = (ignore_low_sr_samples ? max_sample_rate : -Inf),
-		dir = "$(data_dir)$(dataset_dir)/",
-	)
+		dir =
+			if isa(dataset_dir, AbstractString)
+				"$(data_dir)$(dataset_dir)/"
+			elseif isa(dataset_dir, Tuple) || isa(dataset_dir, AbstractVector)
+				Tuple(["$(data_dir)$(d)/" for d in dataset_dir])
+			else
+				throw(ErrorException("Got unsupported type for dataset_dir: $(typeof(dataset_dir))"))
+			end
+		)
 )
 
 ################################################################################
@@ -610,11 +617,39 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	canonical_features = canonical_features_dict[canonical_features]
 	ontology       = ontology_dict[ontology]
 
-	cur_audio_kwargs = merge(
-		audio_kwargs_partial_mfcc(max_sample_rate, wintime, steptime, nbands, fbtype, minfreq, base_freq, base_freq_min, base_freq_max)
-		, (;))
 
-	cur_preprocess_wavs = [ wav_preprocessors[k] for k in preprocess_wavs ]
+	cur_audio_kwargs =
+		if n_version == "c+b" || n_version == 3
+			makecouple(x) = (x,x)
+			makecouple(x::NTuple{2,T}) where T = x
+
+			max_sample_rate = makecouple(max_sample_rate)
+			wintime = makecouple(wintime)
+			steptime = makecouple(steptime)
+			nbands = makecouple(nbands)
+			fbtype = makecouple(fbtype)
+			minfreq = makecouple(minfreq)
+			base_freq = makecouple(base_freq)
+			base_freq_min = makecouple(base_freq_min)
+			base_freq_max = makecouple(base_freq_max)
+
+			Tuple([
+				merge(
+					audio_kwargs_partial_mfcc(max_sample_rate[i], wintime[i], steptime[i], nbands[i], fbtype[i], minfreq[i], base_freq[i], base_freq_min[i], base_freq_max[i])
+				, (;))
+			for i in 1:2])
+		else
+			merge(
+				audio_kwargs_partial_mfcc(max_sample_rate, wintime, steptime, nbands, fbtype, minfreq, base_freq, base_freq_min, base_freq_max)
+			, (;))
+		end
+
+	cur_preprocess_wavs =
+		if preprocess_wavs isa Tuple
+			Tuple([[ wav_preprocessors[k] for k in wavs_pp ] for wavs_pp in preprocess_wavs])
+		else
+			[ wav_preprocessors[k] for k in preprocess_wavs ]
+		end
 
 	cur_modal_args = modal_args
 

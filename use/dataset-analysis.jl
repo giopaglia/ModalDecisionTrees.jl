@@ -102,14 +102,14 @@ function single_frame_blind_feature_selection(
 		(X, Y)::Tuple{AbstractArray{T,3},AbstractVector},
 		attribute_names::AbstractVector,
 		grouped_descriptors,
-		file_prefix,
-		n_desired_attributes,
-		n_desired_features;
-		savefigs = false,
+		file_prefix::AbstractString,
+		n_desired_attributes::Integer,
+		n_desired_features::Integer;
+		savefigs::Bool = false,
 		descriptor_abbrs = nothing,
-		attribute_abbrs  = nothing,
-		export_csv = false,
-		join_plots = [], # [:attributes], # array of :attributes, :descriptors
+		attribute_abbrs = nothing,
+		export_csv::Bool = false,
+		join_plots::AbstractVector{Symbol} = Symbol[], # [:attributes], # array of :attributes, :descriptors
 	) where {T}
 
 	@assert length(attribute_names) == size(X)[end-1] "$(length(attribute_names)) != $(size(X)[end-1])"
@@ -122,7 +122,7 @@ function single_frame_blind_feature_selection(
 
 	mfd = compute_mfd(X);
 	# ClassificationMultiFrameDataset(Y, mfd)
-	
+
 	descriptors = collect(Iterators.flatten([values(grouped_descriptors)...]))
 
 	println("Performing dataset pre-analysis!")
@@ -164,7 +164,7 @@ function single_frame_blind_feature_selection(
 		############################################################################
 		############################################################################
 		@assert length(descriptors) == 25 "TODO change layout"
-		
+
 		_savefig(plot(p...; layout = (5,5), size = (1920, 1080), margin = 5mm), "main");
 
 		p_avg = average_plot(p);
@@ -341,7 +341,7 @@ function single_frame_blind_feature_selection(
 		############################################################################
 		############################################################################
 		############################################################################
-		
+
 		CSV.write("$(file_prefix)-xattributes.csv",  df_xattributes)
 
 		perm[1:n_desired_attributes]
@@ -357,7 +357,7 @@ function single_frame_blind_feature_selection(
 	mfd_sub = compute_mfd(X_sub);
 
 	best_descriptors = begin
-		
+
 		if export_csv
 			df_xdescriptors = DataFrame()
 			latex_df_push_column!(df_xdescriptors, :index, collect(0:(length(descriptors)-1)))
@@ -385,12 +385,12 @@ function single_frame_blind_feature_selection(
 		############################################################################
 		############################################################################
 		############################################################################
-		
+
 		for i in 1:(length(p)-1)
 			plot!(p[i]; xticks = false)
 		end
 
-		_savefig(plot(p...; layout = (5,1), size = (1920, 1080), margin = 5mm), "transposed");
+		_savefig(plot(p...; layout = (length(p),1), size = (1920, 1080), margin = 5mm), "transposed");
 
 		p_avg = average_plot(p);
 		_savefig(plot(p_avg; size = (1920, 1080), margin = 5mm), "transposed-avg");
@@ -415,13 +415,13 @@ function single_frame_blind_feature_selection(
 				plot!(p_i, xticks = false)
 			end
 		end
-		_savefig(plot(p_sorted...; layout = (5,1), size = (1920, 1080), margin = 5mm), "transposed-sorted");
+		_savefig(plot(p_sorted...; layout = (length(p_sorted),1), size = (1920, 1080), margin = 5mm), "transposed-sorted");
 
 		############################################################################
 		############################################################################
 		############################################################################
 		p_norm = normalize_plot.(p);
-		_savefig(plot(p_norm...; layout = (5,1), size = (1920, 1080), margin = 5mm), "transposed-norm");
+		_savefig(plot(p_norm...; layout = (length(p_norm),1), size = (1920, 1080), margin = 5mm), "transposed-norm");
 
 		p_norm_avg = average_plot(p_norm);
 		_savefig(plot(p_norm_avg; size = (1920, 1080), margin = 5mm), "transposed-norm-avg");
@@ -463,7 +463,7 @@ function single_frame_blind_feature_selection(
 				plot!(p_i, xticks = false)
 			end
 		end
-		_savefig(plot(p_sorted...; layout = (5,1), size = (1920, 1080), margin = 5mm), "transposed-norm-sorted");
+		_savefig(plot(p_sorted...; layout = (length(p_sorted),1), size = (1920, 1080), margin = 5mm), "transposed-norm-sorted");
 
 		p_sorted_avg = Base.deepcopy(p_norm_avg);
 		for i in 1:length(p_sorted_avg[1])
@@ -488,7 +488,7 @@ function single_frame_blind_feature_selection(
 
 		best_descriptors
 	end
-	
+
 	println("Selecting $(length(best_descriptors)) descriptors: $(best_descriptors)...")
 	println()
 
@@ -498,17 +498,31 @@ end
 # descriptors = best_descriptors
 # single_frame_target_aware_analysis((X, Y), attribute_names, descriptors, file_prefix; savefigs = false, descriptor_abbrs = descriptor_abbrs, attribute_abbrs = attribute_abbrs)
 
-function single_frame_target_aware_analysis((X, Y)::Tuple{AbstractArray{T,3},AbstractVector{<:String}},
+function single_frame_target_aware_analysis(
+		(X, Y)::Tuple{AbstractArray{T,3},<:Union{<:AbstractVector{<:AbstractString},<:AbstractVector{L}}},
 		attribute_names::AbstractVector,
-		descriptors,
-		file_prefix;
-		savefigs = false,
+		descriptors::AbstractVector{Symbol},
+		file_prefix::AbstractString;
+		make_bins::Union{<:NTuple{N,<:L},<:Tuple{<:NTuple{N,<:L},<:NTuple{M,<:AbstractString}},Nothing} = nothing,
+		savefigs::Bool = false,
 		descriptor_abbrs = nothing,
-		attribute_abbrs  = nothing,
-		export_csv = false,
-		plot_normals = false,
-	) where {T}
-	
+		attribute_abbrs = nothing,
+		export_csv::Bool = false,
+		plot_normals::Bool = false,
+	) where {T,N,M,L<:Real}
+
+	if !isnothing(make_bins)
+		if make_bins isa Tuple{<:Tuple,<:Tuple}
+			@assert [make_bins[1]...] == sort([make_bins[1]...]) "split positions in `make_bins` have to be in increasing order"
+			@assert length(make_bins[1]) == length(unique(make_bins[1])) "split positions in `make_bins` have to be unique"
+			@assert M == N+1 "The number of class names in `make_bins` should equals the length " *
+				"of the split positions +1: $(M) != $(N) + 1"
+		else
+			@assert [make_bins...] == sort([make_bins...]) "split positions in `make_bins` have to be in increasing order"
+			@assert length(make_bins) == length(unique(make_bins)) "split positions in `make_bins` have to be unique"
+		end
+	end
+
 	@assert length(attribute_names) == size(X)[end-1] "$(length(attribute_names)) != $(size(X)[end-1])"
 
 	mfd = compute_mfd(X);
@@ -518,15 +532,61 @@ function single_frame_target_aware_analysis((X, Y)::Tuple{AbstractArray{T,3},Abs
 	_savefig = savefigs ? (plot, plot_name)->begin
 			savefig(plot, "$(file_prefix)$((plot_name == "" ? "" : "-$(plot_name)")).png")
 		end : (x...)->(;)
-	
+
 	win = 1
 
 	descriptions = SoleBase.describe(mfd; desc = descriptors, t = [[(win,0,0)]])[1]
 
-	class_names = unique(Y)
+	# TODO: probably should be changed this variable name due to its different meaning when eltype(Y) <: Real
+	class_names, idxs_per_class =
+		if !isnothing(make_bins) && eltype(Y) <: Real
+			cns =
+				if typeof(make_bins) <:Tuple{<:NTuple{N,<:L},<:NTuple{M,<:AbstractString}}
+					new_labels = make_bins[2]
+					make_bins = make_bins[1]
+					new_labels
+				else
+					[string(i) for i in 1:(length(make_bins)+1)]
+				end
 
-	idxs_per_class = [Y .== class_name for class_name in class_names]
-	
+			function locate_ordered(n::Real)
+				if n < make_bins[1]
+					return 1
+				elseif n ≥ make_bins[end]
+					return length(make_bins)+1
+				else
+					for (i_v, (v1, v2)) in [(i, (make_bins[i-1], make_bins[i])) for i in 2:length(make_bins)]
+						if v1 ≤ n < v2
+							return i_v
+						end
+					end
+				end
+			end
+
+			new_Y = [cns[locate_ordered(curr_Y)] for curr_Y in Y]
+
+			cns, [new_Y .== class_name for class_name in cns]
+		else
+			if !isnothing(make_bins)
+				@warn "Making BINs is supported only for numeric labels"
+			end
+
+			cns =
+				if eltype(Y) <: AbstractString
+					unique(Y)
+				elseif eltype(Y) <: Integer
+					# NOTE: strong assumption about the meaning of an Integer label
+					ext = extrema(Y)
+					collect(ext[1]:ext[2])
+					# collect(range(extrema(Y)...)) # not supported in julia < 1.7
+				else
+					sort(unique(Y))
+				end
+
+			cns, [Y .== class_name for class_name in cns]
+		end
+
+
 	values = Array{NTuple{length(class_names)}}(undef, length(descriptors), length(attribute_names))
 
 	for (i_descriptor,descriptor) in enumerate(descriptors)
@@ -540,8 +600,7 @@ function single_frame_target_aware_analysis((X, Y)::Tuple{AbstractArray{T,3},Abs
 	# print vector Python-style https://discourse.julialang.org/t/printing-an-array-without-element-type/6731
 
 	df_distribution = DataFrame()
-	df_values = DataFrame()
-	df_values[!,:class_names] = class_names
+	df_values = DataFrame(:class_names => class_names)
 	plots = Matrix{Any}(undef, length(descriptors), length(attribute_names))
 	for (i_attribute,attribute_name) in enumerate(attribute_names)
 		for (i_descriptor,descriptor) in enumerate(descriptors)
@@ -553,7 +612,7 @@ function single_frame_target_aware_analysis((X, Y)::Tuple{AbstractArray{T,3},Abs
 
 			# histogram!(subp, class_vs...)
 			for (i_class,(v, class_name)) in enumerate(zip(class_vs, class_names))
-				
+
 				try
 					# histogram!(subp, v)
 					density!(subp, v, legend = false)
@@ -561,24 +620,32 @@ function single_frame_target_aware_analysis((X, Y)::Tuple{AbstractArray{T,3},Abs
 					if export_csv
 						latex_df_push_column!(df_distribution, "$(att)-$(desc)-$(class_name)-x", deepcopy(collect(subp[1][i_class][:x])))
 						latex_df_push_column!(df_distribution, "$(att)-$(desc)-$(class_name)-y", deepcopy(collect(subp[1][i_class][:y])))
-						
+
 						# CSV.write("$(file_prefix)-distribution-$(att)-$(desc)-$(class_name).csv", df_distribution)
 					end
-				catch ArgumentError
-					println("ERROR! In plotting density for attribute $(attribute_name) and descriptor $(descriptor): $(v)")
+				catch ex
+					println("ERROR! ($(typeof(ex))) In plotting density for attribute $(attribute_name) and descriptor $(descriptor): $(v)")
+					if ex isa ArgumentError
+						println(" └─ $(ex.msg)")
+					elseif ex isa BoundsError
+						println(" └─ attempt to access $(typeof(ex.a)) of size $(size(ex.a)) at index $(ex.i)")
+					end
 				end
 
+			end
+
+			# for (i_class,(v, class_name)) in enumerate(zip(values[i_descriptor,i_attribute], class_names))
 				# if plot_normals
 				# 	# ERROR: if we plot normals on subp, export_csv fails (it just has to be fixed)
 				# 	plot!(subp, fit(Normal, v)) #, fill=(0, .5,:orange))
 				# end
 
 				# push!(class_is_normal, )
-
-			end
+			# end
 
 			if export_csv
-				df_values[!,"$(att)-$(desc)"] = show_vector_sans_type(collect(class_vs))
+				df_values[!,"$(att)-$(desc)"] = collect(class_vs)
+				# df_values[!,"$(att)-$(desc)"] = show_vector_sans_type(collect(class_vs))
 			end
 			# "$(string(descriptors))($(i_attribute))"
 			plots[i_descriptor, i_attribute] = subp
@@ -597,7 +664,7 @@ function single_frame_target_aware_analysis((X, Y)::Tuple{AbstractArray{T,3},Abs
  	println("single_frame_target_aware_analysis:")
  	println("- all-plot attributes: $(attribute_names)")
  	println("- all-plot descriptors: $(descriptors)")
- 	
- 	
+
+
 	_savefig(p, "all");
 end
