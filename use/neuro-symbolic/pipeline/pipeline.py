@@ -90,19 +90,19 @@ def produce_npz(dataset, seed):
 
 	feat_size = 2
 
-	# flattened_array = np.ndarray((feat_size,n_attributes, n_instances))
-	# for attribute in range(n_attributes):
-	# 	print(f"Attribute {attribute}/{n_attributes}")
-	# 	load_model(dataset, seed, attribute, 100)
-	# 	for instance in range(n_instances):
-	# 		# print(X[:,attribute,instance].shape)
-	# 		# print(np.expand_dims(X[:,attribute,instance], axis=0).transpose().shape)
-	# 		flattened_array[:,attribute,instance] = validation(np.expand_dims(X[:,attribute,instance], axis=0).transpose())
-	# # print(flattened_array)
-	# # print(flattened_array.shape)
-	# flattened_filename = f"flattened_{dataset}-{seed}-X.npy"
-	# print(f"Saving {flattened_filename}...")
-	# np.save(flattened_filename, flattened_array)
+	flattened_array = np.ndarray((feat_size,n_attributes, n_instances))
+	for attribute in range(n_attributes):
+		print(f"Attribute {attribute}/{n_attributes}")
+		load_model(dataset, seed, attribute, 100)
+		for instance in range(n_instances):
+			# print(X[:,attribute,instance].shape)
+			# print(np.expand_dims(X[:,attribute,instance], axis=0).transpose().shape)
+			flattened_array[:,attribute,instance] = validation(np.expand_dims(X[:,attribute,instance], axis=0).transpose())
+	# print(flattened_array)
+	# print(flattened_array.shape)
+	flattened_filename = f"flattened_{dataset}-{seed}-X.npy"
+	print(f"Saving {flattened_filename}...")
+	np.save(flattened_filename, flattened_array)
 
 	fmd_array = np.ndarray((feat_size,n_points,n_points+1,n_attributes, n_instances))
 	for attribute in range(n_attributes):
@@ -123,6 +123,6 @@ def produce_npz(dataset, seed):
 	np.save(f"fmd_{dataset}-{seed}-X.npy", fmd_array)
 
 for dataset in ["RacketSports", "Libras", "FingerMovements", "LSST", "NATOPS"]:
-	for seed in [5]:
+	for seed in [5,1,2,3,4]:
 		produce_npz(dataset, seed)
 		# break
