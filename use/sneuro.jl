@@ -337,7 +337,7 @@ exec_neuro_feature_size = [4] #, 2]
 # exec_canonical_features = [ "TestOp" ]
 exec_canonical_features = [
 	[:neuro_simone],
-	["TestOp_80"],
+	# ["TestOp_80"],
 	# ["TestOp_80", :neuro_simone],
 	# ["TestOp"],
 ]
@@ -352,7 +352,7 @@ canonical_features_dict = Dict(
 exec_dataset_name = [
 	"RacketSports",	
 	#"FingerMovements",
-	#"Libras",
+	"Libras",
 	#"LSST",
 	#"NATOPS",
 ]
@@ -361,7 +361,7 @@ exec_dataset_name = [
 # exec_use_catch22_flatten_ontology = [(false,false,"interval")]
 exec_use_catch22_flatten_ontology = [
 	(false,false,"interval"),
-	(false,true,"one_world"),
+	# (false,true,"one_world"),
 	#(true,true,"one_world"),
 ]
 
