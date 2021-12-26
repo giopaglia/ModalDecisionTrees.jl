@@ -358,9 +358,9 @@ exec_dataset_name = [
 # exec_flatten_ontology = [(false,"interval2D")] # ,(true,"one_world")]
 # exec_use_catch22_flatten_ontology = [(false,false,"interval")]
 exec_use_catch22_flatten_ontology = [
-	(false,false,"interval"),
-	# (false,true,"one_world"),
-	(true,true,"one_world"),
+	# (false,false,"interval"),
+	(false,true,"one_world"),
+	# (true,true,"one_world"),
 ]
 
 ontology_dict = Dict(
