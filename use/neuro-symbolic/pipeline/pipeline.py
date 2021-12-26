@@ -10,7 +10,7 @@ import torch
 
 model = None    # model initialization
 
-def load_model(dataset, seed, attribute, limit):
+def load_model(dataset, seed, attribute, limit, code_size):
     """ Carica modello
 
     Args:
@@ -28,10 +28,10 @@ def load_model(dataset, seed, attribute, limit):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     dataset = get_dataset(dataset)
 
-    path = f"assets/checkpoints/{dataset}/model_auto_transformers_{dataset}_{limit}_seed_{seed}_attr_{attribute}.pt" 
+    path = f"assets/checkpoints/{dataset}-{code_size}/model_auto_transformers_{dataset}_{limit}_seed_{seed}_attr_{attribute}.pt" 
     if not os.path.isfile(path):
         raise Exception(f"No model found {path}. Wrong seed or dataset: !")
-    model = TST() 
+    model = TST(code_size) 
     model = torch.nn.DataParallel(model)
     model.load_state_dict(torch.load(path, map_location=device))
     model = model.to(device)
@@ -77,52 +77,58 @@ def validation(input_serie):
         return result.detach().cpu().numpy().tolist()[0]
 
 # load_model("Libras", 1, 0, 1)
-load_model("RacketSports", 1, 0, 1)
+load_model("RacketSports", 1, 0, 1, 2)
 print(validation([[1],[2],[3],[4.]]))
+load_model("RacketSports", 1, 0, 1, 4)
 print(validation([[1.]]))
 
-def produce_npz(dataset, seed):
+def produce_npz(dataset, seed, code_size):
 	X = np.load(f'../neuro-symbolic-MTSC-data/stump_with_memoization,TestOp_80,{dataset},(false,false,"interval"),missing-X.npy').astype(np.float32)
 	n_points, n_attributes, n_instances = X.shape
 	print("n_points: ",     n_points)
 	print("n_attributes: ", n_attributes)
 	print("n_instances: ",  n_instances)
 
-	feat_size = 2
+	# flattened_filename = f"flattened_{dataset}-{seed}-{code_size}-X.npy"
+	# if os.path.isfile(flattened_filename):
+	# 	print("Skipping: ", flattened_filename)
+	# else:
+	# 	flattened_array = np.ndarray((code_size,n_attributes, n_instances))
+	# 	for attribute in range(n_attributes):
+	# 		print(f"Attribute {attribute}/{n_attributes}")
+	# 		load_model(dataset, seed, attribute, 100, code_size)
+	# 		for instance in range(n_instances):
+	# 			# print(X[:,attribute,instance].shape)
+	# 			# print(np.expand_dims(X[:,attribute,instance], axis=0).transpose().shape)
+	# 			flattened_array[:,attribute,instance] = validation(np.expand_dims(X[:,attribute,instance], axis=0).transpose())
+	# 	# print(flattened_array)
+	# 	# print(flattened_array.shape)
+	# 	print(f"Saving {flattened_filename}...")
+	# 	np.save(flattened_filename, flattened_array)
 
-	flattened_array = np.ndarray((feat_size,n_attributes, n_instances))
-	for attribute in range(n_attributes):
-		print(f"Attribute {attribute}/{n_attributes}")
-		load_model(dataset, seed, attribute, 100)
-		for instance in range(n_instances):
-			# print(X[:,attribute,instance].shape)
-			# print(np.expand_dims(X[:,attribute,instance], axis=0).transpose().shape)
-			flattened_array[:,attribute,instance] = validation(np.expand_dims(X[:,attribute,instance], axis=0).transpose())
-	# print(flattened_array)
-	# print(flattened_array.shape)
-	flattened_filename = f"flattened_{dataset}-{seed}-X.npy"
-	print(f"Saving {flattened_filename}...")
-	np.save(flattened_filename, flattened_array)
+	fmd_filename = f"fmd_{dataset}-{seed}-{code_size}-X.npy"
+	if os.path.isfile(fmd_filename):
+		print("Skipping: ", fmd_filename)
+	else:
+		fmd_array = np.ndarray((code_size,n_points,n_points+1,n_attributes, n_instances))
+		for attribute in range(n_attributes):
+			print(f"Attribute {attribute}/{n_attributes}")
+			load_model(dataset, seed, attribute, 1, code_size)
+			for x in range(n_points):
+				for y in range(x+1,n_points+1):
+					for instance in range(n_instances):
+						# print(str(x)+":"+str(y))
+						# print(X[x:y,attribute,instance].shape)
+						# print(np.expand_dims(X[x:y,attribute,instance], axis=0).shape)
+						# print(np.expand_dims(X[x:y,attribute,instance], axis=0).transpose().shape)
+						# res = validation(np.expand_dims(X[x:y,attribute,instance], axis=0).transpose())
+						# print(res)
+						fmd_array[:,x,y,attribute, instance] = validation(np.expand_dims(X[x:y,attribute,instance], axis=0).transpose())
+		print(f"Saving {fmd_filename}...")
+		np.save(fmd_filename, fmd_array)
 
-	fmd_array = np.ndarray((feat_size,n_points,n_points+1,n_attributes, n_instances))
-	for attribute in range(n_attributes):
-		print(f"Attribute {attribute}/{n_attributes}")
-		load_model(dataset, seed, attribute, 1)
-		for x in range(n_points):
-			for y in range(x+1,n_points+1):
-				for instance in range(n_instances):
-					# print(str(x)+":"+str(y))
-					# print(X[x:y,attribute,instance].shape)
-					# print(np.expand_dims(X[x:y,attribute,instance], axis=0).shape)
-					# print(np.expand_dims(X[x:y,attribute,instance], axis=0).transpose().shape)
-					# res = validation(np.expand_dims(X[x:y,attribute,instance], axis=0).transpose())
-					# print(res)
-					fmd_array[:,x,y,attribute, instance] = validation(np.expand_dims(X[x:y,attribute,instance], axis=0).transpose())
-	fmd_filename = f"fmd_{dataset}-{seed}-X.npy"
-	print(f"Saving {fmd_filename}...")
-	np.save(f"fmd_{dataset}-{seed}-X.npy", fmd_array)
-
-for dataset in ["RacketSports", "Libras", "FingerMovements", "LSST", "NATOPS"]:
-	for seed in [5,1,2,3,4]:
-		produce_npz(dataset, seed)
-		# break
+for code_size in [4]: # , 2]:
+	for dataset in ["RacketSports", "Libras"]: # , "FingerMovements", "LSST", "NATOPS"]:
+		for seed in [1,2,3,4,5]:
+			produce_npz(dataset, seed, code_size)
+			# break

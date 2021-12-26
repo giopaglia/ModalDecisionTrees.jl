@@ -324,10 +324,12 @@ legacy_gammas_check = false
 
 exec_dataseed = [1]
 
-exec_fake_dataseed = [(1:4)...]
+exec_fake_dataseed = [(1:5)...]
 
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization]
+
+exec_neuro_feature_size = [4] #, 2]
 
 # https://github.com/JuliaIO/JSON.jl/issues/203
 # https://discourse.julialang.org/t/json-type-serialization/9794
@@ -378,6 +380,7 @@ exec_n_chunks = [missing]
 exec_ranges = (;
 	fake_dataseed                    = exec_fake_dataseed              ,
 	use_training_form                = exec_use_training_form              ,
+	neuro_feature_size                = exec_neuro_feature_size              ,
 	canonical_features               = exec_canonical_features                 ,
 	dataset_name                     = exec_dataset_name                   ,
 	use_catch22_flatten_ontology     = exec_use_catch22_flatten_ontology   ,
@@ -515,6 +518,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	##############################################################################
 	fake_dataseed,
 	use_training_form,
+	neuro_feature_size,
 	canonical_features,
 	dataset_name,
 	(use_catch22,flatten,ontology),
@@ -534,14 +538,14 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 			external_fmd = npzread(
 				if flatten
-					"$(py_script_path)/flattened_$(dataset_name)-$(fake_dataseed)-X.npy"
+					"$(py_script_path)/flattened_$(dataset_name)-$(fake_dataseed)-$(neuro_feature_size)-X.npy"
 				else
-					"$(py_script_path)/fmd_$(dataset_name)-$(fake_dataseed)-X.npy"
+					"$(py_script_path)/fmd_$(dataset_name)-$(fake_dataseed)-$(neuro_feature_size)-X.npy"
 				end
 			)
 			external_fmd = convert.(round_dataset_to_datatype, external_fmd)
 
-			neuro_feature_size = size(external_fmd, 1)
+			@assert size(external_fmd, 1) == neuro_feature_size "$(size(external_fmd, 1)) != $(neuro_feature_size)"
 			n_attribute = size(external_fmd)[end-1]
 
 			FeatureTypeFun[ExternalFWDFeatureType("NEUR$(i_feature)(A$(i_attribute))", if flatten external_fmd[i_feature,i_attribute,:] else external_fmd[i_feature,:,:,i_attribute,:] end) for i_attribute in 1:n_attribute for i_feature in 1:neuro_feature_size]

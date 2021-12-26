@@ -2,6 +2,7 @@
 ☐	Define relations as constants like E̅
 ☐	enumAccessibles(set) is not needed?!
 ☐	what to do with nans? Perhaps a NaN means that a world must be ignored??? In that case, one could easily design features that ignore small worlds!
+☐	create meta-feature that gives features a name.
 
 ################################################################################
 ☐	Sort out TODOs into a thesis?
