@@ -324,7 +324,7 @@ legacy_gammas_check = false
 
 exec_dataseed = [1]
 
-exec_fake_dataseed = [(1:5)...]
+exec_fake_dataseed = [(1:4)...]
 
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization]
@@ -335,7 +335,7 @@ exec_use_training_form = [:stump_with_memoization]
 # exec_canonical_features = [ "TestOp" ]
 exec_canonical_features = [
 	[:neuro_simone],
-	# ["TestOp_80"],
+	["TestOp_80"],
 	# ["TestOp_80", :neuro_simone],
 	# ["TestOp"],
 ]
@@ -349,18 +349,18 @@ canonical_features_dict = Dict(
 
 exec_dataset_name = [
 	"RacketSports",	
-	"FingerMovements",
-	"Libras",
-	"LSST",
-	"NATOPS",
+	#"FingerMovements",
+	#"Libras",
+	#"LSST",
+	#"NATOPS",
 ]
 
 # exec_flatten_ontology = [(false,"interval2D")] # ,(true,"one_world")]
 # exec_use_catch22_flatten_ontology = [(false,false,"interval")]
 exec_use_catch22_flatten_ontology = [
-	# (false,false,"interval"),
+	(false,false,"interval"),
 	(false,true,"one_world"),
-	# (true,true,"one_world"),
+	#(true,true,"one_world"),
 ]
 
 ontology_dict = Dict(
