@@ -20,7 +20,7 @@ py_script_path = "neuro-symbolic/pipeline"
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./neuro-symbolic/IJCAI22-v5"
+results_dir = "./neuro-symbolic/IJCAI22-v6"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
@@ -235,7 +235,7 @@ optimize_forest_computation = true
 
 forest_args = []
 
-for n_trees in []
+for n_trees in [100]
 	for n_subfeatures in [half_f]
 		for n_subrelations in [id_f]
 			push!(forest_args, (
