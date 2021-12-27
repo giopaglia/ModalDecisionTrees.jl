@@ -12,7 +12,7 @@ train_seed = 2
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./covid/journal-v14-partitioned-multiframe"
+results_dir = "./covid/journal-v14-fix-kdd"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
@@ -173,33 +173,33 @@ exec_use_training_form = [:stump_with_memoization]
 
 exec_n_ver_n_task_use_aug_dataset_dir_preprocess = [
 
-	# ("c",1,false,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
-	# ("c",2,true, "KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
-	# ("c",3,true, "KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
+	("c",1,false,"KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
+	("c",2,true, "KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
+	("c",3,true, "KDD-norm-partitioned-v1-cough",["NG", "Normalize", "RemSilence"]),
 
-	# ("c",1,false,"KDD",["NG", "Normalize", "RemSilence"]),
-	# ("c",2,true, "KDD",["NG", "Normalize", "RemSilence"]),
-	# ("c",3,true, "KDD",["NG", "Normalize", "RemSilence"]),
-
-	##############################################################################
-	##############################################################################
-	##############################################################################
-
-	# ("b",1,false,"KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
-	# ("b",2,true, "KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
-	# ("b",3,true, "KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
-
-	# ("b",1,false,"KDD",["Normalize", "RemSilence"]),
-	# ("b",2,true, "KDD",["Normalize", "RemSilence"]),
-	# ("b",3,true, "KDD",["Normalize", "RemSilence"]),
+	("c",1,false,"KDD",["NG", "Normalize", "RemSilence"]),
+	("c",2,true, "KDD",["NG", "Normalize", "RemSilence"]),
+	("c",3,true, "KDD",["NG", "Normalize", "RemSilence"]),
 
 	##############################################################################
 	##############################################################################
 	##############################################################################
 
-	# ("c+b",1,false,("KDD-norm-partitioned-v1-cough","KDD-norm-partitioned-v1-breath"),(["NG", "Normalize", "RemSilence"],["Normalize", "RemSilence"])),
-	# ("c+b",2,true, ("KDD-norm-partitioned-v1-cough","KDD-norm-partitioned-v1-breath"),(["NG", "Normalize", "RemSilence"],["Normalize", "RemSilence"])),
-	# ("c+b",3,true, ("KDD-norm-partitioned-v1-cough","KDD-norm-partitioned-v1-breath"),(["NG", "Normalize", "RemSilence"],["Normalize", "RemSilence"])),
+	("b",1,false,"KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
+	("b",2,true, "KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
+	("b",3,true, "KDD-norm-partitioned-v1-breath",["Normalize", "RemSilence"]),
+
+	("b",1,false,"KDD",["Normalize", "RemSilence"]),
+	("b",2,true, "KDD",["Normalize", "RemSilence"]),
+	("b",3,true, "KDD",["Normalize", "RemSilence"]),
+
+	##############################################################################
+	##############################################################################
+	##############################################################################
+
+	("c+b",1,false,("KDD-norm-partitioned-v1-cough","KDD-norm-partitioned-v1-breath"),(["NG", "Normalize", "RemSilence"],["Normalize", "RemSilence"])),
+	("c+b",2,true, ("KDD-norm-partitioned-v1-cough","KDD-norm-partitioned-v1-breath"),(["NG", "Normalize", "RemSilence"],["Normalize", "RemSilence"])),
+	("c+b",3,true, ("KDD-norm-partitioned-v1-cough","KDD-norm-partitioned-v1-breath"),(["NG", "Normalize", "RemSilence"],["Normalize", "RemSilence"])),
 
 	("c+b",1,false,"KDD",(["NG", "Normalize", "RemSilence"],["Normalize", "RemSilence"])),
 	("c+b",2,true, "KDD",(["NG", "Normalize", "RemSilence"],["Normalize", "RemSilence"])),
@@ -241,7 +241,7 @@ exec_base_freq_max = [700]
 # push!(iteration_blacklist, (fbtype    = :fcmel, base_freq = :autocor))
 # push!(iteration_blacklist, (fbtype    = :fcmel, base_freq_min = 200))
 
-exec_nbands = [40,30] # [20,40,60]
+exec_nbands = [30] # [20,40,60]
 
 combine_moving_averages((size1,step1), (size2,step2)) = begin
 	(1*size1+(size2-1)*step1,step1*step2)
@@ -254,12 +254,12 @@ exec_wintime_steptime_dataset_kwargs =   [(
 	# 	ma_step = 10,
 	# )
 	# ),(
-	(0.025,0.010),(
-		max_points = 50,
-		ma_size = 20,
-		ma_step = 15,
-	)
-	),(
+	# (0.025,0.010),(
+	# 	max_points = 50,
+	# 	ma_size = 20,
+	# 	ma_step = 15,
+	# )
+	# ),(
 	# (0.025,0.010),(
 	# 	max_points = 50,
 	# 	ma_size = 30,
