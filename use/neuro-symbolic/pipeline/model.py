@@ -54,7 +54,7 @@ class TEncoder(torch.nn.Module):
         x = self.fc_enc(x)
         # print("4", x.shape)
         x = x.squeeze(0)
-        x = x.squeeze(1)
+        # x = x.squeeze(1)
         # print("5", x.shape)
         return x
 
@@ -75,7 +75,7 @@ class TDecoder(torch.nn.Module,):
 
 
 class TST(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, code_size):
         """
             Encoder => (B,N,n_attributes) --> (B,N,emb_size) --> (B,N,emb_size) --> (B,N,code_size)
                                                         |
@@ -85,7 +85,7 @@ class TST(torch.nn.Module):
         """
         super(TST, self).__init__()
         n_attributes: int = 1
-        code_size: int = 2
+        code_size: int = code_size
         emb_size: int = 168
         heads: int = 2
         assert emb_size % heads == 0 and code_size % heads == 0, "Wrong number of heads"

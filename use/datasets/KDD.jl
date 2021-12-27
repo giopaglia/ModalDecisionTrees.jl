@@ -121,6 +121,10 @@ kdd_augmentation_file_suffixes = [
 	"_aug_pitchspeed2.wav",
 ]
 
+kdd_c_subfolder, kdd_c_file_suffix, kdd_c_file_prefix = ("cough", "cough", "cough_")
+kdd_b_subfolder, kdd_b_file_suffix, kdd_b_file_prefix = ("breath","breathe","breaths_")
+
+
 kdd_task_to_folders = [
 	[
 		["covidandroidnocough",  "covidandroidwithcough", "covidwebnocough", "covidwebwithcough"],
@@ -176,9 +180,9 @@ KDD_getSamplesList(folders::AbstractVector{<:AbstractString}, n_version, use_aug
 
 	subfolder, file_suffix, file_prefix =
 		if n_version == 1
-			("cough","cough","cough_")
+			kdd_c_subfolder, kdd_c_file_suffix, kdd_c_file_prefix
 		elseif n_version == 2
-			("breath","breathe","breaths_")
+			kdd_b_subfolder, kdd_b_file_suffix, kdd_b_file_prefix
 		else
 			throw_n_log("Unknown n_version: $(n_version)")
 		end
@@ -304,10 +308,6 @@ function KDDDataset((n_task,n_version),
 		ignore_samples_with_sr_less_than = -Inf,
 		dir = kdd_data_dir,
 	)
-	@assert n_task    in [1,2,3] "KDDDataset: invalid n_task:    {$n_task}"
-	@assert n_version in [1,2,3,"c","b","c+b"] "KDDDataset: invalid n_version: {$n_version}"
-
-	global kdd_task_to_folders
 
 	n_version =
 		if n_version == "c"         1
@@ -315,6 +315,11 @@ function KDDDataset((n_task,n_version),
 		elseif n_version == "c+b"   3
 		else                        n_version
 	end
+
+	@assert n_task    in [1,2,3] "KDDDataset: invalid n_task:    {$n_task}"
+	@assert n_version in [1,2,3] "KDDDataset: invalid n_version: {$n_version}"
+
+	global kdd_task_to_folders
 
 	# TASK
 
@@ -339,7 +344,7 @@ function KDDDataset((n_task,n_version),
 
 	audio_kwargs =
 		if !isa(audio_kwargs, Tuple)
-			(audio_kwargs,)
+			Tuple([audio_kwargs for i in 1:length(n_version)])
 		else
 			audio_kwargs
 		end
@@ -351,7 +356,7 @@ function KDDDataset((n_task,n_version),
 
 	preprocess_wavs =
 		if !isa(preprocess_wavs, Tuple)
-			(preprocess_wavs,)
+			Tuple([preprocess_wavs for i in 1:length(n_version)])
 		else
 			preprocess_wavs
 		end
@@ -378,7 +383,8 @@ function KDDDataset((n_task,n_version),
 	##############################################################################
 	##############################################################################
 	##############################################################################
-
+	
+	# Load & preprocess a single audio file
 	loadSample(filepath, audio_kwargs, preprocess_wavs, ts_lengths_dict, ts_with_ma_lengths_dict, ts_cut_lengths_dict, ignore_samples_with_sr_less_than) = begin
 		# println(filepath)
 		ts = wav2stft_time_series(filepath, audio_kwargs; preprocess_sample = preprocess_wavs, use_full_mfcc = use_full_mfcc, ignore_samples_with_sr_less_than = ignore_samples_with_sr_less_than)
@@ -386,7 +392,7 @@ function KDDDataset((n_task,n_version),
 		# Some breath samples are empty or semi-empty. As such, for tasks 2 and 3 we need to ignore them, and also ignore the paired cough samples
 		if isnothing(ts)
 			println("Warning: could not read file \"$(filepath)\"")
-			nothing
+			return nothing
 		else
 			# Ignore instances with NaN (careful! this may leave with just a few instances)
 			if any(isnan.(ts))
@@ -417,16 +423,17 @@ function KDDDataset((n_task,n_version),
 			# println("ts_cut_length:	$(size(ts,1))	$(filepath)")
 			after_cut_length = size(ts,1)
 
-			ts_lengths_dict[filepath] = original_length
+			ts_lengths_dict[filepath]         = original_length
 			ts_with_ma_lengths_dict[filepath] = after_ma_length
-			ts_cut_lengths_dict[filepath] = after_cut_length
+			ts_cut_lengths_dict[filepath]     = after_cut_length
 
 			# println(size(ts))
 			# readline()
-			ts
+			return ts
 		end
 	end
 
+	# Compute a matricial dataset from a set of timeseries
 	compute_X(max_timepoints, n_unique_freqs, timeseries, expected_length) = begin
 		@assert expected_length == length(timeseries)
 		X = zeros((max_timepoints, n_unique_freqs, length(timeseries)))
@@ -434,13 +441,14 @@ function KDDDataset((n_task,n_version),
 			# println(size(ts))
 			X[1:size(ts, 1),:,i] = ts
 		end
-		X
+		return X
 	end
 
 	##############################################################################
 	##############################################################################
 	##############################################################################
 
+	# Compute matricial datasets (train_n_test & only_training) covid given a problem and a directory
 	getTimeSeries(n_subver, audio_kwargs, preprocess_wavs, dir, ignore_samples_with_sr_less_than, return_filepaths) = begin
 		pos_filepaths, pos_aug_filepaths = KDD_getSamplesList(folders_Y, n_subver, use_augmentation_data; files_to_ignore = files_to_ignore, dir = dir)
 		neg_filepaths, neg_aug_filepaths = KDD_getSamplesList(folders_N, n_subver, use_augmentation_data; files_to_ignore = files_to_ignore, dir = dir)
@@ -461,9 +469,6 @@ function KDDDataset((n_task,n_version),
 		pos_aug_filepaths = sort(collect(keys(filter( (x)->!isnothing(x[2]), pos_aug))))
 		neg_filepaths     = sort(collect(keys(filter( (x)->!isnothing(x[2]), neg))))
 		neg_aug_filepaths = sort(collect(keys(filter( (x)->!isnothing(x[2]), neg_aug))))
-
-		#
-		# sort(collect(keys(filter( (x)->!isnothing(x[2]), Dict([1=>2, 2=>nothing])))))
 
 		# Finally derive samples
 		pos      = [pos[s]     for s in pos_filepaths]
@@ -532,32 +537,31 @@ function KDDDataset((n_task,n_version),
 		end
 	end
 
+	# 
 	couples_cough_n_breath(n_versions, datasets, n_pos, n_neg) = datasets, n_pos, n_neg
 	function couples_cough_n_breath(n_versions::NTuple{2,Integer}, datasets, n_pos, n_neg)
 		global kdd_has_augmentation_data
 		global kdd_has_subfolder_structure
 		global kdd_augmentation_file_suffixes
 
-		c, b = n_versions == (1, 2) ? (1, 2) : (2, 1) # to use `c` as cough index and `b` as breath index
-
-		c_subfolder, c_file_suffix, c_file_prefix = ("cough","cough","cough_")
-		b_subfolder, b_file_suffix, b_file_prefix = ("breath","breathe","breaths_")
+		@assert n_versions in [(1, 2), (2, 1)] "Unexpected n_versions: $(n_versions)"
+		c, b = (n_versions == (1, 2) ? (1, 2) : (2, 1)) # to use `c` as cough index and `b` as breath index
 
 		files_map = JSON.parsefile(kdd_data_dir * "files.json")
 
 		cough2breath_map = Dict{String,String}()
 		for k in filter(x -> contains(x, "android"), keys(files_map))
 			for couple in files_map[k]
-				cough_file = couple[findfirst(x -> !isnothing(match(Regex("^$c_file_prefix"), x)), couple)]
-				breath_file = couple[findfirst(x -> !isnothing(match(Regex("^$b_file_prefix"), x)), couple)]
+				cough_file  = couple[findfirst(x -> !isnothing(match(Regex("^$kdd_c_file_prefix"), x)), couple)]
+				breath_file = couple[findfirst(x -> !isnothing(match(Regex("^$kdd_b_file_prefix"), x)), couple)]
 
-				cough2breath_map["$k/$c_subfolder/$cough_file"] = "$k/$b_subfolder/$breath_file"
+				cough2breath_map["$k/$kdd_c_subfolder/$cough_file"] = "$k/$kdd_b_subfolder/$breath_file"
 			end
 		end
 		for k in filter(x -> contains(x, "web"), keys(files_map))
 			for folder_name in files_map[k]
-				cough2breath_map["$k/$(folder_name[1])/audio_file_$(c_file_suffix).wav"] =
-					"$k/$(folder_name[1])/audio_file_$(b_file_suffix).wav"
+				cough2breath_map["$k/$(folder_name[1])/audio_file_$(kdd_c_file_suffix).wav"] =
+					"$k/$(folder_name[1])/audio_file_$(kdd_b_file_suffix).wav"
 			end
 		end
 
@@ -569,11 +573,13 @@ function KDDDataset((n_task,n_version),
 		println("#######################################################")
 		println("#######################################################")
 		println("#######################################################")
+		println("Binding loaded instances for multiframe version...")
+		println("- cough  frame: size(X) = $(size(datasets[c][1])); countmap(Y) = $(countmap(datasets[c][2])); uniq(Y) = $(uniq(datasets[c][2]))")
+		println("- breath frame: size(X) = $(size(datasets[b][1])); countmap(Y) = $(countmap(datasets[b][2])); uniq(Y) = $(uniq(datasets[b][2]))")
 
 		c_files = datasets[c][3]
 		b_files = datasets[b][3]
 		final_slices = Vector{Tuple{Int64,Int64}}()
-		println("Binding loaded instances for multiframe version...")
 		for (i, c_f) in enumerate(c_files)
 			if contains(c_csr(c_f), "_mono.wav")
 				# ignore _mono files to avoid dupicates in dataset (since all channels will be merged in all tracks)
@@ -598,19 +604,19 @@ function KDDDataset((n_task,n_version),
 		println("final_slices length: $(length(final_slices))")
 		println(final_slices)
 
-		if length(final_slices) > 0
-			for i in 1:length(datasets)
-				datasets[i] = (
-					datasets[i][1][:,:,[couple[i] for couple in final_slices]],
-					datasets[i][2][[couple[i] for couple in final_slices]],
-					datasets[i][3][[couple[i] for couple in final_slices]]
-				)
-			end
+		for i in 1:length(datasets)
+			datasets[i] = (
+				datasets[i][1][:,:,[couple[i] for couple in final_slices]],
+				datasets[i][2][    [couple[i] for couple in final_slices]],
+				datasets[i][3][    [couple[i] for couple in final_slices]],
+			)
 		end
 
 		for i in 1:length(datasets)
+			@assert isgrouped(datasets[i][2]) "datasets[$(i)]'s Y is not grouped: $(datasets[i][2])"
 			n_pos[i] = length(filter(x -> startswith(x, "YES"), datasets[i][2]))
 			n_neg[i] = length(datasets[i][2]) - n_pos[i]
+			@assert length(uniq(datasets[i][2])) == 0 || n_pos[i] == 0 || startswith(uniq(datasets[i][2])[1], "YES") "YES instances should come before NO instances, but Y is $(datasets[i][2])"
 		end
 
 		return datasets, n_pos, n_neg
@@ -625,20 +631,19 @@ function KDDDataset((n_task,n_version),
 	n_neg_aug    = Vector(undef, length(n_version))
 
 	for (i, (n_subver, cur_audio_kwargs, cur_preprocess_wavs, cur_ignore_samples_with_sr_less_than, cur_dir)) in enumerate(zip(n_version, audio_kwargs, preprocess_wavs, ignore_samples_with_sr_less_than, dir))
-		cur_frame_dataset = getTimeSeries(n_subver, cur_audio_kwargs, cur_preprocess_wavs, cur_dir, cur_ignore_samples_with_sr_less_than, return_filepaths || length(n_version) > 1)
+		cur_frame_dataset = getTimeSeries(n_subver, cur_audio_kwargs, cur_preprocess_wavs, cur_dir, cur_ignore_samples_with_sr_less_than, true)
 
 		datasets[i],     (n_pos[i],     n_neg[i])     = deepcopy(cur_frame_dataset.train_n_test)
 		datasets_aug[i], (n_pos_aug[i], n_neg_aug[i]) = deepcopy(cur_frame_dataset.only_training)
 	end
 
+	# Check that there is an empty intersection between the sets (train_n_test/nonaug & only_training/aug)
 	for i in 1:length(datasets)
-		if return_filepaths || length(n_version) > 1
-			common_files = intersect(datasets[i][3], datasets_aug[i][3])
-			@assert length(common_files) == 0 "Found duplicates file in `datasets` and `datasets_aug`: $(common_files)"
-		end
+		common_files = intersect(datasets[i][3], datasets_aug[i][3])
+		@assert length(common_files) == 0 "Found duplicates file in `datasets` and `datasets_aug`: $(common_files)"
 	end
-
-	datasets, n_pos, n_neg = couples_cough_n_breath(n_version, datasets, n_pos, n_neg)
+	
+	datasets,     n_pos,     n_neg     = couples_cough_n_breath(n_version, datasets,     n_pos,     n_neg)
 	datasets_aug, n_pos_aug, n_neg_aug = couples_cough_n_breath(n_version, datasets_aug, n_pos_aug, n_neg_aug)
 
 	for i in 2:length(datasets)

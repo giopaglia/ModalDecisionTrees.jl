@@ -585,7 +585,7 @@ function exec_scan(
 				#
 				# "n_attributes"     => (X_train, Y_train, X_test, Y_test)->n_attributes(X_train),
 				"n_features"       => (X_train, Y_train, X_test, Y_test)->n_features(X_train),
-				"channel_size"     => (X_train, Y_train, X_test, Y_test)->(use_test_form == :dimensional ? channel_size(X_test) : "? (fwd size $(size(X_train.fwd)))"), # TODO fix this
+				"channel_size"     => (X_train, Y_train, X_test, Y_test)->(use_test_form == :dimensional ? channel_size(X_test) : "? (X_test size $(size(X_test)))"), # TODO fix this
 				# "avg_channel_size" => (X_train, Y_train, X_test, Y_test)->?,
 			)
 		end
