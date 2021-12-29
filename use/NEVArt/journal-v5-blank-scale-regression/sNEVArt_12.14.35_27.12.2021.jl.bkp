@@ -19,8 +19,8 @@ train_seed = 2
 ############################# SUPERVISED MODE ##################################
 ################################################################################
 
-supervised_mode = :classification
-# supervised_mode = :regression
+# supervised_mode = :classification
+supervised_mode = :regression
 
 ################################################################################
 ################################################################################
@@ -37,8 +37,8 @@ data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 selected_features_savedir = results_dir * "/selected_features_cache"
 
-dry_run = false
-# dry_run = :dataset_only
+# dry_run = false
+dry_run = :dataset_only
 # dry_run = :model_study
 # dry_run = true
 
@@ -238,10 +238,10 @@ exec_dataset_params = [
 	("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),[:EEG],(17,34),false),
 
 	# scaled signals
-	# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),Symbol[],(25,),false),
-	# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),Symbol[],(17,34),false),
-	# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),Symbol[],(25,),false),
-	# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),Symbol[],(17,34),false),
+	("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),Symbol[],(25,),false),
+	("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),Symbol[],(17,34),false),
+	("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),Symbol[],(25,),false),
+	("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),Symbol[],(17,34),false),
 
 	# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),[],nothing,false),
 	# ("sure-v1",[:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:ECG => collect(1:7)),[],nothing,false),
