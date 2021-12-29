@@ -89,22 +89,22 @@ def produce_npz(dataset, seed, code_size):
 	print("n_attributes: ", n_attributes)
 	print("n_instances: ",  n_instances)
 
-	# flattened_filename = f"flattened_{dataset}-{seed}-{code_size}-X.npy"
-	# if os.path.isfile(flattened_filename):
-	# 	print("Skipping: ", flattened_filename)
-	# else:
-	# 	flattened_array = np.ndarray((code_size,n_attributes, n_instances))
-	# 	for attribute in range(n_attributes):
-	# 		print(f"Attribute {attribute}/{n_attributes}")
-	# 		load_model(dataset, seed, attribute, 100, code_size)
-	# 		for instance in range(n_instances):
-	# 			# print(X[:,attribute,instance].shape)
-	# 			# print(np.expand_dims(X[:,attribute,instance], axis=0).transpose().shape)
-	# 			flattened_array[:,attribute,instance] = validation(np.expand_dims(X[:,attribute,instance], axis=0).transpose())
-	# 	# print(flattened_array)
-	# 	# print(flattened_array.shape)
-	# 	print(f"Saving {flattened_filename}...")
-	# 	np.save(flattened_filename, flattened_array)
+	flattened_filename = f"flattened_{dataset}-{seed}-{code_size}-X.npy"
+	if os.path.isfile(flattened_filename):
+		print("Skipping: ", flattened_filename)
+	else:
+		flattened_array = np.ndarray((code_size,n_attributes, n_instances))
+		for attribute in range(n_attributes):
+			print(f"Attribute {attribute}/{n_attributes}")
+			load_model(dataset, seed, attribute, 100, code_size)
+			for instance in range(n_instances):
+				# print(X[:,attribute,instance].shape)
+				# print(np.expand_dims(X[:,attribute,instance], axis=0).transpose().shape)
+				flattened_array[:,attribute,instance] = validation(np.expand_dims(X[:,attribute,instance], axis=0).transpose())
+		# print(flattened_array)
+		# print(flattened_array.shape)
+		print(f"Saving {flattened_filename}...")
+		np.save(flattened_filename, flattened_array)
 
 	fmd_filename = f"fmd_{dataset}-{seed}-{code_size}-X.npy"
 	if os.path.isfile(fmd_filename):
