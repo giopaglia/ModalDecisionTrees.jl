@@ -787,6 +787,17 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	############### AUTOMATIC FEATURE SELECTION
 	if :auto in values(keep_only_bands)
+		# https://discourse.julialang.org/t/deactivate-plot-display-to-avoid-need-for-x-server/19359/6
+		# save old display to restore it later
+		# NOTE: assumed GR used as Plots backend
+		old_gr_display =
+			if haskey(ENV, "GKSwstype")
+				ENV["GKSwstype"]
+			else
+				nothing
+			end
+		ENV["GKSwstype"] = "nul"
+
 		new_frames = Vector{AbstractArray}(undef, length(dataset[1]))
 
 		grouped_descriptors = OrderedDict([
@@ -961,6 +972,14 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			else
 				new_frames[i_frame] = dataset[1][i_frame]
 			end
+
+			# restore old GR display
+			if isnothing(old_gr_display)
+				delete!(ENV, "GKSwstype")
+			else
+				ENV["GKSwstype"] = old_gr_display
+			end
+			GR.emergencyclosegks()
 		end
 
 		dataset = (new_frames, dataset[2])
