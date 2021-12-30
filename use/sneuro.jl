@@ -20,22 +20,26 @@ py_script_path = "neuro-symbolic/pipeline"
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./neuro-symbolic/IJCAI22-v6"
+results_dir = "./neuro-symbolic/IJCAI22-v7-fix-flattened"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 
-dry_run = false
-#dry_run = :dataset_only
+# dry_run = false
+dry_run = :dataset_only
 # dry_run = true
 
 # save_datasets = true
 save_datasets = false
 
 skip_training = false
+# skip_training = true
 
 perform_consistency_check = false
+
+iteration_blacklist = []
+
 
 idxs_dict = Dict(
 ("FingerMovements"	,1) => ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365], [185, 404, 168, 207, 183, 376, 177, 172, 208, 366, 414, 195, 374, 388, 389, 381, 170, 397, 184, 391, 206, 400, 165, 416, 393, 378, 176, 162, 203, 370, 392, 415, 368, 412, 390, 380, 193, 399, 166, 198, 402, 413, 367, 182, 164, 186, 394, 405, 179, 369, 410, 171, 406, 382, 200, 187, 398, 189, 409, 161, 383, 395, 372, 401, 190, 201, 386, 403, 174, 197, 196, 408, 191, 205, 199, 173, 188, 204, 385, 377, 411, 371, 384, 194, 167, 202, 169, 180, 160, 163, 375, 379, 396, 192, 373, 175, 407, 178, 387, 181]),
@@ -329,24 +333,25 @@ exec_fake_dataseed = [(1:5)...]
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization]
 
-exec_neuro_feature_size = [4] #, 2]
+exec_neuro_feature_size = [4] #, 1] #, 2]
 
 # https://github.com/JuliaIO/JSON.jl/issues/203
 # https://discourse.julialang.org/t/json-type-serialization/9794
 # TODO: make test operators types serializable
 # exec_canonical_features = [ "TestOp" ]
-exec_canonical_features = [
-	[:neuro_simone],
-	# ["TestOp_80"],
-	# ["TestOp_80", :neuro_simone],
-	# ["TestOp"],
-]
+# exec_canonical_features = [
+# 	[:neuro_simone],
+# 	["TestOp_80", :neuro_simone],
+# 	# ["TestOp_80"],
+# 	# ["TestOp"],
+# ]
 
 canonical_features_dict = Dict(
 	"TestOp_70" => [TestOpGeq_70, TestOpLeq_70],
 	"TestOp_80" => [TestOpGeq_80, TestOpLeq_80],
 	"TestOp_90" => [TestOpGeq_90, TestOpLeq_90],
 	"TestOp"    => [TestOpGeq,    TestOpLeq],
+	"TestOpGeq" => [TestOpGeq,],
 )
 
 exec_dataset_name = [
@@ -354,15 +359,20 @@ exec_dataset_name = [
 	#"FingerMovements",
 	"Libras",
 	#"LSST",
-	#"NATOPS",
+	# "NATOPS",
 ]
+
+# push!(iteration_blacklist, (neuro_feature_size = 2, dataset_name = "Libras"))
 
 # exec_flatten_ontology = [(false,"interval2D")] # ,(true,"one_world")]
 # exec_use_catch22_flatten_ontology = [(false,false,"interval")]
-exec_use_catch22_flatten_ontology = [
-	(false,false,"interval"),
-	# (false,true,"one_world"),
-	#(true,true,"one_world"),
+exec_use_catch22_flatten_paafns_ontology_canonical_features_n_chunks = [
+	(false,false,false,"interval",[:neuro_simone],missing),
+	(false,false,false,"interval",["TestOp_80", :neuro_simone],missing),
+	# # (false,false,"interval",["TestOp_80"],missing),
+	(false,false,[(x)->(0),        ],"one_world",[:neuro_simone],1),
+	(false,false,[minimum, maximum,],"one_world",["TestOpGeq",:neuro_simone],1),
+	(false,false,[mean,            ],"one_world",["TestOpGeq",:neuro_simone],1),
 ]
 
 ontology_dict = Dict(
@@ -372,25 +382,25 @@ ontology_dict = Dict(
 )
 
 
-exec_n_chunks = [missing]
+# exec_n_chunks = [missing]
 # exec_n_chunks = [60]
 
 # exec_use_catch22 = [false]
 
 exec_ranges = (;
-	fake_dataseed                    = exec_fake_dataseed              ,
-	use_training_form                = exec_use_training_form              ,
-	neuro_feature_size                = exec_neuro_feature_size              ,
-	canonical_features               = exec_canonical_features                 ,
-	dataset_name                     = exec_dataset_name                   ,
-	use_catch22_flatten_ontology     = exec_use_catch22_flatten_ontology   ,
-	# use_catch22                      = exec_use_catch22                    ,
-	n_chunks                         = exec_n_chunks                       ,
+	fake_dataseed                      = exec_fake_dataseed                      ,
+	use_training_form                  = exec_use_training_form                  ,
+	neuro_feature_size                 = exec_neuro_feature_size                 ,
+	# canonical_features               = exec_canonical_features                 ,
+	dataset_name                       = exec_dataset_name                       ,
+	use_catch22_flatten_paafns_ontology_canonical_features_n_chunks     = exec_use_catch22_flatten_paafns_ontology_canonical_features_n_chunks   ,
+	# use_catch22                      = exec_use_catch22                        ,
+	# n_chunks                         = exec_n_chunks                           ,
 )
 
 
 dataset_function = 
-	(dataset_name, n_chunks, flatten, use_catch22)->
+	(dataset_name, n_chunks, flatten, use_catch22, paafns)->
 	(
 		# Multivariate_arffDataset(dataset_name; n_chunks = n_chunks, join_train_n_test = false, flatten = flatten, use_catch22 = use_catch22, mode = mode)
 		Multivariate_arffDataset(dataset_name;
@@ -398,7 +408,8 @@ dataset_function =
 			join_train_n_test = false,
 			flatten = flatten,
 			use_catch22 = use_catch22,
-			mode = false
+			paa_functions = paafns,
+			mode = false,
 		)
 	)
 
@@ -415,8 +426,6 @@ iteration_whitelist = [
 	# 	dataset_kwargs = (max_points = 30, ma_size = 75, ma_step = 50),
 	# ),
 ]
-
-iteration_blacklist = []
 
 ################################################################################
 ################################################################################
@@ -519,10 +528,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	fake_dataseed,
 	use_training_form,
 	neuro_feature_size,
-	canonical_features,
 	dataset_name,
-	(use_catch22,flatten,ontology),
-	n_chunks = params_combination
+	(use_catch22,flatten,paafns,ontology,canonical_features, n_chunks) = params_combination
 	
 	##############################################################################
 	##############################################################################
@@ -535,20 +542,22 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 		elseif f_name == :mean_m
 			[StatsBase.mean]
 		elseif f_name == :neuro_simone
+			# @assert flatten == false
 
 			external_fmd = npzread(
-				if flatten
+				if n_chunks == 1
 					"$(py_script_path)/flattened_$(dataset_name)-$(fake_dataseed)-$(neuro_feature_size)-X.npy"
 				else
 					"$(py_script_path)/fmd_$(dataset_name)-$(fake_dataseed)-$(neuro_feature_size)-X.npy"
 				end
 			)
 			external_fmd = convert.(round_dataset_to_datatype, external_fmd)
+			println(size(external_fmd))
 
 			@assert size(external_fmd, 1) == neuro_feature_size "$(size(external_fmd, 1)) != $(neuro_feature_size)"
 			n_attribute = size(external_fmd)[end-1]
 
-			FeatureTypeFun[ExternalFWDFeatureType("NEUR$(i_feature)(A$(i_attribute))", if flatten external_fmd[i_feature,i_attribute,:] else external_fmd[i_feature,:,:,i_attribute,:] end) for i_attribute in 1:n_attribute for i_feature in 1:neuro_feature_size]
+			FeatureTypeFun[ExternalFWDFeatureType("NEUR$(i_feature)(A$(i_attribute))", if n_chunks == 1 external_fmd[i_feature,i_attribute,:] else external_fmd[i_feature,:,:,i_attribute,:] end) for i_attribute in 1:n_attribute for i_feature in 1:neuro_feature_size]
 		elseif haskey(canonical_features_dict, f_name)
 			canonical_features_dict[f_name]
 		else
@@ -572,7 +581,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	))
 
 	dataset_fun_sub_params = (
-		dataset_name, n_chunks, flatten, use_catch22
+		dataset_name, n_chunks, flatten, use_catch22, paafns
 	)
 
 	# Load Dataset
@@ -581,6 +590,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 
 	dataset, class_counts = concat_labeled_datasets(dataset_train, dataset_test, (class_counts_train, class_counts_test)), (class_counts_train .+ class_counts_test)
 
+	println("SIZE: $(size.(dataset[1]))")
 	# (X,Y) = dataset
 
 	# matwrite("$(run_name).mat", Dict(

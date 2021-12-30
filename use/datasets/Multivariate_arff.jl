@@ -159,16 +159,16 @@ end
 # TODO (?)
 # now it overrides the given frame, but in the future, for each f ∈ fns
 # should create a different frame
-function transform!(ds::ClassificationDataset, fid::Int, fns, kwargs)
+function transform!(ds::ClassificationDataset, fid::Int, fns::AbstractVector{<:Function}, kwargss::AbstractVector{<:NamedTuple})
 	d = Dict()
 	for (fnid, fn) in enumerate(fns)
 		for attr in attributes(ds, fid)
 			# for i in 1:nrow(ds.frames[fid].data)
-			new_attr_name = string(attr, "_", String(Symbol(kwargs[fnid][:f])))
+			new_attr_name = string(attr, "_", String(Symbol(kwargss[fnid][:f])))
 			# the value of each key (attribute) is an array of arrays, whose size is
 			# equal to the number of instances times the size of the length of the array
 			# returned by the function (fn)
-			d[new_attr_name] = [fn(ds.frames[fid].data[i,attr]; kwargs[fnid]...) for i in 1:nrow(ds.frames[fid].data)]
+			d[new_attr_name] = [fn(ds.frames[fid].data[i,attr]; kwargss[fnid]...) for i in 1:nrow(ds.frames[fid].data)]
 			# end
 		end
 	end
@@ -471,23 +471,35 @@ end
 # Multivariate_arff("FingerMovements")
 # TODO different n_chunks for different frames
 
-function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n_test = false, flatten = false, mode = false, use_catch22 = false)
+function Multivariate_arffDataset(dataset_name;
+		n_chunks = missing,
+		join_train_n_test = false,
+		flatten     = false,
+		paa_functions::Union{Bool,AbstractVector{<:Function}} = false,
+		mode        = false,
+		use_catch22 = false,
+		squeeze_channel = true,
+	)
+	if paa_functions == false
+		paa_functions = [mean]
+	end
+	@assert !(paa_functions != [mean] && use_catch22 != false) "$(paa_functions) $(use_catch22)"
+	
+	# elseif use_mean_n_var
+		# TODO more transformations
+		# transform!(ds_train, fid, [paa,paa], [(;n_chunks=2, f=mean),(;n_chunks=2, f=StatsBase.var)])
+		# transform!(ds_test,  fid, [paa,paa], [(;n_chunks=2, f=mean),(;n_chunks=2, f=StatsBase.var)])
+	
+	if use_catch22
+		paa_functions = Vector{Function}(catch22)
+	end
 
 	ds_train = readARFF(data_dir * "Multivariate_arff/$(dataset_name)/$(dataset_name)_TRAIN.arff");
 	ds_test  = readARFF(data_dir * "Multivariate_arff/$(dataset_name)/$(dataset_name)_TEST.arff");
 
 	for fid in 1:length(ds_train.frames)
-		if use_catch22
-			transform!(ds_train, fid, [paa for _ in 1:length(catch22)], [(;n_chunks=n_chunks, f=catch22[fn]) for fn in getnames(catch22)])
-			transform!(ds_test,  fid, [paa for _ in 1:length(catch22)], [(;n_chunks=n_chunks, f=catch22[fn]) for fn in getnames(catch22)])
-		# elseif use_mean_n_var
-			# TODO more transformations
-			# transform!(ds_train, fid, [paa,paa], [(;n_chunks=2, f=mean),(;n_chunks=2, f=StatsBase.var)])
-			# transform!(ds_test,  fid, [paa,paa], [(;n_chunks=2, f=mean),(;n_chunks=2, f=StatsBase.var)])
-		else
-			transform!(ds_train, paa, fid; n_chunks = n_chunks);
-			transform!(ds_test,  paa, fid; n_chunks = n_chunks);
-		end
+		transform!(ds_train, fid, [paa for _ in 1:length(paa_functions)], [(;n_chunks=n_chunks, f=fn) for fn in paa_functions])
+		transform!(ds_test,  fid, [paa for _ in 1:length(paa_functions)], [(;n_chunks=n_chunks, f=fn) for fn in paa_functions])
 	end
 
 	@assert !(flatten == true && mode != false) "flatten=$(flatten), mode=$(mode)"
@@ -503,9 +515,9 @@ function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n
 	(X_test,  Y_test),  class_counts_test  = ClassificationDataset2RunnerDataset(ds_test)
 	
 	# println(ds_train)
-	println(size(X_train))
+	# println(size(X_train))
 	println(size.(X_train))
-	println(size(X_test))
+	# println(size(X_test))
 	println(size.(X_test))
 	# println(unique(X_train))
 	
@@ -560,6 +572,14 @@ function Multivariate_arffDataset(dataset_name; n_chunks = missing, join_train_n
 		X_train, X_test = transform_f(X_train[1]), transform_f(X_test[1])
 	# else
 	# 	throw_n_log("Unknown dataset_name ($(dataset_name)) for mode = $(mode)")
+	end
+
+	if squeeze_channel
+		# print("squeezing channels: $(size.(X_train))")
+		squeeze_channel_sf = (X_f)->dropdims(X_f; dims=Tuple(findall((x)->size(X_f,x)==1, (collect(1:length(size(X_f))-2)))))
+		X_train = map(squeeze_channel_sf, X_train)
+		X_test  = map(squeeze_channel_sf, X_test)
+		# println(" -> $(size.(X_train))")
 	end
 
 	# println(countmap(Y_train))

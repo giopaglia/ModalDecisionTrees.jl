@@ -1,0 +1,5 @@
+TIMESTAMP	FILE NAME	COMP TIME	ARGS	
+29/12/2021 14:13:55	dataset_93700051f9750fad2f7731a832e3406256f575c8868ff68683705f53eeb5264b.jld	00:00:08	("RacketSports", missing, false, false, false)	
+29/12/2021 14:14:02	dataset_b8d962cffb48eaf521910865d0d3050951651907b99ec43b76fc88fdf54c6a85.jld	00:00:01	("RacketSports", 1, false, false, [var"#492#493"()])	
+29/12/2021 14:14:05	dataset_4ad9b8498bbb80773e70159a0078144f5fad4b0f3ddf3f83b45363444e70a8b9.jld	00:00:01	("RacketSports", 1, false, false, Function[minimum, maximum])	
+29/12/2021 14:14:06	dataset_8f37030ef73e5dd366920455d2f2d52196c39286c702c455bafc748c539fa052.jld	00:00:00	("RacketSports", 1, false, false, [Statistics.mean])	
