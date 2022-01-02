@@ -4,6 +4,8 @@ using StatsPlots
 using Plots.PlotMeasures
 using SoleViz
 using Measures
+using SimpleCaching
+SimpleCaching.settings.log = true
 
 using Distributions
 
@@ -109,6 +111,8 @@ function single_frame_blind_feature_selection(
 		descriptor_abbrs = nothing,
 		attribute_abbrs = nothing,
 		export_csv::Bool = false,
+		precomputed_description::Union{<:AbstractVector{<:AbstractDataFrame},Nothing} = nothing,
+		cache_description_in::Union{<:AbstractString,Nothing} = nothing,
 		join_plots::AbstractVector{Symbol} = Symbol[], # [:attributes], # array of :attributes, :descriptors
 	) where {T}
 
@@ -151,13 +155,25 @@ function single_frame_blind_feature_selection(
 		end
 
 		t = 1
-		p = SoleViz.plotdescription(mfd,
-			descriptors = descriptors,
-			windows = [[[(t,0,0)]]],
+		descriptions_args = (mfd,)
+		descriptions_kwargs = (desc = descriptors, t = [[(t,0,0)]])
+
+		descriptions =
+			if !isnothing(precomputed_description)
+				precomputed_description
+			elseif !isnothing(cache_description_in)
+				@cachefast "plotdescription" joinpath(cache_description_in, "plotdescription") descriptions_args descriptions_kwargs SoleBase.describe
+			else
+				SoleBase.describe(descriptions_args...; descriptions_kwargs...)
+			end
+
+		p = SoleViz.plotdescription(
+			[descriptions],
+			group_descriptors = descriptors,
 			attribute_names = attribute_names,
+			cache_stats = !isnothing(cache_description_in) ? joinpath(cache_description_in, "stats") : nothing,
 			join_plots = :descriptors in join_plots,
 		)
-		println(size(p))
 		p = p[:]
 
 		############################################################################
@@ -266,10 +282,11 @@ function single_frame_blind_feature_selection(
 
 		# display(p_norm_avg)
 
-		p = SoleViz.plotdescription(mfd,
-			descriptors = grouped_descriptors,
-			windows = [[[(t,0,0)]]],
+		p = SoleViz.plotdescription(
+			[descriptions],
+			group_descriptors = grouped_descriptors,
 			attribute_names = attribute_names,
+			cache_stats = !isnothing(cache_description_in) ? joinpath(cache_description_in, "stats") : nothing,
 			join_plots = :descriptors in join_plots,
 		)
 		# println(size(p))
@@ -372,11 +389,21 @@ function single_frame_blind_feature_selection(
 			# )
 		end
 
-		p = SoleViz.plotdescription(mfd_sub,
-			descriptors = descriptors,
-			windows = [[[(t,0,0)]]],
+		descriptions_sub_args = (mfd_sub,)
+
+		descriptions_sub =
+			if !isnothing(cache_description_in)
+				@cachefast "plotdescription" joinpath(cache_description_in, "plotdescription") descriptions_sub_args descriptions_kwargs SoleBase.describe
+			else
+				SoleBase.describe(descriptions_sub_args...; descriptions_kwargs...)
+			end
+
+		p = SoleViz.plotdescription(
+			[descriptions_sub],
+			group_descriptors = descriptors,
 			on_x_axis = :descriptors,
 			attribute_names = attribute_names_sub,
+			cache_stats = !isnothing(cache_description_in) ? joinpath(cache_description_in, "stats") : nothing,
 			join_plots = :attributes in join_plots,
 		)
 		println(size(p))
