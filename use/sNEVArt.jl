@@ -39,9 +39,9 @@ selected_features_savedir = results_dir * "/selected_features_cache"
 description_savedir = results_dir * "/descriptions_cache"
 
 # dry_run = false
-dry_run = :dataset_only
+# dry_run = :dataset_only
 # dry_run = :model_study
-# dry_run = true
+dry_run = true
 
 skip_training = false
 
@@ -231,27 +231,61 @@ perform_target_aware_analysis = false
 exec_convert_to_class_ttest = [(Tuple{Int8}(25), ("NO", "YES")), nothing, (Tuple{Int8, Int8}([17, 34]), ("NO", "MAYBE", "YES"))]
 
 exec_dataset_params = [
-	# (ids,signals,lables,static_attrs,signal_transformation,keep_only_bands,scale_using_blanks,classification_splits,force_single_frame)
-	# unscaled signals
-	("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),[:EEG],(25,),false),
-	# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),[:EEG],(17,34),false),
-	# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),[:EEG],(25,),false),
-	# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),[:EEG],(17,34),false),
+	# SURE DATASET
+		# (ids,signals,lables,static_attrs,signal_transformation,keep_only_bands,scale_using_blanks,classification_splits,force_single_frame)
+		# unscaled signals
+		# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),[:EEG],(25,),false),
+		# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),[:EEG],(17,34),false),
+		# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),[:EEG],(25,),false),
+		# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),[:EEG],(17,34),false),
 
+		# scaled signals
+		# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),Symbol[],(25,),false),
+		# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),Symbol[],(17,34),false),
+		# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),Symbol[],(25,),false),
+		# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),Symbol[],(17,34),false),
+
+		# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),[],nothing,false),
+		# ("sure-v1",[:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:ECG => collect(1:7)),[],nothing,false),
+
+		# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25), :ECG => collect(1:7)),[],nothing,false),
+		# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25), :ECG => collect(1:7)),[],nothing,true),
+
+		# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto, :ECG => :auto),[],nothing,false),
+		# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto, :ECG => :auto),[],nothing,true)
+
+	# ANT DATASET
 	# scaled signals
-	# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),Symbol[],(25,),false),
-	# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),Symbol[],(17,34),false),
-	# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),Symbol[],(25,),false),
-	# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),Symbol[],(17,34),false),
+	("sure-ant-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),[:EEG],(25,),false),
+	("sure-ant-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),[:EEG],(17,34),false),
+	("sure-ant-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),[:EEG],(25,),false),
+	("sure-ant-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),[:EEG],(17,34),false),
 
-	# ("sure-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25)),[],nothing,false),
-	# ("sure-v1",[:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:ECG => collect(1:7)),[],nothing,false),
+	("sure-ant-v1",[:EEG],["familiarity"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),[:EEG],(25,),false),
+	("sure-ant-v1",[:EEG],["familiarity"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),[:EEG],(17,34),false),
+	("sure-ant-v1",[:EEG],["familiarity"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),[:EEG],(25,),false),
+	("sure-ant-v1",[:EEG],["familiarity"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),[:EEG],(17,34),false),
 
-	# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25), :ECG => collect(1:7)),[],nothing,false),
-	# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => collect(1:25), :ECG => collect(1:7)),[],nothing,true),
+	("sure-ant-v1",[:EEG],["movement"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),[:EEG],(25,),false),
+	("sure-ant-v1",[:EEG],["movement"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),[:EEG],(17,34),false),
+	("sure-ant-v1",[:EEG],["movement"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),[:EEG],(25,),false),
+	("sure-ant-v1",[:EEG],["movement"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),[:EEG],(17,34),false),
 
-	# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto, :ECG => :auto),[],nothing,false),
-	# ("sure-v1",[:EEG,:ECG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default, :ECG => ECG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto, :ECG => :auto),[],nothing,true)
+	# unscaled signals
+	("sure-ant-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),Symbol[],(25,),false),
+	("sure-ant-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),Symbol[],(17,34),false),
+	("sure-ant-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),Symbol[],(25,),false),
+	("sure-ant-v1",[:EEG],["liked"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),Symbol[],(17,34),false),
+
+	("sure-ant-v1",[:EEG],["familiarity"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),Symbol[],(25,),false),
+	("sure-ant-v1",[:EEG],["familiarity"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),Symbol[],(17,34),false),
+	("sure-ant-v1",[:EEG],["familiarity"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),Symbol[],(25,),false),
+	("sure-ant-v1",[:EEG],["familiarity"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),Symbol[],(17,34),false),
+
+	("sure-ant-v1",[:EEG],["movement"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),Symbol[],(25,),false),
+	("sure-ant-v1",[:EEG],["movement"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),Symbol[],(17,34),false),
+	("sure-ant-v1",[:EEG],["movement"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),Symbol[],(25,),false),
+	("sure-ant-v1",[:EEG],["movement"],String[],Dict{Symbol,NamedTuple}(:EEG => EEG_default),Dict{Symbol,Union{Vector{Int64},Symbol}}(:EEG => :auto),Symbol[],(17,34),false),
 ]
 
 const datasets_dict = Dict{String,Vector{Int64}}(
@@ -263,7 +297,7 @@ const datasets_path_dict = Dict{String,String}(
 	"sure-ant-v1" => "dataset_2"
 )
 
-exec_aggr_points = [5]#, 20]
+exec_aggr_points = [10]#[5, 20]
 exec_length = ["2/4"]#, "4/4"]
 # exec_aggr_points = [5, 10, 15, 20]
 # exec_length = ["1/4", "2/4", "3/4", "4/4"]
