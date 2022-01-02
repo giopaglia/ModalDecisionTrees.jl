@@ -20,15 +20,15 @@ py_script_path = "neuro-symbolic/pipeline"
 #################################### FOLDERS ###################################
 ################################################################################
 
-results_dir = "./neuro-symbolic/IJCAI22-v7-fix-flattened"
+results_dir = "./neuro-symbolic/IJCAI22-v8-seq2seq"
 
 iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 
-# dry_run = false
-dry_run = :dataset_only
-# dry_run = true
+dry_run = false
+#dry_run = :dataset_only
+#dry_run = true
 
 # save_datasets = true
 save_datasets = false
@@ -333,7 +333,7 @@ exec_fake_dataseed = [(1:5)...]
 # exec_use_training_form = [:dimensional]
 exec_use_training_form = [:stump_with_memoization]
 
-exec_neuro_feature_size = [4] #, 1] #, 2]
+exec_neuro_feature_size = [1] #, 1] #, 2]
 
 # https://github.com/JuliaIO/JSON.jl/issues/203
 # https://discourse.julialang.org/t/json-type-serialization/9794
@@ -359,7 +359,7 @@ exec_dataset_name = [
 	#"FingerMovements",
 	"Libras",
 	#"LSST",
-	# "NATOPS",
+	"NATOPS",
 ]
 
 # push!(iteration_blacklist, (neuro_feature_size = 2, dataset_name = "Libras"))
@@ -370,10 +370,19 @@ exec_use_catch22_flatten_paafns_ontology_canonical_features_n_chunks = [
 	(false,false,false,"interval",[:neuro_simone],missing),
 	(false,false,false,"interval",["TestOp_80", :neuro_simone],missing),
 	# # (false,false,"interval",["TestOp_80"],missing),
-	(false,false,[(x)->(0),        ],"one_world",[:neuro_simone],1),
-	(false,false,[minimum, maximum,],"one_world",["TestOpGeq",:neuro_simone],1),
-	(false,false,[mean,            ],"one_world",["TestOpGeq",:neuro_simone],1),
+	(false,false,["minimum", "maximum",],"one_world",["TestOpGeq"],1),
+	(false,false,["minimum", "maximum",],"one_world",["TestOpGeq",:neuro_simone],1),
+	(false,false,["minimum", "maximum",],"one_world",[:neuro_simone],1), #fake
+	(false,false,["mean",            ],"one_world",["TestOpGeq"],1),
+	(false,false,["mean",            ],"one_world",["TestOpGeq",:neuro_simone],1),
+	(false,false,["mean",            ],"one_world",[:neuro_simone],1),
 ]
+
+paafns_dict = Dict(
+	"mean"      => mean,
+	"minimum"   => minimum,
+	"maximum"   => maximum,
+)
 
 ontology_dict = Dict(
 	"one_world"   => ModalLogic.OneWorldOntology,
@@ -392,8 +401,8 @@ exec_ranges = (;
 	use_training_form                  = exec_use_training_form                  ,
 	neuro_feature_size                 = exec_neuro_feature_size                 ,
 	# canonical_features               = exec_canonical_features                 ,
-	dataset_name                       = exec_dataset_name                       ,
 	use_catch22_flatten_paafns_ontology_canonical_features_n_chunks     = exec_use_catch22_flatten_paafns_ontology_canonical_features_n_chunks   ,
+	dataset_name                       = exec_dataset_name                       ,
 	# use_catch22                      = exec_use_catch22                        ,
 	# n_chunks                         = exec_n_chunks                           ,
 )
@@ -408,7 +417,7 @@ dataset_function =
 			join_train_n_test = false,
 			flatten = flatten,
 			use_catch22 = use_catch22,
-			paa_functions = paafns,
+			paa_functions = (paafns == false ? false : [paafns_dict[p] for p in paafns]),
 			mode = false,
 		)
 	)
@@ -528,9 +537,8 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 	fake_dataseed,
 	use_training_form,
 	neuro_feature_size,
-	dataset_name,
-	(use_catch22,flatten,paafns,ontology,canonical_features, n_chunks) = params_combination
-	
+	(use_catch22,flatten,paafns,ontology,canonical_features, n_chunks),
+	dataset_name = params_combination
 	##############################################################################
 	##############################################################################
 	##############################################################################
@@ -545,10 +553,10 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			# @assert flatten == false
 
 			external_fmd = npzread(
-				if n_chunks == 1
-					"$(py_script_path)/flattened_$(dataset_name)-$(fake_dataseed)-$(neuro_feature_size)-X.npy"
-				else
+				if ismissing(n_chunks) || (n_chunks > 1)
 					"$(py_script_path)/fmd_$(dataset_name)-$(fake_dataseed)-$(neuro_feature_size)-X.npy"
+				else
+					"$(py_script_path)/flattened_$(dataset_name)-$(fake_dataseed)-$(neuro_feature_size)-X.npy"
 				end
 			)
 			external_fmd = convert.(round_dataset_to_datatype, external_fmd)
@@ -557,7 +565,7 @@ for params_combination in IterTools.product(exec_ranges_iterators...)
 			@assert size(external_fmd, 1) == neuro_feature_size "$(size(external_fmd, 1)) != $(neuro_feature_size)"
 			n_attribute = size(external_fmd)[end-1]
 
-			FeatureTypeFun[ExternalFWDFeatureType("NEUR$(i_feature)(A$(i_attribute))", if n_chunks == 1 external_fmd[i_feature,i_attribute,:] else external_fmd[i_feature,:,:,i_attribute,:] end) for i_attribute in 1:n_attribute for i_feature in 1:neuro_feature_size]
+			FeatureTypeFun[ExternalFWDFeatureType("NEUR$(i_feature)(A$(i_attribute))", if (!(ismissing(n_chunks) || (n_chunks > 1))) external_fmd[i_feature,i_attribute,:] else external_fmd[i_feature,:,:,i_attribute,:] end) for i_attribute in 1:n_attribute for i_feature in 1:neuro_feature_size]
 		elseif haskey(canonical_features_dict, f_name)
 			canonical_features_dict[f_name]
 		else

@@ -80,7 +80,8 @@ def produce_npz_flattened(dataset, seeds, code_size):
 				for instance in range(n_instances):
 					# print(X[:,attribute,instance].shape)
 					# print(np.expand_dims(X[:,attribute,instance], axis=0).transpose().shape)
-					res = validation(np.expand_dims(X[:,attribute,instance], axis=0).transpose())
+					# res = validation(np.expand_dims(X[:,attribute,instance], axis=0).transpose())
+					res = validation([X[:,attribute,instance].tolist()])
 					# print(res)
 					flattened_array[:,attribute,instance] = res
 			# print(flattened_array)
@@ -113,7 +114,8 @@ def produce_npz_fmd(dataset, seeds, code_size):
 							# print(np.expand_dims(X[x:y,attribute,instance], axis=0).transpose().shape)
 							# res = validation(np.expand_dims(X[x:y,attribute,instance], axis=0).transpose())
 							# print(res)
-							res = validation(np.expand_dims(X[x:y,attribute,instance], axis=0).transpose())
+							# res = validation(np.expand_dims(X[x:y,attribute,instance], axis=0).transpose())
+							res = validation([X[x:y,attribute,instance].tolist()])
 							# print(res)
 							fmd_array[:,x,y,attribute, instance] = res
 			print(f"Saving {fmd_filename}...")
@@ -128,6 +130,7 @@ def produce_npz_fmd(dataset, seeds, code_size):
 print("Testing a RacketSports model...")
 load_model("RacketSports", 1, 0, 1, 1)
 # load_model("RacketSports", 1, 0, 2, 1)
+print("Result:", validation([[1,2,3,1,2,3,4.]]))
 print("Result:", validation([[1],[2],[3],[1],[2],[3],[4.]]))
 print()
 # load_model("RacketSports", 1, 0, 4, 1)

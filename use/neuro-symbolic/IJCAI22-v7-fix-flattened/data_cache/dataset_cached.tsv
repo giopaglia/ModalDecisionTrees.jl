@@ -3,3 +3,7 @@ TIMESTAMP	FILE NAME	COMP TIME	ARGS
 29/12/2021 14:14:02	dataset_b8d962cffb48eaf521910865d0d3050951651907b99ec43b76fc88fdf54c6a85.jld	00:00:01	("RacketSports", 1, false, false, [var"#492#493"()])	
 29/12/2021 14:14:05	dataset_4ad9b8498bbb80773e70159a0078144f5fad4b0f3ddf3f83b45363444e70a8b9.jld	00:00:01	("RacketSports", 1, false, false, Function[minimum, maximum])	
 29/12/2021 14:14:06	dataset_8f37030ef73e5dd366920455d2f2d52196c39286c702c455bafc748c539fa052.jld	00:00:00	("RacketSports", 1, false, false, [Statistics.mean])	
+30/12/2021 18:45:48	dataset_3955b7300ad7edea8e478f658e13b9428c10eafe9dc2df0671422bfc89c0c531.jld	00:00:06	("RacketSports", 1, false, false, [var"#492#493"()])	
+30/12/2021 18:51:34	dataset_69882e56606fc064453cff264e0f1c168cfd6301d98a70c6499530a16d203957.jld	00:00:07	("RacketSports", 1, false, false, [donothing])	
+30/12/2021 19:10:52	dataset_7538386b00fb3840fe44d80e3df008e6e5392ea1ed78df59ac1a5af4d0e2d9a9.jld	00:00:08	("RacketSports", 1, false, false, ["mean"])	
+30/12/2021 19:13:48	dataset_4b7ef296572b35f8409b9e440f166872010690ced3f8758025f4c82a698eed21.jld	00:00:01	("RacketSports", 1, false, false, ["minimum", "maximum"])	
