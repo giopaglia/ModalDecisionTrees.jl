@@ -18,10 +18,10 @@ iteration_progress_json_file_path = results_dir * "/progress.json"
 data_savedir  = results_dir * "/data_cache"
 model_savedir = results_dir * "/models_cache"
 
-# dry_run = false
-dry_run = :dataset_only
+dry_run = false
+#dry_run = :dataset_only
 # dry_run = :model_study
-# dry_run = true
+#dry_run = true
 
 skip_training = false
 
@@ -241,7 +241,7 @@ exec_base_freq_max = [700]
 # push!(iteration_blacklist, (fbtype    = :fcmel, base_freq = :autocor))
 # push!(iteration_blacklist, (fbtype    = :fcmel, base_freq_min = 200))
 
-exec_nbands = [30] # [20,40,60]
+exec_nbands = [30,40] # [20,40,60]
 
 combine_moving_averages((size1,step1), (size2,step2)) = begin
 	(1*size1+(size2-1)*step1,step1*step2)
@@ -260,12 +260,12 @@ exec_wintime_steptime_dataset_kwargs =   [(
 	# 	ma_step = 15,
 	# )
 	# ),(
-	# (0.025,0.010),(
-	# 	max_points = 50,
-	# 	ma_size = 30,
-	# 	ma_step = 20,
-	# )
-	# ),(
+	(0.025,0.010),(
+		max_points = 50,
+		ma_size = 30,
+		ma_step = 20,
+	)
+	),(
 	# combine_moving_averages((0.025,0.010),(30,20)),(
 	# 	max_points = 50,
 	# ),(
