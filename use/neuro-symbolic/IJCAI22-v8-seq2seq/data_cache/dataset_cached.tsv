@@ -1,7 +1,0 @@
-TIMESTAMP	FILE NAME	COMP TIME	ARGS	
-02/01/2022 14:16:55	dataset_4b7ef296572b35f8409b9e440f166872010690ced3f8758025f4c82a698eed21.jld	00:00:07	("RacketSports", 1, false, false, ["minimum", "maximum"])	
-02/01/2022 14:19:47	dataset_7538386b00fb3840fe44d80e3df008e6e5392ea1ed78df59ac1a5af4d0e2d9a9.jld	00:00:00	("RacketSports", 1, false, false, ["mean"])	
-02/01/2022 14:21:30	dataset_366e7f6f0fe68113919e0e3e8429b5b28ae9f75959c1e3fd050fac7e2ba46feb.jld	00:00:00	("Libras", 1, false, false, ["minimum", "maximum"])	
-02/01/2022 14:23:17	dataset_8a114d315900542ddc12eb3fd3906e1672113df1ad3904b23ddcef16bea0ab80.jld	00:00:00	("Libras", 1, false, false, ["mean"])	
-02/01/2022 14:25:11	dataset_5715caa2b0b9bf693f88102634419706033bf4066cb8a7dfd930a00dd487c4c5.jld	00:00:00	("NATOPS", 1, false, false, ["minimum", "maximum"])	
-02/01/2022 14:31:22	dataset_8565eeca77691a759e62b3a3d246a90d409f49044e1a6a0cae0631352bccdb79.jld	00:00:00	("NATOPS", 1, false, false, ["mean"])	

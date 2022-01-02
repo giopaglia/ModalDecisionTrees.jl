@@ -1,7 +1,0 @@
-TIMESTAMP	FILE NAME	COMP TIME	ARGS	
-23/11/2021 17:51:28	dataset_f651282c74e8b43df8de691651500fb2554771a32ea297265a14bf5b6708a3aa.jld	00:00:06	("FingerMovements", missing, false, false)	
-02/12/2021 16:23:27	dataset_08255775fd9337fe33128c6be278bf9018e83887cc4c0489c4dcb4804838c39a.jld	00:00:00	("Libras", missing, false, false)	
-03/12/2021 05:55:35	dataset_023a2bec4a7eb9fe35696df581bca225051b2d18c4d6fae58c4db1e4a955c126.jld	00:00:05	("LSST", missing, false, false)	
-02/01/2022 04:24:48	dataset_091dafb806a27ce8125f644acef8f1cb8c51918156ccc3061d5b054fec65d2a2.jld	00:00:07	("NATOPS", missing, true, false)	
-02/01/2022 12:07:44	dataset_798afbd644f6e1d131ddbba6c4a89a141775183128beade3e0a9de47183c304d.jld	00:00:00	("RacketSports", missing, true, false)	
-02/01/2022 13:02:23	dataset_12833a0304c3a06d3c946d188b06c6c838868d5e85bfaaba045cf0b10d708485.jld	00:01:04	("FingerMovements", missing, true, true)	
