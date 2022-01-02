@@ -1,0 +1,11 @@
+TIMESTAMP	FILE NAME	COMP TIME	ARGS	
+14/11/2021 13:20:33	dataset_dcbc52bce1b3fb8e11e6b48c4f3b313565482ec94284918c33df0a4a4c442a43.jld	00:00:07	("FingerMovements", 30, false, false)	
+14/11/2021 15:31:32	dataset_a2fa7453bc0355ec2e5ff078f08e3c23bf8832cf409c6d672019d8e583d3fb9e.jld	00:00:01	("Libras", 30, false, false)	
+14/11/2021 15:34:32	dataset_b7b2045db6ac8aaedaecebfb991afc3a6cb740637cdc17cc08960ccc22963bb7.jld	00:00:01	("LSST", 30, false, false)	
+14/11/2021 18:17:24	dataset_4ee064c510cd33d7695b7449325b1b80ce0e63b38219285c1fceca828a672a46.jld	00:00:01	("NATOPS", 30, false, false)	
+14/11/2021 18:30:33	dataset_dfccacfbabe64d839b1026bc24837056a4300bda64c92c5619e721b8e4bbbacd.jld	00:00:00	("RacketSports", 30, false, false)	
+14/11/2021 18:33:16	dataset_88d563220ec162e9f5d95ce7929d82d7d0a96b1e7d4b89d33676868f10656318.jld	00:00:03	("FingerMovements", 30, true, false)	
+14/11/2021 19:35:39	dataset_52292416e47315ebbd44836458bacee9fedba29a6c5bfdf45bbcea2af6c19fb9.jld	00:00:00	("Libras", 30, true, false)	
+14/11/2021 19:37:08	dataset_880173a01faa0f7d9482ed1c9ae7ed354e0a5998cc428279bf4f25930e550389.jld	00:00:04	("LSST", 30, true, false)	
+16/11/2021 01:32:33	dataset_27032d69d0af3648969ceeb2b47ce5cbc87b39043d78c0c08b1da4071506cb4b.jld	00:00:01	("NATOPS", 30, true, false)	
+16/11/2021 01:52:30	dataset_7791ad50a101da234e4762e6b3fb9b3e3ab6fdeebfebc407ea8bed40d4fd9ea2.jld	00:00:00	("RacketSports", 30, true, false)	

@@ -367,8 +367,8 @@ exec_dataset_name = [
 # exec_flatten_ontology = [(false,"interval2D")] # ,(true,"one_world")]
 # exec_use_catch22_flatten_ontology = [(false,false,"interval")]
 exec_use_catch22_flatten_paafns_ontology_canonical_features_n_chunks = [
-	(false,false,false,"interval",[:neuro_simone],missing),
-	(false,false,false,"interval",["TestOp_80", :neuro_simone],missing),
+	#(false,false,false,"interval",[:neuro_simone],missing),
+	#(false,false,false,"interval",["TestOp_80", :neuro_simone],missing),
 	# # (false,false,"interval",["TestOp_80"],missing),
 	(false,false,["minimum", "maximum",],"one_world",["TestOpGeq"],1),
 	(false,false,["minimum", "maximum",],"one_world",["TestOpGeq",:neuro_simone],1),
