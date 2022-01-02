@@ -1671,13 +1671,13 @@ uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 
 [[SoleBase]]
 deps = ["CSV", "Catch22", "DataFrames", "Reexport", "ScientificTypes", "Statistics"]
-path = "/home/giopaglia/.julia/dev/SoleBase"
+path = "/home/gio/.julia/dev/SoleBase"
 uuid = "142d03a6-36c4-4bac-9273-c7ed2abbbb4d"
 version = "0.1.0"
 
 [[SoleViz]]
 deps = ["Catch22", "DataStructures", "Plots", "Reexport", "SoleBase", "Statistics"]
-path = "/home/giopaglia/.julia/dev/SoleViz"
+path = "/home/gio/.julia/dev/SoleViz"
 uuid = "fc840457-d78a-47de-ac4f-ba01d7af495c"
 version = "0.1.0"
 
