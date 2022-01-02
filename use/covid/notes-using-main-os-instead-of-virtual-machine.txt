@@ -1,1 +1,0 @@
-Confronta i tempi di covid-august/full_columns.tsv con covid-august/full_columns_23.00.48_13.08.2021.tsv.bkp : andiamo più veloce? Sì, di circa 10/15 volte

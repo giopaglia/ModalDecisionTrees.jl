@@ -1,4 +1,0 @@
-TIMESTAMP	FILE NAME	COMP TIME	ARGS	
-02/12/2021 15:16:47	dataset_95f5d54193c0a59a6c591c361dcab77a6481e293af7d46f76ea4a3fc04312c29.jld	00:01:34	("Siemens-Data-Measures", nothing, 10, (ma_size = 4, ma_step = 4), 60, 10)	
-02/12/2021 17:54:33	dataset_869c7994922b2ad84f81a9dcd4e6f1cce2d500fe36db785ba2ad29a28dfe80eb.jld	00:01:35	("Siemens-Data-Measures", nothing, 10, (ma_size = 3, ma_step = 3), 60, 10)	
-02/12/2021 17:54:35	dataset_1699161b8b3fec62f7faed1aae9b0bf14eb713a0d069b1100c1c8e656747e73f.jld	00:00:01	("Siemens-Data-Measures", nothing, 10, (ma_size = 2, ma_step = 2), 60, 10)	
