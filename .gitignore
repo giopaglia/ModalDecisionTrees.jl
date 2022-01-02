@@ -1,4 +1,6 @@
 #**/*.csv
+Manifest.toml
+
 **/*.bkp
 !src/results-find-best-values/*.csv
 styleguide.txt
