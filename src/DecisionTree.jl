@@ -3,13 +3,11 @@
 module DecisionTree
 
 import Base: length, show, convert, promote_rule, zero
-using DelimitedFiles
 using LinearAlgebra
 import Random
 using Statistics
 using StatsBase
 using Printf
-using Catch22
 
 using Logging
 using Logging: @logmsg

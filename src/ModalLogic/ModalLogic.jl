@@ -11,7 +11,7 @@ using ResumableFunctions
 
 using DataStructures
 
-using BenchmarkTools # TODO only need this when testing and using @btime
+using BenchmarkTools # TODO use this to compare timings and use @btime
 
 export AbstractWorld, AbstractRelation,
 				Ontology,
