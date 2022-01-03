@@ -67,7 +67,7 @@ struct ConfusionMatrix
 
 		# https://en.wikipedia.org/wiki/Accuracy_and_precision#In_binary_classification
 		accuracies = (TPs .+ TNs)./ALL
-		mean_accuracy = Statistics.mean(accuracies)
+		mean_accuracy = StatsBase.mean(accuracies)
 
 		# https://en.wikipedia.org/wiki/F-score
 		F1s           = TPs./(TPs.+.5*(FPs.+FNs))
@@ -113,30 +113,30 @@ Note:
 - "the relative importance assigned to precision and recall should be an aspect of the problem" - David Hand
 """
 
-# macro_F1(cm::ConfusionMatrix) = Statistics.mean(cm.F1s)
-# macro_sensitivity(cm::ConfusionMatrix) = Statistics.mean(cm.sensitivities)
-# # macro_specificity(cm::ConfusionMatrix) = Statistics.mean(cm.specificities)
-# macro_PPV(cm::ConfusionMatrix) = Statistics.mean(cm.PPVs)
-# macro_NPV(cm::ConfusionMatrix) = Statistics.mean(cm.NPVs)
+# macro_F1(cm::ConfusionMatrix) = StatsBase.mean(cm.F1s)
+# macro_sensitivity(cm::ConfusionMatrix) = StatsBase.mean(cm.sensitivities)
+# # macro_specificity(cm::ConfusionMatrix) = StatsBase.mean(cm.specificities)
+# macro_PPV(cm::ConfusionMatrix) = StatsBase.mean(cm.PPVs)
+# macro_NPV(cm::ConfusionMatrix) = StatsBase.mean(cm.NPVs)
 
-# macro_weighted_F1(cm::ConfusionMatrix) = Statistics.sum(cm.F1s.*class_counts(cm))./sum(cm.matrix)
-# macro_weighted_sensitivity(cm::ConfusionMatrix) = Statistics.sum(cm.sensitivities.*class_counts(cm))./sum(cm.matrix)
-# # macro_weighted_specificity(cm::ConfusionMatrix) = Statistics.sum(cm.specificities.*class_counts(cm))./sum(cm.matrix)
-# macro_weighted_PPV(cm::ConfusionMatrix) = Statistics.sum(cm.PPVs.*class_counts(cm))./sum(cm.matrix)
-# macro_weighted_NPV(cm::ConfusionMatrix) = Statistics.sum(cm.NPVs.*class_counts(cm))./sum(cm.matrix)
+# macro_weighted_F1(cm::ConfusionMatrix) = StatsBase.sum(cm.F1s.*class_counts(cm))./sum(cm.matrix)
+# macro_weighted_sensitivity(cm::ConfusionMatrix) = StatsBase.sum(cm.sensitivities.*class_counts(cm))./sum(cm.matrix)
+# # macro_weighted_specificity(cm::ConfusionMatrix) = StatsBase.sum(cm.specificities.*class_counts(cm))./sum(cm.matrix)
+# macro_weighted_PPV(cm::ConfusionMatrix) = StatsBase.sum(cm.PPVs.*class_counts(cm))./sum(cm.matrix)
+# macro_weighted_NPV(cm::ConfusionMatrix) = StatsBase.sum(cm.NPVs.*class_counts(cm))./sum(cm.matrix)
 
 # macro_sensitivity, also called unweighted average recall (UAR)
-macro_sensitivity(cm::ConfusionMatrix) = Statistics.mean(cm.sensitivities)
-macro_specificity(cm::ConfusionMatrix) = Statistics.mean(cm.specificities)
-macro_PPV(cm::ConfusionMatrix)         = Statistics.mean(cm.PPVs)
-macro_NPV(cm::ConfusionMatrix)         = Statistics.mean(cm.NPVs)
-macro_F1(cm::ConfusionMatrix)          = Statistics.mean(cm.F1s)
+macro_sensitivity(cm::ConfusionMatrix) = StatsBase.mean(cm.sensitivities)
+macro_specificity(cm::ConfusionMatrix) = StatsBase.mean(cm.specificities)
+macro_PPV(cm::ConfusionMatrix)         = StatsBase.mean(cm.PPVs)
+macro_NPV(cm::ConfusionMatrix)         = StatsBase.mean(cm.NPVs)
+macro_F1(cm::ConfusionMatrix)          = StatsBase.mean(cm.F1s)
 
-macro_weighted_F1(cm::ConfusionMatrix)  = length(cm.classes) == 2 ? throw_n_log("macro_weighted_F1 Binary case?") : Statistics.sum(cm.F1s.*class_counts(cm))./sum(cm.matrix)
-macro_weighted_sensitivity(cm::ConfusionMatrix) = length(cm.classes) == 2 ? throw_n_log("macro_weighted_sensitivity Binary case?") : Statistics.sum(cm.sensitivities.*class_counts(cm))./sum(cm.matrix)
-macro_weighted_specificity(cm::ConfusionMatrix) = length(cm.classes) == 2 ? throw_n_log("# Binary case?") : Statistics.sum(cm.specificities.*class_counts(cm))./sum(cm.matrix)
-macro_weighted_PPV(cm::ConfusionMatrix) = length(cm.classes) == 2 ? throw_n_log("macro_weighted_PPV Binary case?") : Statistics.sum(cm.PPVs.*class_counts(cm))./sum(cm.matrix)
-macro_weighted_NPV(cm::ConfusionMatrix) = length(cm.classes) == 2 ? throw_n_log("macro_weighted_NPV Binary case?") : Statistics.sum(cm.NPVs.*class_counts(cm))./sum(cm.matrix)
+macro_weighted_F1(cm::ConfusionMatrix)  = length(cm.classes) == 2 ? throw_n_log("macro_weighted_F1 Binary case?") : StatsBase.sum(cm.F1s.*class_counts(cm))./sum(cm.matrix)
+macro_weighted_sensitivity(cm::ConfusionMatrix) = length(cm.classes) == 2 ? throw_n_log("macro_weighted_sensitivity Binary case?") : StatsBase.sum(cm.sensitivities.*class_counts(cm))./sum(cm.matrix)
+macro_weighted_specificity(cm::ConfusionMatrix) = length(cm.classes) == 2 ? throw_n_log("# Binary case?") : StatsBase.sum(cm.specificities.*class_counts(cm))./sum(cm.matrix)
+macro_weighted_PPV(cm::ConfusionMatrix) = length(cm.classes) == 2 ? throw_n_log("macro_weighted_PPV Binary case?") : StatsBase.sum(cm.PPVs.*class_counts(cm))./sum(cm.matrix)
+macro_weighted_NPV(cm::ConfusionMatrix) = length(cm.classes) == 2 ? throw_n_log("macro_weighted_NPV Binary case?") : StatsBase.sum(cm.NPVs.*class_counts(cm))./sum(cm.matrix)
 
 safe_macro_sensitivity(cm::ConfusionMatrix) = length(cm.classes) == 2 ? cm.sensitivities[1] : macro_sensitivity(cm)
 safe_macro_specificity(cm::ConfusionMatrix) = length(cm.classes) == 2 ? cm.specificities[1] : macro_specificity(cm)
