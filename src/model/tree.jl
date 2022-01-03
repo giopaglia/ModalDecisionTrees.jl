@@ -396,7 +396,6 @@ module tree
 			# Split a node
 			# Find an optimal local split satisfying the given constraints
 			#  (e.g. max_depth, min_samples_leaf, etc.)
-			# TODO: is it possible to compile this once loss_function is known? (maybe as a generated function) 
 			Base.@propagate_inbounds function split_node!(node::NodeMeta{P,L}, rng::Random.AbstractRNG) where {P,L}
 
 				# Region of indX to use to perform the split
