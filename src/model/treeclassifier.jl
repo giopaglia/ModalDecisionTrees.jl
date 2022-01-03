@@ -11,7 +11,7 @@ module treeclassifier
 	using ..ModalLogic
 	using ..DecisionTree
 	using DecisionTree.util
-	const L = DecisionTree.util.Label
+	const L = DecisionTree.ClassificationLabel
 	using Logging: @logmsg
 	import Random
 	import StatsBase
@@ -62,10 +62,10 @@ module treeclassifier
 		labels         :: Vector{L}
 		initConditions :: Vector{<:DecisionTree._initCondition}
 	end
-
 	# Find an optimal local split satisfying the given constraints
 	#  (e.g. max_depth, min_samples_leaf, etc.)
 	# TODO move this function inside the caller function, and get rid of all parameters
+	# Also TODO : is it possible to compile the function once loss_function is known? (maybe as a generated function) 
 	Base.@propagate_inbounds function _split!(
 		node                  :: NodeMeta{<:AbstractFloat}, # the node to split
 		####################
@@ -101,29 +101,40 @@ module treeclassifier
 
 		# Gather all values needed for the current set of instances
 		# TODO also slice the dataset?
-		# Yf = Vector{L}(undef, n_instances)
-		# Wf = Vector{U}(undef, n_instances)
 
 		@inbounds Yf = Y[indX[region]]
 		@inbounds Wf = W[indX[region]]
 
+		# Yf = Vector{L}(undef, n_instances)
+		# Wf = Vector{U}(undef, n_instances)
 		# @inbounds @simd for i in 1:n_instances
 		# 	Yf[i] = Y[indX[i + r_start]]
 		# 	Wf[i] = W[indX[i + r_start]]
 		# end
 
-		# Counts
-		nc = fill(zero(U), n_classes)
-		@inbounds @simd for i in 1:n_instances
-			nc[Yf[i]] += Wf[i]
+		############################################################################
+		# Prepare counts
+		############################################################################
+		(nc, nt),
+		(node.purity, node.label) = begin
+			nc = fill(zero(U), n_classes)
+			@inbounds @simd for i in 1:n_instances
+				nc[Yf[i]] += Wf[i]
+			end
+			nt = sum(nc)
+			purity = -(loss_function(nc, nt))
+			label = argmax(nc) # Assign the most likely label before the split
+			(nc, nt), (purity, label)
 		end
-		nt = sum(nc)
-		node.purity = -(loss_function(nc, nt))
-		node.label = argmax(nc) # Assign the most likely label before the split
+		############################################################################
+		############################################################################
+		############################################################################
 
 		@logmsg DTDebug "_split!(...) " n_instances region nt
 
+		############################################################################
 		# Preemptive leaf conditions
+		############################################################################
 		if (
 			# If all the instances belong to the same class, make this a leaf
 			    (nc[node.label]       == nt)
@@ -138,6 +149,17 @@ module treeclassifier
 			@logmsg DTDetail "leaf created: " (min_samples_leaf * 2 >  n_instances) (nc[node.label] == nt) (node.purity  >= max_purity_at_leaf) (max_depth <= node.depth)
 			return
 		end
+		############################################################################
+		############################################################################
+		############################################################################
+
+		# TODO try this solution for rsums and lsums (regression case)
+		# rsums = Vector{U}(undef, n_instances)
+		# lsums = Vector{U}(undef, n_instances)
+		# @simd for i in 1:n_instances
+		# 	rsums[i] = zero(U)
+		# 	lsums[i] = zero(U)
+		# end
 
 		Sfs = Vector{AbstractVector{WST} where {WorldType,WST<:AbstractVector{WorldType}}}(undef, n_frames(Xs))
 		for i_frame in 1:n_frames(Xs)
@@ -226,47 +248,60 @@ module treeclassifier
 				
 				# println(display_decision(i_frame, relation, feature, test_operator, threshold))
 
-				# Re-initialize right Counts
-				nr = zero(U)
-				ncr = fill(zero(U), n_classes)
-				if isa(_perform_consistency_check,Val{true})
-					consistency_sat_check .= 1
-				end
-				for i_instance in 1:n_instances
-					gamma = aggr_thresholds[i_instance]
-					satisfied = ModalLogic.evaluate_thresh_decision(test_operator, gamma, threshold)
-					@logmsg DTDetail " instance $i_instance/$n_instances: (f=$(gamma)) -> satisfied = $(satisfied)"
-					
-					# TODO make this satisfied a fuzzy value
-					if !satisfied
-						nr += Wf[i_instance]
-						ncr[Yf[i_instance]] += Wf[i_instance]
-					else
-						if isa(_perform_consistency_check,Val{true})
-							consistency_sat_check[i_instance] = 0
+				########################################################################
+				# Apply decision to all instances
+				########################################################################
+				(ncr, nr, ncl, nl), consistency_sat_check = begin
+					# Re-initialize right counts
+					nr = zero(U)
+					ncr = fill(zero(U), n_classes)
+					if isa(_perform_consistency_check,Val{true})
+						consistency_sat_check .= 1
+					end
+					for i_instance in 1:n_instances
+						gamma = aggr_thresholds[i_instance]
+						satisfied = ModalLogic.evaluate_thresh_decision(test_operator, gamma, threshold)
+						@logmsg DTDetail " instance $i_instance/$n_instances: (f=$(gamma)) -> satisfied = $(satisfied)"
+						
+						# TODO make this satisfied a fuzzy value
+						if !satisfied
+							nr += Wf[i_instance]
+							ncr[Yf[i_instance]] += Wf[i_instance]
+						else
+							if isa(_perform_consistency_check,Val{true})
+								consistency_sat_check[i_instance] = 0
+							end
 						end
 					end
+					# Calculate left counts
+					ncl = Vector{U}(undef, n_classes)
+					ncl .= nc .- ncr
+					nl = nt - nr
+					
+					(ncr, nr, ncl, nl), consistency_sat_check
 				end
-
-				# Calculate left Counts
-				ncl = Vector{U}(undef, n_classes)
-				ncl .= nc .- ncr
-				nl = nt - nr
+				
+				########################################################################
+				########################################################################
+				########################################################################
+				
 				@logmsg DTDebug "  (n_left,n_right) = ($nl,$nr)"
 
 				# Honor min_samples_leaf
 				if nl >= min_samples_leaf && (n_instances - nl) >= min_samples_leaf
-					purity_times_nt = - (nl * loss_function(ncl, nl) + nr * loss_function(ncr, nr))
+					purity_times_nt = begin
+						- (nl * loss_function(ncl, nl) + nr * loss_function(ncr, nr))
+					end
 					if purity_times_nt > best_purity_times_nt # && !isapprox(purity_times_nt, best_purity_times_nt)
 						#################################
 						best_i_frame             = i_frame
 						#################################
 						best_purity_times_nt     = purity_times_nt
 						#################################
-						best_relation       = relation
-						best_feature        = feature
-						best_test_operator  = test_operator
-						best_threshold      = threshold
+						best_relation            = relation
+						best_feature             = feature
+						best_test_operator       = test_operator
+						best_threshold           = threshold
 						#################################
 						# print((relation, test_operator, feature, threshold))
 						# println(" NEW BEST $best_i_frame, $best_purity_times_nt/nt")
@@ -285,11 +320,25 @@ module treeclassifier
 			end # END decisions
 		end # END frame
 
-		# @logmsg DTOverview "purity increase" best_purity_times_nt/nt node.purity (best_purity_times_nt/nt + node.purity) (best_purity_times_nt/nt - node.purity)
+		# println("best_purity_times_nt = $(best_purity_times_nt)")
+		# println("nt =  $(nt)")
+		# println("node.purity =  $(node.purity)")
+		# println("best_purity_times_nt / nt - node.purity = $(best_purity_times_nt / nt - node.purity)")
+		# println("min_purity_increase * nt =  $(min_purity_increase) * $(nt) = $(min_purity_increase * nt)")
+
+		# @logmsg DTOverview "purity_times_nt increase" best_purity_times_nt/nt node.purity (best_purity_times_nt/nt + node.purity) (best_purity_times_nt/nt - node.purity)
 		# If the best split is good, partition and split accordingly
-		@inbounds if (best_purity_times_nt == typemin(Float64)
-									|| (best_purity_times_nt/nt - node.purity <= min_purity_increase))
+		@inbounds if (
+			##########################################################################
+			##########################################################################
+			##########################################################################
+				best_purity_times_nt == typemin(Float64)
+									|| (best_purity_times_nt/nt - node.purity <= min_purity_increase)
+								)
 			@logmsg DTDebug " Leaf" best_purity_times_nt min_purity_increase (best_purity_times_nt/nt) node.purity ((best_purity_times_nt/nt) - node.purity)
+			##########################################################################
+			##########################################################################
+			##########################################################################
 			node.is_leaf = true
 			return
 		else
@@ -331,6 +380,11 @@ module treeclassifier
 				end
 			end
 
+			@logmsg DTDetail " unsatisfied_flags" unsatisfied_flags
+
+			if length(unique(unsatisfied_flags)) == 1
+				throw_n_log("An uninformative split was reached. Something's off\nPurity: $(node.purity)\nSplit: $(decision_str)\nUnsatisfied flags: $(unsatisfied_flags)")
+			end
 			@logmsg DTOverview " Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(best_i_frame) with decision: $(decision_str), purity $(best_purity)"
 
 			# Check consistency
