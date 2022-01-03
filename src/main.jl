@@ -3,38 +3,7 @@ using StatsBase
 
 using StructuredArrays # , FillArrays # TODO choose one
 
-# TODO this is ugly but... https://stackoverflow.com/a/30229723/5646732
-fit(::Union{}) = nothing
-
-include("model/treeclassifier.jl")
-include("model/treeregressor.jl")
-
-# Conversion: NodeMeta (node + training info) -> DTNode (bare decision tree model)
-function _convert(
-		node   :: treeclassifier.NodeMeta,
-		list   :: AbstractVector{S},
-		labels :: AbstractVector{S}) where {U<:Real, S<:String}
-	if node.is_leaf
-		return DTLeaf(list[node.label], labels[node.region])
-	else
-		left  = _convert(node.l, list, labels)
-		right = _convert(node.r, list, labels)
-		return DTInternal(node.i_frame, node.relation, node.feature, node.test_operator, node.threshold, left, right)
-	end
-end
-
-# Conversion: NodeMeta (node + training info) -> DTNode (bare decision tree model)
-function _convert(
-		node   :: treeregressor.NodeMeta,
-		labels :: AbstractVector{S}) where {U<:Real, S<:Float64}
-	if node.is_leaf
-		return DTLeaf(node.label, labels[node.region])
-	else
-		left  = _convert(node.l, labels)
-		right = _convert(node.r, labels)
-		return DTInternal(node.i_frame, node.relation, node.feature, node.test_operator, node.threshold, left, right)
-	end
-end
+include("model/tree.jl")
 
 ################################################################################
 ########################## Matricial Dataset ###################################
@@ -158,7 +127,7 @@ function build_tree(
 	end
 
 	# rng = mk_rng(rng) # TODO figure out what to do here. Maybe it can be helpful to make rng either an rng or a seed, and then mk_rng transforms it into an rng
-	t = fit(
+	root = fit(
 		Xs,
 		Y,
 		W
@@ -177,16 +146,7 @@ function build_tree(
 		perform_consistency_check = perform_consistency_check,
 		############################################################################
 		rng                 = rng)
-
-	root = begin
-		if S <: Float64
-			_convert(t.root, Y)
-		elseif S <: String
-			_convert(t.root, t.list, Y[t.labels])
-		else
-			error("Unknown type for Ys: $(S)")
-		end
-	end
+	
 	DTree(root, world_types(Xs), initConditions)
 end
 

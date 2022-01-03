@@ -18,6 +18,13 @@ const DTDebug = Logging.LogLevel(-1000)
 # Log more detailed debug info
 const DTDetail = Logging.LogLevel(-1500)
 
+# TODO Use RegressionLabel instead of Float64 and ClassificationLabel instead of String where it is appropriate!
+# Actually, the distinction must be made between String and Numbers (Categorical and Numeral (Numeral Continuous like Float64 or Numeral Discrete like Integers))
+# But this can be dangerous because if not coded right Categorical cases indexed by Integers end up being considered Numerical cases
+# TODO remove treeclassifier.jl, treeregressor.jl, and these two definitions
+const ClassificationLabel = String
+const RegressionLabel = Float64 # AbstractFloat
+	
 # TODO update these
 export DTNode, DTLeaf, DTInternal,
 				DTree, Forest,

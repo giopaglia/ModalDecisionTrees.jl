@@ -3,9 +3,9 @@
 ☐	enumAccessibles(set) is not needed?!
 ☐	what to do with nans? Perhaps a NaN means that a world must be ignored??? In that case, one could easily design features that ignore small worlds!
 ☐	create meta-feature that gives features a name.
+☐	IntervalFeaturedWorldDataset could have thresholds with different type from the origin dataset
 
-################################################################################
-☐	Sort out TODOs into a thesis?
+
 ################################################################################
 ☐	CODE: Check type-stability with code_warntype!
 	- https://docs.julialang.org/en/v1/devdocs/reflection/#Intermediate-and-compiled-representations

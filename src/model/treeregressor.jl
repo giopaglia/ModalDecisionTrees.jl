@@ -11,7 +11,7 @@ module treeregressor
 	using ..ModalLogic
 	using ..DecisionTree
 	using DecisionTree.util
-	const L = DecisionTree.util.RegressionLabel
+	const L = DecisionTree.RegressionLabel
 	using Logging: @logmsg
 	import Random
 	import StatsBase
@@ -108,33 +108,43 @@ module treeregressor
 		# 	Wf[i] = W[indX[i + r_start]]
 		# end
 
+		############################################################################
 		# Prepare counts
-		sums = [Wf[i]*Yf[i]       for i in 1:n_instances]
-		# ssqs = [Wf[i]*Yf[i]*Yf[i] for i in 1:n_instances]
-		
-		# tssq = zero(U)
-		# tssq = sum(ssqs)
-		# tsum = zero(U)
-		tsum = sum(sums)
-		# nt = zero(U)
-		nt = sum(Wf)
-		# @inbounds @simd for i in 1:n_instances
-		# 	# tssq += Wf[i]*Yf[i]*Yf[i]
-		# 	# tsum += Wf[i]*Yf[i]
-		# 	nt += Wf[i]
-		# end
+		############################################################################
+		sums, (tsum, nt),
+		(node.purity, node.label) = begin
+			sums = [Wf[i]*Yf[i]       for i in 1:n_instances]
+			# ssqs = [Wf[i]*Yf[i]*Yf[i] for i in 1:n_instances]
+			
+			# tssq = zero(U)
+			# tssq = sum(ssqs)
+			# tsum = zero(U)
+			tsum = sum(sums)
+			# nt = zero(U)
+			nt = sum(Wf)
+			# @inbounds @simd for i in 1:n_instances
+			# 	# tssq += Wf[i]*Yf[i]*Yf[i]
+			# 	# tsum += Wf[i]*Yf[i]
+			# 	nt += Wf[i]
+			# end
 
-		node.label =  tsum / nt # Assign the most likely label before the split
-		
-		# node.purity = (tsum * node.label) # TODO use loss function
-		# node.purity = tsum * tsum # TODO use loss function
-		# tmean = tsum/nt
-		# node.purity = -((tssq - 2*tmean*tsum + (tmean^2*nt)) / (nt-1)) # TODO use loss function
-		node.purity = -(loss_function(sums, nt))
-		
-		@logmsg DTDebug "_split!(...) " n_instances region
+			# purity = (tsum * label) # TODO use loss function
+			# purity = tsum * tsum # TODO use loss function
+			# tmean = tsum/nt
+			# purity = -((tssq - 2*tmean*tsum + (tmean^2*nt)) / (nt-1)) # TODO use loss function
+			purity = -(loss_function(sums, nt))
+			label =  tsum / nt # Assign the most likely label before the split
+			sums, (tsum, nt), (purity, label)
+		end
+		############################################################################
+		############################################################################
+		############################################################################
 
+		@logmsg DTDebug "_split!(...) " n_instances region nt
+
+		############################################################################
 		# Preemptive leaf conditions
+		############################################################################
 		if (
 			# No binary split can honor min_samples_leaf if there aren't as many as
 			#  min_samples_leaf*2 instances in the first place
@@ -147,6 +157,9 @@ module treeregressor
 			@logmsg DTDetail "leaf created: " (min_samples_leaf * 2 >  n_instances) (tsum * node.label    > -1e-7 * nt + tssq) (tsum * node.label) (-1e-7 * nt + tssq) (max_depth <= node.depth)
 			return
 		end
+		############################################################################
+		############################################################################
+		############################################################################
 
 		# TODO try this solution for rsums and lsums
 		# rsums = Vector{U}(undef, n_instances)
@@ -165,7 +178,7 @@ module treeregressor
 		end
 
 		# Optimization-tracking variables
-		best_frame = -1
+		best_i_frame = -1
 		best_purity_times_nt = typemin(Float64)
 		best_relation = RelationNone
 		best_feature = FeatureTypeNone
@@ -189,7 +202,7 @@ module treeregressor
 					frame_allowRelationGlob,
 					frame_onlyallowRelationGlob)) in enumerate(zip(frames(Xs), Sfs, n_subrelations, n_subfeatures, allowRelationGlob, node.onlyallowRelationGlob))
 
-			@logmsg DTDetail "  Frame $(best_frame)/$(length(frames(Xs)))"
+			@logmsg DTDetail "  Frame $(best_i_frame)/$(length(frames(Xs)))"
 
 			allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds = begin
 				
@@ -243,43 +256,50 @@ module treeregressor
 				
 				# println(display_decision(i_frame, relation, feature, test_operator, threshold))
 
-				# Re-initialize right counts
-				# rssq = zero(U)
-				rsum = zero(U)
-				nr   = zero(U)
-				# TODO experiment with running mean instead, because this may cause a lot of memory inefficiency
-				# https://it.wikipedia.org/wiki/Algoritmi_per_il_calcolo_della_varianza
-				rsums = Float64[] # Vector{U}(undef, n_instances)
-				lsums = Float64[] # Vector{U}(undef, n_instances)
+				########################################################################
+				# Apply decision to all instances
+				########################################################################
+				(rsums, nr, lsums, nl, rsum, lsum), consistency_sat_check = begin
+					# Initialize right counts
+					# rssq = zero(U)
+					rsum = zero(U)
+					nr   = zero(U)
+					# TODO experiment with running mean instead, because this may cause a lot of memory inefficiency
+					# https://it.wikipedia.org/wiki/Algoritmi_per_il_calcolo_della_varianza
+					rsums = Float64[] # Vector{U}(undef, n_instances)
+					lsums = Float64[] # Vector{U}(undef, n_instances)
 
-				if isa(_perform_consistency_check,Val{true})
-					consistency_sat_check[1:n_instances] .= 1
-				end
-				for i_instance in 1:n_instances
-					gamma = aggr_thresholds[i_instance]
-					satisfied = ModalLogic.evaluate_thresh_decision(test_operator, gamma, threshold)
-					@logmsg DTDetail " instance $i_instance/$n_instances: (f=$(gamma)) -> satisfied = $(satisfied)"
-					
-					# TODO make this satisfied a fuzzy value
-					if !satisfied
-						push!(rsums, sums[i_instance])
-						# rsums[i_instance] = sums[i_instance]
-						nr   += Wf[i_instance]
-						rsum += sums[i_instance]
-						# rssq += ssqs[i_instance]
-					else
-						push!(lsums, sums[i_instance])
-						# lsums[i_instance] = sums[i_instance]
-						if isa(_perform_consistency_check,Val{true})
-							consistency_sat_check[i_instance] = 0
+					if isa(_perform_consistency_check,Val{true})
+						consistency_sat_check .= 1
+					end
+					for i_instance in 1:n_instances
+						gamma = aggr_thresholds[i_instance]
+						satisfied = ModalLogic.evaluate_thresh_decision(test_operator, gamma, threshold)
+						@logmsg DTDetail " instance $i_instance/$n_instances: (f=$(gamma)) -> satisfied = $(satisfied)"
+						
+						# TODO make this satisfied a fuzzy value
+						if !satisfied
+							push!(rsums, sums[i_instance])
+							# rsums[i_instance] = sums[i_instance]
+							nr   += Wf[i_instance]
+							rsum += sums[i_instance]
+							# rssq += ssqs[i_instance]
+						else
+							push!(lsums, sums[i_instance])
+							# lsums[i_instance] = sums[i_instance]
+							if isa(_perform_consistency_check,Val{true})
+								consistency_sat_check[i_instance] = 0
+							end
 						end
 					end
-				end
 
-				# Calculate left counts
-				lsum = tsum - rsum
-				# lssq = tssq - rssq
-				nl   = nt - nr
+					# Calculate left counts
+					# lsum = tsum - rsum
+					# lssq = tssq - rssq
+					nl   = nt - nr
+					
+					(rsums, nr, lsums, nl, rsum, lsum), consistency_sat_check
+				end
 
 				@logmsg DTDebug "  (n_left,n_right) = ($nl,$nr)"
 
@@ -289,41 +309,35 @@ module treeregressor
 				
 				# Honor min_samples_leaf
 				if nl >= min_samples_leaf && (n_instances - nl) >= min_samples_leaf
-					purity_times_nt = - (nl * loss_function(lsums, nl) + nr * loss_function(rsums, nr))
-
-					# TODO use loss_function instead
-
-					# ORIGINAL: TODO understand how it works
-					# purity_times_nt = (rsum * rsum / nr) + (lsum * lsum / nl)
-					
-					# Variance with ssqs
-					# purity_times_nt = (rmean, lmean = rsum/nr, lsum/nl; - (nr * (rssq - 2*rmean*rsum + (rmean^2*nr)) / (nr-1) + (nl * (lssq - 2*lmean*lsum + (lmean^2*nl)) / (nl-1))))
-					
-					# Variance
-					# var = (x)->sum((x.-StatsBase.mean(x)).^2) / (length(x)-1)
-					# purity_times_nt = - (nr * var(rsums)) + nl * var(lsums))
-					
-					# Simil-variance that is easier to compute but it doesn't work with few samples on the leaves
-					# var = (x)->sum((x.-StatsBase.mean(x)).^2)
-					# purity_times_nt = - (var(rsums) + var(lsums))
-					
-
-					# println("purity_times_nt: $(purity_times_nt)")
-
+					purity_times_nt = begin
+						- (nl * loss_function(lsums, nl) + nr * loss_function(rsums, nr))
+											# TODO use loss_function instead
+											# ORIGINAL: TODO understand how it works
+											# purity_times_nt = (rsum * rsum / nr) + (lsum * lsum / nl)
+											# Variance with ssqs
+											# purity_times_nt = (rmean, lmean = rsum/nr, lsum/nl; - (nr * (rssq - 2*rmean*rsum + (rmean^2*nr)) / (nr-1) + (nl * (lssq - 2*lmean*lsum + (lmean^2*nl)) / (nl-1))))
+											# Variance
+											# var = (x)->sum((x.-StatsBase.mean(x)).^2) / (length(x)-1)
+											# purity_times_nt = - (nr * var(rsums)) + nl * var(lsums))
+											# Simil-variance that is easier to compute but it doesn't work with few samples on the leaves
+											# var = (x)->sum((x.-StatsBase.mean(x)).^2)
+											# purity_times_nt = - (var(rsums) + var(lsums))
+											# println("purity_times_nt: $(purity_times_nt)")
+					end
 					if purity_times_nt > best_purity_times_nt # && !isapprox(purity_times_nt, best_purity_times_nt)
 						#################################
-						best_frame          = i_frame
+						best_i_frame             = i_frame
 						#################################
 						best_purity_times_nt     = purity_times_nt
 						#################################
-						best_relation       = relation
-						best_feature        = feature
-						best_test_operator  = test_operator
-						best_threshold      = threshold
+						best_relation            = relation
+						best_feature             = feature
+						best_test_operator       = test_operator
+						best_threshold           = threshold
 						#################################
 						# print((relation, test_operator, feature, threshold))
-						# println(" NEW BEST $best_frame, $best_purity_times_nt/nt")
-						@logmsg DTDetail "  Found new optimum in frame $(best_frame): " (best_purity_times_nt/nt) best_relation best_feature best_test_operator best_threshold
+						# println(" NEW BEST $best_i_frame, $best_purity_times_nt/nt")
+						@logmsg DTDetail "  Found new optimum in frame $(best_i_frame): " (best_purity_times_nt/nt) best_relation best_feature best_test_operator best_threshold
 						#################################
 						best_consistency = begin
 							if isa(_perform_consistency_check,Val{true})
@@ -344,32 +358,30 @@ module treeregressor
 		# println("best_purity_times_nt / nt - node.purity = $(best_purity_times_nt / nt - node.purity)")
 		# println("min_purity_increase * nt =  $(min_purity_increase) * $(nt) = $(min_purity_increase * nt)")
 
-		# @logmsg DTOverview "purity_times_nt increase" best_purity_times_nt node.purity_times_nt (best_purity_times_nt + node.purity_times_nt) (best_purity_times_nt - node.purity_times_nt)
+		# @logmsg DTOverview "purity_times_nt increase" best_purity_times_nt/nt node.purity (best_purity_times_nt + node.purity) (best_purity_times_nt - node.purity)
 		# If the best split is good, partition and split accordingly
-		@inbounds if (best_purity_times_nt == typemin(Float64)
+		@inbounds if (
+			##########################################################################
+			##########################################################################
+			##########################################################################
+			best_purity_times_nt == typemin(Float64)
 									# || best_purity_times_nt - tsum * node.label <= min_purity_increase * nt # ORIGINAL
 									|| (best_purity_times_nt / nt - node.purity <= min_purity_increase * nt)
 								)
 			@logmsg DTDebug " Leaf" best_purity_times_nt tsum node.label min_purity_increase nt (best_purity_times_nt / nt - tsum * node.label) (min_purity_increase * nt)
+			##########################################################################
+			##########################################################################
+			##########################################################################
 			node.is_leaf = true
 			return
 		else
 			best_purity = best_purity_times_nt/nt
 			
-			# split the samples into two parts:
-			#  ones for which the is satisfied and those for whom it's not
-			node.purity         = best_purity
-			node.i_frame        = best_frame
-			node.relation       = best_relation
-			node.feature        = best_feature
-			node.test_operator  = best_test_operator
-			node.threshold      = best_threshold
-			
 			# Compute new world sets (= take a modal step)
 
 			# println(decision_str)
-			decision_str = display_decision(node.i_frame, node.relation, node.feature, node.test_operator, node.threshold)
-			
+			decision_str = display_decision(best_i_frame, best_relation, best_feature, best_test_operator, best_threshold)
+
 			# TODO instead of using memory, here, just use two opposite indices and perform substitutions. indj = n_instances
 			unsatisfied_flags = fill(1, n_instances)
 			for i_instance in 1:n_instances
