@@ -5,20 +5,17 @@ module util
 
 	export gini, entropy, zero_one, q_bi_sort!
 
-	const Label = Int
-	const RegressionLabel = Float64 # AbstractFloat
-	
 	using StatsBase
 
 	# This function translates a list of labels into categorical form
 	function assign(Y :: AbstractVector{T}) where T
 		function assign(Y :: AbstractVector{T}, list :: AbstractVector{T}) where T
-			dict = Dict{T, Label}()
+			dict = Dict{T, Int64}()
 			@simd for i in 1:length(list)
 				@inbounds dict[list[i]] = i
 			end
 
-			_Y = Array{Label}(undef, length(Y))
+			_Y = Array{Int64}(undef, length(Y))
 			@simd for i in 1:length(Y)
 				@inbounds _Y[i] = dict[Y[i]]
 			end
