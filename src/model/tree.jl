@@ -17,9 +17,9 @@ mutable struct NodeMeta{P,L}
     region             :: UnitRange{Int}                   # a slice of the samples used to decide the split of the node
     depth              :: Int
     modal_depth        :: Int
-    # worlds      :: AbstractVector{WorldSet{W}}         # current set of worlds for each training instance
+    # worlds      :: AbstractVector{WorldSet{W}}           # current set of worlds for each training instance
     purity             :: P                                # purity grade attained at training time
-    label              :: L                            # most likely label
+    label              :: L                                # most likely label
     is_leaf            :: Bool                             # whether this is a leaf node, or a split one
     # split node-only properties
     split_at           :: Int                              # index of samples
@@ -27,10 +27,7 @@ mutable struct NodeMeta{P,L}
     r                  :: NodeMeta{P,L}                    # right child
 
     i_frame            :: Integer                          # Id of frame
-    relation           :: R where R<:AbstractRelation      # modal operator (e.g. RelationId for the propositional case)
-    feature            :: FeatureTypeFun                   # feature used for splitting
-    test_operator      :: TestOperatorFun                  # test_operator (e.g. <=)
-    threshold          :: T where T                                # threshold value
+    decision           :: Decision{T} where {T}                    
     
     onlyallowRelationGlob:: Vector{Bool}
 
@@ -57,7 +54,7 @@ end
     ind = node.split_at
     region = node.region
     depth = node.depth+1
-    mdepth = (node.relation == RelationId ? node.modal_depth : node.modal_depth+1)
+    mdepth = node.modal_depth+Int(is_modal_node(node.decision))
     @logmsg DTDetail "fork!(...): " node ind region mdepth
 
     # onlyallowRelationGlob changes:
@@ -81,7 +78,7 @@ function _convert(
     else
         left  = _convert(node.l, list, labels)
         right = _convert(node.r, list, labels)
-        DTInternal(node.i_frame, node.relation, node.feature, node.test_operator, node.threshold, left, right)
+        DTInternal(node.i_frame, node.decision, left, right)
     end
 end
 
@@ -94,7 +91,7 @@ function _convert(
     else
         left  = _convert(node.l, labels)
         right = _convert(node.r, labels)
-        DTInternal(node.i_frame, node.relation, node.feature, node.test_operator, node.threshold, left, right)
+        DTInternal(node.i_frame, node.decision, left, right)
     end
 end
 
@@ -512,10 +509,7 @@ function DecisionTree.fit(
             # Optimization-tracking variables
             best_i_frame = -1
             best_purity_times_nt = typemin(P)
-            best_relation = RelationNone
-            best_feature = FeatureTypeNone
-            best_test_operator = nothing
-            best_threshold = nothing
+            best_decision = Decision(RelationNone, FeatureTypeNone, nothing, nothing)
             if isa(_perform_consistency_check,Val{true})
                 consistency_sat_check = Vector{Bool}(undef, n_instances)
             end
@@ -584,10 +578,12 @@ function DecisionTree.fit(
                 ########################################################################
                 ########################################################################
                 
-                @inbounds for ((relation, feature, test_operator, threshold), aggr_thresholds) in generate_feasible_decisions(X, indX[region], frame_Sf, allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds)
+                @inbounds for (decision, aggr_thresholds) in generate_feasible_decisions(X, indX[region], frame_Sf, allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds)
                     
-                    # println(display_decision(i_frame, relation, feature, test_operator, threshold))
+                    # println(display_decision(i_frame, decision))
 
+                    # TODO avoid ugly unpacking and figure out a different way of achieving this
+                    (test_operator, threshold) = (decision.test_operator, decision.threshold)
                     ########################################################################
                     # Apply decision to all instances
                     ########################################################################
@@ -698,14 +694,11 @@ function DecisionTree.fit(
                             #################################
                             best_purity_times_nt     = purity_times_nt
                             #################################
-                            best_relation            = relation
-                            best_feature             = feature
-                            best_test_operator       = test_operator
-                            best_threshold           = threshold
+                            best_decision            = decision
                             #################################
-                            # print((relation, test_operator, feature, threshold))
+                            # print(decision)
                             # println(" NEW BEST $best_i_frame, $best_purity_times_nt/nt")
-                            @logmsg DTDetail "  Found new optimum in frame $(best_i_frame): " (best_purity_times_nt/nt) best_relation best_feature best_test_operator best_threshold
+                            @logmsg DTDetail "  Found new optimum in frame $(best_i_frame): " (best_purity_times_nt/nt) best_decision
                             #################################
                             best_consistency = begin
                                 if isa(_perform_consistency_check,Val{true})
@@ -758,7 +751,7 @@ function DecisionTree.fit(
                 # Compute new world sets (= take a modal step)
 
                 # println(decision_str)
-                decision_str = display_decision(best_i_frame, best_relation, best_feature, best_test_operator, best_threshold)
+                decision_str = display_decision(best_i_frame, best_decision)
                 
                 # TODO instead of using memory, here, just use two opposite indices and perform substitutions. indj = n_instances
                 unsatisfied_flags = fill(1, n_instances)
@@ -775,7 +768,7 @@ function DecisionTree.fit(
 
                     # println(instance)
                     # println(Sf[i_instance])
-                    _sat, _ss = ModalLogic.modal_step(X, indX[i_instance + r_start], Sf[i_instance], best_relation, best_feature, best_test_operator, best_threshold)
+                    _sat, _ss = ModalLogic.modal_step(X, indX[i_instance + r_start], Sf[i_instance], best_decision)
                     # Threads.lock(writing_lock)
                     (satisfied,Ss[best_i_frame][indX[i_instance + r_start]]) = _sat, _ss
                     # Threads.unlock(writing_lock)
@@ -807,10 +800,10 @@ function DecisionTree.fit(
 
                 if best_consistency != consistency
                     errStr = "Something's wrong with the optimization steps."
-                    errStr *= "Relation $(best_relation), feature $(best_feature) and test_operator $(best_test_operator).\n"
+                    errStr *= "Decision $(best_decision).\n"
                     errStr *= "Possible causes:\n"
                     errStr *= "- feature returning NaNs\n"
-                    errStr *= "- erroneous enumAccReprAggr for relation $(best_relation), aggregator $(ModalLogic.existential_aggregator(best_test_operator)) and feature $(best_feature)\n"
+                    errStr *= "- erroneous enumAccReprAggr for relation $(best_decision.relation), aggregator $(ModalLogic.existential_aggregator(best_decision.test_operator)) and feature $(best_decision.feature)\n"
                     errStr *= "\n"
                     errStr *= "Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(best_i_frame) with decision: $(decision_str), purity $(best_purity)\n"
                     errStr *= "$(length(indX[region])) Instances: $(indX[region])\n"
@@ -834,7 +827,7 @@ function DecisionTree.fit(
                     end
                     
                     # for i in 1:n_instances
-                        # errStr *= "$(ModalLogic.getChannel(Xs, indX[i + r_start], best_feature))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[best_i_frame][indX[i + r_start]])\n";
+                        # errStr *= "$(ModalLogic.getChannel(Xs, indX[i + r_start], best_decision.feature))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[best_i_frame][indX[i + r_start]])\n";
                     # end
 
                     # throw_n_log("ERROR! " * errStr)
@@ -859,11 +852,7 @@ function DecisionTree.fit(
                     #  ones for which the is satisfied and those for whom it's not
                     node.purity         = best_purity
                     node.i_frame        = best_i_frame
-                    node.relation       = best_relation
-                    node.feature        = best_feature
-                    node.test_operator  = best_test_operator
-                    node.threshold      = best_threshold
-                    
+                    node.decision       = best_decision
 
                     @logmsg DTDetail "pre-partition" region indX[region] unsatisfied_flags
                     node.split_at = util.partition!(indX, unsatisfied_flags, 0, region)

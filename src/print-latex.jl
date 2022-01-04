@@ -111,7 +111,7 @@ function _latex_string(
     result
 end
 
-_node_content(leaf::DTLeaf; kwargs...)::String = _latex_string(leaf.majority; kwargs...)
+_node_content(leaf::DTLeaf; kwargs...)::String = _latex_string(leaf.label; kwargs...)
 _node_content(node::DTInternal; kwargs...)::String = ""
 
 function _print_tree_latex(
@@ -162,7 +162,7 @@ function _print_tree_latex(
     # add left edge
     result *= "\\path ($previous_node_index) edge[sloped,above] node {$(_latex_string(display_decision(node; threshold_display_method = t_display_func); conversion_dict = conversion_dict, add_dollars = add_dollars, show_test_operator_alpha = print_test_operator_alpha, show_frame_number = show_frame_number))} ($(previous_node_index)0);\n"
     # add right edge
-    result *= "\\path ($previous_node_index) edge[sloped,above] node {$(_latex_string(display_decision_inverse(node; threshold_display_method = t_display_func); conversion_dict = conversion_dict, add_dollars = add_dollars, show_test_operator_alpha = print_test_operator_alpha, show_frame_number = show_frame_number))} ($(previous_node_index)1);\n"
+    result *= "\\path ($previous_node_index) edge[sloped,above] node {$(_latex_string(display_decision_neg(node; threshold_display_method = t_display_func); conversion_dict = conversion_dict, add_dollars = add_dollars, show_test_operator_alpha = print_test_operator_alpha, show_frame_number = show_frame_number))} ($(previous_node_index)1);\n"
     # recursive calls
     result *= _print_tree_latex(node.left, previous_node_index * "0", left_node_pos, space_unit, nodes_margin, conversion_dict, add_dollars, print_test_operator_alpha, show_frame_number, t_display_func, nodes_script_size, edges_script_size)
     result *= _print_tree_latex(node.right, previous_node_index * "1", right_node_pos, space_unit, nodes_margin, conversion_dict, add_dollars, print_test_operator_alpha, show_frame_number, t_display_func, nodes_script_size, edges_script_size)

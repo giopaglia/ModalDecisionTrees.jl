@@ -96,6 +96,19 @@ const _IA2DRelSingleVal = Union{_IA_A,_IA_Ai,_IA_B,_IA_E}
 
 #=
 
+################################################################################
+################################################################################
+# TODO remove (needed for GAMMAS)
+# Utility type for enhanced computation of thresholds
+abstract type _ReprTreatment end
+struct _ReprFake{WorldType<:AbstractWorld} <: _ReprTreatment w :: WorldType end
+struct _ReprMax{WorldType<:AbstractWorld}  <: _ReprTreatment w :: WorldType end
+struct _ReprMin{WorldType<:AbstractWorld}  <: _ReprTreatment w :: WorldType end
+struct _ReprVal{WorldType<:AbstractWorld}  <: _ReprTreatment w :: WorldType end
+struct _ReprNone{WorldType<:AbstractWorld} <: _ReprTreatment end
+# enumAccRepr(::_TestOpGeq, w::WorldType, ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = _ReprMin(w)
+# enumAccRepr(::_TestOpLeq, w::WorldType, ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = _ReprMax(w)
+
 @inline enumAccRepr2D(test_operator::TestOperator, w::Interval2D, rx::R1 where R1<:AbstractRelation, ry::R2 where R2<:AbstractRelation, X::Integer, Y::Integer, _ReprConstructor::Type{rT}) where {rT<:_ReprTreatment} = begin
 	x = enumAccRepr(test_operator, w.x, rx, X)
 	# println(x)
