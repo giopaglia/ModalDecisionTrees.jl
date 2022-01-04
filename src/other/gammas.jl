@@ -415,7 +415,7 @@ function computeGammas(
 				# TODO Check if cur_gammas improves performances
 				@views cur_gammas = sliceGammas(WorldType, gammas, i, relation_id, feature)
 				# For each world w and each relation, compute the thresholds of all v worlds, with w<R>v
-				worlds = if relation != RelationGlob
+				worlds = if !(relation isa ModalLogic._RelationGlob)
 						ModalLogic.enumAccessibles(WorldType[], RelationGlob, channel)
 					else
 						[firstWorld]

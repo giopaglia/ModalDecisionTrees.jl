@@ -3,189 +3,229 @@
 
 module util
 
-	export gini, entropy, zero_one, q_bi_sort!
+    export gini, entropy, zero_one, q_bi_sort!, subscriptnumber
 
-	using StatsBase
+    using Random
+    using StatsBase
 
-	# This function translates a list of labels into categorical form
-	function assign(Y :: AbstractVector{T}) where T
-		function assign(Y :: AbstractVector{T}, list :: AbstractVector{T}) where T
-			dict = Dict{T, Int64}()
-			@simd for i in 1:length(list)
-				@inbounds dict[list[i]] = i
-			end
+    # Generate a new rng from a random pick from a given one.
+    spawn_rng(rng) = Random.MersenneTwister(abs(rand(rng, Int)))
 
-			_Y = Array{Int64}(undef, length(Y))
-			@simd for i in 1:length(Y)
-				@inbounds _Y[i] = dict[Y[i]]
-			end
+    # This function translates a list of labels into categorical form
+    function assign(Y :: AbstractVector{T}) where T
+        function assign(Y :: AbstractVector{T}, list :: AbstractVector{T}) where T
+            dict = Dict{T, Int64}()
+            @simd for i in 1:length(list)
+                @inbounds dict[list[i]] = i
+            end
 
-			return list, _Y
-		end
+            _Y = Array{Int64}(undef, length(Y))
+            @simd for i in 1:length(Y)
+                @inbounds _Y[i] = dict[Y[i]]
+            end
 
-		set = Set{T}()
-		for y in Y
-			push!(set, y)
-		end
-		list = collect(set)
-		return assign(Y, list)
-	end
+            return list, _Y
+        end
 
-	@inline function zero_one(ns :: AbstractVector{T}, n :: T) where {T <: Real}
-		return 1.0 - maximum(ns) / n
-	end
+        set = Set{T}()
+        for y in Y
+            push!(set, y)
+        end
+        list = collect(set)
+        return assign(Y, list)
+    end
 
-	@inline function gini(ns :: AbstractVector{T}, n :: T) where {T <: Real}
-		s = 0.0
-		@simd for k in ns
-			s += k * (n - k)
-		end
-		return s / (n * n)
-	end
+    @inline function zero_one(ns :: AbstractVector{T}, n :: T) where {T <: Real}
+        return 1.0 - maximum(ns) / n
+    end
 
-	# a = [5,3,9,2]
-	# a = [0,0,9,0]
-	# DecisionTree.util.entropy(a, sum(a))
-	# maximum(a)/sum(a)
+    @inline function gini(ns :: AbstractVector{T}, n :: T) where {T <: Real}
+        s = 0.0
+        @simd for k in ns
+            s += k * (n - k)
+        end
+        return s / (n * n)
+    end
 
-	# returns the entropy of ns/n, ns is an array of integers
-	# and entropy_terms are precomputed entropy terms
-	@inline function entropy(ns::AbstractVector{U}, l :: Integer, entropy_terms) where {U <: Integer}
-		s = 0.0
-		for k in ns
-			s += entropy_terms[k+1]
-		end
-		return log(l) - s / l
-	end
+    # a = [5,3,9,2]
+    # a = [0,0,9,0]
+    # DecisionTree.util.entropy(a, sum(a))
+    # maximum(a)/sum(a)
 
-	@inline function entropy(ns :: AbstractVector{U}, l :: Integer) where {U <: Real}
-		s = 0.0
-		@simd for k in ns
-			if k > 0
-				s += k * log(k)
-			end
-		end
-		return log(l) - s / l
-	end
+    # returns the entropy of ns/n, ns is an array of integers
+    # and entropy_terms are precomputed entropy terms
+    @inline function entropy(ns::AbstractVector{U}, l :: Integer, entropy_terms) where {U <: Integer}
+        s = 0.0
+        for k in ns
+            s += entropy_terms[k+1]
+        end
+        return log(l) - s / l
+    end
 
-	@inline function variance(ns :: AbstractVector{U}, l :: Integer) where {U <: Real}
-		sum((ns .- StatsBase.mean(ns)).^2) / (l - 1) # = StatsBase.var(ns)
-	end
+    @inline function entropy(ns :: AbstractVector{U}, l :: Integer) where {U <: Real}
+        s = 0.0
+        @simd for k in ns
+            if k > 0
+                s += k * log(k)
+            end
+        end
+        return log(l) - s / l
+    end
 
-	# adapted from the Julia Base.Sort Library
-	@inline function partition!(v::AbstractVector, w::AbstractVector{T}, pivot::T, region::Union{AbstractVector{<:Integer},UnitRange{<:Integer}}) where T
-		i, j = 1, length(region)
-		r_start = region.start - 1
-		@inbounds while true
-			while i <= length(region) && w[i] <= pivot; i += 1; end; # TODO check this i <= ... sign
-			while j >= 1              && w[j]  > pivot; j -= 1; end;
-			i >= j && break
-			ri = r_start + i
-			rj = r_start + j
-			v[ri], v[rj] = v[rj], v[ri]
-			w[i], w[j] = w[j], w[i]
-			i += 1; j -= 1
-		end
-		return j
-	end
+    @inline function variance(ns :: AbstractVector{U}, l :: Integer) where {U <: Real}
+        sum((ns .- StatsBase.mean(ns)).^2) / (l - 1) # = StatsBase.var(ns)
+    end
 
-	# adapted from the Julia Base.Sort Library
-	function insert_sort!(v::AbstractVector, w::AbstractVector, lo::Integer, hi::Integer, offset::Integer)
-		@inbounds for i = lo+1:hi
-			j = i
-			x = v[i]
-			y = w[offset+i]
-			while j > lo
-				if x < v[j-1]
-					v[j] = v[j-1]
-					w[offset+j] = w[offset+j-1]
-					j -= 1
-					continue
-				end
-				break
-			end
-			v[j] = x
-			w[offset+j] = y
-		end
-		return v
-	end
+    # adapted from the Julia Base.Sort Library
+    @inline function partition!(v::AbstractVector, w::AbstractVector{T}, pivot::T, region::Union{AbstractVector{<:Integer},UnitRange{<:Integer}}) where T
+        i, j = 1, length(region)
+        r_start = region.start - 1
+        @inbounds while true
+            while i <= length(region) && w[i] <= pivot; i += 1; end; # TODO check this i <= ... sign
+            while j >= 1              && w[j]  > pivot; j -= 1; end;
+            i >= j && break
+            ri = r_start + i
+            rj = r_start + j
+            v[ri], v[rj] = v[rj], v[ri]
+            w[i], w[j] = w[j], w[i]
+            i += 1; j -= 1
+        end
+        return j
+    end
 
-	@inline function _selectpivot!(v::AbstractVector, w::AbstractVector, lo::Integer, hi::Integer, offset::Integer)
-		@inbounds begin
-			mi = (lo+hi)>>>1
+    # adapted from the Julia Base.Sort Library
+    function insert_sort!(v::AbstractVector, w::AbstractVector, lo::Integer, hi::Integer, offset::Integer)
+        @inbounds for i = lo+1:hi
+            j = i
+            x = v[i]
+            y = w[offset+i]
+            while j > lo
+                if x < v[j-1]
+                    v[j] = v[j-1]
+                    w[offset+j] = w[offset+j-1]
+                    j -= 1
+                    continue
+                end
+                break
+            end
+            v[j] = x
+            w[offset+j] = y
+        end
+        return v
+    end
 
-			# sort the values in v[lo], v[mi], v[hi]
+    @inline function _selectpivot!(v::AbstractVector, w::AbstractVector, lo::Integer, hi::Integer, offset::Integer)
+        @inbounds begin
+            mi = (lo+hi)>>>1
 
-			if v[mi] < v[lo]
-				v[mi], v[lo] = v[lo], v[mi]
-				w[offset+mi], w[offset+lo] = w[offset+lo], w[offset+mi]
-			end
-			if v[hi] < v[mi]
-				if v[hi] < v[lo]
-					v[lo], v[mi], v[hi] = v[hi], v[lo], v[mi]
-					w[offset+lo], w[offset+mi], w[offset+hi] = w[offset+hi], w[offset+lo], w[offset+mi]
-				else
-					v[hi], v[mi] = v[mi], v[hi]
-					w[offset+hi], w[offset+mi] = w[offset+mi], w[offset+hi]
-				end
-			end
+            # sort the values in v[lo], v[mi], v[hi]
 
-			# move v[mi] to v[lo] and use it as the pivot
-			v[lo], v[mi] = v[mi], v[lo]
-			w[offset+lo], w[offset+mi] = w[offset+mi], w[offset+lo]
-			v_piv = v[lo]
-			w_piv = w[offset+lo]
-		end
+            if v[mi] < v[lo]
+                v[mi], v[lo] = v[lo], v[mi]
+                w[offset+mi], w[offset+lo] = w[offset+lo], w[offset+mi]
+            end
+            if v[hi] < v[mi]
+                if v[hi] < v[lo]
+                    v[lo], v[mi], v[hi] = v[hi], v[lo], v[mi]
+                    w[offset+lo], w[offset+mi], w[offset+hi] = w[offset+hi], w[offset+lo], w[offset+mi]
+                else
+                    v[hi], v[mi] = v[mi], v[hi]
+                    w[offset+hi], w[offset+mi] = w[offset+mi], w[offset+hi]
+                end
+            end
 
-		# return the pivot
-		return v_piv, w_piv
-	end
+            # move v[mi] to v[lo] and use it as the pivot
+            v[lo], v[mi] = v[mi], v[lo]
+            w[offset+lo], w[offset+mi] = w[offset+mi], w[offset+lo]
+            v_piv = v[lo]
+            w_piv = w[offset+lo]
+        end
 
-	# adapted from the Julia Base.Sort Library
-	@inline function _bi_partition!(v::AbstractVector, w::AbstractVector, lo::Integer, hi::Integer, offset::Integer)
-		pivot, w_piv = _selectpivot!(v, w, lo, hi, offset)
-		# pivot == v[lo], v[hi] > pivot
-		i, j = lo, hi
-		@inbounds while true
-			i += 1; j -= 1
-			while v[i] < pivot; i += 1; end;
-			while pivot < v[j]; j -= 1; end;
-			i >= j && break
-			v[i], v[j] = v[j], v[i]
-			w[offset+i], w[offset+j] = w[offset+j], w[offset+i]
-		end
-		v[j], v[lo] = pivot, v[j]
-		w[offset+j], w[offset+lo] = w_piv, w[offset+j]
+        # return the pivot
+        return v_piv, w_piv
+    end
 
-		# v[j] == pivot
-		# v[k] >= pivot for k > j
-		# v[i] <= pivot for i < j
-		return j
-	end
+    # adapted from the Julia Base.Sort Library
+    @inline function _bi_partition!(v::AbstractVector, w::AbstractVector, lo::Integer, hi::Integer, offset::Integer)
+        pivot, w_piv = _selectpivot!(v, w, lo, hi, offset)
+        # pivot == v[lo], v[hi] > pivot
+        i, j = lo, hi
+        @inbounds while true
+            i += 1; j -= 1
+            while v[i] < pivot; i += 1; end;
+            while pivot < v[j]; j -= 1; end;
+            i >= j && break
+            v[i], v[j] = v[j], v[i]
+            w[offset+i], w[offset+j] = w[offset+j], w[offset+i]
+        end
+        v[j], v[lo] = pivot, v[j]
+        w[offset+j], w[offset+lo] = w_piv, w[offset+j]
+
+        # v[j] == pivot
+        # v[k] >= pivot for k > j
+        # v[i] <= pivot for i < j
+        return j
+    end
 
 
-	# adapted from the Julia Base.Sort Library
-	# adapted from the Julia Base.Sort Library
-	# this sorts v[lo:hi] and w[offset+lo, offset+hi]
-	# simultaneously by the values in v[lo:hi]
-	const SMALL_THRESHOLD  = 20
-	function q_bi_sort!(v::AbstractVector, w::AbstractVector, lo::Integer, hi::Integer, offset::Integer)
-		@inbounds while lo < hi
-			hi-lo <= SMALL_THRESHOLD && return insert_sort!(v, w, lo, hi, offset)
-			j = _bi_partition!(v, w, lo, hi, offset)
-			if j-lo < hi-j
-				# recurse on the smaller chunk
-				# this is necessary to preserve O(log(n))
-				# stack space in the worst case (rather than O(n))
-				lo < (j-1) && q_bi_sort!(v, w, lo, j-1, offset)
-				lo = j+1
-			else
-				j+1 < hi && q_bi_sort!(v, w, j+1, hi, offset)
-				hi = j-1
-			end
-		end
-		return v
-	end
+    # adapted from the Julia Base.Sort Library
+    # adapted from the Julia Base.Sort Library
+    # this sorts v[lo:hi] and w[offset+lo, offset+hi]
+    # simultaneously by the values in v[lo:hi]
+    const SMALL_THRESHOLD  = 20
+    function q_bi_sort!(v::AbstractVector, w::AbstractVector, lo::Integer, hi::Integer, offset::Integer)
+        @inbounds while lo < hi
+            hi-lo <= SMALL_THRESHOLD && return insert_sort!(v, w, lo, hi, offset)
+            j = _bi_partition!(v, w, lo, hi, offset)
+            if j-lo < hi-j
+                # recurse on the smaller chunk
+                # this is necessary to preserve O(log(n))
+                # stack space in the worst case (rather than O(n))
+                lo < (j-1) && q_bi_sort!(v, w, lo, j-1, offset)
+                lo = j+1
+            else
+                j+1 < hi && q_bi_sort!(v, w, j+1, hi, offset)
+                hi = j-1
+            end
+        end
+        return v
+    end
+
+    # https://stackoverflow.com/questions/46671965/printing-variable-subscripts-in-julia/46674866
+    # '₀'
+    subscriptnumber(i::Int) = begin
+        join([
+            (if i < 0
+                [Char(0x208B)]
+            else [] end)...,
+            [Char(0x2080+d) for d in reverse(digits(abs(i)))]...
+        ])
+    end
+    # https://www.w3.org/TR/xml-entity-names/020.html
+    # '․', 'ₑ', '₋'
+    subscriptnumber(s::AbstractString) = begin
+        char_to_subscript(ch) = begin
+            if ch == 'e'
+                'ₑ'
+            elseif ch == '.'
+                '․'
+            elseif ch == '.'
+                '․'
+            elseif ch == '-'
+                '₋'
+            else
+                subscriptnumber(parse(Int, ch))
+            end
+        end
+
+        try
+            join(map(char_to_subscript, [string(ch) for ch in s]))
+        catch
+            s
+        end
+    end
+
+    subscriptnumber(i::AbstractFloat) = subscriptnumber(string(i))
 
 end
 
