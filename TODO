@@ -11,11 +11,12 @@
 ☐	CODE: Custom pretty printing, instead of display_. Figure out print/show/display See https://docs.julialang.org/en/v1/manual/types/#man-custom-pretty-printing https://schurkus.com/2018/01/05/julia-print-show-display-dump-what-to-override-what-to-use/
 ☐	CODE: Keep this: throw, error(), @error -> throw_n_log()
 ☐	CODE: Improve output/logging
+☐	CODE: DecisionTree->ModalDecisionTrees DTree->ModalTree; DForest->ModalForest.
 ################################################################################
-☐	MODEL rename: DTree->ModalTree; Forest->ModalForest; Random Forest -> Decision Forest. DecisionTree->ModalDecisionTree
 ☐	MODEL: Bagging, XGBoost https://towardsdatascience.com/ensemble-learning-bagging-and-boosting-explained-in-3-minutes-2e6d2240ae21
 ☐	MODEL: Model may not have an answer? problem with argmax when testing (e.g. RF), especially on unbalanced datasets
-☐	MODEL: save more info together with the models: parameters, pre-process pipeline, info gain of the split to each internal node, purity to each node/leaf
+☐	MODEL: attach more info to the models: algorithm used, full namedtuple of training arguments, pre-process pipeline. remove cm and oob_error from random forest? OR also attach a structure that measures training performances. See what other libraries do
+☐	MODEL: add info gain of the split to each internal node, purity to each node/leaf
 ☐	MODEL: Add tree parser and convenience methods for tree editing.
 ☐	MODEL: introduce post pruning (improve pre-pruning/post-pruning against a dataset and introduce validation/test set distinction)
 ################################################################################

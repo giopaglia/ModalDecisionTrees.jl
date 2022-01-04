@@ -17,7 +17,7 @@ function prune_tree(tree::DTNode, max_purity_threshold::AbstractFloat = 1.0)
         if N == 1        ## a DTLeaf
             return tree
         elseif N == 2    ## a stump
-            all_labels = [tree.left.values; tree.right.values]
+            all_labels = [tree.left.supp_labels; tree.right.supp_labels]
             majority = majority_vote(all_labels)
             purity = sum(all_labels .== majority) / length(all_labels)
             if purity >= max_purity_threshold
@@ -27,7 +27,7 @@ function prune_tree(tree::DTNode, max_purity_threshold::AbstractFloat = 1.0)
             end
         else
             # TODO also associate an Internal node with values and majority (all_labels, majority)
-            return DTInternal(tree.i_frame, tree.relation, tree.feature, tree.test_operator, tree.threshold,
+            return DTInternal(tree.i_frame, tree.decision,
                         _prune_run(tree.left),
                         _prune_run(tree.right))
         end

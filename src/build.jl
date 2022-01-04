@@ -214,7 +214,7 @@ function build_forest(
     cms = Vector{ConfusionMatrix}(undef, n_trees)
     oob_samples = Vector{Vector{Integer}}(undef, n_trees)
 
-    rngs = [spawn_rng(rng) for i_tree in 1:n_trees]
+    rngs = [util.spawn_rng(rng) for i_tree in 1:n_trees]
 
     if W isa UniformArray
         W_one_slice = UniformArray{Int}(1,num_samples)
@@ -364,7 +364,7 @@ function build_forest(
     cms = Vector{PerformanceStruct}(undef, n_trees)
     oob_samples = Vector{Vector{Integer}}(undef, n_trees)
 
-    rngs = [spawn_rng(rng) for i_tree in 1:n_trees]
+    rngs = [util.spawn_rng(rng) for i_tree in 1:n_trees]
 
     if W isa UniformArray
         W_one_slice = UniformArray{Int}(1,num_samples)

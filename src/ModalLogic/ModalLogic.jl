@@ -16,7 +16,6 @@ using BenchmarkTools # TODO use this to compare timings and use @btime
 export AbstractWorld, AbstractRelation,
                 Ontology,
                 AbstractWorldSet, WorldSet,
-                display_decision, display_decision_inverse,
                 RelationGlob, RelationNone, RelationId,
                 world_type, world_types # TODO maybe remove this function?
                 # enumAccessibles, enumAccRepr
@@ -31,10 +30,6 @@ abstract type AbstractRelation end
 show(io::IO, r::AbstractRelation) = print(io, display_existential_relation(r))
 display_existential_relation(r) = "⟨$(display_rel_short(r))⟩"
 display_universal_relation(r) = "[$(display_rel_short(r))]"
-
-const initWorldSetFunction = Function
-const accFunction = Function
-const accReprFunction = Function
 
 # Concrete class for ontology models (world type + set of relations)
 struct Ontology{WorldType<:AbstractWorld}
@@ -97,52 +92,7 @@ const AbstractWorldSet{W} = Union{AbstractVector{W},AbstractSet{W}} where {W<:Ab
 const WorldSet{W} = Vector{W} where {W<:AbstractWorld}
 WorldSet{W}(S::WorldSet{W}) where {W<:AbstractWorld} = S
 
-################################################################################
-# BEGIN Helpers
-################################################################################
-
-# https://stackoverflow.com/questions/46671965/printing-variable-subscripts-in-julia/46674866
-# '₀'
-subscriptnumber(i::Int) = begin
-    join([
-        (if i < 0
-            [Char(0x208B)]
-        else [] end)...,
-        [Char(0x2080+d) for d in reverse(digits(abs(i)))]...
-    ])
-end
-# https://www.w3.org/TR/xml-entity-names/020.html
-# '․', 'ₑ', '₋'
-subscriptnumber(s::AbstractString) = begin
-    char_to_subscript(ch) = begin
-        if ch == 'e'
-            'ₑ'
-        elseif ch == '.'
-            '․'
-        elseif ch == '.'
-            '․'
-        elseif ch == '-'
-            '₋'
-        else
-            subscriptnumber(parse(Int, ch))
-        end
-    end
-
-    try
-        join(map(char_to_subscript, [string(ch) for ch in s]))
-    catch
-        s
-    end
-end
-
-subscriptnumber(i::AbstractFloat) = subscriptnumber(string(i))
-
-################################################################################
-# END Helpers
-################################################################################
-
 include("operators.jl")
-include("featureTypes.jl")
 
 
 abstract type CanonicalFeature end
@@ -203,8 +153,74 @@ TestOpGeq    = CanonicalFeatureGeq
 TestOpLeq    = CanonicalFeatureLeq
 
 ################################################################################
-# BEGIN Dataset types
+# Decision
 ################################################################################
+
+export Decision, is_modal_decision, display_decision, display_decision_inverse
+
+# Split-Decision (e.g., <L> (minimum_A22 <= 2) )
+struct Decision{T}
+    relation      :: AbstractRelation     # modal operator (e.g. RelationId for the propositional case)
+    feature       :: FeatureTypeFun       # feature used for splitting
+    test_operator :: TestOperatorFun      # test_operator (e.g. <=)
+    threshold     :: T                    # threshold value
+end
+
+is_modal_decision(d::Decision) = !(d.relation isa ModalLogic._RelationId)
+
+
+display_decision(i_frame::Integer, decision::Decision; threshold_display_method::Function = x -> x, is_intended_as_universal = false) = begin
+    "{$i_frame} $(display_decision(decision; threshold_display_method = threshold_display_method, is_intended_as_universal = is_intended_as_universal))"
+end
+
+display_decision_inverse(i_frame::Integer, decision::Decision; threshold_display_method::Function = x -> x) = begin
+    inv_decision = Decision{T}(decision.relation, decision.feature, test_operator_inverse(test_operator), decision.threshold)
+    display_decision(i_frame, inv_decision; threshold_display_method = threshold_display_method, is_intended_as_universal = true)
+end
+
+display_decision(decision::Decision; threshold_display_method::Function = x -> x, is_intended_as_universal = false) = begin
+    prop_decision_str = display_propositional_decision(decision.feature, decision.test_operator, decision.threshold; threshold_display_method = threshold_display_method)
+    if is_modal_decision(decision)
+        "$((is_intended_as_universal ? display_universal_relation : display_existential_relation)(decision.relation)) ($prop_decision_str)"
+    else
+        "$prop_decision_str"
+    end
+end
+
+display_propositional_decision(feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number; threshold_display_method::Function = x -> x) =
+    "$(feature) $(test_operator) $(threshold_display_method(threshold))"
+
+display_propositional_decision(feature::AttributeMinimumFeatureType, test_operator::typeof(≥), threshold::Number; threshold_display_method::Function = x -> x) =
+    "A$(feature.i_attribute) ⪴ $(threshold_display_method(threshold))"
+display_propositional_decision(feature::AttributeMaximumFeatureType, test_operator::typeof(≤), threshold::Number; threshold_display_method::Function = x -> x) =
+    "A$(feature.i_attribute) ⪳ $(threshold_display_method(threshold))"
+display_propositional_decision(feature::AttributeSoftMinimumFeatureType, test_operator::typeof(≥), threshold::Number; threshold_display_method::Function = x -> x) =
+    "A$(feature.i_attribute) $("⪴" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
+display_propositional_decision(feature::AttributeSoftMaximumFeatureType, test_operator::typeof(≤), threshold::Number; threshold_display_method::Function = x -> x) =
+    "A$(feature.i_attribute) $("⪳" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
+
+display_propositional_decision(feature::AttributeMinimumFeatureType, test_operator::typeof(<), threshold::Number; threshold_display_method::Function = x -> x) =
+    "A$(feature.i_attribute) ⪶ $(threshold_display_method(threshold))"
+display_propositional_decision(feature::AttributeMaximumFeatureType, test_operator::typeof(>), threshold::Number; threshold_display_method::Function = x -> x) =
+    "A$(feature.i_attribute) ⪵ $(threshold_display_method(threshold))"
+display_propositional_decision(feature::AttributeSoftMinimumFeatureType, test_operator::typeof(<), threshold::Number; threshold_display_method::Function = x -> x) =
+    "A$(feature.i_attribute) $("⪶" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
+display_propositional_decision(feature::AttributeSoftMaximumFeatureType, test_operator::typeof(>), threshold::Number; threshold_display_method::Function = x -> x) =
+    "A$(feature.i_attribute) $("⪵" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
+
+display_propositional_decision(feature::AttributeMinimumFeatureType, test_operator::typeof(≤), threshold::Number; threshold_display_method::Function = x -> x) =
+    "A$(feature.i_attribute) ↘ $(threshold_display_method(threshold))"
+display_propositional_decision(feature::AttributeMaximumFeatureType, test_operator::typeof(≥), threshold::Number; threshold_display_method::Function = x -> x) =
+    "A$(feature.i_attribute) ↗ $(threshold_display_method(threshold))"
+display_propositional_decision(feature::AttributeSoftMinimumFeatureType, test_operator::typeof(≤), threshold::Number; threshold_display_method::Function = x -> x) =
+    "A$(feature.i_attribute) $("↘" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
+display_propositional_decision(feature::AttributeSoftMaximumFeatureType, test_operator::typeof(≥), threshold::Number; threshold_display_method::Function = x -> x) =
+    "A$(feature.i_attribute) $("↗" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
+
+################################################################################
+# Dataset structures
+################################################################################
+
 
 export n_samples, n_attributes, n_features, n_relations,
                 channel_size, max_channel_size,
@@ -238,6 +254,10 @@ export n_samples, n_attributes, n_features, n_relations,
                 # MatricialUniDataset,
                 MatricialChannel,
                 FeaturedWorldDataset
+
+const initWorldSetFunction = Function
+const accFunction = Function
+const accReprFunction = Function
 
 abstract type AbstractModalDataset{T<:Real,WorldType<:AbstractWorld} end
 
@@ -666,8 +686,9 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
                 @logmsg DTDetail " Test operator $(test_operator)"
                 # Look for the best threshold 'a', as in propositions like "feature >= a"
                 for threshold in aggr_domain
-                    @logmsg DTDebug " Testing decision: $(display_decision(relation, feature, test_operator, threshold))"
-                    @yield (relation, feature, test_operator, threshold), aggr_thresholds
+                    decision = Decision(relation, feature, test_operator, threshold)
+                    @logmsg DTDebug " Testing decision: $(display_decision(decision))"
+                    @yield decision, aggr_thresholds
                 end # for threshold
                 # push!(tested_test_operator, test_operator)
             end # for test_operator
@@ -778,7 +799,7 @@ struct StumpFeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
     end
 end
 
-mutable struct StumpFeatModalDatasetWithMemoization{T, WorldType} <: AbstractModalDataset{T, WorldType}
+struct StumpFeatModalDatasetWithMemoization{T, WorldType} <: AbstractModalDataset{T, WorldType}
     
     # Core data
     fmd                :: FeatModalDataset{T, WorldType}
@@ -953,19 +974,18 @@ test_decision(
         X::StumpFeatModalDatasetWithOrWithoutMemoization{T,WorldType},
         i_instance::Integer,
         w::WorldType,
-        relation::AbstractRelation,
-        feature::FeatureTypeFun,
-        test_operator::TestOperatorFun,
-        threshold::T) where {WorldType<:AbstractWorld, T} = begin
-    if relation == RelationId
-        test_decision(X, i_instance, w, feature, test_operator, threshold)
+        decision::Decision) where {T, WorldType<:AbstractWorld} = begin
+    if !is_modal_decision(decision)
+        test_decision(X, i_instance, w, decision.feature, decision.test_operator, decision.threshold)
     else
-        gamma = if relation == RelationGlob
-                get_global_gamma(X, i_instance, feature, test_operator)
+        gamma = begin
+            if relation isa ModalLogic._RelationGlob
+                get_global_gamma(X, i_instance, decision.feature, decision.test_operator)
             else
-                get_modal_gamma(X, i_instance, w, relation, feature, test_operator)
+                get_modal_gamma(X, i_instance, w, decision.relation, decision.feature, decision.test_operator)
+            end
         end
-        evaluate_thresh_decision(test_operator, gamma, threshold)
+        evaluate_thresh_decision(decision.test_operator, gamma, decision.threshold)
     end
 end
 
@@ -1042,10 +1062,9 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
                 
                 # Look for the best threshold 'a', as in propositions like "feature >= a"
                 for threshold in aggr_domain
-                    @logmsg DTDebug " Testing decision: $(display_decision(relation, feature, test_operator, threshold))"
-
-                    @yield (relation, feature, test_operator, threshold), aggr_thresholds
-                    
+                    decision = Decision(relation, feature, test_operator, threshold)
+                    @logmsg DTDebug " Testing decision: $(display_decision(decision))"
+                    @yield decision, aggr_thresholds
                 end # for threshold
             end # for test_operator
         end # for aggregator
@@ -1116,8 +1135,9 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
                     
                     # Look for the best threshold 'a', as in propositions like "feature >= a"
                     for threshold in aggr_domain
-                        @logmsg DTDebug " Testing decision: $(display_decision(relation, feature, test_operator, threshold))"
-                        @yield (relation, feature, test_operator, threshold), aggr_thresholds
+                        decision = Decision(relation, feature, test_operator, threshold)
+                        @logmsg DTDebug " Testing decision: $(display_decision(decision))"
+                        @yield decision, aggr_thresholds
                     end # for threshold
                 end # for test_operator
             end # for aggregator
@@ -1274,8 +1294,9 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
                     
                     # Look for the best threshold 'a', as in propositions like "feature >= a"
                     for threshold in aggr_domain
-                        @logmsg DTDebug " Testing decision: $(display_decision(relation, feature, test_operator, threshold))"
-                        @yield (relation, feature, test_operator, threshold), aggr_thresholds
+                        decision = Decision(relation, feature, test_operator, threshold)
+                        @logmsg DTDebug " Testing decision: $(display_decision(decision))"
+                        @yield decision, aggr_thresholds
                     end # for threshold
                 end # for test_operator
             end # for aggregator
@@ -1320,7 +1341,7 @@ n_features(X::MultiFrameModalDataset, i_frame::Integer) = n_features(X.frames[i_
 n_relations(X::MultiFrameModalDataset) = map(n_relations, X.frames)
 n_relations(X::MultiFrameModalDataset, i_frame::Integer) = n_relations(X.frames[i_frame])
 world_type(X::MultiFrameModalDataset, i_frame::Integer) = world_type(X.frames[i_frame])
-world_types(X::MultiFrameModalDataset) = world_type.(X.frames) # convert(Vector{<:Type{<:AbstractWorld}}, world_type.(X.frames))
+world_types(X::MultiFrameModalDataset) = Vector{Type{<:AbstractWorld}}(world_type.(X.frames))
 
 getInstance(X::MultiFrameModalDataset,  i_frame::Integer, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i_frame], idx_i, args...)
 # slice_dataset(X::MultiFrameModalDataset, i_frame::Integer, inds::AbstractVector{<:Integer}, args::Vararg)  = slice_dataset(X.frames[i_frame], inds; args...)
@@ -1351,54 +1372,8 @@ end
 
 
 ################################################################################
-# END Dataset types
+# Enumerate accessible worlds
 ################################################################################
-
-display_decision_inverse(i_frame::Integer, relation::AbstractRelation, feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number; threshold_display_method::Function = x -> x) = begin
-    inv_test_operator = test_operator_inverse(test_operator)
-    display_decision(i_frame, relation, feature, inv_test_operator, threshold; threshold_display_method = threshold_display_method, inverse = true)
-end
-
-display_decision(relation::AbstractRelation, feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number; threshold_display_method::Function = x -> x, inverse = false) = begin
-    propositional_decision = display_propositional_decision(feature, test_operator, threshold; threshold_display_method = threshold_display_method)
-    if relation != RelationId
-        "$((inverse ? display_universal_relation : display_existential_relation)(relation)) ($propositional_decision)"
-    else
-        "$propositional_decision"
-    end
-end
-
-display_decision(i_frame::Integer, relation::AbstractRelation, feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number; threshold_display_method::Function = x -> x, inverse = false) = begin
-    "{$i_frame} $(display_decision(relation, feature, test_operator, threshold; threshold_display_method = threshold_display_method, inverse = inverse))"
-end
-
-display_propositional_decision(feature::FeatureTypeFun, test_operator::TestOperatorFun, threshold::Number; threshold_display_method::Function = x -> x) =
-    "$(feature) $(test_operator) $(threshold_display_method(threshold))"
-
-# TODO reason about shortened features
-
-display_propositional_decision(feature::AttributeMinimumFeatureType, test_operator::typeof(≥), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) ⪴ $(threshold_display_method(threshold))"
-display_propositional_decision(feature::AttributeMaximumFeatureType, test_operator::typeof(≤), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) ⪳ $(threshold_display_method(threshold))"
-display_propositional_decision(feature::AttributeSoftMinimumFeatureType, test_operator::typeof(≥), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) $("⪴" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
-display_propositional_decision(feature::AttributeSoftMaximumFeatureType, test_operator::typeof(≤), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) $("⪳" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
-
-display_propositional_decision(feature::AttributeMinimumFeatureType, test_operator::typeof(<), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) ⪶ $(threshold_display_method(threshold))"
-display_propositional_decision(feature::AttributeMaximumFeatureType, test_operator::typeof(>), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) ⪵ $(threshold_display_method(threshold))"
-display_propositional_decision(feature::AttributeSoftMinimumFeatureType, test_operator::typeof(<), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) $("⪶" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
-display_propositional_decision(feature::AttributeSoftMaximumFeatureType, test_operator::typeof(>), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) $("⪵" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
-
-################################################################################
-################################################################################
-
-## Enumerate accessible worlds
 
 # Fallback: enumAccessibles works with domains AND their dimensions
 enumAccessibles(S::AbstractWorldSet{WorldType}, r::AbstractRelation, channel::MatricialChannel{T,N}) where {T,N,WorldType<:AbstractWorld} = enumAccessibles(S, r, size(channel)...)
@@ -1441,19 +1416,6 @@ enumAccReprAggr(::FeatureTypeFun, ::Aggregator, w::WorldType, r::_RelationId,   
 
 display_rel_short(::_RelationId)  = "Id"
 
-
-################################################################################
-################################################################################
-# TODO remove (needed for GAMMAS)
-# Utility type for enhanced computation of thresholds
-abstract type _ReprTreatment end
-struct _ReprFake{WorldType<:AbstractWorld} <: _ReprTreatment w :: WorldType end
-struct _ReprMax{WorldType<:AbstractWorld}  <: _ReprTreatment w :: WorldType end
-struct _ReprMin{WorldType<:AbstractWorld}  <: _ReprTreatment w :: WorldType end
-struct _ReprVal{WorldType<:AbstractWorld}  <: _ReprTreatment w :: WorldType end
-struct _ReprNone{WorldType<:AbstractWorld} <: _ReprTreatment end
-# enumAccRepr(::_TestOpGeq, w::WorldType, ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = _ReprMin(w)
-# enumAccRepr(::_TestOpLeq, w::WorldType, ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = _ReprMax(w)
 
 ################################################################################
 ################################################################################
@@ -1582,13 +1544,10 @@ function modal_step(
         X::Union{AbstractModalDataset{T,WorldType},OntologicalDataset{T,N,WorldType}},
         i_instance::Integer,
         worlds::WorldSetType,
-        relation::AbstractRelation,
-        feature::FeatureTypeFun,
-        test_operator::TestOperatorFun,
-        threshold::T,
+        decision::Decision{T},
         returns_survivors::Union{Val{true},Val{false}} = Val(false)
     ) where {T, N, WorldType<:AbstractWorld, WorldSetType<:AbstractWorldSet{WorldType}}
-    @logmsg DTDetail "modal_step" worlds display_decision(relation, feature, test_operator, threshold)
+    @logmsg DTDetail "modal_step" worlds display_decision(decision)
 
     satisfied = false
     
@@ -1610,15 +1569,15 @@ function modal_step(
         acc_worlds = 
             if returns_survivors isa Val{true}
                 Threads.@threads for curr_w in worlds
-                    worlds_map[curr_w] = acc_function(X, i_instance)(curr_w, relation)
+                    worlds_map[curr_w] = acc_function(X, i_instance)(curr_w, decision.relation)
                 end
                 unique(cat([ worlds_map[k] for k in keys(worlds_map) ]...; dims = 1))
             else
-                acc_function(X, i_instance)(worlds, relation)
+                acc_function(X, i_instance)(worlds, decision.relation)
             end
 
         for w in acc_worlds
-            if test_decision(X, i_instance, w, feature, test_operator, threshold)
+            if test_decision(X, i_instance, w, decision.feature, decision.test_operator, decision.threshold)
                 # @logmsg DTDetail " Found world " w ch_readWorld ... ch_readWorld(w, channel)
                 satisfied = true
                 push!(new_worlds, w)
@@ -1659,22 +1618,19 @@ test_decision(
         X::SingleFrameGenericDataset{T},
         i_instance::Integer,
         w::AbstractWorld,
-        relation::AbstractRelation,
-        feature::FeatureTypeFun,
-        test_operator::TestOperatorFun,
-        threshold::T) where {T} = begin
+        decision::Decision{T}) where {T} = begin
     instance = getInstance(X, i_instance)
 
-    aggregator = existential_aggregator(test_operator)
+    aggregator = existential_aggregator(decision.test_operator)
     
-    worlds = enumAccReprAggr(feature, aggregator, w, relation, inst_channel_size(instance)...)
+    worlds = enumAccReprAggr(decision.feature, aggregator, w, decision.relation, inst_channel_size(instance)...)
     gamma = if length(worlds |> collect) == 0
         ModalLogic.aggregator_bottom(aggregator, T)
     else
-        aggregator((w)->get_gamma(X, i_instance, w, feature), worlds)
+        aggregator((w)->get_gamma(X, i_instance, w, decision.feature), worlds)
     end
 
-    evaluate_thresh_decision(test_operator, gamma, threshold)
+    evaluate_thresh_decision(decision.test_operator, gamma, decision.threshold)
 end
 
 

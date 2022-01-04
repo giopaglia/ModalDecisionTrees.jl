@@ -24,8 +24,8 @@ inst_init_world_sets(Xs::MultiFrameModalDataset, tree::DTree, i_instance::Intege
   end
   Ss
 end
- 
-apply_tree(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}) = leaf.majority
+
+apply_tree(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}) = leaf.label
 
 function apply_tree(tree::DTInternal, X::MultiFrameModalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
   @logmsg DTDetail "applying branch..."
@@ -36,10 +36,7 @@ function apply_tree(tree::DTInternal, X::MultiFrameModalDataset, i_instance::Int
             get_frame(X, tree.i_frame),
             i_instance,
             worlds[tree.i_frame],
-            tree.relation,
-            tree.feature,
-            tree.test_operator,
-            tree.threshold)
+            tree.decision)
 
   worlds[tree.i_frame] = new_worlds
   @logmsg DTDetail " ->(satisfied,worlds')" satisfied worlds
@@ -129,16 +126,13 @@ end
 ################################################################################
 
 function _empty_tree_leaves(leaf::DTLeaf{S}) where {S}
-    DTLeaf(leaf.majority, S[])
+    DTLeaf(leaf.label, S[])
 end
 
 function _empty_tree_leaves(tree::DTInternal)
   return DTInternal(
     tree.i_frame,
-    tree.relation,
-    tree.feature,
-    tree.test_operator,
-    tree.threshold,
+    tree.decision,
     _empty_tree_leaves(tree.left),
     _empty_tree_leaves(tree.right)
   )
@@ -153,24 +147,24 @@ function _empty_tree_leaves(tree::DTree)
 end
 
 
-function print_apply_tree(leaf::DTLeaf{<:Float64}, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, class::S; update_majority = false) where {S}
-  vals = [leaf.values..., class]
+function print_apply_tree(leaf::DTLeaf{<:Float64}, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, class::S; update_label = false) where {S}
+  vals = [leaf.supp_labels..., class]
 
-  majority = 
-  if update_majority
-    StatsBase.mean(leaf.values)
+  label = 
+  if update_label
+    StatsBase.mean(leaf.supp_labels)
   else
-    leaf.majority
+    leaf.label
   end
 
-  return DTLeaf(majority, vals)
+  return DTLeaf(label, vals)
 end
 
-function print_apply_tree(leaf::DTLeaf{S}, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, class::S; update_majority = false) where {S}
-  vals = S[ leaf.values..., class ] # Note: this works when leaves are reset
+function print_apply_tree(leaf::DTLeaf{S}, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, class::S; update_label = false) where {S}
+  vals = S[ leaf.supp_labels..., class ] # Note: this works when leaves are reset
 
-  majority = 
-  if update_majority
+  label = 
+  if update_label
 
     # TODO optimize this code
     occur = Dict{S,Int}(v => 0 for v in unique(vals))
@@ -187,10 +181,10 @@ function print_apply_tree(leaf::DTLeaf{S}, X::Any, i_instance::Integer, worlds::
     end
     cur_maj
   else
-    leaf.majority
+    leaf.label
   end
 
-  return DTLeaf(majority, vals)
+  return DTLeaf(label, vals)
 end
 
 function print_apply_tree(
@@ -199,10 +193,10 @@ function print_apply_tree(
   i_instance::Integer,
   worlds::AbstractVector{<:AbstractWorldSet},
   class::S;
-  update_majority = false,
+  update_label = false,
 ) where {T, S}
   
-  (satisfied,new_worlds) = ModalLogic.modal_step(get_frame(X, tree.i_frame), i_instance, worlds[tree.i_frame], tree.relation, tree.feature, tree.test_operator, tree.threshold)
+  (satisfied,new_worlds) = ModalLogic.modal_step(get_frame(X, tree.i_frame), i_instance, worlds[tree.i_frame], tree.decision)
   
   # if satisfied
   #   println("new_worlds: $(new_worlds)")
@@ -212,12 +206,9 @@ function print_apply_tree(
 
   DTInternal(
     tree.i_frame,
-    tree.relation,
-    tree.feature,
-    tree.test_operator,
-    tree.threshold,
-      satisfied  ? print_apply_tree(tree.left,  X, i_instance, worlds, class, update_majority = update_majority) : tree.left,
-    (!satisfied) ? print_apply_tree(tree.right, X, i_instance, worlds, class, update_majority = update_majority) : tree.right,
+    tree.decision,
+      satisfied  ? print_apply_tree(tree.left,  X, i_instance, worlds, class, update_label = update_label) : tree.left,
+    (!satisfied) ? print_apply_tree(tree.right, X, i_instance, worlds, class, update_label = update_label) : tree.right,
   )
 end
 
@@ -227,7 +218,7 @@ function print_apply_tree(
   X::GenericDataset,
   Y::Vector{S};
   reset_leaves = true,
-  update_majority = false,
+  update_label = false,
   do_print = true,
   print_relative_confidence = false,
 ) where {S}
@@ -240,7 +231,7 @@ function print_apply_tree(
     worlds = inst_init_world_sets(X, tree, i_instance)
 
     tree = DTree(
-      print_apply_tree(tree.root, X, i_instance, worlds, Y[i_instance], update_majority = update_majority),
+      print_apply_tree(tree.root, X, i_instance, worlds, Y[i_instance], update_label = update_label),
       tree.worldTypes,
       tree.initConditions,
     )
@@ -257,24 +248,20 @@ function print_apply_tree(
 end
 print_apply_tree(tree::DTree{S}, X::GenericDataset, Y::Vector{S}; kwargs...) where {S} = print_apply_tree(stdout, tree, X, Y; kwargs...)
 
-# function print_apply_tree(tree::DTNode{T, S}, X::MatricialDataset{T,D}, Y::Vector{S}; reset_leaves = true, update_majority = false) where {S, T, D}
-#   return print_apply_tree(DTree(tree, [world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2)))], [startWithRelationGlob]), X, Y, reset_leaves = reset_leaves, update_majority = update_majority)
+# function print_apply_tree(tree::DTNode{T, S}, X::MatricialDataset{T,D}, Y::Vector{S}; reset_leaves = true, update_label = false) where {S, T, D}
+#   return print_apply_tree(DTree(tree, [world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2)))], [startWithRelationGlob]), X, Y, reset_leaves = reset_leaves, update_label = update_label)
 # end
 
-
-n_samples(leaf::DTLeaf) = length(leaf.values)
-n_samples(tree::DTInternal) = n_samples(tree.left) + n_samples(tree.right)
-n_samples(tree::DTree) = n_samples(tree.root)
 
 function tree_walk_metrics(leaf::DTLeaf; n_tot_inst = nothing, best_rule_params = [])
   if isnothing(n_tot_inst)
     n_tot_inst = n_samples(leaf)
   end
   
-  matches = findall(leaf.values .== leaf.majority)
+  matches = findall(leaf.supp_labels .== leaf.label)
 
   n_correct = length(matches)
-  n_inst = length(leaf.values)
+  n_inst = length(leaf.supp_labels)
 
   metrics = Dict()
   confidence = n_correct/n_inst
@@ -398,12 +385,12 @@ n_labels` matrix of probabilities, each row summing up to 1.
 (eg. ["versicolor", "virginica", "setosa"]). It specifies the column ordering
 of the output matrix. """
 apply_tree_proba(leaf::DTLeaf, features::AbstractVector, labels) where =
-  compute_probabilities(labels, leaf.values)
+  compute_probabilities(labels, leaf.supp_labels)
 
 function apply_tree_proba(tree::DTInternal{S, T}, features::AbstractVector{S}, labels) where {S, T}
-  if tree.threshold === nothing
+  if tree.decision.threshold === nothing
     return apply_tree_proba(tree.left, features, labels)
-  elseif eval(Expr(:call, tree.test_operator, tree.feature ... , tree.threshold))
+  elseif eval(Expr(:call, tree.decision.test_operator, tree.decision.feature ... , tree.decision.threshold))
     return apply_tree_proba(tree.left, features, labels)
   else
     return apply_tree_proba(tree.right, features, labels)
