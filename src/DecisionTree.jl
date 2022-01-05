@@ -221,7 +221,7 @@ display_decision_neg(node::DTInternal; threshold_display_method::Function = x ->
 function show(io::IO, leaf::DTLeaf)
     println(io, "Decision Leaf")
     println(io, "Label: $(leaf.label)")
-    println(io, "Samples:  $(length(leaf.supp_labels))")
+    println(io, "Supporting labels:  $(leaf.supp_labels)")
     print_tree(io, leaf)
 end
 
@@ -232,6 +232,7 @@ function show(io::IO, node::DTInternal)
     println(io, "Tot nodes: $(num_nodes(tree))")
     println(io, "Height: $(height(tree))")
     println(io, "Modal height:  $(modal_height(tree))")
+    println(io, "Sub-tree:")
     print_tree(io, tree)
 end
 
@@ -241,6 +242,9 @@ function show(io::IO, tree::DTree)
     println(io, "Tot nodes: $(num_nodes(tree))")
     println(io, "Height: $(height(tree))")
     println(io, "Modal height:  $(modal_height(tree))")
+    println(io, "worldTypes:     $(worldTypes)")
+    println(io, "initConditions: $(initConditions)")
+    println(io, "Tree:")
     print_tree(io, tree)
 end
 
