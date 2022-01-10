@@ -1,27 +1,26 @@
 export overall_accuracy,
-        kappa,
-        GenericPerformanceType,
-        macro_sensitivity,
-        macro_specificity,
-        macro_PPV,
-        macro_NPV,
-        macro_F1,
-        macro_weighted_F1,
-        macro_weighted_sensitivity,
-        macro_weighted_specificity,
-        macro_weighted_PPV,
-        macro_weighted_NPV,
-        safe_macro_sensitivity,
-        safe_macro_specificity,
-        safe_macro_PPV,
-        safe_macro_NPV,
-        safe_macro_F1
+                kappa,
+                GenericPerformanceType,
+                macro_sensitivity,
+                macro_specificity,
+                macro_PPV,
+                macro_NPV,
+                macro_F1,
+                macro_weighted_F1,
+                macro_weighted_sensitivity,
+                macro_weighted_specificity,
+                macro_weighted_PPV,
+                macro_weighted_NPV,
+                safe_macro_sensitivity,
+                safe_macro_specificity,
+                safe_macro_PPV,
+                safe_macro_NPV,
+                safe_macro_F1
 
 # CM[actual,predicted]
 struct ConfusionMatrix
     classes::Vector
     matrix::Matrix{Int}
-    # TODO only keep classes and matrix, the others can be inferred at a later time?
     overall_accuracy::Float64
     kappa::Float64
     mean_accuracy::Float64
@@ -258,8 +257,7 @@ function confusion_matrix(actual::AbstractVector, predicted::AbstractVector, wei
     _predicted = zeros(Int, N)
 
     class_labels = unique([actual; predicted])
-    class_labels = sort(class_labels)
-
+    class_labels = util.nat_sort(class_labels)
     # Binary case: sort the classes with as ["YES_...", "NO_..."]
     if length(class_labels) == 2
         class_labels = reverse(class_labels)

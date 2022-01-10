@@ -145,6 +145,10 @@ module util
         return v_piv, w_piv
     end
 
+    ############################################################################
+    ############################################################################
+    ############################################################################
+    
     # adapted from the Julia Base.Sort Library
     @inline function _bi_partition!(v::AbstractVector, w::AbstractVector, lo::Integer, hi::Integer, offset::Integer)
         pivot, w_piv = _selectpivot!(v, w, lo, hi, offset)
@@ -191,6 +195,35 @@ module util
         return v
     end
 
+    ############################################################################
+    ############################################################################
+    ############################################################################
+    
+    # https://titanwolf.org/Network/Articles/Article?AID=969b78b2-141a-43ef-9391-7c55b3c513c7
+    splitbynum(x) = split(x, r"(?<=\D)(?=\d)|(?<=\d)(?=\D)")
+    numstringtonum(arr) = [(n = tryparse(Float32, e)) != nothing ? n : e for e in arr]
+    function nat_sort(x, y)
+        xarr = numstringtonum(splitbynum(x))
+        yarr = numstringtonum(splitbynum(y))
+        for i in 1:min(length(xarr), length(yarr))
+            if typeof(xarr[i]) != typeof(yarr[i])
+                a = string(xarr[i]); b = string(yarr[i])
+            else
+                 a = xarr[i]; b = yarr[i]
+            end
+            if a == b
+                continue
+            else
+                return a < b
+            end
+        end
+        return length(xarr) < length(yarr)
+    end
+
+    ############################################################################
+    ############################################################################
+    ############################################################################
+    
     # https://stackoverflow.com/questions/46671965/printing-variable-subscripts-in-julia/46674866
     # '₀'
     subscriptnumber(i::Int) = begin
