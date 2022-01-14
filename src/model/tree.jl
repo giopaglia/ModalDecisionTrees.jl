@@ -70,15 +70,16 @@ end
 
 # Conversion: NodeMeta (node + training info) -> DTNode (bare decision tree model)
 function _convert(
-        node   :: NodeMeta{P,Integer},
-        list   :: AbstractVector{S},
-        labels :: AbstractVector{S}) where {P, S<:String}
+        node          :: NodeMeta{P,Integer},
+        labels        :: AbstractVector{S},
+        class_names   :: AbstractVector{S}) where {P, S<:String}
+    this_leaf = DTLeaf(class_names[node.label], labels[node.region])
     if node.is_leaf
-        DTLeaf(list[node.label], labels[node.region])
+        this_leaf
     else
-        left  = _convert(node.l, list, labels)
-        right = _convert(node.r, list, labels)
-        DTInternal(node.i_frame, node.decision, left, right)
+        left  = _convert(node.l, class_names, labels)
+        right = _convert(node.r, class_names, labels)
+        DTInternal(node.i_frame, node.decision, this_leaf, left, right)
     end
 end
 
@@ -86,12 +87,13 @@ end
 function _convert(
         node   :: NodeMeta{P,Float64},
         labels :: AbstractVector{S}) where {P, S<:Float64}
+    this_leaf = DTLeaf(node.label, labels[node.region])
     if node.is_leaf
-        DTLeaf(node.label, labels[node.region])
+        this_leaf
     else
         left  = _convert(node.l, labels)
         right = _convert(node.r, labels)
-        DTInternal(node.i_frame, node.decision, left, right)
+        DTInternal(node.i_frame, node.decision, this_leaf, left, right)
     end
 end
 
@@ -297,7 +299,7 @@ function DecisionTree.fit(
         # W                       :: AbstractVector{U} = Ones{Int}(n_samples(Xs)),      # from FillArrays
         ##########################################################################
         # Logic-agnostic training parameters
-        loss_function           :: Union{Nothing,Function} = nothing,
+        loss_function           :: Union{Nothing,Function} = default_loss_function(L),
         max_depth               :: Int,                  # the maximum depth of the resultant tree
         min_samples_leaf        :: Int,                  # the minimum number of samples each leaf needs to have
         min_purity_increase     :: AbstractFloat,        # maximum purity allowed on a leaf
@@ -313,16 +315,6 @@ function DecisionTree.fit(
         ##########################################################################
         rng = Random.GLOBAL_RNG :: Random.AbstractRNG
     ) where {L<:Union{String,Float64}, U}
-    
-    if isnothing(loss_function)
-        loss_function = begin
-            if L<:String
-                util.entropy
-            else
-                util.variance
-            end
-        end
-    end
     
     # Check validity of the input
     check_input(
@@ -344,10 +336,10 @@ function DecisionTree.fit(
 
     # Classification: Transform labels to categorical form (indexed by integers)
     if L<:String
-        Y = copy(Y) # needed?
-        labels, Y = util.assign(Y)
-        n_classes = length(labels)
-        # print(labels, Y)
+        Y = copy(Y) # TODO needed?
+        class_names, Y = util.assign(Y)
+        n_classes = length(class_names)
+        # print(class_names, Y)
     end
     # println("countmap: ")
     # println(StatsBase.countmap(Y))
@@ -385,7 +377,7 @@ function DecisionTree.fit(
         # Split a node
         # Find an optimal local split satisfying the given constraints
         #  (e.g. max_depth, min_samples_leaf, etc.)
-        Base.@propagate_inbounds function split_node!(node::NodeMeta{P,L}, rng::Random.AbstractRNG) where {P,L}
+        Base.@propagate_inbounds function split_node!(node::NodeMeta{P}, rng::Random.AbstractRNG) where {P}
 
             # Region of indX to use to perform the split
             region = node.region
@@ -417,7 +409,9 @@ function DecisionTree.fit(
                     end
                     nt = sum(nc)
                     purity = -(loss_function(nc, nt))
-                    label = argmax(nc) # Assign the most likely label before the split
+                    # Assign the most likely label before the split
+                    label = argmax(nc)
+                    # label = DecisionTree.average_label(Yf)
                     (nc, nt), (purity, label)
                 end
             else
@@ -443,7 +437,9 @@ function DecisionTree.fit(
                     # tmean = tsum/nt
                     # purity = -((tssq - 2*tmean*tsum + (tmean^2*nt)) / (nt-1)) # TODO use loss function
                     purity = -(loss_function(sums, nt))
-                    label =  tsum / nt # Assign the most likely label before the split
+                    # Assign the most likely label before the split
+                    label =  tsum / nt
+                    # label = DecisionTree.average_label(Yf)
                     sums, (tsum, nt), (purity, label)
                 end
             end
@@ -465,11 +461,11 @@ function DecisionTree.fit(
                     #  min_samples_leaf*2 instances in the first place
                      || (min_samples_leaf * 2 >  n_instances)
                     # If the node is pure enough, avoid splitting # TODO rename purity to loss
-                     || (node.purity          >= max_purity_at_leaf)
+                     || (node.purity          > max_purity_at_leaf)
                     # Honor maximum depth constraint
-                     || (max_depth            <= node.depth))
+                     || (max_depth            < node.depth))
                     node.is_leaf = true
-                    @logmsg DTDetail "leaf created: " (min_samples_leaf * 2 >  n_instances) (nc[node.label] == nt) (node.purity  >= max_purity_at_leaf) (max_depth <= node.depth)
+                    @logmsg DTDetail "leaf created: " (min_samples_leaf * 2 >  n_instances) (nc[node.label] == nt) (node.purity  > max_purity_at_leaf) (max_depth <= node.depth)
                     return
                 end
             else
@@ -478,9 +474,10 @@ function DecisionTree.fit(
                     #  min_samples_leaf*2 instances in the first place
                         (min_samples_leaf * 2 >  n_instances)
                   # equivalent to old_purity > -1e-7
+                     || (node.purity          > max_purity_at_leaf) # TODO
                      # || (tsum * node.label    > -1e-7 * nt + tssq)
                     # Honor maximum depth constraint
-                     || (max_depth            <= node.depth))
+                     || (max_depth            < node.depth))
                     node.is_leaf = true
                     @logmsg DTDetail "leaf created: " (min_samples_leaf * 2 >  n_instances) (tsum * node.label    > -1e-7 * nt + tssq) (tsum * node.label) (-1e-7 * nt + tssq) (max_depth <= node.depth)
                     return
@@ -509,7 +506,7 @@ function DecisionTree.fit(
             # Optimization-tracking variables
             best_i_frame = -1
             best_purity_times_nt = typemin(P)
-            best_decision = Decision(RelationNone, FeatureTypeNone, nothing, nothing)
+            best_decision = Decision(RelationNone, FeatureTypeNone, >=, nothing)
             if isa(_perform_consistency_check,Val{true})
                 consistency_sat_check = Vector{Bool}(undef, n_instances)
             end
@@ -587,8 +584,9 @@ function DecisionTree.fit(
                     ########################################################################
                     # Apply decision to all instances
                     ########################################################################
+                    # Note: consistency_sat_check is also changed
                     if L<:String
-                        (ncr, nr, ncl, nl), consistency_sat_check = begin
+                        (ncr, nr, ncl, nl) = begin
                             # Re-initialize right counts
                             nr = zero(U)
                             ncr = fill(zero(U), n_classes)
@@ -615,10 +613,10 @@ function DecisionTree.fit(
                             ncl .= nc .- ncr
                             nl = nt - nr
                             
-                            (ncr, nr, ncl, nl), consistency_sat_check
+                            (ncr, nr, ncl, nl)
                         end
                     else
-                        (rsums, nr, lsums, nl, rsum, lsum), consistency_sat_check = begin
+                        (rsums, nr, lsums, nl, rsum, lsum) = begin
                             # Initialize right counts
                             # rssq = zero(U)
                             rsum = zero(U)
@@ -657,7 +655,7 @@ function DecisionTree.fit(
                             # lssq = tssq - rssq
                             nl   = nt - nr
                             
-                            (rsums, nr, lsums, nl, rsum, lsum), consistency_sat_check
+                            (rsums, nr, lsums, nl, rsum, lsum)
                         end
                     end
                     
@@ -669,11 +667,11 @@ function DecisionTree.fit(
 
                     # Honor min_samples_leaf
                     if nl >= min_samples_leaf && (n_instances - nl) >= min_samples_leaf
-                        purity_times_nt = begin
+                        purity_l, purity_r = begin
                             if L<:String
-                                - (nl * loss_function(ncl, nl) + nr * loss_function(ncr, nr))
+                                -loss_function(ncl, nl), -loss_function(ncr, nr)
                             else
-                                - (nl * loss_function(lsums, nl) + nr * loss_function(rsums, nr))
+                                -loss_function(lsums, nl), -loss_function(rsums, nr)
                                 # TODO use loss_function instead
                                 # ORIGINAL: TODO understand how it works
                                 # purity_times_nt = (rsum * rsum / nr) + (lsum * lsum / nl)
@@ -688,6 +686,7 @@ function DecisionTree.fit(
                                 # println("purity_times_nt: $(purity_times_nt)")
                             end
                         end
+                        purity_times_nt = (nl * purity_l + nr * purity_r)
                         if purity_times_nt > best_purity_times_nt # && !isapprox(purity_times_nt, best_purity_times_nt)
                             #################################
                             best_i_frame             = i_frame
@@ -722,17 +721,8 @@ function DecisionTree.fit(
             # @logmsg DTOverview "purity_times_nt increase" best_purity_times_nt/nt node.purity (best_purity_times_nt/nt + node.purity) (best_purity_times_nt/nt - node.purity)
             # If the best split is good, partition and split accordingly
             @inbounds if ((
-                ##########################################################################
-                ##########################################################################
-                ##########################################################################
-                    best_purity_times_nt == typemin(P)
-                    ) || (
-                        L<:String &&
-                        (best_purity_times_nt/nt - node.purity <= min_purity_increase)
-                    ) || (
-                        # (best_purity_times_nt - tsum * node.label <= min_purity_increase * nt) # ORIGINAL
-                        (best_purity_times_nt / nt - node.purity <= min_purity_increase * nt)
-                    )
+                    best_purity_times_nt == typemin(P)) ||
+                    DecisionTree.dishonor_min_purity_increase(L, min_purity_increase, node.purity, best_purity_times_nt, nt)
                 )
                 
                 if L<:String
@@ -880,6 +870,7 @@ function DecisionTree.fit(
         
         # Create root node
         onlyallowRelationGlob = [(iC == startWithRelationGlob) for iC in initConditions]
+
         NodeMetaT = NodeMeta{Float64,(L<:String ? Integer : Float64)}
         root = NodeMetaT(1:n_instances, 0, 0, onlyallowRelationGlob)
         # Process stack of nodes
@@ -918,7 +909,7 @@ function DecisionTree.fit(
     
     # Finally create Tree
     if L<:String
-        _convert(root, labels, Y[indX])
+        _convert(root, map((y)->class_names[y], Y[indX]), class_names)
     else
         _convert(root, Y[indX])
     end

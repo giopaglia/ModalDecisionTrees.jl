@@ -4,6 +4,8 @@ using StructuredArrays # , FillArrays # TODO choose one
 
 include("model/tree.jl")
 
+default_loss_function(L::Type{String})          = util.entropy
+default_loss_function(L::Type{<:AbstractFloat}) = util.variance
 ################################################################################
 ########################## Matricial Dataset ###################################
 ################################################################################
@@ -120,10 +122,10 @@ function build_tree(
         initConditions = fill(initConditions, n_frames(Xs))
     end
 
-    # TODO remove? @assert max_depth > 0?
     if max_depth == -1
         max_depth = typemax(Int)
     end
+    @assert max_depth > 0
 
     # rng = mk_rng(rng) # TODO figure out what to do here. Maybe it can be helpful to make rng either an rng or a seed, and then mk_rng transforms it into an rng
     root = fit(
