@@ -128,6 +128,7 @@ function print_tree(
         end
     end
     
+    # TODO show tree.this
     println(io, display_decision(tree))
     # indent_str = " " ^ indent
     indent_str = reduce(*, [i == 1 ? "│" : " " for i in indent_guides])

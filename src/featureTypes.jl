@@ -5,6 +5,8 @@ export FeatureTypeFun,
         AttributeFunctionFeatureType, ChannelFunctionFeatureType,
         ExternalFWDFeatureType
 
+export yieldFunction
+
 import Base.vec
 
 Base.vec(x::Number) = [x]

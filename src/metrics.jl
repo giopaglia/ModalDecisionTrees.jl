@@ -196,6 +196,7 @@ function _weighted_error(actual::AbstractVector, predicted::AbstractVector, weig
     return err
 end
 
+# TODO rewrite majority_vote
 function majority_vote(labels::AbstractVector; suppress_parity_warning = false)
     if length(labels) == 0
         return nothing
@@ -210,9 +211,10 @@ function majority_vote(labels::AbstractVector; suppress_parity_warning = false)
     argmax(counts)
 end
 
-function best_score(labels::AbstractVector{T}, weights::Union{Nothing,AbstractVector{N}}; suppress_parity_warning = false) where {T, N<:Real}
+function majority_vote(labels::AbstractVector{T}, weights::Union{Nothing,AbstractVector{N}}; suppress_parity_warning = false) where {T, N<:Real}
     if isnothing(weights)
-        return majority_vote(labels; suppress_parity_warning = suppress_parity_warning) # TODO use dispatch on majority_vote and best_score ArrayOfOnes o ConstantArray
+        # TODO use dispatch on majority_vote ArrayOfOnes o ConstantArray
+        return majority_vote(labels; suppress_parity_warning = suppress_parity_warning)
     end
 
     if length(labels) == 0
@@ -220,7 +222,7 @@ function best_score(labels::AbstractVector{T}, weights::Union{Nothing,AbstractVe
     end
 
     @assert length(labels) === length(weights) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
-    # @assert length(labels) != 0 "Can't compute best_score with 0 predictions" # TODO figure out whether we want to force this or returning nothing is fine.
+    # @assert length(labels) != 0 "Can't compute majority_vote with 0 predictions" # TODO figure out whether we want to force this or returning nothing is fine.
 
     counts = Dict{T,AbstractFloat}()
     for i in 1:length(labels)
@@ -229,7 +231,7 @@ function best_score(labels::AbstractVector{T}, weights::Union{Nothing,AbstractVe
     end
 
     if !suppress_parity_warning && sum(counts[argmax(counts)] .== values(counts)) > 1
-        println("Warning: parity encountered in best_score.")
+        println("Warning: parity encountered in majority_vote.")
         println("Vector ($(length(labels)) elements): $(labels)")
         println("Argmax: $(argmax(counts))")
         println("Max: $(counts[argmax(counts)]) (sum = $(sum(values(counts))))")
@@ -257,7 +259,7 @@ function confusion_matrix(actual::AbstractVector, predicted::AbstractVector, wei
     _predicted = zeros(Int, N)
 
     class_labels = unique([actual; predicted])
-    class_labels = util.nat_sort(class_labels)
+    class_labels = sort(class_labels, lt=util.nat_sort)
     # Binary case: sort the classes with as ["YES_...", "NO_..."]
     if length(class_labels) == 2
         class_labels = reverse(class_labels)
