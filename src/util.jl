@@ -3,7 +3,7 @@
 
 module util
 
-    export gini, entropy, zero_one, q_bi_sort!, subscriptnumber
+    export gini, entropy, zero_one, q_bi_sort!, subscriptnumber, spawn_rng
 
     using Random
     using StatsBase

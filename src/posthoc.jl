@@ -6,44 +6,54 @@
 
 export prune_tree
 
-# TODO fix this using specified purity
-function prune_tree(tree::DTNode, max_purity_threshold::AbstractFloat = 1.0)
-    if max_purity_threshold >= 1.0
-        return tree
-    end
-    # Prune the tree once TODO make more efficient (avoid copying so many nodes.)
-    function _prune_run(tree::DTNode)
-        N = length(tree)
-        if N == 1        ## a DTLeaf
-            return tree
-        elseif N == 2    ## a stump
-            all_labels = [tree.left.supp_labels; tree.right.supp_labels]
-            majority = majority_vote(all_labels)
-            purity = sum(all_labels .== majority) / length(all_labels)
-            if purity >= max_purity_threshold
-                return DTLeaf(majority, all_labels)
-            else
-                return tree
-            end
-        else
-            # TODO also associate an Internal node with values and majority (all_labels, majority)
-            return DTInternal(tree.i_frame, tree.decision,
-                        _prune_run(tree.left),
-                        _prune_run(tree.right))
-        end
-    end
-
-    # Keep pruning until "convergence"
-    pruned = _prune_run(tree)
-    while true
-        length(pruned) < length(tree) || break
-        pruned = _prune_run(tree)
-        tree = pruned
-    end
-    return pruned
+function prune_tree(tree::DTree; kwargs...)
+    DTree(prune_tree(tree.root; kwargs..., depth = 0), tree.worldTypes, tree.initConditions)
 end
 
-function prune_tree(tree::DTree, max_purity_threshold::AbstractFloat = 1.0)
-    DTree(prune_tree(tree.root), tree.worldTypes, tree.initConditions)
+function prune_tree(leaf::DTLeaf; kwargs...)
+    leaf
+end
+
+function prune_tree(node::DTInternal{T, L}; kwargs..., depth = 0) where {T, L}
+
+    kwargs = merge((
+        loss_function       :: Union{Nothing,Function} = default_loss_function(L),
+        max_depth           :: Int                     = typemax(Int64),
+        min_samples_leaf    :: Int                     = 1,
+        min_purity_increase :: AbstractFloat           = -Inf,
+        max_purity_at_leaf  :: AbstractFloat           = Inf,
+    ), kwargs)
+    
+    # Honor constraints on the number of instances
+    nt = length(node.this.supp_labels)
+    nl = length(node.left.supp_labels)
+    nr = length(node.right.supp_labels)
+
+    if (kwargs.max_depth < node.depth) ||
+       (kwargs.min_samples_leaf > nr)  ||
+       (kwargs.min_samples_leaf > nl)  ||
+        return node.this
+    end
+    
+    # Honor purity constraints
+    purity   = DecisionTree.compute_purity(node.this.supp_labels,  kwargs.loss_function)
+    purity_r = DecisionTree.compute_purity(node.left.supp_labels,  kwargs.loss_function)
+    purity_l = DecisionTree.compute_purity(node.right.supp_labels, kwargs.loss_function)
+
+    split_purity = (nl * purity_l + nr * purity_r)
+
+    if (purity_r > kwargs.max_purity_at_leaf) ||
+       (purity_l > kwargs.max_purity_at_leaf) ||
+       dishonor_min_purity_increase(L, kwargs.min_purity_increase, purity, split_purity, nt)
+        return node.this
+    end
+
+    return DTInternal(
+        node.i_frame,
+        node.decision,
+        node.this,
+        prune_tree(node.left; kwargs..., depth = depth+1),
+        prune_tree(node.right; kwargs..., depth = depth+1)
+    )
 end
 

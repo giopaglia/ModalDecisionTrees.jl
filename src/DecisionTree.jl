@@ -11,6 +11,7 @@ using Logging: LogLevel, @logmsg
 using Printf
 using Random
 using StatsBase
+using ReTest
 
 ################################################################################
 
@@ -107,29 +108,149 @@ initWorldSet(initCondition::_startAtWorld{WorldType}, ::Type{WorldType}, channel
 # Decision Leaf, Internal, Node, Tree & RF
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# TODO MOVE
+# TODO Label could also be Nothing! Think about it
+Label = Union{String,Number}
+average_label(labels::AbstractVector{<:String}) = argmax(countmap(labels)) # TODO handle parity!
+average_label(labels::AbstractVector{<:Number}) = StatsBase.mean(labels)
+
+function dishonor_min_purity_increase(::L, min_purity_increase, purity, best_purity_times_nt, nt) where {L<:String}
+    (best_purity_times_nt/nt - purity < min_purity_increase)
+end
+function dishonor_min_purity_increase(::L, min_purity_increase, purity, best_purity_times_nt, nt) where {L<:Float64}
+    # (best_purity_times_nt - tsum * label <= min_purity_increase * nt) # ORIGINAL
+    (best_purity_times_nt/nt - purity < min_purity_increase * nt)
+end
+
+function compute_purity(
+    labels           ::AbstractVector{<:String};
+    loss_function    ::Union{Nothing,Function} = default_loss_function(L),
+)
+    TODO ...-(loss_function(TODO, nt))
+end
+function compute_purity(
+    labels           ::AbstractVector{<:Number};
+    loss_function    ::Union{Nothing,Function} = default_loss_function(L),
+)
+    TODO ...-(loss_function(TODO, nt))
+end
+
+################################################################################
+################################################################################
+################################################################################
+
 # Decision leaf node, holding an output label
-struct DTLeaf{L}
+struct DTLeaf{L<:Label}
     # output label
     label         :: L
     # supporting (e.g., training) instances labels
     supp_labels   :: Vector{L}
+
+    # create leaf
+    DTLeaf{L}(label, supp_labels::AbstractVector) where {L<:Label} = new{L}(label, supp_labels)
+    DTLeaf(label::L, supp_labels::AbstractVector) where {L<:Label} = DTLeaf{L}(label, supp_labels)
+
+    # create leaf without supporting labels
+    DTLeaf{L}(label) where {L<:Label} = DTLeaf{L}(label, L[])
+    DTLeaf(label::L) where {L<:Label} = DTLeaf{L}(label, L[])
+
+    # create leaf from supporting labels
+    DTLeaf{L}(supp_labels::AbstractVector) where {L<:Label} = DTLeaf{L}(average_label(supp_labels), supp_labels)
+    # DTLeaf(supp_labels::AbstractVector) where {L<:Label} = DTLeaf{L}(average_label(supp_labels), supp_labels)
+    function DTLeaf(supp_labels::AbstractVector)
+        label = average_label(supp_labels)
+        DTLeaf(label, supp_labels)
+    end
 end
 
 # Decision inner node, holding a split-decision and a frame index
-struct DTInternal{T, L}
+struct DTInternal{T, L<:Label}
     # frame index + split-decision
     i_frame       :: Int64
     decision      :: Decision{T}
+    # representative leaf for the current node
+    this          :: DTLeaf{L}
     # child nodes
     left          :: Union{DTLeaf{L}, DTInternal{T, L}}
     right         :: Union{DTLeaf{L}, DTInternal{T, L}}
+
+    # create node
+    function DTInternal{T, L}(
+        i_frame          :: Int64,
+        decision         :: Decision,
+        this             :: DTLeaf,
+        left             :: Union{DTLeaf, DTInternal},
+        right            :: Union{DTLeaf, DTInternal}) where {T, L<:Label}
+        new{T, L}(i_frame, decision, this, left, right)
+    end
+    function DTInternal(
+        i_frame          :: Int64,
+        decision         :: Decision{T},
+        this             :: DTLeaf,
+        left             :: Union{DTLeaf{L}, DTInternal{T, L}},
+        right            :: Union{DTLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
+        DTInternal{T, L}(i_frame, decision, this, left, right)
+    end
+
+    # create node without local leaf
+    function DTInternal{T, L}(
+        i_frame          :: Int64,
+        decision         :: Decision,
+        left             :: Union{DTLeaf, DTInternal},
+        right            :: Union{DTLeaf, DTInternal}) where {T, L<:Label}
+        supp_labels = L[(left.this.labels)..., (right.this.labels)...]
+        this = DTLeaf{L}(supp_labels)
+        DTInternal{T, L}(i_frame, decision, this, left, right)
+    end
+    function DTInternal(
+        i_frame          :: Int64,
+        decision         :: Decision{T},
+        left             :: Union{DTLeaf{L}, DTInternal{T, L}},
+        right            :: Union{DTLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
+        DTInternal{T, L}(i_frame, decision, left, right)
+    end
+
+    # create node without frame
+    function DTInternal{T, L}(
+        decision         :: Decision,
+        this             :: DTLeaf,
+        left             :: Union{DTLeaf, DTInternal},
+        right            :: Union{DTLeaf, DTInternal}) where {T, L<:Label}
+        i_frame = 1
+        DTInternal{T, L}(i_frame, decision, this, left, right)
+    end
+    function DTInternal(
+        decision         :: Decision{T},
+        this             :: DTLeaf,
+        left             :: Union{DTLeaf{L}, DTInternal{T, L}},
+        right            :: Union{DTLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
+        DTInternal{T, L}(decision, this, left, right)
+    end
+
+    # create node without frame nor local decision
+    function DTInternal{T, L}(
+        decision         :: Decision,
+        left             :: Union{DTLeaf, DTInternal},
+        right            :: Union{DTLeaf, DTInternal}) where {T, L<:Label}
+        i_frame = 1
+        DTInternal{T, L}(i_frame, decision, left, right)
+    end
+    function DTInternal(
+        decision         :: Decision{T},
+        left             :: Union{DTLeaf{L}, DTInternal{T, L}},
+        right            :: Union{DTLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
+        DTInternal{T, L}(decision, left, right)
+    end
 end
 
 # Decision Node (Leaf or Internal)
 const DTNode{T, L} = Union{DTLeaf{L}, DTInternal{T, L}}
 
 # Decision Tree
-struct DTree{L}
+struct DTree{L<:Label}
     # root node
     root           :: DTNode{T, L} where T
     # worldTypes (one per frame)
@@ -163,14 +284,14 @@ end
 # Number of leaves
 num_leaves(leaf::DTLeaf)     = 1
 num_leaves(node::DTInternal) = num_leaves(node.left) + num_leaves(node.right)
-num_leaves(t::DTree)         = num_leaves(t.root)
+num_leaves(tree::DTree)      = num_leaves(tree.root)
 
 length(f::DForest)    = num_trees(f.trees)
 
 # Number of nodes
 num_nodes(leaf::DTLeaf)     = 1
 num_nodes(node::DTInternal) = 1 + num_nodes(node.left) + num_nodes(node.right)
-num_nodes(t::DTree)   = num_nodes(t.root)
+num_nodes(tree::DTree)   = num_nodes(tree.root)
 num_nodes(f::DForest) = sum(num_nodes.(f.trees))
 
 # Number of trees
@@ -180,12 +301,12 @@ length(f::DForest)    = num_trees(f.trees)
 # Height
 height(leaf::DTLeaf)     = 0
 height(node::DTInternal) = 1 + max(height(node.left), height(node.right))
-height(t::DTree)         = height(t.root)
+height(tree::DTree)      = height(tree.root)
 
 # Modal height
 modal_height(leaf::DTLeaf)     = 0
 modal_height(node::DTInternal) = Int(is_modal_node(node)) + max(modal_height(node.left), modal_height(node.right))
-modal_height(t::DTree)         = modal_height(t.root)
+modal_height(tree::DTree)      = modal_height(tree.root)
 
 # Number of supporting instances 
 n_samples(leaf::DTLeaf)     = length(leaf.supp_labels)
@@ -193,19 +314,19 @@ n_samples(node::DTInternal) = n_samples(node.left) + n_samples(node.right)
 n_samples(tree::DTree)      = n_samples(tree.root)
 
 # TODO remove deprecated use num_leaves
-length(leaf::DTLeaf)     = num_leaves(leaf::DTLeaf)    
-length(node::DTInternal) = num_leaves(node::DTInternal)
-length(t::DTree)         = num_leaves(t::DTree)        
+length(leaf::DTLeaf)     = num_leaves(leaf)    
+length(node::DTInternal) = num_leaves(node)
+length(tree::DTree)      = num_leaves(tree)        
 
 ################################################################################
 ################################################################################
 
-is_leaf_node(l::DTLeaf)     = true
-is_leaf_node(n::DTInternal) = false
-is_leaf_node(t::DTree)      = is_leaf_node(t.root)
+is_leaf_node(leaf::DTLeaf)     = true
+is_leaf_node(node::DTInternal) = false
+is_leaf_node(tree::DTree)      = is_leaf_node(tree.root)
 
-is_modal_node(n::DTInternal) = (!is_leaf_node(n) && is_modal_decision(n.decision))
-is_modal_node(t::DTree)      = is_modal_node(t.root)
+is_modal_node(node::DTInternal) = (!is_leaf_node(node) && is_modal_decision(node.decision))
+is_modal_node(tree::DTree)      = is_modal_node(tree.root)
 
 ################################################################################
 ################################################################################
@@ -242,8 +363,8 @@ function show(io::IO, tree::DTree)
     println(io, "Tot nodes: $(num_nodes(tree))")
     println(io, "Height: $(height(tree))")
     println(io, "Modal height:  $(modal_height(tree))")
-    println(io, "worldTypes:     $(worldTypes)")
-    println(io, "initConditions: $(initConditions)")
+    println(io, "worldTypes:     $(tree.worldTypes)")
+    println(io, "initConditions: $(tree.initConditions)")
     println(io, "Tree:")
     print_tree(io, tree)
 end
@@ -267,6 +388,68 @@ include("posthoc.jl")
 include("print.jl")
 include("print-latex.jl")
 include("decisionpath.jl")
+
+################################################################################
+# Tests
+################################################################################
+
+# https://stackoverflow.com/questions/66801702/deriving-equality-for-julia-structs-with-mutable-members
+import Base.==
+function ==(a::S, b::S) where {S<:DTLeaf}
+    for name in fieldnames(S)
+        if getfield(a, name) != getfield(b, name)
+            return false
+        end
+    end
+    return true
+end
+
+@testset "Creation of decision leaves, nodes, decision trees, forests" begin
+
+    @testset "Decision leaves (DTLeaf)" begin
+
+        # Construct a leaf from a label
+        @test DTLeaf(1)        == DTLeaf{Int64}(1, Int64[])
+        @test DTLeaf{Int64}(1) == DTLeaf{Int64}(1, Int64[])
+        
+        @test DTLeaf("Class_1")           == DTLeaf{String}("Class_1", String[])
+        @test DTLeaf{String}("Class_1")   == DTLeaf{String}("Class_1", String[])
+
+        # Construct a leaf from a label & supporting labels
+        @test DTLeaf(1, [])               == DTLeaf{Int64}(1, Int64[])
+        @test DTLeaf{Int64}(1, [1.0])     == DTLeaf{Int64}(1, Int64[1])
+
+        @test DTLeaf(1.0, [1.0])   == DTLeaf{Float64}(1.0, [1.0])
+        @test_nowarn DTLeaf{Float32}(1, [1])
+        @test_nowarn DTLeaf{Float32}(1.0, [1.5])
+
+        @test_throws MethodError DTLeaf(1, ["Class1"])
+        @test_throws InexactError DTLeaf(1, [1.5])
+
+        @test_nowarn DTLeaf{String}("1.0", ["0.5", "1.5"])
+
+        # Inferring the label from supporting labels
+        @test DTLeaf{String}(["Class_1", "Class_1", "Class_2"]).label == "Class_1"
+        
+        @test_nowarn DTLeaf(["1.5"])
+        @test_throws MethodError DTLeaf([1.0,"Class_1"])
+
+        # Check robustness
+        @test_nowarn DTLeaf{Int64}(1, 1:10)
+        @test_nowarn DTLeaf{Int64}(1, 1.0:10.0)
+        @test_nowarn DTLeaf{Float32}(1, 1:10)
+
+        @test DTLeaf(1:10).label == 5.5
+        @test_throws InexactError DTLeaf{Int64}(1:10)
+        @test DTLeaf{Float32}(1:10).label == 5.5f0
+        @test DTLeaf{Int64}(1:11).label == 6
+
+        # Check edge parity case (aggregation biased towards the first class)
+        @test DTLeaf{String}(["Class_1", "Class_2"]).label == "Class_1"
+        @test DTLeaf(["Class_1", "Class_2"]).label == "Class_1"
+
+    end
+end
 
 
 end # module

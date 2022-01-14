@@ -15,7 +15,7 @@ Base.@propagate_inbounds function FeaturedWorldDataset(
 	n_instances = n_samples(X)
 	n_features = length(features)
 	
-	# Prepare FeaturedWorldDataset (the actual implementation depends on the OntologicalDataset)
+    # Prepare FeaturedWorldDataset (the actual implementation depends on the OntologicalDataset)
 	fwd = initFeaturedWorldDataset(X, n_features)
 
 	# Load any (possible) external features

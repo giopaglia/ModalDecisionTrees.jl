@@ -44,6 +44,7 @@
 ☐	DATA: Clean dataset creation pipeline
 ☐	DATA: add filters (e.g., derivatives, Edge detection, which is spatial https://juliahub.com/docs/ImageEdgeDetection/5h14T/0.1.0/#ImageEdgeDetection.jl-Documentation)!
 ☐	DATA: give names to features (e.g. create meta-feature that give features a name.)
+☐	DATA: feat modal dataset and matricial dataset may have different types. use Base.return_types and promote_type to infer them? Attach to each feature the return type?
 ☐	DATA: Instances with different channel size: find implementation of multi-dimensional array where one can specify that along one axis subArrays have non-uniform size?! And highlight difference between channel_size and max_channel_size ArraysOfVector https://juliaarrays.github.io/ArraysOfArrays.jl/stable/ https://github.com/JuliaArrays/BlockArrays.jl
 ################################################################################
 ☐	INTERFACE: Support for learning on dataframes
