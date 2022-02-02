@@ -1,5 +1,4 @@
 module ModalLogic
-
 using IterTools
 import Base: argmax, argmin, size, show, convert, getindex, iterate, length
 using Logging: @logmsg
@@ -12,6 +11,8 @@ using ResumableFunctions
 using DataStructures
 
 using BenchmarkTools # TODO use this to compare timings and use @btime
+
+using DecisionTree.util
 
 export AbstractWorld, AbstractRelation,
                 Ontology,
@@ -195,27 +196,27 @@ display_propositional_decision(feature::AttributeMinimumFeatureType, test_operat
 display_propositional_decision(feature::AttributeMaximumFeatureType, test_operator::typeof(≤), threshold::Number; threshold_display_method::Function = x -> x) =
     "A$(feature.i_attribute) ⪳ $(threshold_display_method(threshold))"
 display_propositional_decision(feature::AttributeSoftMinimumFeatureType, test_operator::typeof(≥), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) $("⪴" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
+    "A$(feature.i_attribute) $("⪴" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
 display_propositional_decision(feature::AttributeSoftMaximumFeatureType, test_operator::typeof(≤), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) $("⪳" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
+    "A$(feature.i_attribute) $("⪳" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
 
 display_propositional_decision(feature::AttributeMinimumFeatureType, test_operator::typeof(<), threshold::Number; threshold_display_method::Function = x -> x) =
     "A$(feature.i_attribute) ⪶ $(threshold_display_method(threshold))"
 display_propositional_decision(feature::AttributeMaximumFeatureType, test_operator::typeof(>), threshold::Number; threshold_display_method::Function = x -> x) =
     "A$(feature.i_attribute) ⪵ $(threshold_display_method(threshold))"
 display_propositional_decision(feature::AttributeSoftMinimumFeatureType, test_operator::typeof(<), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) $("⪶" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
+    "A$(feature.i_attribute) $("⪶" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
 display_propositional_decision(feature::AttributeSoftMaximumFeatureType, test_operator::typeof(>), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) $("⪵" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
+    "A$(feature.i_attribute) $("⪵" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
 
 display_propositional_decision(feature::AttributeMinimumFeatureType, test_operator::typeof(≤), threshold::Number; threshold_display_method::Function = x -> x) =
     "A$(feature.i_attribute) ↘ $(threshold_display_method(threshold))"
 display_propositional_decision(feature::AttributeMaximumFeatureType, test_operator::typeof(≥), threshold::Number; threshold_display_method::Function = x -> x) =
     "A$(feature.i_attribute) ↗ $(threshold_display_method(threshold))"
 display_propositional_decision(feature::AttributeSoftMinimumFeatureType, test_operator::typeof(≤), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) $("↘" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
+    "A$(feature.i_attribute) $("↘" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
 display_propositional_decision(feature::AttributeSoftMaximumFeatureType, test_operator::typeof(≥), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) $("↗" * subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
+    "A$(feature.i_attribute) $("↗" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
 
 ################################################################################
 # Dataset structures
@@ -280,7 +281,7 @@ const MatricialInstance{T<:Number,MN}   = AbstractArray{T,MN}
 
 # TODO use d[i,[(:) for i in 1:N]...] for accessing it, instead of writing blocks of functions
 
-n_samples(d::MatricialDataset{T,D})    where {T,D} = size(d, D)
+n_samples(d::MatricialDataset{T,D})    where {T,D} = size(d, D)::Int64
 n_attributes(d::MatricialDataset{T,D}) where {T,D} = size(d, D-1)
 channel_size(d::MatricialDataset{T,D}) where {T,D} = size(d)[1:end-2]
 # length(d::MatricialDataset{T,N})        where {T,N} = n_samples(d)
@@ -438,7 +439,7 @@ end
 
 relations(X::OntologicalDataset)        = X.ontology.relationSet
 size(X::OntologicalDataset)             = size(X.domain)
-n_samples(X::OntologicalDataset)        = n_samples(X.domain)
+n_samples(X::OntologicalDataset)        = n_samples(X.domain)::Int64
 n_attributes(X::OntologicalDataset)     = n_attributes(X.domain)
 n_relations(X::OntologicalDataset)      = length(relations(X))
 world_type(X::OntologicalDataset{T,N,WT})    where {T,N,WT<:AbstractWorld} = WT
@@ -553,9 +554,9 @@ struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 
         # TODO optimize this! When the underlying MatricialDataset is an AbstractArray, this is going to be an array of a single function.
         # How to achievi this? Think about it.
-        initws_functions = [initws_function(X,  i_instance) for i_instance in 1:n_samples(X)]
-        acc_functions = [acc_function(X,  i_instance) for i_instance in 1:n_samples(X)]
-        accrepr_functions = [accrepr_function(X,  i_instance) for i_instance in 1:n_samples(X)]
+        initws_functions  = [initws_function(X,  i_instance) for i_instance in 1:n_samples(X)]
+        acc_functions     = [acc_function(X,     i_instance) for i_instance in 1:n_samples(X)]
+        accrepr_functions = [accrepr_function(X, i_instance) for i_instance in 1:n_samples(X)]
 
         FeatModalDataset(fwd, relations(X), initws_functions, acc_functions, accrepr_functions, features(X), grouped_featsaggrsnops(X))
     end
@@ -571,7 +572,7 @@ features(X::FeatModalDataset)          = X.features
 grouped_featsaggrsnops(X::FeatModalDataset) = X.grouped_featsaggrsnops
 
 size(X::FeatModalDataset)             where {T,N} =  size(X.fwd)
-n_samples(X::FeatModalDataset{T, WorldType}) where {T, WorldType}   = n_samples(X.fwd)
+n_samples(X::FeatModalDataset{T, WorldType}) where {T, WorldType}   = n_samples(X.fwd)::Int64
 n_features(X::FeatModalDataset{T, WorldType}) where {T, WorldType}  = length(X.features)
 n_relations(X::FeatModalDataset{T, WorldType}) where {T, WorldType} = length(X.relations)
 # length(X::FeatModalDataset{T,WorldType})        where {T,WorldType} = n_samples(X)
@@ -744,14 +745,14 @@ struct StumpFeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 
     function StumpFeatModalDataset(
         fmd                 :: FeatModalDataset{T, WorldType};
-        computeRelationGlob :: Bool = false,
+        computeRelationGlob :: Bool = true,
     ) where {T,WorldType<:AbstractWorld}
         StumpFeatModalDataset{T, WorldType}(fmd, computeRelationGlob = computeRelationGlob)
     end
 
     function StumpFeatModalDataset{T, WorldType}(
         fmd                 :: FeatModalDataset{T, WorldType};
-        computeRelationGlob :: Bool = false,
+        computeRelationGlob :: Bool = true,
     ) where {T,WorldType<:AbstractWorld}
         
         featsnaggrs = Tuple{<:FeatureTypeFun,<:Aggregator}[]
@@ -776,14 +777,14 @@ struct StumpFeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 
     function StumpFeatModalDataset(
         X                   :: OntologicalDataset{T, N, WorldType};
-        computeRelationGlob :: Bool = false,
+        computeRelationGlob :: Bool = true,
     ) where {T, N, WorldType<:AbstractWorld}
         StumpFeatModalDataset{T, WorldType}(X, computeRelationGlob = computeRelationGlob)
     end
 
     function StumpFeatModalDataset{T, WorldType}(
         X                   :: OntologicalDataset{T, N, WorldType};
-        computeRelationGlob :: Bool = false,
+        computeRelationGlob :: Bool = true,
     ) where {T, N, WorldType<:AbstractWorld}
 
         # Compute modal dataset propositions
@@ -838,14 +839,14 @@ struct StumpFeatModalDatasetWithMemoization{T, WorldType} <: AbstractModalDatase
 
     function StumpFeatModalDatasetWithMemoization(
         fmd                 :: FeatModalDataset{T, WorldType};
-        computeRelationGlob :: Bool = false,
+        computeRelationGlob :: Bool = true,
     ) where {T,WorldType<:AbstractWorld}
         StumpFeatModalDatasetWithMemoization{T, WorldType}(fmd, computeRelationGlob = computeRelationGlob)
     end
 
     function StumpFeatModalDatasetWithMemoization{T, WorldType}(
         fmd                 :: FeatModalDataset{T, WorldType};
-        computeRelationGlob :: Bool = false,
+        computeRelationGlob :: Bool = true,
     ) where {T,WorldType<:AbstractWorld}
         
         featsnaggrs = Tuple{<:FeatureTypeFun,<:Aggregator}[]
@@ -870,14 +871,14 @@ struct StumpFeatModalDatasetWithMemoization{T, WorldType} <: AbstractModalDatase
 
     function StumpFeatModalDatasetWithMemoization(
         X                   :: OntologicalDataset{T, N, WorldType};
-        computeRelationGlob :: Bool = false,
+        computeRelationGlob :: Bool = true,
     ) where {T, N, WorldType<:AbstractWorld}
         StumpFeatModalDatasetWithMemoization{T, WorldType}(X, computeRelationGlob = computeRelationGlob)
     end
 
     function StumpFeatModalDatasetWithMemoization{T, WorldType}(
         X                   :: OntologicalDataset{T, N, WorldType};
-        computeRelationGlob :: Bool = false,
+        computeRelationGlob :: Bool = true,
     ) where {T, N, WorldType<:AbstractWorld}
 
         # Compute modal dataset propositions
@@ -908,7 +909,7 @@ grouped_featsaggrsnops(X::StumpFeatModalDatasetWithOrWithoutMemoization)  = grou
 
 
 size(X::StumpFeatModalDatasetWithOrWithoutMemoization)             where {T,N} =  (size(X.fmd), size(X.fmd_m), (isnothing(X.fmd_g) ? nothing : size(X.fmd_g)))
-n_samples(X::StumpFeatModalDatasetWithOrWithoutMemoization{T, WorldType}) where {T, WorldType}   = n_samples(X.fmd)
+n_samples(X::StumpFeatModalDatasetWithOrWithoutMemoization{T, WorldType}) where {T, WorldType}   = n_samples(X.fmd)::Int64
 n_features(X::StumpFeatModalDatasetWithOrWithoutMemoization{T, WorldType}) where {T, WorldType}  = n_features(X.fmd)
 n_relations(X::StumpFeatModalDatasetWithOrWithoutMemoization{T, WorldType}) where {T, WorldType} = n_relations(X.fmd)
 # getindex(X::StumpFeatModalDatasetWithOrWithoutMemoization{T,WorldType}, args::Vararg) where {T,WorldType} = getindex(X.fmd, args...)
@@ -953,7 +954,7 @@ get_global_gamma(
         i_instance::Integer,
         feature::FeatureTypeFun,
         test_operator::TestOperatorFun) where {WorldType<:AbstractWorld, T} = begin
-            @assert !isnothing(X.fmd_g) "Error. StumpFeatModalDatasetWithOrWithoutMemoization must be built with computeRelationGlob = true for it to be ready to test global decisions."
+            # @assert !isnothing(X.fmd_g) "Error. StumpFeatModalDatasetWithOrWithoutMemoization must be built with computeRelationGlob = true for it to be ready to test global decisions."
             i_featsnaggr = find_featsnaggr_id(X, feature, existential_aggregator(test_operator))
             X.fmd_g[i_instance, i_featsnaggr]
 end
@@ -1327,7 +1328,7 @@ size(X::MultiFrameModalDataset) = map(size, X.frames)
 get_frame(X::MultiFrameModalDataset, i) = X.frames[i]
 push_frame!(X::MultiFrameModalDataset, f::AbstractModalDataset) = push!(X.frames, f)
 n_frames(X::MultiFrameModalDataset)             = length(X.frames)
-n_samples(X::MultiFrameModalDataset)            = n_samples(X.frames[1]) # n_frames(X) > 0 ? n_samples(X.frames[1]) : 0
+n_samples(X::MultiFrameModalDataset)            = n_samples(X.frames[1])::Int64 # n_frames(X) > 0 ? n_samples(X.frames[1]) : 0
 length(X::MultiFrameModalDataset)               = n_samples(X)
 frames(X::MultiFrameModalDataset) = X.frames
 Base.iterate(X::MultiFrameModalDataset, state=1) = state > length(X) ? nothing : (getInstance(X, state), state+1)

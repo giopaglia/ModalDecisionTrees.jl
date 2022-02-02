@@ -6,13 +6,14 @@ module util
     export gini, entropy, zero_one, q_bi_sort!, subscriptnumber, spawn_rng
 
     using Random
+    using LinearAlgebra
     using StatsBase
-
+    
     # Generate a new rng from a random pick from a given one.
     spawn_rng(rng) = Random.MersenneTwister(abs(rand(rng, Int)))
 
     # This function translates a list of labels into categorical form
-    function assign(Y :: AbstractVector{T}) where T
+    Base.@propagate_inbounds @inline function assign(Y :: AbstractVector{T}) where T
         function assign(Y :: AbstractVector{T}, list :: AbstractVector{T}) where T
             dict = Dict{T, Int64}()
             @simd for i in 1:length(list)
@@ -35,11 +36,11 @@ module util
         return assign(Y, list)
     end
 
-    @inline function zero_one(ns :: AbstractVector{T}, n :: T) where {T <: Real}
+    Base.@propagate_inbounds @inline function zero_one(ns :: AbstractVector{T}, n :: T) where {T <: Real}
         return 1.0 - maximum(ns) / n
     end
 
-    @inline function gini(ns :: AbstractVector{T}, n :: T) where {T <: Real}
+    Base.@propagate_inbounds @inline function gini(ns :: AbstractVector{T}, n :: T) where {T <: Real}
         s = 0.0
         @simd for k in ns
             s += k * (n - k)
@@ -54,30 +55,134 @@ module util
 
     # returns the entropy of ns/n, ns is an array of integers
     # and entropy_terms are precomputed entropy terms
-    @inline function entropy(ns::AbstractVector{U}, l :: Integer, entropy_terms) where {U <: Integer}
+
+    ############################################################################
+    # Entropy measures for regression and classification
+    # TODO explain: single and double version
+    # TODO explain: regression has separated weighted & unweigthed versions
+    # Note: code is equivalent to: (ws_l*entropy_l + ws_r*entropy_r)
+    # Note: these functions return the additive inverse of entropy measures
+    ############################################################################
+    # Shannon entropy: (ps = normalize(ws, 1); return -sum(ps.*log.(ps)))
+    # Single
+    Base.@propagate_inbounds @inline function _shannon_entropy(ws :: AbstractVector{U}, t :: U) where {U <: Real}
+        log(t) + _shannon_entropy(ws) / t
+    end
+
+    Base.@propagate_inbounds @inline function _shannon_entropy(ws :: AbstractVector{U}) where {U <: Real}
         s = 0.0
-        for k in ns
-            s += entropy_terms[k+1]
+        for k in filter((k)->k > 0, ws)
+            s += k * log(k)
         end
-        return log(l) - s / l
+        s
     end
 
-    @inline function entropy(ns :: AbstractVector{U}, l :: Integer) where {U <: Real}
-        s = 0.0
-        @simd for k in ns
-            if k > 0
-                s += k * log(k)
-            end
-        end
-        return log(l) - s / l
+    # Double
+    Base.@propagate_inbounds @inline function _shannon_entropy(
+        ws_l :: AbstractVector{U}, tl :: U,
+        ws_r :: AbstractVector{U}, tr :: U,
+    ) where {U <: Real}
+        (tl * log(tl) + _shannon_entropy(ws_l) +
+         tr * log(tr) + _shannon_entropy(ws_r))
     end
 
-    @inline function variance(ns :: AbstractVector{U}, l :: Integer) where {U <: Real}
-        sum((ns .- StatsBase.mean(ns)).^2) / (l - 1) # = StatsBase.var(ns)
+    # Correction
+    Base.@propagate_inbounds @inline function _shannon_entropy(e :: AbstractFloat)
+        e*log2(ℯ)
     end
 
+    ShannonEntropy() = _shannon_entropy
+
+    # Tsallis entropy (alpha > 1.0) (ps = normalize(ws, 1); return -log(sum(ps.^alpha))/(1.0-alpha))
+    # Single
+    Base.@propagate_inbounds @inline function _tsallis_entropy(alpha :: AbstractFloat, ws :: AbstractVector{U}, t :: U) where {U <: Real}
+        log(sum(ps = normalize(ws, 1).^alpha))
+    end
+
+    # Double
+    Base.@propagate_inbounds @inline function _tsallis_entropy(
+        alpha :: AbstractFloat,
+        ws_l :: AbstractVector{U}, tl :: U,
+        ws_r :: AbstractVector{U}, tr :: U,
+    ) where {U <: Real}
+        (tl * _tsallis_entropy(alpha, ws_l, tl) +
+         tr * _tsallis_entropy(alpha, ws_r, tr))
+    end
+
+    # Correction
+    Base.@propagate_inbounds @inline function _tsallis_entropy(alpha :: AbstractFloat, e :: AbstractFloat)
+        e*(1/(alpha-1.0))
+    end
+
+    TsallisEntropy(alpha::AbstractFloat) = (args...)->_tsallis_entropy(alpha, args...)
+    
+    # Renyi entropy (alpha > 1.0) (ps = normalize(ws, 1); -(1.0-sum(ps.^alpha))/(alpha-1.0))
+    Base.@propagate_inbounds @inline function _renyi_entropy(alpha :: AbstractFloat, ws :: AbstractVector{U}, t :: U) where {U <: Real}
+        (sum(normalize(ws, 1).^alpha)-1.0)
+    end
+
+    # Double
+    Base.@propagate_inbounds @inline function _renyi_entropy(
+        alpha :: AbstractFloat,
+        ws_l :: AbstractVector{U}, tl :: U,
+        ws_r :: AbstractVector{U}, tr :: U,
+    ) where {U <: Real}
+        (tl * _renyi_entropy(alpha, ws_l, tl) +
+         tr * _renyi_entropy(alpha, ws_r, tr))
+    end
+
+    # Correction
+    Base.@propagate_inbounds @inline function _renyi_entropy(alpha :: AbstractFloat, e :: AbstractFloat)
+        e*(1/(alpha-1.0))
+    end
+
+    RenyiEntropy(alpha::AbstractFloat) = (args...)->_renyi_entropy(alpha, args...)
+    
+    entropy = ShannonEntropy()
+
+    ############################################################################
+    # Variance (weighted & unweigthed, see https://en.m.wikipedia.org/wiki/Weighted_arithmetic_mean)
+
+    # Single
+    # sum(ws .* ((ns .- (sum(ws .* ns)/t)).^2)) / (t)
+    Base.@propagate_inbounds @inline function _variance(ns :: AbstractVector{L}, s :: L, t :: Integer) where {L, U <: Real}
+        # @btime sum((ns .- StatsBase.mean(ns)).^2) / (1 - t)
+        # @btime (sum(ns.^2)-s^2/t) / (1 - t)
+        (sum(ns.^2)-s^2/t) / (1 - t)
+        # TODO remove / (1 - t) from here, and move it to the correction-version of _variance, but it must be for single-version only!
+    end
+
+    # Single weighted (non-frequency weigths interpretation)
+    # sum(ws .* ((ns .- (sum(ws .* ns)/t)).^2)) / (t)
+    Base.@propagate_inbounds @inline function _variance(ns :: AbstractVector{L}, ws :: AbstractVector{U}, wt :: U) where {L, U <: Real}
+        # @btime (sum(ws .* ns)/wt)^2 - sum(ws .* (ns.^2))/wt
+        # @btime (wns = ws .* ns; (sum(wns)/wt)^2 - sum(wns .* ns)/wt)
+        # @btime (wns = ws .* ns; sum(wns)^2/wt^2 - sum(wns .* ns)/wt)
+        # @btime (wns = ws .* ns; (sum(wns)^2/wt - sum(wns .* ns))/wt)
+        (wns = ws .* ns; (sum(wns .* ns) - sum(wns)^2/wt)/wt)
+    end
+
+    # Double
+    Base.@propagate_inbounds @inline function _variance(
+        ns_l :: AbstractVector{U}, sl :: L, tl :: U,
+        ns_r :: AbstractVector{U}, sr :: L, tr :: U,
+    ) where {L, U <: Real}
+        ((tl*sum(ns_l.^2)-sl^2) / (1 - tl)) +
+        ((tr*sum(ns_l.^2)-sr^2) / (1 - tr))
+    end
+    
+    # Correction
+    Base.@propagate_inbounds @inline function _variance(e :: AbstractFloat)
+        e
+    end
+
+    # TODO write double non weigthed
+
+    variance = _variance
+
+    ############################################################################
     # adapted from the Julia Base.Sort Library
-    @inline function partition!(v::AbstractVector, w::AbstractVector{T}, pivot::T, region::Union{AbstractVector{<:Integer},UnitRange{<:Integer}}) where T
+    Base.@propagate_inbounds @inline function partition!(v::AbstractVector, w::AbstractVector{T}, pivot::T, region::Union{AbstractVector{<:Integer},UnitRange{<:Integer}}) where T
         i, j = 1, length(region)
         r_start = region.start - 1
         @inbounds while true
@@ -94,7 +199,7 @@ module util
     end
 
     # adapted from the Julia Base.Sort Library
-    function insert_sort!(v::AbstractVector, w::AbstractVector, lo::Integer, hi::Integer, offset::Integer)
+    Base.@propagate_inbounds @inline function insert_sort!(v::AbstractVector, w::AbstractVector, lo::Integer, hi::Integer, offset::Integer)
         @inbounds for i = lo+1:hi
             j = i
             x = v[i]
@@ -114,7 +219,7 @@ module util
         return v
     end
 
-    @inline function _selectpivot!(v::AbstractVector, w::AbstractVector, lo::Integer, hi::Integer, offset::Integer)
+    Base.@propagate_inbounds @inline function _selectpivot!(v::AbstractVector, w::AbstractVector, lo::Integer, hi::Integer, offset::Integer)
         @inbounds begin
             mi = (lo+hi)>>>1
 
@@ -150,7 +255,7 @@ module util
     ############################################################################
     
     # adapted from the Julia Base.Sort Library
-    @inline function _bi_partition!(v::AbstractVector, w::AbstractVector, lo::Integer, hi::Integer, offset::Integer)
+    Base.@propagate_inbounds @inline function _bi_partition!(v::AbstractVector, w::AbstractVector, lo::Integer, hi::Integer, offset::Integer)
         pivot, w_piv = _selectpivot!(v, w, lo, hi, offset)
         # pivot == v[lo], v[hi] > pivot
         i, j = lo, hi
@@ -177,7 +282,7 @@ module util
     # this sorts v[lo:hi] and w[offset+lo, offset+hi]
     # simultaneously by the values in v[lo:hi]
     const SMALL_THRESHOLD  = 20
-    function q_bi_sort!(v::AbstractVector, w::AbstractVector, lo::Integer, hi::Integer, offset::Integer)
+    Base.@propagate_inbounds @inline function q_bi_sort!(v::AbstractVector, w::AbstractVector, lo::Integer, hi::Integer, offset::Integer)
         @inbounds while lo < hi
             hi-lo <= SMALL_THRESHOLD && return insert_sort!(v, w, lo, hi, offset)
             j = _bi_partition!(v, w, lo, hi, offset)

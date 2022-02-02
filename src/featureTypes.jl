@@ -5,7 +5,7 @@ export FeatureTypeFun,
         AttributeFunctionFeatureType, ChannelFunctionFeatureType,
         ExternalFWDFeatureType
 
-export yieldFunction
+export yieldFunction, alpha
 
 import Base.vec
 
@@ -80,8 +80,8 @@ alpha(f::AttributeSoftMaximumFeatureType) = f.alpha
 # yieldFunction(f::AttributeSoftMinimumFeatureType) = ModalLogic.getInstanceAttribute(x,f.i_attribute)
 # yieldFunction(f::AttributeSoftMaximumFeatureType) = ModalLogic.getInstanceAttribute(x,f.i_attribute)
 
-Base.show(io::IO, f::AttributeSoftMinimumFeatureType) = Base.print(io, "min" * subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
-Base.show(io::IO, f::AttributeSoftMaximumFeatureType) = Base.print(io, "max" * subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
+Base.show(io::IO, f::AttributeSoftMinimumFeatureType) = Base.print(io, "min" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
+Base.show(io::IO, f::AttributeSoftMaximumFeatureType) = Base.print(io, "max" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
 
 ################################################################################
 ################################################################################
