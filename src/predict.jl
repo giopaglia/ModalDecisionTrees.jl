@@ -25,6 +25,17 @@ inst_init_world_sets(Xs::MultiFrameModalDataset, tree::DTree, i_instance::Intege
   Ss
 end
 
+# TODO consolidate functions like this
+init_world_sets(Xs::MultiFrameModalDataset, initConditions::AbstractVector{<:_initCondition}) = begin
+    Ss = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, n_frames(Xs))
+    for (i_frame,X) in enumerate(ModalLogic.frames(Xs))
+        WT = world_type(X)
+        Ss[i_frame] = WorldSet{WT}[initws_function(X, i_instance)(initConditions[i_frame]) for i_instance in 1:n_samples(Xs)]
+        # Ss[i_frame] = WorldSet{WT}[[ModalLogic.Interval(1,2)] for i_instance in 1:n_samples(Xs)]
+    end
+    Ss
+end
+
 apply_tree(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}) = leaf.label
 
 function apply_tree(tree::DTInternal, X::MultiFrameModalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
@@ -134,7 +145,7 @@ function _empty_tree_leaves(node::DTInternal{T, L}) where {T, L}
   return DTInternal(
     node.i_frame,
     node.decision,
-    _empty_tree_leaves(node.this,
+    _empty_tree_leaves(node.this),
     _empty_tree_leaves(node.left),
     _empty_tree_leaves(node.right),
   )
@@ -144,7 +155,7 @@ function _empty_tree_leaves(tree::DTree)
   return DTree(
     _empty_tree_leaves(tree.root),
     tree.worldTypes,
-    tree.initConditions
+    tree.initConditions,
   )
 end
 

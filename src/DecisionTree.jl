@@ -6,12 +6,16 @@ module DecisionTree
 
 import Base: length, show
 
+using StructuredArrays: UniformVector # , FillArrays # TODO choose one
+
 using LinearAlgebra
 using Logging: LogLevel, @logmsg
 using Printf
 using Random
 using StatsBase
 using ReTest
+
+using Dagger
 
 ################################################################################
 
@@ -113,30 +117,72 @@ initWorldSet(initCondition::_startAtWorld{WorldType}, ::Type{WorldType}, channel
 ################################################################################
 # TODO MOVE
 # TODO Label could also be Nothing! Think about it
-Label = Union{String,Number}
-average_label(labels::AbstractVector{<:String}) = argmax(countmap(labels)) # TODO handle parity!
-average_label(labels::AbstractVector{<:Number}) = StatsBase.mean(labels)
+CLabel  = Union{String,Integer}
+RLabel  = AbstractFloat
+Label   = Union{CLabel,RLabel}
+# Raw labels
+_CLabel = Integer
+_Label  = Union{_CLabel,RLabel}
 
-function dishonor_min_purity_increase(::L, min_purity_increase, purity, best_purity_times_nt, nt) where {L<:String}
+default_loss_function(::Type{<:CLabel}) = util.entropy
+default_loss_function(::Type{<:RLabel}) = util.variance
+
+# TODO handle parity!
+average_label(labels::AbstractVector{<:CLabel}) = argmax(countmap(labels))
+average_label(labels::AbstractVector{<:RLabel}) = StatsBase.mean(labels)
+
+function dishonor_min_purity_increase(::Type{L}, min_purity_increase, purity, best_purity_times_nt, nt) where {L<:CLabel}
     (best_purity_times_nt/nt - purity < min_purity_increase)
 end
-function dishonor_min_purity_increase(::L, min_purity_increase, purity, best_purity_times_nt, nt) where {L<:Float64}
+function dishonor_min_purity_increase(::Type{L}, min_purity_increase, purity, best_purity_times_nt, nt) where {L<:RLabel}
     # (best_purity_times_nt - tsum * label <= min_purity_increase * nt) # ORIGINAL
     (best_purity_times_nt/nt - purity < min_purity_increase * nt)
 end
 
+# TODO fix
+# function _compute_purity( # faster_version assuming L<:Integer and labels going from 1:n_classes
+#     labels           ::AbstractVector{L},
+#     n_classes        ::Int,
+#     weights          ::AbstractVector{U} = UniformVector{Int}(1,length(labels));
+#     loss_function    ::Union{Nothing,Function} = default_loss_function(L),
+# ) where {L<:CLabel, L<:Integer, U}
+#     nc = fill(zero(U), n_classes)
+#     @simd for i in 1:max(length(labels),length(weights))
+#         nc[labels[i]] += weights[i]
+#     end
+#     nt = sum(nc)
+#     return loss_function(nc, nt)::Float64
+# end
 function compute_purity(
-    labels           ::AbstractVector{<:String};
+    labels           ::AbstractVector{L},
+    weights          ::AbstractVector{U} = UniformVector{Int}(1,length(labels));
     loss_function    ::Union{Nothing,Function} = default_loss_function(L),
-)
-    TODO ...-(loss_function(TODO, nt))
+) where {L<:CLabel, U}
+    nc = Dict{L, U}()
+    @simd for i in 1:max(length(labels),length(weights))
+        nc[labels[i]] = get(nc, labels[i], 0) + weights[i]
+    end
+    nc = collect(values(nc))
+    nt = sum(nc)
+    return loss_function(nc, nt)::Float64
 end
+# function _compute_purity(
+#     labels           ::AbstractVector{L},
+#     weights          ::AbstractVector{U} = UniformVector{Int}(1,length(labels));
+#     loss_function    ::Union{Nothing,Function} = default_loss_function(L),
+# ) where {L<:RLabel, U}
+#     sums = labels .* weights
+#     nt = sum(weights)
+#     return -(loss_function(sums, nt))::Float64
+# end
 function compute_purity(
-    labels           ::AbstractVector{<:Number};
+    labels           ::AbstractVector{L},
+    weights          ::AbstractVector{U} = UniformVector{Int}(1,length(labels));
     loss_function    ::Union{Nothing,Function} = default_loss_function(L),
-)
-    TODO ...-(loss_function(TODO, nt))
+) where {L<:RLabel, U}
+    _compute_purity = _compute_purity(labels, weights = weights; loss_function = loss_function)
 end
+
 
 ################################################################################
 ################################################################################
@@ -258,12 +304,20 @@ struct DTree{L<:Label}
     # initial world conditions (one per frame)
     initConditions :: Vector{<:_initCondition}
 
+    function DTree{L}(
+        root           :: DTNode,
+        worldTypes     :: AbstractVector{<:Type},
+        initConditions :: AbstractVector{<:_initCondition},
+    ) where {L<:Label}
+        return new{L}(root, collect(worldTypes), collect(initConditions))
+    end
+
     function DTree(
         root           :: DTNode{T, L},
         worldTypes     :: AbstractVector{<:Type},
         initConditions :: AbstractVector{<:_initCondition},
-    ) where {T, L}
-        return new{L}(root, collect(worldTypes), collect(initConditions))
+    ) where {T, L<:Label}
+        return DTree{L}(root, collect(worldTypes), collect(initConditions))
     end
 end
 
@@ -285,8 +339,6 @@ end
 num_leaves(leaf::DTLeaf)     = 1
 num_leaves(node::DTInternal) = num_leaves(node.left) + num_leaves(node.right)
 num_leaves(tree::DTree)      = num_leaves(tree.root)
-
-length(f::DForest)    = num_trees(f.trees)
 
 # Number of nodes
 num_nodes(leaf::DTLeaf)     = 1
@@ -348,13 +400,13 @@ end
 
 function show(io::IO, node::DTInternal)
     println(io, "Decision Node")
-    println(io, display_decision(tree))
-    println(io, "Leaves: $(length(tree))")
-    println(io, "Tot nodes: $(num_nodes(tree))")
-    println(io, "Height: $(height(tree))")
-    println(io, "Modal height:  $(modal_height(tree))")
+    println(io, display_decision(node))
+    println(io, "Leaves: $(length(node))")
+    println(io, "Tot nodes: $(num_nodes(node))")
+    println(io, "Height: $(height(node))")
+    println(io, "Modal height:  $(modal_height(node))")
     println(io, "Sub-tree:")
-    print_tree(io, tree)
+    print_tree(io, node)
 end
 
 function show(io::IO, tree::DTree)
