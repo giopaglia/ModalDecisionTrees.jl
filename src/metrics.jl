@@ -239,18 +239,10 @@ function majority_vote(labels::AbstractVector{T}, weights::Union{Nothing,Abstrac
     return argmax(counts)
 end
 
-### Classification ###
-
 const PerformanceStruct = NamedTuple
 const GenericPerformanceType = Union{ConfusionMatrix,PerformanceStruct}
-function confusion_matrix(actual::AbstractVector{Float64}, predicted::AbstractVector{Float64}, weights = nothing)
-    (
-        cor   = cor(actual, predicted),
-        MAE   = sum(abs.(actual .- predicted)) / length(predicted),
-        RMSE  = StatsBase.rmsd(actual, predicted),
-    )
-end
 
+### Classification ###
 function confusion_matrix(actual::AbstractVector, predicted::AbstractVector, weights = nothing)
     @assert isnothing(weights) "TODO Expand code: Non-nothing weights encountered in confusion_matrix()"
     @assert length(actual) == length(predicted)
@@ -277,6 +269,27 @@ function confusion_matrix(actual::AbstractVector, predicted::AbstractVector, wei
     end
     return ConfusionMatrix(class_labels, CM)
 end
+
+### Regression ###
+
+# Coefficient of determination
+function R2(actual, predicted)
+  ss_residual = sum((actual - predicted).^2)
+  ss_total = sum((actual .- mean(actual)).^2)
+  return 1.0 - ss_residual/ss_total
+end
+
+function confusion_matrix(actual::AbstractVector{Float64}, predicted::AbstractVector{Float64}, weights = nothing)
+    # @assert length(actual) == length(predicted)
+    (
+        cor   = cor(actual, predicted),
+        MAE   = sum(abs.(actual .- predicted)) / length(predicted),
+        # MSE   = mean((actual - predicted).^2)
+        RMSE  = StatsBase.rmsd(actual, predicted),
+        R2    = R2(actual, predicted),
+    )
+end
+
 
 # function _nfoldCV(classifier::Symbol, labels::AbstractVector{T}, features::AbstractMatrix{S}, args...; verbose, rng) where {S, T}
 #   _rng = mk_rng(rng)::Random.AbstractRNG
@@ -396,18 +409,6 @@ end
 # end
 
 # ### Regression ###
-
-# function mean_squared_error(actual, predicted)
-#   @assert length(actual) == length(predicted)
-#   return mean((actual - predicted).^2)
-# end
-
-# function R2(actual, predicted)
-#   @assert length(actual) == length(predicted)
-#   ss_residual = sum((actual - predicted).^2)
-#   ss_total = sum((actual .- mean(actual)).^2)
-#   return 1.0 - ss_residual/ss_total
-# end
 
 # function _nfoldCV(regressor::Symbol, labels::AbstractVector{T}, features::AbstractMatrix, args...; verbose, rng) where T <: Float64
 #   _rng = mk_rng(rng)::Random.AbstractRNG

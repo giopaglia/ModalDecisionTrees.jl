@@ -4,8 +4,6 @@ using StructuredArrays # , FillArrays # TODO choose one
 
 include("model/tree.jl")
 
-default_loss_function(L::Type{String})          = util.entropy
-default_loss_function(L::Type{<:AbstractFloat}) = util.variance
 ################################################################################
 ########################## Matricial Dataset ###################################
 ################################################################################
@@ -79,7 +77,8 @@ function build_stump(
         Y                 :: AbstractVector{String},
         W                 :: Union{Nothing,AbstractVector{U}} = nothing;
         kwargs...) where {N, U}
-    @assert !haskey(kwargs, :max_depth) || kwargs.max_depth == 1 "build_stump doesn't allow max_depth != 1"
+    params = NamedTuple(kwargs)
+    @assert !haskey(params, :max_depth) || params.max_depth == 1 "build_stump doesn't allow max_depth != 1"
     build_tree(X, Y, W; max_depth = 1, kwargs...)
 end
 
@@ -87,7 +86,7 @@ end
 # Build a tree
 function build_tree(
     Xs                  :: MultiFrameModalDataset,
-    Y                   :: AbstractVector{S},
+    Y                   :: AbstractVector{L},
     W                   :: Union{Nothing,AbstractVector{U}}   = nothing;
     ##############################################################################
     loss_function       :: Union{Nothing,Function}            = nothing,
@@ -103,10 +102,14 @@ function build_tree(
     ##############################################################################
     perform_consistency_check :: Bool = true,
     ##############################################################################
-    rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {S, U}
+    rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {L, U}
     
     if isnothing(W)
-        W = UniformArray{Int}(1,n_samples(Xs))
+        W = UniformVector{Int}(1,n_samples(Xs))
+    end
+    
+    if isnothing(loss_function)
+        loss_function = default_loss_function(L)
     end
     
     if allowRelationGlob isa Bool
@@ -128,10 +131,7 @@ function build_tree(
     @assert max_depth > 0
 
     # rng = mk_rng(rng) # TODO figure out what to do here. Maybe it can be helpful to make rng either an rng or a seed, and then mk_rng transforms it into an rng
-    root = fit(
-        Xs,
-        Y,
-        W
+    return fit(Xs, Y, initConditions, W
         ;###########################################################################
         loss_function       = loss_function,
         max_depth           = max_depth,
@@ -141,21 +141,18 @@ function build_tree(
         ############################################################################
         n_subrelations      = n_subrelations,
         n_subfeatures       = [ n_subfeatures[i](n_features(frame)) for (i,frame) in enumerate(frames(Xs)) ],
-        initConditions      = initConditions,
         allowRelationGlob   = allowRelationGlob,
         ############################################################################
         perform_consistency_check = perform_consistency_check,
         ############################################################################
         rng                 = rng)
-    
-    DTree(root, world_types(Xs), initConditions)
 end
 
 function build_forest(
     Xs                  :: MultiFrameModalDataset,
     Y                   :: AbstractVector{S},
     # Use unary weights if no weight is supplied
-    W                   :: AbstractVector{U} = UniformArray{Int}(1,n_samples(Xs)); # from StructuredArrays
+    W                   :: AbstractVector{U} = UniformVector{Int}(1,n_samples(Xs)); # from StructuredArrays
     # W                   :: AbstractVector{U} = fill(1, n_samples(Xs));
     # W                   :: AbstractVector{U} = Ones{Int}(n_samples(Xs));      # from FillArrays
     ##############################################################################
@@ -218,15 +215,15 @@ function build_forest(
 
     rngs = [util.spawn_rng(rng) for i_tree in 1:n_trees]
 
-    if W isa UniformArray
-        W_one_slice = UniformArray{Int}(1,num_samples)
+    if W isa UniformVector
+        W_one_slice = UniformVector{Int}(1,num_samples)
     end
 
-    get_W_slice(W::UniformArray, inds) = W_one_slice
+    get_W_slice(W::UniformVector, inds) = W_one_slice
     get_W_slice(W::Any, inds) = @view W[inds]
 
     # TODO improve naming (at least)
-    _get_weights(W::UniformArray, inds) = nothing
+    _get_weights(W::UniformVector, inds) = nothing
     _get_weights(W::Any, inds) = @view W[inds]
 
     # TODO remove this and this of a better representation of Y?
@@ -305,7 +302,7 @@ function build_forest(
     Xs                  :: MultiFrameModalDataset,
     Y                   :: AbstractVector{S},
     # Use unary weights if no weight is supplied
-    W                   :: AbstractVector{U} = UniformArray{Int}(1,n_samples(Xs)); # from StructuredArrays
+    W                   :: AbstractVector{U} = UniformVector{Int}(1,n_samples(Xs)); # from StructuredArrays
     # W                   :: AbstractVector{U} = fill(1, n_samples(Xs));
     # W                   :: AbstractVector{U} = Ones{Int}(n_samples(Xs));      # from FillArrays
     ##############################################################################
@@ -368,15 +365,15 @@ function build_forest(
 
     rngs = [util.spawn_rng(rng) for i_tree in 1:n_trees]
 
-    if W isa UniformArray
-        W_one_slice = UniformArray{Int}(1,num_samples)
+    if W isa UniformVector
+        W_one_slice = UniformVector{Int}(1,num_samples)
     end
 
-    get_W_slice(W::UniformArray, inds) = W_one_slice
+    get_W_slice(W::UniformVector, inds) = W_one_slice
     get_W_slice(W::Any, inds) = @view W[inds]
 
     # TODO improve naming (at least)
-    _get_weights(W::UniformArray, inds) = nothing
+    _get_weights(W::UniformVector, inds) = nothing
     _get_weights(W::Any, inds) = @view W[inds]
 
     Threads.@threads for i_tree in 1:n_trees
