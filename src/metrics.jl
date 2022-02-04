@@ -279,6 +279,7 @@ function R2(actual, predicted)
   return 1.0 - ss_residual/ss_total
 end
 
+# TODO keep actual and predicted (both test and train?), so that I can plot the average error
 function confusion_matrix(actual::AbstractVector{Float64}, predicted::AbstractVector{Float64}, weights = nothing)
     # @assert length(actual) == length(predicted)
     (
@@ -287,6 +288,7 @@ function confusion_matrix(actual::AbstractVector{Float64}, predicted::AbstractVe
         # MSE   = mean((actual - predicted).^2)
         RMSE  = StatsBase.rmsd(actual, predicted),
         R2    = R2(actual, predicted),
+        # TODO add MAPE, MSE
     )
 end
 
