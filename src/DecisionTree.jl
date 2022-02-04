@@ -241,7 +241,7 @@ struct DTInternal{T, L<:Label}
         DTInternal{T, L}(i_frame, decision, this, left, right)
     end
 
-    # create node without local leaf
+    # create node without local decision
     function DTInternal{T, L}(
         i_frame          :: Int64,
         decision         :: Decision,
@@ -275,7 +275,7 @@ struct DTInternal{T, L<:Label}
         right            :: Union{DTLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
         DTInternal{T, L}(decision, this, left, right)
     end
-
+    
     # create node without frame nor local decision
     function DTInternal{T, L}(
         decision         :: Decision,
@@ -290,7 +290,6 @@ struct DTInternal{T, L<:Label}
         right            :: Union{DTLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
         DTInternal{T, L}(decision, left, right)
     end
-end
 
 # Decision Node (Leaf or Internal)
 const DTNode{T, L} = Union{DTLeaf{L}, DTInternal{T, L}}

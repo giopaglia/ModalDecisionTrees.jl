@@ -260,7 +260,7 @@ const initWorldSetFunction = Function
 const accFunction = Function
 const accReprFunction = Function
 
-abstract type AbstractModalDataset{T<:Real,WorldType<:AbstractWorld} end
+abstract type AbstractModalDataset{T<:Number,WorldType<:AbstractWorld} end
 
 # A dataset, given by a set of N-dimensional (multi-attribute) matrices/instances,
 #  and an Ontology to be interpreted on each of them.
@@ -378,6 +378,55 @@ get_gamma(X::MatricialDataset, i_instance::Integer, w::AbstractWorld, feature::F
     #   OntologicalDataset{T, N, WorldType}(domain, ontology, features, grouped_featsaggrsnops)
     # end
 
+    # function OntologicalDataset{T, N, WorldType}(
+    #     domain::MatricialDataset{T,D},
+    #     # ontology::Ontology{WorldType},
+    #     # canonical_features,
+    # ) where {T, N, D, WorldType<:AbstractWorld}
+    #     features, featsnops = begin
+    #         # features = FeatureTypeFun[]
+    #         # featsnops = Vector{<:TestOperatorFun}[]
+
+    #         # # readymade
+    #         # cnv_feat(cf::FeatureTypeFun) = ([≥, ≤], cf)
+    #         # cnv_feat(cf::Tuple{TestOperatorFun,FeatureTypeFun}) = ([cf[1]], cf[2])
+    #         # # attribute_specific
+    #         # cnv_feat(cf::Any) = cf
+    #         # cnv_feat(cf::Function) = ([≥, ≤], cf)
+    #         # cnv_feat(cf::Tuple{TestOperatorFun,Function}) = ([cf[1]], cf[2])
+
+    #         # canonical_features = cnv_feat.(canonical_features)
+
+    #         # readymade_cfs          = filter(x->isa(x, Tuple{<:AbstractVector{<:TestOperatorFun},FeatureTypeFun}), canonical_features)
+    #         # attribute_specific_cfs = filter(x->isa(x, CanonicalFeature) || isa(x, Tuple{<:AbstractVector{<:TestOperatorFun},Function}), canonical_features)
+
+    #         # @assert length(readymade_cfs) + length(attribute_specific_cfs) == length(canonical_features) "Unexpected canonical_features: $(filter(x->(! (x in readymade_cfs) && ! (x in attribute_specific_cfs)), canonical_features))"
+
+    #         # for (test_ops,cf) in readymade_cfs
+    #         #     push!(features, cf)
+    #         #     push!(featsnops, test_ops)
+    #         # end
+
+    #         # single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureGeq) = ([≥],ModalLogic.AttributeMinimumFeatureType(i_attr))
+    #         # single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureLeq) = ([≤],ModalLogic.AttributeMaximumFeatureType(i_attr))
+    #         # single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureGeqSoft) = ([≥],ModalLogic.AttributeSoftMinimumFeatureType(i_attr, cf.alpha))
+    #         # single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureLeqSoft) = ([≤],ModalLogic.AttributeSoftMaximumFeatureType(i_attr, cf.alpha))
+    #         # single_attr_feats_n_featsnops(i_attr,(test_ops,cf)::Tuple{<:AbstractVector{<:TestOperatorFun},Function}) = (test_ops,AttributeFunctionFeatureType(i_attr, cf))
+    #         # single_attr_feats_n_featsnops(i_attr,::Any) = throw_n_log("Unknown canonical_feature type: $(cf), $(typeof(cf))")
+
+    #         # for i_attr in 1:n_attributes(domain)
+    #         #     for (test_ops,cf) in map((cf)->single_attr_feats_n_featsnops(i_attr,cf),attribute_specific_cfs)
+    #         #         push!(featsnops, test_ops)
+    #         #         push!(features, cf)
+    #         #     end
+    #         # end
+    #         # features, featsnops
+    #         FeatureTypeFun[], []
+    #     end
+    #     ontology = getIntervalOntologyOfDim(Val(D-1-1))
+    #     OntologicalDataset{T, N, world_type(ontology)}(domain, ontology, features, featsnops)
+    # end
+
     function OntologicalDataset(
         domain::MatricialDataset{T,D},
         ontology::Ontology{WorldType},
@@ -427,7 +476,7 @@ get_gamma(X::MatricialDataset, i_instance::Integer, w::AbstractWorld, feature::F
         @assert N == worldTypeDimensionality(WorldType) "ERROR! Dimensionality mismatch: can't interpret WorldType $(WorldType) (dimensionality = $(worldTypeDimensionality(WorldType)) on MatricialDataset of dimensionality = $(N))"
         @assert D == (N+1+1) "ERROR! Dimensionality mismatch: can't instantiate OntologicalDataset{$(T), $(N)} with MatricialDataset{$(T),$(D)}"
         @assert length(features) == length(grouped_featsaggrsnops) "Can't instantiate OntologicalDataset{$(T), $(N), $(WorldType)} with mismatching length(features) == length(grouped_featsaggrsnops): $(length(features)) != $(length(grouped_featsaggrsnops))"
-        @assert length(grouped_featsaggrsnops) > 0 && sum(length.(grouped_featsaggrsnops)) > 0 && sum(vcat([[length(test_ops) for test_ops in aggrs] for aggrs in grouped_featsaggrsnops]...)) > 0 "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with no test operator: $(grouped_featsaggrsnops)"
+        # @assert length(grouped_featsaggrsnops) > 0 && sum(length.(grouped_featsaggrsnops)) > 0 && sum(vcat([[length(test_ops) for test_ops in aggrs] for aggrs in grouped_featsaggrsnops]...)) > 0 "Can't instantiate FeatModalDataset{$(T), $(WorldType)} with no test operator: $(grouped_featsaggrsnops)"
 
         # if prod(channel_size(domain)) == 1
         #   TODO throw warning
@@ -1306,6 +1355,7 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
 end
 
 
+const SingleFrameGenericDataset{T} = Union{MatricialDataset{T},OntologicalDataset{T},AbstractModalDataset{T}}
 
 struct MultiFrameModalDataset
     frames  :: AbstractVector{<:AbstractModalDataset}
@@ -1353,7 +1403,6 @@ slice_dataset(X::MultiFrameModalDataset, inds::AbstractVector{<:Integer}; args..
     MultiFrameModalDataset(map(frame->slice_dataset(frame, inds; args...), X.frames))
 
 
-const SingleFrameGenericDataset{T} = Union{MatricialDataset{T},OntologicalDataset{T},AbstractModalDataset{T}}
 const GenericDataset = Union{SingleFrameGenericDataset,MultiFrameModalDataset}
 
 display_structure(Xs::MultiFrameModalDataset; indent_str = "") = begin
