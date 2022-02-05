@@ -35,7 +35,7 @@ enumPairsIn(a::Integer, b::Integer) =
 enumShortPairsIn(a::Integer, b::Integer) =
 	IterTools.imap((x)->(x,x+1), a:b-1)
 
-enumAccReprAggr(f::FeatureTypeFun, a::TestOperatorFun, ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = IterTools.imap(Interval, enumPairsIn(1, X+1))
+enumAccReprAggr(f::ModalFeature, a::TestOperatorFun, ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = IterTools.imap(Interval, enumPairsIn(1, X+1))
 
 enumAccReprAggr(f::Union{AttributeMinimumFeatureType,AttributeMaximumFeatureType}, a::Union{typeof(minimum),typeof(maximum)}, ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = IterTools.imap(Interval, enumShortPairsIn(1, X+1))
 enumAccReprAggr(f::Union{AttributeMaximumFeatureType}, a::typeof(maximum), ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = Interval[Interval(1, X+1)  ]

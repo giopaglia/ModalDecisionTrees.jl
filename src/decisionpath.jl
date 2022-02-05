@@ -5,7 +5,7 @@ export DecisionPath, DecisionPathNode,
 
 struct DecisionPathNode
     taken         :: Bool
-    feature       :: FeatureTypeFun
+    feature       :: ModalFeature
     test_operator :: TestOperatorFun
     threshold     :: T where T
     worlds        :: AbstractWorldSet
