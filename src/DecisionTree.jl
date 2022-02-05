@@ -15,8 +15,6 @@ using Random
 using StatsBase
 using ReTest
 
-using Dagger
-
 ################################################################################
 
 # TODO update these
@@ -191,7 +189,7 @@ end
 # Decision leaf node, holding an output label
 struct DTLeaf{L<:Label}
     # output label
-    label         :: L
+    label         :: L # TODO extend to having models at leaves Union{L,FunctionWrapper{L,Tuple{ModalInstance...}}}
     # supporting (e.g., training) instances labels
     supp_labels   :: Vector{L}
 
@@ -212,6 +210,10 @@ struct DTLeaf{L<:Label}
     end
 end
 
+supp_labels(leaf::DTLeaf) = leaf.supp_labels
+
+################################################################################
+
 # Decision inner node, holding a split-decision and a frame index
 struct DTInternal{T, L<:Label}
     # frame index + split-decision
@@ -224,22 +226,22 @@ struct DTInternal{T, L<:Label}
     right         :: Union{DTLeaf{L}, DTInternal{T, L}}
 
     # create node
-    function DTInternal{T, L}(
-        i_frame          :: Int64,
-        decision         :: Decision,
-        this             :: DTLeaf,
-        left             :: Union{DTLeaf, DTInternal},
-        right            :: Union{DTLeaf, DTInternal}) where {T, L<:Label}
-        new{T, L}(i_frame, decision, this, left, right)
-    end
-    function DTInternal(
-        i_frame          :: Int64,
-        decision         :: Decision{T},
-        this             :: DTLeaf,
-        left             :: Union{DTLeaf{L}, DTInternal{T, L}},
-        right            :: Union{DTLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
-        DTInternal{T, L}(i_frame, decision, this, left, right)
-    end
+    # function DTInternal{T, L}(
+    #     i_frame          :: Int64,
+    #     decision         :: Decision,
+    #     this             :: DTLeaf,
+    #     left             :: Union{DTLeaf, DTInternal},
+    #     right            :: Union{DTLeaf, DTInternal}) where {T, L<:Label}
+    #     new{T, L}(i_frame, decision, this, left, right)
+    # end
+    # function DTInternal(
+    #     i_frame          :: Int64,
+    #     decision         :: Decision{T},
+    #     this             :: DTLeaf,
+    #     left             :: Union{DTLeaf{L}, DTInternal{T, L}},
+    #     right            :: Union{DTLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
+    #     DTInternal{T, L}(i_frame, decision, this, left, right)
+    # end
 
     # create node without local decision
     function DTInternal{T, L}(
@@ -247,9 +249,8 @@ struct DTInternal{T, L<:Label}
         decision         :: Decision,
         left             :: Union{DTLeaf, DTInternal},
         right            :: Union{DTLeaf, DTInternal}) where {T, L<:Label}
-        supp_labels = L[(left.this.labels)..., (right.this.labels)...]
-        this = DTLeaf{L}(supp_labels)
-        DTInternal{T, L}(i_frame, decision, this, left, right)
+        this = DTLeaf{L}(L[(supp_labels(left))..., (supp_labels(right))...])
+        new{T, L}(i_frame, decision, this, left, right)
     end
     function DTInternal(
         i_frame          :: Int64,
@@ -260,21 +261,21 @@ struct DTInternal{T, L<:Label}
     end
 
     # create node without frame
-    function DTInternal{T, L}(
-        decision         :: Decision,
-        this             :: DTLeaf,
-        left             :: Union{DTLeaf, DTInternal},
-        right            :: Union{DTLeaf, DTInternal}) where {T, L<:Label}
-        i_frame = 1
-        DTInternal{T, L}(i_frame, decision, this, left, right)
-    end
-    function DTInternal(
-        decision         :: Decision{T},
-        this             :: DTLeaf,
-        left             :: Union{DTLeaf{L}, DTInternal{T, L}},
-        right            :: Union{DTLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
-        DTInternal{T, L}(decision, this, left, right)
-    end
+    # function DTInternal{T, L}(
+    #     decision         :: Decision,
+    #     this             :: DTLeaf,
+    #     left             :: Union{DTLeaf, DTInternal},
+    #     right            :: Union{DTLeaf, DTInternal}) where {T, L<:Label}
+    #     i_frame = 1
+    #     DTInternal{T, L}(i_frame, decision, this, left, right)
+    # end
+    # function DTInternal(
+    #     decision         :: Decision{T},
+    #     this             :: DTLeaf,
+    #     left             :: Union{DTLeaf{L}, DTInternal{T, L}},
+    #     right            :: Union{DTLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
+    #     DTInternal{T, L}(decision, this, left, right)
+    # end
     
     # create node without frame nor local decision
     function DTInternal{T, L}(
@@ -290,9 +291,16 @@ struct DTInternal{T, L<:Label}
         right            :: Union{DTLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
         DTInternal{T, L}(decision, left, right)
     end
+end
+
+supp_labels(node::DTInternal) = node.this.supp_labels
+
+################################################################################
 
 # Decision Node (Leaf or Internal)
 const DTNode{T, L} = Union{DTLeaf{L}, DTInternal{T, L}}
+
+################################################################################
 
 # Decision Tree
 struct DTree{L<:Label}
@@ -308,7 +316,7 @@ struct DTree{L<:Label}
         worldTypes     :: AbstractVector{<:Type},
         initConditions :: AbstractVector{<:_initCondition},
     ) where {L<:Label}
-        return new{L}(root, collect(worldTypes), collect(initConditions))
+        new{L}(root, collect(worldTypes), collect(initConditions))
     end
 
     function DTree(
@@ -316,18 +324,45 @@ struct DTree{L<:Label}
         worldTypes     :: AbstractVector{<:Type},
         initConditions :: AbstractVector{<:_initCondition},
     ) where {T, L<:Label}
-        return DTree{L}(root, collect(worldTypes), collect(initConditions))
+        DTree{L}(root, worldTypes, initConditions)
     end
 end
 
+################################################################################
+
 # Decision Forest (i.e., ensable of trees via bagging)
-struct DForest{L}
+struct DForest{L<:Label}
     # trees
     trees       :: Vector{<:DTree{L}}
-    # out-of-bag confusion matrices
-    cm          :: Union{Vector{ConfusionMatrix},Vector{PerformanceStruct}}
-    # out-of-bag error
-    oob_error   :: Float64
+    # metrics
+    metrics     :: PerformanceStruct
+
+    # create forest from vector of trees
+    function DForest{L}(
+        trees     :: AbstractVector{<:DTree},
+    ) where {L<:Label}
+        new{L}(collect(trees), (;))
+    end
+    function DForest(
+        trees     :: AbstractVector{<:DTree{L}},
+    ) where {L<:Label}
+        DForest{L}(trees)
+    end
+
+    # create forest from vector of trees, with attached metrics
+    function DForest{L}(
+        trees     :: AbstractVector{<:DTree},
+        metrics   :: PerformanceStruct,
+    ) where {L<:Label}
+        new{L}(collect(trees), metrics)
+    end
+    function DForest(
+        trees     :: AbstractVector{<:DTree{L}},
+        metrics   :: PerformanceStruct,
+    ) where {L<:Label}
+        DForest{L}(trees, metrics)
+    end
+
 end
 
 ################################################################################
@@ -390,49 +425,67 @@ display_decision_neg(node::DTInternal; threshold_display_method::Function = x ->
 ################################################################################
 ################################################################################
 
-function show(io::IO, leaf::DTLeaf)
-    println(io, "Decision Leaf")
-    println(io, "Label: $(leaf.label)")
-    println(io, "Supporting labels:  $(leaf.supp_labels)")
-    print_tree(io, leaf)
+function show(io::IO, leaf::DTLeaf{L}) where {L<:CLabel}
+    println(io, "Classification Decision Leaf{$(L)}(")
+    println(io, "\tlabel: $(leaf.label)")
+    println(io, "\tsupporting labels:  $(leaf.supp_labels)")
+    println(io, "\tmetrics: $(get_metrics(leaf))")
+    println(io, ")")
+end
+function show(io::IO, leaf::DTLeaf{L}) where {L<:RLabel}
+    println(io, "Regression Decision Leaf{$(L)}(")
+    println(io, "\tlabel: $(leaf.label)")
+    println(io, "\tsupporting labels:  $(leaf.supp_labels)")
+    println(io, "\tsupporting labels countmap:  $(StatsBase.countmap(leaf.supp_labels))")
+    println(io, "\tmetrics: $(get_metrics(leaf))")
+    println(io, ")")
 end
 
-function show(io::IO, node::DTInternal)
-    println(io, "Decision Node")
-    println(io, display_decision(node))
-    println(io, "Leaves: $(length(node))")
-    println(io, "Tot nodes: $(num_nodes(node))")
-    println(io, "Height: $(height(node))")
-    println(io, "Modal height:  $(modal_height(node))")
-    println(io, "Sub-tree:")
-    print_tree(io, node)
+function show(io::IO, node::DTInternal{T,L}) where {T,L}
+    println(io, "Decision Node{$(T),$(L)}(")
+    println(io, "\tlabel: $(node.this.label)")
+    println(io, "\tsupporting labels:  $(node.this.supp_labels)")
+    println(io, "\tmetrics: $(get_metrics(node.this))")
+    println(io, "\t###########################################################")
+    println(io, "\ti_frame: $(node.i_frame)")
+    print(io, "\tdecision: $(node.decision)")
+    println(io, "\t###########################################################")
+    println(io, "\tsub-tree leaves: $(num_leaves(node))")
+    println(io, "\tsub-tree nodes: $(num_nodes(node))")
+    println(io, "\tsub-tree height: $(height(node))")
+    println(io, "\tsub-tree modal height:  $(modal_height(node))")
+    println(io, ")")
 end
 
-function show(io::IO, tree::DTree)
-    println(io, "Decision Tree")
-    println(io, "Leaves: $(length(tree))")
-    println(io, "Tot nodes: $(num_nodes(tree))")
-    println(io, "Height: $(height(tree))")
-    println(io, "Modal height:  $(modal_height(tree))")
-    println(io, "worldTypes:     $(tree.worldTypes)")
-    println(io, "initConditions: $(tree.initConditions)")
-    println(io, "Tree:")
-    print_tree(io, tree)
+function show(io::IO, tree::DTree{L}) where {L}
+    println(io, "Decision Tree{$(L)}(")
+    println(io, "\tworldTypes:     $(tree.worldTypes)")
+    println(io, "\tinitConditions: $(tree.initConditions)")
+    println(io, "\t###########################################################")
+    println(io, "\tsub-tree leaves: $(num_leaves(tree))")
+    println(io, "\tsub-tree nodes: $(num_nodes(tree))")
+    println(io, "\tsub-tree height: $(height(tree))")
+    println(io, "\tsub-tree modal height:  $(modal_height(tree))")
+    println(io, "\t###########################################################")
+    println(io, "\ttree:")
+    print_model(io, tree)
+    println(io, ")")
 end
 
-function show(io::IO, forest::DForest)
-    println(io, "DForest")
-    println(io, "Num trees: $(length(forest))")
-    println(io, "Out-Of-Bag Error: $(forest.oob_error)")
-    println(io, "ConfusionMatrix: $(forest.cm)")
-    println(io, "Trees:")
-    print_forest(io, forest)
+function show(io::IO, forest::DForest{L}) where {L}
+    println(io, "Decision Forest{$(L)}(")
+    println(io, "\t# trees: $(length(forest))")
+    println(io, "\tmetrics: $(forest.metrics)")
+    println(io, "\ttrees:")
+    print_model(io, forest)
+    println(io, ")")
 end
 
 ################################################################################
 # Includes
 ################################################################################
 
+include("leaf-metrics.jl")
 include("build.jl")
 include("predict.jl")
 include("posthoc.jl")
@@ -500,7 +553,30 @@ end
         @test DTLeaf(["Class_1", "Class_2"]).label == "Class_1"
 
     end
-end
 
+    @testset "Decision internal node (DTInternal)" begin
+
+        decision = Decision(ModalLogic.RelationGlob, AttributeMinimumFeatureType(1), >=, 10)
+
+        reg_leaf, cls_leaf = DTLeaf([1.0,2.0]), DTLeaf([1,2])
+
+        # create node
+        # cls_node = @test_nowarn DTInternal(decision, cls_leaf, cls_leaf, cls_leaf)
+        # cls_node = @test_nowarn DTInternal(2, decision, cls_leaf, cls_leaf, cls_leaf)
+        # create node without local decision
+        cls_node = @test_nowarn DTInternal(2, decision, cls_leaf, cls_leaf)
+        @test_throws MethodError DTInternal(2, decision, reg_leaf, cls_leaf)
+        # create node without frame
+        # @test_nowarn DTInternal(decision, reg_leaf, reg_leaf, reg_leaf)
+        # create node without frame nor local decision
+        cls_node = @test_nowarn DTInternal(decision, cls_node, cls_leaf)
+
+    end
+
+    @testset "Decision Tree & Forest (DTree & DForest)" begin
+        cls_tree = @test_nowarn DTree(cls_node, [ModalLogic.Interval], [startWithRelationGlob])
+        cls_forest = @test_nowarn DForest([cls_tree, cls_tree, cls_tree])
+    end
+end
 
 end # module

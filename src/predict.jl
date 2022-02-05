@@ -130,9 +130,9 @@ function apply_forest(forest::DForest, X::GenericDataset; weight_trees_by::Union
     apply_trees(forest.trees, X)
   elseif isa(weight_trees_by, AbstractVector)
     apply_trees(forest.trees, X; tree_weights = weight_trees_by)
-  elseif weight_trees_by == :accuracy
-    # TODO: choose HOW to weight a tree... overall_accuracy is just an example (maybe can be parameterized)
-    apply_trees(forest.trees, X; tree_weights = map(cm -> overall_accuracy(cm), forest.cm))
+  # elseif weight_trees_by == :accuracy
+  #   # TODO: choose HOW to weight a tree... overall_accuracy is just an example (maybe can be parameterized)
+  #   apply_trees(forest.trees, X; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
   else
     @error "Unexpected value for weight_trees_by: $(weight_trees_by)"
   end
@@ -256,7 +256,7 @@ function print_apply_tree(
     )
   end
   if do_print
-    if print_relative_confidence
+    if print_relative_confidence && L<:CLabel
       print_tree(io, tree; rel_confidence_class_counts = countmap(Y))
     else
       print_tree(io, tree)
