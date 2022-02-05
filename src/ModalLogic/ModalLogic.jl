@@ -159,12 +159,24 @@ TestOpLeq    = CanonicalFeatureLeq
 
 export Decision, is_modal_decision, display_decision, display_decision_inverse
 
-# Split-Decision (e.g., <L> (minimum_A22 <= 2) )
+# Split-Decision (e.g., ⟨L⟩ (minimum(A2) ≤ 10) )
 struct Decision{T}
-    relation      :: AbstractRelation     # modal operator (e.g. RelationId for the propositional case)
-    feature       :: FeatureTypeFun       # feature used for splitting
-    test_operator :: TestOperatorFun      # test_operator (e.g. <=)
-    threshold     :: T                    # threshold value
+    
+    # modal operator (e.g. RelationId for the propositional case)
+    relation      :: AbstractRelation
+    
+    # scalar feature
+    feature       :: FeatureTypeFun
+    
+    # test_operator (e.g. ≤)
+    test_operator :: TestOperatorFun
+
+    # threshold value
+    threshold     :: T
+end
+
+function show(io::IO, decision::Decision)
+    println(io, display_decision(decision))
 end
 
 is_modal_decision(d::Decision) = !(d.relation isa ModalLogic._RelationId)
@@ -727,7 +739,7 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
             aggr_thresholds = thresholds[i_aggr,:]
             aggr_domain = setdiff(Set(aggr_thresholds),Set([typemin(T), typemax(T)]))
             for (i_test_operator,test_operator) in enumerate(aggrsnops[aggr])
-                # TODO figure out a solution to this issue: >= and <= in a propositional condition can find more or less the same optimum, so no need to check both; but which one of them should be the one on the left child, the one that makes the modal step?
+                # TODO figure out a solution to this issue: ≥ and ≤ in a propositional condition can find more or less the same optimum, so no need to check both; but which one of them should be the one on the left child, the one that makes the modal step?
                 # if dual_test_operator(test_operator) in tested_test_operator
                 #   throw_n_log("Double-check this part of the code: there's a foundational issue here to settle!")
                 #   println("Found $(test_operator)'s dual $(dual_test_operator(test_operator)) in tested_test_operator = $(tested_test_operator)")
@@ -1358,18 +1370,18 @@ end
 const SingleFrameGenericDataset{T} = Union{MatricialDataset{T},OntologicalDataset{T},AbstractModalDataset{T}}
 
 struct MultiFrameModalDataset
-    frames  :: AbstractVector{<:AbstractModalDataset}
-    # function MultiFrameModalDataset(Xs::AbstractVector{<:AbstractModalDataset{<:T, <:AbstractWorld}}) where {T}
-    # function MultiFrameModalDataset(Xs::AbstractVector{<:AbstractModalDataset{T, <:AbstractWorld}}) where {T}
-    function MultiFrameModalDataset(Xs::AbstractVector{<:AbstractModalDataset})
+    frames  :: AbstractVector{<:SingleFrameGenericDataset}
+    # function MultiFrameModalDataset(Xs::AbstractVector{<:SingleFrameGenericDataset{<:T, <:AbstractWorld}}) where {T}
+    # function MultiFrameModalDataset(Xs::AbstractVector{<:SingleFrameGenericDataset{T, <:AbstractWorld}}) where {T}
+    function MultiFrameModalDataset(Xs::AbstractVector{<:SingleFrameGenericDataset})
         @assert length(Xs) > 0 && length(unique(n_samples.(Xs))) == 1 "Can't create an empty MultiFrameModalDataset or with mismatching number of samples (n_frames: $(length(Xs)), frame_sizes: $(n_samples.(Xs)))."
         new(Xs)
     end
-    function MultiFrameModalDataset(X::AbstractModalDataset)
+    function MultiFrameModalDataset(X::SingleFrameGenericDataset)
         new([X])
     end
     function MultiFrameModalDataset()
-        new(AbstractModalDataset[])
+        new(SingleFrameGenericDataset[])
     end
 end
 
@@ -1429,7 +1441,7 @@ end
 enumAccessibles(S::AbstractWorldSet{WorldType}, r::AbstractRelation, channel::MatricialChannel{T,N}) where {T,N,WorldType<:AbstractWorld} = enumAccessibles(S, r, size(channel)...)
 # enumAccRepr(S::Any, r::AbstractRelation, channel::MatricialChannel{T,N}) where {T,N} = enumAccRepr(S, r, size(channel)...)
 # Fallback: enumAccessibles for world sets maps to enumAcc-ing their elements
-#  (note: one may overload this function to provide improved implementations for special cases (e.g. <L> of a world set in interval algebra))
+#  (note: one may overload this function to provide improved implementations for special cases (e.g. ⟨L⟩ of a world set in interval algebra))
 enumAccessibles(S::AbstractWorldSet{WorldType}, r::AbstractRelation, XYZ::Vararg{Integer,N}) where {T,N,WorldType<:AbstractWorld} = begin
     IterTools.imap(WorldType,
         IterTools.distinct(Iterators.flatten((enumAccBare(w, r, XYZ...) for w in S)))

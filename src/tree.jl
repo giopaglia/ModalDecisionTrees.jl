@@ -906,7 +906,6 @@ function fit(
         initConditions            :: Vector{<:_initCondition},
         # Weights (unary weigths are used if no weight is supplied)
         W                         :: AbstractVector{U} = UniformVector{Int}(1,n_samples(Xs))
-        # W                       :: AbstractVector{U} = fill(1, n_samples(Xs)),
         # W                       :: AbstractVector{U} = Ones{Int}(n_samples(Xs)), # TODO check whether this is faster
         ;
         # Debug-only: checks the consistency of the dataset during training
