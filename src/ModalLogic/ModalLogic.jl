@@ -28,7 +28,7 @@ Base.keys(g::Base.Generator) = g.iter
 abstract type AbstractWorld end
 abstract type AbstractRelation end
 
-show(io::IO, r::AbstractRelation) = print(io, display_existential_relation(r))
+Base.show(io::IO, r::AbstractRelation) = print(io, display_existential_relation(r))
 display_existential_relation(r) = "⟨$(display_rel_short(r))⟩"
 display_universal_relation(r) = "[$(display_rel_short(r))]"
 
@@ -51,7 +51,7 @@ end
 world_type(::Ontology{WT}) where {WT<:AbstractWorld} = WT
 
 # Actually, this will not work because relationSet does this collect(set(...)) thing... mh maybe better avoid that thing?
-show(io::IO, o::Ontology{WorldType}) where {WorldType} = begin
+Base.show(io::IO, o::Ontology{WorldType}) where {WorldType} = begin
     if o == OneWorldOntology
         print(io, "OneWorldOntology")
     else
@@ -175,7 +175,7 @@ struct Decision{T}
     threshold     :: T
 end
 
-function show(io::IO, decision::Decision)
+function Base.show(io::IO, decision::Decision)
     println(io, display_decision(decision))
 end
 
