@@ -19,7 +19,7 @@ abstract type ModalFeature<:Function end
 
 struct _FeatureTypeNone  <: ModalFeature end; const FeatureTypeNone  = _FeatureTypeNone();
 yieldFunction(f::_FeatureTypeNone) = @error " Can't intepret FeatureTypeNone in any possible form"
-# Base.show(io::IO, f::_FeatureTypeNone) = Base.print(io, "<Empty FeatureType>")
+# Base.show(io::IO, f::_FeatureTypeNone) = print(io, "<Empty FeatureType>")
 
 abstract type DimensionalFeature<:ModalFeature end
 # TODO (f::DimensionalFeature)(args...) = yieldFunction(f)(args...)
@@ -38,8 +38,8 @@ end
 yieldFunction(f::AttributeMinimumFeatureType) = minimum ∘ (x)->ModalLogic.getInstanceAttribute(x,f.i_attribute)
 yieldFunction(f::AttributeMaximumFeatureType) = maximum ∘ (x)->ModalLogic.getInstanceAttribute(x,f.i_attribute)
 
-Base.show(io::IO, f::AttributeMinimumFeatureType) = Base.print(io, "min(A$(f.i_attribute))")
-Base.show(io::IO, f::AttributeMaximumFeatureType) = Base.print(io, "max(A$(f.i_attribute))")
+Base.show(io::IO, f::AttributeMinimumFeatureType) = print(io, "min(A$(f.i_attribute))")
+Base.show(io::IO, f::AttributeMaximumFeatureType) = print(io, "max(A$(f.i_attribute))")
 
 ################################################################################
 ################################################################################
@@ -85,8 +85,8 @@ alpha(f::AttributeSoftMaximumFeatureType) = f.alpha
 # yieldFunction(f::AttributeSoftMinimumFeatureType) = ModalLogic.getInstanceAttribute(x,f.i_attribute)
 # yieldFunction(f::AttributeSoftMaximumFeatureType) = ModalLogic.getInstanceAttribute(x,f.i_attribute)
 
-Base.show(io::IO, f::AttributeSoftMinimumFeatureType) = Base.print(io, "min" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
-Base.show(io::IO, f::AttributeSoftMaximumFeatureType) = Base.print(io, "max" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
+Base.show(io::IO, f::AttributeSoftMinimumFeatureType) = print(io, "min" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
+Base.show(io::IO, f::AttributeSoftMaximumFeatureType) = print(io, "max" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
 
 ################################################################################
 ################################################################################
@@ -100,7 +100,7 @@ end
 yieldFunction(f::AttributeFunctionFeatureType) =
     f.f ∘ (x)->(vals = vec(ModalLogic.getInstanceAttribute(x,f.i_attribute));)
 
-Base.show(io::IO, f::AttributeFunctionFeatureType) = Base.print(io, "$(f.f)(A$(f.i_attribute))")
+Base.show(io::IO, f::AttributeFunctionFeatureType) = print(io, "$(f.f)(A$(f.i_attribute))")
 
 ################################################################################
 ################################################################################
@@ -110,7 +110,7 @@ struct ChannelFunctionFeatureType <: DimensionalFeature
     f::Function
 end
 yieldFunction(f::ChannelFunctionFeatureType) = f.f
-Base.show(io::IO, f::ChannelFunctionFeatureType) = Base.print(io, "$(f.f)")
+Base.show(io::IO, f::ChannelFunctionFeatureType) = print(io, "$(f.f)")
 
 ################################################################################
 ################################################################################
@@ -123,15 +123,15 @@ struct FWDFunctionFeatureType <: FWDFeature # TODO test
     fwd_f::Function
 end
 yieldFunction(f::FWDFunctionFeatureType) = error("yieldFunction(::FWDFunctionFeatureType) should never be called. Check code") # TODO breaks typechecker?
-Base.show(io::IO, f::FWDFunctionFeatureType) = Base.print(io, "FWDFunctionFeatureType($(fwd_f))")
+Base.show(io::IO, f::FWDFunctionFeatureType) = print(io, "FWDFunctionFeatureType($(fwd_f))")
 
 struct ExternalFWDFeatureType <: FWDFeature
     name::String
     fwd::Any
 end
 yieldFunction(f::ExternalFWDFeatureType) = error("yieldFunction(::ExternalFWDFeatureType) should never be called. Check code") # TODO breaks typechecker?
-# Base.show(io::IO, f::ExternalFWDFeatureType) = Base.print(io, "ExternalFWDFeatureType(fwd of type $(typeof(f.fwd)))")
-Base.show(io::IO, f::ExternalFWDFeatureType) = Base.print(io, "$(f.name)")
+# Base.show(io::IO, f::ExternalFWDFeatureType) = print(io, "ExternalFWDFeatureType(fwd of type $(typeof(f.fwd)))")
+Base.show(io::IO, f::ExternalFWDFeatureType) = print(io, "$(f.name)")
 
 ################################################################################
 ################################################################################

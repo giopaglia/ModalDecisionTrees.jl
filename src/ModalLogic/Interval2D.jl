@@ -13,7 +13,7 @@ struct Interval2D <: AbstractWorld
 	Interval2D(w::_centeredWorld, X::Integer, Y::Integer) = new(Interval(w,X),Interval(w,Y))
 end
 
-show(io::IO, w::Interval2D) = begin
+Base.show(io::IO, w::Interval2D) = begin
 	print(io, "(")
 	print(io, w.x)
 	print(io, "×")

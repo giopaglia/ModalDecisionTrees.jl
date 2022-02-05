@@ -13,7 +13,7 @@ struct Interval <: AbstractWorld
 	Interval(::_centeredWorld, X::Integer) = new(div(X,2)+1,div(X,2)+1+1+(isodd(X) ? 0 : 1))
 end
 
-show(io::IO, w::Interval) = begin
+Base.show(io::IO, w::Interval) = begin
 	print(io, "(")
 	print(io, w.x)
 	print(io, "−")
