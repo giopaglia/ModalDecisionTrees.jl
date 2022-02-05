@@ -8,7 +8,7 @@ struct OneWorld    <: AbstractWorld
     OneWorld(w::_centeredWorld) = new()
 end;
 
-show(io::IO, w::OneWorld) = begin
+Base.show(io::IO, w::OneWorld) = begin
     print(io, "−")
 end
 
