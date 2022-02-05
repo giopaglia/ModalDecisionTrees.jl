@@ -27,7 +27,7 @@ model = build_tree(
         min_samples_split,
         min_purity_increase)
 preds = apply_tree(model, features)
-cm = confusion_matrix(labels, preds)
+cm = compute_metrics(labels, preds)
 @test typeof(preds) == Vector{Int32}
 @test cm.accuracy > 0.9
 
@@ -42,14 +42,14 @@ model = build_forest(
         partial_sampling,
         max_depth)
 preds = apply_forest(model, features)
-cm = confusion_matrix(labels, preds)
+cm = compute_metrics(labels, preds)
 @test typeof(preds) == Vector{Int32}
 @test cm.accuracy > 0.9
 
 n_iterations        = Int32(25)
 model, coeffs = build_adaboost_stumps(labels, features, n_iterations);
 preds = apply_adaboost_stumps(model, coeffs, features);
-cm = confusion_matrix(labels, preds)
+cm = compute_metrics(labels, preds)
 @test typeof(preds) == Vector{Int32}
 @test cm.accuracy > 0.6
 

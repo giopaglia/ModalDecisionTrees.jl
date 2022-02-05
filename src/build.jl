@@ -244,7 +244,7 @@ function build_forest(
         oob_samples[i_tree] = setdiff(1:tot_samples, inds)
 
         tree_preds = apply_tree(trees[i_tree], ModalLogic.slice_dataset(X, oob_samples[i_tree]; return_view = true))
-        oob_metrics[i_tree] = confusion_matrix(Y[oob_samples[i_tree]], tree_preds, _get_weights(W, inds))
+        oob_metrics[i_tree] = compute_metrics(Y[oob_samples[i_tree]], tree_preds, _get_weights(W, inds))
     end
 
     metrics = (;

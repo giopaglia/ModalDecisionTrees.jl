@@ -17,7 +17,7 @@ labels = round.(Int, features * weights);
 
 model = build_forest(labels, features, 2, 10);
 preds = apply_forest(model, features);
-cm = confusion_matrix(labels, preds);
+cm = compute_metrics(labels, preds);
 @test cm.accuracy > 0.8
 
 
