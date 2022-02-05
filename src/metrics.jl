@@ -204,7 +204,7 @@ safe_macro_specificity(cm::ConfusionMatrix) = length(cm.class_names) == 2 ? cm.s
 safe_macro_PPV(cm::ConfusionMatrix)         = length(cm.class_names) == 2 ? cm.PPVs[1]          : macro_PPV(cm)
 safe_macro_NPV(cm::ConfusionMatrix)         = length(cm.class_names) == 2 ? cm.NPVs[1]          : macro_NPV(cm)
 
-function show(io::IO, cm::ConfusionMatrix)
+function Base.show(io::IO, cm::ConfusionMatrix)
     
     max_num_digits = maximum(length(string(val)) for val in cm.matrix)
 

@@ -95,19 +95,19 @@ function print_tree(tree::Node, depth=-1, indent=0)
     print_tree(tree.right, depth, indent + 1)
 end
 
-function show(io::IO, leaf::Leaf)
+function Base.show(io::IO, leaf::Leaf)
     println(io, "Decision Leaf")
     println(io, "Label: $(leaf.label)")
     print(io,   "Samples:  $(length(leaf.values))")
 end
 
-function show(io::IO, tree::Node)
+function Base.show(io::IO, tree::Node)
     println(io, "Decision Tree")
     println(io, "Leaves: $(length(tree))")
     print(io,   "Depth:  $(depth(tree))")
 end
 
-function show(io::IO, ensemble::Ensemble)
+function Base.show(io::IO, ensemble::Ensemble)
     println(io, "Ensemble of Decision Trees")
     println(io, "Trees:      $(length(ensemble))")
     println(io, "Avg Leaves: $(mean([length(tree) for tree in ensemble.trees]))")
