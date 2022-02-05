@@ -1,7 +1,7 @@
 
 # FeaturedWorldDataset(
 # 		X::OntologicalDataset{T, N, WorldType},
-# 		features::AbstractVector{<:FeatureTypeFun}
+# 		features::AbstractVector{<:ModalFeature}
 # 	) where {T, N, WorldType<:AbstractWorld} = FeaturedWorldDataset{T, WorldType}(X, features)
 
 Base.@propagate_inbounds function FeaturedWorldDataset(
@@ -19,7 +19,7 @@ Base.@propagate_inbounds function FeaturedWorldDataset(
 	fwd = initFeaturedWorldDataset(X, n_features)
 
 	# Load any (possible) external features
-	# TODO load also FWDFunctionFeatureType (abstract type FWDFeatureTypeFun)
+	# TODO load also FWDFunctionFeatureType (abstract type FWDFeature)
 	if any(isa.(features, ExternalFWDFeatureType))
 		i_external_features = first.(filter(((i_feature,is_external_fwd),)->(is_external_fwd), collect(enumerate(isa.(features, ExternalFWDFeatureType)))))
 		for i_feature in i_external_features
@@ -74,7 +74,7 @@ end
 # n_features(fwd::GenericFeaturedWorldDataset{T, WorldType}) where {T, WorldType} = size(fwd.d, 2)
 
 # TODO
-# function checkModalDatasetConsistency(modalDataset, X::OntologicalDataset{T, N, WorldType}, features::AbstractVector{<:FeatureTypeFun}) where {T, N, WorldType<:AbstractWorld}
+# function checkModalDatasetConsistency(modalDataset, X::OntologicalDataset{T, N, WorldType}, features::AbstractVector{<:ModalFeature}) where {T, N, WorldType<:AbstractWorld}
 # 	if !(modalDatasetIsConsistent(modalDataset, X, length(features)))
 # 		throw_n_log("The provided modalDataset structure is not consistent with the expected dataset, test operators and/or relations!"
 # 			* "\n\tmodalDataset:"
@@ -218,7 +218,7 @@ const FeaturedWorldDatasetSlice{T} = Union{
 # 	# grouped_featsnaggrs = [grouped_featsnaggrs[i_feature] for i_feature in 1:length(features)]
 
 # 	# # Flatten dictionary, and enhance aggregators in dictionary with their relative indices
-# 	# flattened_featsnaggrs = Tuple{<:FeatureTypeFun,<:Aggregator}[]
+# 	# flattened_featsnaggrs = Tuple{<:ModalFeature,<:Aggregator}[]
 # 	# i_featsnaggr = 1
 # 	# for (i_feature, aggregators) in enumerate(grouped_featsnaggrs)
 # 	# 	for aggregator in aggregators

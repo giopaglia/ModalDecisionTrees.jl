@@ -20,8 +20,8 @@
 ☐	MODEL: Add tree parser and convenience methods for tree editing.
 ☐	MODEL: introduce post pruning (improve pre-pruning/post-pruning against a dataset and introduce validation/test set distinction)
 ################################################################################
-☐	SCANNER.JL: different frames with different ontologies: FingerMovements+add_dim e include_static_data!
-☐	SCANNER.JL: Train with less stringent parameters, and post-prune
+✔	SCANNER.JL: different frames with different ontologies: @done (22-02-05 23:59)
+✔	SCANNER.JL: Train with less stringent parameters, and post-prune @done (22-02-05 23:59)
 ################################################################################
 ☐	IntervalFeaturedWorldDataset could have thresholds with different type from the origin dataset
 ☐	MODALLOGIC.JL: Define relations as constants like IA_E̅Ea nd IA_Ei

@@ -23,7 +23,7 @@ enumAccessibles(::OneWorld, ::_RelationGlob, XYZ::Vararg{Integer}) = [OneWorld()
 
 enumAll(::Type{OneWorld}, args::Vararg) = [OneWorld()]
 enumAll(::Type{OneWorld}, enumAccFun::Function) = [OneWorld()]
-enumReprAll(::Type{OneWorld}, enumReprFun::Function, f::FeatureTypeFun, a::Aggregator) = [OneWorld()]
+enumReprAll(::Type{OneWorld}, enumReprFun::Function, f::ModalFeature, a::Aggregator) = [OneWorld()]
 
 
-enumAccReprAggr(f::FeatureTypeFun, a::Aggregator, ::Vector{OneWorld}, ::DecisionTree.ModalLogic._RelationGlob) = [OneWorld()]
+enumAccReprAggr(f::ModalFeature, a::Aggregator, ::Vector{OneWorld}, ::DecisionTree.ModalLogic._RelationGlob) = [OneWorld()]
