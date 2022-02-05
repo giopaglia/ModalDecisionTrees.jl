@@ -1,6 +1,6 @@
 export overall_accuracy,
         kappa,
-        GenericPerformanceType,
+        PerformanceStruct,
         macro_sensitivity,
         macro_specificity,
         macro_PPV,
@@ -17,39 +17,47 @@ export overall_accuracy,
         safe_macro_NPV,
         safe_macro_F1
 
+const PerformanceStruct = NamedTuple
+
+################################################################################
+################################################################################
+################################################################################
 
 struct ConfusionMatrix
-    classes::Vector
+    ############################################################################
+    class_names::Vector{String}
     matrix::Matrix{Int}
+    ############################################################################
     overall_accuracy::Float64
     kappa::Float64
     mean_accuracy::Float64
-
+    ############################################################################
     accuracies::Vector{Float64}
     F1s::Vector{Float64}
     sensitivities::Vector{Float64}
     specificities::Vector{Float64}
     PPVs::Vector{Float64}
     NPVs::Vector{Float64}
-    ConfusionMatrix(classes::Vector, matrix::Matrix{Int}, overall_accuracy::Float64, kappa::Float64) = begin
-        ConfusionMatrix(classes, matrix)
+    ############################################################################
+    
+    function ConfusionMatrix(matrix::Matrix)
+        ConfusionMatrix(string.(1:size(matrix, 1)), matrix)
     end
-    ConfusionMatrix(matrix::Matrix{Int}) = begin
-        ConfusionMatrix(fill("", size(matrix, 1)), matrix)
-    end
-    ConfusionMatrix(classes::Vector, matrix::Matrix{Int}) = begin
+    function ConfusionMatrix(class_names::Vector, matrix::Matrix)
+        
+        @assert size(matrix,1) == size(matrix,2) "Can't instantiate ConfusionMatrix with matrix of size ($(size(matrix))"
+        n_classes = size(matrix,1)
+        @assert length(class_names) == n_classes "Can't instantiate ConfusionMatrix with mismatching n_classes ($(n_classes)) and class_names $(class_names)"
+
         ALL = sum(matrix)
         T = LinearAlgebra.tr(matrix)
         F = ALL-T
 
-        @assert size(matrix,1) == size(matrix,2) "Can't instantiate ConfusionMatrix with matrix of size ($(size(matrix))"
-
-        n_classes = size(matrix,1)
-        @assert length(classes) == n_classes "Can't instantiate ConfusionMatrix with mismatching n_classes ($(n_classes)) and classes $(classes)"
         overall_accuracy = T / ALL
         prob_chance = (sum(matrix,dims=1) * sum(matrix,dims=2))[1] / ALL^2
         kappa = (overall_accuracy - prob_chance) / (1.0 - prob_chance)
 
+        ########################################################################
         TPs = Vector{Float64}(undef, n_classes)
         TNs = Vector{Float64}(undef, n_classes)
         FPs = Vector{Float64}(undef, n_classes)
@@ -63,6 +71,7 @@ struct ConfusionMatrix
             FNs[i] = sum(matrix[class,other_classes])
             FPs[i] = sum(matrix[other_classes,class])
         end
+        ########################################################################
 
         # https://en.wikipedia.org/wiki/Accuracy_and_precision#In_binary_classification
         accuracies = (TPs .+ TNs)./ALL
@@ -70,13 +79,65 @@ struct ConfusionMatrix
 
         # https://en.wikipedia.org/wiki/F-score
         F1s           = TPs./(TPs.+.5*(FPs.+FNs))
+
         # https://en.wikipedia.org/wiki/Sensitivity_and_specificity
         sensitivities = TPs./(TPs.+FNs)
         specificities = TNs./(TNs.+FPs)
         PPVs          = TPs./(TPs.+FPs)
         NPVs          = TNs./(TNs.+FNs)
 
-        new(classes, matrix, overall_accuracy, kappa, mean_accuracy, accuracies, F1s, sensitivities, specificities, PPVs, NPVs)
+        new(class_names,
+            matrix,
+            overall_accuracy,
+            kappa,
+            mean_accuracy,
+            accuracies,
+            F1s,
+            sensitivities,
+            specificities,
+            PPVs,
+            NPVs,
+        )
+    end
+
+    function ConfusionMatrix(
+            actual::AbstractVector{L},
+            predicted::AbstractVector{L},
+            weights = nothing,
+        ) where {L<:CLabel}
+        @assert length(actual) == length(predicted) "Can't compute ConfusionMatrixs with uneven number of actual $(length(actual)) and predicted $(length(predicted)) labels."
+        
+        if isnothing(weights)
+            weights = UniformVector{Int64}(1,length(actual))
+        end
+        @assert length(actual) == length(weights)   "Can't compute ConfusionMatrixs with uneven number of actual $(length(actual)) and weights $(length(weights)) labels."
+
+        class_labels = begin
+            class_labels = unique([actual; predicted])
+            class_labels = sort(class_labels, lt=util.nat_sort)
+            # Binary case: retain order of classes YES/NO
+            if length(class_labels) == 2 &&
+                    startswith(class_labels[1], "YES") &&
+                    startswith(class_labels[2], "NO")
+                class_labels = reverse(class_labels)
+            end
+        end
+
+        n_instances = length(actual)
+        _actual    = zeros(Int, n_instances)
+        _predicted = zeros(Int, n_instances)
+
+        n_classes = length(class_labels)
+        for i in 1:n_classes
+            _actual[actual .== class_labels[i]] .= i
+            _predicted[predicted .== class_labels[i]] .= i
+        end
+
+        matrix = zeros(Int,n_classes,n_classes)
+        for (act,pred,w) in zip(_actual, _predicted, weights)
+            matrix[act,pred] += w
+        end
+        ConfusionMatrix(class_labels, matrix)
     end
 end
 
@@ -125,154 +186,89 @@ Note:
 # macro_weighted_NPV(cm::ConfusionMatrix) = StatsBase.sum(cm.NPVs.*class_counts(cm))./sum(cm.matrix)
 
 # macro_sensitivity, also called unweighted average recall (UAR)
+macro_F1(cm::ConfusionMatrix)          = StatsBase.mean(cm.F1s)
 macro_sensitivity(cm::ConfusionMatrix) = StatsBase.mean(cm.sensitivities)
 macro_specificity(cm::ConfusionMatrix) = StatsBase.mean(cm.specificities)
 macro_PPV(cm::ConfusionMatrix)         = StatsBase.mean(cm.PPVs)
 macro_NPV(cm::ConfusionMatrix)         = StatsBase.mean(cm.NPVs)
-macro_F1(cm::ConfusionMatrix)          = StatsBase.mean(cm.F1s)
 
-macro_weighted_F1(cm::ConfusionMatrix)  = length(cm.classes) == 2 ? throw_n_log("macro_weighted_F1 Binary case?") : StatsBase.sum(cm.F1s.*class_counts(cm))./sum(cm.matrix)
-macro_weighted_sensitivity(cm::ConfusionMatrix) = length(cm.classes) == 2 ? throw_n_log("macro_weighted_sensitivity Binary case?") : StatsBase.sum(cm.sensitivities.*class_counts(cm))./sum(cm.matrix)
-macro_weighted_specificity(cm::ConfusionMatrix) = length(cm.classes) == 2 ? throw_n_log("# Binary case?") : StatsBase.sum(cm.specificities.*class_counts(cm))./sum(cm.matrix)
-macro_weighted_PPV(cm::ConfusionMatrix) = length(cm.classes) == 2 ? throw_n_log("macro_weighted_PPV Binary case?") : StatsBase.sum(cm.PPVs.*class_counts(cm))./sum(cm.matrix)
-macro_weighted_NPV(cm::ConfusionMatrix) = length(cm.classes) == 2 ? throw_n_log("macro_weighted_NPV Binary case?") : StatsBase.sum(cm.NPVs.*class_counts(cm))./sum(cm.matrix)
+macro_weighted_F1(cm::ConfusionMatrix)  = length(cm.class_names) == 2 ? throw_n_log("macro_weighted_F1 Binary case?") : StatsBase.sum(cm.F1s.*class_counts(cm))./sum(cm.matrix)
+macro_weighted_sensitivity(cm::ConfusionMatrix) = length(cm.class_names) == 2 ? throw_n_log("macro_weighted_sensitivity Binary case?") : StatsBase.sum(cm.sensitivities.*class_counts(cm))./sum(cm.matrix)
+macro_weighted_specificity(cm::ConfusionMatrix) = length(cm.class_names) == 2 ? throw_n_log("# Binary case?") : StatsBase.sum(cm.specificities.*class_counts(cm))./sum(cm.matrix)
+macro_weighted_PPV(cm::ConfusionMatrix) = length(cm.class_names) == 2 ? throw_n_log("macro_weighted_PPV Binary case?") : StatsBase.sum(cm.PPVs.*class_counts(cm))./sum(cm.matrix)
+macro_weighted_NPV(cm::ConfusionMatrix) = length(cm.class_names) == 2 ? throw_n_log("macro_weighted_NPV Binary case?") : StatsBase.sum(cm.NPVs.*class_counts(cm))./sum(cm.matrix)
 
-safe_macro_sensitivity(cm::ConfusionMatrix) = length(cm.classes) == 2 ? cm.sensitivities[1] : macro_sensitivity(cm)
-safe_macro_specificity(cm::ConfusionMatrix) = length(cm.classes) == 2 ? cm.specificities[1] : macro_specificity(cm)
-safe_macro_PPV(cm::ConfusionMatrix)         = length(cm.classes) == 2 ? cm.PPVs[1]          : macro_PPV(cm)
-safe_macro_NPV(cm::ConfusionMatrix)         = length(cm.classes) == 2 ? cm.NPVs[1]          : macro_NPV(cm)
-safe_macro_F1(cm::ConfusionMatrix)          = length(cm.classes) == 2 ? cm.F1s[1]           : macro_F1(cm)
+safe_macro_F1(cm::ConfusionMatrix)          = length(cm.class_names) == 2 ? cm.F1s[1]           : macro_F1(cm)
+safe_macro_sensitivity(cm::ConfusionMatrix) = length(cm.class_names) == 2 ? cm.sensitivities[1] : macro_sensitivity(cm)
+safe_macro_specificity(cm::ConfusionMatrix) = length(cm.class_names) == 2 ? cm.specificities[1] : macro_specificity(cm)
+safe_macro_PPV(cm::ConfusionMatrix)         = length(cm.class_names) == 2 ? cm.PPVs[1]          : macro_PPV(cm)
+safe_macro_NPV(cm::ConfusionMatrix)         = length(cm.class_names) == 2 ? cm.NPVs[1]          : macro_NPV(cm)
 
 function show(io::IO, cm::ConfusionMatrix)
-    # print(io, "classes:  ")
-    # show(io, cm.classes)
-
+    
     max_num_digits = maximum(length(string(val)) for val in cm.matrix)
 
-    println("  accuracy: ", round(overall_accuracy(cm)*100, digits=2), "% kappa: ", round(cm.kappa*100, digits=2), "% ")
-    for (i,(row,class)) in enumerate(zip(eachrow(cm.matrix),cm.classes))
+    println(io, "Confusion Matrix ($(length(cm.class_names)) classes):")
+    for (i,(row,class_name,sensitivity)) in enumerate(zip(eachrow(cm.matrix),cm.class_names,cm.sensitivities))
         for val in row
-            print(lpad(val,max_num_digits+1," "))
+            print(io, lpad(val,max_num_digits+1," "))
         end
-        println("\t$(round(100*row[i]/sum(row), digits=2))%\t\t" * class)
+        println(io, "\t\t\t$(round(100*sensitivity, digits=2))%\t\t" * class_name)
     end
 
-    # print(io, "\nmatrix:   ")
-    # display(cm.matrix)
-    print(io, "\noverall_acc:\t")
-    show(io, overall_accuracy(cm))
-    print(io, "\nκ =\t\t")
-    show(io, cm.kappa)
-    print(io, "\nsensitivities:\t")
-    show(io, cm.sensitivities)
-    print(io, "\nspecificities:\t")
-    show(io, cm.specificities)
-    print(io, "\nPPVs:\t\t")
-    show(io, cm.PPVs)
-    print(io, "\nNPVs:\t\t")
-    show(io, cm.NPVs)
-    print(io, "\nF1s:\t\t")
-    show(io, cm.F1s)
-    print(io, "\naccuracies:\t")
-    show(io, cm.accuracies)
-    print(io, "\nmean_accuracy:\t")
-    show(io, cm.mean_accuracy)
+    ############################################################################
+    println(io, "accuracy =\t\t$(round(overall_accuracy(cm), digits=4))")
+    println(io, "κ =\t\t\t\t$(round(cm.kappa, digits=4))")
+    ############################################################################
+    println(io, "sensitivities:\t$(round.(cm.sensitivities, digits=4))")
+    println(io, "specificities:\t$(round.(cm.specificities, digits=4))")
+    println(io, "PPVs:\t\t\t$(round.(cm.PPVs, digits=4))")
+    println(io, "NPVs:\t\t\t$(round.(cm.NPVs, digits=4))")
+    print(io,   "F1s:\t\t\t$(round.(cm.F1s, digits=4))")
+    println(io, "\tmean_F1:\t$(round(cm.mean_accuracy, digits=4))")
+    print(io,   "accuracies:\t\t$(round.(cm.accuracies, digits=4))")
+    println(io, "\tmean_accuracy:\t$(round(cm.mean_accuracy, digits=4))")
 end
 
-function _weighted_error(actual::AbstractVector, predicted::AbstractVector, weights::AbstractVector{T}) where T <: Real
-    mismatches = actual .!= predicted
-    err = sum(weights[mismatches]) / sum(weights)
-    return err
-end
-
-# TODO rewrite majority_vote
-function majority_vote(labels::AbstractVector; suppress_parity_warning = false)
-    if length(labels) == 0
-        return nothing
-    end
-    counts = countmap(labels)
-    if !suppress_parity_warning && sum(counts[argmax(counts)] .== values(counts)) > 1
-        println("Warning: parity encountered in majority_vote.")
-        println("Vector ($(length(labels)) elements): $(labels)")
-        println("Argmax: $(argmax(counts))")
-        println("Max: $(counts[argmax(counts)]) (sum = $(sum(values(counts))))")
-    end
-    argmax(counts)
-end
-
-function majority_vote(labels::AbstractVector{T}, weights::Union{Nothing,AbstractVector{N}}; suppress_parity_warning = false) where {T, N<:Real}
-    if isnothing(weights)
-        # TODO use dispatch on majority_vote ArrayOfOnes o ConstantArray
-        return majority_vote(labels; suppress_parity_warning = suppress_parity_warning)
-    end
-
-    if length(labels) == 0
-        return nothing
-    end
-
-    @assert length(labels) === length(weights) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
-    # @assert length(labels) != 0 "Can't compute majority_vote with 0 predictions" # TODO figure out whether we want to force this or returning nothing is fine.
-
-    counts = Dict{T,AbstractFloat}()
-    for i in 1:length(labels)
-        l = labels[i]
-        counts[l] = get(counts, l, 0) + weights[i]
-    end
-
-    if !suppress_parity_warning && sum(counts[argmax(counts)] .== values(counts)) > 1
-        println("Warning: parity encountered in majority_vote.")
-        println("Vector ($(length(labels)) elements): $(labels)")
-        println("Argmax: $(argmax(counts))")
-        println("Max: $(counts[argmax(counts)]) (sum = $(sum(values(counts))))")
-    end
-    return argmax(counts)
-end
-
-const PerformanceStruct = NamedTuple
-const GenericPerformanceType = Union{ConfusionMatrix,PerformanceStruct}
+################################################################################
+################################################################################
+################################################################################
 
 ### Classification ###
-function confusion_matrix(actual::AbstractVector, predicted::AbstractVector, weights = nothing)
-    @assert isnothing(weights) "TODO Expand code: Non-nothing weights encountered in confusion_matrix()"
-    @assert length(actual) == length(predicted)
-    N = length(actual)
-    _actual = zeros(Int, N)
-    _predicted = zeros(Int, N)
 
-    class_labels = unique([actual; predicted])
-    class_labels = sort(class_labels, lt=util.nat_sort)
-    # Binary case: sort the classes with as ["YES_...", "NO_..."]
-    if length(class_labels) == 2
-        class_labels = reverse(class_labels)
-    end
-    
-    N = length(class_labels)
-    for i in 1:N
-        _actual[actual .== class_labels[i]] .= i
-        _predicted[predicted .== class_labels[i]] .= i
-    end
-    # CM[actual,predicted]
-    CM = zeros(Int,N,N)
-    for i in zip(_actual, _predicted)
-        CM[i[1],i[2]] += 1
-    end
-    return ConfusionMatrix(class_labels, CM)
+function compute_metrics(
+        actual::AbstractVector{L},
+        predicted::AbstractVector{L},
+        weights = nothing,
+    ) where {L<:CLabel}
+    @assert length(actual) == length(predicted) "Can't compute_metrics with uneven number of actual $(length(actual)) and predicted $(length(predicted)) labels."
+    (;
+        # n_inst = length(actual),
+        # 
+        # actual = actual,
+        # predicted = predicted,
+        # weights = weights,
+        # 
+        cm = ConfusionMatrix(actual, predicted, weights),
+    )
 end
 
 ### Regression ###
 
-# Coefficient of determination
-function R2(actual, predicted)
-  @assert length(actual) == length(predicted)
-  ss_residual = sum((actual - predicted).^2)
-  ss_total = sum((actual .- mean(actual)).^2)
-  return 1.0 - ss_residual/ss_total
-end
-
-# TODO keep actual and predicted (both test and train?), so that I can plot the average error
-function confusion_matrix(actual::AbstractVector{Float64}, predicted::AbstractVector{Float64}, weights = nothing)
-    # @assert length(actual) == length(predicted)
-    (
+function compute_metrics(
+        actual::AbstractVector{L},
+        predicted::AbstractVector{L},
+        weights = nothing,
+    ) where {L<:RLabel}
+    @assert isnothing(weights) "TODO Expand code: Non-nothing weights encountered in compute_metrics()"
+    @assert length(actual) == length(predicted) "Can't compute_metrics with uneven number of actual $(length(actual)) and predicted $(length(predicted)) labels."
+    (;
+        # n_inst = length(actual),
+        # 
+        # actual = actual,
+        # predicted = predicted,
+        # weights = weights,
+        # 
         cor   = cor(actual, predicted),
         MAE   = sum(abs.(actual .- predicted)) / length(predicted),
         # MSE   = mean((actual - predicted).^2)
@@ -282,227 +278,6 @@ function confusion_matrix(actual::AbstractVector{Float64}, predicted::AbstractVe
     )
 end
 
-
-# function _nfoldCV(classifier::Symbol, labels::AbstractVector{T}, features::AbstractMatrix{S}, args...; verbose, rng) where {S, T}
-#   _rng = rng
-#   nfolds = args[1]
-#   if nfolds < 2
-#       throw_n_log("number of folds must be greater than 1")
-#   end
-#   if classifier == :tree
-#       pruning_purity      = args[2]
-#       max_depth           = args[3]
-#       min_samples_leaf    = args[4]
-#       min_samples_split   = args[5]
-#       min_purity_increase = args[6]
-#   elseif classifier == :forest
-#       n_subfeatures       = args[2]
-#       n_trees             = args[3]
-#       partial_sampling    = args[4]
-#       max_depth           = args[5]
-#       min_samples_leaf    = args[6]
-#       min_samples_split   = args[7]
-#       min_purity_increase = args[8]
-#   elseif classifier == :stumps
-#       n_iterations        = args[2]
-#   end
-#   N = length(labels)
-#   ntest = floor(Int, N / nfolds)
-#   inds = Random.randperm(_rng, N)
-#   accuracy = zeros(nfolds)
-#   for i in 1:nfolds
-#       test_inds = falses(N)
-#       test_inds[(i - 1) * ntest + 1 : i * ntest] .= true
-#       train_inds = (!).(test_inds)
-#       test_features = features[inds[test_inds],:]
-#       test_labels = labels[inds[test_inds]]
-#       train_features = features[inds[train_inds],:]
-#       train_labels = labels[inds[train_inds]]
-
-#       if classifier == :tree
-#           n_subfeatures = 0
-#           model = build_tree(train_labels, train_features,
-#                  n_subfeatures,
-#                  max_depth,
-#                  min_samples_leaf,
-#                  min_samples_split,
-#                  min_purity_increase;
-#                  rng = rng)
-#           if pruning_purity < 1.0
-#               model = prune_tree(model, pruning_purity)
-#           end
-#           predictions = apply_tree(model, test_features)
-#       elseif classifier == :forest
-#           model = build_forest(
-#                       train_labels, train_features,
-#                       n_subfeatures,
-#                       n_trees,
-#                       partial_sampling,
-#                       max_depth,
-#                       min_samples_leaf,
-#                       min_samples_split,
-#                       min_purity_increase;
-#                       rng = rng)
-#           predictions = apply_forest(model, test_features)
-#       elseif classifier == :stumps
-#           model, coeffs = build_adaboost_stumps(
-#               train_labels, train_features, n_iterations)
-#           predictions = apply_adaboost_stumps(model, coeffs, test_features)
-#       end
-#       cm = confusion_matrix(test_labels, predictions)
-#       accuracy[i] = cm.accuracy
-#       if verbose
-#           println("\nFold ", i)
-#           println(cm)
-#       end
-#   end
-#   println("\nMean Accuracy: ", mean(accuracy))
-#   return accuracy
-# end
-
-# function nfoldCV_tree(
-#       labels              :: AbstractVector{T},
-#       features            :: AbstractMatrix{S},
-#       n_folds             :: Integer,
-#       pruning_purity      :: Float64 = 1.0,
-#       max_depth           :: Integer = -1,
-#       min_samples_leaf    :: Integer = 1,
-#       min_samples_split   :: Integer = 2,
-#       min_purity_increase :: Float64 = 0.0;
-#       verbose             :: Bool = true,
-#       rng                 = Random.GLOBAL_RNG) where {S, T}
-#   _nfoldCV(:tree, labels, features, n_folds, pruning_purity, max_depth,
-#               min_samples_leaf, min_samples_split, min_purity_increase; verbose=verbose, rng=rng)
-# end
-# function nfoldCV_forest(
-#       labels              :: AbstractVector{T},
-#       features            :: AbstractMatrix{S},
-#       n_folds             :: Integer,
-#       n_subfeatures       :: Integer = -1,
-#       n_trees             :: Integer = 10,
-#       partial_sampling    :: Float64 = 0.7,
-#       max_depth           :: Integer = -1,
-#       min_samples_leaf    :: Integer = 1,
-#       min_samples_split   :: Integer = 2,
-#       min_purity_increase :: Float64 = 0.0;
-#       verbose             :: Bool = true,
-#       rng                 = Random.GLOBAL_RNG) where {S, T}
-#   _nfoldCV(:forest, labels, features, n_folds, n_subfeatures, n_trees, partial_sampling,
-#               max_depth, min_samples_leaf, min_samples_split, min_purity_increase; verbose=verbose, rng=rng)
-# end
-# function nfoldCV_stumps(
-#       labels       ::AbstractVector{T},
-#       features     ::AbstractMatrix{S},
-#       n_folds      ::Integer,
-#       n_iterations ::Integer = 10;
-#       verbose             :: Bool = true,
-#       rng          = Random.GLOBAL_RNG) where {S, T}
-#   _nfoldCV(:stumps, labels, features, n_folds, n_iterations; verbose=verbose, rng=rng)
-# end
-
-# ### Regression ###
-
-# function _nfoldCV(regressor::Symbol, labels::AbstractVector{T}, features::AbstractMatrix, args...; verbose, rng) where T <: Float64
-#   _rng = rng
-#   nfolds = args[1]
-#   if nfolds < 2
-#       throw_n_log("number of folds must be greater than 1")
-#   end
-#   if regressor == :tree
-#       pruning_purity      = args[2]
-#       max_depth           = args[3]
-#       min_samples_leaf    = args[4]
-#       min_samples_split   = args[5]
-#       min_purity_increase = args[6]
-#   elseif regressor == :forest
-#       n_subfeatures       = args[2]
-#       n_trees             = args[3]
-#       partial_sampling    = args[4]
-#       max_depth           = args[5]
-#       min_samples_leaf    = args[6]
-#       min_samples_split   = args[7]
-#       min_purity_increase = args[8]
-#   end
-#   N = length(labels)
-#   ntest = floor(Int, N / nfolds)
-#   inds = Random.randperm(_rng, N)
-#   R2s = zeros(nfolds)
-#   for i in 1:nfolds
-#       test_inds = falses(N)
-#       test_inds[(i - 1) * ntest + 1 : i * ntest] .= true
-#       train_inds = (!).(test_inds)
-#       test_features = features[inds[test_inds],:]
-#       test_labels = labels[inds[test_inds]]
-#       train_features = features[inds[train_inds],:]
-#       train_labels = labels[inds[train_inds]]
-#       if regressor == :tree
-#           n_subfeatures = 0
-#           model = build_tree(train_labels, train_features,
-#                  n_subfeatures,
-#                  max_depth,
-#                  min_samples_leaf,
-#                  min_samples_split,
-#                  min_purity_increase;
-#                  rng = rng)
-#           if pruning_purity < 1.0
-#               model = prune_tree(model, pruning_purity)
-#           end
-#           predictions = apply_tree(model, test_features)
-#       elseif regressor == :forest
-#           model = build_forest(
-#                       train_labels, train_features,
-#                       n_subfeatures,
-#                       n_trees,
-#                       partial_sampling,
-#                       max_depth,
-#                       min_samples_leaf,
-#                       min_samples_split,
-#                       min_purity_increase;
-#                       rng = rng)
-#           predictions = apply_forest(model, test_features)
-#       end
-#       err = mean_squared_error(test_labels, predictions)
-#       corr = cor(test_labels, predictions)
-#       r2 = R2(test_labels, predictions)
-#       R2s[i] = r2
-#       if verbose
-#           println("\nFold ", i)
-#           println("Mean Squared Error:     ", err)
-#           println("Correlation Coeff:      ", corr)
-#           println("Coeff of Determination: ", r2)
-#       end
-#   end
-#   println("\nMean Coeff of Determination: ", mean(R2s))
-#   return R2s
-# end
-
-# function nfoldCV_tree(
-#   labels              :: AbstractVector{T},
-#   features            :: AbstractMatrix{S},
-#   n_folds             :: Integer,
-#   pruning_purity      :: Float64 = 1.0,
-#   max_depth           :: Integer = -1,
-#   min_samples_leaf    :: Integer = 5,
-#   min_samples_split   :: Integer = 2,
-#   min_purity_increase :: Float64 = 0.0;
-#   verbose             :: Bool = true,
-#   rng                 = Random.GLOBAL_RNG) where {S, T <: Float64}
-# _nfoldCV(:tree, labels, features, n_folds, pruning_purity, max_depth,
-#           min_samples_leaf, min_samples_split, min_purity_increase; verbose=verbose, rng=rng)
-# end
-# function nfoldCV_forest(
-#   labels              :: AbstractVector{T},
-#   features            :: AbstractMatrix{S},
-#   n_folds             :: Integer,
-#   n_subfeatures       :: Integer = -1,
-#   n_trees             :: Integer = 10,
-#   partial_sampling    :: Float64 = 0.7,
-#   max_depth           :: Integer = -1,
-#   min_samples_leaf    :: Integer = 5,
-#   min_samples_split   :: Integer = 2,
-#   min_purity_increase :: Float64 = 0.0;
-#   verbose             :: Bool = true,
-#   rng                 = Random.GLOBAL_RNG) where {S, T <: Float64}
-# _nfoldCV(:forest, labels, features, n_folds, n_subfeatures, n_trees, partial_sampling,
-#           max_depth, min_samples_leaf, min_samples_split, min_purity_increase; verbose=verbose, rng=rng)
-# end
+################################################################################
+################################################################################
+################################################################################
