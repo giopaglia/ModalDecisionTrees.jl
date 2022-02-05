@@ -424,14 +424,14 @@ display_decision_neg(node::DTInternal; threshold_display_method::Function = x ->
 ################################################################################
 ################################################################################
 
-function show(io::IO, leaf::DTLeaf{L}) where {L<:CLabel}
+function Base.show(io::IO, leaf::DTLeaf{L}) where {L<:CLabel}
     println(io, "Classification Decision Leaf{$(L)}(")
     println(io, "\tlabel: $(leaf.label)")
     println(io, "\tsupporting labels:  $(leaf.supp_labels)")
     println(io, "\tmetrics: $(get_metrics(leaf))")
     println(io, ")")
 end
-function show(io::IO, leaf::DTLeaf{L}) where {L<:RLabel}
+function Base.show(io::IO, leaf::DTLeaf{L}) where {L<:RLabel}
     println(io, "Regression Decision Leaf{$(L)}(")
     println(io, "\tlabel: $(leaf.label)")
     println(io, "\tsupporting labels:  $(leaf.supp_labels)")
@@ -440,7 +440,7 @@ function show(io::IO, leaf::DTLeaf{L}) where {L<:RLabel}
     println(io, ")")
 end
 
-function show(io::IO, node::DTInternal{T,L}) where {T,L}
+function Base.show(io::IO, node::DTInternal{T,L}) where {T,L}
     println(io, "Decision Node{$(T),$(L)}(")
     println(io, "\tlabel: $(node.this.label)")
     println(io, "\tsupporting labels:  $(node.this.supp_labels)")
@@ -456,7 +456,7 @@ function show(io::IO, node::DTInternal{T,L}) where {T,L}
     println(io, ")")
 end
 
-function show(io::IO, tree::DTree{L}) where {L}
+function Base.show(io::IO, tree::DTree{L}) where {L}
     println(io, "Decision Tree{$(L)}(")
     println(io, "\tworldTypes:     $(tree.worldTypes)")
     println(io, "\tinitConditions: $(tree.initConditions)")
@@ -471,7 +471,7 @@ function show(io::IO, tree::DTree{L}) where {L}
     println(io, ")")
 end
 
-function show(io::IO, forest::DForest{L}) where {L}
+function Base.show(io::IO, forest::DForest{L}) where {L}
     println(io, "Decision Forest{$(L)}(")
     println(io, "\t# trees: $(length(forest))")
     println(io, "\tmetrics: $(forest.metrics)")
