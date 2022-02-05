@@ -21,7 +21,7 @@ using ReTest
 export Decision, DTNode, DTLeaf, DTInternal, DTree, DForest,
         is_leaf_node, is_modal_node,
         num_nodes, height, modal_height,
-        ConfusionMatrix, confusion_matrix, mean_squared_error, R2, load_data,
+        ConfusionMatrix, compute_metrics, mean_squared_error, R2, load_data,
         initWorldSet
 
 ################################################################################
@@ -125,9 +125,8 @@ _Label  = Union{_CLabel,RLabel}
 default_loss_function(::Type{<:CLabel}) = util.entropy
 default_loss_function(::Type{<:RLabel}) = util.variance
 
-# TODO handle parity!
-average_label(labels::AbstractVector{<:CLabel}) = argmax(countmap(labels))
-average_label(labels::AbstractVector{<:RLabel}) = StatsBase.mean(labels)
+average_label(labels::AbstractVector{<:CLabel}) = majority_vote(labels; suppress_parity_warning = false) # argmax(countmap(labels))
+average_label(labels::AbstractVector{<:RLabel}) = majority_vote(labels; suppress_parity_warning = false) # StatsBase.mean(labels)
 
 function dishonor_min_purity_increase(::Type{L}, min_purity_increase, purity, best_purity_times_nt, nt) where {L<:CLabel}
     (best_purity_times_nt/nt - purity < min_purity_increase)
