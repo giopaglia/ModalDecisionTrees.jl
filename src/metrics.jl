@@ -1,23 +1,23 @@
 export overall_accuracy,
-                kappa,
-                GenericPerformanceType,
-                macro_sensitivity,
-                macro_specificity,
-                macro_PPV,
-                macro_NPV,
-                macro_F1,
-                macro_weighted_F1,
-                macro_weighted_sensitivity,
-                macro_weighted_specificity,
-                macro_weighted_PPV,
-                macro_weighted_NPV,
-                safe_macro_sensitivity,
-                safe_macro_specificity,
-                safe_macro_PPV,
-                safe_macro_NPV,
-                safe_macro_F1
+        kappa,
+        GenericPerformanceType,
+        macro_sensitivity,
+        macro_specificity,
+        macro_PPV,
+        macro_NPV,
+        macro_F1,
+        macro_weighted_F1,
+        macro_weighted_sensitivity,
+        macro_weighted_specificity,
+        macro_weighted_PPV,
+        macro_weighted_NPV,
+        safe_macro_sensitivity,
+        safe_macro_specificity,
+        safe_macro_PPV,
+        safe_macro_NPV,
+        safe_macro_F1
 
-# CM[actual,predicted]
+
 struct ConfusionMatrix
     classes::Vector
     matrix::Matrix{Int}
@@ -179,17 +179,6 @@ function show(io::IO, cm::ConfusionMatrix)
     show(io, cm.mean_accuracy)
 end
 
-function _hist_add!(counts::Dict{T, Int}, labels::AbstractVector{T}, region::UnitRange{Int}) where T
-    for i in region
-        lbl = labels[i]
-        counts[lbl] = get(counts, lbl, 0) + 1
-    end
-    return counts
-end
-
-_hist(labels::AbstractVector{T}, region::UnitRange{Int} = 1:lastindex(labels)) where T =
-    _hist_add!(Dict{T,Int}(), labels, region)
-
 function _weighted_error(actual::AbstractVector, predicted::AbstractVector, weights::AbstractVector{T}) where T <: Real
     mismatches = actual .!= predicted
     err = sum(weights[mismatches]) / sum(weights)
@@ -201,7 +190,7 @@ function majority_vote(labels::AbstractVector; suppress_parity_warning = false)
     if length(labels) == 0
         return nothing
     end
-    counts = _hist(labels)
+    counts = countmap(labels)
     if !suppress_parity_warning && sum(counts[argmax(counts)] .== values(counts)) > 1
         println("Warning: parity encountered in majority_vote.")
         println("Vector ($(length(labels)) elements): $(labels)")
@@ -274,6 +263,7 @@ end
 
 # Coefficient of determination
 function R2(actual, predicted)
+  @assert length(actual) == length(predicted)
   ss_residual = sum((actual - predicted).^2)
   ss_total = sum((actual .- mean(actual)).^2)
   return 1.0 - ss_residual/ss_total
@@ -294,7 +284,7 @@ end
 
 
 # function _nfoldCV(classifier::Symbol, labels::AbstractVector{T}, features::AbstractMatrix{S}, args...; verbose, rng) where {S, T}
-#   _rng = mk_rng(rng)::Random.AbstractRNG
+#   _rng = rng
 #   nfolds = args[1]
 #   if nfolds < 2
 #       throw_n_log("number of folds must be greater than 1")
@@ -413,7 +403,7 @@ end
 # ### Regression ###
 
 # function _nfoldCV(regressor::Symbol, labels::AbstractVector{T}, features::AbstractMatrix, args...; verbose, rng) where T <: Float64
-#   _rng = mk_rng(rng)::Random.AbstractRNG
+#   _rng = rng
 #   nfolds = args[1]
 #   if nfolds < 2
 #       throw_n_log("number of folds must be greater than 1")
