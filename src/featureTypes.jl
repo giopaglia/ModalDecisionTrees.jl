@@ -1,5 +1,6 @@
-export FeatureTypeFun,
+export ModalFeature,
         FeatureTypeNone,
+        DimensionalFeature,
         AttributeMinimumFeatureType, AttributeMaximumFeatureType,
         AttributeSoftMinimumFeatureType, AttributeSoftMaximumFeatureType,
         AttributeFunctionFeatureType, ChannelFunctionFeatureType,
@@ -14,19 +15,23 @@ Base.vec(x::Number) = [x]
 ################################################################################
 ################################################################################
 
-abstract type FeatureTypeFun end
+abstract type ModalFeature<:Function end
 
-struct _FeatureTypeNone  <: FeatureTypeFun end; const FeatureTypeNone  = _FeatureTypeNone();
+struct _FeatureTypeNone  <: ModalFeature end; const FeatureTypeNone  = _FeatureTypeNone();
 yieldFunction(f::_FeatureTypeNone) = @error " Can't intepret FeatureTypeNone in any possible form"
 # Base.show(io::IO, f::_FeatureTypeNone) = Base.print(io, "<Empty FeatureType>")
+
+abstract type DimensionalFeature<:ModalFeature end
+# TODO (f::DimensionalFeature)(args...) = yieldFunction(f)(args...)
+
 ################################################################################
 ################################################################################
 ################################################################################
 
-struct AttributeMinimumFeatureType <: FeatureTypeFun
+struct AttributeMinimumFeatureType <: DimensionalFeature
     i_attribute::Integer
 end
-struct AttributeMaximumFeatureType <: FeatureTypeFun
+struct AttributeMaximumFeatureType <: DimensionalFeature
     i_attribute::Integer
 end
 
@@ -40,7 +45,7 @@ Base.show(io::IO, f::AttributeMaximumFeatureType) = Base.print(io, "max(A$(f.i_a
 ################################################################################
 ################################################################################
 
-struct AttributeSoftMinimumFeatureType{T<:AbstractFloat} <: FeatureTypeFun
+struct AttributeSoftMinimumFeatureType{T<:AbstractFloat} <: DimensionalFeature
     i_attribute::Integer
     alpha::T
     function AttributeSoftMinimumFeatureType(
@@ -53,7 +58,7 @@ struct AttributeSoftMinimumFeatureType{T<:AbstractFloat} <: FeatureTypeFun
     end
 end
 
-struct AttributeSoftMaximumFeatureType{T<:AbstractFloat} <: FeatureTypeFun
+struct AttributeSoftMaximumFeatureType{T<:AbstractFloat} <: DimensionalFeature
     i_attribute::Integer
     alpha::T
     function AttributeSoftMaximumFeatureType(
@@ -87,7 +92,7 @@ Base.show(io::IO, f::AttributeSoftMaximumFeatureType) = Base.print(io, "max" * u
 ################################################################################
 ################################################################################
 
-struct AttributeFunctionFeatureType <: FeatureTypeFun
+struct AttributeFunctionFeatureType <: DimensionalFeature
     i_attribute::Integer
     f::Function
 end
@@ -101,7 +106,7 @@ Base.show(io::IO, f::AttributeFunctionFeatureType) = Base.print(io, "$(f.f)(A$(f
 ################################################################################
 ################################################################################
 
-struct ChannelFunctionFeatureType <: FeatureTypeFun
+struct ChannelFunctionFeatureType <: DimensionalFeature
     f::Function
 end
 yieldFunction(f::ChannelFunctionFeatureType) = f.f
@@ -111,16 +116,16 @@ Base.show(io::IO, f::ChannelFunctionFeatureType) = Base.print(io, "$(f.f)")
 ################################################################################
 ################################################################################
 
-abstract type FWDFeatureTypeFun<:FeatureTypeFun end
+abstract type FWDFeature<:DimensionalFeature end
 
 
-struct FWDFunctionFeatureType <: FWDFeatureTypeFun # TODO test
+struct FWDFunctionFeatureType <: FWDFeature # TODO test
     fwd_f::Function
 end
 yieldFunction(f::FWDFunctionFeatureType) = error("yieldFunction(::FWDFunctionFeatureType) should never be called. Check code") # TODO breaks typechecker?
 Base.show(io::IO, f::FWDFunctionFeatureType) = Base.print(io, "FWDFunctionFeatureType($(fwd_f))")
 
-struct ExternalFWDFeatureType <: FWDFeatureTypeFun
+struct ExternalFWDFeatureType <: FWDFeature
     name::String
     fwd::Any
 end

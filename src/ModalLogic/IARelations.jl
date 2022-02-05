@@ -267,15 +267,15 @@ enumAccReprAggr(f::AttributeMinimumFeatureType, a::typeof(minimum), w::Interval,
 enumAccReprAggr(f::AttributeMinimumFeatureType, a::typeof(minimum), w::Interval, ::_IA_E,  X::Integer) = (w.x+1 < w.y)   ?   Interval[Interval(w.x+1, w.y  )] : Interval[] #  _ReprVal(Interval(w.y-1, w.y)   )# [Interval(w.x+1, w.y)] 
 
 
-enumAccReprAggr(f::FeatureTypeFun, a::Aggregator, w::Interval, r::_IA_AorO,       X::Integer) = 
+enumAccReprAggr(f::ModalFeature, a::Aggregator, w::Interval, r::_IA_AorO,       X::Integer) = 
 	Iterators.flatten([enumAccReprAggr(f, a, w, r, X) for r in IA72IARelations(IA_AorO)])
-enumAccReprAggr(f::FeatureTypeFun, a::Aggregator, w::Interval, r::_IA_AiorOi,     X::Integer) = 
+enumAccReprAggr(f::ModalFeature, a::Aggregator, w::Interval, r::_IA_AiorOi,     X::Integer) = 
 	Iterators.flatten([enumAccReprAggr(f, a, w, r, X) for r in IA72IARelations(IA_AiorOi)])
-enumAccReprAggr(f::FeatureTypeFun, a::Aggregator, w::Interval, r::_IA_DorBorE,    X::Integer) = 
+enumAccReprAggr(f::ModalFeature, a::Aggregator, w::Interval, r::_IA_DorBorE,    X::Integer) = 
 	Iterators.flatten([enumAccReprAggr(f, a, w, r, X) for r in IA72IARelations(IA_DorBorE)])
-enumAccReprAggr(f::FeatureTypeFun, a::Aggregator, w::Interval, r::_IA_DiorBiorEi, X::Integer) = 
+enumAccReprAggr(f::ModalFeature, a::Aggregator, w::Interval, r::_IA_DiorBiorEi, X::Integer) = 
 	Iterators.flatten([enumAccReprAggr(f, a, w, r, X) for r in IA72IARelations(IA_DiorBiorEi)])
-enumAccReprAggr(f::FeatureTypeFun, a::Aggregator, w::Interval, r::_IA_I,          X::Integer) = 
+enumAccReprAggr(f::ModalFeature, a::Aggregator, w::Interval, r::_IA_I,          X::Integer) = 
 	Iterators.flatten([enumAccReprAggr(f, a, w, r, X) for r in IA72IARelations(IA_I)])
 
 
