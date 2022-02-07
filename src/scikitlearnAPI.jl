@@ -84,7 +84,7 @@ predict(dt::DecisionTreeClassifier, X) = apply_tree(dt.root, X)
 # predict_log_proba(dt::DecisionTreeClassifier, X) =
     # log(predict_proba(dt, X)) # this will yield -Inf when p=0. Hmmm...
 
-function show(io::IO, dt::DecisionTreeClassifier)
+function Base.show(io::IO, dt::DecisionTreeClassifier)
     println(io, "DecisionTreeClassifier")
     println(io, "max_depth:                $(dt.max_depth)")
     println(io, "min_samples_leaf:         $(dt.min_samples_leaf)")
@@ -166,7 +166,7 @@ end
 
 predict(dt::DecisionTreeRegressor, X) = apply_tree(dt.root, X)
 
-function show(io::IO, dt::DecisionTreeRegressor)
+function Base.show(io::IO, dt::DecisionTreeRegressor)
     println(io, "DecisionTreeRegressor")
     println(io, "max_depth:                $(dt.max_depth)")
     println(io, "min_samples_leaf:         $(dt.min_samples_leaf)")
@@ -247,7 +247,7 @@ predict_proba(rf::RandomForestClassifier, X) =
 
 predict(rf::RandomForestClassifier, X) = apply_forest(rf.ensemble, X)
 
-function show(io::IO, rf::RandomForestClassifier)
+function Base.show(io::IO, rf::RandomForestClassifier)
     println(io, "RandomForestClassifier")
     println(io, "n_trees:             $(rf.n_trees)")
     println(io, "n_subfeatures:       $(rf.n_subfeatures)")
@@ -328,7 +328,7 @@ end
 
 predict(rf::RandomForestRegressor, X) = apply_forest(rf.ensemble, X)
 
-function show(io::IO, rf::RandomForestRegressor)
+function Base.show(io::IO, rf::RandomForestRegressor)
     println(io, "RandomForestRegressor")
     println(io, "n_trees:             $(rf.n_trees)")
     println(io, "n_subfeatures:       $(rf.n_subfeatures)")
@@ -384,7 +384,7 @@ predict(ada::AdaBoostStumpClassifier, X) =
 predict_proba(ada::AdaBoostStumpClassifier, X) =
     apply_adaboost_stumps_proba(ada.ensemble, ada.coeffs, X, ada.classes)
 
-function show(io::IO, ada::AdaBoostStumpClassifier)
+function Base.show(io::IO, ada::AdaBoostStumpClassifier)
     println(io, "AdaBoostStumpClassifier")
     println(io, "n_iterations: $(ada.n_iterations)")
     print(io,   "classes:      ") ; show(io, ada.classes)  ; println(io, "")
