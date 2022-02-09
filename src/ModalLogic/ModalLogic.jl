@@ -22,7 +22,9 @@ export AbstractWorld, AbstractRelation,
 				# enumAccessibles, enumAccRepr
 
 # Fix (not needed in Julia 1.7, see https://github.com/JuliaLang/julia/issues/34674 )
-Base.keys(g::Base.Generator) = g.iter
+if length(methods(Base.keys, (Base.Generator,))) == 0
+    Base.keys(g::Base.Generator) = g.iter
+end
 
 # Abstract classes for world & relations
 abstract type AbstractWorld end
