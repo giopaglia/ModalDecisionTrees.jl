@@ -15,7 +15,7 @@ using StatsBase
 ################################################################################
 
 function majority_vote(
-        labels::AbstractVector{L};
+        labels::AbstractVector{L},
         weights::Union{Nothing,AbstractVector} = nothing;
         suppress_parity_warning = false,
     ) where {L<:CLabel}
