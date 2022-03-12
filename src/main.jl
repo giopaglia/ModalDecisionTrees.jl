@@ -301,8 +301,15 @@ function build_forest(
 		# grab out-of-bag indices
 		oob_samples[i_tree] = setdiff(1:t_samples, inds)
 
-		tree_preds = apply_tree(trees[i_tree], ModalLogic.slice_dataset(Xs, oob_samples[i_tree]; return_view = true))
-		cms[i_tree] = confusion_matrix(Y[oob_samples[i_tree]], tree_preds, _get_weights(W, inds))
+        cms[i_tree] = begin
+            if length(oob_samples[i_tree]) == 0
+                # confusion_matrix([Inf],[-Inf])
+                confusion_matrix(["__FAKE__"],["__FAKE2__"]) # TODO
+            else
+		        tree_preds = apply_tree(trees[i_tree], ModalLogic.slice_dataset(Xs, oob_samples[i_tree]; return_view = true))
+		        confusion_matrix(Y[oob_samples[i_tree]], tree_preds, _get_weights(W, inds))
+            end
+        end
 	end
 
 	oob_classified = Vector{Bool}()

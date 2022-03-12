@@ -321,7 +321,7 @@ get_gamma(X::MatricialDataset, i_instance::Integer, w::AbstractWorld, feature::F
 	yieldFunction(feature)(inst_readWorld(w, getInstance(X, i_instance)))
 
 
-@computed struct OntologicalDataset{T, N, WorldType} <: AbstractModalDataset{T, WorldType}
+@computed struct OntologicalDataset{T<:Number, N, WorldType<:AbstractWorld} <: AbstractModalDataset{T, WorldType}
 	
 	# Core data
 	domain                  :: MatricialDataset{T,N+1+1}
@@ -508,7 +508,7 @@ get_gamma(X::OntologicalDataset, args...) = get_gamma(X.domain, args...)
 
 abstract type AbstractFeaturedWorldDataset{T, WorldType} end
 
-struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
+struct FeatModalDataset{T<:Number, WorldType<:AbstractWorld} <: AbstractModalDataset{T, WorldType}
 	
 	# Core data
 	fwd                :: AbstractFeaturedWorldDataset{T,WorldType}
@@ -735,7 +735,7 @@ abstract type AbstractFMDStumpGlobalSupport{T} end
 #   if polarity(⋈) == false:     ∀ a < γ:    w ⊭ <R> f ⋈ a
 #   for a given feature f, world w, relation R and feature f and test operator ⋈,
 
-struct StumpFeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
+struct StumpFeatModalDataset{T<:Number, WorldType<:AbstractWorld} <: AbstractModalDataset{T, WorldType}
 	
 	# Core data
 	fmd                :: FeatModalDataset{T, WorldType}
@@ -829,7 +829,7 @@ struct StumpFeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
 	end
 end
 
-mutable struct StumpFeatModalDatasetWithMemoization{T, WorldType} <: AbstractModalDataset{T, WorldType}
+mutable struct StumpFeatModalDatasetWithMemoization{T<:Number, WorldType<:AbstractWorld} <: AbstractModalDataset{T, WorldType}
 	
 	# Core data
 	fmd                :: FeatModalDataset{T, WorldType}
@@ -1380,7 +1380,7 @@ getChannel(X::MultiFrameModalDataset,   i_frame::Integer, idx_i::Integer, idx_f:
 
 # getInstance(X::MultiFrameModalDataset, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...) # TODO should slice across the frames!
 slice_dataset(X::MultiFrameModalDataset, inds::AbstractVector{<:Integer}; args...) =
-	MultiFrameModalDataset(map(frame->slice_dataset(frame, inds; args...), X.frames))
+	MultiFrameModalDataset(Vector{AbstractModalDataset}(map(frame->slice_dataset(frame, inds; args...), X.frames)))
 
 
 const GenericDataset = Union{SingleFrameGenericDataset,MultiFrameModalDataset}
