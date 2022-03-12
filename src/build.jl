@@ -243,8 +243,16 @@ function build_forest(
         # grab out-of-bag indices
         oob_samples[i_tree] = setdiff(1:tot_samples, inds)
 
-        tree_preds = apply_tree(trees[i_tree], ModalLogic.slice_dataset(X, oob_samples[i_tree]; return_view = true))
-        oob_metrics[i_tree] = compute_metrics(Y[oob_samples[i_tree]], tree_preds, _get_weights(W, inds))
+        oob_metrics[i_tree] = begin
+            if length(oob_samples[i_tree]) == 0
+                # compute_metrics([Inf],[-Inf])
+                compute_metrics(["__FAKE__"],["__FAKE2__"]) # TODO
+            else
+                tree_preds = apply_tree(trees[i_tree], ModalLogic.slice_dataset(X, oob_samples[i_tree]; return_view = true))
+                compute_metrics(Y[oob_samples[i_tree]], tree_preds, _get_weights(W, inds))
+            end
+        end
+
     end
 
     metrics = (;

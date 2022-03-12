@@ -21,7 +21,7 @@ using ReTest
 export Decision, DTNode, DTLeaf, DTInternal, DTree, DForest,
         is_leaf_node, is_modal_node,
         num_nodes, height, modal_height,
-        ConfusionMatrix, compute_metrics, mean_squared_error, R2, load_data,
+        ConfusionMatrix, confusion_matrix, compute_metrics, mean_squared_error, R2, load_data,
         initWorldSet
 
 ################################################################################
