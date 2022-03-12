@@ -22,7 +22,9 @@ export AbstractWorld, AbstractRelation,
                 # enumAccessibles, enumAccRepr
 
 # Fix (not needed in Julia 1.7, see https://github.com/JuliaLang/julia/issues/34674 )
-Base.keys(g::Base.Generator) = g.iter
+if length(methods(Base.keys, (Base.Generator,))) == 0
+    Base.keys(g::Base.Generator) = g.iter
+end
 
 # Abstract classes for world & relations
 abstract type AbstractWorld end
@@ -352,7 +354,7 @@ get_gamma(X::MatricialDataset, i_instance::Integer, w::AbstractWorld, feature::M
     yieldFunction(feature)(inst_readWorld(w, getInstance(X, i_instance)))
 
 
-@computed struct OntologicalDataset{T, N, WorldType} <: AbstractModalDataset{T, WorldType}
+@computed struct OntologicalDataset{T<:Number, N, WorldType<:AbstractWorld} <: AbstractModalDataset{T, WorldType}
     
     # Core data
     domain                  :: MatricialDataset{T,N+1+1}
@@ -539,7 +541,7 @@ get_gamma(X::OntologicalDataset, args...) = get_gamma(X.domain, args...)
 
 abstract type AbstractFeaturedWorldDataset{T, WorldType} end
 
-struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
+struct FeatModalDataset{T<:Number, WorldType<:AbstractWorld} <: AbstractModalDataset{T, WorldType}
     
     # Core data
     fwd                :: AbstractFeaturedWorldDataset{T,WorldType}
@@ -604,6 +606,7 @@ struct FeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
     ) where {T,WorldType<:AbstractWorld}
 
         grouped_featsaggrsnops = grouped_featsnops2grouped_featsaggrsnops(grouped_featsnops)
+
  
         FeatModalDataset(fwd, relations, initws_functions, acc_functions, accrepr_functions, features, grouped_featsaggrsnops)
     end
@@ -767,7 +770,7 @@ abstract type AbstractFMDStumpGlobalSupport{T} end
 #   if polarity(⋈) == false:     ∀ a < γ:    w ⊭ <R> f ⋈ a
 #   for a given feature f, world w, relation R and feature f and test operator ⋈,
 
-struct StumpFeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
+struct StumpFeatModalDataset{T<:Number, WorldType<:AbstractWorld} <: AbstractModalDataset{T, WorldType}
     
     # Core data
     fmd                :: FeatModalDataset{T, WorldType}
@@ -861,7 +864,7 @@ struct StumpFeatModalDataset{T, WorldType} <: AbstractModalDataset{T, WorldType}
     end
 end
 
-struct StumpFeatModalDatasetWithMemoization{T, WorldType} <: AbstractModalDataset{T, WorldType}
+mutable struct StumpFeatModalDatasetWithMemoization{T<:Number, WorldType<:AbstractWorld} <: AbstractModalDataset{T, WorldType}
     
     # Core data
     fmd                :: FeatModalDataset{T, WorldType}
@@ -1412,7 +1415,7 @@ getChannel(X::MultiFrameModalDataset,   i_frame::Integer, idx_i::Integer, idx_f:
 
 # getInstance(X::MultiFrameModalDataset, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...) # TODO should slice across the frames!
 slice_dataset(X::MultiFrameModalDataset, inds::AbstractVector{<:Integer}; args...) =
-    MultiFrameModalDataset(map(frame->slice_dataset(frame, inds; args...), X.frames))
+    MultiFrameModalDataset(Vector{AbstractModalDataset}(map(frame->slice_dataset(frame, inds; args...), X.frames)))
 
 
 const GenericDataset = Union{SingleFrameGenericDataset,MultiFrameModalDataset}

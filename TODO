@@ -1,4 +1,12 @@
 ☐	Apply->Predict/Test, or something more ML-like
+☐	Perhaps writing_lock not needed? Afterall, an instance is only managed by a single node/thread at a time
+☐	Define relations as constants like E̅
+☐	enumAccessibles(set) is not needed?!
+☐	what to do with nans? Perhaps a NaN means that a world must be ignored??? In that case, one could easily design features that ignore small worlds!
+☐	getCanonicalFeature->getFeature
+☐	create meta-feature that gives features a name.
+☐	length(unique(x)) == 1 -> allequal(x) in Julia 1.8
+
 ################################################################################
 ☐	CODE: Check type-stability with code_warntype!
 	- https://docs.julialang.org/en/v1/devdocs/reflection/#Intermediate-and-compiled-representations
