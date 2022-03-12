@@ -236,6 +236,7 @@ end
 
 ### Classification ###
 
+confusion_matrix = compute_metrics # TODO remove
 function compute_metrics(
         actual::AbstractVector{L},
         predicted::AbstractVector{L},
