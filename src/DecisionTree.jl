@@ -15,6 +15,8 @@ using Random
 using StatsBase
 using ReTest
 
+using FunctionWrappers: FunctionWrapper
+
 ################################################################################
 
 # TODO update these
@@ -65,6 +67,18 @@ end
 ################################################################################
 ################################################################################
 
+const ModalInstance = Union{AbstractArray,Any}
+const LFun{L} = FunctionWrapper{L,Tuple{ModalInstance}}
+
+# TODO Label could also be Nothing! Think about it
+CLabel  = Union{String,Integer}
+RLabel  = AbstractFloat
+Label   = Union{CLabel,RLabel}
+# Raw labels
+_CLabel = Integer
+_Label  = Union{_CLabel,RLabel}
+
+
 include("util.jl")
 include("metrics.jl")
 
@@ -113,20 +127,52 @@ initWorldSet(initCondition::_startAtWorld{WorldType}, ::Type{WorldType}, channel
 ################################################################################
 ################################################################################
 ################################################################################
-# TODO MOVE
-# TODO Label could also be Nothing! Think about it
-CLabel  = Union{String,Integer}
-RLabel  = AbstractFloat
-Label   = Union{CLabel,RLabel}
-# Raw labels
-_CLabel = Integer
-_Label  = Union{_CLabel,RLabel}
 
 default_loss_function(::Type{<:CLabel}) = util.entropy
 default_loss_function(::Type{<:RLabel}) = util.variance
 
 average_label(labels::AbstractVector{<:CLabel}) = majority_vote(labels; suppress_parity_warning = false) # argmax(countmap(labels))
 average_label(labels::AbstractVector{<:RLabel}) = majority_vote(labels; suppress_parity_warning = false) # StatsBase.mean(labels)
+
+function majority_vote(
+        labels::AbstractVector{L},
+        weights::Union{Nothing,AbstractVector} = nothing;
+        suppress_parity_warning = false,
+    ) where {L<:CLabel}
+    
+    if length(labels) == 0
+        return nothing
+    end
+
+    counts = begin
+        if isnothing(weights)
+            countmap(labels)
+        else
+            @assert length(labels) === length(weights) "Can't compute majority_vote with uneven number of votes $(length(labels)) and weights $(length(weights))."
+            countmap(labels, weights)
+        end
+    end
+
+    if !suppress_parity_warning && sum(counts[argmax(counts)] .== values(counts)) > 1
+        println("Warning: parity encountered in majority_vote.")
+        println("Counts ($(length(labels)) elements): $(counts)")
+        println("Argmax: $(argmax(counts))")
+        println("Max: $(counts[argmax(counts)]) (sum = $(sum(values(counts))))")
+    end
+    argmax(counts)
+end
+
+function majority_vote(
+        labels::AbstractVector{L},
+        weights::Union{Nothing,AbstractVector} = nothing;
+        suppress_parity_warning = false,
+    ) where {L<:RLabel}
+    if length(labels) == 0
+        return nothing
+    end
+
+    (isnothing(weights) ? mean(labels) : sum(labels .* weights)/sum(weights))
+end
 
 function dishonor_min_purity_increase(::Type{L}, min_purity_increase, purity, best_purity_times_nt, nt) where {L<:CLabel}
     (best_purity_times_nt/nt - purity < min_purity_increase)
@@ -188,7 +234,7 @@ end
 # Decision leaf node, holding an output label
 struct DTLeaf{L<:Label}
     # output label
-    label         :: L # TODO extend to having models at leaves Union{L,FunctionWrapper{L,Tuple{ModalInstance...}}}
+    label         :: L
     # supporting (e.g., training) instances labels
     supp_labels   :: Vector{L}
 
@@ -483,6 +529,20 @@ end
 ################################################################################
 # Includes
 ################################################################################
+
+default_max_depth = typemax(Int64)
+default_min_samples_leaf = 1
+default_min_purity_increase = -Inf
+default_max_purity_at_leaf = Inf
+default_n_trees = typemax(Int64)
+
+function parametrization_is_going_to_prune(pruning_params)
+    (haskey(pruning_params, :max_depth)           && pruning_params.max_depth            < default_max_depth) ||
+    (haskey(pruning_params, :min_samples_leaf)    && pruning_params.min_samples_leaf     > default_min_samples_leaf) ||
+    (haskey(pruning_params, :min_purity_increase) && pruning_params.min_purity_increase  > default_min_purity_increase) ||
+    (haskey(pruning_params, :max_purity_at_leaf)  && pruning_params.max_purity_at_leaf   < default_max_purity_at_leaf) ||
+    (haskey(pruning_params, :n_trees)             && pruning_params.n_trees              < default_n_trees)
+end
 
 include("leaf-metrics.jl")
 include("build.jl")

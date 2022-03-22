@@ -14,50 +14,6 @@ using StatsBase
 ################################################################################
 ################################################################################
 
-function majority_vote(
-        labels::AbstractVector{L},
-        weights::Union{Nothing,AbstractVector} = nothing;
-        suppress_parity_warning = false,
-    ) where {L<:CLabel}
-    
-    if length(labels) == 0
-        return nothing
-    end
-
-    counts = begin
-        if isnothing(weights)
-            countmap(labels)
-        else
-            @assert length(labels) === length(weights) "Can't compute majority_vote with uneven number of votes $(length(labels)) and weights $(length(weights))."
-            countmap(labels, weights)
-        end
-    end
-
-    if !suppress_parity_warning && sum(counts[argmax(counts)] .== values(counts)) > 1
-        println("Warning: parity encountered in majority_vote.")
-        println("Counts ($(length(labels)) elements): $(counts)")
-        println("Argmax: $(argmax(counts))")
-        println("Max: $(counts[argmax(counts)]) (sum = $(sum(values(counts))))")
-    end
-    argmax(counts)
-end
-
-function majority_vote(
-        labels::AbstractVector{L},
-        weights::Union{Nothing,AbstractVector} = nothing;
-        suppress_parity_warning = false,
-    ) where {L<:RLabel}
-    if length(labels) == 0
-        return nothing
-    end
-
-    (isnothing(weights) ? mean(labels) : sum(labels .* weights)/sum(weights))
-end
-
-################################################################################
-################################################################################
-################################################################################
-
 # Generate a new rng from a random pick from a given one.
 spawn_rng(rng) = Random.MersenneTwister(abs(rand(rng, Int)))
 
@@ -370,8 +326,8 @@ end
 splitbynum(x) = split(x, r"(?<=\D)(?=\d)|(?<=\d)(?=\D)")
 numstringtonum(arr) = [(n = tryparse(Float32, e)) != nothing ? n : e for e in arr]
 function nat_sort(x, y)
-    xarr = numstringtonum(splitbynum(x))
-    yarr = numstringtonum(splitbynum(y))
+    xarr = numstringtonum(splitbynum(string(x)))
+    yarr = numstringtonum(splitbynum(string(y)))
     for i in 1:min(length(xarr), length(yarr))
         if typeof(xarr[i]) != typeof(yarr[i])
             a = string(xarr[i]); b = string(yarr[i])

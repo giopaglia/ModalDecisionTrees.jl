@@ -77,10 +77,10 @@ function build_tree(
     W                   :: Union{Nothing,AbstractVector{U}}   = nothing;
     ##############################################################################
     loss_function       :: Union{Nothing,Function}            = nothing,
-    max_depth           :: Int64                              = typemax(Int64),
-    min_samples_leaf    :: Int64                              = 1,
-    min_purity_increase :: AbstractFloat                      = -Inf,
-    max_purity_at_leaf  :: AbstractFloat                      = Inf,
+    max_depth           :: Int64                              = default_max_depth,
+    min_samples_leaf    :: Int64                              = default_min_samples_leaf,
+    min_purity_increase :: AbstractFloat                      = default_min_purity_increase,
+    max_purity_at_leaf  :: AbstractFloat                      = default_max_purity_at_leaf,
     ##############################################################################
     n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
     n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = identity,
@@ -113,7 +113,7 @@ function build_tree(
     end
 
     if max_depth == -1
-        max_depth = typemax(Int64)
+        max_depth = default_max_depth
     end
     @assert max_depth > 0
 
@@ -153,10 +153,10 @@ function build_forest(
     ##############################################################################
     # Tree logic-agnostic parameters
     loss_function       :: Union{Nothing,Function}          = nothing,
-    max_depth           :: Int64                            = typemax(Int64),
-    min_samples_leaf    :: Int64                            = 1,
-    min_purity_increase :: AbstractFloat                    = -Inf,
-    max_purity_at_leaf  :: AbstractFloat                    = Inf,
+    max_depth           :: Int64                            = default_max_depth,
+    min_samples_leaf    :: Int64                            = default_min_samples_leaf,
+    min_purity_increase :: AbstractFloat                    = default_min_purity_increase,
+    max_purity_at_leaf  :: AbstractFloat                    = default_max_purity_at_leaf,
     ##############################################################################
     # Modal parameters
     n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
@@ -256,7 +256,7 @@ function build_forest(
     end
 
     metrics = (;
-        # oob_metrics = oob_metrics,
+        oob_metrics = oob_metrics,
     )
 
     if L<:CLabel
