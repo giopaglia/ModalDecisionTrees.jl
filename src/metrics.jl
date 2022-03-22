@@ -236,7 +236,6 @@ end
 
 ### Classification ###
 
-confusion_matrix = compute_metrics # TODO remove
 function compute_metrics(
         actual::AbstractVector{L},
         predicted::AbstractVector{L},
@@ -253,6 +252,7 @@ function compute_metrics(
         cm = ConfusionMatrix(actual, predicted, weights),
     )
 end
+confusion_matrix = compute_metrics # TODO remove
 
 ### Regression ###
 
