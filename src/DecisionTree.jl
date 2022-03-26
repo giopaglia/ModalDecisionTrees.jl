@@ -86,7 +86,7 @@ include("metrics.jl")
 # Data Feature types
 ################################################################################
 
-include("features.jl")
+include("modal-features.jl")
 
 ################################################################################
 # Modal Logic structures
