@@ -97,10 +97,11 @@ WorldSet{W}(S::WorldSet{W}) where {W<:AbstractWorld} = S
 
 include("operators.jl")
 
+################################################################################
+
+export MixedFeature, CanonicalFeature, CanonicalFeatureGeq, CanonicalFeatureLeq
 
 abstract type CanonicalFeature end
-
-export CanonicalFeature, CanonicalFeatureGeq, CanonicalFeatureLeq
 
 # ⪴ and ⪳, that is, "*all* of the values on this world are at least, or at most ..."
 struct _CanonicalFeatureGeq <: CanonicalFeature end; const CanonicalFeatureGeq  = _CanonicalFeatureGeq();
@@ -154,6 +155,8 @@ TestOpLeq_70 = CanonicalFeatureLeq_70
 TestOpLeq_60 = CanonicalFeatureLeq_60
 TestOpGeq    = CanonicalFeatureGeq
 TestOpLeq    = CanonicalFeatureLeq
+
+MixedFeature = Union{ModalFeature,CanonicalFeature,Function,Tuple{TestOperatorFun,Function},Tuple{TestOperatorFun,ModalFeature}}
 
 ################################################################################
 # Decision
@@ -392,54 +395,77 @@ get_gamma(X::MatricialDataset, i_instance::Integer, w::AbstractWorld, feature::M
     #   OntologicalDataset{T, N, WorldType}(domain, ontology, features, grouped_featsaggrsnops)
     # end
 
-    # function OntologicalDataset{T, N, WorldType}(
-    #     domain::MatricialDataset{T,D},
-    #     # ontology::Ontology{WorldType},
-    #     # canonical_features,
-    # ) where {T, N, D, WorldType<:AbstractWorld}
-    #     features, featsnops = begin
-    #         # features = ModalFeature[]
-    #         # featsnops = Vector{<:TestOperatorFun}[]
+    function OntologicalDataset(
+        domain::MatricialDataset{T,D},
+        ontology::Ontology{WorldType},
+        mixed_features::AbstractVector{<:MixedFeature},
+    ) where {T, N, D, WorldType<:AbstractWorld}
+        OntologicalDataset{T}(domain, ontology, mixed_features)
+    end
 
-    #         # # readymade
-    #         # cnv_feat(cf::ModalFeature) = ([≥, ≤], cf)
-    #         # cnv_feat(cf::Tuple{TestOperatorFun,ModalFeature}) = ([cf[1]], cf[2])
-    #         # # attribute_specific
-    #         # cnv_feat(cf::Any) = cf
-    #         # cnv_feat(cf::Function) = ([≥, ≤], cf)
-    #         # cnv_feat(cf::Tuple{TestOperatorFun,Function}) = ([cf[1]], cf[2])
+    function OntologicalDataset{T}(
+        domain::MatricialDataset{T,D},
+        ontology::Ontology{WorldType},
+        mixed_features::AbstractVector{<:MixedFeature},
+    ) where {T, N, D, WorldType<:AbstractWorld}
+        OntologicalDataset{T, D-1-1}(domain, ontology, mixed_features)
+    end
 
-    #         # canonical_features = cnv_feat.(canonical_features)
+    function OntologicalDataset{T, N}(
+        domain::MatricialDataset{T,D},
+        ontology::Ontology{WorldType},
+        mixed_features::AbstractVector{<:MixedFeature},
+    ) where {T, N, D, WorldType<:AbstractWorld}
+        OntologicalDataset{T, N, WorldType}(domain, ontology, mixed_features)
+    end
+    
+    function OntologicalDataset{T, N, WorldType}(
+        domain::MatricialDataset{T,D},
+        ontology::Ontology{WorldType},
+        mixed_features::AbstractVector{<:MixedFeature},
+    ) where {T, N, D, WorldType<:AbstractWorld}
+        features, featsnops = begin
+            features = ModalFeature[]
+            featsnops = Vector{<:TestOperatorFun}[]
 
-    #         # readymade_cfs          = filter(x->isa(x, Tuple{<:AbstractVector{<:TestOperatorFun},ModalFeature}), canonical_features)
-    #         # attribute_specific_cfs = filter(x->isa(x, CanonicalFeature) || isa(x, Tuple{<:AbstractVector{<:TestOperatorFun},Function}), canonical_features)
+            # readymade
+            cnv_feat(cf::ModalFeature) = ([≥, ≤], cf)
+            cnv_feat(cf::Tuple{TestOperatorFun,ModalFeature}) = ([cf[1]], cf[2])
+            # attribute_specific
+            cnv_feat(cf::Any) = cf
+            cnv_feat(cf::Function) = ([≥, ≤], cf)
+            cnv_feat(cf::Tuple{TestOperatorFun,Function}) = ([cf[1]], cf[2])
 
-    #         # @assert length(readymade_cfs) + length(attribute_specific_cfs) == length(canonical_features) "Unexpected canonical_features: $(filter(x->(! (x in readymade_cfs) && ! (x in attribute_specific_cfs)), canonical_features))"
+            mixed_features = cnv_feat.(mixed_features)
 
-    #         # for (test_ops,cf) in readymade_cfs
-    #         #     push!(features, cf)
-    #         #     push!(featsnops, test_ops)
-    #         # end
+            readymade_cfs          = filter(x->isa(x, Tuple{<:AbstractVector{<:TestOperatorFun},ModalFeature}), mixed_features)
+            attribute_specific_cfs = filter(x->isa(x, CanonicalFeature) || isa(x, Tuple{<:AbstractVector{<:TestOperatorFun},Function}), mixed_features)
 
-    #         # single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureGeq) = ([≥],ModalLogic.AttributeMinimumFeatureType(i_attr))
-    #         # single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureLeq) = ([≤],ModalLogic.AttributeMaximumFeatureType(i_attr))
-    #         # single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureGeqSoft) = ([≥],ModalLogic.AttributeSoftMinimumFeatureType(i_attr, cf.alpha))
-    #         # single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureLeqSoft) = ([≤],ModalLogic.AttributeSoftMaximumFeatureType(i_attr, cf.alpha))
-    #         # single_attr_feats_n_featsnops(i_attr,(test_ops,cf)::Tuple{<:AbstractVector{<:TestOperatorFun},Function}) = (test_ops,AttributeFunctionFeatureType(i_attr, cf))
-    #         # single_attr_feats_n_featsnops(i_attr,::Any) = throw_n_log("Unknown canonical_feature type: $(cf), $(typeof(cf))")
+            @assert length(readymade_cfs) + length(attribute_specific_cfs) == length(mixed_features) "Unexpected mixed_features: $(filter(x->(! (x in readymade_cfs) && ! (x in attribute_specific_cfs)), mixed_features))"
 
-    #         # for i_attr in 1:n_attributes(domain)
-    #         #     for (test_ops,cf) in map((cf)->single_attr_feats_n_featsnops(i_attr,cf),attribute_specific_cfs)
-    #         #         push!(featsnops, test_ops)
-    #         #         push!(features, cf)
-    #         #     end
-    #         # end
-    #         # features, featsnops
-    #         ModalFeature[], []
-    #     end
-    #     ontology = getIntervalOntologyOfDim(Val(D-1-1))
-    #     OntologicalDataset{T, N, world_type(ontology)}(domain, ontology, features, featsnops)
-    # end
+            for (test_ops,cf) in readymade_cfs
+                push!(features, cf)
+                push!(featsnops, test_ops)
+            end
+
+            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureGeq) = ([≥],ModalLogic.AttributeMinimumFeatureType(i_attr))
+            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureLeq) = ([≤],ModalLogic.AttributeMaximumFeatureType(i_attr))
+            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureGeqSoft) = ([≥],ModalLogic.AttributeSoftMinimumFeatureType(i_attr, cf.alpha))
+            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureLeqSoft) = ([≤],ModalLogic.AttributeSoftMaximumFeatureType(i_attr, cf.alpha))
+            single_attr_feats_n_featsnops(i_attr,(test_ops,cf)::Tuple{<:AbstractVector{<:TestOperatorFun},Function}) = (test_ops,AttributeFunctionFeatureType(i_attr, cf))
+            single_attr_feats_n_featsnops(i_attr,::Any) = throw_n_log("Unknown mixed_feature type: $(cf), $(typeof(cf))")
+
+            for i_attr in 1:n_attributes(domain)
+                for (test_ops,cf) in map((cf)->single_attr_feats_n_featsnops(i_attr,cf),attribute_specific_cfs)
+                    push!(featsnops, test_ops)
+                    push!(features, cf)
+                end
+            end
+            features, featsnops
+        end
+        ontology = getIntervalOntologyOfDim(Val(D-1-1))
+        OntologicalDataset{T, N, world_type(ontology)}(domain, ontology, features, featsnops)
+    end
 
     function OntologicalDataset(
         domain::MatricialDataset{T,D},
