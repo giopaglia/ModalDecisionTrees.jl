@@ -21,6 +21,7 @@ using FunctionWrappers: FunctionWrapper
 
 # TODO update these
 export Decision, DTNode, DTLeaf, DTInternal, DTree, DForest,
+        NSDTLeaf,
         is_leaf_node, is_modal_node,
         num_nodes, height, modal_height,
         ConfusionMatrix, confusion_matrix, compute_metrics, mean_squared_error, R2, load_data,
@@ -66,9 +67,6 @@ end
 ################################################################################
 ################################################################################
 ################################################################################
-
-const ModalInstance = Union{AbstractArray,Any}
-const LFun{L} = FunctionWrapper{L,Tuple{ModalInstance}}
 
 # TODO Label could also be Nothing! Think about it
 CLabel  = Union{String,Integer}
@@ -231,8 +229,10 @@ end
 ################################################################################
 ################################################################################
 
+abstract type AbstractDecisionLeaf{L<:Label} end
+
 # Decision leaf node, holding an output label
-struct DTLeaf{L<:Label}
+struct DTLeaf{L<:Label} <: AbstractDecisionLeaf{L}
     # output label
     label         :: L
     # supporting (e.g., training) instances labels
@@ -248,7 +248,6 @@ struct DTLeaf{L<:Label}
 
     # create leaf from supporting labels
     DTLeaf{L}(supp_labels::AbstractVector) where {L<:Label} = DTLeaf{L}(average_label(supp_labels), supp_labels)
-    # DTLeaf(supp_labels::AbstractVector) where {L<:Label} = DTLeaf{L}(average_label(supp_labels), supp_labels)
     function DTLeaf(supp_labels::AbstractVector)
         label = average_label(supp_labels)
         DTLeaf(label, supp_labels)
@@ -259,81 +258,118 @@ supp_labels(leaf::DTLeaf) = leaf.supp_labels
 
 ################################################################################
 
+struct LabellingFunction{L<:Label}
+    f::FunctionWrapper{L,Tuple{N,Any} where N}
+end
+(lf::LabellingFunction)(args...; kwargs...) = lf.f(args...; kwargs...)
+
+
+# const ModalInstance = Union{AbstractArray,Any}
+# const LFun{L} = FunctionWrapper{L,Tuple{ModalInstance}}
+# TODO maybe join DTLeaf and NSDTLeaf Union{L,LFun{L}}
+# Decision leaf node, holding an output labelling function
+struct NSDTLeaf{L<:Label} <: AbstractDecisionLeaf{L}
+    # output labelling function
+    labelling_function         :: LabellingFunction{L}
+    
+    # supporting (e.g., training) instances labels
+    # supp_labels   :: Vector{Vector{L}}
+
+    # create leaf
+    # NSDTLeaf{L}(labelling_function, supp_labels::AbstractVector) where {L<:Label} = new{L}(labelling_function, supp_labels)
+    # NSDTLeaf(labelling_function::LabellingFunction{L}, supp_labels::AbstractVector) where {L<:Label} = NSDTLeaf{L}(labelling_function, supp_labels)
+
+    # create leaf without supporting labels
+    NSDTLeaf{L}(labelling_function::Function) where {L<:Label} = new{L}(LabellingFunction{L}(labelling_function)) # , L[])
+
+    NSDTLeaf{L}(labelling_function::LabellingFunction{L}) where {L<:Label} = new{L}(labelling_function) # , L[])
+    NSDTLeaf(labelling_function::LabellingFunction{L}) where {L<:Label} = NSDTLeaf{L}(labelling_function) # , L[])
+    # create leaf from supporting labels
+    # NSDTLeaf{L}(supp_labels::AbstractVector) where {L<:Label} = NSDTLeaf{L}(average_label(supp_labels), supp_labels)
+    # function NSDTLeaf(supp_labels::AbstractVector)
+    #     labelling_function = average_label(supp_labels)
+    #     NSDTLeaf(labelling_function, supp_labels)
+    # end
+end
+
+
+################################################################################
+
 # Decision inner node, holding a split-decision and a frame index
 struct DTInternal{T, L<:Label}
     # frame index + split-decision
     i_frame       :: Int64
     decision      :: Decision{T}
     # representative leaf for the current node
-    this          :: DTLeaf{L}
+    this          :: AbstractDecisionLeaf{L}
     # child nodes
-    left          :: Union{DTLeaf{L}, DTInternal{T, L}}
-    right         :: Union{DTLeaf{L}, DTInternal{T, L}}
+    left          :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}}
+    right         :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}}
 
     # create node
-    # function DTInternal{T, L}(
-    #     i_frame          :: Int64,
-    #     decision         :: Decision,
-    #     this             :: DTLeaf,
-    #     left             :: Union{DTLeaf, DTInternal},
-    #     right            :: Union{DTLeaf, DTInternal}) where {T, L<:Label}
-    #     new{T, L}(i_frame, decision, this, left, right)
-    # end
-    # function DTInternal(
-    #     i_frame          :: Int64,
-    #     decision         :: Decision{T},
-    #     this             :: DTLeaf,
-    #     left             :: Union{DTLeaf{L}, DTInternal{T, L}},
-    #     right            :: Union{DTLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
-    #     DTInternal{T, L}(i_frame, decision, this, left, right)
-    # end
-
-    # create node without local decision
     function DTInternal{T, L}(
         i_frame          :: Int64,
         decision         :: Decision,
-        left             :: Union{DTLeaf, DTInternal},
-        right            :: Union{DTLeaf, DTInternal}) where {T, L<:Label}
-        this = DTLeaf{L}(L[(supp_labels(left))..., (supp_labels(right))...])
+        this             :: AbstractDecisionLeaf,
+        left             :: Union{AbstractDecisionLeaf, DTInternal},
+        right            :: Union{AbstractDecisionLeaf, DTInternal}) where {T, L<:Label}
         new{T, L}(i_frame, decision, this, left, right)
     end
     function DTInternal(
         i_frame          :: Int64,
         decision         :: Decision{T},
-        left             :: Union{DTLeaf{L}, DTInternal{T, L}},
-        right            :: Union{DTLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
+        this             :: AbstractDecisionLeaf,
+        left             :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}},
+        right            :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
+        DTInternal{T, L}(i_frame, decision, this, left, right)
+    end
+
+    # create node without local decision
+    function DTInternal{T, L}(
+        i_frame          :: Int64,
+        decision         :: Decision,
+        left             :: Union{AbstractDecisionLeaf, DTInternal},
+        right            :: Union{AbstractDecisionLeaf, DTInternal}) where {T, L<:Label}
+        this = AbstractDecisionLeaf{L}(L[(supp_labels(left))..., (supp_labels(right))...])
+        new{T, L}(i_frame, decision, this, left, right)
+    end
+    function DTInternal(
+        i_frame          :: Int64,
+        decision         :: Decision{T},
+        left             :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}},
+        right            :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
         DTInternal{T, L}(i_frame, decision, left, right)
     end
 
     # create node without frame
     # function DTInternal{T, L}(
     #     decision         :: Decision,
-    #     this             :: DTLeaf,
-    #     left             :: Union{DTLeaf, DTInternal},
-    #     right            :: Union{DTLeaf, DTInternal}) where {T, L<:Label}
+    #     this             :: AbstractDecisionLeaf,
+    #     left             :: Union{AbstractDecisionLeaf, DTInternal},
+    #     right            :: Union{AbstractDecisionLeaf, DTInternal}) where {T, L<:Label}
     #     i_frame = 1
     #     DTInternal{T, L}(i_frame, decision, this, left, right)
     # end
     # function DTInternal(
     #     decision         :: Decision{T},
-    #     this             :: DTLeaf,
-    #     left             :: Union{DTLeaf{L}, DTInternal{T, L}},
-    #     right            :: Union{DTLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
+    #     this             :: AbstractDecisionLeaf,
+    #     left             :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}},
+    #     right            :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
     #     DTInternal{T, L}(decision, this, left, right)
     # end
     
     # create node without frame nor local decision
     function DTInternal{T, L}(
         decision         :: Decision,
-        left             :: Union{DTLeaf, DTInternal},
-        right            :: Union{DTLeaf, DTInternal}) where {T, L<:Label}
+        left             :: Union{AbstractDecisionLeaf, DTInternal},
+        right            :: Union{AbstractDecisionLeaf, DTInternal}) where {T, L<:Label}
         i_frame = 1
         DTInternal{T, L}(i_frame, decision, left, right)
     end
     function DTInternal(
         decision         :: Decision{T},
-        left             :: Union{DTLeaf{L}, DTInternal{T, L}},
-        right            :: Union{DTLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
+        left             :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}},
+        right            :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
         DTInternal{T, L}(decision, left, right)
     end
 end
@@ -427,7 +463,7 @@ num_nodes(f::DForest) = sum(num_nodes.(f.trees))
 
 # Number of trees
 num_trees(f::DForest) = length(f.trees)
-length(f::DForest)    = num_trees(f.trees)
+length(f::DForest)    = num_trees(f)
 
 # Height
 height(leaf::DTLeaf)     = 0
@@ -538,7 +574,7 @@ default_n_trees = typemax(Int64)
 
 function parametrization_is_going_to_prune(pruning_params)
     (haskey(pruning_params, :max_depth)           && pruning_params.max_depth            < default_max_depth) ||
-    (haskey(pruning_params, :min_samples_leaf)    && pruning_params.min_samples_leaf     > default_min_samples_leaf) ||
+    # (haskey(pruning_params, :min_samples_leaf)    && pruning_params.min_samples_leaf     > default_min_samples_leaf) ||
     (haskey(pruning_params, :min_purity_increase) && pruning_params.min_purity_increase  > default_min_purity_increase) ||
     (haskey(pruning_params, :max_purity_at_leaf)  && pruning_params.max_purity_at_leaf   < default_max_purity_at_leaf) ||
     (haskey(pruning_params, :n_trees)             && pruning_params.n_trees              < default_n_trees)

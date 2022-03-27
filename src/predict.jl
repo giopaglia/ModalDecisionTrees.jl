@@ -13,9 +13,9 @@ print_apply_model(tree::DTree, args...; kwargs...) = print_apply_tree(tree, args
 
 # TODO avoid these fallbacks?
 inst_init_world_sets(X::SingleFrameGenericDataset, tree::DTree, i_instance::Integer) = 
-        inst_init_world_sets(MultiFrameModalDataset(X), tree, i_instance)
+    inst_init_world_sets(MultiFrameModalDataset(X), tree, i_instance)
 print_apply_tree(tree::DTree{L}, X::SingleFrameGenericDataset, Y::Vector{L}; kwargs...) where {L} = 
-        print_apply_tree(tree, MultiFrameModalDataset(X), Y; kwargs...)
+    print_apply_tree(tree, MultiFrameModalDataset(X), Y; kwargs...)
 # TODO fix
 # print_apply_tree(tree::DTree{S}, X::MatricialDataset{T,D}, Y::Vector{S}; kwargs...) where {T,D,S} = begin
 #     ontology = getIntervalOntologyOfDim(Val(D-1-1))
