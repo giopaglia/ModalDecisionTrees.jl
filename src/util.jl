@@ -96,7 +96,35 @@ Base.@propagate_inbounds @inline function _shannon_entropy(e :: AbstractFloat)
     e*log2(ℯ)
 end
 
-ShannonEntropy() = _shannon_entropy
+# TODO fix: this is _shannon_entropy from https://github.com/bensadeghi/DecisionTree.jl/blob/master/src/util.jl, with inverted sign
+
+# Single
+Base.@propagate_inbounds @inline function _shannon_entropy_mod(ws :: AbstractVector{U}, t :: U) where {U <: Real}
+    s = 0.0
+    @simd for k in ws
+        if k > 0
+            s += k * log(k)
+        end
+    end
+    return -(log(t) - s / t)
+end
+
+# Double
+Base.@propagate_inbounds @inline function _shannon_entropy_mod(
+    ws_l :: AbstractVector{U}, tl :: U,
+    ws_r :: AbstractVector{U}, tr :: U,
+) where {U <: Real}
+    (tl * _shannon_entropy_mod(ws_l, tl) +
+     tr * _shannon_entropy_mod(ws_r, tr))
+end
+
+# Correction
+Base.@propagate_inbounds @inline function _shannon_entropy_mod(e :: AbstractFloat)
+    e
+end
+
+# ShannonEntropy() = _shannon_entropy
+ShannonEntropy() = _shannon_entropy_mod
 
 # Tsallis entropy (alpha > 1.0) (ps = normalize(ws, 1); return -log(sum(ps.^alpha))/(1.0-alpha))
 # Single

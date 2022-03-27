@@ -121,6 +121,7 @@ struct ConfusionMatrix
                     startswith(class_labels[2], "NO")
                 class_labels = reverse(class_labels)
             end
+            class_labels
         end
 
         n_instances = length(actual)
@@ -222,10 +223,10 @@ function Base.show(io::IO, cm::ConfusionMatrix)
     ############################################################################
     println(io, "sensitivities:\t$(round.(cm.sensitivities, digits=4))")
     println(io, "specificities:\t$(round.(cm.specificities, digits=4))")
-    println(io, "PPVs:\t\t\t$(round.(cm.PPVs, digits=4))")
-    println(io, "NPVs:\t\t\t$(round.(cm.NPVs, digits=4))")
-    print(io,   "F1s:\t\t\t$(round.(cm.F1s, digits=4))")
-    println(io, "\tmean_F1:\t$(round(cm.mean_accuracy, digits=4))")
+    println(io, "PPVs:\t\t$(round.(cm.PPVs, digits=4))")
+    println(io, "NPVs:\t\t$(round.(cm.NPVs, digits=4))")
+    print(io,   "F1s:\t\t$(round.(cm.F1s, digits=4))")
+    println(io, "\t\tmean_F1:\t$(round(cm.mean_accuracy, digits=4))")
     print(io,   "accuracies:\t\t$(round.(cm.accuracies, digits=4))")
     println(io, "\tmean_accuracy:\t$(round(cm.mean_accuracy, digits=4))")
 end
