@@ -199,6 +199,8 @@ end
 #  a graph; instead, an instance is a dimensional domain (e.g. a matrix or a 3D matrix) onto which
 #  worlds and relations are determined by a given Ontology.
 
+# DEBUGprintln = println
+
 ################################################################################
 ################################################################################
 ################################################################################
@@ -241,6 +243,8 @@ Base.@propagate_inbounds @inline function split_node!(
     region = node.region
     n_instances = length(region)
     r_start = region.start - 1
+
+    # DEBUGprintln("split_node!"); readline()
 
     # Gather all values needed for the current set of instances
     # TODO also slice the dataset?
@@ -331,6 +335,16 @@ Base.@propagate_inbounds @inline function split_node!(
              || (node.purity          > max_purity_at_leaf)
             # Honor maximum depth constraint
              || (max_depth            < node.depth))
+            # DEBUGprintln("BEFORE LEAF!")
+            # DEBUGprintln(nc[node.label])
+            # DEBUGprintln(nt)
+            # DEBUGprintln(min_samples_leaf)
+            # DEBUGprintln(n_instances)
+            # DEBUGprintln(node.purity)
+            # DEBUGprintln(max_purity_at_leaf)
+            # DEBUGprintln(max_depth)
+            # DEBUGprintln(node.depth)
+            # readline()
             node.is_leaf = true
             @logmsg DTDetail "leaf created: " (min_samples_leaf * 2 >  n_instances) (nc[node.label] == nt) (node.purity  > max_purity_at_leaf) (max_depth <= node.depth)
             return
@@ -563,6 +577,7 @@ Base.@propagate_inbounds @inline function split_node!(
                 end::P
 
                 if purity_times_nt > best_purity_times_nt # && !isapprox(purity_times_nt, best_purity_times_nt)
+                    # DEBUGprintln((ncl,nl,ncr,nr), purity_times_nt)
                     #################################
                     best_i_frame             = i_frame
                     #################################
@@ -586,9 +601,18 @@ Base.@propagate_inbounds @inline function split_node!(
             end
         end # END decisions
     end # END frame
-    
+
     # TODO, actually, when using Shannon entropy, we must correct the purity:
     corrected_best_purity_times_nt = loss_function(best_purity_times_nt)::Float64
+
+    # DEBUGprintln("corrected_best_purity_times_nt: $(corrected_best_purity_times_nt)")
+    # DEBUGprintln(min_purity_increase)
+    # DEBUGprintln(node.purity)
+    # DEBUGprintln(corrected_best_purity_times_nt)
+    # DEBUGprintln(nt)
+    # DEBUGprintln(purity - best_purity_times_nt/nt)
+    # DEBUGprintln("dishonor: $(dishonor_min_purity_increase(L, min_purity_increase, node.purity, corrected_best_purity_times_nt, nt))")
+    # readline()
 
     # println("corrected_best_purity_times_nt = $(corrected_best_purity_times_nt)")
     # println("nt =  $(nt)")
@@ -611,6 +635,8 @@ Base.@propagate_inbounds @inline function split_node!(
         ##########################################################################
         ##########################################################################
         ##########################################################################
+        # DEBUGprintln("AFTER LEAF!")
+        # readline()
         node.is_leaf = true
         return
     else
@@ -658,6 +684,12 @@ Base.@propagate_inbounds @inline function split_node!(
             throw_n_log("An uninformative split was reached. Something's off\nPurity: $(node.purity)\nSplit: $(decision_str)\nUnsatisfied flags: $(unsatisfied_flags)")
         end
         @logmsg DTOverview " Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(best_i_frame) with decision: $(decision_str), purity $(best_purity)"
+
+        # if sum(unsatisfied_flags) >= min_samples_leaf && (n_instances - sum(unsatisfied_flags)) >= min_samples_leaf
+            # DEBUGprintln("LEAF!")
+        #     node.is_leaf = true
+        #     return
+        # end
 
         # Check consistency
         consistency = if isa(_perform_consistency_check,Val{true})
@@ -721,6 +753,9 @@ Base.@propagate_inbounds @inline function split_node!(
             node.purity         = best_purity
             node.i_frame        = best_i_frame
             node.decision       = best_decision
+
+            # DEBUGprintln("unsatisfied_flags")
+            # DEBUGprintln(unsatisfied_flags)
 
             @logmsg DTDetail "pre-partition" region idxs[region] unsatisfied_flags
             node.split_at = util.partition!(idxs, unsatisfied_flags, 0, region)
