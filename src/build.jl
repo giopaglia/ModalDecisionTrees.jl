@@ -42,15 +42,15 @@ include("tree.jl")
 ################################################################################
 
 # # Build models on (multi-dimensional) arrays
-function build_stump(X :: SingleFrameGenericDataset, args, kwargs...)
+function build_stump(X :: SingleFrameGenericDataset, args...; kwargs...)
     build_stump(MultiFrameModalDataset(X), args...; kwargs...)
 end
 
-function build_tree(X :: SingleFrameGenericDataset, args, kwargs...)
+function build_tree(X :: SingleFrameGenericDataset, args...; kwargs...)
     build_tree(MultiFrameModalDataset(X), args...; kwargs...)
 end
 
-function build_forest(X :: SingleFrameGenericDataset, args, kwargs...)
+function build_forest(X :: SingleFrameGenericDataset, args...; kwargs...)
     build_forest(MultiFrameModalDataset(X), args...; kwargs...)
 end
 
@@ -265,27 +265,27 @@ function build_forest(
         #  trees corresponding to boot-strap samples in which the sample did not appear
         oob_classified = Vector{Bool}()
         Threads.@threads for i in 1:tot_samples
-          selected_trees = fill(false, n_trees)
-
-          # pick every tree trained without i-th sample
-          for i_tree in 1:n_trees
-              if i in oob_samples[i_tree] # if i is present in the i_tree-th tree, selecte thi tree
-                  selected_trees[i_tree] = true
-              end
-          end
+            selected_trees = fill(false, n_trees)
             
-          index_of_trees_to_test_with = findall(selected_trees)
-
-          if length(index_of_trees_to_test_with) == 0
-              continue
-          end
-
-          X_slice = ModalLogic.slice_dataset(X, [i]; return_view = true)
-          Y_slice = [Y[i]]
-
-          pred = apply_trees(trees[index_of_trees_to_test_with], X_slice)
-
-          push!(oob_classified, Y_slice[1] == pred[1])
+            # pick every tree trained without i-th sample
+            for i_tree in 1:n_trees
+                if i in oob_samples[i_tree] # if i is present in the i_tree-th tree, selecte thi tree
+                    selected_trees[i_tree] = true
+                end
+            end
+            
+            index_of_trees_to_test_with = findall(selected_trees)
+            
+            if length(index_of_trees_to_test_with) == 0
+                continue
+            end
+            
+            X_slice = ModalLogic.slice_dataset(X, [i]; return_view = true)
+            Y_slice = [Y[i]]
+            
+            pred = apply_trees(trees[index_of_trees_to_test_with], X_slice)
+            
+            push!(oob_classified, Y_slice[1] == pred[1])
         end
         oob_error = 1.0 - (sum(W[findall(oob_classified)]) / sum(W))
         metrics = merge(metrics, (

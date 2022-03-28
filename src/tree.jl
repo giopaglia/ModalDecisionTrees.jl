@@ -15,7 +15,7 @@ mutable struct NodeMeta{P,L}
     modal_depth        :: Int
     # worlds      :: AbstractVector{WorldSet{W}}           # current set of worlds for each training instance
     purity             :: P                                # purity grade attained at training time
-    label              :: L                                # most likely label
+    prediction         :: L                                # most likely label
     is_leaf            :: Bool                             # whether this is a leaf node, or a split one
     # split node-only properties
     split_at           :: Int                              # index of samples
@@ -69,7 +69,7 @@ function _convert(
         node          :: NodeMeta,
         labels        :: AbstractVector{L},
         class_names   :: AbstractVector{L}) where {L<:CLabel}
-    this_leaf = DTLeaf(class_names[node.label], labels[node.region])
+    this_leaf = DTLeaf(class_names[node.prediction], labels[node.region])
     if node.is_leaf
         this_leaf
     else
@@ -83,7 +83,7 @@ end
 function _convert(
         node   :: NodeMeta,
         labels :: AbstractVector{L}) where {L<:RLabel}
-    this_leaf = DTLeaf(node.label, labels[node.region])
+    this_leaf = DTLeaf(node.prediction, labels[node.region])
     if node.is_leaf
         this_leaf
     else
@@ -264,7 +264,7 @@ Base.@propagate_inbounds @inline function split_node!(
     ############################################################################
     if _is_classification isa Val{true}
         (nc, nt),
-        (node.purity, node.label) = begin
+        (node.purity, node.prediction) = begin
             nc = fill(zero(U), n_classes)
             @inbounds @simd for i in 1:n_instances
                 nc[Yf[i]] += Wf[i]
@@ -273,13 +273,13 @@ Base.@propagate_inbounds @inline function split_node!(
             # TODO use _compute_purity
             purity = loss_function(loss_function(nc, nt)::Float64)::Float64
             # Assign the most likely label before the split
-            label = argmax(nc)
-            # label = average_label(Yf)
-            (nc, nt), (purity, label)
+            prediction = argmax(nc)
+            # prediction = average_label(Yf)
+            (nc, nt), (purity, prediction)
         end
     else
         sums, (tsum, nt),
-        (node.purity, node.label) = begin
+        (node.purity, node.prediction) = begin
             # sums = [Wf[i]*Yf[i]       for i in 1:n_instances]
             sums = Yf
             # ssqs = [Wf[i]*Yf[i]*Yf[i] for i in 1:n_instances]
@@ -292,11 +292,11 @@ Base.@propagate_inbounds @inline function split_node!(
             nt = sum(Wf)
             # @inbounds @simd for i in 1:n_instances
             #   # tssq += Wf[i]*Yf[i]*Yf[i]
-            #   # tsum += Wf[i]*Yf[i]
+            #   # tsum += Wf[i]*Yf[i]   
             #   nt += Wf[i]
             # end
 
-            # purity = (tsum * label) # TODO use loss function
+            # purity = (tsum * prediction) # TODO use loss function
             # purity = tsum * tsum # TODO use loss function
             # tmean = tsum/nt
             # purity = -((tssq - 2*tmean*tsum + (tmean^2*nt)) / (nt-1)) # TODO use loss function
@@ -309,9 +309,9 @@ Base.@propagate_inbounds @inline function split_node!(
                 end
             end
             # Assign the most likely label before the split
-            label =  tsum / nt
-            # label = average_label(Yf)
-            sums, (tsum, nt), (purity, label)
+            prediction =  tsum / nt
+            # prediction = average_label(Yf)
+            sums, (tsum, nt), (purity, prediction)
         end
     end
 
@@ -327,7 +327,7 @@ Base.@propagate_inbounds @inline function split_node!(
     if _is_classification isa Val{true}
         if (
             # If all instances belong to the same class, make this a leaf
-                (nc[node.label]       == nt)
+                (nc[node.prediction]       == nt)
             # No binary split can honor min_samples_leaf if there aren't as many as
             #  min_samples_leaf*2 instances in the first place
              || (min_samples_leaf * 2 >  n_instances)
@@ -336,7 +336,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # Honor maximum depth constraint
              || (max_depth            < node.depth))
             # DEBUGprintln("BEFORE LEAF!")
-            # DEBUGprintln(nc[node.label])
+            # DEBUGprintln(nc[node.prediction])
             # DEBUGprintln(nt)
             # DEBUGprintln(min_samples_leaf)
             # DEBUGprintln(n_instances)
@@ -346,7 +346,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # DEBUGprintln(node.depth)
             # readline()
             node.is_leaf = true
-            @logmsg DTDetail "leaf created: " (min_samples_leaf * 2 >  n_instances) (nc[node.label] == nt) (node.purity  > max_purity_at_leaf) (max_depth <= node.depth)
+            @logmsg DTDetail "leaf created: " (min_samples_leaf * 2 >  n_instances) (nc[node.prediction] == nt) (node.purity  > max_purity_at_leaf) (max_depth <= node.depth)
             return
         end
     else
@@ -356,11 +356,11 @@ Base.@propagate_inbounds @inline function split_node!(
                 (min_samples_leaf * 2 >  n_instances)
           # equivalent to old_purity > -1e-7
              || (node.purity          > max_purity_at_leaf) # TODO
-             # || (tsum * node.label    > -1e-7 * nt + tssq)
+             # || (tsum * node.prediction    > -1e-7 * nt + tssq)
             # Honor maximum depth constraint
              || (max_depth            < node.depth))
             node.is_leaf = true
-            @logmsg DTDetail "leaf created: " (min_samples_leaf * 2 >  n_instances) (tsum * node.label    > -1e-7 * nt + tssq) (tsum * node.label) (-1e-7 * nt + tssq) (max_depth <= node.depth)
+            @logmsg DTDetail "leaf created: " (min_samples_leaf * 2 >  n_instances) (tsum * node.prediction    > -1e-7 * nt + tssq) (tsum * node.prediction) (-1e-7 * nt + tssq) (max_depth <= node.depth)
             return
         end
     end
@@ -630,7 +630,7 @@ Base.@propagate_inbounds @inline function split_node!(
         if _is_classification isa Val{true}
             @logmsg DTDebug " Leaf" corrected_best_purity_times_nt min_purity_increase (corrected_best_purity_times_nt/nt) node.purity ((corrected_best_purity_times_nt/nt) - node.purity)
         else
-            @logmsg DTDebug " Leaf" corrected_best_purity_times_nt tsum node.label min_purity_increase nt (corrected_best_purity_times_nt / nt - tsum * node.label) (min_purity_increase * nt)
+            @logmsg DTDebug " Leaf" corrected_best_purity_times_nt tsum node.prediction min_purity_increase nt (corrected_best_purity_times_nt / nt - tsum * node.prediction) (min_purity_increase * nt)
         end
         ##########################################################################
         ##########################################################################
