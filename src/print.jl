@@ -9,6 +9,15 @@ print_model(io::IO, forest::DForest; kwargs...) = print_forest(io, forest; kwarg
 print_forest(forest::DForest, args...; kwargs...) = print_forest(stdout, forest, args...; kwargs...)
 print_tree(tree::Union{DTree,DTNode}, args...; kwargs...) = print_tree(stdout, tree, args...; kwargs...)
 
+function brief_prediction_str(leaf::DTLeaf)
+    string(leaf.prediction)
+end
+
+function brief_prediction_str(leaf::NSDTLeaf)
+    # "{$(leaf.predicting_function), size = $(Base.summarysize(leaf.predicting_function))}"
+    "{$(leaf.predicting_function)}"
+end
+
 function print_forest(
     io::IO,
     forest::DForest,
@@ -22,58 +31,64 @@ function print_forest(
     end
 end
 
-function print_tree(
-        io::IO,
-        leaf::DTLeaf{<:CLabel};
-        indentation_str="",
-        metrics_kwargs...,
-    )
-    metrics = get_metrics(leaf; metrics_kwargs...)
 
-    metrics_str = ""
-
-    metrics_str *= "conf = $(@sprintf "%.4f" metrics.confidence)"
-
+function get_metrics_str(metrics::NamedTuple)
+    metrics_str_pieces = []
+    if haskey(metrics,:confidence)
+        push!(metrics_str_pieces, "conf = $(@sprintf "%.4f" metrics.confidence)")
+    end
     if haskey(metrics,:lift)
-        metrics_str *= ", lift = $(@sprintf "%.2f" metrics.lift)"
+        push!(metrics_str_pieces, "lift = $(@sprintf "%.2f" metrics.lift)")
     end
-
     if haskey(metrics,:support)
-        metrics_str *= ", supp = $(@sprintf "%.4f" metrics.support)"
+        push!(metrics_str_pieces, "supp = $(@sprintf "%.4f" metrics.support)")
     end
-    
     if haskey(metrics,:conviction)
-        metrics_str *= ", conv = $(@sprintf "%.4f" metrics.conviction)"
+        push!(metrics_str_pieces, "conv = $(@sprintf "%.4f" metrics.conviction)")
     end
-    
     if haskey(metrics,:sensitivity_share)
-        metrics_str *= ", sensitivity_share = $(@sprintf "%.4f" metrics.sensitivity_share)"
+        push!(metrics_str_pieces, "sensitivity_share = $(@sprintf "%.4f" metrics.sensitivity_share)")
     end
-    
-    println(io, "$(leaf.label) : $(metrics.n_correct)/$(metrics.n_inst) ($(metrics_str))")
+    if haskey(metrics,:var)
+        push!(metrics_str_pieces, "var = $(@sprintf "%.4f" metrics.var)")
+    end
+    if haskey(metrics,:mae)
+        push!(metrics_str_pieces, "mae = $(@sprintf "%.4f" metrics.mae)")
+    end
+    if haskey(metrics,:rmse)
+        push!(metrics_str_pieces, "rmse = $(@sprintf "%.4f" metrics.rmse)")
+    end
+    if haskey(metrics,:support)
+        push!(metrics_str_pieces, "supp = $(@sprintf "%.4f" metrics.support)")
+    end
+    metrics_str = join(metrics_str_pieces, ", ")
+    if haskey(metrics,:n_correct) # Classification
+        "$(metrics.n_correct)/$(metrics.n_inst) ($(metrics_str))"
+    else # Regression
+        "$(metrics.n_inst) ($(metrics_str))"
+    end
 end
 
 function print_tree(
         io::IO,
-        leaf::DTLeaf{<:RLabel};
+        leaf::DTLeaf;
         indentation_str="",
         metrics_kwargs...,
     )
     metrics = get_metrics(leaf; metrics_kwargs...)
-    
-    metrics_str = ""
+    metrics_str = get_metrics_str(metrics)
+    println(io, "$(brief_prediction_str(leaf)) : $(metrics_str)")
+end
 
-    metrics_str *= "var = $(@sprintf "%.4f" metrics.var)"
-    
-    metrics_str *= ", mae = $(@sprintf "%.4f" metrics.mae)"
-    
-    metrics_str *= ", rmse = $(@sprintf "%.4f" metrics.rmse)"
-
-    if haskey(metrics,:support)
-        metrics_str *= ", supp = $(@sprintf "%.4f" metrics.support)"
-    end
-
-    println(io, "$(leaf.label) : $(metrics.n_inst) ($(metrics_str))")
+function print_tree(
+        io::IO,
+        leaf::NSDTLeaf;
+        indentation_str="",
+        metrics_kwargs...,
+    )
+    train_metrics_str = metrics_str(get_metrics(leaf; train_or_valid = true, metrics_kwargs...))
+    valid_metrics_str = metrics_str(get_metrics(leaf; train_or_valid = false, metrics_kwargs...))
+    println(io, "$(brief_prediction_str(leaf)) : {TRAIN: $(train_metrics_str); VALID: $(valid_metrics_str)}")
 end
 
 function print_tree(
@@ -96,5 +111,11 @@ function print_tree(
     tree::DTree;
     metrics_kwargs...,
 )
+    # print_relative_confidence = false,
+    # if print_relative_confidence && L<:CLabel
+    #     print_tree(io, tree; rel_confidence_class_counts = countmap(Y))
+    # else
+    #     print_tree(io, tree)
+    # end
     print_tree(io, tree.root; metrics_kwargs...)
 end

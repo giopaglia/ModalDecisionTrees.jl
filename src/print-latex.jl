@@ -111,7 +111,7 @@ function _latex_string(
     result
 end
 
-_node_content(leaf::DTLeaf; kwargs...)::String = _latex_string(leaf.label; kwargs...)
+_node_content(leaf::DTLeaf; kwargs...)::String = _latex_string(leaf.prediction; kwargs...)
 _node_content(node::DTInternal; kwargs...)::String = ""
 
 function _print_tree_latex(

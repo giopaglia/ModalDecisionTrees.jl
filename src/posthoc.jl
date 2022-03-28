@@ -12,7 +12,7 @@ function prune_tree(tree::DTree; kwargs...)
     DTree(prune_tree(tree.root; depth = 0, kwargs...), tree.worldTypes, tree.initConditions)
 end
 
-function prune_tree(leaf::DTLeaf; kwargs...)
+function prune_tree(leaf::AbstractDecisionLeaf; kwargs...)
     leaf
 end
 
@@ -35,6 +35,8 @@ function prune_tree(node::DTInternal{T, L}; depth = nothing, kwargs...) where {T
         max_purity_at_leaf  = default_max_purity_at_leaf    ::AbstractFloat          ,
     ), NamedTuple(kwargs))
     
+    @assert all(map((x)->(isa(x, DTInternal) || isa(x, DTLeaf)), [node.this, node.left, node.right]))
+
     # Honor constraints on the number of instances
     nt = length(supp_labels(node.this))
     nl = length(supp_labels(node.left))
@@ -276,14 +278,21 @@ end
 
 # At leaves, a functional model is trained by calling a callback function, and the leaf is created
 function train_functional_leaves(
-        leaf::DTLeaf{L},
+        leaf::AbstractDecisionLeaf{L},
         worlds::AbstractVector{<:AbstractVector{<:AbstractVector{<:AbstractWorldSet}}},
         datasets::AbstractVector{Tuple{GenericDataset,AbstractVector}};
         train_callback::Function,
     ) where {L<:Label}
     functional_model = train_callback(datasets)
-    # println(typeof(functional_model))
-    # supp_labels = [Y for (X,Y) in datasets]
-    NSDTLeaf{L}(functional_model) #, supp_labels)
+    
+    @assert length(datasets) == 2 "TODO expand code: $(length(datasets))"
+    (train_X, train_Y), (valid_X, valid_Y) = datasets[1], datasets[2]
+
+    supp_train_labels = train_Y
+    supp_valid_labels = valid_Y
+    supp_train_predictions = functional_model(train_X) # TODO conversion here?
+    supp_valid_predictions = functional_model(valid_X) # TODO conversion here?
+
+    NSDTLeaf{L}(functional_model, supp_train_labels, supp_valid_labels, supp_train_predictions, supp_valid_predictions)
 end
 
