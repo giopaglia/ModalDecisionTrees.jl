@@ -231,66 +231,116 @@ end
 
 abstract type AbstractDecisionLeaf{L<:Label} end
 
-# Decision leaf node, holding an output label
+# Decision leaf node, holding an output (prediction)
 struct DTLeaf{L<:Label} <: AbstractDecisionLeaf{L}
-    # output label
-    label         :: L
+    # prediction
+    prediction         :: L
     # supporting (e.g., training) instances labels
     supp_labels   :: Vector{L}
 
     # create leaf
-    DTLeaf{L}(label, supp_labels::AbstractVector) where {L<:Label} = new{L}(label, supp_labels)
-    DTLeaf(label::L, supp_labels::AbstractVector) where {L<:Label} = DTLeaf{L}(label, supp_labels)
+    DTLeaf{L}(prediction, supp_labels::AbstractVector) where {L<:Label} = new{L}(prediction, supp_labels)
+    DTLeaf(prediction::L, supp_labels::AbstractVector) where {L<:Label} = DTLeaf{L}(prediction, supp_labels)
 
     # create leaf without supporting labels
-    DTLeaf{L}(label) where {L<:Label} = DTLeaf{L}(label, L[])
-    DTLeaf(label::L) where {L<:Label} = DTLeaf{L}(label, L[])
+    DTLeaf{L}(prediction) where {L<:Label} = DTLeaf{L}(prediction, L[])
+    DTLeaf(prediction::L) where {L<:Label} = DTLeaf{L}(prediction, L[])
 
     # create leaf from supporting labels
     DTLeaf{L}(supp_labels::AbstractVector) where {L<:Label} = DTLeaf{L}(average_label(supp_labels), supp_labels)
     function DTLeaf(supp_labels::AbstractVector)
-        label = average_label(supp_labels)
-        DTLeaf(label, supp_labels)
+        prediction = average_label(supp_labels)
+        DTLeaf(prediction, supp_labels)
     end
 end
 
-supp_labels(leaf::DTLeaf) = leaf.supp_labels
+function supp_labels(leaf::DTLeaf; train_or_valid = true)
+    @assert train_or_valid == true
+    leaf.supp_labels
+end
+function predictions(leaf::DTLeaf; train_or_valid = true)
+    @assert train_or_valid == true
+    fill(leaf.prediction, length(supp_labels(leaf; train_or_valid = train_or_valid)))
+end
 
 ################################################################################
 
-struct LabellingFunction{L<:Label}
-    f::FunctionWrapper{L,Tuple{N,Any} where N}
+struct PredictingFunction{L<:Label}
+    f::FunctionWrapper{Vector{L},Tuple{MultiFrameModalDataset}}
+
+    function PredictingFunction{L}(f::Function) where {L<:Label}
+        new{L}(FunctionWrapper{Vector{L},Tuple{MultiFrameModalDataset}}(f))
+    end
 end
-(lf::LabellingFunction)(args...; kwargs...) = lf.f(args...; kwargs...)
+(pf::PredictingFunction)(args...; kwargs...) = pf.f(args...; kwargs...)
 
 
 # const ModalInstance = Union{AbstractArray,Any}
 # const LFun{L} = FunctionWrapper{L,Tuple{ModalInstance}}
 # TODO maybe join DTLeaf and NSDTLeaf Union{L,LFun{L}}
-# Decision leaf node, holding an output labelling function
+# Decision leaf node, holding an output predicting function
 struct NSDTLeaf{L<:Label} <: AbstractDecisionLeaf{L}
-    # output labelling function
-    labelling_function         :: LabellingFunction{L}
+    # predicting function
+    predicting_function         :: PredictingFunction{L}
     
-    # supporting (e.g., training) instances labels
-    # supp_labels   :: Vector{Vector{L}}
+    # supporting labels
+    supp_train_labels        :: Vector{L}
+    supp_valid_labels        :: Vector{L}
+
+    # supporting predictions
+    supp_train_predictions   :: Vector{L}
+    supp_valid_predictions   :: Vector{L}
 
     # create leaf
-    # NSDTLeaf{L}(labelling_function, supp_labels::AbstractVector) where {L<:Label} = new{L}(labelling_function, supp_labels)
-    # NSDTLeaf(labelling_function::LabellingFunction{L}, supp_labels::AbstractVector) where {L<:Label} = NSDTLeaf{L}(labelling_function, supp_labels)
+    # NSDTLeaf{L}(predicting_function, supp_labels::AbstractVector) where {L<:Label} = new{L}(predicting_function, supp_labels)
+    # NSDTLeaf(predicting_function::PredictingFunction{L}, supp_labels::AbstractVector) where {L<:Label} = NSDTLeaf{L}(predicting_function, supp_labels)
 
     # create leaf without supporting labels
-    NSDTLeaf{L}(labelling_function::Function) where {L<:Label} = new{L}(LabellingFunction{L}(labelling_function)) # , L[])
+    function NSDTLeaf{L}(
+        predicting_function      :: PredictingFunction{L},
+        supp_train_labels        :: Vector{L},
+        supp_valid_labels        :: Vector{L},
+        supp_train_predictions   :: Vector{L},
+        supp_valid_predictions   :: Vector{L},
+    ) where {L<:Label}
+        new{L}(
+            predicting_function,
+            supp_train_labels,
+            supp_valid_labels,
+            supp_train_predictions,
+            supp_valid_predictions,
+        )
+    end
+    function NSDTLeaf(
+        predicting_function      :: PredictingFunction{L},
+        supp_train_labels        :: Vector{L},
+        supp_valid_labels        :: Vector{L},
+        supp_train_predictions   :: Vector{L},
+        supp_valid_predictions   :: Vector{L},
+    ) where {L<:Label}
+        NSDTLeaf{L}(
+            predicting_function,
+            supp_train_labels,
+            supp_valid_labels,
+            supp_train_predictions,
+            supp_valid_predictions,
+        )
+    end
 
-    NSDTLeaf{L}(labelling_function::LabellingFunction{L}) where {L<:Label} = new{L}(labelling_function) # , L[])
-    NSDTLeaf(labelling_function::LabellingFunction{L}) where {L<:Label} = NSDTLeaf{L}(labelling_function) # , L[])
+    function NSDTLeaf{L}(predicting_function::Function, args...; kwargs...) where {L<:Label}
+        NSDTLeaf{L}(PredictingFunction{L}(predicting_function), args...; kwargs...)
+    end
+
     # create leaf from supporting labels
     # NSDTLeaf{L}(supp_labels::AbstractVector) where {L<:Label} = NSDTLeaf{L}(average_label(supp_labels), supp_labels)
     # function NSDTLeaf(supp_labels::AbstractVector)
-    #     labelling_function = average_label(supp_labels)
-    #     NSDTLeaf(labelling_function, supp_labels)
+    #     predicting_function = average_label(supp_labels)
+    #     NSDTLeaf(predicting_function, supp_labels)
     # end
 end
+
+supp_labels(leaf::NSDTLeaf; train_or_valid = true) = (train_or_valid ? leaf.supp_train_labels      : leaf.supp_valid_labels)
+predictions(leaf::NSDTLeaf; train_or_valid = true) = (train_or_valid ? leaf.supp_train_predictions : leaf.supp_valid_predictions)
 
 
 ################################################################################
@@ -325,21 +375,21 @@ struct DTInternal{T, L<:Label}
     end
 
     # create node without local decision
-    function DTInternal{T, L}(
-        i_frame          :: Int64,
-        decision         :: Decision,
-        left             :: Union{AbstractDecisionLeaf, DTInternal},
-        right            :: Union{AbstractDecisionLeaf, DTInternal}) where {T, L<:Label}
-        this = AbstractDecisionLeaf{L}(L[(supp_labels(left))..., (supp_labels(right))...])
-        new{T, L}(i_frame, decision, this, left, right)
-    end
-    function DTInternal(
-        i_frame          :: Int64,
-        decision         :: Decision{T},
-        left             :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}},
-        right            :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
-        DTInternal{T, L}(i_frame, decision, left, right)
-    end
+    # function DTInternal{T, L}(
+    #     i_frame          :: Int64,
+    #     decision         :: Decision,
+    #     left             :: Union{AbstractDecisionLeaf, DTInternal},
+    #     right            :: Union{AbstractDecisionLeaf, DTInternal}) where {T, L<:Label}
+    #     this = AbstractDecisionLeaf{L} (NOPE) (L[(supp_labels(left; supp_labels = supp_labels?))..., (supp_labels(right; supp_labels = supp_labels?))...])
+    #     new{T, L}(i_frame, decision, this, left, right)
+    # end
+    # function DTInternal(
+    #     i_frame          :: Int64,
+    #     decision         :: Decision{T},
+    #     left             :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}},
+    #     right            :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
+    #     DTInternal{T, L}(i_frame, decision, left, right)
+    # end
 
     # create node without frame
     # function DTInternal{T, L}(
@@ -358,28 +408,31 @@ struct DTInternal{T, L<:Label}
     #     DTInternal{T, L}(decision, this, left, right)
     # end
     
-    # create node without frame nor local decision
-    function DTInternal{T, L}(
-        decision         :: Decision,
-        left             :: Union{AbstractDecisionLeaf, DTInternal},
-        right            :: Union{AbstractDecisionLeaf, DTInternal}) where {T, L<:Label}
-        i_frame = 1
-        DTInternal{T, L}(i_frame, decision, left, right)
-    end
-    function DTInternal(
-        decision         :: Decision{T},
-        left             :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}},
-        right            :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
-        DTInternal{T, L}(decision, left, right)
-    end
+    # # create node without frame nor local decision
+    # function DTInternal{T, L}(
+    #     decision         :: Decision,
+    #     left             :: Union{AbstractDecisionLeaf, DTInternal},
+    #     right            :: Union{AbstractDecisionLeaf, DTInternal}) where {T, L<:Label}
+    #     i_frame = 1
+    #     DTInternal{T, L}(i_frame, decision, left, right)
+    # end
+    # function DTInternal(
+    #     decision         :: Decision{T},
+    #     left             :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}},
+    #     right            :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
+    #     DTInternal{T, L}(decision, left, right)
+    # end
 end
 
-supp_labels(node::DTInternal) = node.this.supp_labels
+function supp_labels(node::DTInternal; train_or_valid = true)
+    @assert train_or_valid == true
+    supp_labels(node.this; train_or_valid = train_or_valid)
+end
 
 ################################################################################
 
 # Decision Node (Leaf or Internal)
-const DTNode{T, L} = Union{DTLeaf{L}, DTInternal{T, L}}
+const DTNode{T, L} = Union{AbstractDecisionLeaf{L}, DTInternal{T, L}}
 
 ################################################################################
 
@@ -451,12 +504,12 @@ end
 ################################################################################
 
 # Number of leaves
-num_leaves(leaf::DTLeaf)     = 1
+num_leaves(leaf::AbstractDecisionLeaf)     = 1
 num_leaves(node::DTInternal) = num_leaves(node.left) + num_leaves(node.right)
 num_leaves(tree::DTree)      = num_leaves(tree.root)
 
 # Number of nodes
-num_nodes(leaf::DTLeaf)     = 1
+num_nodes(leaf::AbstractDecisionLeaf)     = 1
 num_nodes(node::DTInternal) = 1 + num_nodes(node.left) + num_nodes(node.right)
 num_nodes(tree::DTree)   = num_nodes(tree.root)
 num_nodes(f::DForest) = sum(num_nodes.(f.trees))
@@ -466,29 +519,29 @@ num_trees(f::DForest) = length(f.trees)
 length(f::DForest)    = num_trees(f)
 
 # Height
-height(leaf::DTLeaf)     = 0
+height(leaf::AbstractDecisionLeaf)     = 0
 height(node::DTInternal) = 1 + max(height(node.left), height(node.right))
 height(tree::DTree)      = height(tree.root)
 
 # Modal height
-modal_height(leaf::DTLeaf)     = 0
+modal_height(leaf::AbstractDecisionLeaf)     = 0
 modal_height(node::DTInternal) = Int(is_modal_node(node)) + max(modal_height(node.left), modal_height(node.right))
 modal_height(tree::DTree)      = modal_height(tree.root)
 
 # Number of supporting instances 
-n_samples(leaf::DTLeaf)     = length(leaf.supp_labels)
-n_samples(node::DTInternal) = n_samples(node.left) + n_samples(node.right)
-n_samples(tree::DTree)      = n_samples(tree.root)
+n_samples(leaf::AbstractDecisionLeaf; train_or_valid = true) = length(supp_labels(leaf; train_or_valid = train_or_valid))
+n_samples(node::DTInternal;           train_or_valid = true) = n_samples(node.left; train_or_valid = train_or_valid) + n_samples(node.right; train_or_valid = train_or_valid)
+n_samples(tree::DTree;                train_or_valid = true) = n_samples(tree.root; train_or_valid = train_or_valid)
 
 # TODO remove deprecated use num_leaves
-length(leaf::DTLeaf)     = num_leaves(leaf)    
+length(leaf::AbstractDecisionLeaf)     = num_leaves(leaf)    
 length(node::DTInternal) = num_leaves(node)
 length(tree::DTree)      = num_leaves(tree)        
 
 ################################################################################
 ################################################################################
 
-is_leaf_node(leaf::DTLeaf)     = true
+is_leaf_node(leaf::AbstractDecisionLeaf)     = true
 is_leaf_node(node::DTInternal) = false
 is_leaf_node(tree::DTree)      = is_leaf_node(tree.root)
 
@@ -508,25 +561,50 @@ display_decision_neg(node::DTInternal; threshold_display_method::Function = x ->
 
 function Base.show(io::IO, leaf::DTLeaf{L}) where {L<:CLabel}
     println(io, "Classification Decision Leaf{$(L)}(")
-    println(io, "\tlabel: $(leaf.label)")
-    println(io, "\tsupporting labels:  $(leaf.supp_labels)")
+    println(io, "\tlabel: $(leaf.prediction)")
+    println(io, "\tsupporting labels:  $(supp_labels(leaf))")
+    println(io, "\tsupporting labels countmap:  $(StatsBase.countmap(supp_labels(leaf)))")
     println(io, "\tmetrics: $(get_metrics(leaf))")
     println(io, ")")
 end
 function Base.show(io::IO, leaf::DTLeaf{L}) where {L<:RLabel}
     println(io, "Regression Decision Leaf{$(L)}(")
-    println(io, "\tlabel: $(leaf.label)")
-    println(io, "\tsupporting labels:  $(leaf.supp_labels)")
-    println(io, "\tsupporting labels countmap:  $(StatsBase.countmap(leaf.supp_labels))")
+    println(io, "\tlabel: $(leaf.prediction)")
+    println(io, "\tsupporting labels:  $(supp_labels(leaf))")
     println(io, "\tmetrics: $(get_metrics(leaf))")
+    println(io, ")")
+end
+
+function Base.show(io::IO, leaf::NSDTLeaf{L}) where {L<:CLabel}
+    println(io, "Classification Functional Decision Leaf{$(L)}(")
+    println(io, "\tpredicting_function: $(leaf.predicting_function)")
+    println(io, "\tsupporting labels (train):  $(leaf.supp_train_labels)")
+    println(io, "\tsupporting labels (valid):  $(leaf.supp_valid_labels)")
+    println(io, "\tsupporting predictions (train):  $(leaf.supp_train_predictions)")
+    println(io, "\tsupporting predictions (valid):  $(leaf.supp_valid_predictions)")
+    println(io, "\tsupporting labels countmap (train):  $(StatsBase.countmap(leaf.supp_train_labels))")
+    println(io, "\tsupporting labels countmap (valid):  $(StatsBase.countmap(leaf.supp_valid_labels))")
+    println(io, "\tsupporting predictions countmap (train):  $(StatsBase.countmap(leaf.supp_train_predictions))")
+    println(io, "\tsupporting predictions countmap (valid):  $(StatsBase.countmap(leaf.supp_valid_predictions))")
+    println(io, "\tmetrics (train): $(get_metrics(leaf; train_or_valid = true))")
+    println(io, "\tmetrics (valid): $(get_metrics(leaf; train_or_valid = false))")
+    println(io, ")")
+end
+function Base.show(io::IO, leaf::NSDTLeaf{L}) where {L<:RLabel}
+    println(io, "Regression Functional Decision Leaf{$(L)}(")
+    println(io, "\tpredicting_function: $(leaf.predicting_function)")
+    println(io, "\tsupporting labels (train):  $(leaf.supp_train_labels)")
+    println(io, "\tsupporting labels (valid):  $(leaf.supp_valid_labels)")
+    println(io, "\tsupporting predictions (train):  $(leaf.supp_train_predictions)")
+    println(io, "\tsupporting predictions (valid):  $(leaf.supp_valid_predictions)")
+    println(io, "\tmetrics (train): $(get_metrics(leaf; train_or_valid = true))")
+    println(io, "\tmetrics (valid): $(get_metrics(leaf; train_or_valid = false))")
     println(io, ")")
 end
 
 function Base.show(io::IO, node::DTInternal{T,L}) where {T,L}
     println(io, "Decision Node{$(T),$(L)}(")
-    println(io, "\tlabel: $(node.this.label)")
-    println(io, "\tsupporting labels:  $(node.this.supp_labels)")
-    println(io, "\tmetrics: $(get_metrics(node.this))")
+    Base.show(io, node.this)
     println(io, "\t###########################################################")
     println(io, "\ti_frame: $(node.i_frame)")
     print(io, "\tdecision: $(node.decision)")
@@ -594,7 +672,7 @@ include("decisionpath.jl")
 
 # https://stackoverflow.com/questions/66801702/deriving-equality-for-julia-structs-with-mutable-members
 import Base.==
-function ==(a::S, b::S) where {S<:DTLeaf}
+function ==(a::S, b::S) where {S<:AbstractDecisionLeaf}
     for name in fieldnames(S)
         if getfield(a, name) != getfield(b, name)
             return false
@@ -628,7 +706,7 @@ end
         @test_nowarn DTLeaf{String}("1.0", ["0.5", "1.5"])
 
         # Inferring the label from supporting labels
-        @test DTLeaf{String}(["Class_1", "Class_1", "Class_2"]).label == "Class_1"
+        @test DTLeaf{String}(["Class_1", "Class_1", "Class_2"]).prediction == "Class_1"
         
         @test_nowarn DTLeaf(["1.5"])
         @test_throws MethodError DTLeaf([1.0,"Class_1"])
@@ -638,16 +716,18 @@ end
         @test_nowarn DTLeaf{Int64}(1, 1.0:10.0)
         @test_nowarn DTLeaf{Float32}(1, 1:10)
 
-        @test DTLeaf(1:10).label == 5.5
+        @test DTLeaf(1:10).prediction == 5.5
         @test_throws InexactError DTLeaf{Int64}(1:10)
-        @test DTLeaf{Float32}(1:10).label == 5.5f0
-        @test DTLeaf{Int64}(1:11).label == 6
+        @test DTLeaf{Float32}(1:10).prediction == 5.5f0
+        @test DTLeaf{Int64}(1:11).prediction == 6
 
         # Check edge parity case (aggregation biased towards the first class)
-        @test DTLeaf{String}(["Class_1", "Class_2"]).label == "Class_1"
-        @test DTLeaf(["Class_1", "Class_2"]).label == "Class_1"
+        @test DTLeaf{String}(["Class_1", "Class_2"]).prediction == "Class_1"
+        @test DTLeaf(["Class_1", "Class_2"]).prediction == "Class_1"
 
     end
+
+    # TODO test NSDT Leaves
 
     @testset "Decision internal node (DTInternal)" begin
 

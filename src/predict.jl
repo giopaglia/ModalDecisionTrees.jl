@@ -1,10 +1,36 @@
-export apply_tree, apply_forest, apply_trees, apply_model, print_apply_model, print_apply_tree, tree_walk_metrics
+export apply_tree, apply_forest, apply_trees, apply_model, print_apply, tree_walk_metrics
 
 
-apply_model(tree::DTree,    args...; kwargs...) = apply_tree(tree,     args...; kwargs...)
+apply_model(tree::DTree,     args...; kwargs...) = apply_tree(tree,     args...; kwargs...)
 apply_model(forest::DForest, args...; kwargs...) = apply_forest(forest, args...; kwargs...)
 
-print_apply_model(tree::DTree, args...; kwargs...) = print_apply_tree(tree, args...; kwargs...)
+print_apply(tree::DTree,     args...; kwargs...) = print_apply(tree,    args...; kwargs...)
+# print_apply(forest::DForest, args...; kwargs...) = print_apply_forest(forest, args...; kwargs...)
+
+# Apply a tree to a dimensional dataset
+function apply_tree(tree::DTree, X::GenericDataset; kwargs...)
+    predict(tree, X; kwargs...)
+end
+
+function apply_tree(tree::DTree, X::GenericDataset, Y::Vector; kwargs...)
+    predict(tree, X, Y; kwargs...)
+end
+
+# TODO discriminate kwargs
+function print_apply(tree::DTree, X::GenericDataset, Y::Vector; kwargs...)
+    predictions, new_tree = apply_tree(tree, X, Y)
+    print_tree(new_tree; kwargs...)
+    predictions, new_tree
+end
+
+function apply_trees(trees::AbstractVector{DTree}, X::GenericDataset; kwargs...)
+    predict(trees, X; kwargs...)
+end
+
+function apply_forest(forest::DForest, X::GenericDataset; kwargs...)
+    predict(forest, X; kwargs...)
+end
+
 
 
 ################################################################################
@@ -14,12 +40,12 @@ print_apply_model(tree::DTree, args...; kwargs...) = print_apply_tree(tree, args
 # TODO avoid these fallbacks?
 inst_init_world_sets(X::SingleFrameGenericDataset, tree::DTree, i_instance::Integer) = 
     inst_init_world_sets(MultiFrameModalDataset(X), tree, i_instance)
-print_apply_tree(tree::DTree{L}, X::SingleFrameGenericDataset, Y::Vector{L}; kwargs...) where {L} = 
-    print_apply_tree(tree, MultiFrameModalDataset(X), Y; kwargs...)
+apply_tree(tree::DTree{L}, X::SingleFrameGenericDataset, Y::Vector{L}; kwargs...) where {L} = 
+    apply_tree(tree, MultiFrameModalDataset(X), Y; kwargs...)
 # TODO fix
-# print_apply_tree(tree::DTree{S}, X::MatricialDataset{T,D}, Y::Vector{S}; kwargs...) where {T,D,S} = begin
+# apply_tree(tree::DTree{S}, X::MatricialDataset{T,D}, Y::Vector{S}; kwargs...) where {T,D,S} = begin
 #     ontology = getIntervalOntologyOfDim(Val(D-1-1))
-#     print_apply_tree(tree, MultiFrameModalDataset(OntologicalDataset{T, D-1-1, world_type(ontology)}(X)), Y; kwargs...)
+#     apply_tree(tree, MultiFrameModalDataset(OntologicalDataset{T, D-1-1, world_type(ontology)}(X)), Y; kwargs...)
 # end
 
 inst_init_world_sets(Xs::MultiFrameModalDataset, tree::DTree, i_instance::Integer) = begin
@@ -41,9 +67,16 @@ init_world_sets(Xs::MultiFrameModalDataset, initConditions::AbstractVector{<:_in
     Ss
 end
 
-apply_tree(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}) = leaf.label
+function predict(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
+    leaf.prediction
+end
 
-function apply_tree(tree::DTInternal, X::MultiFrameModalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
+function predict(leaf::NSDTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
+    d = ModalLogic.slice_dataset(X, [i_instance])
+    leaf.predicting_function(d)[1]
+end
+
+function predict(tree::DTInternal, X::MultiFrameModalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
     @logmsg DTDetail "applying branch..."
     @logmsg DTDetail " worlds" worlds
     (satisfied,new_worlds) =
@@ -56,12 +89,12 @@ function apply_tree(tree::DTInternal, X::MultiFrameModalDataset, i_instance::Int
 
     worlds[tree.i_frame] = new_worlds
     @logmsg DTDetail " ->(satisfied,worlds')" satisfied worlds
-    apply_tree((satisfied ? tree.left : tree.right), X, i_instance, worlds)
+    predict((satisfied ? tree.left : tree.right), X, i_instance, worlds)
 end
 
-# Apply tree with initialConditions to a dimensional dataset in matricial form
-function apply_tree(tree::DTree{L}, X::GenericDataset) where {L}
-    @logmsg DTDetail "apply_tree..."
+# Obtain predictions of a tree on a dataset
+function predict(tree::DTree{L}, X::GenericDataset) where {L}
+    @logmsg DTDetail "predict..."
     n_instances = n_samples(X)
     predictions = Vector{L}(undef, n_instances)
     
@@ -71,7 +104,7 @@ function apply_tree(tree::DTree{L}, X::GenericDataset) where {L}
 
         worlds = inst_init_world_sets(X, tree, i_instance)
 
-        predictions[i_instance] = apply_tree(tree.root, X, i_instance, worlds)
+        predictions[i_instance] = predict(tree.root, X, i_instance, worlds)
     end
     predictions
     # return (if L <: Float64 # TODO remove
@@ -82,18 +115,18 @@ function apply_tree(tree::DTree{L}, X::GenericDataset) where {L}
 end
 
 # Apply tree to a dimensional dataset in matricial form
-# function apply_tree(tree::DTNode, d::MatricialDataset{T,D}) where {T, D}
-#   apply_tree(DTree(tree, [world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2)))], [startWithRelationGlob]), d)
+# function predict(tree::DTNode, d::MatricialDataset{T,D}) where {T, D}
+#   predict(DTree(tree, [world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2)))], [startWithRelationGlob]), d)
 # end
 
 # use an array of trees to test features
-function apply_trees(
+function predict(
         trees::AbstractVector{DTree{L}},
         X::GenericDataset;
         suppress_parity_warning = false,
         tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
     ) where {L, Z<:Real}
-    @logmsg DTDetail "apply_trees..."
+    @logmsg DTDetail "predict..."
     n_trees = length(trees)
     n_instances = n_samples(X)
 
@@ -104,7 +137,7 @@ function apply_trees(
     # apply each tree to the whole dataset
     _predictions = Matrix{L}(undef, n_trees, n_instances)
     Threads.@threads for i_tree in 1:n_trees
-        _predictions[i_tree,:] = apply_tree(trees[i_tree], X)
+        _predictions[i_tree,:] = predict(trees[i_tree], X)
     end
 
     # for each instance, aggregate the predictions
@@ -113,18 +146,18 @@ function apply_trees(
         predictions[i] = majority_vote(_predictions[:,i], tree_weights; suppress_parity_warning = suppress_parity_warning)
     end
 
-    return predictions
+    predictions
 end
 
 # use a proper forest to test features
-function apply_forest(forest::DForest, X::GenericDataset; weight_trees_by::Union{Bool,Symbol,AbstractVector} = false)
+function predict(forest::DForest, X::GenericDataset; weight_trees_by::Union{Bool,Symbol,AbstractVector} = false)
     if weight_trees_by == false
-        apply_trees(forest.trees, X)
+        predict(forest.trees, X)
     elseif isa(weight_trees_by, AbstractVector)
-        apply_trees(forest.trees, X; tree_weights = weight_trees_by)
+        predict(forest.trees, X; tree_weights = weight_trees_by)
     # elseif weight_trees_by == :accuracy
     #   # TODO: choose HOW to weight a tree... overall_accuracy is just an example (maybe can be parameterized)
-    #   apply_trees(forest.trees, X; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
+    #   predict(forest.trees, X; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
     else
         @error "Unexpected value for weight_trees_by: $(weight_trees_by)"
     end
@@ -135,7 +168,11 @@ end
 ################################################################################
 
 function _empty_tree_leaves(leaf::DTLeaf{L}) where {L}
-        DTLeaf(leaf.label, L[])
+    DTLeaf{L}(leaf.prediction, L[])
+end
+
+function _empty_tree_leaves(leaf::NSDTLeaf{L}) where {L}
+    NSDTLeaf{L}(leaf.predicting_function, L[], leaf.supp_valid_labels, L[], leaf.supp_valid_predictions)
 end
 
 function _empty_tree_leaves(node::DTInternal{T, L}) where {T, L}
@@ -157,61 +194,48 @@ function _empty_tree_leaves(tree::DTree)
 end
 
 
-function print_apply_tree(
-        leaf::DTLeaf{<:Float64},
-        X::Any,
-        i_instance::Integer,
-        worlds::AbstractVector{<:AbstractWorldSet},
-        class::L;
-        update_labels = false
-    ) where {L}
-    vals = [leaf.supp_labels..., class]
-
-    label = 
-    if update_labels
-        StatsBase.mean(leaf.supp_labels)
-    else
-        leaf.label
-    end
-
-    return DTLeaf(label, vals)
-end
-
-function print_apply_tree(
+function predict(
         leaf::DTLeaf{L},
         X::Any,
         i_instance::Integer,
         worlds::AbstractVector{<:AbstractWorldSet},
         class::L;
-        update_labels = false
-    ) where {L}
-    vals = L[ leaf.supp_labels..., class ] # Note: this works when leaves are reset
+        update_labels = false,
+    ) where {L<:Label}
+    _supp_labels = L[leaf.supp_labels..., class]
 
-    label = 
-    if update_labels
-
-        # TODO optimize this code
-        occur = Dict{L,Int}(v => 0 for v in unique(vals))
-        for v in vals
-            occur[v] += 1
+    _prediction = 
+        if update_labels
+            average_label(leaf.supp_labels)
+        else
+            leaf.prediction
         end
-        cur_maj = vals[1]
-        cur_max = occur[vals[1]]
-        for v in vals
-            if occur[v] > cur_max
-                cur_max = occur[v]
-                cur_maj = v
-            end
-        end
-        cur_maj
-    else
-        leaf.label
-    end
 
-    return DTLeaf(label, vals)
+    _prediction, DTLeaf(_prediction, _supp_labels)
 end
 
-function print_apply_tree(
+function predict(
+        leaf::NSDTLeaf{L},
+        X::Any,
+        i_instance::Integer,
+        worlds::AbstractVector{<:AbstractWorldSet},
+        class::L;
+        update_labels = false,
+    ) where {L<:Label}
+    _supp_train_labels      = L[leaf.supp_train_labels...,      class]
+    _supp_train_predictions = L[leaf.supp_train_predictions..., predict(leaf, X, i_instance, worlds)]
+
+    _predicting_function = 
+        if update_labels
+            error("TODO expand code retrain")
+        else
+            leaf.predicting_function
+        end
+    d = ModalLogic.slice_dataset(X, [i_instance])
+    _predicting_function(d)[1], NSDTLeaf{L}(_predicting_function, _supp_train_labels, leaf.supp_valid_labels, _supp_train_predictions, leaf.supp_valid_predictions)
+end
+
+function predict(
     tree::DTInternal{T, L},
     X::MultiFrameModalDataset,
     i_instance::Integer,
@@ -228,144 +252,136 @@ function print_apply_tree(
 
     worlds[tree.i_frame] = new_worlds
 
-    DTInternal(
-        tree.i_frame,
-        tree.decision,
-        print_apply_tree(tree.this,  X, i_instance, worlds, class, update_labels = update_labels), # TODO test whether this works correctly
-        (  satisfied  ? print_apply_tree(tree.left,  X, i_instance, worlds, class, update_labels = update_labels) : tree.left),
-        ((!satisfied) ? print_apply_tree(tree.right, X, i_instance, worlds, class, update_labels = update_labels) : tree.right),
-    )
+    this_prediction, this_leaf = predict(tree.this,  X, i_instance, worlds, class, update_labels = update_labels) # TODO test whether this works correctly 
+    
+    prediction, left_leaf, right_leaf =
+        if satisfied
+            prediction, left_leaf = predict(tree.left,  X, i_instance, worlds, class, update_labels = update_labels)
+            prediction, left_leaf, tree.right
+        else
+            prediction, right_leaf = predict(tree.right, X, i_instance, worlds, class, update_labels = update_labels)
+            prediction, tree.left, right_leaf
+        end
+
+    prediction, DTInternal(tree.i_frame, tree.decision, this_leaf, left_leaf, right_leaf)
 end
 
-function print_apply_tree(
-    io::IO,
+function predict(
     tree::DTree{L},
     X::GenericDataset,
     Y::Vector{L};
     reset_leaves = true,
     update_labels = false,
-    do_print = true,
-    print_relative_confidence = false,
 ) where {L}
+
     # Reset 
     tree = (reset_leaves ? _empty_tree_leaves(tree) : tree)
 
+    predictions = L[]
+    root = tree.root
+
     # Propagate instances down the tree
     for i_instance in 1:n_samples(X)
-
         worlds = inst_init_world_sets(X, tree, i_instance)
-
-        tree = DTree(
-            print_apply_tree(tree.root, X, i_instance, worlds, Y[i_instance], update_labels = update_labels),
-            tree.worldTypes,
-            tree.initConditions,
-        )
+        prediction, root = predict(root, X, i_instance, worlds, Y[i_instance], update_labels = update_labels)
+        push!(predictions, prediction)
     end
-    if do_print
-        if print_relative_confidence && L<:CLabel
-            print_tree(io, tree; rel_confidence_class_counts = countmap(Y))
-        else
-            print_tree(io, tree)
-        end
-        # print(tree)
-    end
-    return tree
+    predictions, DTree(root, tree.worldTypes, tree.initConditions)
 end
-print_apply_tree(tree::DTree{L}, X::GenericDataset, Y::Vector{L}; kwargs...) where {L} = print_apply_tree(stdout, tree, X, Y; kwargs...)
 
-# function print_apply_tree(tree::DTNode{T, L}, X::MatricialDataset{T,D}, Y::Vector{L}; reset_leaves = true, update_labels = false) where {L, T, D}
-#   return print_apply_tree(DTree(tree, [world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2)))], [startWithRelationGlob]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
+# function predict(tree::DTNode{T, L}, X::MatricialDataset{T,D}, Y::Vector{L}; reset_leaves = true, update_labels = false) where {L, T, D}
+#   return predict(DTree(tree, [world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2)))], [startWithRelationGlob]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
 # end
 
 
-function tree_walk_metrics(leaf::DTLeaf; n_tot_inst = nothing, best_rule_params = [])
-    if isnothing(n_tot_inst)
-        n_tot_inst = n_samples(leaf)
-    end
+# function tree_walk_metrics(leaf::DTLeaf; n_tot_inst = nothing, best_rule_params = [])
+#     if isnothing(n_tot_inst)
+#         n_tot_inst = n_samples(leaf)
+#     end
     
-    matches = findall(leaf.supp_labels .== leaf.label)
+#     matches = findall(leaf.supp_labels .== predictions(leaf))
 
-    n_correct = length(matches)
-    n_inst = length(leaf.supp_labels)
+#     n_correct = length(matches)
+#     n_inst = length(leaf.supp_labels)
 
-    metrics = Dict()
-    confidence = n_correct/n_inst
+#     metrics = Dict()
+#     confidence = n_correct/n_inst
     
-    metrics["n_instances"] = n_inst
-    metrics["n_correct"] = n_correct
-    metrics["avg_confidence"] = confidence
-    metrics["best_confidence"] = confidence
+#     metrics["n_instances"] = n_inst
+#     metrics["n_correct"] = n_correct
+#     metrics["avg_confidence"] = confidence
+#     metrics["best_confidence"] = confidence
     
-    if !isnothing(n_tot_inst)
-        support = n_inst/n_tot_inst
-        metrics["avg_support"] = support
-        metrics["support"] = support
-        metrics["best_support"] = support
+#     if !isnothing(n_tot_inst)
+#         support = n_inst/n_tot_inst
+#         metrics["avg_support"] = support
+#         metrics["support"] = support
+#         metrics["best_support"] = support
 
-        for best_rule_p in best_rule_params
-            if (haskey(best_rule_p, :min_confidence) && best_rule_p.min_confidence > metrics["best_confidence"]) ||
-                (haskey(best_rule_p, :min_support) && best_rule_p.min_support > metrics["best_support"])
-                metrics["best_rule_t=$(best_rule_p)"] = -Inf
-            else
-                metrics["best_rule_t=$(best_rule_p)"] = metrics["best_confidence"] * best_rule_p.t + metrics["best_support"] * (1-best_rule_p.t)
-            end
-        end
-    end
+#         for best_rule_p in best_rule_params
+#             if (haskey(best_rule_p, :min_confidence) && best_rule_p.min_confidence > metrics["best_confidence"]) ||
+#                 (haskey(best_rule_p, :min_support) && best_rule_p.min_support > metrics["best_support"])
+#                 metrics["best_rule_t=$(best_rule_p)"] = -Inf
+#             else
+#                 metrics["best_rule_t=$(best_rule_p)"] = metrics["best_confidence"] * best_rule_p.t + metrics["best_support"] * (1-best_rule_p.t)
+#             end
+#         end
+#     end
 
 
-    metrics
-end
+#     metrics
+# end
 
-function tree_walk_metrics(tree::DTInternal; n_tot_inst = nothing, best_rule_params = [])
-    if isnothing(n_tot_inst)
-        n_tot_inst = n_samples(tree)
-    end
-    # TODO visit also tree.this
-    metrics_l = tree_walk_metrics(tree.left;  n_tot_inst = n_tot_inst, best_rule_params = best_rule_params)
-    metrics_r = tree_walk_metrics(tree.right; n_tot_inst = n_tot_inst, best_rule_params = best_rule_params)
+# function tree_walk_metrics(tree::DTInternal; n_tot_inst = nothing, best_rule_params = [])
+#     if isnothing(n_tot_inst)
+#         n_tot_inst = n_samples(tree)
+#     end
+#     # TODO visit also tree.this
+#     metrics_l = tree_walk_metrics(tree.left;  n_tot_inst = n_tot_inst, best_rule_params = best_rule_params)
+#     metrics_r = tree_walk_metrics(tree.right; n_tot_inst = n_tot_inst, best_rule_params = best_rule_params)
 
-    metrics = Dict()
+#     metrics = Dict()
 
-    # Number of instances passing through the node
-    metrics["n_instances"] =
-        metrics_l["n_instances"] + metrics_r["n_instances"]
+#     # Number of instances passing through the node
+#     metrics["n_instances"] =
+#         metrics_l["n_instances"] + metrics_r["n_instances"]
 
-    # Number of correct instances passing through the node
-    metrics["n_correct"] =
-        metrics_l["n_correct"] + metrics_r["n_correct"]
+#     # Number of correct instances passing through the node
+#     metrics["n_correct"] =
+#         metrics_l["n_correct"] + metrics_r["n_correct"]
     
-    # Average confidence of the subtree
-    metrics["avg_confidence"] =
-        (metrics_l["n_instances"] * metrics_l["avg_confidence"] +
-        metrics_r["n_instances"] * metrics_r["avg_confidence"]) /
-            (metrics_l["n_instances"] + metrics_r["n_instances"])
+#     # Average confidence of the subtree
+#     metrics["avg_confidence"] =
+#         (metrics_l["n_instances"] * metrics_l["avg_confidence"] +
+#         metrics_r["n_instances"] * metrics_r["avg_confidence"]) /
+#             (metrics_l["n_instances"] + metrics_r["n_instances"])
     
-    # Average support of the subtree (Note to self: weird...?)
-    metrics["avg_support"] =
-        (metrics_l["n_instances"] * metrics_l["avg_support"] +
-        metrics_r["n_instances"] * metrics_r["avg_support"]) /
-            (metrics_l["n_instances"] + metrics_r["n_instances"])
+#     # Average support of the subtree (Note to self: weird...?)
+#     metrics["avg_support"] =
+#         (metrics_l["n_instances"] * metrics_l["avg_support"] +
+#         metrics_r["n_instances"] * metrics_r["avg_support"]) /
+#             (metrics_l["n_instances"] + metrics_r["n_instances"])
     
-    # Best confidence of the best-confidence path passing through the node
-    metrics["best_confidence"] = max(metrics_l["best_confidence"], metrics_r["best_confidence"])
+#     # Best confidence of the best-confidence path passing through the node
+#     metrics["best_confidence"] = max(metrics_l["best_confidence"], metrics_r["best_confidence"])
     
-    # Support of the current node
-    if !isnothing(n_tot_inst)
-        metrics["support"] = (metrics_l["n_instances"] + metrics_r["n_instances"])/n_tot_inst
+#     # Support of the current node
+#     if !isnothing(n_tot_inst)
+#         metrics["support"] = (metrics_l["n_instances"] + metrics_r["n_instances"])/n_tot_inst
     
-        # Best support of the best-support path passing through the node
-        metrics["best_support"] = max(metrics_l["best_support"], metrics_r["best_support"])
+#         # Best support of the best-support path passing through the node
+#         metrics["best_support"] = max(metrics_l["best_support"], metrics_r["best_support"])
         
-        # Best rule (confidence and support) passing through the node
-        for best_rule_p in best_rule_params
-            metrics["best_rule_t=$(best_rule_p)"] = max(metrics_l["best_rule_t=$(best_rule_p)"], metrics_r["best_rule_t=$(best_rule_p)"])
-        end
-    end
+#         # Best rule (confidence and support) passing through the node
+#         for best_rule_p in best_rule_params
+#             metrics["best_rule_t=$(best_rule_p)"] = max(metrics_l["best_rule_t=$(best_rule_p)"], metrics_r["best_rule_t=$(best_rule_p)"])
+#         end
+#     end
 
-    metrics
-end
+#     metrics
+# end
 
-tree_walk_metrics(tree::DTree; kwargs...) = tree_walk_metrics(tree.root; kwargs...)
+# tree_walk_metrics(tree::DTree; kwargs...) = tree_walk_metrics(tree.root; kwargs...)
 
 
 #=

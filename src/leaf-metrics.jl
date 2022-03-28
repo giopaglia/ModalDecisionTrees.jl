@@ -1,16 +1,19 @@
 
 function get_metrics(
-        leaf::DTLeaf{<:CLabel};
+        leaf::AbstractDecisionLeaf{<:CLabel};
         n_tot_inst = nothing,
         rel_confidence_class_counts = nothing,
+        train_or_valid = true,
     )
     metrics = (;)
 
+    supporting_labels = supp_labels(leaf; train_or_valid = train_or_valid)
+    supporting_predictions = predictions(leaf; train_or_valid = train_or_valid)
+
     ############################################################################
     # Confidence, # of supporting labels, # of correctly classified instances
-    
-    n_inst = length(leaf.supp_labels)
-    n_correct = sum(leaf.supp_labels .== leaf.label)
+    n_inst = length(supporting_labels)
+    n_correct = sum(supporting_labels .== supporting_predictions)
     confidence = n_correct/n_inst
     
     metrics = merge(metrics, (
@@ -38,7 +41,7 @@ function get_metrics(
 
     if !isnothing(rel_confidence_class_counts)
         cur_class_counts = begin
-            cur_class_counts = countmap(leaf.supp_labels)
+            cur_class_counts = countmap(supporting_labels)
             for class in keys(rel_confidence_class_counts)
                 if !haskey(cur_class_counts, class)
                     cur_class_counts[class] = 0
@@ -50,8 +53,10 @@ function get_metrics(
         rel_tot_inst = sum([cur_class_counts[class]/rel_confidence_class_counts[class] for class in keys(rel_confidence_class_counts)])
 
         # TODO can't remember the rationale behind this?
-        # "rel_conf: $(n_correct/rel_confidence_class_counts[leaf.label])"
-        # rel_conf = (cur_class_counts[leaf.label]/get(rel_confidence_class_counts, leaf.label, 0))/rel_tot_inst
+        # if isa(leaf, DTLeaf)
+        # "rel_conf: $(n_correct/rel_confidence_class_counts[leaf.prediction])"
+        # rel_conf = (cur_class_counts[leaf.prediction]/get(rel_confidence_class_counts, leaf.prediction, 0))/rel_tot_inst
+        # end
 
         metrics = merge(metrics, (
             cur_class_counts = cur_class_counts,
@@ -59,8 +64,8 @@ function get_metrics(
             rel_conf = rel_conf,
         ))
 
-        if !isnothing(n_tot_inst)
-            class_support = get(rel_confidence_class_counts, leaf.label, 0)/n_tot_inst
+        if !isnothing(n_tot_inst) && isa(leaf, DTLeaf)
+            class_support = get(rel_confidence_class_counts, leaf.prediction, 0)/n_tot_inst
             lift = confidence/class_support
             metrics = merge(metrics, (
                 class_support = class_support,
@@ -92,8 +97,8 @@ function get_metrics(
     ############################################################################
     # Sensitivity share: the portion of "responsibility" for the correct classification of class L
 
-    if !isnothing(rel_confidence_class_counts)
-        sensitivity_share = n_correct/get(rel_confidence_class_counts, leaf.label, 0)
+    if !isnothing(rel_confidence_class_counts) && isa(leaf, DTLeaf)
+        sensitivity_share = n_correct/get(rel_confidence_class_counts, leaf.prediction, 0)
         metrics = merge(metrics, (
             sensitivity_share = sensitivity_share,
         ))
@@ -103,19 +108,22 @@ function get_metrics(
 end
 
 function get_metrics(
-        leaf::DTLeaf{<:RLabel};
+        leaf::AbstractDecisionLeaf{<:RLabel};
         n_tot_inst = nothing,
         rel_confidence_class_counts = nothing,
     )
     @assert isnothing(rel_confidence_class_counts)
 
     metrics = (;)
-
-    n_inst = length(leaf.supp_labels)
     
-    mae = sum(abs.(leaf.supp_labels .- leaf.label)) / n_inst
-    rmse = StatsBase.rmsd(leaf.supp_labels, fill(leaf.label,length(leaf.supp_labels)))
-    var = StatsBase.var(leaf.supp_labels)
+    supporting_labels = supp_labels(leaf; train_or_valid = train_or_valid)
+    supporting_predictions = predictions(leaf; train_or_valid = train_or_valid)
+
+    n_inst = length(supporting_labels)
+    
+    mae = sum(abs.(supporting_labels .- supporting_predictions)) / n_inst
+    rmse = StatsBase.rmsd(supporting_labels, supporting_predictions)
+    var = StatsBase.var(supporting_labels)
     
     metrics = merge(metrics, (
         n_inst = n_inst,
