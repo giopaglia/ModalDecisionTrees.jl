@@ -655,10 +655,10 @@ Base.@propagate_inbounds @inline function split_node!(
         for i_instance in 1:n_instances
             # TODO perform step with an OntologicalModalDataset
 
-            # instance = ModalLogic.getInstance(X, best_i_frame, idxs[i_instance + r_start])
+            # instance = ModalLogic.get_instance(X, best_i_frame, idxs[i_instance + r_start])
             X = get_frame(Xs, best_i_frame)
             Sf = Sfs[best_i_frame]
-            # instance = ModalLogic.getInstance(X, idxs[i_instance + r_start])
+            # instance = ModalLogic.get_instance(X, idxs[i_instance + r_start])
 
             # println(instance)
             # println(Sf[i_instance])
@@ -727,7 +727,7 @@ Base.@propagate_inbounds @inline function split_node!(
             end
             
             # for i in 1:n_instances
-                # errStr *= "$(ModalLogic.getChannel(Xs, idxs[i + r_start], best_decision.feature))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[best_i_frame][idxs[i + r_start]])\n";
+                # errStr *= "$(ModalLogic.get_channel(Xs, idxs[i + r_start], best_decision.feature))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[best_i_frame][idxs[i + r_start]])\n";
             # end
 
             # throw_n_log("ERROR! " * errStr)

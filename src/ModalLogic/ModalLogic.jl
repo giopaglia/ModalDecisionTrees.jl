@@ -308,7 +308,7 @@ n_samples(d::MatricialDataset{T,D})    where {T,D} = size(d, D)::Int64
 n_attributes(d::MatricialDataset{T,D}) where {T,D} = size(d, D-1)
 channel_size(d::MatricialDataset{T,D}) where {T,D} = size(d)[1:end-2]
 # length(d::MatricialDataset{T,N})        where {T,N} = n_samples(d)
-# Base.iterate(d::MatricialDataset{T,D}, state=1) where {T, D} = state > length(d) ? nothing : (getInstance(d, state), state+1)
+# Base.iterate(d::MatricialDataset{T,D}, state=1) where {T, D} = state > length(d) ? nothing : (get_instance(d, state), state+1)
 max_channel_size = channel_size
 # TODO rename channel_size into max_channel_size and define channel_size for single instance
 # channel_size(d::MatricialDataset{T,2}, idx_i::Integer) where T = size(d[      1, idx_i])
@@ -318,9 +318,9 @@ max_channel_size = channel_size
 # channel_size(d::MatricialDataset{T,D}, idx_i::Integer) where {T,D} = size(d[idx_i])[1:end-2]
 inst_channel_size(inst::MatricialInstance{T,MN}) where {T,MN} = size(inst)[1:end-1]
 
-getInstance(d::MatricialDataset{T,2},     idx::Integer) where T = @views d[:, idx]         # N=0
-getInstance(d::MatricialDataset{T,3},     idx::Integer) where T = @views d[:, :, idx]      # N=1
-getInstance(d::MatricialDataset{T,4},     idx::Integer) where T = @views d[:, :, :, idx]   # N=2
+get_instance(d::MatricialDataset{T,2},     idx::Integer) where T = @views d[:, idx]         # N=0
+get_instance(d::MatricialDataset{T,3},     idx::Integer) where T = @views d[:, :, idx]      # N=1
+get_instance(d::MatricialDataset{T,4},     idx::Integer) where T = @views d[:, :, :, idx]   # N=2
 
 function slice_dataset(d::MatricialDataset{T,2}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where T # N=0
     @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
@@ -335,15 +335,15 @@ function slice_dataset(d::MatricialDataset{T,4}, inds::AbstractVector{<:Integer}
     if return_view @views d[:, :, :, inds] else d[:, :, :, inds] end
 end
 
-getChannel(d::MatricialDataset{T,2},      idx_i::Integer, idx_a::Integer) where T = @views d[      idx_a, idx_i]::T                     # N=0
-getChannel(d::MatricialDataset{T,3},      idx_i::Integer, idx_a::Integer) where T = @views d[:,    idx_a, idx_i]::MatricialChannel{T,1} # N=1
-getChannel(d::MatricialDataset{T,4},      idx_i::Integer, idx_a::Integer) where T = @views d[:, :, idx_a, idx_i]::MatricialChannel{T,2} # N=2
+get_channel(d::MatricialDataset{T,2},      idx_i::Integer, idx_a::Integer) where T = @views d[      idx_a, idx_i]::T                     # N=0
+get_channel(d::MatricialDataset{T,3},      idx_i::Integer, idx_a::Integer) where T = @views d[:,    idx_a, idx_i]::MatricialChannel{T,1} # N=1
+get_channel(d::MatricialDataset{T,4},      idx_i::Integer, idx_a::Integer) where T = @views d[:, :, idx_a, idx_i]::MatricialChannel{T,2} # N=2
 # getUniChannel(ud::MatricialUniDataset{T,1},  idx::Integer) where T = @views ud[idx]           # N=0
 # getUniChannel(ud::MatricialUniDataset{T,2},  idx::Integer) where T = @views ud[:, idx]        # N=1
 # getUniChannel(ud::MatricialUniDataset{T,3},  idx::Integer) where T = @views ud[:, :, idx]     # N=2
-getInstanceAttribute(inst::MatricialInstance{T,1},      idx::Integer) where T = @views inst[      idx]::T                     # N=0
-getInstanceAttribute(inst::MatricialInstance{T,2},      idx::Integer) where T = @views inst[:,    idx]::MatricialChannel{T,1} # N=1
-getInstanceAttribute(inst::MatricialInstance{T,3},      idx::Integer) where T = @views inst[:, :, idx]::MatricialChannel{T,2} # N=2
+get_instance_attribute(inst::MatricialInstance{T,1},      idx::Integer) where T = @views inst[      idx]::T                     # N=0
+get_instance_attribute(inst::MatricialInstance{T,2},      idx::Integer) where T = @views inst[:,    idx]::MatricialChannel{T,1} # N=1
+get_instance_attribute(inst::MatricialInstance{T,3},      idx::Integer) where T = @views inst[:, :, idx]::MatricialChannel{T,2} # N=2
 
 dataset_has_nonevalues(d::MatricialDataset) = nothing in d || NaN in d || any(ismissing.(d))
 
@@ -353,7 +353,7 @@ concat_datasets(d1::MatricialDataset{T,4}, d2::MatricialDataset{T,4}) where {T} 
 concat_datasets(d1::MatricialDataset{T,5}, d2::MatricialDataset{T,5}) where {T} = cat(d1, d2; dims=5)
 
 # TODO maybe using views can improve performances
-# @computed getChannel(X::OntologicalDataset{T,N}, idxs::AbstractVector{Integer}, attribute::Integer) where T = X[idxs, attribute, fill(:, N)...]::AbstractArray{T,N-1}
+# @computed get_channel(X::OntologicalDataset{T,N}, idxs::AbstractVector{Integer}, attribute::Integer) where T = X[idxs, attribute, fill(:, N)...]::AbstractArray{T,N-1}
 # attributeview(X::MatricialDataset{T,2}, idxs::AbstractVector{Integer}, attribute::Integer) = d[idxs, attribute]
 # attributeview(X::MatricialDataset{T,3}, idxs::AbstractVector{Integer}, attribute::Integer) = view(d, idxs, attribute, :)
 # attributeview(X::MatricialDataset{T,4}, idxs::AbstractVector{Integer}, attribute::Integer) = view(d, idxs, attribute, :, :)
@@ -369,7 +369,7 @@ concat_datasets(d1::MatricialDataset{T,5}, d2::MatricialDataset{T,5}) where {T} 
 # MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,4}) where T = Array{T, 3}(undef, size(d)[1:end-1])::MatricialUniDataset{T, 3}
 
 get_gamma(X::MatricialDataset, i_instance::Integer, w::AbstractWorld, feature::ModalFeature) =
-    yieldFunction(feature)(inst_readWorld(w, getInstance(X, i_instance)))
+    yieldFunction(feature)(inst_readWorld(w, get_instance(X, i_instance)))
 
 
 @computed struct OntologicalDataset{T<:Number, N, WorldType<:AbstractWorld} <: AbstractModalDataset{T, WorldType}
@@ -559,17 +559,17 @@ n_features(X::OntologicalDataset)             = length(X.features)
 # getindex(X::OntologicalDataset, args::Vararg) = getindex(X.domain[...], args...)
 
 initws_function(X::OntologicalDataset{T, N, WorldType},  i_instance) where {T, N, WorldType} =
-    (iC)->initWorldSet(iC, WorldType, inst_channel_size(getInstance(X, i_instance)))
-acc_function(X::OntologicalDataset, i_instance) = (w,R)->enumAccessibles(w,R, inst_channel_size(getInstance(X, i_instance))...)
+    (iC)->initWorldSet(iC, WorldType, inst_channel_size(get_instance(X, i_instance)))
+acc_function(X::OntologicalDataset, i_instance) = (w,R)->enumAccessibles(w,R, inst_channel_size(get_instance(X, i_instance))...)
 accAll_function(X::OntologicalDataset{T, N, WorldType}, i_instance) where {T, N, WorldType} = enumAll(WorldType, acc_function(X, i_instance))
-accrepr_function(X::OntologicalDataset, i_instance)  = (f,a,w,R)->enumAccReprAggr(f,a,w,R,inst_channel_size(getInstance(X, i_instance))...)
+accrepr_function(X::OntologicalDataset, i_instance)  = (f,a,w,R)->enumAccReprAggr(f,a,w,R,inst_channel_size(get_instance(X, i_instance))...)
 
 length(X::OntologicalDataset)                = n_samples(X)
-Base.iterate(X::OntologicalDataset, state=1) = state > length(X) ? nothing : (getInstance(X, state), state+1) # Base.iterate(X.domain, state=state)
+Base.iterate(X::OntologicalDataset, state=1) = state > length(X) ? nothing : (get_instance(X, state), state+1) # Base.iterate(X.domain, state=state)
 channel_size(X::OntologicalDataset)          = channel_size(X.domain)
 
-getInstance(X::OntologicalDataset, args::Vararg)     = getInstance(X.domain, args...)
-getChannel(X::OntologicalDataset,   args::Vararg)    = getChannel(X.domain, args...)
+get_instance(X::OntologicalDataset, args::Vararg)     = get_instance(X.domain, args...)
+get_channel(X::OntologicalDataset,   args::Vararg)    = get_channel(X.domain, args...)
 
 slice_dataset(X::OntologicalDataset, inds::AbstractVector{<:Integer}, args...; allow_no_instances = false, kwargs...)    =
     OntologicalDataset(slice_dataset(X.domain, inds, args...; allow_no_instances = allow_no_instances, kwargs...), X.ontology, X.features, X.grouped_featsaggrsnops; allow_no_instances = allow_no_instances)
@@ -692,7 +692,7 @@ n_samples(X::FeatModalDataset{T, WorldType}) where {T, WorldType}   = n_samples(
 n_features(X::FeatModalDataset{T, WorldType}) where {T, WorldType}  = length(X.features)
 n_relations(X::FeatModalDataset{T, WorldType}) where {T, WorldType} = length(X.relations)
 # length(X::FeatModalDataset{T,WorldType})        where {T,WorldType} = n_samples(X)
-# Base.iterate(X::FeatModalDataset{T,WorldType}, state=1) where {T, WorldType} = state > length(X) ? nothing : (getInstance(X, state), state+1)
+# Base.iterate(X::FeatModalDataset{T,WorldType}, state=1) where {T, WorldType} = state > length(X) ? nothing : (get_instance(X, state), state+1)
 getindex(X::FeatModalDataset{T,WorldType}, args::Vararg) where {T,WorldType} = getindex(X.fwd, args...)
 world_type(X::FeatModalDataset{T,WorldType}) where {T,WorldType<:AbstractWorld} = WorldType
 
@@ -1449,7 +1449,7 @@ n_frames(X::MultiFrameModalDataset)             = length(X.frames)
 n_samples(X::MultiFrameModalDataset)            = n_samples(X.frames[1])::Int64 # n_frames(X) > 0 ? n_samples(X.frames[1]) : 0
 length(X::MultiFrameModalDataset)               = n_samples(X)
 frames(X::MultiFrameModalDataset) = X.frames
-Base.iterate(X::MultiFrameModalDataset, state=1) = state > length(X) ? nothing : (getInstance(X, state), state+1)
+Base.iterate(X::MultiFrameModalDataset, state=1) = state > length(X) ? nothing : (get_instance(X, state), state+1)
 
 channel_size(X::MultiFrameModalDataset) = map(channel_size, X.frames)
 # get total number of features (TODO: figure if this is useless or not)
@@ -1462,11 +1462,11 @@ n_relations(X::MultiFrameModalDataset, i_frame::Integer) = n_relations(X.frames[
 world_type(X::MultiFrameModalDataset, i_frame::Integer) = world_type(X.frames[i_frame])
 world_types(X::MultiFrameModalDataset) = Vector{Type{<:AbstractWorld}}(world_type.(X.frames))
 
-getInstance(X::MultiFrameModalDataset,  i_frame::Integer, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i_frame], idx_i, args...)
+get_instance(X::MultiFrameModalDataset,  i_frame::Integer, idx_i::Integer, args::Vararg)  = get_instance(X.frames[i_frame], idx_i, args...)
 # slice_dataset(X::MultiFrameModalDataset, i_frame::Integer, inds::AbstractVector{<:Integer}, args::Vararg)  = slice_dataset(X.frames[i_frame], inds, args...; kwargs...)
-getChannel(X::MultiFrameModalDataset,   i_frame::Integer, idx_i::Integer, idx_f::Integer, args::Vararg)  = getChannel(X.frames[i_frame], idx_i, idx_f, args...)
+get_channel(X::MultiFrameModalDataset,   i_frame::Integer, idx_i::Integer, idx_f::Integer, args::Vararg)  = get_channel(X.frames[i_frame], idx_i, idx_f, args...)
 
-# getInstance(X::MultiFrameModalDataset, idx_i::Integer, args::Vararg)  = getInstance(X.frames[i], idx_i, args...) # TODO should slice across the frames!
+# get_instance(X::MultiFrameModalDataset, idx_i::Integer, args::Vararg)  = get_instance(X.frames[i], idx_i, args...) # TODO should slice across the frames!
 slice_dataset(X::MultiFrameModalDataset, inds::AbstractVector{<:Integer}, args...; kwargs...) =
     MultiFrameModalDataset(Vector{AbstractModalDataset}(map(frame->slice_dataset(frame, inds, args...; kwargs...), X.frames)))
 
@@ -1737,7 +1737,7 @@ test_decision(
         i_instance::Integer,
         w::AbstractWorld,
         decision::Decision{T}) where {T} = begin
-    instance = getInstance(X, i_instance)
+    instance = get_instance(X, i_instance)
 
     aggregator = existential_aggregator(decision.test_operator)
     
