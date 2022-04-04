@@ -35,8 +35,8 @@ struct AttributeMaximumFeatureType <: DimensionalFeature
     i_attribute::Integer
 end
 
-yieldFunction(f::AttributeMinimumFeatureType) = minimum ∘ (x)->ModalLogic.getInstanceAttribute(x,f.i_attribute)
-yieldFunction(f::AttributeMaximumFeatureType) = maximum ∘ (x)->ModalLogic.getInstanceAttribute(x,f.i_attribute)
+yieldFunction(f::AttributeMinimumFeatureType) = minimum ∘ (x)->ModalLogic.get_instance_attribute(x,f.i_attribute)
+yieldFunction(f::AttributeMaximumFeatureType) = maximum ∘ (x)->ModalLogic.get_instance_attribute(x,f.i_attribute)
 
 Base.show(io::IO, f::AttributeMinimumFeatureType) = print(io, "min(A$(f.i_attribute))")
 Base.show(io::IO, f::AttributeMaximumFeatureType) = print(io, "max(A$(f.i_attribute))")
@@ -73,17 +73,17 @@ end
 
 
 yieldFunction(f::AttributeSoftMinimumFeatureType) =
-    (x)->(vals = vec(ModalLogic.getInstanceAttribute(x,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals)); rev=true))
+    (x)->(vals = vec(ModalLogic.get_instance_attribute(x,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals)); rev=true))
 yieldFunction(f::AttributeSoftMaximumFeatureType) =
-    (x)->(vals = vec(ModalLogic.getInstanceAttribute(x,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals))))
+    (x)->(vals = vec(ModalLogic.get_instance_attribute(x,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals))))
 
 alpha(f::AttributeSoftMinimumFeatureType) = f.alpha
 alpha(f::AttributeSoftMaximumFeatureType) = f.alpha
 
 # TODO simplify OneWorld case!! Maybe features must dispatch on WorldType as well or on the type of underlying data!
 # For now, OneWorld falls into the generic case through this definition of vec()
-# yieldFunction(f::AttributeSoftMinimumFeatureType) = ModalLogic.getInstanceAttribute(x,f.i_attribute)
-# yieldFunction(f::AttributeSoftMaximumFeatureType) = ModalLogic.getInstanceAttribute(x,f.i_attribute)
+# yieldFunction(f::AttributeSoftMinimumFeatureType) = ModalLogic.get_instance_attribute(x,f.i_attribute)
+# yieldFunction(f::AttributeSoftMaximumFeatureType) = ModalLogic.get_instance_attribute(x,f.i_attribute)
 
 Base.show(io::IO, f::AttributeSoftMinimumFeatureType) = print(io, "min" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
 Base.show(io::IO, f::AttributeSoftMaximumFeatureType) = print(io, "max" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
@@ -98,7 +98,7 @@ struct AttributeFunctionFeatureType <: DimensionalFeature
 end
 
 yieldFunction(f::AttributeFunctionFeatureType) =
-    f.f ∘ (x)->(vals = vec(ModalLogic.getInstanceAttribute(x,f.i_attribute));)
+    f.f ∘ (x)->(vals = vec(ModalLogic.get_instance_attribute(x,f.i_attribute));)
 
 Base.show(io::IO, f::AttributeFunctionFeatureType) = print(io, "$(f.f)(A$(f.i_attribute))")
 

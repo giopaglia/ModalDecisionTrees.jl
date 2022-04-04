@@ -40,7 +40,7 @@ Base.@propagate_inbounds function FeaturedWorldDataset(
 			@logmsg DTOverview "Instance $(i_instance)/$(n_instances)"
 		end
 
-		# instance = getInstance(X, i_instance)
+		# instance = get_instance(X, i_instance)
 		# @logmsg DTDebug "instance" instance
 
 		for w in accAll_function(X, i_instance)
