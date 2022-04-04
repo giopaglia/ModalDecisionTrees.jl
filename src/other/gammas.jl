@@ -345,7 +345,7 @@ function computeGammas(
 			@logmsg DTDebug "Instance $(i)/$(n_instances)"
 
 			# Propositional, local
-			channel = ModalLogic.getChannel(X, i, feature) # TODO check that @views actually avoids copying
+			channel = ModalLogic.get_channel(X, i, feature) # TODO check that @views actually avoids copying
 			initGammaSlice(WorldType, gammas, i, relationId_id, feature)
 			# println(channel)
 			for w in ModalLogic.enumAccessibles(WorldType[], RelationGlob, channel)
