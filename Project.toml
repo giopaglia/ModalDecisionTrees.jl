@@ -1,4 +1,4 @@
-name = "DecisionTree"
+name = "ModalDecisionTrees"
 uuid = "1806a523-6efd-50cb-b5f6-3fa6f1930dba"
 license = "MIT"
 desc = "Julia implementation of Decision Tree (CART) and Random Forest algorithms"

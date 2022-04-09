@@ -19,7 +19,7 @@
 ☐	CODE: Custom pretty printing, instead of display_. Figure out print/show/display See https://docs.julialang.org/en/v1/manual/types/#man-custom-pretty-printing https://schurkus.com/2018/01/05/julia-print-show-display-dump-what-to-override-what-to-use/
 ☐	CODE: Keep this: throw, error(), @error -> throw_n_log()
 ☐	CODE: Improve output/logging
-☐	CODE: DecisionTree->ModalDecisionTrees DTree->ModalTree; DForest->ModalForest.
+☐	CODE: DTree->ModalTree; DForest->ModalForest.
 ################################################################################
 ☐	MODEL: Bagging, XGBoost https://towardsdatascience.com/ensemble-learning-bagging-and-boosting-explained-in-3-minutes-2e6d2240ae21
 ☐	MODEL: Model may not have an answer? problem with argmax when testing (e.g. RF), especially on unbalanced datasets
