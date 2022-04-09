@@ -2,7 +2,7 @@
 
 X, Y = load_data("digits")
 
-t = DecisionTree.build_tree(Y, X)
+t = ModalDecisionTrees.build_tree(Y, X)
 @test length(t) == 148
 @test sum(apply_tree(t, X) .== Y) == length(Y)
 
@@ -10,12 +10,12 @@ t = DecisionTree.build_tree(Y, X)
 n_subfeatures       = 0
 max_depth           = 6
 min_samples_leaf    = 5
-t = DecisionTree.build_tree(
+t = ModalDecisionTrees.build_tree(
         Y, X,
         n_subfeatures, max_depth)
 @test length(t) == 57
 
-t = DecisionTree.build_tree(
+t = ModalDecisionTrees.build_tree(
         Y, X,
         n_subfeatures, max_depth,
         min_samples_leaf)
@@ -24,14 +24,14 @@ t = DecisionTree.build_tree(
 min_samples_leaf    = 3
 min_samples_split   = 5
 min_purity_increase = 0.05
-t = DecisionTree.build_tree(
+t = ModalDecisionTrees.build_tree(
         Y, X,
         n_subfeatures, max_depth,
         min_samples_leaf,
         min_samples_split)
 @test length(t) == 55
 
-t = DecisionTree.build_tree(
+t = ModalDecisionTrees.build_tree(
         Y, X,
         n_subfeatures, max_depth,
         min_samples_leaf,
@@ -41,11 +41,11 @@ t = DecisionTree.build_tree(
 
 # test that all purity decisions are based on passed-in purity function;
 # if so, this should be same as previous test
-entropy1000(ns, n) = DecisionTree.util.entropy(ns, n) * 1000
+entropy1000(ns, n) = ModalDecisionTrees.util.entropy(ns, n) * 1000
 min_samples_leaf    = 3
 min_samples_split   = 5
 min_purity_increase = 0.05 * 1000
-t = DecisionTree.build_tree(
+t = ModalDecisionTrees.build_tree(
         Y, X,
         n_subfeatures, max_depth,
         min_samples_leaf,
@@ -61,7 +61,7 @@ max_depth           = -1
 min_samples_leaf    = 1
 min_samples_split   = 2
 min_purity_increase = 0.0
-model = DecisionTree.build_forest(
+model = ModalDecisionTrees.build_forest(
         Y, X,
         n_subfeatures,
         n_trees,
@@ -75,7 +75,7 @@ cm = compute_metrics(Y, preds)
 @test cm.accuracy > 0.95
 
 n_iterations        = 100
-model, coeffs = DecisionTree.build_adaboost_stumps(
+model, coeffs = ModalDecisionTrees.build_adaboost_stumps(
         Y, X,
         n_iterations);
 preds = apply_adaboost_stumps(model, coeffs, X);

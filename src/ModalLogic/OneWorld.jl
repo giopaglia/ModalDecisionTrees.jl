@@ -26,4 +26,4 @@ enumAll(::Type{OneWorld}, enumAccFun::Function) = [OneWorld()]
 enumReprAll(::Type{OneWorld}, enumReprFun::Function, f::ModalFeature, a::Aggregator) = [OneWorld()]
 
 
-enumAccReprAggr(f::ModalFeature, a::Aggregator, ::Vector{OneWorld}, ::DecisionTree.ModalLogic._RelationGlob) = [OneWorld()]
+enumAccReprAggr(f::ModalFeature, a::Aggregator, ::Vector{OneWorld}, ::ModalLogic._RelationGlob) = [OneWorld()]

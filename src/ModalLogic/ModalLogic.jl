@@ -2,7 +2,7 @@ module ModalLogic
 using IterTools
 import Base: argmax, argmin, size, show, convert, getindex, iterate, length
 using Logging: @logmsg
-using ..DecisionTree
+using ..ModalDecisionTrees
 
 using ComputedFieldTypes
 
@@ -12,7 +12,7 @@ using DataStructures
 
 using BenchmarkTools # TODO use this to compare timings and use @btime
 
-using DecisionTree.util
+using ModalDecisionTrees.util
 
 export AbstractWorld, AbstractRelation,
                 Ontology,

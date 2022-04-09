@@ -1,4 +1,4 @@
-using DecisionTree
+using ModalDecisionTrees
 using BenchmarkTools
 using Random
 
