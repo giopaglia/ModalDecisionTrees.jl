@@ -55,7 +55,7 @@ end
 
 # a = [5,3,9,2]
 # a = [0,0,9,0]
-# DecisionTree.util.entropy(a, sum(a))
+# entropy(a, sum(a))
 # maximum(a)/sum(a)
 
 # returns the entropy of ns/n, ns is an array of integers

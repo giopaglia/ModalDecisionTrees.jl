@@ -1,6 +1,4 @@
-# __precompile__()
-
-module DecisionTree
+module ModalDecisionTrees
 
 ################################################################################
 

@@ -51,9 +51,9 @@ function prune_tree(node::DTInternal{T, L}; depth = nothing, kwargs...) where {T
     
     # Honor purity constraints
     # TODO fix missing weights!!
-    purity   = DecisionTree.compute_purity(supp_labels(node.this);  loss_function = pruning_params.loss_function)
-    purity_r = DecisionTree.compute_purity(supp_labels(node.left);  loss_function = pruning_params.loss_function)
-    purity_l = DecisionTree.compute_purity(supp_labels(node.right); loss_function = pruning_params.loss_function)
+    purity   = ModalDecisionTrees.compute_purity(supp_labels(node.this);  loss_function = pruning_params.loss_function)
+    purity_r = ModalDecisionTrees.compute_purity(supp_labels(node.left);  loss_function = pruning_params.loss_function)
+    purity_l = ModalDecisionTrees.compute_purity(supp_labels(node.right); loss_function = pruning_params.loss_function)
 
     split_purity_times_nt = (nl * purity_l + nr * purity_r)
 

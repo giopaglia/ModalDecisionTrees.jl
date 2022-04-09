@@ -1,8 +1,8 @@
-# The code in this file is a small port from scikit-learn's and numpy's
-# library which is distributed under the 3-Clause BSD license.
-# The rest of DecisionTree.jl is released under the MIT license.
+# The code in this file for decision tree learning is inspired from:
+# - Ben Sadeghi's DecisionTree.jl (released under the MIT license);
+# - scikit-learn's and numpy's (released under the 3-Clause BSD license);
 
-# written by Poom Chiarawongse <eight1911@gmail.com>
+# Also thanks to Poom Chiarawongse <eight1911@gmail.com>
 
 ##############################################################################
 ##############################################################################
