@@ -4,21 +4,21 @@ module MLJDecisionTreeInterface
 
 import MLJModelInterface
 using MLJModelInterface.ScientificTypesBase
-import DecisionTree
+import ModalDecisionTrees
 import Tables
 
 using Random
 import Random.GLOBAL_RNG
 
 const MMI = MLJModelInterface
-const DT = DecisionTree
+const MDT = ModalDecisionTrees
 const PKG = "MLJDecisionTreeInterface"
 
 struct TreePrinter{T}
     tree::T
 end
-(c::TreePrinter)(depth) = DT.print_tree(c.tree, depth)
-(c::TreePrinter)() = DT.print_tree(c.tree, 5)
+(c::TreePrinter)(depth) = MDT.print_tree(c.tree, depth)
+(c::TreePrinter)() = MDT.print_tree(c.tree, 5)
 
 Base.show(stream::IO, c::TreePrinter) =
     print(stream, "TreePrinter object (call with display depth)")
@@ -58,7 +58,7 @@ function MMI.fit(m::DecisionTreeClassifier, verbosity::Int, X, y)
     classes_seen  = filter(in(unique(y)), MMI.classes(y[1]))
     integers_seen = MMI.int(classes_seen)
 
-    tree = DT.build_tree(yplain, Xmatrix,
+    tree = MDT.build_tree(yplain, Xmatrix,
                          m.n_subfeatures,
                          m.max_depth,
                          m.min_samples_leaf,
@@ -66,9 +66,9 @@ function MMI.fit(m::DecisionTreeClassifier, verbosity::Int, X, y)
                          m.min_purity_increase,
                          rng=m.rng)
     if m.post_prune
-        tree = DT.prune_tree(tree, m.merge_purity_threshold)
+        tree = MDT.prune_tree(tree, m.merge_purity_threshold)
     end
-    verbosity < 2 || DT.print_tree(tree, m.display_depth)
+    verbosity < 2 || MDT.print_tree(tree, m.display_depth)
 
     fitresult = (tree, classes_seen, integers_seen, features)
 
@@ -103,7 +103,7 @@ function MMI.predict(m::DecisionTreeClassifier, fitresult, Xnew)
     Xmatrix = MMI.matrix(Xnew)
     tree, classes_seen, integers_seen = fitresult
     # retrieve the predicted scores
-    scores = DT.apply_tree_proba(tree, Xmatrix, integers_seen)
+    scores = MDT.apply_tree_proba(tree, Xmatrix, integers_seen)
 
     # return vector of UF
     return MMI.UnivariateFinite(classes_seen, scores)
@@ -130,7 +130,7 @@ function MMI.fit(m::RandomForestClassifier, verbosity::Int, X, y)
     classes_seen  = filter(in(unique(y)), MMI.classes(y[1]))
     integers_seen = MMI.int(classes_seen)
 
-    forest = DT.build_forest(yplain, Xmatrix,
+    forest = MDT.build_forest(yplain, Xmatrix,
                              m.n_subfeatures,
                              m.n_trees,
                              m.sampling_fraction,
@@ -149,7 +149,7 @@ MMI.fitted_params(::RandomForestClassifier, (forest,_)) = (forest=forest,)
 function MMI.predict(m::RandomForestClassifier, fitresult, Xnew)
     Xmatrix = MMI.matrix(Xnew)
     forest, classes_seen, integers_seen = fitresult
-    scores = DT.apply_forest_proba(forest, Xmatrix, integers_seen)
+    scores = MDT.apply_forest_proba(forest, Xmatrix, integers_seen)
     return MMI.UnivariateFinite(classes_seen, scores)
 end
 
@@ -167,7 +167,7 @@ function MMI.fit(m::AdaBoostStumpClassifier, verbosity::Int, X, y)
     classes_seen  = filter(in(unique(y)), MMI.classes(y[1]))
     integers_seen = MMI.int(classes_seen)
 
-    stumps, coefs = DT.build_adaboost_stumps(yplain, Xmatrix,
+    stumps, coefs = MDT.build_adaboost_stumps(yplain, Xmatrix,
                                              m.n_iter)
     cache  = nothing
     report = NamedTuple()
@@ -180,7 +180,7 @@ MMI.fitted_params(::AdaBoostStumpClassifier, (stumps,coefs,_)) =
 function MMI.predict(m::AdaBoostStumpClassifier, fitresult, Xnew)
     Xmatrix = MMI.matrix(Xnew)
     stumps, coefs, classes_seen, integers_seen = fitresult
-    scores = DT.apply_adaboost_stumps_proba(stumps, coefs,
+    scores = MDT.apply_adaboost_stumps_proba(stumps, coefs,
                                             Xmatrix, integers_seen)
     return MMI.UnivariateFinite(classes_seen, scores)
 end
@@ -201,7 +201,7 @@ end
 
 function MMI.fit(m::DecisionTreeRegressor, verbosity::Int, X, y)
     Xmatrix = MMI.matrix(X)
-    tree    = DT.build_tree(float(y), Xmatrix,
+    tree    = MDT.build_tree(float(y), Xmatrix,
                             m.n_subfeatures,
                             m.max_depth,
                             m.min_samples_leaf,
@@ -210,7 +210,7 @@ function MMI.fit(m::DecisionTreeRegressor, verbosity::Int, X, y)
                             rng=m.rng)
 
     if m.post_prune
-        tree = DT.prune_tree(tree, m.merge_purity_threshold)
+        tree = MDT.prune_tree(tree, m.merge_purity_threshold)
     end
     cache  = nothing
     report = NamedTuple()
@@ -221,7 +221,7 @@ MMI.fitted_params(::DecisionTreeRegressor, tree) = (tree=tree,)
 
 function MMI.predict(::DecisionTreeRegressor, tree, Xnew)
     Xmatrix = MMI.matrix(Xnew)
-    return DT.apply_tree(tree, Xmatrix)
+    return MDT.apply_tree(tree, Xmatrix)
 end
 
 
@@ -240,7 +240,7 @@ end
 
 function MMI.fit(m::RandomForestRegressor, verbosity::Int, X, y)
     Xmatrix = MMI.matrix(X)
-    forest  = DT.build_forest(float(y), Xmatrix,
+    forest  = MDT.build_forest(float(y), Xmatrix,
                               m.n_subfeatures,
                               m.n_trees,
                               m.sampling_fraction,
@@ -258,7 +258,7 @@ MMI.fitted_params(::RandomForestRegressor, forest) = (forest=forest,)
 
 function MMI.predict(::RandomForestRegressor, forest, Xnew)
     Xmatrix = MMI.matrix(Xnew)
-    return DT.apply_forest(forest, Xmatrix)
+    return MDT.apply_forest(forest, Xmatrix)
 end
 
 
