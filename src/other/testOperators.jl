@@ -1,7 +1,7 @@
 export TestOperator,
-				TestOpNone,
-				TestOpGeq, TestOpLeq,
-				_TestOpGeqSoft, _TestOpLeqSoft
+		TestOpNone,
+		TestOpGeq, TestOpLeq,
+		_TestOpGeqSoft, _TestOpLeqSoft
 
 abstract type TestOperator end
 
