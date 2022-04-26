@@ -3,9 +3,9 @@ ModalDecisionTrees.jl is licensed under the MIT License:
 > Copyright (c) 2021-2022, Giovanni Pagliarini (@giopaglia)
 > 
 > Code is inspired from:
-> - DecisionTree.jl
+> - DecisionTree.jl, Julia package
 > 	Copyright (c) 2012-2013, Ben Sadeghi
-> - MILK: Machine Learning Toolkit
+> - MILK, Python Machine Learning Toolkit
 > 	Copyright (c) 2008-2011, Luis Pedro Coelho <luis@luispedro.org>
 > 
 >
