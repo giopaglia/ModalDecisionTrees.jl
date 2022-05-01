@@ -1,23 +1,85 @@
-export overall_accuracy,
+
+export compute_metrics,
+        #
+        R2,
+        #
+        ConfusionMatrix,
+        overall_accuracy,
         kappa,
-        PerformanceStruct,
+        #
+        macro_F1,
         macro_sensitivity,
         macro_specificity,
         macro_PPV,
         macro_NPV,
-        macro_F1,
+        #
         macro_weighted_F1,
         macro_weighted_sensitivity,
         macro_weighted_specificity,
         macro_weighted_PPV,
         macro_weighted_NPV,
+        #
+        safe_macro_F1,
         safe_macro_sensitivity,
         safe_macro_specificity,
         safe_macro_PPV,
-        safe_macro_NPV,
-        safe_macro_F1
+        safe_macro_NPV
 
-const PerformanceStruct = NamedTuple
+################################################################################
+################################################################################
+################################################################################
+
+### Classification ###
+
+function compute_metrics(
+        actual::AbstractVector{L},
+        predicted::AbstractVector{L},
+        weights = nothing,
+    ) where {L<:CLabel}
+    @assert length(actual) == length(predicted) "Can't compute_metrics with uneven number of actual $(length(actual)) and predicted $(length(predicted)) labels."
+    (;
+        # n_inst = length(actual),
+        # 
+        # actual = actual,
+        # predicted = predicted,
+        # weights = weights,
+        # 
+        cm = ConfusionMatrix(actual, predicted, weights),
+    )
+end
+
+### Regression ###
+
+function compute_metrics(
+        actual::AbstractVector{L},
+        predicted::AbstractVector{L},
+        weights = nothing,
+    ) where {L<:RLabel}
+    @assert isnothing(weights) "TODO Expand code: Non-nothing weights encountered in compute_metrics()"
+    @assert length(actual) == length(predicted) "Can't compute_metrics with uneven number of actual $(length(actual)) and predicted $(length(predicted)) labels."
+    (;
+        # n_inst = length(actual),
+        # 
+        # actual = actual,
+        # predicted = predicted,
+        # weights = weights,
+        # 
+        cor   = cor(actual, predicted),
+        MAE   = sum(abs.(actual .- predicted)) / length(predicted),
+        # MSE   = mean((actual - predicted).^2)
+        RMSE  = StatsBase.rmsd(actual, predicted),
+        R2    = R2(actual, predicted),
+        # TODO add MAPE, MSE
+    )
+end
+
+# Coefficient of determination
+function R2(actual::AbstractVector, predicted::AbstractVector)
+  @assert length(actual) == length(predicted)
+  ss_residual = sum((actual - predicted).^2)
+  ss_total = sum((actual .- mean(actual)).^2)
+  return 1.0 - ss_residual/ss_total
+end
 
 ################################################################################
 ################################################################################
@@ -108,7 +170,7 @@ struct ConfusionMatrix
         @assert length(actual) == length(predicted) "Can't compute ConfusionMatrixs with uneven number of actual $(length(actual)) and predicted $(length(predicted)) labels."
         
         if isnothing(weights)
-            weights = UniformVector{Int64}(1,length(actual))
+            weights = default_weights(length(actual))
         end
         @assert length(actual) == length(weights)   "Can't compute ConfusionMatrixs with uneven number of actual $(length(actual)) and weights $(length(weights)) labels."
 
@@ -229,55 +291,6 @@ function Base.show(io::IO, cm::ConfusionMatrix)
     println(io, "\t\tmean_F1:\t$(round(cm.mean_accuracy, digits=4))")
     print(io,   "accuracies:\t\t$(round.(cm.accuracies, digits=4))")
     println(io, "\tmean_accuracy:\t$(round(cm.mean_accuracy, digits=4))")
-end
-
-################################################################################
-################################################################################
-################################################################################
-
-### Classification ###
-
-function compute_metrics(
-        actual::AbstractVector{L},
-        predicted::AbstractVector{L},
-        weights = nothing,
-    ) where {L<:CLabel}
-    @assert length(actual) == length(predicted) "Can't compute_metrics with uneven number of actual $(length(actual)) and predicted $(length(predicted)) labels."
-    (;
-        # n_inst = length(actual),
-        # 
-        # actual = actual,
-        # predicted = predicted,
-        # weights = weights,
-        # 
-        cm = ConfusionMatrix(actual, predicted, weights),
-    )
-end
-confusion_matrix = compute_metrics # TODO remove
-
-### Regression ###
-
-function compute_metrics(
-        actual::AbstractVector{L},
-        predicted::AbstractVector{L},
-        weights = nothing,
-    ) where {L<:RLabel}
-    @assert isnothing(weights) "TODO Expand code: Non-nothing weights encountered in compute_metrics()"
-    @assert length(actual) == length(predicted) "Can't compute_metrics with uneven number of actual $(length(actual)) and predicted $(length(predicted)) labels."
-    (;
-        # n_inst = length(actual),
-        # 
-        # actual = actual,
-        # predicted = predicted,
-        # weights = weights,
-        # 
-        cor   = cor(actual, predicted),
-        MAE   = sum(abs.(actual .- predicted)) / length(predicted),
-        # MSE   = mean((actual - predicted).^2)
-        RMSE  = StatsBase.rmsd(actual, predicted),
-        R2    = R2(actual, predicted),
-        # TODO add MAPE, MSE
-    )
 end
 
 ################################################################################

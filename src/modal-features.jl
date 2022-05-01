@@ -1,195 +1,147 @@
 export ModalFeature,
-        FeatureTypeNone,
         DimensionalFeature,
-        AttributeMinimumFeatureType, AttributeMaximumFeatureType,
-        AttributeSoftMinimumFeatureType, AttributeSoftMaximumFeatureType,
-        AttributeFunctionFeatureType, ChannelFunctionFeatureType,
-        ExternalFWDFeatureType
-
-export yieldFunction, alpha
-
-import Base.vec
-
-Base.vec(x::Number) = [x]
-
-################################################################################
-################################################################################
-
-abstract type ModalFeature<:Function end
-
-struct _FeatureTypeNone  <: ModalFeature end; const FeatureTypeNone  = _FeatureTypeNone();
-yieldFunction(f::_FeatureTypeNone) = @error " Can't intepret FeatureTypeNone in any possible form"
-# Base.show(io::IO, f::_FeatureTypeNone) = print(io, "<Empty FeatureType>")
-
-abstract type DimensionalFeature<:ModalFeature end
-# TODO (f::DimensionalFeature)(args...) = yieldFunction(f)(args...)
+        SingleAttributeMin, SingleAttributeMax,
+        SingleAttributeSoftMin, SingleAttributeSoftMax,
+        SingleAttributeFeature, MultiAttributeFeature,
+        ExternalFWDFeature
 
 ################################################################################
 ################################################################################
 ################################################################################
 
-struct AttributeMinimumFeatureType <: DimensionalFeature
+# A modal feature represents a function that can be computed on a world.
+# The simplest example is, min(A1), which computes the minimum for attribute 1
+#  for a given world.
+# The value of a feature for a given world can be then evaluated in a condition,
+#  such as: min(A1) >= 10.
+abstract type ModalFeature <: Function end
+
+################################################################################
+################################################################################
+
+# Dummy modal feature
+struct _ModalFeatureNone  <: ModalFeature end; const ModalFeatureNone  = _ModalFeatureNone();
+function get_interpretation_function(f::_ModalFeatureNone)
+    @error "Can't intepret ModalFeatureNone on any structure at all."
+end
+Base.show(io::IO, f::_ModalFeatureNone) = print(io, "(Empty ModalFeature)")
+
+################################################################################
+
+# A dimensional feature represents a function that can be computed when the world
+#  is an entity that lives in a dimensional context; for example, the world
+#  can be a region of the matrix representing a b/w image.
+abstract type DimensionalFeature <: ModalFeature end
+(f::DimensionalFeature)(args...) = (get_interpretation_function(f))(args...)
+
+# Dimensional features functions are computed on dimensional channels, 
+#  namely, interpretations of worlds on a dimensional contexts
+const DimensionalFeatureFunction = FunctionWrapper{Number,Tuple{AbstractArray{<:Number}}}
+
+################################################################################
+
+# Notable single-attribute features: minimum and maximum of a given attribute
+#  e.g., min(A1), max(A10)
+struct SingleAttributeMin <: DimensionalFeature
     i_attribute::Integer
 end
-struct AttributeMaximumFeatureType <: DimensionalFeature
+function get_interpretation_function(f::SingleAttributeMin)
+    DimensionalFeatureFunction(minimum ∘ (x)->ModalLogic.get_instance_attribute(x,f.i_attribute))
+end
+Base.show(io::IO, f::SingleAttributeMin) = print(io, "min(A$(f.i_attribute))")
+
+struct SingleAttributeMax <: DimensionalFeature
     i_attribute::Integer
 end
-
-yieldFunction(f::AttributeMinimumFeatureType) = minimum ∘ (x)->ModalLogic.get_instance_attribute(x,f.i_attribute)
-yieldFunction(f::AttributeMaximumFeatureType) = maximum ∘ (x)->ModalLogic.get_instance_attribute(x,f.i_attribute)
-
-Base.show(io::IO, f::AttributeMinimumFeatureType) = print(io, "min(A$(f.i_attribute))")
-Base.show(io::IO, f::AttributeMaximumFeatureType) = print(io, "max(A$(f.i_attribute))")
+function get_interpretation_function(f::SingleAttributeMax)
+    DimensionalFeatureFunction(maximum ∘ (x)->ModalLogic.get_instance_attribute(x,f.i_attribute))
+end
+Base.show(io::IO, f::SingleAttributeMax) = print(io, "max(A$(f.i_attribute))")
 
 ################################################################################
-################################################################################
-################################################################################
 
-struct AttributeSoftMinimumFeatureType{T<:AbstractFloat} <: DimensionalFeature
+# Softened versions (quantiles) of single-attribute minimum and maximum
+#  e.g., min80(A1), max80(A10)
+struct SingleAttributeSoftMin{T<:AbstractFloat} <: DimensionalFeature
     i_attribute::Integer
     alpha::T
-    function AttributeSoftMinimumFeatureType(
+    function SingleAttributeSoftMin(
         i_attribute::Integer,
         alpha::T,
     ) where {T}
-        @assert !(alpha > 1.0 || alpha < 0.0) "Can't instantiate AttributeSoftMinimumFeatureType with alpha = $(alpha)"
-        @assert !isone(alpha) "Can't instantiate AttributeSoftMinimumFeatureType with alpha = $(alpha). Use AttributeMinimumFeatureType instead!"
+        @assert !(alpha > 1.0 || alpha < 0.0) "Can't instantiate SingleAttributeSoftMin with alpha = $(alpha)"
+        @assert !isone(alpha) "Can't instantiate SingleAttributeSoftMin with alpha = $(alpha). Use SingleAttributeMin instead!"
         new{T}(i_attribute, alpha)
     end
 end
+alpha(f::SingleAttributeSoftMin) = f.alpha
+Base.show(io::IO, f::SingleAttributeSoftMin) = print(io, "min" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
 
-struct AttributeSoftMaximumFeatureType{T<:AbstractFloat} <: DimensionalFeature
+function get_interpretation_function(f::SingleAttributeSoftMin)
+    DimensionalFeatureFunction((x)->(vals = util.vectorize(ModalLogic.get_instance_attribute(x,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals)); rev=true)))
+end
+struct SingleAttributeSoftMax{T<:AbstractFloat} <: DimensionalFeature
     i_attribute::Integer
     alpha::T
-    function AttributeSoftMaximumFeatureType(
+    function SingleAttributeSoftMax(
         i_attribute::Integer,
         alpha::T,
     ) where {T}
-        @assert !(alpha > 1.0 || alpha < 0.0) "Can't instantiate AttributeSoftMaximumFeatureType with alpha = $(alpha)"
-        @assert !isone(alpha) "Can't instantiate AttributeSoftMaximumFeatureType with alpha = $(alpha). Use AttributeMaximumFeatureType instead!"
+        @assert !(alpha > 1.0 || alpha < 0.0) "Can't instantiate SingleAttributeSoftMax with alpha = $(alpha)"
+        @assert !isone(alpha) "Can't instantiate SingleAttributeSoftMax with alpha = $(alpha). Use SingleAttributeMax instead!"
         new{T}(i_attribute, alpha)
     end
 end
+function get_interpretation_function(f::SingleAttributeSoftMax)
+    DimensionalFeatureFunction((x)->(vals = util.vectorize(ModalLogic.get_instance_attribute(x,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals)))))
+end
+alpha(f::SingleAttributeSoftMax) = f.alpha
+Base.show(io::IO, f::SingleAttributeSoftMax) = print(io, "max" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
 
-
-yieldFunction(f::AttributeSoftMinimumFeatureType) =
-    (x)->(vals = vec(ModalLogic.get_instance_attribute(x,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals)); rev=true))
-yieldFunction(f::AttributeSoftMaximumFeatureType) =
-    (x)->(vals = vec(ModalLogic.get_instance_attribute(x,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals))))
-
-alpha(f::AttributeSoftMinimumFeatureType) = f.alpha
-alpha(f::AttributeSoftMaximumFeatureType) = f.alpha
-
-# TODO simplify OneWorld case!! Maybe features must dispatch on WorldType as well or on the type of underlying data!
-# For now, OneWorld falls into the generic case through this definition of vec()
-# yieldFunction(f::AttributeSoftMinimumFeatureType) = ModalLogic.get_instance_attribute(x,f.i_attribute)
-# yieldFunction(f::AttributeSoftMaximumFeatureType) = ModalLogic.get_instance_attribute(x,f.i_attribute)
-
-Base.show(io::IO, f::AttributeSoftMinimumFeatureType) = print(io, "min" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
-Base.show(io::IO, f::AttributeSoftMaximumFeatureType) = print(io, "max" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
+# TODO simplify OneWorld case:
+# function get_interpretation_function(f::SingleAttributeSoftMin)
+#     ModalLogic.get_instance_attribute(x,f.i_attribute)
+# end
+# function get_interpretation_function(f::SingleAttributeSoftMax)
+#     ModalLogic.get_instance_attribute(x,f.i_attribute)
+# end
+# Note: Maybe features should dispatch on WorldType, (as well or on the type of underlying data?)
 
 ################################################################################
-################################################################################
-################################################################################
 
-struct AttributeFunctionFeatureType <: DimensionalFeature
+# A dimensional feature represented by the application of a function to a
+#  single attribute (e.g., avg(red), that is, how much red is in an image region)
+struct SingleAttributeFeature <: DimensionalFeature
     i_attribute::Integer
     f::Function
 end
-
-yieldFunction(f::AttributeFunctionFeatureType) =
-    f.f ∘ (x)->(vals = vec(ModalLogic.get_instance_attribute(x,f.i_attribute));)
-
-Base.show(io::IO, f::AttributeFunctionFeatureType) = print(io, "$(f.f)(A$(f.i_attribute))")
+function get_interpretation_function(f::SingleAttributeFeature)
+    DimensionalFeatureFunction(f.f ∘ (x)->(vals = util.vectorize(ModalLogic.get_instance_attribute(x,f.i_attribute));))
+end
+Base.show(io::IO, f::SingleAttributeFeature) = print(io, "$(f.f)(A$(f.i_attribute))")
 
 ################################################################################
-################################################################################
-################################################################################
 
-struct ChannelFunctionFeatureType <: DimensionalFeature
+# A dimensional feature represented by the application of a function to a channel
+#  (e.g., how much a region of the image resembles a horse)
+struct MultiAttributeFeature <: DimensionalFeature
     f::Function
 end
-yieldFunction(f::ChannelFunctionFeatureType) = f.f
-Base.show(io::IO, f::ChannelFunctionFeatureType) = print(io, "$(f.f)")
-
-################################################################################
-################################################################################
-################################################################################
-
-abstract type FWDFeature<:DimensionalFeature end
-
-
-struct FWDFunctionFeatureType <: FWDFeature # TODO test
-    fwd_f::Function
+function get_interpretation_function(f::MultiAttributeFeature)
+    DimensionalFeatureFunction(f.f)
 end
-yieldFunction(f::FWDFunctionFeatureType) = error("yieldFunction(::FWDFunctionFeatureType) should never be called. Check code") # TODO breaks typechecker?
-Base.show(io::IO, f::FWDFunctionFeatureType) = print(io, "FWDFunctionFeatureType($(fwd_f))")
+Base.show(io::IO, f::MultiAttributeFeature) = print(io, "$(f.f)")
 
-struct ExternalFWDFeatureType <: FWDFeature
+################################################################################
+
+# A feature can be imported from a FeaturedWorldDataset (FWD) structure (see ModalLogic module)
+struct ExternalFWDFeature <: ModalFeature
     name::String
     fwd::Any
 end
-yieldFunction(f::ExternalFWDFeatureType) = error("yieldFunction(::ExternalFWDFeatureType) should never be called. Check code") # TODO breaks typechecker?
-# Base.show(io::IO, f::ExternalFWDFeatureType) = print(io, "ExternalFWDFeatureType(fwd of type $(typeof(f.fwd)))")
-Base.show(io::IO, f::ExternalFWDFeatureType) = print(io, "$(f.name)")
+function get_interpretation_function(f::ExternalFWDFeature)
+    @error "Can't intepret ModalFeatureNone on any structure at all."
+end
+Base.show(io::IO, f::ExternalFWDFeature) = print(io, "$(f.name)")
 
 ################################################################################
-################################################################################
-################################################################################
-
-# yieldFunction(AttributeSoftMaximumFeatureType(1,0.8))
-
-# aggr_union = ∪
-# aggr_min = minimum
-# aggr_max = maximum
-
-# aggr_soft_min
-# get_aggr_softmin_f(alpha::AbstractFloat) = begin
-#   @inline f(vals::AbstractVector{T}) where {T} = begin
-#       partialsort!(vals,ceil(Int, alpha*length(vals)); rev=true)
-#   end
-# end
-
-# aggr_soft_max
-# get_aggr_softmax_f(alpha::AbstractFloat) = begin
-#   @inline f(vals::AbstractVector{T}) where {T} = begin
-#       partialsort!(vals,ceil(Int, alpha*length(vals)))
-#   end
-# end
-
-
-# @inline computePropositionalThreshold(::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
-#   minimum(ch_readWorld(w,channel))
-# end
-# @inline computePropositionalThreshold(::_TestOpLeq, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
-#   maximum(ch_readWorld(w,channel))
-# end
-
-# @inline test_op_partialsort!(test_op::_TestOpGeqSoft, vals::Vector{T}) where {T} = 
-#   partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)); rev=true)
-    
-# @inline test_op_partialsort!(test_op::_TestOpLeqSoft, vals::Vector{T}) where {T} = 
-#   partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)))
-
-
-# @inline computePropositionalThreshold(test_op::Union{_TestOpGeqSoft,_TestOpLeqSoft}, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
-#   vals = vec(ch_readWorld(w,channel))
-#   test_op_partialsort!(test_op,vals)
-# end
-
-
-# @inline computePropositionalThresholdMany(test_ops::Vector{<:TestOperator}, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
-#   vals = vec(ch_readWorld(w,channel))
-#   (test_op_partialsort!(test_op,vals) for test_op in test_ops)
-# end
-
-
-
-
-# AggregateFeatureType{Interval}(minimum)
-# AggregateFeatureType{Interval}(maximum)
-# AggregateFeatureType{Interval}(soft_minimum_f(80))
-# AggregateFeatureType{Interval}(soft_maximum_f(80))
-
-
-# f(x) = getindex(x,1,:) |> maximum

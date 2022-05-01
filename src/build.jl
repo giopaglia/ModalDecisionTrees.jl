@@ -1,7 +1,5 @@
 export build_stump, build_tree, build_forest
 
-using StructuredArrays # , FillArrays # TODO choose one
-
 include("tree.jl")
 
 ################################################################################
@@ -92,7 +90,7 @@ function build_tree(
     rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {L<:Label, U}
     
     if isnothing(W)
-        W = UniformVector{Int64}(1,n_samples(X))
+        W = default_weights(n_samples(X))
     end
     
     if isnothing(loss_function)
@@ -144,7 +142,7 @@ function build_forest(
     X                   :: MultiFrameModalDataset,
     Y                   :: AbstractVector{L},
     # Use unary weights if no weight is supplied
-    W                   :: AbstractVector{U} = UniformVector{Int64}(1,n_samples(X)); # from StructuredArrays
+    W                   :: AbstractVector{U} = default_weights(n_samples(X));
     # W                   :: AbstractVector{U} = Ones{Int64}(n_samples(X));      # from FillArrays
     ##############################################################################
     # Forest logic-agnostic parameters
@@ -197,21 +195,10 @@ function build_forest(
     num_samples = floor(Int64, partial_sampling * tot_samples)
 
     trees = Vector{DTree{L}}(undef, n_trees)
-    oob_metrics = Vector{PerformanceStruct}(undef, n_trees)
+    oob_metrics = Vector{NamedTuple}(undef, n_trees)
     oob_samples = Vector{Vector{Integer}}(undef, n_trees)
 
     rngs = [util.spawn_rng(rng) for i_tree in 1:n_trees]
-
-    if W isa UniformVector
-        W_one_slice = UniformVector{Int64}(1,num_samples)
-    end
-
-    get_W_slice(W::UniformVector, inds) = W_one_slice
-    get_W_slice(W::Any, inds) = @view W[inds]
-
-    # TODO improve naming (at least)
-    _get_weights(W::UniformVector, inds) = nothing
-    _get_weights(W::Any, inds) = @view W[inds]
 
     Threads.@threads for i_tree in 1:n_trees
         inds = rand(rngs[i_tree], 1:tot_samples, num_samples)
@@ -222,7 +209,7 @@ function build_forest(
         trees[i_tree] = build_tree(
             X_slice
             , Y_slice
-            , get_W_slice(W, inds)
+            , _slice_weights(W, inds)
             ;
             ####
             loss_function        = loss_function,
@@ -249,7 +236,7 @@ function build_forest(
                 compute_metrics(["__FAKE__"],["__FAKE2__"]) # TODO
             else
                 tree_preds = apply_tree(trees[i_tree], ModalLogic.slice_dataset(X, oob_samples[i_tree]; return_view = true))
-                compute_metrics(Y[oob_samples[i_tree]], tree_preds, _get_weights(W, inds))
+                compute_metrics(Y[oob_samples[i_tree]], tree_preds, _slice_weights(W, inds))
             end
         end
 

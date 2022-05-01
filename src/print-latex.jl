@@ -22,7 +22,7 @@ default_conversion_dict_latex = Dict{String, String}(
     "O̅" => "\\overline{O}",
 )
 
-const NodeCoord = Tuple{Number,Number}
+const NodeCoord = Tuple{Real,Real}
 
 import Base: +, -
 
@@ -162,7 +162,7 @@ function _print_tree_latex(
     # add left edge
     result *= "\\path ($previous_node_index) edge[sloped,above] node {$(_latex_string(display_decision(node; threshold_display_method = t_display_func); conversion_dict = conversion_dict, add_dollars = add_dollars, show_test_operator_alpha = print_test_operator_alpha, show_frame_number = show_frame_number))} ($(previous_node_index)0);\n"
     # add right edge
-    result *= "\\path ($previous_node_index) edge[sloped,above] node {$(_latex_string(display_decision_neg(node; threshold_display_method = t_display_func); conversion_dict = conversion_dict, add_dollars = add_dollars, show_test_operator_alpha = print_test_operator_alpha, show_frame_number = show_frame_number))} ($(previous_node_index)1);\n"
+    result *= "\\path ($previous_node_index) edge[sloped,above] node {$(_latex_string(display_decision_inverse(node; threshold_display_method = t_display_func); conversion_dict = conversion_dict, add_dollars = add_dollars, show_test_operator_alpha = print_test_operator_alpha, show_frame_number = show_frame_number))} ($(previous_node_index)1);\n"
     # recursive calls
     result *= _print_tree_latex(node.left, previous_node_index * "0", left_node_pos, space_unit, nodes_margin, conversion_dict, add_dollars, print_test_operator_alpha, show_frame_number, t_display_func, nodes_script_size, edges_script_size)
     result *= _print_tree_latex(node.right, previous_node_index * "1", right_node_pos, space_unit, nodes_margin, conversion_dict, add_dollars, print_test_operator_alpha, show_frame_number, t_display_func, nodes_script_size, edges_script_size)
@@ -201,7 +201,7 @@ function print_tree_latex(
         edges_script_size                  :: Symbol                             = :footnotesize
     )::String
 
-    function threshold_display_func(threshold::Number, scale_factor::Integer, show_decimals::Union{Symbol,Integer})::Number
+    function threshold_display_func(threshold::Real, scale_factor::Integer, show_decimals::Union{Symbol,Integer})::Real
         result = threshold * (10^scale_factor)
         if isa(show_decimals, Integer)
             result = round(result, digits = show_decimals)

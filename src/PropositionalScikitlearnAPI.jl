@@ -398,8 +398,8 @@ end
 depth(dt::DecisionTreeClassifier)   = depth(dt.root)
 depth(dt::DecisionTreeRegressor)    = depth(dt.root)
 
-length(dt::DecisionTreeClassifier)  = length(dt.root)
-length(dt::DecisionTreeRegressor)   = length(dt.root)
+Base.length(dt::DecisionTreeClassifier)  = length(dt.root)
+Base.length(dt::DecisionTreeRegressor)   = length(dt.root)
 
 print_tree(dt::DecisionTreeClassifier, depth=-1) = print_tree(dt.root, depth)
 print_tree(dt::DecisionTreeRegressor,  depth=-1) = print_tree(dt.root, depth)
