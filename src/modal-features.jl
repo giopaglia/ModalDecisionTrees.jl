@@ -5,9 +5,10 @@ export ModalFeature,
         SingleAttributeFeature, MultiAttributeFeature,
         ExternalFWDFeature
 
-################################################################################
-################################################################################
-################################################################################
+
+############################################################################################
+############################################################################################
+############################################################################################
 
 # A modal feature represents a function that can be computed on a world.
 # The simplest example is, min(A1), which computes the minimum for attribute 1
@@ -26,7 +27,7 @@ function get_interpretation_function(f::_ModalFeatureNone)
 end
 Base.show(io::IO, f::_ModalFeatureNone) = print(io, "(Empty ModalFeature)")
 
-################################################################################
+############################################################################################
 
 # A dimensional feature represents a function that can be computed when the world
 #  is an entity that lives in a dimensional context; for example, the world
@@ -38,7 +39,7 @@ abstract type DimensionalFeature <: ModalFeature end
 #  namely, interpretations of worlds on a dimensional contexts
 const DimensionalFeatureFunction = FunctionWrapper{Number,Tuple{AbstractArray{<:Number}}}
 
-################################################################################
+############################################################################################
 
 # Notable single-attribute features: minimum and maximum of a given attribute
 #  e.g., min(A1), max(A10)
@@ -58,7 +59,7 @@ function get_interpretation_function(f::SingleAttributeMax)
 end
 Base.show(io::IO, f::SingleAttributeMax) = print(io, "max(A$(f.i_attribute))")
 
-################################################################################
+############################################################################################
 
 # Softened versions (quantiles) of single-attribute minimum and maximum
 #  e.g., min80(A1), max80(A10)
@@ -107,7 +108,7 @@ Base.show(io::IO, f::SingleAttributeSoftMax) = print(io, "max" * util.subscriptn
 # end
 # Note: Maybe features should dispatch on WorldType, (as well or on the type of underlying data?)
 
-################################################################################
+############################################################################################
 
 # A dimensional feature represented by the application of a function to a
 #  single attribute (e.g., avg(red), that is, how much red is in an image region)
@@ -120,7 +121,7 @@ function get_interpretation_function(f::SingleAttributeFeature)
 end
 Base.show(io::IO, f::SingleAttributeFeature) = print(io, "$(f.f)(A$(f.i_attribute))")
 
-################################################################################
+############################################################################################
 
 # A dimensional feature represented by the application of a function to a channel
 #  (e.g., how much a region of the image resembles a horse)
@@ -132,7 +133,7 @@ function get_interpretation_function(f::MultiAttributeFeature)
 end
 Base.show(io::IO, f::MultiAttributeFeature) = print(io, "$(f.f)")
 
-################################################################################
+############################################################################################
 
 # A feature can be imported from a FeaturedWorldDataset (FWD) structure (see ModalLogic module)
 struct ExternalFWDFeature <: ModalFeature

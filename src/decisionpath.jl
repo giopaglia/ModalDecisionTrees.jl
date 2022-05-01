@@ -38,7 +38,7 @@ function _get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_instan
         end
     end
 
-    pushfirst!(paths[i_instance], DecisionPathNode(satisfied, feature(tree.decision), test_operator(tree.decision), threshold(tree.decision), deepcopy(new_survivors)))
+    pushfirst!(paths[i_instance], DecisionPathNode(satisfied, tree.decision.feature, tree.decision.test_operator, tree.decision.threshold, deepcopy(new_survivors)))
 
     return new_survivors
 end

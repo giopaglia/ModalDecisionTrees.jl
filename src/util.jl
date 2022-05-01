@@ -9,9 +9,10 @@ using StatsBase
 
 export entropy, subscriptnumber, spawn_rng
 
-################################################################################
-################################################################################
-################################################################################
+
+############################################################################################
+############################################################################################
+############################################################################################
 
 # Generate a new rng by peeling the seed from another rng
 # (if used correctly, this ensures reproducibility)
@@ -183,16 +184,17 @@ end
 
 # TODO write double non weigthed
 
-################################################################################
+############################################################################################
 
 # The default classification loss is Shannon's entropy
 entropy = ShannonEntropy()
 # The default regression loss is variance
 variance = _variance
 
-################################################################################
-################################################################################
-################################################################################
+
+############################################################################################
+############################################################################################
+############################################################################################
 
 # Translate a list of labels into categorical form
 Base.@propagate_inbounds @inline function get_categorical_form(Y :: AbstractVector)
@@ -311,3 +313,8 @@ function all_broadcast_sc(test_operator, values, threshold)
     return true
 end
 
+
+# minExtrema(extr::Union{NTuple{N,NTuple{2,T}},AbstractVector{NTuple{2,T}}}) where {T<:Real,N} = reduce(((fst,snd),(f,s))->(min(fst,f),max(snd,s)), extr; init=(typemax(T),typemin(T)))
+# maxExtrema(extr::Union{NTuple{N,NTuple{2,T}},AbstractVector{NTuple{2,T}}}) where {T<:Real,N} = reduce(((fst,snd),(f,s))->(max(fst,f),min(snd,s)), extr; init=(typemin(T),typemax(T)))
+# minExtrema(extr::Vararg{NTuple{2,T}}) where {T<:Real} = minExtrema(extr)
+# maxExtrema(extr::Vararg{NTuple{2,T}}) where {T<:Real} = maxExtrema(extr)
