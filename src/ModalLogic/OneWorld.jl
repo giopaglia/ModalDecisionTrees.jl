@@ -17,13 +17,14 @@ print_world(::OneWorld) = println("−")
 
 inst_readWorld(::OneWorld, instance::MatricialInstance{T,1}) where {T} = instance
 
-enumAccBare(::OneWorld, ::AbstractRelation, XYZ::Vararg{Integer}) = throw_n_log("Can't access any world via any relation other than RelationId from a OneWorld")
-enumAccBare(::OneWorld, ::_RelationId, XYZ::Vararg{Integer}) = [OneWorld()]
-enumAccessibles(::OneWorld, ::_RelationGlob, XYZ::Vararg{Integer}) = [OneWorld()]
+_accessibles(::OneWorld, ::AbstractRelation, XYZ::Vararg{Integer}) = throw_n_log("Can't access any world via any relation other than RelationId from a OneWorld")
+_accessibles(::OneWorld, ::_RelationId, XYZ::Vararg{Integer}) = [OneWorld()]
+accessibles(::OneWorld, ::_RelationGlob, XYZ::Vararg{Integer}) = [OneWorld()]
 
-enumAll(::Type{OneWorld}, args::Vararg) = [OneWorld()]
-enumAll(::Type{OneWorld}, enumAccFun::Function) = [OneWorld()]
-enumReprAll(::Type{OneWorld}, enumReprFun::Function, f::ModalFeature, a::Aggregator) = [OneWorld()]
+# TODO remove these:
+all_worlds(::Type{OneWorld}, args::Vararg) = [OneWorld()]
+all_worlds(::Type{OneWorld}, enumAccFun::Function) = [OneWorld()]
+all_worlds_aggr(::Type{OneWorld}, enumReprFun::Function, f::ModalFeature, a::Aggregator) = [OneWorld()]
 
 
-enumAccReprAggr(f::ModalFeature, a::Aggregator, ::Vector{OneWorld}, ::ModalLogic._RelationGlob) = [OneWorld()]
+accessibles_aggr(f::ModalFeature, a::Aggregator, ::Vector{OneWorld}, ::ModalLogic._RelationGlob) = [OneWorld()]

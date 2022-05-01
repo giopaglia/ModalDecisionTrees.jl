@@ -703,7 +703,7 @@ Base.@propagate_inbounds @inline function split_node!(
             errStr *= "Decision $(best_decision).\n"
             errStr *= "Possible causes:\n"
             errStr *= "- feature returning NaNs\n"
-            errStr *= "- erroneous enumAccReprAggr for relation $(relation(best_decision)), aggregator $(ModalLogic.existential_aggregator(test_operator(best_decision))) and feature $(feature(best_decision))\n"
+            errStr *= "- erroneous accessibles_aggr for relation $(relation(best_decision)), aggregator $(ModalLogic.existential_aggregator(test_operator(best_decision))) and feature $(feature(best_decision))\n"
             errStr *= "\n"
             errStr *= "Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(best_i_frame) with decision: $(decision_str), purity $(best_purity)\n"
             errStr *= "$(length(idxs[region])) Instances: $(idxs[region])\n"

@@ -68,22 +68,22 @@ IA2DRelations_U...
 # Any 2D Interval Algebra relation is computed by combining the two one-dimensional relations
 # TODO check if dimensions are to be swapped
 # TODO these three are weird, the problem is _RelationGlob
-enumAccBare2(w::Interval, r::R where R<:_IARel, X::Integer) = enumAccBare(w,r,X)
-enumAccBare2(w::Interval, r::_RelationId, X::Integer) = enumAccBare(w,r,X)
-enumAccBare2(w::Interval, r::_RelationGlob, X::Integer) =
+_accessibles2(w::Interval, r::R where R<:_IARel, X::Integer) = _accessibles(w,r,X)
+_accessibles2(w::Interval, r::_RelationId, X::Integer) = _accessibles(w,r,X)
+_accessibles2(w::Interval, r::_RelationGlob, X::Integer) =
 	enumPairsIn(1, X+1)
 	# IterTools.imap(Interval, enumPairsIn(1, X+1))
 
-enumAccBare(w::Interval2D, r::R where R<:_IA2DRel, X::Integer, Y::Integer) =
-	Iterators.product(enumAccBare2(w.x, r.x, X), enumAccBare2(w.y, r.y, Y))
-	# TODO try instead: Iterators.product(enumAccessibles(w.x, r.x, X), enumAccessibles(w.y, r.y, Y))
+_accessibles(w::Interval2D, r::R where R<:_IA2DRel, X::Integer, Y::Integer) =
+	Iterators.product(_accessibles2(w.x, r.x, X), _accessibles2(w.y, r.y, Y))
+	# TODO try instead: Iterators.product(accessibles(w.x, r.x, X), accessibles(w.y, r.y, Y))
 
 # More efficient implementations for edge cases
 # TODO write efficient implementations for _IA2DRelations_U
-# enumAccessibles(S::AbstractWorldSet{Interval2D}, r::_IA2DRelations_U, X::Integer, Y::Integer) = begin
+# accessibles(S::AbstractWorldSet{Interval2D}, r::_IA2DRelations_U, X::Integer, Y::Integer) = begin
 # 	IterTools.imap(Interval2D,
 # 		Iterators.flatten(
-# 			Iterators.product((enumAccessibles(w, r.x, X) for w in S), enumAccessibles(S, r, Y))
+# 			Iterators.product((accessibles(w, r.x, X) for w in S), accessibles(S, r, Y))
 # 		)
 # 	)
 # end
@@ -210,7 +210,7 @@ const _IA2DRelMax = Union{_RelationGlob,_IA_L,_IA_Li,_IA_D}
 const _IA2DRelMin = Union{_RelationId,_IA_O,_IA_Oi,_IA_Bi,_IA_Ei,_IA_Di}
 const _IA2DRelVal = Union{_IA_A,_IA_Ai,_IA_B,_IA_E}
 
-# enumAccReprAggr(f::Union{SingleAttributeMin,SingleAttributeMax}, a::Union{typeof(minimum),typeof(maximum)}, w::Interval2D, r::_IA2DRel{R1,R2} where {R1<:_IA2DRelMax,R2<:_IA2DRelMax},  X::Integer) = IterTools.imap(Interval2D, Iterators.product(enumAccReprAggr(f, a, w.x, rx, X), enumAccReprAggr(f, a, w.y, ry, Y)))
+# accessibles_aggr(f::Union{SingleAttributeMin,SingleAttributeMax}, a::Union{typeof(minimum),typeof(maximum)}, w::Interval2D, r::_IA2DRel{R1,R2} where {R1<:_IA2DRelMax,R2<:_IA2DRelMax},  X::Integer) = IterTools.imap(Interval2D, Iterators.product(accessibles_aggr(f, a, w.x, rx, X), accessibles_aggr(f, a, w.y, ry, Y)))
 
 ################################################################################
 # END IA2D relations

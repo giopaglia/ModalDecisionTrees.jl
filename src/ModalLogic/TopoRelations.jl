@@ -54,18 +54,18 @@ RCC52RCC8Relations(::_Topo_PP)    = [Topo_TPP,  Topo_NTPP]
 RCC52RCC8Relations(::_Topo_PPi)   = [Topo_TPPi,  Topo_NTPPi]
 
 # Enumerate accessible worlds from a single world
-enumAccBare(w::Interval, r::R where R<:_TopoRelRCC8FromIA,    X::Integer) = Iterators.flatten((enumAccBare(w, IA_r,  X) for IA_r in topo2IARelations(r)))
-# enumAccBare(w::Interval, ::_Topo_DC,    X::Integer) = Iterators.flatten((enumAccBare(w, IA_L,  X), enumAccBare(w, IA_Li, X)))
-# enumAccBare(w::Interval, ::_Topo_EC,    X::Integer) = Iterators.flatten((enumAccBare(w, IA_A,  X), enumAccBare(w, IA_Ai, X)))
-# enumAccBare(w::Interval, ::_Topo_PO,    X::Integer) = Iterators.flatten((enumAccBare(w, IA_O,  X), enumAccBare(w, IA_Oi, X)))
-# enumAccBare(w::Interval, ::_Topo_TPP,   X::Integer) = Iterators.flatten((enumAccBare(w, IA_B,  X), enumAccBare(w, IA_E,  X)))
-# enumAccBare(w::Interval, ::_Topo_TPPi,  X::Integer) = Iterators.flatten((enumAccBare(w, IA_Bi, X), enumAccBare(w, IA_Ei, X)))
-enumAccBare(w::Interval, ::_Topo_NTPP,  X::Integer) = enumAccBare(w, IA_D, X)
-enumAccBare(w::Interval, ::_Topo_NTPPi, X::Integer) = enumAccBare(w, IA_Di, X)
+_accessibles(w::Interval, r::R where R<:_TopoRelRCC8FromIA,    X::Integer) = Iterators.flatten((_accessibles(w, IA_r,  X) for IA_r in topo2IARelations(r)))
+# _accessibles(w::Interval, ::_Topo_DC,    X::Integer) = Iterators.flatten((_accessibles(w, IA_L,  X), _accessibles(w, IA_Li, X)))
+# _accessibles(w::Interval, ::_Topo_EC,    X::Integer) = Iterators.flatten((_accessibles(w, IA_A,  X), _accessibles(w, IA_Ai, X)))
+# _accessibles(w::Interval, ::_Topo_PO,    X::Integer) = Iterators.flatten((_accessibles(w, IA_O,  X), _accessibles(w, IA_Oi, X)))
+# _accessibles(w::Interval, ::_Topo_TPP,   X::Integer) = Iterators.flatten((_accessibles(w, IA_B,  X), _accessibles(w, IA_E,  X)))
+# _accessibles(w::Interval, ::_Topo_TPPi,  X::Integer) = Iterators.flatten((_accessibles(w, IA_Bi, X), _accessibles(w, IA_Ei, X)))
+_accessibles(w::Interval, ::_Topo_NTPP,  X::Integer) = _accessibles(w, IA_D, X)
+_accessibles(w::Interval, ::_Topo_NTPPi, X::Integer) = _accessibles(w, IA_Di, X)
 
 # RCC5 computed as a combination. TODO could actually be written more lightly as the combination of IA7 relations?
-enumAccBare(w::Interval, r::R where R<:_TopoRelRCC5,  XYZ::Vararg{Integer,1}) =
-	Iterators.flatten((enumAccBare(w, IA_r,  XYZ...) for RCC8_r in RCC52RCC8Relations(r) for IA_r in topo2IARelations(RCC8_r)))
+_accessibles(w::Interval, r::R where R<:_TopoRelRCC5,  XYZ::Vararg{Integer,1}) =
+	Iterators.flatten((_accessibles(w, IA_r,  XYZ...) for RCC8_r in RCC52RCC8Relations(r) for IA_r in topo2IARelations(RCC8_r)))
 
 #=
 

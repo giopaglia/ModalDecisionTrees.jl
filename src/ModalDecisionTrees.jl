@@ -66,7 +66,7 @@ include("modal-features.jl")
 # Test operators
 ################################################################################
 
-include("operators.jl")
+include("test-operators.jl")
 
 ################################################################################
 # Modal Logic structures
@@ -87,7 +87,7 @@ struct _startWithRelationGlob           <: _initCondition end; const startWithRe
 struct _startAtCenter                   <: _initCondition end; const startAtCenter          = _startAtCenter();
 struct _startAtWorld{wT<:AbstractWorld} <: _initCondition w::wT end;
 
-initWorldSet(initConditions::AbstractVector{<:_initCondition}, worldTypes::AbstractVector{<:Type#={<:AbstractWorld}=#}, args::Vararg) =
+initWorldSet(initConditions::AbstractVector{<:_initCondition}, worldTypes::AbstractVector{<:Type#={<:AbstractWorld}=#}, args...) =
     [initWorldSet(iC, WT, args...) for (iC, WT) in zip(initConditions, Vector{Type{<:AbstractWorld}}(worldTypes))]
 
 initWorldSet(initCondition::_startWithRelationGlob, ::Type{WorldType}, channel_size::NTuple{N,Integer} where N) where {WorldType<:AbstractWorld} =
