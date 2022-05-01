@@ -1,6 +1,6 @@
 using DelimitedFiles
 
-function load_data(name)
+function ModalDecisionTrees.load_data(name)
     datasets = ["iris", "adult", "digits"]
     data_path = joinpath(dirname(pathof(ModalDecisionTrees)), "..", "test/data/")
 

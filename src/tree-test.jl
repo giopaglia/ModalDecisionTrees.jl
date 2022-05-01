@@ -4,7 +4,7 @@ using ReTest
 
 using Random
 using BenchmarkTools
-using StructuredArrays
+using FillArrays
 rng = MersenneTwister(1)
 
 n_insts, n_insts_h = 10, 5
@@ -15,9 +15,9 @@ n_pts = 5
 features  = ModalFeature[]
 featsnops = Vector{TestOperatorFun}[]
 for i_attr in 1:n_attrs
-    push!(features, AttributeMinimumFeatureType(i_attr))
+    push!(features, SingleAttributeMin(i_attr))
     push!(featsnops, [≥])
-    push!(features, AttributeMaximumFeatureType(i_attr))
+    push!(features, SingleAttributeMax(i_attr))
     push!(featsnops, [≤])
 end
 
@@ -28,7 +28,7 @@ Xs = MultiFrameModalDataset([
     )
 ]);
 
-W = UniformVector{Int}(1,n_insts)
+W = default_weights(n_insts)
 
 
 kwargs = (;

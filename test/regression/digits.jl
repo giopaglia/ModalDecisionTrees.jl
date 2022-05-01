@@ -1,6 +1,6 @@
 @testset "digits.jl" begin
 
-X, Y = load_data("digits")
+X, Y = ModalDecisionTrees.load_data("digits")
 
 Y = float.(Y) # labels/targets to Float to enable regression
 

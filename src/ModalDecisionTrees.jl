@@ -2,87 +2,71 @@ module ModalDecisionTrees
 
 ################################################################################
 
-import Base: length, show
+import Base: show, length
 
-using StructuredArrays: UniformVector # , FillArrays # TODO choose one
-
+using FillArrays
+using FunctionWrappers: FunctionWrapper
 using LinearAlgebra
 using Logging: LogLevel, @logmsg
 using Printf
 using Random
-using StatsBase
 using ReTest
-
-using FunctionWrappers: FunctionWrapper
-
-################################################################################
-
-# TODO update these
-export Decision, DTNode, DTLeaf, DTInternal, DTree, DForest,
-        NSDTLeaf,
-        is_leaf_node, is_modal_node,
-        num_nodes, height, modal_height,
-        ConfusionMatrix, confusion_matrix, compute_metrics, mean_squared_error, R2, load_data,
-        initWorldSet
+using StatsBase
 
 ################################################################################
-# TODO fix
+
+export Decision,                # Decision (e.g., (e.g., ⟨L⟩ (minimum(A2) ≤ 10) )
+        DTLeaf, NSDTLeaf,       # Decision leaf (simple or complex)
+        DTInternal,             # Internal decision node
+        DTNode,                 # Decision node (leaf or internal)
+        DTree,                  # Decision tree
+        DForest,                # Decision forest
+        #
+        num_nodes, height, modal_height
+
+################################################################################
+################################################################################
 ################################################################################
 
-export  DTOverview, DTDebug, DTDetail,
-        throw_n_log
-
-# Log single algorithm overview (e.g. splits performed in decision tree building)
+# Log overview info (e.g., splits performed in decision tree building)
 const DTOverview = LogLevel(-500)
 # Log debug info
 const DTDebug = LogLevel(-1000)
 # Log more detailed debug info
 const DTDetail = LogLevel(-1500)
 
-# TODO Use RegressionLabel instead of Float64 and ClassificationLabel instead of String where it is appropriate!
-# Actually, the distinction must be made between String and Numbers (Categorical and Numeral (Numeral Continuous like Float64 or Numeral Discrete like Integers))
-# But this can be dangerous because if not coded right Categorical cases indexed by Integers end up being considered Numerical cases
-# TODO remove treeclassifier.jl, treeregressor.jl, and these two definitions
-const ClassificationLabel = String
-const RegressionLabel = Float64 # AbstractFloat
-
+# Log string with @error and throw error
 function throw_n_log(str::AbstractString, err_type = ErrorException)
     @error str
     throw(err_type(str))
 end
 
-# # ScikitLearn API
-# export DecisionTreeClassifier,
-# #        DecisionTreeRegressor, RandomForestClassifier,
-# #        RandomForestRegressor, AdaBoostStumpClassifier,
-# #        # Should we export these functions? They have a conflict with
-# #        # DataFrames/RDataset over fit!, and users can always
-# #        # `using ScikitLearnBase`.
-#             predict,
-#             # predict_proba,
-#             fit!, get_classes
-
 ################################################################################
-################################################################################
+# Basics
 ################################################################################
 
-# TODO Label could also be Nothing! Think about it
+# Classification and regression labels
 CLabel  = Union{String,Integer}
 RLabel  = AbstractFloat
 Label   = Union{CLabel,RLabel}
 # Raw labels
-_CLabel = Integer
+_CLabel = Integer # (classification labels are internally represented as integers)
 _Label  = Union{_CLabel,RLabel}
-
 
 include("util.jl")
 include("metrics.jl")
 
 ################################################################################
-# Data Feature types
+# Modal features
 ################################################################################
 
 include("modal-features.jl")
+
+################################################################################
+# Test operators
+################################################################################
+
+include("operators.jl")
 
 ################################################################################
 # Modal Logic structures
@@ -107,10 +91,10 @@ initWorldSet(initConditions::AbstractVector{<:_initCondition}, worldTypes::Abstr
     [initWorldSet(iC, WT, args...) for (iC, WT) in zip(initConditions, Vector{Type{<:AbstractWorld}}(worldTypes))]
 
 initWorldSet(initCondition::_startWithRelationGlob, ::Type{WorldType}, channel_size::NTuple{N,Integer} where N) where {WorldType<:AbstractWorld} =
-    WorldSet{WorldType}([WorldType(ModalLogic.emptyWorld)])
+    WorldSet{WorldType}([WorldType(ModalLogic._emptyWorld())])
 
 initWorldSet(initCondition::_startAtCenter, ::Type{WorldType}, channel_size::NTuple{N,Integer} where N) where {WorldType<:AbstractWorld} =
-    WorldSet{WorldType}([WorldType(ModalLogic.centeredWorld, channel_size...)])
+    WorldSet{WorldType}([WorldType(ModalLogic._centeredWorld(), channel_size...)])
 
 initWorldSet(initCondition::_startAtWorld{WorldType}, ::Type{WorldType}, channel_size::NTuple{N,Integer} where N) where {WorldType<:AbstractWorld} =
     WorldSet{WorldType}([WorldType(initCondition.w)])
@@ -182,7 +166,7 @@ end
 # function _compute_purity( # faster_version assuming L<:Integer and labels going from 1:n_classes
 #     labels           ::AbstractVector{L},
 #     n_classes        ::Int,
-#     weights          ::AbstractVector{U} = UniformVector{Int}(1,length(labels));
+#     weights          ::AbstractVector{U} = default_weights(length(labels));
 #     loss_function    ::Union{Nothing,Function} = default_loss_function(L),
 # ) where {L<:CLabel, L<:Integer, U}
 #     nc = fill(zero(U), n_classes)
@@ -194,7 +178,7 @@ end
 # end
 function compute_purity(
     labels           ::AbstractVector{L},
-    weights          ::AbstractVector{U} = UniformVector{Int}(1,length(labels));
+    weights          ::AbstractVector{U} = default_weights(length(labels));
     loss_function    ::Union{Nothing,Function} = default_loss_function(L),
 ) where {L<:CLabel, U}
     nc = Dict{L, U}()
@@ -207,7 +191,7 @@ function compute_purity(
 end
 # function _compute_purity(
 #     labels           ::AbstractVector{L},
-#     weights          ::AbstractVector{U} = UniformVector{Int}(1,length(labels));
+#     weights          ::AbstractVector{U} = default_weights(length(labels));
 #     loss_function    ::Union{Nothing,Function} = default_loss_function(L),
 # ) where {L<:RLabel, U}
 #     sums = labels .* weights
@@ -216,11 +200,24 @@ end
 # end
 function compute_purity(
     labels           ::AbstractVector{L},
-    weights          ::AbstractVector{U} = UniformVector{Int}(1,length(labels));
+    weights          ::AbstractVector{U} = default_weights(length(labels));
     loss_function    ::Union{Nothing,Function} = default_loss_function(L),
 ) where {L<:RLabel, U}
     _compute_purity = _compute_purity(labels, weights = weights; loss_function = loss_function)
 end
+
+################################################################################
+################################################################################
+################################################################################
+
+# Default weights are optimized using FillArrays
+function default_weights(n::Integer)
+    Ones{Int64}(n)
+end
+_slice_weights(W::Ones{Int64}, inds::AbstractVector) = default_weights(length(inds))
+_slice_weights(W::Any,         inds::AbstractVector) = @view W[inds]
+_slice_weights(W::Ones{Int64}, i::Integer) = 1
+_slice_weights(W::Any,         i::Integer) = W[i]
 
 
 ################################################################################
@@ -343,7 +340,7 @@ predictions(leaf::NSDTLeaf; train_or_valid = true) = (train_or_valid ? leaf.supp
 
 ################################################################################
 
-# Decision inner node, holding a split-decision and a frame index
+# Internal decision node, holding a split-decision and a frame index
 struct DTInternal{T, L<:Label}
     # frame index + split-decision
     i_frame       :: Int64
@@ -467,7 +464,7 @@ struct DForest{L<:Label}
     # trees
     trees       :: Vector{<:DTree{L}}
     # metrics
-    metrics     :: PerformanceStruct
+    metrics     :: NamedTuple
 
     # create forest from vector of trees
     function DForest{L}(
@@ -484,13 +481,13 @@ struct DForest{L<:Label}
     # create forest from vector of trees, with attached metrics
     function DForest{L}(
         trees     :: AbstractVector{<:DTree},
-        metrics   :: PerformanceStruct,
+        metrics   :: NamedTuple,
     ) where {L<:Label}
         new{L}(collect(trees), metrics)
     end
     function DForest(
         trees     :: AbstractVector{<:DTree{L}},
-        metrics   :: PerformanceStruct,
+        metrics   :: NamedTuple,
     ) where {L<:Label}
         DForest{L}(trees, metrics)
     end
@@ -514,7 +511,7 @@ num_nodes(f::DForest) = sum(num_nodes.(f.trees))
 
 # Number of trees
 num_trees(f::DForest) = length(f.trees)
-length(f::DForest)    = num_trees(f)
+Base.length(f::DForest)    = num_trees(f)
 
 # Height
 height(leaf::AbstractDecisionLeaf)     = 0
@@ -532,9 +529,9 @@ n_samples(node::DTInternal;           train_or_valid = true) = n_samples(node.le
 n_samples(tree::DTree;                train_or_valid = true) = n_samples(tree.root; train_or_valid = train_or_valid)
 
 # TODO remove deprecated use num_leaves
-length(leaf::AbstractDecisionLeaf)     = num_leaves(leaf)    
-length(node::DTInternal) = num_leaves(node)
-length(tree::DTree)      = num_leaves(tree)        
+Base.length(leaf::AbstractDecisionLeaf)     = num_leaves(leaf)    
+Base.length(node::DTInternal) = num_leaves(node)
+Base.length(tree::DTree)      = num_leaves(tree)        
 
 ################################################################################
 ################################################################################
@@ -551,8 +548,8 @@ is_modal_node(tree::DTree)      = is_modal_node(tree.root)
 
 display_decision(node::DTInternal; threshold_display_method::Function = x -> x) =
     display_decision(node.i_frame, node.decision; threshold_display_method = threshold_display_method)
-display_decision_neg(node::DTInternal; threshold_display_method::Function = x -> x) =
-    display_decision_neg(node.i_frame, node.decision; threshold_display_method = threshold_display_method)
+display_decision_inverse(node::DTInternal; threshold_display_method::Function = x -> x) =
+    display_decision_inverse(node.i_frame, node.decision; threshold_display_method = threshold_display_method)
 
 ################################################################################
 ################################################################################
@@ -729,7 +726,7 @@ end
 
     @testset "Decision internal node (DTInternal)" begin
 
-        decision = Decision(ModalLogic.RelationGlob, AttributeMinimumFeatureType(1), >=, 10)
+        decision = Decision(ModalLogic.RelationGlob, SingleAttributeMin(1), >=, 10)
 
         reg_leaf, cls_leaf = DTLeaf([1.0,2.0]), DTLeaf([1,2])
 

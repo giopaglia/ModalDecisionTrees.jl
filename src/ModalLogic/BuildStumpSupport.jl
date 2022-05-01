@@ -19,9 +19,8 @@ Base.@propagate_inbounds function FeaturedWorldDataset(
 	fwd = initFeaturedWorldDataset(X, n_features)
 
 	# Load any (possible) external features
-	# TODO load also FWDFunctionFeatureType (abstract type FWDFeature)
-	if any(isa.(features, ExternalFWDFeatureType))
-		i_external_features = first.(filter(((i_feature,is_external_fwd),)->(is_external_fwd), collect(enumerate(isa.(features, ExternalFWDFeatureType)))))
+	if any(isa.(features, ExternalFWDFeature))
+		i_external_features = first.(filter(((i_feature,is_external_fwd),)->(is_external_fwd), collect(enumerate(isa.(features, ExternalFWDFeature)))))
 		for i_feature in i_external_features
 			feature = features[i_feature]
 			modalDatasetSetFeature(fwd, i_feature, feature.fwd)
@@ -29,7 +28,7 @@ Base.@propagate_inbounds function FeaturedWorldDataset(
 	end
 
 	# Load any internal features
-	i_features = first.(filter(((i_feature,is_external_fwd),)->!(is_external_fwd), collect(enumerate(isa.(features, ExternalFWDFeatureType)))))
+	i_features = first.(filter(((i_feature,is_external_fwd),)->!(is_external_fwd), collect(enumerate(isa.(features, ExternalFWDFeature)))))
 	enum_features = zip(i_features, features[i_features])
 
 	# Compute features
@@ -117,12 +116,12 @@ modalDatasetChannelSliceGet(fwc::T #=OneWorldFeaturedChannel{T}=#, w::OneWorld) 
 
 n_samples(fwd::OneWorldFeaturedWorldDataset{T}) where {T}  = size(fwd, 1)
 n_features(fwd::OneWorldFeaturedWorldDataset{T}) where {T} = size(fwd, 2)
-getindex(
+Base.getindex(
 	fwd         :: OneWorldFeaturedWorldDataset{T},
 	i_instance  :: Integer,
 	w           :: OneWorld,
 	i_feature   :: Integer) where {T} = fwd.d[i_instance, i_feature]
-size(fwd::OneWorldFeaturedWorldDataset{T}, args::Vararg) where {T} = size(fwd.d, args...)
+Base.size(fwd::OneWorldFeaturedWorldDataset{T}, args::Vararg) where {T} = size(fwd.d, args...)
 world_type(fwd::OneWorldFeaturedWorldDataset{T}) where {T} = OneWorld
 
 
@@ -153,12 +152,12 @@ modalDatasetChannelSliceGet(fwc::IntervalFeaturedChannel{T}, w::Interval) where 
 
 n_samples(fwd::IntervalFeaturedWorldDataset{T}) where {T}  = size(fwd, 3)
 n_features(fwd::IntervalFeaturedWorldDataset{T}) where {T} = size(fwd, 4)
-getindex(
+Base.getindex(
 	fwd         :: IntervalFeaturedWorldDataset{T},
 	i_instance  :: Integer,
 	w           :: Interval,
 	i_feature   :: Integer) where {T} = fwd.d[w.x, w.y, i_instance, i_feature]
-size(fwd::IntervalFeaturedWorldDataset{T}, args::Vararg) where {T} = size(fwd.d, args...)
+Base.size(fwd::IntervalFeaturedWorldDataset{T}, args::Vararg) where {T} = size(fwd.d, args...)
 world_type(fwd::IntervalFeaturedWorldDataset{T}) where {T} = Interval
 
 
@@ -189,12 +188,12 @@ modalDatasetChannelSliceGet(fwc::Interval2DFeaturedChannel{T}, w::Interval2D) wh
 
 n_samples(fwd::Interval2DFeaturedWorldDataset{T}) where {T}  = size(fwd, 5)
 n_features(fwd::Interval2DFeaturedWorldDataset{T}) where {T} = size(fwd, 6)
-getindex(
+Base.getindex(
 	fwd         :: Interval2DFeaturedWorldDataset{T},
 	i_instance  :: Integer,
 	w           :: Interval2D,
 	i_feature   :: Integer) where {T} = fwd.d[w.x.x, w.x.y, w.y.x, w.y.y, i_instance, i_feature]
-size(fwd::Interval2DFeaturedWorldDataset{T}, args::Vararg) where {T} = size(fwd.d, args...)
+Base.size(fwd::Interval2DFeaturedWorldDataset{T}, args::Vararg) where {T} = size(fwd.d, args...)
 world_type(fwd::Interval2DFeaturedWorldDataset{T}) where {T} = Interval2D
 
 
@@ -246,13 +245,13 @@ end
 n_samples(fmds::GenericFMDStumpSupport)  = size(fmds, 1)
 n_featsnaggrs(fmds::GenericFMDStumpSupport) = size(fmds, 2)
 n_relations(fmds::GenericFMDStumpSupport) = size(fmds, 3)
-getindex(
+Base.getindex(
 	fmds         :: GenericFMDStumpSupport{T, WorldType},
 	i_instance   :: Integer,
 	w            :: WorldType,
 	i_featsnaggr :: Integer,
 	i_relation   :: Integer) where {T, WorldType<:AbstractWorld} = fmds.d[i_instance, i_featsnaggr, i_relation][w]
-size(fmds::GenericFMDStumpSupport, args::Vararg) = size(fmds.d, args...)
+Base.size(fmds::GenericFMDStumpSupport, args::Vararg) = size(fmds.d, args...)
 world_type(fmds::GenericFMDStumpSupport{T, WorldType}) where {T, WorldType} = WorldType
 
 initFMDStumpSupport(fmd::FeatModalDataset{T, WorldType}, n_featsnaggrs::Integer, n_relations::Integer; perform_initialization = false) where {T, WorldType} = begin
@@ -284,13 +283,13 @@ end
 n_samples(fmds::OneWorldFMDStumpSupport{T}) where {T}  = size(fmds, 1)
 n_featsnaggrs(fmds::OneWorldFMDStumpSupport{T}) where {T} = size(fmds, 2)
 n_relations(fmds::OneWorldFMDStumpSupport{T}) where {T} = size(fmds, 3)
-getindex(
+Base.getindex(
 	fmds         :: OneWorldFMDStumpSupport{T},
 	i_instance   :: Integer,
 	w            :: OneWorld,
 	i_featsnaggr :: Integer,
 	i_relation   :: Integer) where {T} = fmds.d[i_instance, i_featsnaggr, i_relation]
-size(fmds::OneWorldFMDStumpSupport{T}, args::Vararg) where {T} = size(fmds.d, args...)
+Base.size(fmds::OneWorldFMDStumpSupport{T}, args::Vararg) where {T} = size(fmds.d, args...)
 world_type(fmds::OneWorldFMDStumpSupport{T}) where {T} = OneWorld
 
 initFMDStumpSupport(fmd::FeatModalDataset{T, OneWorld}, n_featsnaggrs::Integer, n_relations::Integer; perform_initialization = false) where {T} = begin
@@ -322,13 +321,13 @@ end
 n_samples(fmds::IntervalFMDStumpSupport{T}) where {T}  = size(fmds, 3)
 n_featsnaggrs(fmds::IntervalFMDStumpSupport{T}) where {T} = size(fmds, 4)
 n_relations(fmds::IntervalFMDStumpSupport{T}) where {T} = size(fmds, 5)
-getindex(
+Base.getindex(
 	fmds         :: IntervalFMDStumpSupport{T},
 	i_instance   :: Integer,
 	w            :: Interval,
 	i_featsnaggr :: Integer,
 	i_relation   :: Integer) where {T} = fmds.d[w.x, w.y, i_instance, i_featsnaggr, i_relation]
-size(fmds::IntervalFMDStumpSupport{T}, args::Vararg) where {T} = size(fmds.d, args...)
+Base.size(fmds::IntervalFMDStumpSupport{T}, args::Vararg) where {T} = size(fmds.d, args...)
 world_type(fmds::IntervalFMDStumpSupport{T}) where {T} = Interval
 
 initFMDStumpSupport(fmd::FeatModalDataset{T, Interval}, n_featsnaggrs::Integer, n_relations::Integer; perform_initialization = false) where {T} = begin
@@ -395,13 +394,13 @@ end
 n_samples(fmds::Interval2DFMDStumpSupport{T}) where {T}  = size(fmds, 3)
 n_featsnaggrs(fmds::Interval2DFMDStumpSupport{T}) where {T} = size(fmds, 4)
 n_relations(fmds::Interval2DFMDStumpSupport{T}) where {T} = size(fmds, 5)
-getindex(
+Base.getindex(
 	fmds         :: Interval2DFMDStumpSupport{T},
 	i_instance   :: Integer,
 	w            :: Interval2D,
 	i_featsnaggr :: Integer,
 	i_relation   :: Integer) where {T} = fmds.d[w.x.x+div((w.x.y-2)*(w.x.y-1),2), w.y.x+div((w.y.y-2)*(w.y.y-1),2), i_instance, i_featsnaggr, i_relation]
-size(fmds::Interval2DFMDStumpSupport{T}, args::Vararg) where {T} = size(fmds.d, args...)
+Base.size(fmds::Interval2DFMDStumpSupport{T}, args::Vararg) where {T} = size(fmds.d, args...)
 world_type(fmds::Interval2DFMDStumpSupport{T}) where {T} = Interval2D
 
 initFMDStumpSupport(fmd::FeatModalDataset{T, Interval2D}, n_featsnaggrs::Integer, n_relations::Integer; perform_initialization = false) where {T} = begin
@@ -432,11 +431,11 @@ end
 
 n_samples(fmds::FMDStumpGlobalSupportArray{T}) where {T}  = size(fmds, 1)
 n_featsnaggrs(fmds::FMDStumpGlobalSupportArray{T}) where {T} = size(fmds, 2)
-getindex(
+Base.getindex(
 	fmds         :: FMDStumpGlobalSupportArray{T},
 	i_instance   :: Integer,
 	i_featsnaggr  :: Integer) where {T} = fmds.d[i_instance, i_featsnaggr]
-size(fmds::FMDStumpGlobalSupportArray{T}, args::Vararg) where {T} = size(fmds.d, args...)
+Base.size(fmds::FMDStumpGlobalSupportArray{T}, args::Vararg) where {T} = size(fmds.d, args...)
 
 initFMDStumpGlobalSupport(fmd::FeatModalDataset{T}, n_featsnaggrs::Integer) where {T} =
 	FMDStumpGlobalSupportArray{T}(Array{T, 2}(undef, n_samples(fmd), n_featsnaggrs))

@@ -8,7 +8,7 @@ function benchmark_regression(build::Function, apply::Function)
     suite["APPLY"]["DIGITS"]    = BenchmarkGroup()
     
     # using DIGITS dataset
-    X, Y = load_data("digits")
+    X, Y = ModalDecisionTrees.load_data("digits")
 
     m, n = size(X)
     X_Any = Array{Any}(undef, m, n)

@@ -29,8 +29,8 @@ const IA_DiI = _IA2DRel(IA_Di       , RelationId); const IA_DiU = _IA2DRel(IA_Di
 const IA_OiI = _IA2DRel(IA_Oi       , RelationId); const IA_OiU = _IA2DRel(IA_Oi       , RelationGlob); const IA_OiA = _IA2DRel(IA_Oi       , IA_A); const IA_OiL = _IA2DRel(IA_Oi       , IA_L); const IA_OiB = _IA2DRel(IA_Oi       , IA_B); const IA_OiE = _IA2DRel(IA_Oi       , IA_E); const IA_OiD = _IA2DRel(IA_Oi       , IA_D); const IA_OiO = _IA2DRel(IA_Oi       , IA_O); const IA_OiAi = _IA2DRel(IA_Oi       , IA_Ai); const IA_OiLi = _IA2DRel(IA_Oi       , IA_Li); const IA_OiBi = _IA2DRel(IA_Oi       , IA_Bi); const IA_OiEi = _IA2DRel(IA_Oi       , IA_Ei); const IA_OiDi = _IA2DRel(IA_Oi       , IA_Di); const IA_OiOi = _IA2DRel(IA_Oi       , IA_Oi);
 
 # Print 2D Interval Algebra relations
-display_rel_short(::_IA2DRel{_XR,_YR}) where {_XR<:_IABase,_YR<:_IABase} =
-	string(display_rel_short(_XR()), ",", display_rel_short(_YR())); 
+Base.show(io::IO, ::_IA2DRel{_XR,_YR}) where {_XR<:_IABase,_YR<:_IABase} =
+    print(io, "$(_XR()),$(_YR())")
 
 # 13^2-1=168 Rectangle Algebra relations
 const IA2DRelations = [
@@ -210,7 +210,7 @@ const _IA2DRelMax = Union{_RelationGlob,_IA_L,_IA_Li,_IA_D}
 const _IA2DRelMin = Union{_RelationId,_IA_O,_IA_Oi,_IA_Bi,_IA_Ei,_IA_Di}
 const _IA2DRelVal = Union{_IA_A,_IA_Ai,_IA_B,_IA_E}
 
-# enumAccReprAggr(f::Union{AttributeMinimumFeatureType,AttributeMaximumFeatureType}, a::Union{typeof(minimum),typeof(maximum)}, w::Interval2D, r::_IA2DRel{R1,R2} where {R1<:_IA2DRelMax,R2<:_IA2DRelMax},  X::Integer) = IterTools.imap(Interval2D, Iterators.product(enumAccReprAggr(f, a, w.x, rx, X), enumAccReprAggr(f, a, w.y, ry, Y)))
+# enumAccReprAggr(f::Union{SingleAttributeMin,SingleAttributeMax}, a::Union{typeof(minimum),typeof(maximum)}, w::Interval2D, r::_IA2DRel{R1,R2} where {R1<:_IA2DRelMax,R2<:_IA2DRelMax},  X::Integer) = IterTools.imap(Interval2D, Iterators.product(enumAccReprAggr(f, a, w.x, rx, X), enumAccReprAggr(f, a, w.y, ry, Y)))
 
 ################################################################################
 # END IA2D relations
