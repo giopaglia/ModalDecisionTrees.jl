@@ -18,8 +18,8 @@
 
 # show(io::IO, r::Interval) = print(io, "($(x)×$(y))")
 
-# enumAccBare(w::Point, ::_RelationId, XYZ::Vararg{Integer,N}) where N = [(w.x,)]
-# enumAccessibles(S::AbstractWorldSet{Point}, r::_RelationGlob, X::Integer) =
+# _accessibles(w::Point, ::_RelationId, XYZ::Vararg{Integer,N}) where N = [(w.x,)]
+# accessibles(S::AbstractWorldSet{Point}, r::_RelationGlob, X::Integer) =
 # 	IterTools.imap(Point, 1:X)
 
 # worldTypeComplexity(::Type{Interval}) = 1

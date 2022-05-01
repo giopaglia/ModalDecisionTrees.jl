@@ -35,18 +35,18 @@ enumPairsIn(a::Integer, b::Integer) =
 enumShortPairsIn(a::Integer, b::Integer) =
 	IterTools.imap((x)->(x,x+1), a:b-1)
 
-enumAccReprAggr(f::ModalFeature, a::TestOperatorFun, ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = IterTools.imap(Interval, enumPairsIn(1, X+1))
+accessibles_aggr(f::ModalFeature, a::TestOperatorFun, ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = IterTools.imap(Interval, enumPairsIn(1, X+1))
 
-enumAccReprAggr(f::Union{SingleAttributeMin,SingleAttributeMax}, a::Union{typeof(minimum),typeof(maximum)}, ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = IterTools.imap(Interval, enumShortPairsIn(1, X+1))
-enumAccReprAggr(f::Union{SingleAttributeMax}, a::typeof(maximum), ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = Interval[Interval(1, X+1)  ]
-enumAccReprAggr(f::Union{SingleAttributeMin}, a::typeof(minimum), ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = Interval[Interval(1, X+1)  ]
+accessibles_aggr(f::Union{SingleAttributeMin,SingleAttributeMax}, a::Union{typeof(minimum),typeof(maximum)}, ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = IterTools.imap(Interval, enumShortPairsIn(1, X+1))
+accessibles_aggr(f::Union{SingleAttributeMax}, a::typeof(maximum), ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = Interval[Interval(1, X+1)  ]
+accessibles_aggr(f::Union{SingleAttributeMin}, a::typeof(minimum), ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = Interval[Interval(1, X+1)  ]
 
-enumAccReprAggr(f::Union{SingleAttributeSoftMin,SingleAttributeSoftMax}, a::Union{typeof(minimum),typeof(maximum)}, ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = IterTools.imap(Interval, enumShortPairsIn(1, X+1))
-enumAccReprAggr(f::Union{SingleAttributeSoftMax}, a::typeof(maximum), ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = Interval[Interval(1, X+1)  ]
-enumAccReprAggr(f::Union{SingleAttributeSoftMin}, a::typeof(minimum), ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = Interval[Interval(1, X+1)  ]
+accessibles_aggr(f::Union{SingleAttributeSoftMin,SingleAttributeSoftMax}, a::Union{typeof(minimum),typeof(maximum)}, ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = IterTools.imap(Interval, enumShortPairsIn(1, X+1))
+accessibles_aggr(f::Union{SingleAttributeSoftMax}, a::typeof(maximum), ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = Interval[Interval(1, X+1)  ]
+accessibles_aggr(f::Union{SingleAttributeSoftMin}, a::typeof(minimum), ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = Interval[Interval(1, X+1)  ]
 
-enumAccBare(w::Interval, ::_RelationId, XYZ::Vararg{Integer,N}) where N = [(w.x, w.y)]
-enumAccessibles(S::Union{Interval,AbstractWorldSet{Interval}}, r::_RelationGlob, X::Integer) =
+_accessibles(w::Interval, ::_RelationId, XYZ::Vararg{Integer,N}) where N = [(w.x, w.y)]
+accessibles(S::Union{Interval,AbstractWorldSet{Interval}}, r::_RelationGlob, X::Integer) =
 	IterTools.imap(Interval, enumPairsIn(1, X+1))
 
 
