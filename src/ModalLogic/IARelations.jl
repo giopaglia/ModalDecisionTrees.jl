@@ -71,26 +71,26 @@ const IA3Relations = [IA_I, IA_L, IA_Li]
 const IARelations_extended = [RelationGlob, IARelations...]
 
 # Enumerate accessible worlds from a single world
-enumAccBare(w::Interval, ::_IA_A,  X::Integer) = zip(Iterators.repeated(w.y), w.y+1:X+1)
-enumAccBare(w::Interval, ::_IA_Ai, X::Integer) = zip(1:w.x-1, Iterators.repeated(w.x))
-enumAccBare(w::Interval, ::_IA_L,  X::Integer) = enumPairsIn(w.y+1, X+1)
-enumAccBare(w::Interval, ::_IA_Li, X::Integer) = enumPairsIn(1, w.x-1)
-enumAccBare(w::Interval, ::_IA_B,  X::Integer) = zip(Iterators.repeated(w.x), w.x+1:w.y-1)
-enumAccBare(w::Interval, ::_IA_Bi, X::Integer) = zip(Iterators.repeated(w.x), w.y+1:X+1)
-enumAccBare(w::Interval, ::_IA_E,  X::Integer) = zip(w.x+1:w.y-1, Iterators.repeated(w.y))
-enumAccBare(w::Interval, ::_IA_Ei, X::Integer) = zip(1:w.x-1, Iterators.repeated(w.y))
-enumAccBare(w::Interval, ::_IA_D,  X::Integer) = enumPairsIn(w.x+1, w.y-1)
-enumAccBare(w::Interval, ::_IA_Di, X::Integer) = Iterators.product(1:w.x-1, w.y+1:X+1)
-enumAccBare(w::Interval, ::_IA_O,  X::Integer) = Iterators.product(w.x+1:w.y-1, w.y+1:X+1)
-enumAccBare(w::Interval, ::_IA_Oi, X::Integer) = Iterators.product(1:w.x-1, w.x+1:w.y-1)
+_accessibles(w::Interval, ::_IA_A,  X::Integer) = zip(Iterators.repeated(w.y), w.y+1:X+1)
+_accessibles(w::Interval, ::_IA_Ai, X::Integer) = zip(1:w.x-1, Iterators.repeated(w.x))
+_accessibles(w::Interval, ::_IA_L,  X::Integer) = enumPairsIn(w.y+1, X+1)
+_accessibles(w::Interval, ::_IA_Li, X::Integer) = enumPairsIn(1, w.x-1)
+_accessibles(w::Interval, ::_IA_B,  X::Integer) = zip(Iterators.repeated(w.x), w.x+1:w.y-1)
+_accessibles(w::Interval, ::_IA_Bi, X::Integer) = zip(Iterators.repeated(w.x), w.y+1:X+1)
+_accessibles(w::Interval, ::_IA_E,  X::Integer) = zip(w.x+1:w.y-1, Iterators.repeated(w.y))
+_accessibles(w::Interval, ::_IA_Ei, X::Integer) = zip(1:w.x-1, Iterators.repeated(w.y))
+_accessibles(w::Interval, ::_IA_D,  X::Integer) = enumPairsIn(w.x+1, w.y-1)
+_accessibles(w::Interval, ::_IA_Di, X::Integer) = Iterators.product(1:w.x-1, w.y+1:X+1)
+_accessibles(w::Interval, ::_IA_O,  X::Integer) = Iterators.product(w.x+1:w.y-1, w.y+1:X+1)
+_accessibles(w::Interval, ::_IA_Oi, X::Integer) = Iterators.product(1:w.x-1, w.x+1:w.y-1)
 
-enumAccBare(w::Interval, ::_IA_AorO,   X::Integer) = Iterators.product(w.x+1:w.y, w.y+1:X+1)
-enumAccBare(w::Interval, ::_IA_AiorOi, X::Integer) = Iterators.product(1:w.x-1,   w.x:w.y-1)
+_accessibles(w::Interval, ::_IA_AorO,   X::Integer) = Iterators.product(w.x+1:w.y, w.y+1:X+1)
+_accessibles(w::Interval, ::_IA_AiorOi, X::Integer) = Iterators.product(1:w.x-1,   w.x:w.y-1)
 
-enumAccBare(w::Interval, ::_IA_DorBorE,     X::Integer) = Iterators.flatten((enumAccBare(w, IA_B,  X), enumAccBare(w, IA_D,  X), enumAccBare(w, IA_E,  X)))
-enumAccBare(w::Interval, ::_IA_DiorBiorEi,  X::Integer) = Iterators.flatten((enumAccBare(w, IA_Bi, X), enumAccBare(w, IA_Di, X), enumAccBare(w, IA_Ei, X)))
+_accessibles(w::Interval, ::_IA_DorBorE,     X::Integer) = Iterators.flatten((_accessibles(w, IA_B,  X), _accessibles(w, IA_D,  X), _accessibles(w, IA_E,  X)))
+_accessibles(w::Interval, ::_IA_DiorBiorEi,  X::Integer) = Iterators.flatten((_accessibles(w, IA_Bi, X), _accessibles(w, IA_Di, X), _accessibles(w, IA_Ei, X)))
 
-enumAccBare(w::Interval, ::_IA_I,  X::Integer) = Iterators.flatten((
+_accessibles(w::Interval, ::_IA_I,  X::Integer) = Iterators.flatten((
 	# Iterators.product(1:w.x-1, w.y+1:X+1),   # Di
 	# Iterators.product(w.x:w.y, w.y+1:X+1),   # A+O+Bi
 	Iterators.product(1:w.y, w.y+1:X+1),       # Di+A+O+Bi
@@ -102,11 +102,11 @@ enumAccBare(w::Interval, ::_IA_I,  X::Integer) = Iterators.flatten((
 
 
 # More efficient implementations for edge cases
-enumAccessibles(S::AbstractWorldSet{Interval}, ::_IA_L, X::Integer) =
-	enumAccessibles(nth(S, argmin(map((w)->w.y, S))), IA_L, X)
-enumAccessibles(S::AbstractWorldSet{Interval}, ::_IA_Li, X::Integer) =
-	enumAccessibles(nth(S, argmax(map((w)->w.x, S))), IA_Li, X)
-enumAccessibles(S::AbstractWorldSet{Interval}, ::_IA_A, X::Integer) =
+accessibles(S::AbstractWorldSet{Interval}, ::_IA_L, X::Integer) =
+	accessibles(nth(S, argmin(map((w)->w.y, S))), IA_L, X)
+accessibles(S::AbstractWorldSet{Interval}, ::_IA_Li, X::Integer) =
+	accessibles(nth(S, argmax(map((w)->w.x, S))), IA_Li, X)
+accessibles(S::AbstractWorldSet{Interval}, ::_IA_A, X::Integer) =
 	IterTools.imap(Interval,
 		Iterators.flatten(
 			IterTools.imap((y)->zip(Iterators.repeated(y), y+1:X+1),
@@ -114,7 +114,7 @@ enumAccessibles(S::AbstractWorldSet{Interval}, ::_IA_A, X::Integer) =
 			)
 		)
 	)
-enumAccessibles(S::AbstractWorldSet{Interval}, ::_IA_Ai, X::Integer) =
+accessibles(S::AbstractWorldSet{Interval}, ::_IA_Ai, X::Integer) =
 	IterTools.imap(Interval,
 		Iterators.flatten(
 			IterTools.imap((x)->zip(1:x-1, Iterators.repeated(x)),
@@ -124,28 +124,28 @@ enumAccessibles(S::AbstractWorldSet{Interval}, ::_IA_Ai, X::Integer) =
 	)
 
 # Other options:
-# enumAccessibles2_1_2(S::AbstractWorldSet{Interval}, ::_IA_L, X::Integer) =
-# 	IterTools.imap(Interval, enumAccBare(Base.argmin((w.y for w in S)), IA_L, X))
-# enumAccessibles2_1_2(S::AbstractWorldSet{Interval}, ::_IA_Li, X::Integer) =
-# 	IterTools.imap(Interval, enumAccBare(Base.argmax((w.x for w in S)), IA_Li, X))
-# enumAccessibles2_2(S::AbstractWorldSet{Interval}, ::_IA_L, X::Integer) = begin
+# accessibles2_1_2(S::AbstractWorldSet{Interval}, ::_IA_L, X::Integer) =
+# 	IterTools.imap(Interval, _accessibles(Base.argmin((w.y for w in S)), IA_L, X))
+# accessibles2_1_2(S::AbstractWorldSet{Interval}, ::_IA_Li, X::Integer) =
+# 	IterTools.imap(Interval, _accessibles(Base.argmax((w.x for w in S)), IA_Li, X))
+# accessibles2_2(S::AbstractWorldSet{Interval}, ::_IA_L, X::Integer) = begin
 # 	m = argmin(map((w)->w.y, S))
-# 	IterTools.imap(Interval, enumAccBare([w for (i,w) in enumerate(S) if i == m][1], IA_L, X))
+# 	IterTools.imap(Interval, _accessibles([w for (i,w) in enumerate(S) if i == m][1], IA_L, X))
 # end
-# enumAccessibles2_2(S::AbstractWorldSet{Interval}, ::_IA_Li, X::Integer) = begin
+# accessibles2_2(S::AbstractWorldSet{Interval}, ::_IA_Li, X::Integer) = begin
 # 	m = argmax(map((w)->w.x, S))
-# 	IterTools.imap(Interval, enumAccBare([w for (i,w) in enumerate(S) if i == m][1], IA_Li, X))
+# 	IterTools.imap(Interval, _accessibles([w for (i,w) in enumerate(S) if i == m][1], IA_Li, X))
 # end
 # # This makes sense if we have 2-Tuples instead of intervals
 # function snd((a,b)::Tuple) b end
 # function fst((a,b)::Tuple) a end
-# enumAccessibles2_1(S::AbstractWorldSet{Interval}, ::_IA_L, X::Integer) = 
+# accessibles2_1(S::AbstractWorldSet{Interval}, ::_IA_L, X::Integer) = 
 # 	IterTools.imap(Interval,
-# 		enumAccBare(S[argmin(map(snd, S))], IA_L, X)
+# 		_accessibles(S[argmin(map(snd, S))], IA_L, X)
 # 	)
-# enumAccessibles2_1(S::AbstractWorldSet{Interval}, ::_IA_Li, X::Integer) = 
+# accessibles2_1(S::AbstractWorldSet{Interval}, ::_IA_Li, X::Integer) = 
 # 	IterTools.imap(Interval,
-# 		enumAccBare(S[argmax(map(fst, S))], IA_Li, X)
+# 		_accessibles(S[argmax(map(fst, S))], IA_Li, X)
 # 	)
 
 
@@ -196,86 +196,86 @@ enumAccRepr(test_operator::_TestOpLeq, w::Interval, ::_IA_Oi, X::Integer) = (1 <
 =#
 
 # TODO maybe better to explicit the cases
-enumAccReprAggr(f::Union{SingleAttributeMin,SingleAttributeMax}, a::Union{typeof(minimum),typeof(maximum)}, w::Interval, r::_IA_L,  X::Integer) = (w.y+1 < X+1)   ? IterTools.imap(Interval, enumShortPairsIn(w.y+1, X+1))   : Interval[]
-enumAccReprAggr(f::Union{SingleAttributeMin,SingleAttributeMax}, a::Union{typeof(minimum),typeof(maximum)}, w::Interval, r::_IA_Li, X::Integer) = (1 < w.x-1)     ? IterTools.imap(Interval, enumShortPairsIn(1, w.x-1))     : Interval[]
-enumAccReprAggr(f::Union{SingleAttributeMin,SingleAttributeMax}, a::Union{typeof(minimum),typeof(maximum)}, w::Interval, r::_IA_D,  X::Integer) = (w.x+1 < w.y-1) ? IterTools.imap(Interval, enumShortPairsIn(w.x+1, w.y-1)) : Interval[]
+accessibles_aggr(f::Union{SingleAttributeMin,SingleAttributeMax}, a::Union{typeof(minimum),typeof(maximum)}, w::Interval, r::_IA_L,  X::Integer) = (w.y+1 < X+1)   ? IterTools.imap(Interval, enumShortPairsIn(w.y+1, X+1))   : Interval[]
+accessibles_aggr(f::Union{SingleAttributeMin,SingleAttributeMax}, a::Union{typeof(minimum),typeof(maximum)}, w::Interval, r::_IA_Li, X::Integer) = (1 < w.x-1)     ? IterTools.imap(Interval, enumShortPairsIn(1, w.x-1))     : Interval[]
+accessibles_aggr(f::Union{SingleAttributeMin,SingleAttributeMax}, a::Union{typeof(minimum),typeof(maximum)}, w::Interval, r::_IA_D,  X::Integer) = (w.x+1 < w.y-1) ? IterTools.imap(Interval, enumShortPairsIn(w.x+1, w.y-1)) : Interval[]
 
-# enumAccReprAggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, r::_IA_L,  X::Integer) = (w.y+1 < X+1)   ? IterTools.imap(Interval, enumShortPairsIn(w.y+1, X+1))   : Interval[]
-# enumAccReprAggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, r::_IA_Li, X::Integer) = (1 < w.x-1)     ? IterTools.imap(Interval, enumShortPairsIn(1, w.x-1))     : Interval[]
-# enumAccReprAggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, r::_IA_D,  X::Integer) = (w.x+1 < w.y-1) ? IterTools.imap(Interval, enumShortPairsIn(w.x+1, w.y-1)) : Interval[]
+# accessibles_aggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, r::_IA_L,  X::Integer) = (w.y+1 < X+1)   ? IterTools.imap(Interval, enumShortPairsIn(w.y+1, X+1))   : Interval[]
+# accessibles_aggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, r::_IA_Li, X::Integer) = (1 < w.x-1)     ? IterTools.imap(Interval, enumShortPairsIn(1, w.x-1))     : Interval[]
+# accessibles_aggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, r::_IA_D,  X::Integer) = (w.x+1 < w.y-1) ? IterTools.imap(Interval, enumShortPairsIn(w.x+1, w.y-1)) : Interval[]
 
-# enumAccReprAggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_L,  X::Integer) = (w.y+1 < X+1)   ? IterTools.imap(Interval, enumShortPairsIn(w.y+1, X+1))   : Interval[]
-# enumAccReprAggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_Li, X::Integer) = (1 < w.x-1)     ? IterTools.imap(Interval, enumShortPairsIn(1, w.x-1))     : Interval[]
-# enumAccReprAggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_D,  X::Integer) = (w.x+1 < w.y-1) ? IterTools.imap(Interval, enumShortPairsIn(w.x+1, w.y-1)) : Interval[]
-
-
-enumAccReprAggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, r::_IA_L,  X::Integer) = (w.y+1 < X+1)   ? Interval[Interval(w.y+1, X+1)  ] : Interval[]
-enumAccReprAggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, r::_IA_Li, X::Integer) = (1 < w.x-1)     ? Interval[Interval(1, w.x-1)    ] : Interval[]
-enumAccReprAggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, r::_IA_D,  X::Integer) = (w.x+1 < w.y-1) ? Interval[Interval(w.x+1, w.y-1)] : Interval[]
-
-enumAccReprAggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, r::_IA_L,  X::Integer) = (w.y+1 < X+1)   ? Interval[Interval(w.y+1, X+1)  ] : Interval[]
-enumAccReprAggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, r::_IA_Li, X::Integer) = (1 < w.x-1)     ? Interval[Interval(1, w.x-1)    ] : Interval[]
-enumAccReprAggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, r::_IA_D,  X::Integer) = (w.x+1 < w.y-1) ? Interval[Interval(w.x+1, w.y-1)] : Interval[]
+# accessibles_aggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_L,  X::Integer) = (w.y+1 < X+1)   ? IterTools.imap(Interval, enumShortPairsIn(w.y+1, X+1))   : Interval[]
+# accessibles_aggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_Li, X::Integer) = (1 < w.x-1)     ? IterTools.imap(Interval, enumShortPairsIn(1, w.x-1))     : Interval[]
+# accessibles_aggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_D,  X::Integer) = (w.x+1 < w.y-1) ? IterTools.imap(Interval, enumShortPairsIn(w.x+1, w.y-1)) : Interval[]
 
 
+accessibles_aggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, r::_IA_L,  X::Integer) = (w.y+1 < X+1)   ? Interval[Interval(w.y+1, X+1)  ] : Interval[]
+accessibles_aggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, r::_IA_Li, X::Integer) = (1 < w.x-1)     ? Interval[Interval(1, w.x-1)    ] : Interval[]
+accessibles_aggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, r::_IA_D,  X::Integer) = (w.x+1 < w.y-1) ? Interval[Interval(w.x+1, w.y-1)] : Interval[]
 
-enumAccReprAggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, r::_IA_Bi, X::Integer) = (w.y < X+1)                 ?  Interval[Interval(w.x,   w.y+1)] : Interval[]
-enumAccReprAggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, r::_IA_Ei, X::Integer) = (1 < w.x)                   ?  Interval[Interval(w.x-1, w.y  )] : Interval[]
-enumAccReprAggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, r::_IA_Di, X::Integer) = (1 < w.x && w.y < X+1)      ?  Interval[Interval(w.x-1, w.y+1)] : Interval[]
-enumAccReprAggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, r::_IA_O,  X::Integer) = (w.x+1 < w.y && w.y < X+1)  ?  Interval[Interval(w.y-1, w.y+1)] : Interval[]
-enumAccReprAggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, r::_IA_Oi, X::Integer) = (1 < w.x && w.x+1 < w.y)    ?  Interval[Interval(w.x-1, w.x+1)] : Interval[]
-
-enumAccReprAggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_Bi, X::Integer) = (w.y < X+1)                 ?  Interval[Interval(w.x,   w.y+1)] : Interval[]
-enumAccReprAggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_Ei, X::Integer) = (1 < w.x)                   ?  Interval[Interval(w.x-1, w.y  )] : Interval[]
-enumAccReprAggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_Di, X::Integer) = (1 < w.x && w.y < X+1)      ?  Interval[Interval(w.x-1, w.y+1)] : Interval[]
-enumAccReprAggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_O,  X::Integer) = (w.x+1 < w.y && w.y < X+1)  ?  Interval[Interval(w.y-1, w.y+1)] : Interval[]
-enumAccReprAggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_Oi, X::Integer) = (1 < w.x && w.x+1 < w.y)    ?  Interval[Interval(w.x-1, w.x+1)] : Interval[]
+accessibles_aggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, r::_IA_L,  X::Integer) = (w.y+1 < X+1)   ? Interval[Interval(w.y+1, X+1)  ] : Interval[]
+accessibles_aggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, r::_IA_Li, X::Integer) = (1 < w.x-1)     ? Interval[Interval(1, w.x-1)    ] : Interval[]
+accessibles_aggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, r::_IA_D,  X::Integer) = (w.x+1 < w.y-1) ? Interval[Interval(w.x+1, w.y-1)] : Interval[]
 
 
-enumAccReprAggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, r::_IA_Bi, X::Integer) = (w.y < X+1)                 ?  Interval[Interval(w.x,   w.X+1)] : Interval[]
-enumAccReprAggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, r::_IA_Ei, X::Integer) = (1 < w.x)                   ?  Interval[Interval(1,     w.y  )] : Interval[]
-enumAccReprAggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, r::_IA_Di, X::Integer) = (1 < w.x && w.y < X+1)      ?  Interval[Interval(1,     X+1  )] : Interval[]
-enumAccReprAggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, r::_IA_O,  X::Integer) = (w.x+1 < w.y && w.y < X+1)  ?  Interval[Interval(w.x+1, X+1  )] : Interval[]
-enumAccReprAggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, r::_IA_Oi, X::Integer) = (1 < w.x && w.x+1 < w.y)    ?  Interval[Interval(1,     w.y-1)] : Interval[]
 
-enumAccReprAggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, r::_IA_Bi, X::Integer) = (w.y < X+1)                 ?  Interval[Interval(w.x,   w.X+1)] : Interval[]
-enumAccReprAggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, r::_IA_Ei, X::Integer) = (1 < w.x)                   ?  Interval[Interval(1,     w.y  )] : Interval[]
-enumAccReprAggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, r::_IA_Di, X::Integer) = (1 < w.x && w.y < X+1)      ?  Interval[Interval(1,     X+1  )] : Interval[]
-enumAccReprAggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, r::_IA_O,  X::Integer) = (w.x+1 < w.y && w.y < X+1)  ?  Interval[Interval(w.x+1, X+1  )] : Interval[]
-enumAccReprAggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, r::_IA_Oi, X::Integer) = (1 < w.x && w.x+1 < w.y)    ?  Interval[Interval(1,     w.y-1)] : Interval[]
+accessibles_aggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, r::_IA_Bi, X::Integer) = (w.y < X+1)                 ?  Interval[Interval(w.x,   w.y+1)] : Interval[]
+accessibles_aggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, r::_IA_Ei, X::Integer) = (1 < w.x)                   ?  Interval[Interval(w.x-1, w.y  )] : Interval[]
+accessibles_aggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, r::_IA_Di, X::Integer) = (1 < w.x && w.y < X+1)      ?  Interval[Interval(w.x-1, w.y+1)] : Interval[]
+accessibles_aggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, r::_IA_O,  X::Integer) = (w.x+1 < w.y && w.y < X+1)  ?  Interval[Interval(w.y-1, w.y+1)] : Interval[]
+accessibles_aggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, r::_IA_Oi, X::Integer) = (1 < w.x && w.x+1 < w.y)    ?  Interval[Interval(w.x-1, w.x+1)] : Interval[]
 
-
-enumAccReprAggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, ::_IA_A,  X::Integer) = (w.y < X+1)     ?   Interval[Interval(w.y,   w.y+1)] : Interval[] #  _ReprVal(Interval   )# [Interval(w.y, X+1)]   
-enumAccReprAggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, ::_IA_Ai, X::Integer) = (1 < w.x)       ?   Interval[Interval(w.x-1, w.x  )] : Interval[] #  _ReprVal(Interval   )# [Interval(1, w.x)]     
-enumAccReprAggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, ::_IA_B,  X::Integer) = (w.x < w.y-1)   ?   Interval[Interval(w.x,   w.x+1)] : Interval[] #  _ReprVal(Interval   )# [Interval(w.x, w.y-1)] 
-enumAccReprAggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, ::_IA_E,  X::Integer) = (w.x+1 < w.y)   ?   Interval[Interval(w.y-1, w.y  )] : Interval[] #  _ReprVal(Interval   )# [Interval(w.x+1, w.y)] 
-
-enumAccReprAggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, ::_IA_A,  X::Integer) = (w.y < X+1)     ?   Interval[Interval(w.y,   w.y+1)] : Interval[] #  _ReprVal(Interval   )# [Interval(w.y, X+1)]   
-enumAccReprAggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, ::_IA_Ai, X::Integer) = (1 < w.x)       ?   Interval[Interval(w.x-1, w.x  )] : Interval[] #  _ReprVal(Interval   )# [Interval(1, w.x)]     
-enumAccReprAggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, ::_IA_B,  X::Integer) = (w.x < w.y-1)   ?   Interval[Interval(w.x,   w.x+1)] : Interval[] #  _ReprVal(Interval   )# [Interval(w.x, w.y-1)] 
-enumAccReprAggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, ::_IA_E,  X::Integer) = (w.x+1 < w.y)   ?   Interval[Interval(w.y-1, w.y  )] : Interval[] #  _ReprVal(Interval   )# [Interval(w.x+1, w.y)] 
-
-enumAccReprAggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, ::_IA_A,  X::Integer) = (w.y < X+1)     ?   Interval[Interval(w.y,   X+1  )] : Interval[] #  _ReprVal(Interval(w.y, w.y+1)   )# [Interval(w.y, X+1)]   
-enumAccReprAggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, ::_IA_Ai, X::Integer) = (1 < w.x)       ?   Interval[Interval(1,     w.x  )] : Interval[] #  _ReprVal(Interval(w.x-1, w.x)   )# [Interval(1, w.x)]     
-enumAccReprAggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, ::_IA_B,  X::Integer) = (w.x < w.y-1)   ?   Interval[Interval(w.x,   w.y-1)] : Interval[] #  _ReprVal(Interval(w.x, w.x+1)   )# [Interval(w.x, w.y-1)] 
-enumAccReprAggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, ::_IA_E,  X::Integer) = (w.x+1 < w.y)   ?   Interval[Interval(w.x+1, w.y  )] : Interval[] #  _ReprVal(Interval(w.y-1, w.y)   )# [Interval(w.x+1, w.y)] 
-
-enumAccReprAggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, ::_IA_A,  X::Integer) = (w.y < X+1)     ?   Interval[Interval(w.y,   X+1  )] : Interval[] #  _ReprVal(Interval(w.y, w.y+1)   )# [Interval(w.y, X+1)]   
-enumAccReprAggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, ::_IA_Ai, X::Integer) = (1 < w.x)       ?   Interval[Interval(1,     w.x  )] : Interval[] #  _ReprVal(Interval(w.x-1, w.x)   )# [Interval(1, w.x)]     
-enumAccReprAggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, ::_IA_B,  X::Integer) = (w.x < w.y-1)   ?   Interval[Interval(w.x,   w.y-1)] : Interval[] #  _ReprVal(Interval(w.x, w.x+1)   )# [Interval(w.x, w.y-1)] 
-enumAccReprAggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, ::_IA_E,  X::Integer) = (w.x+1 < w.y)   ?   Interval[Interval(w.x+1, w.y  )] : Interval[] #  _ReprVal(Interval(w.y-1, w.y)   )# [Interval(w.x+1, w.y)] 
+accessibles_aggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_Bi, X::Integer) = (w.y < X+1)                 ?  Interval[Interval(w.x,   w.y+1)] : Interval[]
+accessibles_aggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_Ei, X::Integer) = (1 < w.x)                   ?  Interval[Interval(w.x-1, w.y  )] : Interval[]
+accessibles_aggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_Di, X::Integer) = (1 < w.x && w.y < X+1)      ?  Interval[Interval(w.x-1, w.y+1)] : Interval[]
+accessibles_aggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_O,  X::Integer) = (w.x+1 < w.y && w.y < X+1)  ?  Interval[Interval(w.y-1, w.y+1)] : Interval[]
+accessibles_aggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_Oi, X::Integer) = (1 < w.x && w.x+1 < w.y)    ?  Interval[Interval(w.x-1, w.x+1)] : Interval[]
 
 
-enumAccReprAggr(f::ModalFeature, a::Aggregator, w::Interval, r::_IA_AorO,       X::Integer) = 
-	Iterators.flatten([enumAccReprAggr(f, a, w, r, X) for r in IA72IARelations(IA_AorO)])
-enumAccReprAggr(f::ModalFeature, a::Aggregator, w::Interval, r::_IA_AiorOi,     X::Integer) = 
-	Iterators.flatten([enumAccReprAggr(f, a, w, r, X) for r in IA72IARelations(IA_AiorOi)])
-enumAccReprAggr(f::ModalFeature, a::Aggregator, w::Interval, r::_IA_DorBorE,    X::Integer) = 
-	Iterators.flatten([enumAccReprAggr(f, a, w, r, X) for r in IA72IARelations(IA_DorBorE)])
-enumAccReprAggr(f::ModalFeature, a::Aggregator, w::Interval, r::_IA_DiorBiorEi, X::Integer) = 
-	Iterators.flatten([enumAccReprAggr(f, a, w, r, X) for r in IA72IARelations(IA_DiorBiorEi)])
-enumAccReprAggr(f::ModalFeature, a::Aggregator, w::Interval, r::_IA_I,          X::Integer) = 
-	Iterators.flatten([enumAccReprAggr(f, a, w, r, X) for r in IA72IARelations(IA_I)])
+accessibles_aggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, r::_IA_Bi, X::Integer) = (w.y < X+1)                 ?  Interval[Interval(w.x,   w.X+1)] : Interval[]
+accessibles_aggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, r::_IA_Ei, X::Integer) = (1 < w.x)                   ?  Interval[Interval(1,     w.y  )] : Interval[]
+accessibles_aggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, r::_IA_Di, X::Integer) = (1 < w.x && w.y < X+1)      ?  Interval[Interval(1,     X+1  )] : Interval[]
+accessibles_aggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, r::_IA_O,  X::Integer) = (w.x+1 < w.y && w.y < X+1)  ?  Interval[Interval(w.x+1, X+1  )] : Interval[]
+accessibles_aggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, r::_IA_Oi, X::Integer) = (1 < w.x && w.x+1 < w.y)    ?  Interval[Interval(1,     w.y-1)] : Interval[]
+
+accessibles_aggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, r::_IA_Bi, X::Integer) = (w.y < X+1)                 ?  Interval[Interval(w.x,   w.X+1)] : Interval[]
+accessibles_aggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, r::_IA_Ei, X::Integer) = (1 < w.x)                   ?  Interval[Interval(1,     w.y  )] : Interval[]
+accessibles_aggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, r::_IA_Di, X::Integer) = (1 < w.x && w.y < X+1)      ?  Interval[Interval(1,     X+1  )] : Interval[]
+accessibles_aggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, r::_IA_O,  X::Integer) = (w.x+1 < w.y && w.y < X+1)  ?  Interval[Interval(w.x+1, X+1  )] : Interval[]
+accessibles_aggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, r::_IA_Oi, X::Integer) = (1 < w.x && w.x+1 < w.y)    ?  Interval[Interval(1,     w.y-1)] : Interval[]
+
+
+accessibles_aggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, ::_IA_A,  X::Integer) = (w.y < X+1)     ?   Interval[Interval(w.y,   w.y+1)] : Interval[] #  _ReprVal(Interval   )# [Interval(w.y, X+1)]   
+accessibles_aggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, ::_IA_Ai, X::Integer) = (1 < w.x)       ?   Interval[Interval(w.x-1, w.x  )] : Interval[] #  _ReprVal(Interval   )# [Interval(1, w.x)]     
+accessibles_aggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, ::_IA_B,  X::Integer) = (w.x < w.y-1)   ?   Interval[Interval(w.x,   w.x+1)] : Interval[] #  _ReprVal(Interval   )# [Interval(w.x, w.y-1)] 
+accessibles_aggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, ::_IA_E,  X::Integer) = (w.x+1 < w.y)   ?   Interval[Interval(w.y-1, w.y  )] : Interval[] #  _ReprVal(Interval   )# [Interval(w.x+1, w.y)] 
+
+accessibles_aggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, ::_IA_A,  X::Integer) = (w.y < X+1)     ?   Interval[Interval(w.y,   w.y+1)] : Interval[] #  _ReprVal(Interval   )# [Interval(w.y, X+1)]   
+accessibles_aggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, ::_IA_Ai, X::Integer) = (1 < w.x)       ?   Interval[Interval(w.x-1, w.x  )] : Interval[] #  _ReprVal(Interval   )# [Interval(1, w.x)]     
+accessibles_aggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, ::_IA_B,  X::Integer) = (w.x < w.y-1)   ?   Interval[Interval(w.x,   w.x+1)] : Interval[] #  _ReprVal(Interval   )# [Interval(w.x, w.y-1)] 
+accessibles_aggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, ::_IA_E,  X::Integer) = (w.x+1 < w.y)   ?   Interval[Interval(w.y-1, w.y  )] : Interval[] #  _ReprVal(Interval   )# [Interval(w.x+1, w.y)] 
+
+accessibles_aggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, ::_IA_A,  X::Integer) = (w.y < X+1)     ?   Interval[Interval(w.y,   X+1  )] : Interval[] #  _ReprVal(Interval(w.y, w.y+1)   )# [Interval(w.y, X+1)]   
+accessibles_aggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, ::_IA_Ai, X::Integer) = (1 < w.x)       ?   Interval[Interval(1,     w.x  )] : Interval[] #  _ReprVal(Interval(w.x-1, w.x)   )# [Interval(1, w.x)]     
+accessibles_aggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, ::_IA_B,  X::Integer) = (w.x < w.y-1)   ?   Interval[Interval(w.x,   w.y-1)] : Interval[] #  _ReprVal(Interval(w.x, w.x+1)   )# [Interval(w.x, w.y-1)] 
+accessibles_aggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, ::_IA_E,  X::Integer) = (w.x+1 < w.y)   ?   Interval[Interval(w.x+1, w.y  )] : Interval[] #  _ReprVal(Interval(w.y-1, w.y)   )# [Interval(w.x+1, w.y)] 
+
+accessibles_aggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, ::_IA_A,  X::Integer) = (w.y < X+1)     ?   Interval[Interval(w.y,   X+1  )] : Interval[] #  _ReprVal(Interval(w.y, w.y+1)   )# [Interval(w.y, X+1)]   
+accessibles_aggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, ::_IA_Ai, X::Integer) = (1 < w.x)       ?   Interval[Interval(1,     w.x  )] : Interval[] #  _ReprVal(Interval(w.x-1, w.x)   )# [Interval(1, w.x)]     
+accessibles_aggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, ::_IA_B,  X::Integer) = (w.x < w.y-1)   ?   Interval[Interval(w.x,   w.y-1)] : Interval[] #  _ReprVal(Interval(w.x, w.x+1)   )# [Interval(w.x, w.y-1)] 
+accessibles_aggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, ::_IA_E,  X::Integer) = (w.x+1 < w.y)   ?   Interval[Interval(w.x+1, w.y  )] : Interval[] #  _ReprVal(Interval(w.y-1, w.y)   )# [Interval(w.x+1, w.y)] 
+
+
+accessibles_aggr(f::ModalFeature, a::Aggregator, w::Interval, r::_IA_AorO,       X::Integer) = 
+	Iterators.flatten([accessibles_aggr(f, a, w, r, X) for r in IA72IARelations(IA_AorO)])
+accessibles_aggr(f::ModalFeature, a::Aggregator, w::Interval, r::_IA_AiorOi,     X::Integer) = 
+	Iterators.flatten([accessibles_aggr(f, a, w, r, X) for r in IA72IARelations(IA_AiorOi)])
+accessibles_aggr(f::ModalFeature, a::Aggregator, w::Interval, r::_IA_DorBorE,    X::Integer) = 
+	Iterators.flatten([accessibles_aggr(f, a, w, r, X) for r in IA72IARelations(IA_DorBorE)])
+accessibles_aggr(f::ModalFeature, a::Aggregator, w::Interval, r::_IA_DiorBiorEi, X::Integer) = 
+	Iterators.flatten([accessibles_aggr(f, a, w, r, X) for r in IA72IARelations(IA_DiorBiorEi)])
+accessibles_aggr(f::ModalFeature, a::Aggregator, w::Interval, r::_IA_I,          X::Integer) = 
+	Iterators.flatten([accessibles_aggr(f, a, w, r, X) for r in IA72IARelations(IA_I)])
 
 
 

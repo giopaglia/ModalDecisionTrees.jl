@@ -5,8 +5,8 @@
 
 goesWith(::Type{Interval2D}, ::R where R<:_TopoRel) = true
 
-enumAccBare(w::Interval2D, r::R where R<:_TopoRelRCC5,  XYZ::Vararg{Integer,2}) =
-	Iterators.flatten((enumAccBare(w, RCC8_r,  XYZ...) for RCC8_r in RCC52RCC8Relations(r)))
+_accessibles(w::Interval2D, r::R where R<:_TopoRelRCC5,  XYZ::Vararg{Integer,2}) =
+	Iterators.flatten((_accessibles(w, RCC8_r,  XYZ...) for RCC8_r in RCC52RCC8Relations(r)))
 
 #=
 
@@ -34,98 +34,98 @@ end
 # TODO try building Interval's in these, because they are only bare with respect to Interval2D
 # Enumerate accessible worlds from a single world
 # TODO try inverting these two?
-enumAccBare(w::Interval2D, ::_Topo_DC,    X::Integer, Y::Integer) =
+_accessibles(w::Interval2D, ::_Topo_DC,    X::Integer, Y::Integer) =
 	IterTools.distinct(
 		Iterators.flatten((
-			Iterators.product(enumAccBare(w.x, Topo_DC,    X), enumAccBare2(w.y, RelationGlob,Y)),
-			Iterators.product(enumAccBare2(w.x, RelationGlob,X), enumAccBare(w.y, Topo_DC,    Y)),
-			# TODO try avoiding the distinct, replacing the second line (RelationGlob,enumAccBare) with 7 combinations of RelationGlob with Topo_EC, Topo_PO, Topo_TPP, Topo_TPPi, Topo_NTPP, Topo_NTPPi
+			Iterators.product(_accessibles(w.x, Topo_DC,    X), _accessibles2(w.y, RelationGlob,Y)),
+			Iterators.product(_accessibles2(w.x, RelationGlob,X), _accessibles(w.y, Topo_DC,    Y)),
+			# TODO try avoiding the distinct, replacing the second line (RelationGlob,_accessibles) with 7 combinations of RelationGlob with Topo_EC, Topo_PO, Topo_TPP, Topo_TPPi, Topo_NTPP, Topo_NTPPi
 		))
 	)
-enumAccBare(w::Interval2D, ::_Topo_EC,    X::Integer, Y::Integer) =
+_accessibles(w::Interval2D, ::_Topo_EC,    X::Integer, Y::Integer) =
 	Iterators.flatten((
-		Iterators.product(enumAccBare(w.x, Topo_EC,    X), enumAccBare(w.y, Topo_EC,    Y)),
+		Iterators.product(_accessibles(w.x, Topo_EC,    X), _accessibles(w.y, Topo_EC,    Y)),
 		#
-		Iterators.product(enumAccBare(w.x, Topo_EC,    X), enumAccBare(w.y, Topo_PO,    Y)),
-		Iterators.product(enumAccBare(w.x, Topo_EC,    X), enumAccBare(w.y, Topo_TPP,   Y)),
-		Iterators.product(enumAccBare(w.x, Topo_EC,    X), enumAccBare(w.y, Topo_TPPi,  Y)),
-		Iterators.product(enumAccBare(w.x, Topo_EC,    X), enumAccBare(w.y, Topo_NTPP,  Y)),
-		Iterators.product(enumAccBare(w.x, Topo_EC,    X), enumAccBare(w.y, Topo_NTPPi, Y)),
-		Iterators.product(enumAccBare(w.x, Topo_EC,    X), enumAccBare(w.y, RelationId, Y)),
+		Iterators.product(_accessibles(w.x, Topo_EC,    X), _accessibles(w.y, Topo_PO,    Y)),
+		Iterators.product(_accessibles(w.x, Topo_EC,    X), _accessibles(w.y, Topo_TPP,   Y)),
+		Iterators.product(_accessibles(w.x, Topo_EC,    X), _accessibles(w.y, Topo_TPPi,  Y)),
+		Iterators.product(_accessibles(w.x, Topo_EC,    X), _accessibles(w.y, Topo_NTPP,  Y)),
+		Iterators.product(_accessibles(w.x, Topo_EC,    X), _accessibles(w.y, Topo_NTPPi, Y)),
+		Iterators.product(_accessibles(w.x, Topo_EC,    X), _accessibles(w.y, RelationId, Y)),
 		#
-		Iterators.product(enumAccBare(w.x, Topo_PO,    X), enumAccBare(w.y, Topo_EC,    Y)),
-		Iterators.product(enumAccBare(w.x, Topo_TPP,   X), enumAccBare(w.y, Topo_EC,    Y)),
-		Iterators.product(enumAccBare(w.x, Topo_TPPi,  X), enumAccBare(w.y, Topo_EC,    Y)),
-		Iterators.product(enumAccBare(w.x, Topo_NTPP,  X), enumAccBare(w.y, Topo_EC,    Y)),
-		Iterators.product(enumAccBare(w.x, Topo_NTPPi, X), enumAccBare(w.y, Topo_EC,    Y)),
-		Iterators.product(enumAccBare(w.x, RelationId, X), enumAccBare(w.y, Topo_EC,    Y)),
+		Iterators.product(_accessibles(w.x, Topo_PO,    X), _accessibles(w.y, Topo_EC,    Y)),
+		Iterators.product(_accessibles(w.x, Topo_TPP,   X), _accessibles(w.y, Topo_EC,    Y)),
+		Iterators.product(_accessibles(w.x, Topo_TPPi,  X), _accessibles(w.y, Topo_EC,    Y)),
+		Iterators.product(_accessibles(w.x, Topo_NTPP,  X), _accessibles(w.y, Topo_EC,    Y)),
+		Iterators.product(_accessibles(w.x, Topo_NTPPi, X), _accessibles(w.y, Topo_EC,    Y)),
+		Iterators.product(_accessibles(w.x, RelationId, X), _accessibles(w.y, Topo_EC,    Y)),
 	))
-enumAccBare(w::Interval2D, ::_Topo_PO,    X::Integer, Y::Integer) =
+_accessibles(w::Interval2D, ::_Topo_PO,    X::Integer, Y::Integer) =
 	Iterators.flatten((
-		Iterators.product(enumAccBare(w.x, Topo_PO,    X), enumAccBare(w.y, Topo_PO,    Y)),
+		Iterators.product(_accessibles(w.x, Topo_PO,    X), _accessibles(w.y, Topo_PO,    Y)),
 		#
-		Iterators.product(enumAccBare(w.x, Topo_TPP,   X), enumAccBare(w.y, Topo_PO,    Y)),
-		Iterators.product(enumAccBare(w.x, Topo_TPPi,  X), enumAccBare(w.y, Topo_PO,    Y)),
-		Iterators.product(enumAccBare(w.x, Topo_NTPP,  X), enumAccBare(w.y, Topo_PO,    Y)),
-		Iterators.product(enumAccBare(w.x, Topo_NTPPi, X), enumAccBare(w.y, Topo_PO,    Y)),
-		Iterators.product(enumAccBare(w.x, RelationId, X), enumAccBare(w.y, Topo_PO,    Y)),
+		Iterators.product(_accessibles(w.x, Topo_TPP,   X), _accessibles(w.y, Topo_PO,    Y)),
+		Iterators.product(_accessibles(w.x, Topo_TPPi,  X), _accessibles(w.y, Topo_PO,    Y)),
+		Iterators.product(_accessibles(w.x, Topo_NTPP,  X), _accessibles(w.y, Topo_PO,    Y)),
+		Iterators.product(_accessibles(w.x, Topo_NTPPi, X), _accessibles(w.y, Topo_PO,    Y)),
+		Iterators.product(_accessibles(w.x, RelationId, X), _accessibles(w.y, Topo_PO,    Y)),
 		#
-		Iterators.product(enumAccBare(w.x, Topo_PO,    X), enumAccBare(w.y, Topo_TPP,   Y)),
-		Iterators.product(enumAccBare(w.x, Topo_PO,    X), enumAccBare(w.y, Topo_TPPi,  Y)),
-		Iterators.product(enumAccBare(w.x, Topo_PO,    X), enumAccBare(w.y, Topo_NTPP,  Y)),
-		Iterators.product(enumAccBare(w.x, Topo_PO,    X), enumAccBare(w.y, Topo_NTPPi, Y)),
-		Iterators.product(enumAccBare(w.x, Topo_PO,    X), enumAccBare(w.y, RelationId, Y)),
+		Iterators.product(_accessibles(w.x, Topo_PO,    X), _accessibles(w.y, Topo_TPP,   Y)),
+		Iterators.product(_accessibles(w.x, Topo_PO,    X), _accessibles(w.y, Topo_TPPi,  Y)),
+		Iterators.product(_accessibles(w.x, Topo_PO,    X), _accessibles(w.y, Topo_NTPP,  Y)),
+		Iterators.product(_accessibles(w.x, Topo_PO,    X), _accessibles(w.y, Topo_NTPPi, Y)),
+		Iterators.product(_accessibles(w.x, Topo_PO,    X), _accessibles(w.y, RelationId, Y)),
 		#
-		Iterators.product(enumAccBare(w.x, Topo_TPP,   X), enumAccBare(w.y, Topo_TPPi,  Y)),
-		Iterators.product(enumAccBare(w.x, Topo_TPPi,  X), enumAccBare(w.y, Topo_TPP,   Y)),
+		Iterators.product(_accessibles(w.x, Topo_TPP,   X), _accessibles(w.y, Topo_TPPi,  Y)),
+		Iterators.product(_accessibles(w.x, Topo_TPPi,  X), _accessibles(w.y, Topo_TPP,   Y)),
 		#
-		Iterators.product(enumAccBare(w.x, Topo_TPPi,  X), enumAccBare(w.y, Topo_NTPP,  Y)),
-		Iterators.product(enumAccBare(w.x, Topo_NTPP,  X), enumAccBare(w.y, Topo_TPPi,  Y)),
+		Iterators.product(_accessibles(w.x, Topo_TPPi,  X), _accessibles(w.y, Topo_NTPP,  Y)),
+		Iterators.product(_accessibles(w.x, Topo_NTPP,  X), _accessibles(w.y, Topo_TPPi,  Y)),
 		#
-		Iterators.product(enumAccBare(w.x, Topo_TPP,   X), enumAccBare(w.y, Topo_NTPPi, Y)),
-		Iterators.product(enumAccBare(w.x, Topo_NTPP,  X), enumAccBare(w.y, Topo_NTPPi, Y)),
-		Iterators.product(enumAccBare(w.x, Topo_NTPPi, X), enumAccBare(w.y, Topo_TPP,   Y)),
-		Iterators.product(enumAccBare(w.x, Topo_NTPPi, X), enumAccBare(w.y, Topo_NTPP,  Y)),
+		Iterators.product(_accessibles(w.x, Topo_TPP,   X), _accessibles(w.y, Topo_NTPPi, Y)),
+		Iterators.product(_accessibles(w.x, Topo_NTPP,  X), _accessibles(w.y, Topo_NTPPi, Y)),
+		Iterators.product(_accessibles(w.x, Topo_NTPPi, X), _accessibles(w.y, Topo_TPP,   Y)),
+		Iterators.product(_accessibles(w.x, Topo_NTPPi, X), _accessibles(w.y, Topo_NTPP,  Y)),
 	))
-enumAccBare(w::Interval2D, ::_Topo_TPP,   X::Integer, Y::Integer) =
+_accessibles(w::Interval2D, ::_Topo_TPP,   X::Integer, Y::Integer) =
 	Iterators.flatten((
-		Iterators.product(enumAccBare(w.x, Topo_TPP,   X), enumAccBare(w.y, Topo_TPP,   Y)),
+		Iterators.product(_accessibles(w.x, Topo_TPP,   X), _accessibles(w.y, Topo_TPP,   Y)),
 		#
-		Iterators.product(enumAccBare(w.x, Topo_TPP,   X), enumAccBare(w.y, Topo_NTPP,  Y)),
-		Iterators.product(enumAccBare(w.x, Topo_NTPP,  X), enumAccBare(w.y, Topo_TPP,   Y)),
+		Iterators.product(_accessibles(w.x, Topo_TPP,   X), _accessibles(w.y, Topo_NTPP,  Y)),
+		Iterators.product(_accessibles(w.x, Topo_NTPP,  X), _accessibles(w.y, Topo_TPP,   Y)),
 		#
-		Iterators.product(enumAccBare(w.x, Topo_TPP,   X), enumAccBare(w.y, RelationId, Y)),
-		Iterators.product(enumAccBare(w.x, RelationId, X), enumAccBare(w.y, Topo_TPP,   Y)),
+		Iterators.product(_accessibles(w.x, Topo_TPP,   X), _accessibles(w.y, RelationId, Y)),
+		Iterators.product(_accessibles(w.x, RelationId, X), _accessibles(w.y, Topo_TPP,   Y)),
 		#
-		Iterators.product(enumAccBare(w.x, Topo_NTPP,  X), enumAccBare(w.y, RelationId, Y)),
-		Iterators.product(enumAccBare(w.x, RelationId, X), enumAccBare(w.y, Topo_NTPP,  Y)),
-	))
-
-enumAccBare(w::Interval2D, ::_Topo_TPPi,  X::Integer, Y::Integer) =
-	Iterators.flatten((
-		Iterators.product(enumAccBare(w.x, Topo_TPPi,  X), enumAccBare(w.y, Topo_TPPi,  Y)),
-		#
-		Iterators.product(enumAccBare(w.x, Topo_TPPi,  X), enumAccBare(w.y, Topo_NTPPi, Y)),
-		Iterators.product(enumAccBare(w.x, Topo_NTPPi, X), enumAccBare(w.y, Topo_TPPi,  Y)),
-		#
-		Iterators.product(enumAccBare(w.x, Topo_TPPi,  X), enumAccBare(w.y, RelationId, Y)),
-		Iterators.product(enumAccBare(w.x, RelationId, X), enumAccBare(w.y, Topo_TPPi,  Y)),
-		#
-		Iterators.product(enumAccBare(w.x, Topo_NTPPi, X), enumAccBare(w.y, RelationId, Y)),
-		Iterators.product(enumAccBare(w.x, RelationId, X), enumAccBare(w.y, Topo_NTPPi, Y)),
+		Iterators.product(_accessibles(w.x, Topo_NTPP,  X), _accessibles(w.y, RelationId, Y)),
+		Iterators.product(_accessibles(w.x, RelationId, X), _accessibles(w.y, Topo_NTPP,  Y)),
 	))
 
-enumAccBare(w::Interval2D, ::_Topo_NTPP,  X::Integer, Y::Integer) =
+_accessibles(w::Interval2D, ::_Topo_TPPi,  X::Integer, Y::Integer) =
+	Iterators.flatten((
+		Iterators.product(_accessibles(w.x, Topo_TPPi,  X), _accessibles(w.y, Topo_TPPi,  Y)),
+		#
+		Iterators.product(_accessibles(w.x, Topo_TPPi,  X), _accessibles(w.y, Topo_NTPPi, Y)),
+		Iterators.product(_accessibles(w.x, Topo_NTPPi, X), _accessibles(w.y, Topo_TPPi,  Y)),
+		#
+		Iterators.product(_accessibles(w.x, Topo_TPPi,  X), _accessibles(w.y, RelationId, Y)),
+		Iterators.product(_accessibles(w.x, RelationId, X), _accessibles(w.y, Topo_TPPi,  Y)),
+		#
+		Iterators.product(_accessibles(w.x, Topo_NTPPi, X), _accessibles(w.y, RelationId, Y)),
+		Iterators.product(_accessibles(w.x, RelationId, X), _accessibles(w.y, Topo_NTPPi, Y)),
+	))
+
+_accessibles(w::Interval2D, ::_Topo_NTPP,  X::Integer, Y::Integer) =
 	# Iterators.flatten((
-		Iterators.product(enumAccBare(w.x, Topo_NTPP,  X), enumAccBare(w.y, Topo_NTPP,  Y))
+		Iterators.product(_accessibles(w.x, Topo_NTPP,  X), _accessibles(w.y, Topo_NTPP,  Y))
 		# , ))
-enumAccBare(w::Interval2D, ::_Topo_NTPPi, X::Integer, Y::Integer) =
+_accessibles(w::Interval2D, ::_Topo_NTPPi, X::Integer, Y::Integer) =
 	# Iterators.flatten((
-		Iterators.product(enumAccBare(w.x, Topo_NTPPi, X), enumAccBare(w.y, Topo_NTPPi, Y))
+		Iterators.product(_accessibles(w.x, Topo_NTPPi, X), _accessibles(w.y, Topo_NTPPi, Y))
 	# , ))
 
 # TODO optimize RCC5
-# enumAccBare(w::Interval2D, ::_RCC5TopoRel,    X::Integer, Y::Integer) =
+# _accessibles(w::Interval2D, ::_RCC5TopoRel,    X::Integer, Y::Integer) =
 	
 #=
 

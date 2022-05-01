@@ -29,23 +29,23 @@ n_worlds(::Type{Interval2D}, channel_size::Tuple{Integer,Integer}) = n_worlds(In
 
 inst_readWorld(w::Interval2D, instance::MatricialInstance{T,3}) where {T} = instance[w.x.x:w.x.y-1,w.y.x:w.y.y-1,:]
 
-enumAccReprAggr(f::Union{SingleAttributeMin,SingleAttributeMax}, a::Union{typeof(minimum),typeof(maximum)}, ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = IterTools.imap(Interval2D, Iterators.product(enumPairsIn(1, X+1), enumPairsIn(1, Y+1)))
-enumAccReprAggr(f::Union{SingleAttributeMax}, a::typeof(maximum), ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = Interval2D[Interval2D(Interval(1,X+1), Interval(1,Y+1))  ]
-enumAccReprAggr(f::Union{SingleAttributeMin}, a::typeof(minimum), ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = Interval2D[Interval2D(Interval(1,X+1), Interval(1,Y+1))  ]
+accessibles_aggr(f::Union{SingleAttributeMin,SingleAttributeMax}, a::Union{typeof(minimum),typeof(maximum)}, ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = IterTools.imap(Interval2D, Iterators.product(enumPairsIn(1, X+1), enumPairsIn(1, Y+1)))
+accessibles_aggr(f::Union{SingleAttributeMax}, a::typeof(maximum), ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = Interval2D[Interval2D(Interval(1,X+1), Interval(1,Y+1))  ]
+accessibles_aggr(f::Union{SingleAttributeMin}, a::typeof(minimum), ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = Interval2D[Interval2D(Interval(1,X+1), Interval(1,Y+1))  ]
 
-enumAccReprAggr(f::Union{SingleAttributeSoftMin,SingleAttributeSoftMax}, a::Union{typeof(minimum),typeof(maximum)}, ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = IterTools.imap(Interval2D, Iterators.product(enumPairsIn(1, X+1), enumPairsIn(1, Y+1)))
-enumAccReprAggr(f::Union{SingleAttributeSoftMax}, a::typeof(maximum), ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = Interval2D[Interval2D(Interval(1,X+1), Interval(1,Y+1))  ]
-enumAccReprAggr(f::Union{SingleAttributeSoftMin}, a::typeof(minimum), ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = Interval2D[Interval2D(Interval(1,X+1), Interval(1,Y+1))  ]
+accessibles_aggr(f::Union{SingleAttributeSoftMin,SingleAttributeSoftMax}, a::Union{typeof(minimum),typeof(maximum)}, ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = IterTools.imap(Interval2D, Iterators.product(enumPairsIn(1, X+1), enumPairsIn(1, Y+1)))
+accessibles_aggr(f::Union{SingleAttributeSoftMax}, a::typeof(maximum), ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = Interval2D[Interval2D(Interval(1,X+1), Interval(1,Y+1))  ]
+accessibles_aggr(f::Union{SingleAttributeSoftMin}, a::typeof(minimum), ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = Interval2D[Interval2D(Interval(1,X+1), Interval(1,Y+1))  ]
 
-enumAccessibles(S::Union{Interval2D,AbstractWorldSet{Interval2D}}, r::_RelationGlob, X::Integer, Y::Integer) =
+accessibles(S::Union{Interval2D,AbstractWorldSet{Interval2D}}, r::_RelationGlob, X::Integer, Y::Integer) =
 	IterTools.imap(Interval2D,
 		Iterators.product(enumPairsIn(1, X+1), enumPairsIn(1, Y+1))
-		# enumAccBare(w..., IA2DRel(RelationGlob,RelationGlob), X, Y)
+		# _accessibles(w..., IA2DRel(RelationGlob,RelationGlob), X, Y)
 	)
 	# IterTools.imap(Interval2D, enumPairsIn(1, X+1), enumPairsIn(1, Y+1))
-		# enumAccBare(w, IA2DRel(RelationGlob,RelationGlob), X, Y)
-# enumAccBare(w::Interval2D, r::_RelationGlob, X::Integer, Y::Integer) =
-# 	enumAccBare(w, _IA2DRel(RelationGlob,RelationGlob), X, Y)
+		# _accessibles(w, IA2DRel(RelationGlob,RelationGlob), X, Y)
+# _accessibles(w::Interval2D, r::_RelationGlob, X::Integer, Y::Integer) =
+# 	_accessibles(w, _IA2DRel(RelationGlob,RelationGlob), X, Y)
 
 ################################################################################
 ################################################################################
@@ -134,7 +134,7 @@ computeModalThreshold(test_operator::Union{_TestOpGeq,_TestOpLeq}, w::Interval2D
 # 	# minimum(channel[1:X,1:Y])
 # 	minimum(channel)
 # end
-# enumAccBare(w::Interval2D, ::_RelationId, XYZ::Vararg{Integer,N}) where N = [(w.x, w.y)]
+# _accessibles(w::Interval2D, ::_RelationId, XYZ::Vararg{Integer,N}) where N = [(w.x, w.y)]
 
 
 @inline ch_readWorld(w::Interval2D, channel::MatricialChannel{T,2}) where {T} = channel[w.x.x:w.x.y-1,w.y.x:w.y.y-1]
