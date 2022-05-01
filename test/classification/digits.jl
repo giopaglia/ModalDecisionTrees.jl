@@ -1,6 +1,6 @@
 @testset "digits.jl" begin
 
-X, Y = load_data("digits")
+X, Y = ModalDecisionTrees.load_data("digits")
 
 t = ModalDecisionTrees.build_tree(Y, X)
 @test length(t) == 148

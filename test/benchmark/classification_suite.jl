@@ -10,7 +10,7 @@ function benchmark_classification(build::Function, apply::Function)
     suite["APPLY"]["ADULT"]     = BenchmarkGroup()
 
     # using DIGITS dataset
-    X, Y = load_data("digits")
+    X, Y = ModalDecisionTrees.load_data("digits")
 
     m, n = size(X)
     X_Any = Array{Any}(undef, m, n)
@@ -61,7 +61,7 @@ function benchmark_classification(build::Function, apply::Function)
 
 
     # using ADULT dataset
-    X_Any, Y_Any = load_data("adult")
+    X_Any, Y_Any = ModalDecisionTrees.load_data("adult")
     n = round(Int, size(X_Any, 1))
 
     Y_Any = Y_Any[1:n]   :: Vector{Any}

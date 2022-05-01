@@ -3,7 +3,7 @@
 
 @testset "iris.jl" begin
 
-features, labels = load_data("iris")
+features, labels = ModalDecisionTrees.load_data("iris")
 labels = String.(labels)
 classes = sort(unique(labels))
 n = length(labels)

@@ -108,13 +108,13 @@ end
 #   # Adimensional ontological datasets:
 #   #  flatten to adimensional case + strip of all relations from the ontology
 #   if prod(channel_size(X)) == 1
-#       if (length(ontology(X).relationSet) > 0)
-#           warn("The OntologicalDataset provided has degenerate channel_size $(channel_size(X)), and more than 0 relations: $(ontology(X).relationSet).")
+#       if (length(ontology(X).relations) > 0)
+#           warn("The OntologicalDataset provided has degenerate channel_size $(channel_size(X)), and more than 0 relations: $(ontology(X).relations).")
 #       end
 #       # X = OntologicalDataset{T, 0}(ModalLogic.strip_ontology(ontology(X)), @views ModalLogic.strip_domain(domain(X)))
 #   end
 
-#   ontology_relations = deepcopy(ontology(X).relationSet)
+#   ontology_relations = deepcopy(ontology(X).relations)
 
 #   # Fix test_operators order
 #   test_operators = unique(test_operators)
@@ -162,7 +162,7 @@ end
 #       # allowRelationGlob = true
 #   end
 
-#   relationSet = [RelationId, RelationGlob, ontology_relations...]
+#   relations = [RelationId, RelationGlob, ontology_relations...]
 #   relationId_id = 1
 #   relationGlob_id = 2
 #   ontology_relation_ids = map((x)->x+2, 1:length(ontology_relations))
@@ -187,7 +187,7 @@ end
 #   availableRelation_ids = [availableRelation_ids..., ontology_relation_ids...]
 
 #   (
-#       test_operators, relationSet,
+#       test_operators, relations,
 #       relationId_id, relationGlob_id,
 #       inUseRelation_ids, availableRelation_ids
 #   )
@@ -387,7 +387,7 @@ Base.@propagate_inbounds @inline function split_node!(
     # Optimization-tracking variables
     best_i_frame = -1
     best_purity_times_nt = typemin(P)
-    best_decision = Decision(RelationNone, FeatureTypeNone, >=, nothing)
+    best_decision = Decision(RelationNone, ModalDecisionTrees.ModalFeatureNone, >=, nothing)
     if isa(_perform_consistency_check,Val{true})
         consistency_sat_check = Vector{Bool}(undef, n_instances)
     end
@@ -461,7 +461,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # println(display_decision(i_frame, decision))
 
             # TODO avoid ugly unpacking and figure out a different way of achieving this
-            (test_operator, threshold) = (decision.test_operator, decision.threshold)
+            (test_operator, threshold) = (test_operator(decision), threshold(decision))
             ########################################################################
             # Apply decision to all instances
             ########################################################################
@@ -703,7 +703,7 @@ Base.@propagate_inbounds @inline function split_node!(
             errStr *= "Decision $(best_decision).\n"
             errStr *= "Possible causes:\n"
             errStr *= "- feature returning NaNs\n"
-            errStr *= "- erroneous enumAccReprAggr for relation $(best_decision.relation), aggregator $(ModalLogic.existential_aggregator(best_decision.test_operator)) and feature $(best_decision.feature)\n"
+            errStr *= "- erroneous enumAccReprAggr for relation $(relation(best_decision)), aggregator $(ModalLogic.existential_aggregator(test_operator(best_decision))) and feature $(feature(best_decision))\n"
             errStr *= "\n"
             errStr *= "Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(best_i_frame) with decision: $(decision_str), purity $(best_purity)\n"
             errStr *= "$(length(idxs[region])) Instances: $(idxs[region])\n"
@@ -727,7 +727,7 @@ Base.@propagate_inbounds @inline function split_node!(
             end
             
             # for i in 1:n_instances
-                # errStr *= "$(ModalLogic.get_channel(Xs, idxs[i + r_start], best_decision.feature))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[best_i_frame][idxs[i + r_start]])\n";
+                # errStr *= "$(ModalLogic.get_channel(Xs, idxs[i + r_start], feature(best_decision)))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[best_i_frame][idxs[i + r_start]])\n";
             # end
 
             # throw_n_log("ERROR! " * errStr)
@@ -940,7 +940,7 @@ function fit(
         # world starting conditions
         initConditions            :: Vector{<:_initCondition},
         # Weights (unary weigths are used if no weight is supplied)
-        W                         :: AbstractVector{U} = UniformVector{Int}(1,n_samples(Xs))
+        W                         :: AbstractVector{U} = default_weights(n_samples(Xs))
         # W                       :: AbstractVector{U} = Ones{Int}(n_samples(Xs)), # TODO check whether this is faster
         ;
         # Debug-only: checks the consistency of the dataset during training
@@ -953,7 +953,7 @@ function fit(
     # Classification-only: transform labels to categorical form (indexed by integers)
     n_classes = begin
         if L<:CLabel
-            class_names, Y = util.assign(Y)
+            class_names, Y = util.get_categorical_form(Y)
             length(class_names)
         else
             0 # dummy value for the case of regression

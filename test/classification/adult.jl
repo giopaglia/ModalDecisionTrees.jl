@@ -3,7 +3,7 @@
 
 @testset "adult.jl" begin
 
-features, labels = load_data("adult")
+features, labels = ModalDecisionTrees.load_data("adult")
 
 model = build_tree(labels, features)
 preds = apply_tree(model, features)

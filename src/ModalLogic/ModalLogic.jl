@@ -1,277 +1,204 @@
 module ModalLogic
-using IterTools
-import Base: argmax, argmin, size, show, convert, getindex, iterate, length
-using Logging: @logmsg
+
 using ..ModalDecisionTrees
+using ..ModalDecisionTrees: util, get_interpretation_function, alpha, display_feature_test_operator_pair
 
+using BenchmarkTools
 using ComputedFieldTypes
-
+using DataStructures
+using IterTools
+using Logging: @logmsg
 using ResumableFunctions
 
-using DataStructures
-
-using BenchmarkTools # TODO use this to compare timings and use @btime
-
-using ModalDecisionTrees.util
+import Base: size, show, getindex, iterate, length
 
 export AbstractWorld, AbstractRelation,
-                Ontology,
-                AbstractWorldSet, WorldSet,
-                RelationGlob, RelationNone, RelationId,
-                world_type, world_types # TODO maybe remove this function?
-                # enumAccessibles, enumAccRepr
+       Ontology,
+       AbstractWorldSet, WorldSet,
+       RelationGlob, RelationNone, RelationId,
+       world_type, world_types
 
-# Fix (not needed in Julia 1.7, see https://github.com/JuliaLang/julia/issues/34674 )
+# Fix (not needed from Julia 1.7, see https://github.com/JuliaLang/julia/issues/34674 )
 if length(methods(Base.keys, (Base.Generator,))) == 0
     Base.keys(g::Base.Generator) = g.iter
 end
 
-# Abstract classes for world & relations
+################################################################################
+
+# Abstract types for worlds
 abstract type AbstractWorld end
+
+# These constants is used for specifying different initial world conditions for each world type
+#  (e.g. Interval(::_emptyWorld) = Interval(-1,0))
+struct _firstWorld end;
+struct _emptyWorld end;
+struct _centeredWorld end;
+
+# World enumerators generate array/set-like structures
+const AbstractWorldSet{W} = Union{AbstractVector{W},AbstractSet{W}} where {W<:AbstractWorld}
+const WorldSet{W} = Vector{W} where {W<:AbstractWorld}
+WorldSet{W}(S::WorldSet{W}) where {W<:AbstractWorld} = S
+
+################################################################################
+
+# Abstract types for relations
 abstract type AbstractRelation end
 
-Base.show(io::IO, r::AbstractRelation) = print(io, display_existential_relation(r))
-display_existential_relation(r) = "⟨$(display_rel_short(r))⟩"
-display_universal_relation(r) = "[$(display_rel_short(r))]"
+################################################################################
 
-# Concrete class for ontology models (world type + set of relations)
+# Concrete type for ontologies
+# An ontology is a pair `world type` + `set of relations`, and represents the kind of
+#  modal frame that underlies a certain logic
 struct Ontology{WorldType<:AbstractWorld}
-    relationSet :: AbstractVector{<:AbstractRelation}
-    Ontology{WorldType}(relationSet) where {WorldType<:AbstractWorld} = begin
-        relationSet = unique(relationSet)
-        for relation in relationSet
-            @assert goesWith(WorldType, relation) "Can't instantiate Ontology with WorldType $(WorldType) and relation $(relation)"
+
+    relations :: AbstractVector{<:AbstractRelation}
+
+    function Ontology{WorldType}(relations::AbstractVector) where {WorldType<:AbstractWorld}
+        relations = collect(unique(relations))
+        for relation in relations
+            @assert goesWith(WorldType, relation) "Can't instantiate Ontology{$(WorldType)} with relation $(relation)!"
         end
-        # if WorldType == OneWorld
-        #   relationSet = []
-        # end
-        return new{WorldType}(relationSet)
+        if WorldType == OneWorld && length(relations) > 0
+          relations = similar(relations, 0)
+          @warn "Instantiating Ontology{$(WorldType)} with empty set of relations!"
+        end
+        new{WorldType}(relations)
     end
-    # Ontology(worldType, relationSet) = new(worldType, relationSet)
+
+    Ontology(worldType::Type{<:AbstractWorld}, relations) = Ontology{worldType}(relations)
 end
 
 world_type(::Ontology{WT}) where {WT<:AbstractWorld} = WT
+relations(o::Ontology) = o.relations
 
-# Actually, this will not work because relationSet does this collect(set(...)) thing... mh maybe better avoid that thing?
-Base.show(io::IO, o::Ontology{WorldType}) where {WorldType} = begin
+Base.show(io::IO, o::Ontology{WT}) where {WT<:AbstractWorld} = begin
     if o == OneWorldOntology
         print(io, "OneWorldOntology")
     else
         print(io, "Ontology{")
-        show(io, WorldType)
+        show(io, WT)
         print(io, "}(")
-        if issetequal(o.relationSet, IARelations)
-            print(io, "IARelations")
-        elseif issetequal(o.relationSet, IARelations_extended)
-            print(io, "IARelations_extended")
-        elseif issetequal(o.relationSet, IA2DRelations)
-            print(io, "IA2DRelations")
-        elseif issetequal(o.relationSet, IA2DRelations_U)
-            print(io, "IA2DRelations_U")
-        elseif issetequal(o.relationSet, IA2DRelations_extended)
-            print(io, "IA2DRelations_extended")
-        elseif issetequal(o.relationSet, RCC8Relations)
+        if issetequal(relations(o), IARelations)
+            print(io, "IA")
+        elseif issetequal(relations(o), IARelations_extended)
+            print(io, "IA_extended")
+        elseif issetequal(relations(o), IA2DRelations)
+            print(io, "IA²")
+        elseif issetequal(relations(o), IA2DRelations_U)
+            print(io, "IA²_U")
+        elseif issetequal(relations(o), IA2DRelations_extended)
+            print(io, "IA²_extended")
+        elseif issetequal(relations(o), RCC8Relations)
             print(io, "RCC8")
-        elseif issetequal(o.relationSet, RCC5Relations)
+        elseif issetequal(relations(o), RCC5Relations)
             print(io, "RCC5")
         else
-            show(io, o.relationSet)
+            show(io, relations(o))
         end
         print(io, ")")
     end
 end
 
-# strip_ontology(ontology::Ontology) = Ontology{OneWorld}(AbstractRelation[])
-
-
-# This constant is used to create the default world for each WorldType
-#  (e.g. Interval(emptyWorld) = Interval(-1,0))
-struct _firstWorld end;    const firstWorld    = _firstWorld();
-struct _emptyWorld end;    const emptyWorld    = _emptyWorld();
-struct _centeredWorld end; const centeredWorld = _centeredWorld();
-
-# World generators/enumerators and array/set-like structures
-const AbstractWorldSet{W} = Union{AbstractVector{W},AbstractSet{W}} where {W<:AbstractWorld}
-const WorldSet{W} = Vector{W} where {W<:AbstractWorld}
-WorldSet{W}(S::WorldSet{W}) where {W<:AbstractWorld} = S
-
-include("operators.jl")
-
-################################################################################
-
-export MixedFeature, CanonicalFeature, CanonicalFeatureGeq, CanonicalFeatureLeq
-
-abstract type CanonicalFeature end
-
-# ⪴ and ⪳, that is, "*all* of the values on this world are at least, or at most ..."
-struct _CanonicalFeatureGeq <: CanonicalFeature end; const CanonicalFeatureGeq  = _CanonicalFeatureGeq();
-struct _CanonicalFeatureLeq <: CanonicalFeature end; const CanonicalFeatureLeq  = _CanonicalFeatureLeq();
-
-export CanonicalFeatureGeq_95, CanonicalFeatureGeq_90, CanonicalFeatureGeq_85, CanonicalFeatureGeq_80, CanonicalFeatureGeq_75, CanonicalFeatureGeq_70, CanonicalFeatureGeq_60,
-                CanonicalFeatureLeq_95, CanonicalFeatureLeq_90, CanonicalFeatureLeq_85, CanonicalFeatureLeq_80, CanonicalFeatureLeq_75, CanonicalFeatureLeq_70, CanonicalFeatureLeq_60
-
-# ⪴_α and ⪳_α, that is, "*at least α⋅100 percent* of the values on this world are at least, or at most ..."
-
-struct _CanonicalFeatureGeqSoft  <: CanonicalFeature
-  alpha :: AbstractFloat
-  _CanonicalFeatureGeqSoft(a::T) where {T<:Real} = (a > 0 && a < 1) ? new(a) : throw_n_log("Invalid instantiation for test operator: _CanonicalFeatureGeqSoft($(a))")
-end;
-struct _CanonicalFeatureLeqSoft  <: CanonicalFeature
-  alpha :: AbstractFloat
-  _CanonicalFeatureLeqSoft(a::T) where {T<:Real} = (a > 0 && a < 1) ? new(a) : throw_n_log("Invalid instantiation for test operator: _CanonicalFeatureLeqSoft($(a))")
-end;
-
-const CanonicalFeatureGeq_95  = _CanonicalFeatureGeqSoft((Rational(95,100)));
-const CanonicalFeatureGeq_90  = _CanonicalFeatureGeqSoft((Rational(90,100)));
-const CanonicalFeatureGeq_85  = _CanonicalFeatureGeqSoft((Rational(85,100)));
-const CanonicalFeatureGeq_80  = _CanonicalFeatureGeqSoft((Rational(80,100)));
-const CanonicalFeatureGeq_75  = _CanonicalFeatureGeqSoft((Rational(75,100)));
-const CanonicalFeatureGeq_70  = _CanonicalFeatureGeqSoft((Rational(70,100)));
-const CanonicalFeatureGeq_60  = _CanonicalFeatureGeqSoft((Rational(60,100)));
-
-const CanonicalFeatureLeq_95  = _CanonicalFeatureLeqSoft((Rational(95,100)));
-const CanonicalFeatureLeq_90  = _CanonicalFeatureLeqSoft((Rational(90,100)));
-const CanonicalFeatureLeq_85  = _CanonicalFeatureLeqSoft((Rational(85,100)));
-const CanonicalFeatureLeq_80  = _CanonicalFeatureLeqSoft((Rational(80,100)));
-const CanonicalFeatureLeq_75  = _CanonicalFeatureLeqSoft((Rational(75,100)));
-const CanonicalFeatureLeq_70  = _CanonicalFeatureLeqSoft((Rational(70,100)));
-const CanonicalFeatureLeq_60  = _CanonicalFeatureLeqSoft((Rational(60,100)));
-
-# TODO deprecated, remove
-export TestOpGeq_95, TestOpGeq_90, TestOpGeq_85, TestOpGeq_80, TestOpGeq_75, TestOpGeq_70, TestOpGeq_60, TestOpLeq_95, TestOpLeq_90, TestOpLeq_85, TestOpLeq_80, TestOpLeq_75, TestOpLeq_70, TestOpLeq_60, TestOpGeq, TestOpLeq
-TestOpGeq_95 = CanonicalFeatureGeq_95
-TestOpGeq_90 = CanonicalFeatureGeq_90
-TestOpGeq_85 = CanonicalFeatureGeq_85
-TestOpGeq_80 = CanonicalFeatureGeq_80
-TestOpGeq_75 = CanonicalFeatureGeq_75
-TestOpGeq_70 = CanonicalFeatureGeq_70
-TestOpGeq_60 = CanonicalFeatureGeq_60
-TestOpLeq_95 = CanonicalFeatureLeq_95
-TestOpLeq_90 = CanonicalFeatureLeq_90
-TestOpLeq_85 = CanonicalFeatureLeq_85
-TestOpLeq_80 = CanonicalFeatureLeq_80
-TestOpLeq_75 = CanonicalFeatureLeq_75
-TestOpLeq_70 = CanonicalFeatureLeq_70
-TestOpLeq_60 = CanonicalFeatureLeq_60
-TestOpGeq    = CanonicalFeatureGeq
-TestOpLeq    = CanonicalFeatureLeq
-
-MixedFeature = Union{ModalFeature,CanonicalFeature,Function,Tuple{TestOperatorFun,Function},Tuple{TestOperatorFun,ModalFeature}}
-
 ################################################################################
 # Decision
 ################################################################################
 
-export Decision, is_modal_decision, display_decision, display_decision_inverse
+export Decision,
+       # 
+       relation, feature, test_operator, threshold,
+       is_modal_decision,
+       # 
+       display_decision, display_decision_inverse
 
-# Split-Decision (e.g., ⟨L⟩ (minimum(A2) ≤ 10) )
+# A decision inducing a branching/split (e.g., ⟨L⟩ (minimum(A2) ≥ 10) )
 struct Decision{T}
     
-    # modal operator (e.g. RelationId for the propositional case)
+    # Relation, interpreted as an existential modal operator
+    #  Note: e.g. RelationId for the propositional case
     relation      :: AbstractRelation
     
-    # scalar feature
+    # Modal feature (a scalar function that can be computed on a world)
     feature       :: ModalFeature
     
-    # test_operator (e.g. ≤)
+    # Test operator (e.g. ≥)
     test_operator :: TestOperatorFun
 
-    # threshold value
+    # Threshold value
     threshold     :: T
 end
+
+relation(d::Decision) = d.relation
+feature(d::Decision) = d.feature
+test_operator(d::Decision) = d.test_operator
+threshold(d::Decision) = d.threshold
+
+is_modal_decision(d::Decision) = !(relation(d) isa ModalLogic._RelationId)
 
 function Base.show(io::IO, decision::Decision)
     println(io, display_decision(decision))
 end
 
-is_modal_decision(d::Decision) = !(d.relation isa ModalLogic._RelationId)
-
-
-display_decision(i_frame::Integer, decision::Decision; threshold_display_method::Function = x -> x, is_intended_as_universal = false) = begin
-    "{$i_frame} $(display_decision(decision; threshold_display_method = threshold_display_method, is_intended_as_universal = is_intended_as_universal))"
-end
-
-display_decision_inverse(i_frame::Integer, decision::Decision; threshold_display_method::Function = x -> x) = begin
-    inv_decision = Decision{T}(decision.relation, decision.feature, test_operator_inverse(test_operator), decision.threshold)
-    display_decision(i_frame, inv_decision; threshold_display_method = threshold_display_method, is_intended_as_universal = true)
-end
-
-display_decision(decision::Decision; threshold_display_method::Function = x -> x, is_intended_as_universal = false) = begin
-    prop_decision_str = display_propositional_decision(decision.feature, decision.test_operator, decision.threshold; threshold_display_method = threshold_display_method)
+function display_decision(decision::Decision; threshold_display_method::Function = x -> x, universal = false)
+    display_propositional_decision(feature::ModalFeature, test_operator::TestOperatorFun, threshold::Number; threshold_display_method::Function = x -> x) =
+        "$(display_feature_test_operator_pair(feature, test_operator)) $(threshold_display_method(threshold))"
+    prop_decision_str = display_propositional_decision(feature(decision), test_operator(decision), threshold(decision); threshold_display_method = threshold_display_method)
     if is_modal_decision(decision)
-        "$((is_intended_as_universal ? display_universal_relation : display_existential_relation)(decision.relation)) ($prop_decision_str)"
+        "$((universal ? display_universal : display_existential)(relation(decision))) ($prop_decision_str)"
     else
         "$prop_decision_str"
     end
 end
 
-display_propositional_decision(feature::ModalFeature, test_operator::TestOperatorFun, threshold::Number; threshold_display_method::Function = x -> x) =
-    "$(feature) $(test_operator) $(threshold_display_method(threshold))"
+display_existential(rel::AbstractRelation) = "⟨$(rel)⟩"
+display_universal(rel::AbstractRelation)   = "[$(rel)]"
 
-display_propositional_decision(feature::AttributeMinimumFeatureType, test_operator::typeof(≥), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) ⪴ $(threshold_display_method(threshold))"
-display_propositional_decision(feature::AttributeMaximumFeatureType, test_operator::typeof(≤), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) ⪳ $(threshold_display_method(threshold))"
-display_propositional_decision(feature::AttributeSoftMinimumFeatureType, test_operator::typeof(≥), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) $("⪴" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
-display_propositional_decision(feature::AttributeSoftMaximumFeatureType, test_operator::typeof(≤), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) $("⪳" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
+################################################################################
 
-display_propositional_decision(feature::AttributeMinimumFeatureType, test_operator::typeof(<), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) ⪶ $(threshold_display_method(threshold))"
-display_propositional_decision(feature::AttributeMaximumFeatureType, test_operator::typeof(>), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) ⪵ $(threshold_display_method(threshold))"
-display_propositional_decision(feature::AttributeSoftMinimumFeatureType, test_operator::typeof(<), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) $("⪶" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
-display_propositional_decision(feature::AttributeSoftMaximumFeatureType, test_operator::typeof(>), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) $("⪵" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
+function display_decision(i_frame::Integer, decision::Decision; threshold_display_method::Function = x -> x, universal = false)
+    "{$i_frame} $(display_decision(decision; threshold_display_method = threshold_display_method, universal = universal))"
+end
 
-display_propositional_decision(feature::AttributeMinimumFeatureType, test_operator::typeof(≤), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) ↘ $(threshold_display_method(threshold))"
-display_propositional_decision(feature::AttributeMaximumFeatureType, test_operator::typeof(≥), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) ↗ $(threshold_display_method(threshold))"
-display_propositional_decision(feature::AttributeSoftMinimumFeatureType, test_operator::typeof(≤), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) $("↘" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
-display_propositional_decision(feature::AttributeSoftMaximumFeatureType, test_operator::typeof(≥), threshold::Number; threshold_display_method::Function = x -> x) =
-    "A$(feature.i_attribute) $("↗" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.'))) $(threshold_display_method(threshold))"
+function display_decision_inverse(i_frame::Integer, decision::Decision; threshold_display_method::Function = x -> x)
+    inv_decision = Decision{T}(relation(decision), feature(decision), test_operator_inverse(test_operator), threshold(decision))
+    display_decision(i_frame, inv_decision; threshold_display_method = threshold_display_method, universal = true)
+end
 
 ################################################################################
 # Dataset structures
 ################################################################################
 
-
 export n_samples, n_attributes, n_features, n_relations,
-                channel_size, max_channel_size,
-                n_frames, frames, get_frame, push_frame!,
-                display_structure,
-                get_gamma, test_decision,
-                ##############################
-                concat_datasets,
-                dataset_has_nonevalues,
-                ##############################
-                relations,
-                initws_function,
-                acc_function,
-                accrepr_functions,
-                features,
-                grouped_featsaggrsnops,
-                featsnaggrs,
-                grouped_featsnaggrs,
-                ##############################
-                SingleFrameGenericDataset,
-                GenericDataset,
-                MultiFrameModalDataset,
-                AbstractModalDataset,
-                OntologicalDataset, 
-                AbstractFeaturedWorldDataset,
-                FeatModalDataset,
-                StumpFeatModalDataset,
-                StumpFeatModalDatasetWithMemoization,
-                MatricialInstance,
-                MatricialDataset,
-                # MatricialUniDataset,
-                MatricialChannel,
-                FeaturedWorldDataset
+       channel_size, max_channel_size,
+       n_frames, frames, get_frame, push_frame!,
+       display_structure,
+       get_gamma, test_decision,
+       ##############################
+       concat_datasets,
+       dataset_has_nonevalues,
+       ##############################
+       relations,
+       initws_function,
+       acc_function,
+       accrepr_functions,
+       features,
+       grouped_featsaggrsnops,
+       featsnaggrs,
+       grouped_featsnaggrs,
+       ##############################
+       SingleFrameGenericDataset,
+       GenericDataset,
+       MultiFrameModalDataset,
+       AbstractModalDataset,
+       OntologicalDataset, 
+       AbstractFeaturedWorldDataset,
+       FeatModalDataset,
+       StumpFeatModalDataset,
+       StumpFeatModalDatasetWithMemoization,
+       MatricialInstance,
+       MatricialDataset,
+       # MatricialUniDataset,
+       MatricialChannel,
+       FeaturedWorldDataset
 
 const initWorldSetFunction = Function
 const accFunction = Function
@@ -368,9 +295,9 @@ concat_datasets(d1::MatricialDataset{T,5}, d2::MatricialDataset{T,5}) where {T} 
 # MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,3}) where T = Array{T, 2}(undef, size(d)[1:end-1])::MatricialUniDataset{T, 2}
 # MatricialUniDataset(::UndefInitializer, d::MatricialDataset{T,4}) where T = Array{T, 3}(undef, size(d)[1:end-1])::MatricialUniDataset{T, 3}
 
-get_gamma(X::MatricialDataset, i_instance::Integer, w::AbstractWorld, feature::ModalFeature) =
-    yieldFunction(feature)(inst_readWorld(w, get_instance(X, i_instance)))
-
+function get_gamma(X::MatricialDataset{T,N}, i_instance::Integer, w::AbstractWorld, feature::ModalFeature) where {T,N}
+    get_interpretation_function(feature)(inst_readWorld(w, get_instance(X, i_instance))::MatricialChannel{T,N-1-1})::T
+end
 
 @computed struct OntologicalDataset{T<:Number, N, WorldType<:AbstractWorld} <: AbstractModalDataset{T, WorldType}
     
@@ -463,11 +390,11 @@ get_gamma(X::MatricialDataset, i_instance::Integer, w::AbstractWorld, feature::M
                 push!(featsnops, test_ops)
             end
 
-            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureGeq) = ([≥],ModalLogic.AttributeMinimumFeatureType(i_attr))
-            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureLeq) = ([≤],ModalLogic.AttributeMaximumFeatureType(i_attr))
-            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureGeqSoft) = ([≥],ModalLogic.AttributeSoftMinimumFeatureType(i_attr, cf.alpha))
-            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureLeqSoft) = ([≤],ModalLogic.AttributeSoftMaximumFeatureType(i_attr, cf.alpha))
-            single_attr_feats_n_featsnops(i_attr,(test_ops,cf)::Tuple{<:AbstractVector{<:TestOperatorFun},Function}) = (test_ops,AttributeFunctionFeatureType(i_attr, cf))
+            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureGeq) = ([≥],ModalLogic.SingleAttributeMin(i_attr))
+            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureLeq) = ([≤],ModalLogic.SingleAttributeMax(i_attr))
+            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureGeqSoft) = ([≥],ModalLogic.SingleAttributeSoftMin(i_attr, cf.alpha))
+            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureLeqSoft) = ([≤],ModalLogic.SingleAttributeSoftMax(i_attr, cf.alpha))
+            single_attr_feats_n_featsnops(i_attr,(test_ops,cf)::Tuple{<:AbstractVector{<:TestOperatorFun},Function}) = (test_ops,SingleAttributeFeature(i_attr, cf))
             single_attr_feats_n_featsnops(i_attr,::Any) = throw_n_log("Unknown mixed_feature type: $(cf), $(typeof(cf))")
 
             for i_attr in 1:n_attributes(domain)
@@ -546,8 +473,8 @@ get_gamma(X::MatricialDataset, i_instance::Integer, w::AbstractWorld, feature::M
     end
 end
 
-relations(X::OntologicalDataset)        = X.ontology.relationSet
-size(X::OntologicalDataset)             = size(X.domain)
+relations(X::OntologicalDataset)        = relations(X.ontology)
+Base.size(X::OntologicalDataset)        = size(X.domain)
 n_samples(X::OntologicalDataset)        = n_samples(X.domain)::Int64
 n_attributes(X::OntologicalDataset)     = n_attributes(X.domain)
 n_relations(X::OntologicalDataset)      = length(relations(X))
@@ -556,7 +483,7 @@ world_type(X::OntologicalDataset{T,N,WT})    where {T,N,WT<:AbstractWorld} = WT
 features(X::OntologicalDataset)               = X.features
 grouped_featsaggrsnops(X::OntologicalDataset) = X.grouped_featsaggrsnops
 n_features(X::OntologicalDataset)             = length(X.features)
-# getindex(X::OntologicalDataset, args::Vararg) = getindex(X.domain[...], args...)
+# Base.getindex(X::OntologicalDataset, args::Vararg) = getindex(X.domain[...], args...)
 
 initws_function(X::OntologicalDataset{T, N, WorldType},  i_instance) where {T, N, WorldType} =
     (iC)->initWorldSet(iC, WorldType, inst_channel_size(get_instance(X, i_instance)))
@@ -564,7 +491,7 @@ acc_function(X::OntologicalDataset, i_instance) = (w,R)->enumAccessibles(w,R, in
 accAll_function(X::OntologicalDataset{T, N, WorldType}, i_instance) where {T, N, WorldType} = enumAll(WorldType, acc_function(X, i_instance))
 accrepr_function(X::OntologicalDataset, i_instance)  = (f,a,w,R)->enumAccReprAggr(f,a,w,R,inst_channel_size(get_instance(X, i_instance))...)
 
-length(X::OntologicalDataset)                = n_samples(X)
+Base.length(X::OntologicalDataset)                = n_samples(X)
 Base.iterate(X::OntologicalDataset, state=1) = state > length(X) ? nothing : (get_instance(X, state), state+1) # Base.iterate(X.domain, state=state)
 channel_size(X::OntologicalDataset)          = channel_size(X.domain)
 
@@ -687,13 +614,13 @@ accrepr_function(X::FeatModalDataset, i_instance)  = X.accrepr_functions[i_insta
 features(X::FeatModalDataset)          = X.features
 grouped_featsaggrsnops(X::FeatModalDataset) = X.grouped_featsaggrsnops
 
-size(X::FeatModalDataset)             where {T,N} =  size(X.fwd)
+Base.size(X::FeatModalDataset)             where {T,N} =  size(X.fwd)
 n_samples(X::FeatModalDataset{T, WorldType}) where {T, WorldType}   = n_samples(X.fwd)::Int64
 n_features(X::FeatModalDataset{T, WorldType}) where {T, WorldType}  = length(X.features)
 n_relations(X::FeatModalDataset{T, WorldType}) where {T, WorldType} = length(X.relations)
 # length(X::FeatModalDataset{T,WorldType})        where {T,WorldType} = n_samples(X)
 # Base.iterate(X::FeatModalDataset{T,WorldType}, state=1) where {T, WorldType} = state > length(X) ? nothing : (get_instance(X, state), state+1)
-getindex(X::FeatModalDataset{T,WorldType}, args::Vararg) where {T,WorldType} = getindex(X.fwd, args...)
+Base.getindex(X::FeatModalDataset{T,WorldType}, args::Vararg) where {T,WorldType} = getindex(X.fwd, args...)
 world_type(X::FeatModalDataset{T,WorldType}) where {T,WorldType<:AbstractWorld} = WorldType
 
 
@@ -1025,7 +952,7 @@ features(X::StumpFeatModalDatasetWithOrWithoutMemoization)           = features(
 grouped_featsaggrsnops(X::StumpFeatModalDatasetWithOrWithoutMemoization)  = grouped_featsaggrsnops(X.fmd)
 
 
-size(X::StumpFeatModalDatasetWithOrWithoutMemoization)             where {T,N} =  (size(X.fmd), size(X.fmd_m), (isnothing(X.fmd_g) ? nothing : size(X.fmd_g)))
+Base.size(X::StumpFeatModalDatasetWithOrWithoutMemoization)             where {T,N} =  (size(X.fmd), size(X.fmd_m), (isnothing(X.fmd_g) ? nothing : size(X.fmd_g)))
 n_samples(X::StumpFeatModalDatasetWithOrWithoutMemoization{T, WorldType}) where {T, WorldType}   = n_samples(X.fmd)::Int64
 n_features(X::StumpFeatModalDatasetWithOrWithoutMemoization{T, WorldType}) where {T, WorldType}  = n_features(X.fmd)
 n_relations(X::StumpFeatModalDatasetWithOrWithoutMemoization{T, WorldType}) where {T, WorldType} = n_relations(X.fmd)
@@ -1094,16 +1021,16 @@ test_decision(
         w::WorldType,
         decision::Decision) where {T, WorldType<:AbstractWorld} = begin
     if !is_modal_decision(decision)
-        test_decision(X, i_instance, w, decision.feature, decision.test_operator, decision.threshold)
+        test_decision(X, i_instance, w, feature(decision), test_operator(decision), threshold(decision))
     else
         gamma = begin
             if relation isa ModalLogic._RelationGlob
-                get_global_gamma(X, i_instance, decision.feature, decision.test_operator)
+                get_global_gamma(X, i_instance, feature(decision), test_operator(decision))
             else
-                get_modal_gamma(X, i_instance, w, decision.relation, decision.feature, decision.test_operator)
+                get_modal_gamma(X, i_instance, w, relation(decision), feature(decision), test_operator(decision))
             end
         end
-        evaluate_thresh_decision(decision.test_operator, gamma, decision.threshold)
+        evaluate_thresh_decision(test_operator(decision), gamma, threshold(decision))
     end
 end
 
@@ -1442,12 +1369,12 @@ struct MultiFrameModalDataset
 end
 
 # TODO: test all these methods
-size(X::MultiFrameModalDataset) = map(size, X.frames)
+Base.size(X::MultiFrameModalDataset) = map(size, X.frames)
 get_frame(X::MultiFrameModalDataset, i) = X.frames[i]
 push_frame!(X::MultiFrameModalDataset, f::AbstractModalDataset) = push!(X.frames, f)
 n_frames(X::MultiFrameModalDataset)             = length(X.frames)
 n_samples(X::MultiFrameModalDataset)            = n_samples(X.frames[1])::Int64 # n_frames(X) > 0 ? n_samples(X.frames[1]) : 0
-length(X::MultiFrameModalDataset)               = n_samples(X)
+Base.length(X::MultiFrameModalDataset)               = n_samples(X)
 frames(X::MultiFrameModalDataset) = X.frames
 Base.iterate(X::MultiFrameModalDataset, state=1) = state > length(X) ? nothing : (get_instance(X, state), state+1)
 
@@ -1532,7 +1459,7 @@ enumAccReprAggr(::ModalFeature, ::Aggregator, w::WorldType, r::_RelationId,     
 # computeModalThresholdMany(test_ops::Vector{<:TestOperatorFun}, w::WorldType, relation::_RelationId, channel::MatricialChannel{T,N}) where {WorldType<:AbstractWorld,T,N} =
 #   computeModalThresholdMany(test_ops, w, channel)
 
-display_rel_short(::_RelationId)  = "Id"
+Base.show(io::IO, ::_RelationId) = print(io, "=")
 
 
 ################################################################################
@@ -1541,7 +1468,7 @@ display_rel_short(::_RelationId)  = "Id"
 # Global relation    (RelationGlob)   =  S -> all-worlds
 struct _RelationGlob   <: AbstractRelation end; const RelationGlob  = _RelationGlob();
 
-display_rel_short(::_RelationGlob) = "G"
+Base.show(io::IO, ::_RelationGlob) = print(io, "G")
 
 # Shortcut for enumerating all worlds
 enumAll(::Type{WorldType}, args::Vararg) where {WorldType<:AbstractWorld} = enumAccessibles(WorldType[], RelationGlob, args...)
@@ -1565,10 +1492,10 @@ export OneWorldOntology,
         IntervalRCC5Ontology,
         Interval2DRCC5Ontology
 
-minExtrema(extr::Union{NTuple{N,NTuple{2,T}},AbstractVector{NTuple{2,T}}}) where {T<:Number,N} = reduce(((fst,snd),(f,s))->(min(fst,f),max(snd,s)), extr; init=(typemax(T),typemin(T)))
-maxExtrema(extr::Union{NTuple{N,NTuple{2,T}},AbstractVector{NTuple{2,T}}}) where {T<:Number,N} = reduce(((fst,snd),(f,s))->(max(fst,f),min(snd,s)), extr; init=(typemin(T),typemax(T)))
-minExtrema(extr::Vararg{NTuple{2,T}}) where {T<:Number} = minExtrema(extr)
-maxExtrema(extr::Vararg{NTuple{2,T}}) where {T<:Number} = maxExtrema(extr)
+minExtrema(extr::Union{NTuple{N,NTuple{2,T}},AbstractVector{NTuple{2,T}}}) where {T<:Real,N} = reduce(((fst,snd),(f,s))->(min(fst,f),max(snd,s)), extr; init=(typemax(T),typemin(T)))
+maxExtrema(extr::Union{NTuple{N,NTuple{2,T}},AbstractVector{NTuple{2,T}}}) where {T<:Real,N} = reduce(((fst,snd),(f,s))->(max(fst,f),min(snd,s)), extr; init=(typemin(T),typemax(T)))
+minExtrema(extr::Vararg{NTuple{2,T}}) where {T<:Real} = minExtrema(extr)
+maxExtrema(extr::Vararg{NTuple{2,T}}) where {T<:Real} = maxExtrema(extr)
 
 include("OneWorld.jl")
 # include("Point.jl")
@@ -1613,8 +1540,9 @@ getIntervalRCC5OntologyOfDim(::Val{2}) = Interval2DRCC5Ontology
 
 include("BuildStumpSupport.jl")
 
-computePropositionalThreshold(feature::ModalFeature, w::AbstractWorld, instance::MatricialInstance) = yieldFunction(feature)(inst_readWorld(w, instance))
-
+function computePropositionalThreshold(feature::ModalFeature, w::AbstractWorld, instance::MatricialInstance{T,N}) where {T,N}
+    get_interpretation_function(feature)(inst_readWorld(w, instance)::MatricialChannel{T,N-1})::T
+end
 
 # TODO add AbstractWorldSet type
 computeModalThreshold(fwd_propositional_slice::FeaturedWorldDatasetSlice{T}, worlds::Any, aggregator::Agg) where {T, Agg<:Aggregator} = begin
@@ -1687,15 +1615,15 @@ function modal_step(
         acc_worlds = 
             if returns_survivors isa Val{true}
                 Threads.@threads for curr_w in worlds
-                    worlds_map[curr_w] = acc_function(X, i_instance)(curr_w, decision.relation)
+                    worlds_map[curr_w] = acc_function(X, i_instance)(curr_w, relation(decision))
                 end
                 unique(cat([ worlds_map[k] for k in keys(worlds_map) ]...; dims = 1))
             else
-                acc_function(X, i_instance)(worlds, decision.relation)
+                acc_function(X, i_instance)(worlds, relation(decision))
             end
 
         for w in acc_worlds
-            if test_decision(X, i_instance, w, decision.feature, decision.test_operator, decision.threshold)
+            if test_decision(X, i_instance, w, feature(decision), test_operator(decision), threshold(decision))
                 # @logmsg DTDetail " Found world " w ch_readWorld ... ch_readWorld(w, channel)
                 satisfied = true
                 push!(new_worlds, w)
@@ -1739,16 +1667,16 @@ test_decision(
         decision::Decision{T}) where {T} = begin
     instance = get_instance(X, i_instance)
 
-    aggregator = existential_aggregator(decision.test_operator)
+    aggregator = existential_aggregator(test_operator(decision))
     
-    worlds = enumAccReprAggr(decision.feature, aggregator, w, decision.relation, inst_channel_size(instance)...)
+    worlds = enumAccReprAggr(feature(decision), aggregator, w, relation(decision), inst_channel_size(instance)...)
     gamma = if length(worlds |> collect) == 0
         ModalLogic.aggregator_bottom(aggregator, T)
     else
-        aggregator((w)->get_gamma(X, i_instance, w, decision.feature), worlds)
+        aggregator((w)->get_gamma(X, i_instance, w, feature(decision)), worlds)
     end
 
-    evaluate_thresh_decision(decision.test_operator, gamma, decision.threshold)
+    evaluate_thresh_decision(test_operator(decision), gamma, threshold(decision))
 end
 
 

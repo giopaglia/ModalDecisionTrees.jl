@@ -430,9 +430,9 @@ apply_tree_proba(leaf::DTLeaf, features::AbstractVector, labels) where =
     compute_probabilities(labels, leaf.supp_labels)
 
 function apply_tree_proba(tree::DTInternal{L, T}, features::AbstractVector{L}, labels) where {L, T}
-    if tree.decision.threshold === nothing
+    if threshold(tree.decision) === nothing
         return apply_tree_proba(tree.left, features, labels)
-    elseif eval(Expr(:call, tree.decision.test_operator, tree.decision.feature ... , tree.decision.threshold))
+    elseif eval(Expr(:call, test_operator(tree.decision), feature(tree.decision) ... , threshold(tree.decision)))
         return apply_tree_proba(tree.left, features, labels)
     else
         return apply_tree_proba(tree.right, features, labels)

@@ -29,13 +29,13 @@ n_worlds(::Type{Interval2D}, channel_size::Tuple{Integer,Integer}) = n_worlds(In
 
 inst_readWorld(w::Interval2D, instance::MatricialInstance{T,3}) where {T} = instance[w.x.x:w.x.y-1,w.y.x:w.y.y-1,:]
 
-enumAccReprAggr(f::Union{AttributeMinimumFeatureType,AttributeMaximumFeatureType}, a::Union{typeof(minimum),typeof(maximum)}, ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = IterTools.imap(Interval2D, Iterators.product(enumPairsIn(1, X+1), enumPairsIn(1, Y+1)))
-enumAccReprAggr(f::Union{AttributeMaximumFeatureType}, a::typeof(maximum), ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = Interval2D[Interval2D(Interval(1,X+1), Interval(1,Y+1))  ]
-enumAccReprAggr(f::Union{AttributeMinimumFeatureType}, a::typeof(minimum), ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = Interval2D[Interval2D(Interval(1,X+1), Interval(1,Y+1))  ]
+enumAccReprAggr(f::Union{SingleAttributeMin,SingleAttributeMax}, a::Union{typeof(minimum),typeof(maximum)}, ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = IterTools.imap(Interval2D, Iterators.product(enumPairsIn(1, X+1), enumPairsIn(1, Y+1)))
+enumAccReprAggr(f::Union{SingleAttributeMax}, a::typeof(maximum), ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = Interval2D[Interval2D(Interval(1,X+1), Interval(1,Y+1))  ]
+enumAccReprAggr(f::Union{SingleAttributeMin}, a::typeof(minimum), ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = Interval2D[Interval2D(Interval(1,X+1), Interval(1,Y+1))  ]
 
-enumAccReprAggr(f::Union{AttributeSoftMinimumFeatureType,AttributeSoftMaximumFeatureType}, a::Union{typeof(minimum),typeof(maximum)}, ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = IterTools.imap(Interval2D, Iterators.product(enumPairsIn(1, X+1), enumPairsIn(1, Y+1)))
-enumAccReprAggr(f::Union{AttributeSoftMaximumFeatureType}, a::typeof(maximum), ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = Interval2D[Interval2D(Interval(1,X+1), Interval(1,Y+1))  ]
-enumAccReprAggr(f::Union{AttributeSoftMinimumFeatureType}, a::typeof(minimum), ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = Interval2D[Interval2D(Interval(1,X+1), Interval(1,Y+1))  ]
+enumAccReprAggr(f::Union{SingleAttributeSoftMin,SingleAttributeSoftMax}, a::Union{typeof(minimum),typeof(maximum)}, ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = IterTools.imap(Interval2D, Iterators.product(enumPairsIn(1, X+1), enumPairsIn(1, Y+1)))
+enumAccReprAggr(f::Union{SingleAttributeSoftMax}, a::typeof(maximum), ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = Interval2D[Interval2D(Interval(1,X+1), Interval(1,Y+1))  ]
+enumAccReprAggr(f::Union{SingleAttributeSoftMin}, a::typeof(minimum), ::AbstractWorldSet{Interval2D}, r::_RelationGlob,  X::Integer,  Y::Integer) = Interval2D[Interval2D(Interval(1,X+1), Interval(1,Y+1))  ]
 
 enumAccessibles(S::Union{Interval2D,AbstractWorldSet{Interval2D}}, r::_RelationGlob, X::Integer, Y::Integer) =
 	IterTools.imap(Interval2D,

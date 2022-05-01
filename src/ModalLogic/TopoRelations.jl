@@ -23,17 +23,17 @@ struct _Topo_PPi    <: _TopoRelRCC5 end; const Topo_PPi    = _Topo_PPi();    # P
 goesWith(::Type{Interval}, ::R where R<:_TopoRel) = true
 
 
-display_rel_short(::_Topo_DC)    = "DC"
-display_rel_short(::_Topo_EC)    = "EC"
-display_rel_short(::_Topo_PO)    = "PO"
-display_rel_short(::_Topo_TPP)   = "TPP"
-display_rel_short(::_Topo_TPPi)  = "T̅P̅P̅"
-display_rel_short(::_Topo_NTPP)  = "NTPP"
-display_rel_short(::_Topo_NTPPi) = "N̅T̅P̅P̅"
+Base.show(io::IO, ::_Topo_DC)    = print(io, "DC")
+Base.show(io::IO, ::_Topo_EC)    = print(io, "EC")
+Base.show(io::IO, ::_Topo_PO)    = print(io, "PO")
+Base.show(io::IO, ::_Topo_TPP)   = print(io, "TPP")
+Base.show(io::IO, ::_Topo_TPPi)  = print(io, "T̅P̅P̅")
+Base.show(io::IO, ::_Topo_NTPP)  = print(io, "NTPP")
+Base.show(io::IO, ::_Topo_NTPPi) = print(io, "N̅T̅P̅P̅")
 
-display_rel_short(::_Topo_DR)    = "DR"
-display_rel_short(::_Topo_PP)    = "PP"
-display_rel_short(::_Topo_PPi)   = "P̅P̅"
+Base.show(io::IO, ::_Topo_DR)    = print(io, "DR")
+Base.show(io::IO, ::_Topo_PP)    = print(io, "PP")
+Base.show(io::IO, ::_Topo_PPi)   = print(io, "P̅P̅")
 
 const RCC8Relations = [Topo_DC, Topo_EC, Topo_PO, Topo_TPP, Topo_TPPi, Topo_NTPP, Topo_NTPPi]
 const RCC5Relations = [Topo_DR, Topo_PO, Topo_PP, Topo_PPi]
