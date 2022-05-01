@@ -3,8 +3,8 @@ export OneWorld
 # One unique world (propositional case)
 struct OneWorld    <: AbstractWorld
     OneWorld() = new()
+    # 
     OneWorld(w::_emptyWorld) = new()
-    OneWorld(w::_firstWorld) = new()
     OneWorld(w::_centeredWorld) = new()
 end;
 
@@ -12,19 +12,18 @@ Base.show(io::IO, w::OneWorld) = begin
     print(io, "−")
 end
 
-worldTypeDimensionality(::Type{OneWorld}) = 0
-print_world(::OneWorld) = println("−")
+dimensionality(::Type{OneWorld}) = 0
 
-inst_readWorld(::OneWorld, instance::MatricialInstance{T,1}) where {T} = instance
+# Dimensional world type: it can be interpreted on dimensional instances.
+interpret_world(::OneWorld, instance::MatricialInstance{T,1}) where {T} = instance
 
-_accessibles(::OneWorld, ::AbstractRelation, XYZ::Vararg{Integer}) = throw_n_log("Can't access any world via any relation other than RelationId from a OneWorld")
-_accessibles(::OneWorld, ::_RelationId, XYZ::Vararg{Integer}) = [OneWorld()]
-accessibles(::OneWorld, ::_RelationGlob, XYZ::Vararg{Integer}) = [OneWorld()]
+accessibles(::Union{OneWorld,AbstractWorldSet{OneWorld}}, ::_RelationGlob, args...) = [OneWorld()]
 
-# TODO remove these:
+accessibles_aggr(f::ModalFeature, a::Aggregator, ::AbstractWorldSet{OneWorld}, ::ModalLogic._RelationGlob) = [OneWorld()]
+
+# Perhaps these help the compiler? TODO figure out if these are needed
 all_worlds(::Type{OneWorld}, args::Vararg) = [OneWorld()]
 all_worlds(::Type{OneWorld}, enumAccFun::Function) = [OneWorld()]
 all_worlds_aggr(::Type{OneWorld}, enumReprFun::Function, f::ModalFeature, a::Aggregator) = [OneWorld()]
 
-
-accessibles_aggr(f::ModalFeature, a::Aggregator, ::Vector{OneWorld}, ::ModalLogic._RelationGlob) = [OneWorld()]
+# _accessibles(::OneWorld, ::_RelationId, args...) = [OneWorld()]

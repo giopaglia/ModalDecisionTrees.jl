@@ -1,9 +1,3 @@
-
-# FeaturedWorldDataset(
-# 		X::OntologicalDataset{T, N, WorldType},
-# 		features::AbstractVector{<:ModalFeature}
-# 	) where {T, N, WorldType<:AbstractWorld} = FeaturedWorldDataset{T, WorldType}(X, features)
-
 Base.@propagate_inbounds function FeaturedWorldDataset(
 		X::OntologicalDataset
 	)
@@ -207,10 +201,37 @@ const FeaturedWorldDatasetSlice{T} = Union{
 }
 
 
-################################################################################
-################################################################################
-################################################################################
-################################################################################
+
+############################################################################################
+############################################################################################
+
+
+# TODO add AbstractWorldSet type
+compute_modal_gamma(fwd_propositional_slice::FeaturedWorldDatasetSlice{T}, worlds::Any, aggregator::Agg) where {T, Agg<:Aggregator} = begin
+    
+    # TODO try reduce(aggregator, worlds; init=ModalLogic.bottom(aggregator, T))
+    # TODO remove this aggregator_to_binary...
+    
+    if length(worlds |> collect) == 0
+        ModalLogic.aggregator_bottom(aggregator, T)
+    else
+        aggregator((w)->modalDatasetChannelSliceGet(fwd_propositional_slice, w), worlds)
+    end
+
+    # opt = aggregator_to_binary(aggregator)
+    # threshold = ModalLogic.bottom(aggregator, T)
+    # for w in worlds
+    #   e = modalDatasetChannelSliceGet(fwd_propositional_slice, w)
+    #   threshold = opt(threshold,e)
+    # end
+    # threshold
+end
+
+
+############################################################################################
+############################################################################################
+############################################################################################
+############################################################################################
 
 
 # function prepare_featsnaggrs(grouped_featsnops::AbstractVector{<:AbstractVector{<:TestOperatorFun}})
@@ -520,7 +541,7 @@ Base.@propagate_inbounds function computeModalDatasetStumpSupport(
 					# TODO reintroduce the improvements for some operators: e.g. later. Actually, these can be simplified by using a set of representatives, as in some enumAccRepr!
 					accessible_worlds = ModalLogic.all_worlds_aggr(WorldType, accrepr_function(fmd, i_instance), features[i_feature], aggregator)
 
-					threshold = computeModalThreshold(cur_fwd_slice, accessible_worlds, aggregator)
+					threshold = compute_modal_gamma(cur_fwd_slice, accessible_worlds, aggregator)
 
 					@logmsg DTDebug "Aggregator[$(i_featsnaggr)]=$(aggregator)  -->  $(threshold)"
 					
@@ -552,7 +573,7 @@ Base.@propagate_inbounds function computeModalDatasetStumpSupport(
 							# TODO reintroduce the improvements for some operators: e.g. later. Actually, these can be simplified by using a set of representatives, as in some enumAccRepr!
 							accessible_worlds = accrepr_function(fmd, i_instance)(features[i_feature], aggregator, w, relation)
 						
-							threshold = computeModalThreshold(cur_fwd_slice, accessible_worlds, aggregator)
+							threshold = compute_modal_gamma(cur_fwd_slice, accessible_worlds, aggregator)
 
 							# @logmsg DTDebug "Aggregator" aggregator threshold
 							

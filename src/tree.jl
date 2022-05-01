@@ -50,7 +50,7 @@ end
     ind = node.split_at
     region = node.region
     depth = node.depth+1
-    mdepth = node.modal_depth+Int(!node.is_leaf && is_modal_decision(node.decision))
+    mdepth = node.modal_depth+Int(!node.is_leaf && !is_propositional_decision(node.decision))
     @logmsg DTDetail "fork!(...): " node ind region mdepth
 
     # onlyallowRelationGlob changes:
@@ -201,9 +201,10 @@ end
 
 # DEBUGprintln = println
 
-################################################################################
-################################################################################
-################################################################################
+
+############################################################################################
+############################################################################################
+############################################################################################
 ################################################################################
 # Split a node
 # Find an optimal local split satisfying the given constraints
@@ -461,7 +462,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # println(display_decision(i_frame, decision))
 
             # TODO avoid ugly unpacking and figure out a different way of achieving this
-            (test_operator, threshold) = (test_operator(decision), threshold(decision))
+            (test_operator, threshold) = (decision.test_operator, decision.threshold)
             ########################################################################
             # Apply decision to all instances
             ########################################################################
@@ -703,7 +704,7 @@ Base.@propagate_inbounds @inline function split_node!(
             errStr *= "Decision $(best_decision).\n"
             errStr *= "Possible causes:\n"
             errStr *= "- feature returning NaNs\n"
-            errStr *= "- erroneous accessibles_aggr for relation $(relation(best_decision)), aggregator $(ModalLogic.existential_aggregator(test_operator(best_decision))) and feature $(feature(best_decision))\n"
+            errStr *= "- erroneous accessibles_aggr for relation $(best_decision.relation), aggregator $(ModalLogic.existential_aggregator(best_decision.test_operator)) and feature $(best_decision.feature)\n"
             errStr *= "\n"
             errStr *= "Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(best_i_frame) with decision: $(decision_str), purity $(best_purity)\n"
             errStr *= "$(length(idxs[region])) Instances: $(idxs[region])\n"
@@ -727,7 +728,7 @@ Base.@propagate_inbounds @inline function split_node!(
             end
             
             # for i in 1:n_instances
-                # errStr *= "$(ModalLogic.get_channel(Xs, idxs[i + r_start], feature(best_decision)))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[best_i_frame][idxs[i + r_start]])\n";
+                # errStr *= "$(ModalLogic.get_channel(Xs, idxs[i + r_start], best_decision.feature))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[best_i_frame][idxs[i + r_start]])\n";
             # end
 
             # throw_n_log("ERROR! " * errStr)
@@ -777,9 +778,10 @@ Base.@propagate_inbounds @inline function split_node!(
     node
 end
 
-################################################################################
-################################################################################
-################################################################################
+
+############################################################################################
+############################################################################################
+############################################################################################
 ################################################################################
 
 @inline function _fit(
@@ -927,9 +929,10 @@ end
 
 end
 
-################################################################################
-################################################################################
-################################################################################
+
+############################################################################################
+############################################################################################
+############################################################################################
 ################################################################################
 
 function fit(

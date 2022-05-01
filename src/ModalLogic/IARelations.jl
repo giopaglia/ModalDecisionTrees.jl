@@ -73,13 +73,13 @@ const IARelations_extended = [RelationGlob, IARelations...]
 # Enumerate accessible worlds from a single world
 _accessibles(w::Interval, ::_IA_A,  X::Integer) = zip(Iterators.repeated(w.y), w.y+1:X+1)
 _accessibles(w::Interval, ::_IA_Ai, X::Integer) = zip(1:w.x-1, Iterators.repeated(w.x))
-_accessibles(w::Interval, ::_IA_L,  X::Integer) = enumPairsIn(w.y+1, X+1)
-_accessibles(w::Interval, ::_IA_Li, X::Integer) = enumPairsIn(1, w.x-1)
+_accessibles(w::Interval, ::_IA_L,  X::Integer) = _intervals_in(w.y+1, X+1)
+_accessibles(w::Interval, ::_IA_Li, X::Integer) = _intervals_in(1, w.x-1)
 _accessibles(w::Interval, ::_IA_B,  X::Integer) = zip(Iterators.repeated(w.x), w.x+1:w.y-1)
 _accessibles(w::Interval, ::_IA_Bi, X::Integer) = zip(Iterators.repeated(w.x), w.y+1:X+1)
 _accessibles(w::Interval, ::_IA_E,  X::Integer) = zip(w.x+1:w.y-1, Iterators.repeated(w.y))
 _accessibles(w::Interval, ::_IA_Ei, X::Integer) = zip(1:w.x-1, Iterators.repeated(w.y))
-_accessibles(w::Interval, ::_IA_D,  X::Integer) = enumPairsIn(w.x+1, w.y-1)
+_accessibles(w::Interval, ::_IA_D,  X::Integer) = _intervals_in(w.x+1, w.y-1)
 _accessibles(w::Interval, ::_IA_Di, X::Integer) = Iterators.product(1:w.x-1, w.y+1:X+1)
 _accessibles(w::Interval, ::_IA_O,  X::Integer) = Iterators.product(w.x+1:w.y-1, w.y+1:X+1)
 _accessibles(w::Interval, ::_IA_Oi, X::Integer) = Iterators.product(1:w.x-1, w.x+1:w.y-1)
@@ -97,7 +97,7 @@ _accessibles(w::Interval, ::_IA_I,  X::Integer) = Iterators.flatten((
 	Iterators.product(1:w.x-1, w.x:w.y),       # Ai+Oi+Ei
 	zip(Iterators.repeated(w.x), w.x+1:w.y-1), # B
 	zip(w.x+1:w.y-1, Iterators.repeated(w.y)), # E
-	enumPairsIn(w.x+1, w.y-1),                 # D
+	_intervals_in(w.x+1, w.y-1),                 # D
 	))
 
 
@@ -196,17 +196,17 @@ enumAccRepr(test_operator::_TestOpLeq, w::Interval, ::_IA_Oi, X::Integer) = (1 <
 =#
 
 # TODO maybe better to explicit the cases
-accessibles_aggr(f::Union{SingleAttributeMin,SingleAttributeMax}, a::Union{typeof(minimum),typeof(maximum)}, w::Interval, r::_IA_L,  X::Integer) = (w.y+1 < X+1)   ? IterTools.imap(Interval, enumShortPairsIn(w.y+1, X+1))   : Interval[]
-accessibles_aggr(f::Union{SingleAttributeMin,SingleAttributeMax}, a::Union{typeof(minimum),typeof(maximum)}, w::Interval, r::_IA_Li, X::Integer) = (1 < w.x-1)     ? IterTools.imap(Interval, enumShortPairsIn(1, w.x-1))     : Interval[]
-accessibles_aggr(f::Union{SingleAttributeMin,SingleAttributeMax}, a::Union{typeof(minimum),typeof(maximum)}, w::Interval, r::_IA_D,  X::Integer) = (w.x+1 < w.y-1) ? IterTools.imap(Interval, enumShortPairsIn(w.x+1, w.y-1)) : Interval[]
+accessibles_aggr(f::Union{SingleAttributeMin,SingleAttributeMax}, a::Union{typeof(minimum),typeof(maximum)}, w::Interval, r::_IA_L,  X::Integer) = (w.y+1 < X+1)   ? short_intervals_in(w.y+1, X+1)   : Interval[]
+accessibles_aggr(f::Union{SingleAttributeMin,SingleAttributeMax}, a::Union{typeof(minimum),typeof(maximum)}, w::Interval, r::_IA_Li, X::Integer) = (1 < w.x-1)     ? short_intervals_in(1, w.x-1)     : Interval[]
+accessibles_aggr(f::Union{SingleAttributeMin,SingleAttributeMax}, a::Union{typeof(minimum),typeof(maximum)}, w::Interval, r::_IA_D,  X::Integer) = (w.x+1 < w.y-1) ? short_intervals_in(w.x+1, w.y-1) : Interval[]
 
-# accessibles_aggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, r::_IA_L,  X::Integer) = (w.y+1 < X+1)   ? IterTools.imap(Interval, enumShortPairsIn(w.y+1, X+1))   : Interval[]
-# accessibles_aggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, r::_IA_Li, X::Integer) = (1 < w.x-1)     ? IterTools.imap(Interval, enumShortPairsIn(1, w.x-1))     : Interval[]
-# accessibles_aggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, r::_IA_D,  X::Integer) = (w.x+1 < w.y-1) ? IterTools.imap(Interval, enumShortPairsIn(w.x+1, w.y-1)) : Interval[]
+# accessibles_aggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, r::_IA_L,  X::Integer) = (w.y+1 < X+1)   ? short_intervals_in(w.y+1, X+1)   : Interval[]
+# accessibles_aggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, r::_IA_Li, X::Integer) = (1 < w.x-1)     ? short_intervals_in(1, w.x-1)     : Interval[]
+# accessibles_aggr(f::SingleAttributeMin, a::typeof(maximum), w::Interval, r::_IA_D,  X::Integer) = (w.x+1 < w.y-1) ? short_intervals_in(w.x+1, w.y-1) : Interval[]
 
-# accessibles_aggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_L,  X::Integer) = (w.y+1 < X+1)   ? IterTools.imap(Interval, enumShortPairsIn(w.y+1, X+1))   : Interval[]
-# accessibles_aggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_Li, X::Integer) = (1 < w.x-1)     ? IterTools.imap(Interval, enumShortPairsIn(1, w.x-1))     : Interval[]
-# accessibles_aggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_D,  X::Integer) = (w.x+1 < w.y-1) ? IterTools.imap(Interval, enumShortPairsIn(w.x+1, w.y-1)) : Interval[]
+# accessibles_aggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_L,  X::Integer) = (w.y+1 < X+1)   ? short_intervals_in(w.y+1, X+1)   : Interval[]
+# accessibles_aggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_Li, X::Integer) = (1 < w.x-1)     ? short_intervals_in(1, w.x-1)     : Interval[]
+# accessibles_aggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_D,  X::Integer) = (w.x+1 < w.y-1) ? short_intervals_in(w.x+1, w.y-1) : Interval[]
 
 
 accessibles_aggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, r::_IA_L,  X::Integer) = (w.y+1 < X+1)   ? Interval[Interval(w.y+1, X+1)  ] : Interval[]
@@ -286,86 +286,86 @@ accessibles_aggr(f::ModalFeature, a::Aggregator, w::Interval, r::_IA_I,         
  
 # computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval, ::_IA_A, channel::MatricialChannel{T,1}) where {T} =
 # 	(w.y < length(channel)+1) ? (channel[w.y],channel[w.y]) : (typemax(T),typemin(T))
-# computeModalThreshold(test_operator::_TestOpGeq, w::Interval, ::_IA_A, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpGeq, w::Interval, ::_IA_A, channel::MatricialChannel{T,1}) where {T} =
 # 	(w.y < length(channel)+1) ? channel[w.y] : typemax(T)
-# computeModalThreshold(test_operator::_TestOpLeq, w::Interval, ::_IA_A, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpLeq, w::Interval, ::_IA_A, channel::MatricialChannel{T,1}) where {T} =
 # 	(w.y < length(channel)+1) ? channel[w.y] : typemin(T)
 
 # computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval, ::_IA_Ai, channel::MatricialChannel{T,1}) where {T} =
 # 	(1 < w.x) ? (channel[w.x-1],channel[w.x-1]) : (typemax(T),typemin(T))
-# computeModalThreshold(test_operator::_TestOpGeq, w::Interval, ::_IA_Ai, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpGeq, w::Interval, ::_IA_Ai, channel::MatricialChannel{T,1}) where {T} =
 # 	(1 < w.x) ? channel[w.x-1] : typemax(T)
-# computeModalThreshold(test_operator::_TestOpLeq, w::Interval, ::_IA_Ai, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpLeq, w::Interval, ::_IA_Ai, channel::MatricialChannel{T,1}) where {T} =
 # 	(1 < w.x) ? channel[w.x-1] : typemin(T)
 
 # computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval, ::_IA_L, channel::MatricialChannel{T,1}) where {T} =
 # 	(w.y+1 < length(channel)+1) ? reverse(extrema(channel[w.y+1:length(channel)])) : (typemax(T),typemin(T))
-# computeModalThreshold(test_operator::_TestOpGeq, w::Interval, ::_IA_L, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpGeq, w::Interval, ::_IA_L, channel::MatricialChannel{T,1}) where {T} =
 # 	(w.y+1 < length(channel)+1) ? maximum(channel[w.y+1:length(channel)]) : typemax(T)
-# computeModalThreshold(test_operator::_TestOpLeq, w::Interval, ::_IA_L, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpLeq, w::Interval, ::_IA_L, channel::MatricialChannel{T,1}) where {T} =
 # 	(w.y+1 < length(channel)+1) ? minumum(channel[w.y+1:length(channel)]) : typemin(T)
 
 # computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval, ::_IA_Li, channel::MatricialChannel{T,1}) where {T} =
 # 	(1 < w.x-1) ? reverse(extrema(channel[1:w.x-2])) : (typemax(T),typemin(T))
-# computeModalThreshold(test_operator::_TestOpGeq, w::Interval, ::_IA_Li, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpGeq, w::Interval, ::_IA_Li, channel::MatricialChannel{T,1}) where {T} =
 # 	(1 < w.x-1) ? maximum(channel[1:w.x-2]) : typemax(T)
-# computeModalThreshold(test_operator::_TestOpLeq, w::Interval, ::_IA_Li, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpLeq, w::Interval, ::_IA_Li, channel::MatricialChannel{T,1}) where {T} =
 # 	(1 < w.x-1) ? minumum(channel[1:w.x-2]) : typemin(T)
 
 # computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval, ::_IA_B, channel::MatricialChannel{T,1}) where {T} =
 # 	(w.x < w.y-1) ? (channel[w.x],channel[w.x]) : (typemax(T),typemin(T))
-# computeModalThreshold(test_operator::_TestOpGeq, w::Interval, ::_IA_B, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpGeq, w::Interval, ::_IA_B, channel::MatricialChannel{T,1}) where {T} =
 # 	(w.x < w.y-1) ? channel[w.x] : typemax(T)
-# computeModalThreshold(test_operator::_TestOpLeq, w::Interval, ::_IA_B, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpLeq, w::Interval, ::_IA_B, channel::MatricialChannel{T,1}) where {T} =
 # 	(w.x < w.y-1) ? channel[w.x] : typemin(T)
 
 # computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval, ::_IA_Bi, channel::MatricialChannel{T,1}) where {T} =
 # 	(w.y < length(channel)+1) ? (minimum(channel[w.x:w.y-1+1]),maximum(channel[w.x:w.y-1+1])) : (typemax(T),typemin(T))
-# computeModalThreshold(test_operator::_TestOpGeq, w::Interval, ::_IA_Bi, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpGeq, w::Interval, ::_IA_Bi, channel::MatricialChannel{T,1}) where {T} =
 # 	(w.y < length(channel)+1) ? minimum(channel[w.x:w.y-1+1]) : typemax(T)
-# computeModalThreshold(test_operator::_TestOpLeq, w::Interval, ::_IA_Bi, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpLeq, w::Interval, ::_IA_Bi, channel::MatricialChannel{T,1}) where {T} =
 # 	(w.y < length(channel)+1) ? maximum(channel[w.x:w.y-1+1]) : typemin(T)
 
 # computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval, ::_IA_E, channel::MatricialChannel{T,1}) where {T} =
 # 	(w.x+1 < w.y) ? (channel[w.y-1],channel[w.y-1]) : (typemax(T),typemin(T))
-# computeModalThreshold(test_operator::_TestOpGeq, w::Interval, ::_IA_E, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpGeq, w::Interval, ::_IA_E, channel::MatricialChannel{T,1}) where {T} =
 # 	(w.x+1 < w.y) ? channel[w.y-1] : typemax(T)
-# computeModalThreshold(test_operator::_TestOpLeq, w::Interval, ::_IA_E, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpLeq, w::Interval, ::_IA_E, channel::MatricialChannel{T,1}) where {T} =
 # 	(w.x+1 < w.y) ? channel[w.y-1] : typemin(T)
 
 # computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval, ::_IA_Ei, channel::MatricialChannel{T,1}) where {T} =
 # 	(1 < w.x) ? (minimum(channel[w.x-1:w.y-1]),maximum(channel[w.x-1:w.y-1])) : (typemax(T),typemin(T))
-# computeModalThreshold(test_operator::_TestOpGeq, w::Interval, ::_IA_Ei, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpGeq, w::Interval, ::_IA_Ei, channel::MatricialChannel{T,1}) where {T} =
 # 	(1 < w.x) ? minimum(channel[w.x-1:w.y-1]) : typemax(T)
-# computeModalThreshold(test_operator::_TestOpLeq, w::Interval, ::_IA_Ei, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpLeq, w::Interval, ::_IA_Ei, channel::MatricialChannel{T,1}) where {T} =
 # 	(1 < w.x) ? maximum(channel[w.x-1:w.y-1]) : typemin(T)
 
 # computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval, ::_IA_D, channel::MatricialChannel{T,1}) where {T} =
 # 	(w.x+1 < w.y-1) ? reverse(extrema(channel[w.x+1:w.y-1-1])) : (typemax(T),typemin(T))
-# computeModalThreshold(test_operator::_TestOpGeq, w::Interval, ::_IA_D, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpGeq, w::Interval, ::_IA_D, channel::MatricialChannel{T,1}) where {T} =
 # 	(w.x+1 < w.y-1) ? maximum(channel[w.x+1:w.y-1-1]) : typemax(T)
-# computeModalThreshold(test_operator::_TestOpLeq, w::Interval, ::_IA_D, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpLeq, w::Interval, ::_IA_D, channel::MatricialChannel{T,1}) where {T} =
 # 	(w.x+1 < w.y-1) ? minumum(channel[w.x+1:w.y-1-1]) : typemin(T)
 
 # computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval, ::_IA_Di, channel::MatricialChannel{T,1}) where {T} =
 # 	(1 < w.x && w.y < length(channel)+1) ? (minimum(channel[w.x-1:w.y-1+1]),maximum(channel[w.x-1:w.y-1+1])) : (typemax(T),typemin(T))
-# computeModalThreshold(test_operator::_TestOpGeq, w::Interval, ::_IA_Di, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpGeq, w::Interval, ::_IA_Di, channel::MatricialChannel{T,1}) where {T} =
 # 	(1 < w.x && w.y < length(channel)+1) ? minimum(channel[w.x-1:w.y-1+1]) : typemax(T)
-# computeModalThreshold(test_operator::_TestOpLeq, w::Interval, ::_IA_Di, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpLeq, w::Interval, ::_IA_Di, channel::MatricialChannel{T,1}) where {T} =
 # 	(1 < w.x && w.y < length(channel)+1) ? maximum(channel[w.x-1:w.y-1+1]) : typemin(T)
 
 # computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval, ::_IA_O, channel::MatricialChannel{T,1}) where {T} =
 # 	(w.x+1 < w.y && w.y < length(channel)+1) ? (minimum(channel[w.y-1:w.y-1+1]),maximum(channel[w.y-1:w.y-1+1])) : (typemax(T),typemin(T))
-# computeModalThreshold(test_operator::_TestOpGeq, w::Interval, ::_IA_O, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpGeq, w::Interval, ::_IA_O, channel::MatricialChannel{T,1}) where {T} =
 # 	(w.x+1 < w.y && w.y < length(channel)+1) ? minimum(channel[w.y-1:w.y-1+1]) : typemax(T)
-# computeModalThreshold(test_operator::_TestOpLeq, w::Interval, ::_IA_O, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpLeq, w::Interval, ::_IA_O, channel::MatricialChannel{T,1}) where {T} =
 # 	(w.x+1 < w.y && w.y < length(channel)+1) ? maximum(channel[w.y-1:w.y-1+1]) : typemin(T)
 
 # computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval, ::_IA_Oi, channel::MatricialChannel{T,1}) where {T} =
 # 	(1 < w.x && w.x+1 < w.y) ? (minimum(channel[w.x-1:w.x]),maximum(channel[w.x-1:w.x])) : (typemax(T),typemin(T))
-# computeModalThreshold(test_operator::_TestOpGeq, w::Interval, ::_IA_Oi, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpGeq, w::Interval, ::_IA_Oi, channel::MatricialChannel{T,1}) where {T} =
 # 	(1 < w.x && w.x+1 < w.y) ? minimum(channel[w.x-1:w.x]) : typemax(T)
-# computeModalThreshold(test_operator::_TestOpLeq, w::Interval, ::_IA_Oi, channel::MatricialChannel{T,1}) where {T} =
+# compute_modal_gamma(test_operator::_TestOpLeq, w::Interval, ::_IA_Oi, channel::MatricialChannel{T,1}) where {T} =
 # 	(1 < w.x && w.x+1 < w.y) ? maximum(channel[w.x-1:w.x]) : typemin(T)
 
 ################################################################################

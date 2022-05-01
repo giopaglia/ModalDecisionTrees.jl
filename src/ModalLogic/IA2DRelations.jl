@@ -71,8 +71,9 @@ IA2DRelations_U...
 _accessibles2(w::Interval, r::R where R<:_IARel, X::Integer) = _accessibles(w,r,X)
 _accessibles2(w::Interval, r::_RelationId, X::Integer) = _accessibles(w,r,X)
 _accessibles2(w::Interval, r::_RelationGlob, X::Integer) =
-	enumPairsIn(1, X+1)
-	# IterTools.imap(Interval, enumPairsIn(1, X+1))
+	_intervals_in(1, X+1)
+	# IterTools.imap(Interval, _intervals_in(1, X+1))
+
 
 _accessibles(w::Interval2D, r::R where R<:_IA2DRel, X::Integer, Y::Integer) =
 	Iterators.product(_accessibles2(w.x, r.x, X), _accessibles2(w.y, r.y, Y))
@@ -192,13 +193,13 @@ end
 computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval2D, r::_IA2DRel{R1,R2} where {R1<:_IA2DRelMinimizer,R2<:_IA2DRelMaximizer}, channel::MatricialChannel{T,2}) where {T} = begin
 	yieldMinMaxCombinations(test_operator, enumAccRepr2D(test_operator, w, r.x, r.y, size(channel)..., _ReprFake), channel, 1)
 end
-computeModalThreshold(test_operator::Union{_TestOpGeq,_TestOpLeq}, w::Interval2D, r::_IA2DRel{R1,R2} where {R1<:_IA2DRelMinimizer,R2<:_IA2DRelMaximizer}, channel::MatricialChannel{T,2}) where {T} = begin
+compute_modal_gamma(test_operator::Union{_TestOpGeq,_TestOpLeq}, w::Interval2D, r::_IA2DRel{R1,R2} where {R1<:_IA2DRelMinimizer,R2<:_IA2DRelMaximizer}, channel::MatricialChannel{T,2}) where {T} = begin
 	yieldMinMaxCombination(test_operator, enumAccRepr2D(test_operator, w, r.x, r.y, size(channel)..., _ReprFake), channel, 1)
 end
 computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval2D, r::_IA2DRel{R1,R2} where {R1<:_IA2DRelMaximizer,R2<:_IA2DRelMinimizer}, channel::MatricialChannel{T,2}) where {T} = begin
 	yieldMinMaxCombinations(test_operator, enumAccRepr2D(test_operator, w, r.x, r.y, size(channel)..., _ReprFake), channel, 2)
 end
-computeModalThreshold(test_operator::Union{_TestOpGeq,_TestOpLeq}, w::Interval2D, r::_IA2DRel{R1,R2} where {R1<:_IA2DRelMaximizer,R2<:_IA2DRelMinimizer}, channel::MatricialChannel{T,2}) where {T} = begin
+compute_modal_gamma(test_operator::Union{_TestOpGeq,_TestOpLeq}, w::Interval2D, r::_IA2DRel{R1,R2} where {R1<:_IA2DRelMaximizer,R2<:_IA2DRelMinimizer}, channel::MatricialChannel{T,2}) where {T} = begin
 	yieldMinMaxCombination(test_operator, enumAccRepr2D(test_operator, w, r.x, r.y, size(channel)..., _ReprFake), channel, 2)
 end
 

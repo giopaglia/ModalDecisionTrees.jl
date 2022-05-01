@@ -15,14 +15,14 @@ computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval2D, r::R where R
 		map((RCC8_r)->(computeModalThresholdDual(test_operator, w, RCC8_r, channel)), RCC52RCC8Relations(r))
 	)
 end
-computeModalThreshold(test_operator::_TestOpGeq, w::Interval2D, r::R where R<:_TopoRelRCC5, channel::MatricialChannel{T,2}) where {T} = begin
+compute_modal_gamma(test_operator::_TestOpGeq, w::Interval2D, r::R where R<:_TopoRelRCC5, channel::MatricialChannel{T,2}) where {T} = begin
 	maximum(
-		map((RCC8_r)->(computeModalThreshold(test_operator, w, RCC8_r, channel)), RCC52RCC8Relations(r))
+		map((RCC8_r)->(compute_modal_gamma(test_operator, w, RCC8_r, channel)), RCC52RCC8Relations(r))
 	)
 end
-computeModalThreshold(test_operator::_TestOpLeq, w::Interval2D, r::R where R<:_TopoRelRCC5, channel::MatricialChannel{T,2}) where {T} = begin
+compute_modal_gamma(test_operator::_TestOpLeq, w::Interval2D, r::R where R<:_TopoRelRCC5, channel::MatricialChannel{T,2}) where {T} = begin
 	mininimum(
-		map((RCC8_r)->(computeModalThreshold(test_operator, w, RCC8_r, channel)), RCC52RCC8Relations(r))
+		map((RCC8_r)->(compute_modal_gamma(test_operator, w, RCC8_r, channel)), RCC52RCC8Relations(r))
 	)
 end
 
@@ -228,7 +228,7 @@ computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_DC,
 				 yieldReprs(test_operator, repry2, channel)
 	maxExtrema(extr)
 end
-computeModalThreshold(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_DC, channel::MatricialChannel{T,2}) where {T} = begin
+compute_modal_gamma(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_DC, channel::MatricialChannel{T,2}) where {T} = begin
 	# reprx1 = enumAccRepr2D(test_operator, w, IA_L,         RelationGlob, size(channel)..., _ReprMax)
 	# reprx2 = enumAccRepr2D(test_operator, w, IA_Li,        RelationGlob, size(channel)..., _ReprMax)
 	# repry1 = enumAccRepr2D(test_operator, w, RelationGlob,  IA_L,        size(channel)..., _ReprMax)
@@ -249,7 +249,7 @@ computeModalThreshold(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_DC, cha
 			 yieldRepr(test_operator, repry1, channel),
 			 yieldRepr(test_operator, repry2, channel))
 end
-computeModalThreshold(test_operator::_TestOpLeq, w::Interval2D, r::_Topo_DC, channel::MatricialChannel{T,2}) where {T} = begin
+compute_modal_gamma(test_operator::_TestOpLeq, w::Interval2D, r::_Topo_DC, channel::MatricialChannel{T,2}) where {T} = begin
 	reprx1 = enumAccRepr2D(test_operator, w, RelationGlob, IA_L,         size(channel)..., _ReprMin)
 	reprx2 = enumAccRepr2D(test_operator, w, RelationGlob, IA_Li,        size(channel)..., _ReprMin)
 	repry1 = enumAccRepr2D(test_operator, w, IA_L,     Virtual_Enlarge, size(channel)..., _ReprMin)
@@ -272,7 +272,7 @@ computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_EC,
 	extr = map(w->yieldReprs(test_operator, _ReprMax(w), channel), reprs)
 	maxExtrema(extr)
 end
-computeModalThreshold(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_EC, channel::MatricialChannel{T,2}) where {T} = begin
+compute_modal_gamma(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_EC, channel::MatricialChannel{T,2}) where {T} = begin
 	X,Y = size(channel)
 	reprs = [
 		((w.x.x-1 >= 1)   ? [Interval2D(Interval(w.x.x-1,w.x.x),enlargeInterval(w.y,Y))] : Interval2D[])...,
@@ -283,7 +283,7 @@ computeModalThreshold(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_EC, cha
 	extr = map(w->yieldRepr(test_operator, _ReprMax(w), channel), reprs)
 	maximum([extr..., typemin(T)])
 end
-computeModalThreshold(test_operator::_TestOpLeq, w::Interval2D, r::_Topo_EC, channel::MatricialChannel{T,2}) where {T} = begin
+compute_modal_gamma(test_operator::_TestOpLeq, w::Interval2D, r::_Topo_EC, channel::MatricialChannel{T,2}) where {T} = begin
 	X,Y = size(channel)
 	reprs = [
 		((w.x.x-1 >= 1)   ? [Interval2D(Interval(w.x.x-1,w.x.x),enlargeInterval(w.y,Y))] : Interval2D[])...,
@@ -379,7 +379,7 @@ computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_PO,
 		yieldMinMaxCombinations(test_operator, enumAccRepr2D(test_operator, w, rx2,    RelationId, size(channel)..., _ReprFake), channel, 1),
 	)
 end
-computeModalThreshold(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_PO, channel::MatricialChannel{T,2}) where {T} = begin
+compute_modal_gamma(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_PO, channel::MatricialChannel{T,2}) where {T} = begin
 	# if channel == [1620 1408 1343; 1724 1398 1252; 1177 1703 1367] && w.x.x==1 && w.x.y==3 && w.y.x==3 && w.y.y==4
 	# 	println(! (w.x.x < w.x.y-1) && ! (w.y.x < w.y.y-1))
 	# 	println(max(
@@ -406,7 +406,7 @@ computeModalThreshold(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_PO, cha
 		yieldMinMaxCombination(test_operator, enumAccRepr2D(test_operator, w, rx2,    RelationId, size(channel)..., _ReprFake), channel, 1),
 	)
 end
-computeModalThreshold(test_operator::_TestOpLeq, w::Interval2D, r::_Topo_PO, channel::MatricialChannel{T,2}) where {T} = begin
+compute_modal_gamma(test_operator::_TestOpLeq, w::Interval2D, r::_Topo_PO, channel::MatricialChannel{T,2}) where {T} = begin
 	x_singleton = ! (w.x.x < w.x.y-1)
 	y_singleton = ! (w.y.x < w.y.y-1)
 	if x_singleton && y_singleton
@@ -435,7 +435,7 @@ computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_TPP
 	extr = map(w->yieldReprs(test_operator, _ReprMax(w), channel), reprs)
 	maxExtrema(extr)
 end
-computeModalThreshold(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_TPP, channel::MatricialChannel{T,2}) where {T} = begin
+compute_modal_gamma(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_TPP, channel::MatricialChannel{T,2}) where {T} = begin
 	reprs = if (w.x.x < w.x.y-1) && (w.y.x < w.y.y-1)
 			[Interval2D(Interval(w.x.x,w.x.x+1),w.y), Interval2D(Interval(w.x.y-1,w.x.y),w.y), Interval2D(w.x,Interval(w.y.x,w.y.x+1)), Interval2D(w.x,Interval(w.y.y-1,w.y.y))]
 		elseif (w.x.x < w.x.y-1) || (w.y.x < w.y.y-1)
@@ -445,7 +445,7 @@ computeModalThreshold(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_TPP, ch
 	extr = map(w->yieldRepr(test_operator, _ReprMax(w), channel), reprs)
 	maximum([extr..., typemin(T)])
 end
-computeModalThreshold(test_operator::_TestOpLeq, w::Interval2D, r::_Topo_TPP, channel::MatricialChannel{T,2}) where {T} = begin
+compute_modal_gamma(test_operator::_TestOpLeq, w::Interval2D, r::_Topo_TPP, channel::MatricialChannel{T,2}) where {T} = begin
 	reprs = if (w.x.x < w.x.y-1) && (w.y.x < w.y.y-1)
 			[Interval2D(Interval(w.x.x,w.x.x+1),w.y), Interval2D(Interval(w.x.y-1,w.x.y),w.y), Interval2D(w.x,Interval(w.y.x,w.y.x+1)), Interval2D(w.x,Interval(w.y.y-1,w.y.y))]
 		elseif (w.x.x < w.x.y-1) || (w.y.x < w.y.y-1)
@@ -468,7 +468,7 @@ computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_TPP
 	extr = map(w->yieldReprs(test_operator, _ReprMin(w), channel), reprs)
 	maxExtrema(extr)
 end
-computeModalThreshold(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_TPPi, channel::MatricialChannel{T,2}) where {T} = begin
+compute_modal_gamma(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_TPPi, channel::MatricialChannel{T,2}) where {T} = begin
 	X,Y = size(channel)
 	reprs = [
 		((w.x.x-1 >= 1)   ? [Interval2D(Interval(w.x.x-1,w.x.y),w.y)] : Interval2D[])...,
@@ -479,7 +479,7 @@ computeModalThreshold(test_operator::_TestOpGeq, w::Interval2D, r::_Topo_TPPi, c
 	extr = map(w->yieldRepr(test_operator, _ReprMin(w), channel), reprs)
 	maximum([extr..., typemin(T)])
 end
-computeModalThreshold(test_operator::_TestOpLeq, w::Interval2D, r::_Topo_TPPi, channel::MatricialChannel{T,2}) where {T} = begin
+compute_modal_gamma(test_operator::_TestOpLeq, w::Interval2D, r::_Topo_TPPi, channel::MatricialChannel{T,2}) where {T} = begin
 	X,Y = size(channel)
 	reprs = [
 		((w.x.x-1 >= 1)   ? [Interval2D(Interval(w.x.x-1,w.x.y),w.y)] : Interval2D[])...,
