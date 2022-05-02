@@ -23,7 +23,7 @@ end
 
 Xs = MultiFrameModalDataset([
     StumpFeatModalDataset(
-        OntologicalDataset(randn(n_pts, n_attrs, n_insts), ModalLogic.getIntervalOntologyOfDim(Val(1)), features, featsnops),
+        InterpretedModalDataset(randn(n_pts, n_attrs, n_insts), ModalLogic.getIntervalOntologyOfDim(Val(1)), features, featsnops),
         computeRelationGlob = true,
     )
 ]);

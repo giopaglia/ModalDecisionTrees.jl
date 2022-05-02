@@ -99,19 +99,19 @@ end
 ##############################################################################
 
 # function optimize_tree_parameters!(
-#       X               :: OntologicalDataset{T, N},
+#       X               :: InterpretedModalDataset{T, N},
 #       initCondition   :: _initCondition,
 #       allowRelationGlob :: Bool,
 #       test_operators  :: AbstractVector{<:TestOperator}
 #   ) where {T, N}
 
-#   # Adimensional ontological datasets:
+#   # A dimensional ontological datasets:
 #   #  flatten to adimensional case + strip of all relations from the ontology
-#   if prod(channel_size(X)) == 1
+#   if prod(max_channel_size(X)) == 1
 #       if (length(ontology(X).relations) > 0)
-#           warn("The OntologicalDataset provided has degenerate channel_size $(channel_size(X)), and more than 0 relations: $(ontology(X).relations).")
+#           warn("The InterpretedModalDataset provided has degenerate max_channel_size $(max_channel_size(X)), and more than 0 relations: $(ontology(X).relations).")
 #       end
-#       # X = OntologicalDataset{T, 0}(ModalLogic.strip_ontology(ontology(X)), @views ModalLogic.strip_domain(domain(X)))
+#       # X = InterpretedModalDataset{T, 0}(ModalLogic.strip_ontology(ontology(X)), @views ModalLogic.strip_domain(domain(X)))
 #   end
 
 #   ontology_relations = deepcopy(ontology(X).relations)
@@ -124,7 +124,7 @@ end
 #   #  in the adimensional case, some pairs of operators (e.g. <= and >)
 #   #  are complementary, and thus it is redundant to check both at the same node.
 #   #  We avoid this by only keeping one of the two operators.
-#   if prod(channel_size(X)) == 1
+#   if prod(max_channel_size(X)) == 1
 #       # No ontological relation
 #       ontology_relations = []
 #       if test_operators ⊆ ModalLogic.all_lowlevel_test_operators

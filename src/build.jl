@@ -3,36 +3,36 @@ export build_stump, build_tree, build_forest
 include("tree.jl")
 
 ################################################################################
-########################## Matricial Dataset ###################################
+######################### Dimensional Dataset ##################################
 ################################################################################
 
 # # # Build models on (multi-dimensional) arrays
 # function build_stump(
-#   bare_dataset  :: MatricialDataset{T,D},
+#   bare_dataset  :: DimensionalDataset{T,D},
 #   labels        :: AbstractVector{String},
 #   weights       :: Union{Nothing,AbstractVector{U}} = nothing;
 #   ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
 #   kwargs...) where {T, D, U}
-#   build_stump(OntologicalDataset{T,D-2}(bare_dataset, ontology, TODO...), labels, weights; kwargs...)
+#   build_stump(InterpretedModalDataset{T,D-2}(bare_dataset, ontology, TODO...), labels, weights; kwargs...)
 # end
 
 # function build_tree(
-#   bare_dataset  :: MatricialDataset{T,D},
+#   bare_dataset  :: DimensionalDataset{T,D},
 #   labels        :: AbstractVector{String},
 #   weights       :: Union{Nothing,AbstractVector{U}} = nothing;
 #   ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
 #   kwargs...) where {T, D, U}
-#   build_tree(OntologicalDataset{T,D-2}(bare_dataset, ontology, TODO...), labels, weights; kwargs...)
+#   build_tree(InterpretedModalDataset{T,D-2}(bare_dataset, ontology, TODO...), labels, weights; kwargs...)
 # end
 
 # function build_forest(
-#   bare_dataset  :: MatricialDataset{T,D};
+#   bare_dataset  :: DimensionalDataset{T,D};
 #   labels        :: AbstractVector{String},
 #   # weights       :: Union{Nothing,AbstractVector{U}} = nothing TODO
 #   ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
 #   kwargs...) where {T, D, U}
-#   # build_forest(OntologicalDataset{T,D-2}(ontology,bare_dataset), labels, weights; kwargs...)
-#   build_forest(OntologicalDataset{T,D-2}(bare_dataset, ontology, TODO...), labels; kwargs...)
+#   # build_forest(InterpretedModalDataset{T,D-2}(ontology,bare_dataset), labels, weights; kwargs...)
+#   build_forest(InterpretedModalDataset{T,D-2}(bare_dataset, ontology, TODO...), labels; kwargs...)
 # end
 
 ################################################################################
@@ -115,8 +115,8 @@ function build_tree(
     end
     @assert max_depth > 0
 
-    if any(map(f->f isa MatricialDataset, frames(X)))
-        @error "Cannot learn from MatricialDataset! Please use OntologicalDataset, FeatModalDataset or StumpFeatModalDataset."
+    if any(map(f->f isa DimensionalDataset, frames(X)))
+        @error "Cannot learn from DimensionalDataset! Please use InterpretedModalDataset, FeatModalDataset or StumpFeatModalDataset."
     end
 
     # TODO figure out what to do here. Maybe it can be helpful to make rng either an rng or a seed, and then mk_rng transforms it into an rng
