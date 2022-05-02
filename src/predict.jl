@@ -43,9 +43,9 @@ inst_init_world_sets(X::SingleFrameGenericDataset, tree::DTree, i_instance::Inte
 apply_tree(tree::DTree{L}, X::SingleFrameGenericDataset, Y::Vector{L}; kwargs...) where {L} = 
     apply_tree(tree, MultiFrameModalDataset(X), Y; kwargs...)
 # TODO fix
-# apply_tree(tree::DTree{S}, X::MatricialDataset{T,D}, Y::Vector{S}; kwargs...) where {T,D,S} = begin
+# apply_tree(tree::DTree{S}, X::DimensionalDataset{T,D}, Y::Vector{S}; kwargs...) where {T,D,S} = begin
 #     ontology = getIntervalOntologyOfDim(Val(D-1-1))
-#     apply_tree(tree, MultiFrameModalDataset(OntologicalDataset{T, D-1-1, world_type(ontology)}(X)), Y; kwargs...)
+#     apply_tree(tree, MultiFrameModalDataset(InterpretedModalDataset{T, D-1-1, world_type(ontology)}(X)), Y; kwargs...)
 # end
 
 inst_init_world_sets(Xs::MultiFrameModalDataset, tree::DTree, i_instance::Integer) = begin
@@ -114,8 +114,8 @@ function predict(tree::DTree{L}, X::GenericDataset) where {L}
     #   end)
 end
 
-# Apply tree to a dimensional dataset in matricial form
-# function predict(tree::DTNode, d::MatricialDataset{T,D}) where {T, D}
+# Apply tree to a dimensional dataset
+# function predict(tree::DTNode, d::DimensionalDataset{T,D}) where {T, D}
 #   predict(DTree(tree, [world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2)))], [startWithRelationGlob]), d)
 # end
 
@@ -289,7 +289,7 @@ function predict(
     predictions, DTree(root, tree.worldTypes, tree.initConditions)
 end
 
-# function predict(tree::DTNode{T, L}, X::MatricialDataset{T,D}, Y::Vector{L}; reset_leaves = true, update_labels = false) where {L, T, D}
+# function predict(tree::DTNode{T, L}, X::DimensionalDataset{T,D}, Y::Vector{L}; reset_leaves = true, update_labels = false) where {L, T, D}
 #   return predict(DTree(tree, [world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2)))], [startWithRelationGlob]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
 # end
 

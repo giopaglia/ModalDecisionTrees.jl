@@ -42,9 +42,9 @@ struct _centeredWorld end;
 # Any world type W must also provide an `interpret_world` method for interpreting a world
 #  onto a modal instance:
 # interpret_world(::W, modal_instance)
-# Note: for dimensional world types: modal_instance::MatricialInstance
+# Note: for dimensional world types: modal_instance::DimensionalInstance
 
-# Dimensional world types are interpreted on MatricialInstances, and must also provide
+# Dimensional world types are interpreted on DimensionalInstances, and must also provide
 #  a `dimensionality` method indicating the number of dimensions of a modal channel size
 # dimensionality(::Type{W})
 # For example, dimensionality(Interval) = 1.
@@ -141,7 +141,7 @@ Base.show(io::IO, ::_RelationGlob) = print(io, "G")
 # Note: these methods must be defined for any newly defined world type WT:
 # `accessibles(w::WT,           ::_RelationGlob, args...)`
 # `accessibles(S::AbstractWorldSet{WT}, ::_RelationGlob, args...)`
-# `accessibles_aggr(f::ModalFeature, a::Aggregator, w::AbstractWorldSet{WT}, ::_RelationGlob, args...)`
+# `accessibles_aggr(f::ModalFeature, a::Aggregator, S::AbstractWorldSet{WT}, ::_RelationGlob, args...)`
 
 ############################################################################################
 
@@ -270,6 +270,7 @@ end
 # Dataset structures
 ############################################################################################
 
+include("dimensional-dataset.jl")
 include("modal-datasets.jl")
 
 ############################################################################################
@@ -340,17 +341,17 @@ const Interval2DRCC5Ontology = Ontology{Interval2D}(RCC5Relations)
 
 
 getIntervalOntologyOfDim(N::Integer) = getIntervalOntologyOfDim(Val(N))
-getIntervalOntologyOfDim(::MatricialDataset{T,D}) where {T,D} = getIntervalOntologyOfDim(Val(D-2))
+getIntervalOntologyOfDim(::DimensionalDataset{T,D}) where {T,D} = getIntervalOntologyOfDim(Val(D-2))
 getIntervalOntologyOfDim(::Val{1}) = IntervalOntology
 getIntervalOntologyOfDim(::Val{2}) = Interval2DOntology
 
 getIntervalRCC8OntologyOfDim(N::Integer) = getIntervalRCC8OntologyOfDim(Val(N))
-getIntervalRCC8OntologyOfDim(::MatricialDataset{T,D}) where {T,D} = getIntervalRCC8OntologyOfDim(Val(D-2))
+getIntervalRCC8OntologyOfDim(::DimensionalDataset{T,D}) where {T,D} = getIntervalRCC8OntologyOfDim(Val(D-2))
 getIntervalRCC8OntologyOfDim(::Val{1}) = IntervalRCC8Ontology
 getIntervalRCC8OntologyOfDim(::Val{2}) = Interval2DRCC8Ontology
 
 getIntervalRCC5OntologyOfDim(N::Integer) = getIntervalRCC5OntologyOfDim(Val(N))
-getIntervalRCC5OntologyOfDim(::MatricialDataset{T,D}) where {T,D} = getIntervalRCC5OntologyOfDim(Val(D-2))
+getIntervalRCC5OntologyOfDim(::DimensionalDataset{T,D}) where {T,D} = getIntervalRCC5OntologyOfDim(Val(D-2))
 getIntervalRCC5OntologyOfDim(::Val{1}) = IntervalRCC5Ontology
 getIntervalRCC5OntologyOfDim(::Val{2}) = Interval2DRCC5Ontology
 

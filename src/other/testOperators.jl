@@ -29,7 +29,7 @@ polarity(::TestOperatorNegative) = false
 @inline evaluate_thresh_decision(::TestOperatorPositive, t::T, gamma::T) where {T} = (t <= gamma)
 @inline evaluate_thresh_decision(::TestOperatorNegative, t::T, gamma::T) where {T} = (t >= gamma)
 
-compute_modal_gamma(test_operator::Union{TestOperatorPositive,TestOperatorNegative}, w::WorldType, relation::AbstractRelation, channel::MatricialChannel{T,N}) where {WorldType<:AbstractWorld,T,N} = begin
+compute_modal_gamma(test_operator::Union{TestOperatorPositive,TestOperatorNegative}, w::WorldType, relation::AbstractRelation, channel::DimensionalChannel{T,N}) where {WorldType<:AbstractWorld,T,N} = begin
 	worlds = accessibles([w], relation, channel)
 	# TODO rewrite as reduce(opt(test_operator), (computePropositionalThreshold(test_operator, w, channel) for w in worlds); init=bottom(test_operator, T))
 	v = bottom(test_operator, T)
@@ -39,7 +39,7 @@ compute_modal_gamma(test_operator::Union{TestOperatorPositive,TestOperatorNegati
 	end
 	v
 end
-computeModalThresholdDual(test_operator::TestOperatorPositive, w::WorldType, relation::AbstractRelation, channel::MatricialChannel{T,N}) where {WorldType<:AbstractWorld,T,N} = begin
+computeModalThresholdDual(test_operator::TestOperatorPositive, w::WorldType, relation::AbstractRelation, channel::DimensionalChannel{T,N}) where {WorldType<:AbstractWorld,T,N} = begin
 	worlds = accessibles([w], relation, channel)
 	extr = (typemin(T),typemax(T))
 	for w in worlds
@@ -48,7 +48,7 @@ computeModalThresholdDual(test_operator::TestOperatorPositive, w::WorldType, rel
 	end
 	extr
 end
-computeModalThresholdMany(test_ops::Vector{<:TestOperator}, w::WorldType, relation::AbstractRelation, channel::MatricialChannel{T,N}) where {WorldType<:AbstractWorld,T,N} = begin
+computeModalThresholdMany(test_ops::Vector{<:TestOperator}, w::WorldType, relation::AbstractRelation, channel::DimensionalChannel{T,N}) where {WorldType<:AbstractWorld,T,N} = begin
 	[compute_modal_gamma(test_op, w, relation, channel) for test_op in test_ops]
 end
 
@@ -72,7 +72,7 @@ siblings(::_TestOpLeq) = []
 Base.show(io::IO, test_operator::_TestOpGeq) = print(io, "⪴")
 Base.show(io::IO, test_operator::_TestOpLeq) = print(io, "⪳")
 
-@inline computePropositionalThreshold(::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
+@inline computePropositionalThreshold(::_TestOpGeq, w::AbstractWorld, channel::DimensionalChannel{T,N}) where {T,N} = begin
 	# println(_TestOpGeq)
 	# println(w)
 	# println(channel)
@@ -80,16 +80,16 @@ Base.show(io::IO, test_operator::_TestOpLeq) = print(io, "⪳")
 	# readline()
 	minimum(ch_readWorld(w,channel))
 end
-@inline computePropositionalThreshold(::_TestOpLeq, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
+@inline computePropositionalThreshold(::_TestOpLeq, w::AbstractWorld, channel::DimensionalChannel{T,N}) where {T,N} = begin
 	# println(_TestOpLeq)
 	# println(w)
 	# println(channel)
 	# readline()
 	maximum(ch_readWorld(w,channel))
 end
-@inline computePropositionalThresholdDual(::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = extrema(ch_readWorld(w,channel))
+@inline computePropositionalThresholdDual(::_TestOpGeq, w::AbstractWorld, channel::DimensionalChannel{T,N}) where {T,N} = extrema(ch_readWorld(w,channel))
 
-@inline test_decision(test_operator::_TestOpGeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
+@inline test_decision(test_operator::_TestOpGeq, w::AbstractWorld, channel::DimensionalChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
 	# Source: https://stackoverflow.com/questions/47564825/check-if-all-the-elements-of-a-julia-array-are-equal
 	# @inbounds
 	# TODO try:
@@ -99,7 +99,7 @@ end
 	end
 	return true
 end
-@inline test_decision(test_operator::_TestOpLeq, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
+@inline test_decision(test_operator::_TestOpLeq, w::AbstractWorld, channel::DimensionalChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
 	# Source: https://stackoverflow.com/questions/47564825/check-if-all-the-elements-of-a-julia-array-are-equal
 	# @info "WLes" w threshold #n ch_readWorld(w,channel)
 	# @inbounds
@@ -179,23 +179,23 @@ Base.show(io::IO, test_operator::_TestOpLeqSoft) = print(io, "⪳" * subscriptnu
 @inline test_op_partialsort!(test_op::_TestOpLeqSoft, vals::Vector{T}) where {T} = 
 	partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)))
 
-@inline computePropositionalThreshold(test_op::Union{_TestOpGeqSoft,_TestOpLeqSoft}, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
+@inline computePropositionalThreshold(test_op::Union{_TestOpGeqSoft,_TestOpLeqSoft}, w::AbstractWorld, channel::DimensionalChannel{T,N}) where {T,N} = begin
 	vals = vec(ch_readWorld(w,channel))
 	test_op_partialsort!(test_op,vals)
 end
-# @inline computePropositionalThresholdDual(test_op::_TestOpGeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
+# @inline computePropositionalThresholdDual(test_op::_TestOpGeqSoft, w::AbstractWorld, channel::DimensionalChannel{T,N}) where {T,N} = begin
 # 	vals = vec(ch_readWorld(w,channel))
 # 	xmin = test_op_partialsort!(test_op,vec(ch_readWorld(w,channel)))
 # 	xmin = partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)); rev=true)
 # 	xmax = partialsort!(vals,ceil(Int, (alpha(test_op))*length(vals)))
 # 	xmin,xmax
 # end
-@inline computePropositionalThresholdMany(test_ops::Vector{<:TestOperator}, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
+@inline computePropositionalThresholdMany(test_ops::Vector{<:TestOperator}, w::AbstractWorld, channel::DimensionalChannel{T,N}) where {T,N} = begin
 	vals = vec(ch_readWorld(w,channel))
 	(test_op_partialsort!(test_op,vals) for test_op in test_ops)
 end
 
-@inline test_decision(test_operator::_TestOpGeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin 
+@inline test_decision(test_operator::_TestOpGeqSoft, w::AbstractWorld, channel::DimensionalChannel{T,N}, threshold::Number) where {T,N} = begin 
 	ys = 0
 	# TODO write with reduce, and optimize it (e.g. by stopping early if the decision is reached already)
 	vals = ch_readWorld(w,channel)
@@ -207,7 +207,7 @@ end
 	(ys/length(vals)) >= test_operator.alpha
 end
 
-@inline test_decision(test_operator::_TestOpLeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Number) where {T,N} = begin 
+@inline test_decision(test_operator::_TestOpLeqSoft, w::AbstractWorld, channel::DimensionalChannel{T,N}, threshold::Number) where {T,N} = begin 
 	ys = 0
 	# TODO write with reduce, and optimize it (e.g. by stopping early if the decision is reached already)
 	vals = ch_readWorld(w,channel)

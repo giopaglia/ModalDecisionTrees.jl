@@ -24,7 +24,7 @@ dimensionality(::Type{Interval2D}) = 2
 # n_worlds(::Type{Interval2D}, X::Integer, Y::Integer) = n_worlds(Interval, X) * n_worlds(Interval, Y)
 
 # Dimensional world type: it can be interpreted on dimensional instances.
-interpret_world(w::Interval2D, instance::MatricialInstance{T,3}) where {T} = instance[w.x.x:w.x.y-1,w.y.x:w.y.y-1,:]
+interpret_world(w::Interval2D, instance::DimensionalInstance{T,3}) where {T} = instance[w.x.x:w.x.y-1,w.y.x:w.y.y-1,:]
 
 # Convenience function: enumerate all interval2Ds in a given range
 intervals2D_in(a1::Integer, a2::Integer, b1::Integer, b2::Integer) = IterTools.imap(Interval2D, Iterators.product(_intervals_in(a1, a2), _intervals_in(b1, b2)))

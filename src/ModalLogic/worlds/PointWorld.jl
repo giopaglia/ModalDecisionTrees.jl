@@ -21,7 +21,7 @@
 # accessibles(S::AbstractWorldSet{PointWorld}, r::_RelationGlob, X::Integer) =
 # 	IterTools.imap(PointWorld, 1:X)
 
-# @inline ch_readWorld(w::PointWorld, channel::MatricialChannel{T,1}) where {T} = channel[w.x]
+# @inline ch_readWorld(w::PointWorld, channel::DimensionalChannel{T,1}) where {T} = channel[w.x]
 
 # ################################################################################
 # # END PointWorld

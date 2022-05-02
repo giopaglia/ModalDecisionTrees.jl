@@ -91,13 +91,13 @@ struct _startAtWorld{wT<:AbstractWorld} <: _initCondition w::wT end;
 initWorldSet(initConditions::AbstractVector{<:_initCondition}, worldTypes::AbstractVector{<:Type#={<:AbstractWorld}=#}, args...) =
     [initWorldSet(iC, WT, args...) for (iC, WT) in zip(initConditions, Vector{Type{<:AbstractWorld}}(worldTypes))]
 
-initWorldSet(initCondition::_startWithRelationGlob, ::Type{WorldType}, channel_size::NTuple{N,Integer} where N) where {WorldType<:AbstractWorld} =
+initWorldSet(initCondition::_startWithRelationGlob, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
     WorldSet{WorldType}([WorldType(ModalLogic._emptyWorld())])
 
-initWorldSet(initCondition::_startAtCenter, ::Type{WorldType}, channel_size::NTuple{N,Integer} where N) where {WorldType<:AbstractWorld} =
-    WorldSet{WorldType}([WorldType(ModalLogic._centeredWorld(), channel_size...)])
+initWorldSet(initCondition::_startAtCenter, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
+    WorldSet{WorldType}([WorldType(ModalLogic._centeredWorld(), args...)])
 
-initWorldSet(initCondition::_startAtWorld{WorldType}, ::Type{WorldType}, channel_size::NTuple{N,Integer} where N) where {WorldType<:AbstractWorld} =
+initWorldSet(initCondition::_startAtWorld{WorldType}, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
     WorldSet{WorldType}([WorldType(initCondition.w)])
 
 
