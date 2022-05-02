@@ -46,7 +46,7 @@
 ☐	MODALLOGIC.JL Synthesis of SoleLogic module
 ☐	MODALLOGIC.JL Add TESTs for enumAcc optimizations
 ################################################################################
-☐	DATA: _split!: enable learning in implicit form (allow training directly on OntologicalDataset) and study parallelization.
+☐	DATA: _split!: enable learning in implicit form (allow training directly on InterpretedModalDataset) and study parallelization.
 ☐	DATA: Create class for labeled datasets, and remove slice_mf_dataset.
 ☐	? DATA: test round_dataset_to_datatype/mapArrayToDataType in multiframe version
 ☐	DATA: Clean dataset creation pipeline
@@ -100,7 +100,7 @@
 
 ☐	Obtain best_threshold by interpolation of the loss
 
-☐	OPTIMIZE: computation of softened operators takes too much time (optimize at least <A> in the temporal case?). Actually, this is currently not a big deal, if we don't train on OntologicalDataset.
+☐	OPTIMIZE: computation of softened operators takes too much time (optimize at least <A> in the temporal case?). Actually, this is currently not a big deal, if we don't train on InterpretedModalDataset.
 
 ☐	For temporal series, one may want to have timepoints that are scattered along the time axis. See if https://github.com/JuliaArrays/AxisArrays.jl can be of any help here; but note that one may need to know how to handle missing's
 ☐	Optimize RCC5

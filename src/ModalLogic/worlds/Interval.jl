@@ -25,7 +25,7 @@ dimensionality(::Type{Interval}) = 1
 # n_worlds(::Type{Interval}, X::Integer) = div(X*(X+1),2)
 
 # Dimensional world type: it can be interpreted on dimensional instances.
-interpret_world(w::Interval, instance::MatricialInstance{T,2}) where {T} = instance[w.x:w.y-1,:]
+interpret_world(w::Interval, instance::DimensionalInstance{T,2}) where {T} = instance[w.x:w.y-1,:]
 
 # Convenience functions: enumerate all & 1-length intervals in a given range
 _intervals_in(a::Integer, b::Integer) = Iterators.filter(((x,y))->x<y, Iterators.product(a:b-1, a+1:b))

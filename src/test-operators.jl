@@ -17,16 +17,16 @@ const TestOperatorFun = Function
 # @inline test_op_partialsort!(test_op::_TestOpLeqSoft, vals::Vector{T}) where {T} = 
 # 	partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)))
 
-# @inline computePropositionalThreshold(test_op::Union{_TestOpGeqSoft,_TestOpLeqSoft}, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
+# @inline computePropositionalThreshold(test_op::Union{_TestOpGeqSoft,_TestOpLeqSoft}, w::AbstractWorld, channel::DimensionalChannel{T,N}) where {T,N} = begin
 # 	vals = vec(ch_readWorld(w,channel))
 # 	test_op_partialsort!(test_op,vals)
 # end
-# @inline computePropositionalThresholdMany(test_ops::Vector{<:TestOperator}, w::AbstractWorld, channel::MatricialChannel{T,N}) where {T,N} = begin
+# @inline computePropositionalThresholdMany(test_ops::Vector{<:TestOperator}, w::AbstractWorld, channel::DimensionalChannel{T,N}) where {T,N} = begin
 # 	vals = vec(ch_readWorld(w,channel))
 # 	(test_op_partialsort!(test_op,vals) for test_op in test_ops)
 # end
 
-# @inline test_decision(test_operator::_TestOpGeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Real) where {T,N} = begin 
+# @inline test_decision(test_operator::_TestOpGeqSoft, w::AbstractWorld, channel::DimensionalChannel{T,N}, threshold::Real) where {T,N} = begin 
 # 	ys = 0
 # 	# TODO write with reduce, and optimize it (e.g. by stopping early if the decision is reached already)
 # 	vals = ch_readWorld(w,channel)
@@ -38,7 +38,7 @@ const TestOperatorFun = Function
 # 	(ys/length(vals)) >= test_operator.alpha
 # end
 
-# @inline test_decision(test_operator::_TestOpLeqSoft, w::AbstractWorld, channel::MatricialChannel{T,N}, threshold::Real) where {T,N} = begin 
+# @inline test_decision(test_operator::_TestOpLeqSoft, w::AbstractWorld, channel::DimensionalChannel{T,N}, threshold::Real) where {T,N} = begin 
 # 	ys = 0
 # 	# TODO write with reduce, and optimize it (e.g. by stopping early if the decision is reached already)
 # 	vals = ch_readWorld(w,channel)
