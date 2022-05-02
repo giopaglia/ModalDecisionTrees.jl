@@ -136,7 +136,7 @@ end
 #   end
 
 #   # Softened operators:
-#   #  when the biggest world only has a few values, softened operators fallback
+#   #  when the largest world only has a few values, softened operators fallback
 #   #  to being hard operators
 #   # max_world_wratio = 1/prod(max_channel_size(X))
 #   # if TestOpGeq in test_operators

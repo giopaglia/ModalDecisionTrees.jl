@@ -64,14 +64,20 @@ WorldSet{W}(S::WorldSet{W}) where {W<:AbstractWorld} = S
 # Abstract types for relations
 abstract type AbstractRelation end
 
+# Relations must indicate their compatible world types via `goes_with`.
+#  For example, if world type W is compatible with relation R
+# goes_with(::Type{W}, ::R) = true
+# Here's the fallback:
+goes_with(::Type{W}, ::AbstractRelation) where {W<:AbstractWorld} = false
+
 # Relations are defined via methods that return iterators the accessible worlds.
 # Each relation R<:AbstractRelation must provide a method for `accessibles`, which returns an iterator
 #  to the worlds that are accessible from a given world w:
-# `accessibles(w::WorldType,           ::R, args...) where {WorldType<:AbstractWorld}`
+# `accessibles(w::W,           ::R, args...)`
 
 # Alternatively, one can provide a *bare* definition, that is, method `_accessibles`,
 #  returning an iterator of *tuples* which is then fed to a constructor of the same world type, as in:
-# `_accessibles(w::WorldType,           ::R, args...) where {WorldType<:AbstractWorld}`
+# `_accessibles(w::W,           ::R, args...)`
 
 # The following fallback ensures that the two definitions are equivalent
 accessibles(w::WorldType, r::AbstractRelation, args...) where {T,WorldType<:AbstractWorld} = begin
@@ -102,7 +108,7 @@ end
 #  to decide the truth. A few cases arise depending on the relation, the feature and the aggregator induced by the test
 #  operator, thus one can provide optimized methods that return iterators to a few *representative*
 #  worlds.
-# accessibles_aggr(f::ModalFeature, a::Aggregator, S::AbstractWorldSet{W}, ::R, args...) where {W<:AbstractWorld}
+# accessibles_aggr(f::ModalFeature, a::Aggregator, S::AbstractWorldSet{W}, ::R, args...)
 # Of course, the fallback is enumerating all accessible worlds via `accessibles`
 accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::AbstractRelation, args...) where {WorldType<:AbstractWorld} = accessibles(w, r, args...)
 
@@ -156,7 +162,7 @@ struct Ontology{WorldType<:AbstractWorld}
     function Ontology{WorldType}(relations::AbstractVector) where {WorldType<:AbstractWorld}
         relations = collect(unique(relations))
         for relation in relations
-            @assert goesWith(WorldType, relation) "Can't instantiate Ontology{$(WorldType)} with relation $(relation)!"
+            @assert goes_with(WorldType, relation) "Can't instantiate Ontology{$(WorldType)} with relation $(relation)!"
         end
         if WorldType == OneWorld && length(relations) > 0
           relations = similar(relations, 0)
@@ -184,7 +190,7 @@ Base.show(io::IO, o::Ontology{WT}) where {WT<:AbstractWorld} = begin
             print(io, "IA_extended")
         elseif issetequal(relations(o), IA2DRelations)
             print(io, "IA²")
-        elseif issetequal(relations(o), IA2DRelations_U)
+        elseif issetequal(relations(o), IA2D_URelations)
             print(io, "IA²_U")
         elseif issetequal(relations(o), IA2DRelations_extended)
             print(io, "IA²_extended")
@@ -270,6 +276,12 @@ include("modal-datasets.jl")
 # Ontologies
 ############################################################################################
 
+# Directional relations
+abstract type DirectionalRelation <: AbstractRelation end
+
+# Topological relations
+abstract type TopologicalRelation <: AbstractRelation end
+
 # Here are the definitions for world types and relations for known modal logics
 #  
 
@@ -292,7 +304,7 @@ export OneWorldOntology,
 
 # World type definitions for the propositional case, where there exist only one world,
 #  and `Decision`s only allow the RelationId.
-include("OneWorld.jl")         # <- OneWorld world type
+include("worlds/OneWorld.jl")                 # <- OneWorld world type
 
 const OneWorldOntology   = Ontology{OneWorld}(AbstractRelation[])
 
@@ -300,12 +312,12 @@ const OneWorldOntology   = Ontology{OneWorld}(AbstractRelation[])
 # Dimensionality: 1
 
 # World type definitions for punctual logics, where worlds are points
-# include("PointWorld.jl")
+# include("worlds/PointWorld.jl")
 
 # World type definitions for interval logics, where worlds are intervals
-include("Interval.jl")         # <- Interval world type
-include("IARelations.jl")      # <- Allen relations
-include("TopoRelations.jl")    # <- RCC relations
+include("worlds/Interval.jl")                 # <- Interval world type
+include("relations/IA+Interval.jl")       # <- Allen relations
+include("relations/RCC+Interval.jl")    # <- RCC relations
 
 const IntervalOntology       = Ontology{Interval}(IARelations)
 const IntervalRCC8Ontology   = Ontology{Interval}(RCC8Relations)
@@ -316,9 +328,9 @@ const IntervalRCC5Ontology   = Ontology{Interval}(RCC5Relations)
 
 # World type definitions for 2D iterval logics, where worlds are rectangles
 #  parallel to a frame of reference.
-include("Interval2D.jl")       # <- Interval2D world type
-include("IA2DRelations.jl")    # <- Allen relations
-include("Topo2DRelations.jl")  # <- RCC relations
+include("worlds/Interval2D.jl")               # <- Interval2D world type
+include("relations/IA2+Interval2D.jl")     # <- Allen relations
+include("relations/RCC+Interval2D.jl")  # <- RCC relations
 
 const Interval2DOntology     = Ontology{Interval2D}(IA2DRelations)
 const Interval2DRCC8Ontology = Ontology{Interval2D}(RCC8Relations)

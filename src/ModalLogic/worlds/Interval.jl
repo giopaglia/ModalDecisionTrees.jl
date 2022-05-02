@@ -44,5 +44,6 @@ accessibles_aggr(f::Union{SingleAttributeSoftMin,SingleAttributeSoftMax}, a::Uni
 accessibles_aggr(f::Union{SingleAttributeSoftMax}, a::typeof(maximum), ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = Interval[Interval(1, X+1)  ]
 accessibles_aggr(f::Union{SingleAttributeSoftMin}, a::typeof(minimum), ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = Interval[Interval(1, X+1)  ]
 
+# TODO remove:
 # Note: only needed for a smooth definition of IA2DRelations
-_accessibles(w::Interval, ::_RelationId, args...) = [(w.x, w.y)]
+# _accessibles(w::Interval, ::_RelationId, args...) = [(w.x, w.y)]
