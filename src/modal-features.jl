@@ -135,7 +135,7 @@ Base.show(io::IO, f::MultiAttributeFeature) = print(io, "$(f.f)")
 
 ############################################################################################
 
-# A feature can be imported from a FeaturedWorldDataset (FWD) structure (see ModalLogic module)
+# A feature can be imported from a FWD (FWD) structure (see ModalLogic module)
 struct ExternalFWDFeature <: ModalFeature
     name::String
     fwd::Any

@@ -21,8 +21,8 @@ for i_attr in 1:n_attrs
     push!(featsnops, [≤])
 end
 
-Xs = MultiFrameModalDataset([
-    StumpFeatModalDataset(
+Xs = MultiFrameModalDataset{ExplicitModalDatasetS}([
+    ExplicitModalDatasetS(
         InterpretedModalDataset(randn(n_pts, n_attrs, n_insts), ModalLogic.getIntervalOntologyOfDim(Val(1)), features, featsnops),
         computeRelationGlob = true,
     )

@@ -10,7 +10,7 @@ using IterTools
 using Logging: @logmsg
 using ResumableFunctions
 
-import Base: size, show, getindex, iterate, length
+import Base: size, show, getindex, iterate, length, push!
 
 export AbstractWorld, AbstractRelation,
        Ontology,
@@ -269,10 +269,63 @@ end
 ############################################################################################
 # Dataset structures
 ############################################################################################
-
+# TODO sort these
+export n_samples, n_attributes, n_features, n_relations,
+       max_channel_size,
+       slice_dataset,
+       n_frames, frames, get_frame,
+       display_structure,
+       get_gamma, test_decision,
+       # 
+       relations,
+       init_world_sets_fun,
+       # 
+       ModalDataset,
+       GenericModalDataset,
+       ActiveMultiFrameModalDataset,
+       MultiFrameModalDataset,
+       ActiveModalDataset,
+       InterpretedModalDataset, 
+       ExplicitModalDataset,
+       ExplicitModalDatasetS,
+       ExplicitModalDatasetSMemo,
+       # 
+       DimensionalChannel
+# 
+# A modal dataset can be *active* or *passive*.
+# 
+# A passive modal dataset is one that you can interpret decisions on, but cannot necessarily
+#  enumerate decisions for, as it doesn't have objects for storing the logic (relations, features, etc.).
+# Dimensional datasets are passive.
 include("dimensional-dataset.jl")
-include("modal-datasets.jl")
-
+# 
+const PassiveModalDataset{T} = Union{DimensionalDataset{T}}
+# 
+# Active datasets comprehend structures for representing relation sets, features, enumerating worlds,
+#  etc. While learning a model can be done only with active modal datasets, testing a model
+#  can be done with both active and passive modal datasets.
+# 
+abstract type ActiveModalDataset{T<:Number,WorldType<:AbstractWorld} end
+# 
+# Active modal datasets hold the WorldType, and thus can initialize world sets with a lighter interface
+# 
+init_world_sets_fun(imd::ActiveModalDataset{T, WorldType},  i_instance::Integer, ::Type{WorldType}) where {T, WorldType} = 
+    init_world_sets_fun(imd, i_instance)
+# 
+const ModalDataset{T} = Union{PassiveModalDataset{T},ActiveModalDataset{T}}
+# 
+include("active-modal-datasets.jl")
+# 
+# Define the multi-modal version of modal datasets (basically, a vector of datasets with the
+#  same number of instances)
+# 
+include("multi-frame-dataset.jl")
+# 
+const ActiveMultiFrameModalDataset{T} = MultiFrameModalDataset{ActiveModalDataset{T}}
+# 
+const GenericModalDataset = Union{ModalDataset,MultiFrameModalDataset}
+# 
+# 
 ############################################################################################
 # Ontologies
 ############################################################################################
@@ -357,10 +410,10 @@ getIntervalRCC5OntologyOfDim(::Val{2}) = Interval2DRCC5Ontology
 
 
 ############################################################################################
-# Stump support for 
+# World-specific featured world datasets and supports
 ############################################################################################
 
-include("modal-datasets-fwd.jl")
+include("world-specific-fwds.jl")
 
 ############################################################################################
 ############################################################################################

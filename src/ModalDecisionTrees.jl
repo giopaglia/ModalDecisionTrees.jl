@@ -74,6 +74,7 @@ include("test-operators.jl")
 ############################################################################################
 
 include("ModalLogic/ModalLogic.jl")
+
 using .ModalLogic
 import .ModalLogic: n_samples, display_decision
 
@@ -88,26 +89,20 @@ struct _startWithRelationGlob           <: _initCondition end; const startWithRe
 struct _startAtCenter                   <: _initCondition end; const startAtCenter          = _startAtCenter();
 struct _startAtWorld{wT<:AbstractWorld} <: _initCondition w::wT end;
 
-initWorldSet(initConditions::AbstractVector{<:_initCondition}, worldTypes::AbstractVector{<:Type#={<:AbstractWorld}=#}, args...) =
-    [initWorldSet(iC, WT, args...) for (iC, WT) in zip(initConditions, Vector{Type{<:AbstractWorld}}(worldTypes))]
+init_world_set(initConditions::AbstractVector{<:_initCondition}, worldTypes::AbstractVector{<:Type#={<:AbstractWorld}=#}, args...) =
+    [init_world_set(iC, WT, args...) for (iC, WT) in zip(initConditions, Vector{Type{<:AbstractWorld}}(worldTypes))]
 
-initWorldSet(initCondition::_startWithRelationGlob, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
+init_world_set(initCondition::_startWithRelationGlob, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
     WorldSet{WorldType}([WorldType(ModalLogic._emptyWorld())])
 
-initWorldSet(initCondition::_startAtCenter, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
+init_world_set(initCondition::_startAtCenter, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
     WorldSet{WorldType}([WorldType(ModalLogic._centeredWorld(), args...)])
 
-initWorldSet(initCondition::_startAtWorld{WorldType}, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
+init_world_set(initCondition::_startAtWorld{WorldType}, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
     WorldSet{WorldType}([WorldType(initCondition.w)])
 
-
 ############################################################################################
-# Decision Leaf, Internal, Node, Tree & RF
-############################################################################################
-
-
-############################################################################################
-############################################################################################
+# Loss & purity functions
 ############################################################################################
 
 default_loss_function(::Type{<:CLabel}) = util.entropy
@@ -223,9 +218,8 @@ _slice_weights(W::Ones{Int64}, i::Integer) = 1
 _slice_weights(W::Any,         i::Integer) = W[i]
 
 
-
 ############################################################################################
-############################################################################################
+# Decision Leaf, Internal, Node, Tree & RF
 ############################################################################################
 
 abstract type AbstractDecisionLeaf{L<:Label} end

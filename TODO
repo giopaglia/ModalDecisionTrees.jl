@@ -31,7 +31,7 @@
 ✔	SCANNER.JL: different frames with different ontologies: @done (22-02-05 23:59)
 ✔	SCANNER.JL: Train with less stringent parameters, and post-prune @done (22-02-05 23:59)
 ################################################################################
-☐	IntervalFeaturedWorldDataset could have thresholds with different type from the origin dataset
+☐	IntervalFWD could have thresholds with different type from the origin dataset
 ☐	MODALLOGIC.JL: Define relations as constants like IA_E̅Ea nd IA_Ei
 ☐	MODALLOGIC.JL: OPTIMIZE: add enumAccReprAggr for relationGlob, and for all worldtypes and relations
 ☐	? MODALLOGIC.JL: also remove enumAccRepr.

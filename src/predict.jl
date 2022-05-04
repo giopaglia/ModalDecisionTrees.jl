@@ -1,78 +1,72 @@
 export apply_tree, apply_forest, apply_trees, apply_model, print_apply, tree_walk_metrics
 
+############################################################################################
+############################################################################################
+############################################################################################
+
+inst_init_world_sets(Xs::MultiFrameModalDataset, tree::DTree, i_instance::Integer) = begin
+    Ss = Vector{WorldSet}(undef, n_frames(Xs))
+    for (i_frame,X) in enumerate(frames(Xs))
+        Ss[i_frame] = init_world_sets_fun(X, i_instance, tree.worldTypes[i_frame])(tree.initConditions[i_frame])
+    end
+    Ss
+end
+
+init_world_sets(Xs::MultiFrameModalDataset, initConditions::AbstractVector{<:_initCondition}) = begin
+    Ss = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, n_frames(Xs))
+    for (i_frame,X) in enumerate(frames(Xs))
+        WT = world_type(X)
+        Ss[i_frame] = WorldSet{WT}[init_world_sets_fun(X, i_instance, tree.worldTypes[i_frame])(initConditions[i_frame]) for i_instance in 1:n_samples(Xs)]
+        # Ss[i_frame] = WorldSet{WT}[[ModalLogic.Interval(1,2)] for i_instance in 1:n_samples(Xs)]
+    end
+    Ss
+end
+
+############################################################################################
+############################################################################################
+############################################################################################
 
 apply_model(tree::DTree,     args...; kwargs...) = apply_tree(tree,     args...; kwargs...)
 apply_model(forest::DForest, args...; kwargs...) = apply_forest(forest, args...; kwargs...)
 
 print_apply(tree::DTree,     args...; kwargs...) = print_apply(tree,    args...; kwargs...)
-# print_apply(forest::DForest, args...; kwargs...) = print_apply_forest(forest, args...; kwargs...)
 
 # Apply a tree to a dimensional dataset
-function apply_tree(tree::DTree, X::GenericDataset; kwargs...)
-    predict(tree, X; kwargs...)
+function apply_tree(tree::DTree, X::GenericModalDataset, args...; kwargs...)
+    predict(tree, X, args...; kwargs...)
 end
 
-function apply_tree(tree::DTree, X::GenericDataset, Y::Vector; kwargs...)
-    predict(tree, X, Y; kwargs...)
+function apply_trees(trees::AbstractVector{DTree}, X::GenericModalDataset; kwargs...)
+    predict(trees, X; kwargs...)
 end
 
-# TODO discriminate kwargs
-function print_apply(tree::DTree, X::GenericDataset, Y::Vector; kwargs...)
+function apply_forest(forest::DForest, X::GenericModalDataset; kwargs...)
+    predict(forest, X; kwargs...)
+end
+
+# TODO discriminate between kwargs for apply_tree & print_tree
+function print_apply(tree::DTree, X::GenericModalDataset, Y::Vector; kwargs...)
     predictions, new_tree = apply_tree(tree, X, Y)
     print_tree(new_tree; kwargs...)
     predictions, new_tree
 end
 
-function apply_trees(trees::AbstractVector{DTree}, X::GenericDataset; kwargs...)
-    predict(trees, X; kwargs...)
-end
+############################################################################################
+# ModalDataset -> MultiFrameModalDataset
 
-function apply_forest(forest::DForest, X::GenericDataset; kwargs...)
-    predict(forest, X; kwargs...)
-end
-
-
+predict(tree::DTree, X::ModalDataset, args...; kwargs...) =
+    predict(tree, MultiFrameModalDataset(X), args...; kwargs...)
 
 ################################################################################
 # Apply models: predict labels for a new dataset of instances
 ################################################################################
-
-# TODO avoid these fallbacks?
-inst_init_world_sets(X::SingleFrameGenericDataset, tree::DTree, i_instance::Integer) = 
-    inst_init_world_sets(MultiFrameModalDataset(X), tree, i_instance)
-apply_tree(tree::DTree{L}, X::SingleFrameGenericDataset, Y::Vector{L}; kwargs...) where {L} = 
-    apply_tree(tree, MultiFrameModalDataset(X), Y; kwargs...)
-# TODO fix
-# apply_tree(tree::DTree{S}, X::DimensionalDataset{T,D}, Y::Vector{S}; kwargs...) where {T,D,S} = begin
-#     ontology = getIntervalOntologyOfDim(Val(D-1-1))
-#     apply_tree(tree, MultiFrameModalDataset(InterpretedModalDataset{T, D-1-1, world_type(ontology)}(X)), Y; kwargs...)
-# end
-
-inst_init_world_sets(Xs::MultiFrameModalDataset, tree::DTree, i_instance::Integer) = begin
-    Ss = Vector{WorldSet}(undef, n_frames(Xs))
-    for (i_frame,X) in enumerate(ModalLogic.frames(Xs))
-        Ss[i_frame] = initws_function(X, i_instance)(tree.initConditions[i_frame])
-    end
-    Ss
-end
-
-# TODO consolidate functions like this
-init_world_sets(Xs::MultiFrameModalDataset, initConditions::AbstractVector{<:_initCondition}) = begin
-    Ss = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, n_frames(Xs))
-    for (i_frame,X) in enumerate(ModalLogic.frames(Xs))
-        WT = world_type(X)
-        Ss[i_frame] = WorldSet{WT}[initws_function(X, i_instance)(initConditions[i_frame]) for i_instance in 1:n_samples(Xs)]
-        # Ss[i_frame] = WorldSet{WT}[[ModalLogic.Interval(1,2)] for i_instance in 1:n_samples(Xs)]
-    end
-    Ss
-end
 
 function predict(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
     leaf.prediction
 end
 
 function predict(leaf::NSDTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
-    d = ModalLogic.slice_dataset(X, [i_instance])
+    d = slice_dataset(X, [i_instance])
     leaf.predicting_function(d)[1]
 end
 
@@ -93,7 +87,7 @@ function predict(tree::DTInternal, X::MultiFrameModalDataset, i_instance::Intege
 end
 
 # Obtain predictions of a tree on a dataset
-function predict(tree::DTree{L}, X::GenericDataset) where {L}
+function predict(tree::DTree{L}, X::MultiFrameModalDataset) where {L}
     @logmsg DTDetail "predict..."
     n_instances = n_samples(X)
     predictions = Vector{L}(undef, n_instances)
@@ -114,15 +108,10 @@ function predict(tree::DTree{L}, X::GenericDataset) where {L}
     #   end)
 end
 
-# Apply tree to a dimensional dataset
-# function predict(tree::DTNode, d::DimensionalDataset{T,D}) where {T, D}
-#   predict(DTree(tree, [world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2)))], [startWithRelationGlob]), d)
-# end
-
 # use an array of trees to test features
 function predict(
         trees::AbstractVector{DTree{L}},
-        X::GenericDataset;
+        X::MultiFrameModalDataset;
         suppress_parity_warning = false,
         tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
     ) where {L, Z<:Real}
@@ -150,7 +139,7 @@ function predict(
 end
 
 # use a proper forest to test features
-function predict(forest::DForest, X::GenericDataset; weight_trees_by::Union{Bool,Symbol,AbstractVector} = false)
+function predict(forest::DForest, X::MultiFrameModalDataset; weight_trees_by::Union{Bool,Symbol,AbstractVector} = false)
     if weight_trees_by == false
         predict(forest.trees, X)
     elseif isa(weight_trees_by, AbstractVector)
@@ -196,7 +185,7 @@ end
 
 function predict(
         leaf::DTLeaf{L},
-        X::Any,
+        X::MultiFrameModalDataset,
         i_instance::Integer,
         worlds::AbstractVector{<:AbstractWorldSet},
         class::L;
@@ -216,7 +205,7 @@ end
 
 function predict(
         leaf::NSDTLeaf{L},
-        X::Any,
+        X::MultiFrameModalDataset,
         i_instance::Integer,
         worlds::AbstractVector{<:AbstractWorldSet},
         class::L;
@@ -231,7 +220,7 @@ function predict(
         else
             leaf.predicting_function
         end
-    d = ModalLogic.slice_dataset(X, [i_instance])
+    d = slice_dataset(X, [i_instance])
     _predicting_function(d)[1], NSDTLeaf{L}(_predicting_function, _supp_train_labels, leaf.supp_valid_labels, _supp_train_predictions, leaf.supp_valid_predictions)
 end
 
@@ -268,7 +257,7 @@ end
 
 function predict(
     tree::DTree{L},
-    X::GenericDataset,
+    X::MultiFrameModalDataset,
     Y::Vector{L};
     reset_leaves = true,
     update_labels = false,
