@@ -42,7 +42,7 @@ function _get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_instan
 
     return new_survivors
 end
-function get_path_in_tree(tree::DTree{S}, X::GenericDataset)::Vector{DecisionPath} where {S}
+function get_path_in_tree(tree::DTree{S}, X::GenericModalDataset)::Vector{DecisionPath} where {S}
     n_instances = n_samples(X)
     paths::Vector{DecisionPath} = [ DecisionPath() for i in 1:n_instances ]
     for i_instance in 1:n_instances

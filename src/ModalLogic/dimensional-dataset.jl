@@ -45,9 +45,12 @@ end
 
 concat_datasets(d1::DimensionalDataset{T,N}, d2::DimensionalDataset{T,N}) where {T,N} = cat(d1, d2; dims=N)
 
-function get_gamma(X::DimensionalDataset{T,N}, i_instance::Integer, w::AbstractWorld, feature::ModalFeature) where {T,N}
-    get_interpretation_function(feature)(interpret_world(w, get_instance(X, i_instance))::DimensionalChannel{T,N-1-1})::T
+function get_gamma(d::DimensionalDataset{T,N}, i_instance::Integer, w::AbstractWorld, feature::ModalFeature) where {T,N}
+    get_interpretation_function(feature)(interpret_world(w, get_instance(d, i_instance))::DimensionalChannel{T,N-1-1})::T
 end
+
+init_world_sets_fun(d::DimensionalDataset,  i_instance::Integer, WorldType::Type{<:AbstractWorld}) =
+    (iC)->ModalDecisionTrees.init_world_set(iC, WorldType, max_channel_size(d))
 
 ############################################################################################
 

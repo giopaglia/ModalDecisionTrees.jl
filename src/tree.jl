@@ -211,7 +211,7 @@ end
 #  (e.g. max_depth, min_samples_leaf, etc.)
 Base.@propagate_inbounds @inline function split_node!(
     node                      :: NodeMeta{P, L},                     # node to splitt
-    Xs                        :: MultiFrameModalDataset,             # modal dataset
+    Xs                        :: ActiveMultiFrameModalDataset,       # modal dataset
     Ss                        :: AbstractVector{
         <:AbstractVector{WST} where {WorldType,WST<:WorldSet{WorldType}}
     }, # vector of current worlds for each instance and frame
@@ -782,10 +782,9 @@ end
 ############################################################################################
 ############################################################################################
 ############################################################################################
-################################################################################
 
 @inline function _fit(
-        Xs                        :: MultiFrameModalDataset,             # modal dataset
+        Xs                        :: ActiveMultiFrameModalDataset,       # modal dataset
         Y                         :: AbstractVector{L},                  # label vector
         initConditions            :: AbstractVector{<:_initCondition},   # world starting conditions
         W                         :: AbstractVector{U}                   # weight vector
@@ -842,7 +841,7 @@ end
 ##############################################################################
 
 @inline function check_input(
-        Xs                      :: MultiFrameModalDataset,
+        Xs                      :: ActiveMultiFrameModalDataset,
         Y                       :: AbstractVector{S},
         initConditions          :: Vector{<:_initCondition},
         W                       :: AbstractVector{U}
@@ -937,7 +936,7 @@ end
 
 function fit(
         # modal dataset
-        Xs                        :: MultiFrameModalDataset,
+        Xs                        :: ActiveMultiFrameModalDataset,
         # label vector
         Y                         :: AbstractVector{L},
         # world starting conditions

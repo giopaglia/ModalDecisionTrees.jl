@@ -215,7 +215,7 @@ end
 
 function train_functional_leaves(
         tree::DTree,
-        datasets::AbstractVector{Tuple{GenericDataset,AbstractVector}},
+        datasets::AbstractVector{Tuple{GenericModalDataset,AbstractVector}},
         args...;
         kwargs...,
     )
@@ -230,14 +230,14 @@ end
 function train_functional_leaves(
         node::DTInternal{T, L},
         worlds::AbstractVector{<:AbstractVector{<:AbstractVector{<:AbstractWorldSet}}},
-        datasets::AbstractVector{Tuple{GenericDataset,AbstractVector}},
+        datasets::AbstractVector{Tuple{GenericModalDataset,AbstractVector}},
         args...;
         kwargs...,
     ) where {T, L}
     
     # Each dataset is sliced, and two subsets are derived (left and right)
-    datasets_l = Tuple{GenericDataset,AbstractVector}[]
-    datasets_r = Tuple{GenericDataset,AbstractVector}[]
+    datasets_l = Tuple{GenericModalDataset,AbstractVector}[]
+    datasets_r = Tuple{GenericModalDataset,AbstractVector}[]
     
     worlds_l = AbstractVector{<:AbstractVector{<:AbstractWorldSet}}[]
     worlds_r = AbstractVector{<:AbstractVector{<:AbstractWorldSet}}[]
@@ -259,8 +259,8 @@ function train_functional_leaves(
             worlds[i_dataset][node.i_frame][i_instance] = new_worlds
         end
 
-        push!(datasets_l, ModalLogic.slice_dataset((X,Y), satisfied_idxs;   allow_no_instances = true))
-        push!(datasets_r, ModalLogic.slice_dataset((X,Y), unsatisfied_idxs; allow_no_instances = true))
+        push!(datasets_l, slice_dataset((X,Y), satisfied_idxs;   allow_no_instances = true))
+        push!(datasets_r, slice_dataset((X,Y), unsatisfied_idxs; allow_no_instances = true))
 
         push!(worlds_l, [frame_worlds[satisfied_idxs]   for frame_worlds in worlds[i_dataset]])
         push!(worlds_r, [frame_worlds[unsatisfied_idxs] for frame_worlds in worlds[i_dataset]])
@@ -280,7 +280,7 @@ end
 function train_functional_leaves(
         leaf::AbstractDecisionLeaf{L},
         worlds::AbstractVector{<:AbstractVector{<:AbstractVector{<:AbstractWorldSet}}},
-        datasets::AbstractVector{Tuple{GenericDataset,AbstractVector}};
+        datasets::AbstractVector{Tuple{GenericModalDataset,AbstractVector}};
         train_callback::Function,
     ) where {L<:Label}
     functional_model = train_callback(datasets)
