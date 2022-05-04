@@ -3,62 +3,29 @@ export build_stump, build_tree, build_forest
 include("tree.jl")
 
 ################################################################################
-######################### Dimensional Dataset ##################################
-################################################################################
-
-# # # Build models on (multi-dimensional) arrays
-# function build_stump(
-#   bare_dataset  :: DimensionalDataset{T,D},
-#   labels        :: AbstractVector{String},
-#   weights       :: Union{Nothing,AbstractVector{U}} = nothing;
-#   ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
-#   kwargs...) where {T, D, U}
-#   build_stump(InterpretedModalDataset{T,D-2}(bare_dataset, ontology, TODO...), labels, weights; kwargs...)
-# end
-
-# function build_tree(
-#   bare_dataset  :: DimensionalDataset{T,D},
-#   labels        :: AbstractVector{String},
-#   weights       :: Union{Nothing,AbstractVector{U}} = nothing;
-#   ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
-#   kwargs...) where {T, D, U}
-#   build_tree(InterpretedModalDataset{T,D-2}(bare_dataset, ontology, TODO...), labels, weights; kwargs...)
-# end
-
-# function build_forest(
-#   bare_dataset  :: DimensionalDataset{T,D};
-#   labels        :: AbstractVector{String},
-#   # weights       :: Union{Nothing,AbstractVector{U}} = nothing TODO
-#   ontology      :: Ontology = ModalLogic.getIntervalOntologyOfDim(Val(D-2)),
-#   kwargs...) where {T, D, U}
-#   # build_forest(InterpretedModalDataset{T,D-2}(ontology,bare_dataset), labels, weights; kwargs...)
-#   build_forest(InterpretedModalDataset{T,D-2}(bare_dataset, ontology, TODO...), labels; kwargs...)
-# end
-
-################################################################################
-########################## Modal Dataset #######################################
+###################### Single-frame active datasets ############################
 ################################################################################
 
 # # Build models on (multi-dimensional) arrays
-function build_stump(X :: SingleFrameGenericDataset, args...; kwargs...)
-    build_stump(MultiFrameModalDataset(X), args...; kwargs...)
+function build_stump(X :: ActiveModalDataset, args...; kwargs...)
+    build_stump(ActiveMultiFrameModalDataset(X), args...; kwargs...)
 end
 
-function build_tree(X :: SingleFrameGenericDataset, args...; kwargs...)
-    build_tree(MultiFrameModalDataset(X), args...; kwargs...)
+function build_tree(X :: ActiveModalDataset, args...; kwargs...)
+    build_tree(ActiveMultiFrameModalDataset(X), args...; kwargs...)
 end
 
-function build_forest(X :: SingleFrameGenericDataset, args...; kwargs...)
-    build_forest(MultiFrameModalDataset(X), args...; kwargs...)
+function build_forest(X :: ActiveModalDataset, args...; kwargs...)
+    build_forest(ActiveMultiFrameModalDataset(X), args...; kwargs...)
 end
 
 ################################################################################
-########################## Actual Build Funcs ##################################
+####################### Multi-frame active datasets ############################
 ################################################################################
 
 # Build a stump (tree with depth 1)
 function build_stump(
-        X                 :: MultiFrameModalDataset,
+        X                 :: ActiveMultiFrameModalDataset,
         Y                 :: AbstractVector{L},
         W                 :: Union{Nothing,AbstractVector{U}} = nothing;
         kwargs...) where {L<:Label, U}
@@ -70,7 +37,7 @@ end
 # TODO set default pruning arguments for tree, and make sure that forests override these
 # Build a tree
 function build_tree(
-    X                   :: MultiFrameModalDataset,
+    X                   :: ActiveMultiFrameModalDataset,
     Y                   :: AbstractVector{L},
     W                   :: Union{Nothing,AbstractVector{U}}   = nothing;
     ##############################################################################
@@ -116,7 +83,7 @@ function build_tree(
     @assert max_depth > 0
 
     if any(map(f->f isa DimensionalDataset, frames(X)))
-        @error "Cannot learn from DimensionalDataset! Please use InterpretedModalDataset, FeatModalDataset or StumpFeatModalDataset."
+        @error "Cannot learn from DimensionalDataset! Please use InterpretedModalDataset, ExplicitModalDataset or ExplicitModalDatasetS."
     end
 
     # TODO figure out what to do here. Maybe it can be helpful to make rng either an rng or a seed, and then mk_rng transforms it into an rng
@@ -139,7 +106,7 @@ end
 
 
 function build_forest(
-    X                   :: MultiFrameModalDataset,
+    X                   :: ActiveMultiFrameModalDataset,
     Y                   :: AbstractVector{L},
     # Use unary weights if no weight is supplied
     W                   :: AbstractVector{U} = default_weights(n_samples(X));
@@ -187,8 +154,8 @@ function build_forest(
         throw_n_log("partial_sampling must be in the range (0,1]")
     end
     
-    if any(map(f->f isa FeatModalDataset, frames(X)))
-        @warn "Warning! StumpFeatModalDataset is recommended for performance, instead of FeatModalDataset."
+    if any(map(f->f isa ExplicitModalDataset, frames(X)))
+        @warn "Warning! ExplicitModalDatasetS is recommended for performance, instead of ExplicitModalDataset."
     end
 
     tot_samples = n_samples(X)
@@ -203,7 +170,7 @@ function build_forest(
     Threads.@threads for i_tree in 1:n_trees
         inds = rand(rngs[i_tree], 1:tot_samples, num_samples)
 
-        X_slice = ModalLogic.slice_dataset(X, inds; return_view = true)
+        X_slice = slice_dataset(X, inds; return_view = true)
         Y_slice = @view Y[inds]
 
         trees[i_tree] = build_tree(
@@ -235,7 +202,7 @@ function build_forest(
                 # compute_metrics([Inf],[-Inf])
                 compute_metrics(["__FAKE__"],["__FAKE2__"]) # TODO
             else
-                tree_preds = apply_tree(trees[i_tree], ModalLogic.slice_dataset(X, oob_samples[i_tree]; return_view = true))
+                tree_preds = apply_tree(trees[i_tree], slice_dataset(X, oob_samples[i_tree]; return_view = true))
                 compute_metrics(Y[oob_samples[i_tree]], tree_preds, _slice_weights(W, inds))
             end
         end
@@ -267,7 +234,7 @@ function build_forest(
                 continue
             end
             
-            X_slice = ModalLogic.slice_dataset(X, [i]; return_view = true)
+            X_slice = slice_dataset(X, [i]; return_view = true)
             Y_slice = [Y[i]]
             
             pred = apply_trees(trees[index_of_trees_to_test_with], X_slice)
