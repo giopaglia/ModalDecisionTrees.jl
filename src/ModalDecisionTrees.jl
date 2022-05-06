@@ -240,12 +240,14 @@ struct DTLeaf{L<:Label} <: AbstractDecisionLeaf{L}
     DTLeaf(prediction::L) where {L<:Label} = DTLeaf{L}(prediction, L[])
 
     # create leaf from supporting labels
-    DTLeaf{L}(supp_labels::AbstractVector) where {L<:Label} = DTLeaf{L}(average_label(supp_labels), supp_labels)
+    DTLeaf{L}(supp_labels::AbstractVector) where {L<:Label} = DTLeaf{L}(average_label(L.(supp_labels)), supp_labels)
     function DTLeaf(supp_labels::AbstractVector)
         prediction = average_label(supp_labels)
         DTLeaf(prediction, supp_labels)
     end
 end
+
+prediction(leaf::DTLeaf) = leaf.prediction
 
 function supp_labels(leaf::DTLeaf; train_or_valid = true)
     @assert train_or_valid == true
@@ -253,7 +255,7 @@ function supp_labels(leaf::DTLeaf; train_or_valid = true)
 end
 function predictions(leaf::DTLeaf; train_or_valid = true)
     @assert train_or_valid == true
-    fill(leaf.prediction, length(supp_labels(leaf; train_or_valid = train_or_valid)))
+    fill(prediction(leaf), length(supp_labels(leaf; train_or_valid = train_or_valid)))
 end
 
 ############################################################################################
@@ -344,10 +346,10 @@ struct DTInternal{T, L<:Label}
     i_frame       :: Int64
     decision      :: Decision{T}
     # representative leaf for the current node
-    this          :: AbstractDecisionLeaf{L}
+    this          :: AbstractDecisionLeaf{<:L}
     # child nodes
-    left          :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}}
-    right         :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}}
+    left          :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}}
+    right         :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}}
 
     # create node
     function DTInternal{T, L}(
@@ -361,9 +363,9 @@ struct DTInternal{T, L<:Label}
     function DTInternal(
         i_frame          :: Int64,
         decision         :: Decision{T},
-        this             :: AbstractDecisionLeaf,
-        left             :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}},
-        right            :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
+        this             :: AbstractDecisionLeaf{<:L},
+        left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}},
+        right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}}) where {T, L<:Label}
         DTInternal{T, L}(i_frame, decision, this, left, right)
     end
 
@@ -373,14 +375,14 @@ struct DTInternal{T, L<:Label}
     #     decision         :: Decision,
     #     left             :: Union{AbstractDecisionLeaf, DTInternal},
     #     right            :: Union{AbstractDecisionLeaf, DTInternal}) where {T, L<:Label}
-    #     this = AbstractDecisionLeaf{L} (NOPE) (L[(supp_labels(left; supp_labels = supp_labels?))..., (supp_labels(right; supp_labels = supp_labels?))...])
+    #     this = AbstractDecisionLeaf{<:L} (NOPE) (L[(supp_labels(left; supp_labels = supp_labels?))..., (supp_labels(right; supp_labels = supp_labels?))...])
     #     new{T, L}(i_frame, decision, this, left, right)
     # end
     # function DTInternal(
     #     i_frame          :: Int64,
     #     decision         :: Decision{T},
-    #     left             :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}},
-    #     right            :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
+    #     left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}},
+    #     right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}}) where {T, L<:Label}
     #     DTInternal{T, L}(i_frame, decision, left, right)
     # end
 
@@ -396,8 +398,8 @@ struct DTInternal{T, L<:Label}
     # function DTInternal(
     #     decision         :: Decision{T},
     #     this             :: AbstractDecisionLeaf,
-    #     left             :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}},
-    #     right            :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
+    #     left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}},
+    #     right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}}) where {T, L<:Label}
     #     DTInternal{T, L}(decision, this, left, right)
     # end
     
@@ -411,8 +413,8 @@ struct DTInternal{T, L<:Label}
     # end
     # function DTInternal(
     #     decision         :: Decision{T},
-    #     left             :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}},
-    #     right            :: Union{AbstractDecisionLeaf{L}, DTInternal{T, L}}) where {T, L<:Label}
+    #     left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}},
+    #     right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}}) where {T, L<:Label}
     #     DTInternal{T, L}(decision, left, right)
     # end
 end
@@ -425,7 +427,7 @@ end
 ############################################################################################
 
 # Decision Node (Leaf or Internal)
-const DTNode{T, L} = Union{AbstractDecisionLeaf{L}, DTInternal{T, L}}
+const DTNode{T, L} = Union{<:AbstractDecisionLeaf{<:L}, DTInternal{T, L}}
 
 ############################################################################################
 
@@ -554,7 +556,7 @@ display_decision_inverse(node::DTInternal; threshold_display_method::Function = 
 
 function Base.show(io::IO, leaf::DTLeaf{L}) where {L<:CLabel}
     println(io, "Classification Decision Leaf{$(L)}(")
-    println(io, "\tlabel: $(leaf.prediction)")
+    println(io, "\tlabel: $(prediction(leaf))")
     println(io, "\tsupporting labels:  $(supp_labels(leaf))")
     println(io, "\tsupporting labels countmap:  $(StatsBase.countmap(supp_labels(leaf)))")
     println(io, "\tmetrics: $(get_metrics(leaf))")
@@ -562,7 +564,7 @@ function Base.show(io::IO, leaf::DTLeaf{L}) where {L<:CLabel}
 end
 function Base.show(io::IO, leaf::DTLeaf{L}) where {L<:RLabel}
     println(io, "Regression Decision Leaf{$(L)}(")
-    println(io, "\tlabel: $(leaf.prediction)")
+    println(io, "\tlabel: $(prediction(leaf))")
     println(io, "\tsupporting labels:  $(supp_labels(leaf))")
     println(io, "\tmetrics: $(get_metrics(leaf))")
     println(io, ")")
@@ -699,7 +701,7 @@ end
         @test_nowarn DTLeaf{String}("1.0", ["0.5", "1.5"])
 
         # Inferring the label from supporting labels
-        @test DTLeaf{String}(["Class_1", "Class_1", "Class_2"]).prediction == "Class_1"
+        @test prediction(DTLeaf{String}(["Class_1", "Class_1", "Class_2"])) == "Class_1"
         
         @test_nowarn DTLeaf(["1.5"])
         @test_throws MethodError DTLeaf([1.0,"Class_1"])
@@ -709,41 +711,38 @@ end
         @test_nowarn DTLeaf{Int64}(1, 1.0:10.0)
         @test_nowarn DTLeaf{Float32}(1, 1:10)
 
-        @test DTLeaf(1:10).prediction == 5.5
-        @test_throws InexactError DTLeaf{Int64}(1:10)
-        @test DTLeaf{Float32}(1:10).prediction == 5.5f0
-        @test DTLeaf{Int64}(1:11).prediction == 6
+        # @test prediction(DTLeaf(1:10)) == 5
+        @test prediction(DTLeaf{Float64}(1:10)) == 5.5
+        @test prediction(DTLeaf{Float32}(1:10)) == 5.5f0
+        @test prediction(DTLeaf{Float64}(1:11)) == 6
 
         # Check edge parity case (aggregation biased towards the first class)
-        @test DTLeaf{String}(["Class_1", "Class_2"]).prediction == "Class_1"
-        @test DTLeaf(["Class_1", "Class_2"]).prediction == "Class_1"
+        @test prediction(DTLeaf{String}(["Class_1", "Class_2"])) == "Class_1"
+        @test prediction(DTLeaf(["Class_1", "Class_2"])) == "Class_1"
 
     end
 
     # TODO test NSDT Leaves
 
-    @testset "Decision internal node (DTInternal)" begin
+    @testset "Decision internal node (DTInternal) + Decision Tree & Forest (DTree & DForest)" begin
 
         decision = Decision(ModalLogic.RelationGlob, SingleAttributeMin(1), >=, 10)
 
         reg_leaf, cls_leaf = DTLeaf([1.0,2.0]), DTLeaf([1,2])
 
-        # create node
-        # cls_node = @test_nowarn DTInternal(decision, cls_leaf, cls_leaf, cls_leaf)
-        # cls_node = @test_nowarn DTInternal(2, decision, cls_leaf, cls_leaf, cls_leaf)
-        # create node without local decision
-        cls_node = @test_nowarn DTInternal(2, decision, cls_leaf, cls_leaf)
-        @test_throws MethodError DTInternal(2, decision, reg_leaf, cls_leaf)
-        # create node without frame
-        # @test_nowarn DTInternal(decision, reg_leaf, reg_leaf, reg_leaf)
-        # create node without frame nor local decision
-        cls_node = @test_nowarn DTInternal(decision, cls_node, cls_leaf)
+        # # create node
+        # # cls_node = @test_nowarn DTInternal(decision, cls_leaf, cls_leaf, cls_leaf)
+        # # cls_node = @test_nowarn DTInternal(2, decision, cls_leaf, cls_leaf, cls_leaf)
+        # # create node without local decision
+        # cls_node = @test_nowarn DTInternal(2, decision, cls_leaf, cls_leaf)
+        # @test_throws MethodError DTInternal(2, decision, reg_leaf, cls_leaf)
+        # # create node without frame
+        # # @test_nowarn DTInternal(decision, reg_leaf, reg_leaf, reg_leaf)
+        # # create node without frame nor local decision
+        # cls_node = @test_nowarn DTInternal(decision, cls_node, cls_leaf)
 
-    end
-
-    @testset "Decision Tree & Forest (DTree & DForest)" begin
-        cls_tree = @test_nowarn DTree(cls_node, [ModalLogic.Interval], [startWithRelationGlob])
-        cls_forest = @test_nowarn DForest([cls_tree, cls_tree, cls_tree])
+        # cls_tree = @test_nowarn DTree(cls_node, [ModalLogic.Interval], [startWithRelationGlob])
+        # cls_forest = @test_nowarn DForest([cls_tree, cls_tree, cls_tree])
     end
 end
 
