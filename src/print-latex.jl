@@ -111,7 +111,7 @@ function _latex_string(
     result
 end
 
-_node_content(leaf::DTLeaf; kwargs...)::String = _latex_string(leaf.prediction; kwargs...)
+_node_content(leaf::DTLeaf; kwargs...)::String = _latex_string(prediction(leaf); kwargs...)
 _node_content(node::DTInternal; kwargs...)::String = ""
 
 function _print_tree_latex(
@@ -119,14 +119,14 @@ function _print_tree_latex(
     previous_node_index       :: String,
     previous_node_position    :: NodeCoord,
     space_unit                :: NodeCoord,
-        nodes_margin              :: NodeCoord,
+    nodes_margin              :: NodeCoord,
     conversion_dict           :: Dict{String,String},
     add_dollars               :: Bool,
-        print_test_operator_alpha :: Bool,
-        show_frame_number         :: Bool,
-        t_display_func            :: Function,
-        nodes_script_size         :: Symbol,
-        edges_script_size         :: Symbol
+    print_test_operator_alpha :: Bool,
+    show_frame_number         :: Bool,
+    t_display_func            :: Function,
+    nodes_script_size         :: Symbol,
+    edges_script_size         :: Symbol
     )::String
     ""
 end

@@ -7,7 +7,7 @@ function get_metrics(
     )
     metrics = (;)
 
-    supporting_labels = supp_labels(leaf; train_or_valid = train_or_valid)
+    supporting_labels      = supp_labels(leaf; train_or_valid = train_or_valid)
     supporting_predictions = predictions(leaf; train_or_valid = train_or_valid)
 
     ############################################################################
@@ -54,8 +54,8 @@ function get_metrics(
 
         # TODO can't remember the rationale behind this?
         # if isa(leaf, DTLeaf)
-        # "rel_conf: $(n_correct/rel_confidence_class_counts[leaf.prediction])"
-        # rel_conf = (cur_class_counts[leaf.prediction]/get(rel_confidence_class_counts, leaf.prediction, 0))/rel_tot_inst
+        # "rel_conf: $(n_correct/rel_confidence_class_counts[prediction(leaf)])"
+        # rel_conf = (cur_class_counts[prediction(leaf)]/get(rel_confidence_class_counts, prediction(leaf), 0))/rel_tot_inst
         # end
 
         metrics = merge(metrics, (
@@ -65,7 +65,7 @@ function get_metrics(
         ))
 
         if !isnothing(n_tot_inst) && isa(leaf, DTLeaf)
-            class_support = get(rel_confidence_class_counts, leaf.prediction, 0)/n_tot_inst
+            class_support = get(rel_confidence_class_counts, prediction(leaf), 0)/n_tot_inst
             lift = confidence/class_support
             metrics = merge(metrics, (
                 class_support = class_support,
@@ -98,7 +98,7 @@ function get_metrics(
     # Sensitivity share: the portion of "responsibility" for the correct classification of class L
 
     if !isnothing(rel_confidence_class_counts) && isa(leaf, DTLeaf)
-        sensitivity_share = n_correct/get(rel_confidence_class_counts, leaf.prediction, 0)
+        sensitivity_share = n_correct/get(rel_confidence_class_counts, prediction(leaf), 0)
         metrics = merge(metrics, (
             sensitivity_share = sensitivity_share,
         ))
@@ -111,12 +111,13 @@ function get_metrics(
         leaf::AbstractDecisionLeaf{<:RLabel};
         n_tot_inst = nothing,
         rel_confidence_class_counts = nothing,
+        train_or_valid = true,
     )
     @assert isnothing(rel_confidence_class_counts)
 
     metrics = (;)
     
-    supporting_labels = supp_labels(leaf; train_or_valid = train_or_valid)
+    supporting_labels      = supp_labels(leaf; train_or_valid = train_or_valid)
     supporting_predictions = predictions(leaf; train_or_valid = train_or_valid)
 
     n_inst = length(supporting_labels)

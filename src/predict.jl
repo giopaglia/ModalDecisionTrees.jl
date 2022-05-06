@@ -62,7 +62,7 @@ predict(tree::DTree, X::ModalDataset, args...; kwargs...) =
 ################################################################################
 
 function predict(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
-    leaf.prediction
+    prediction(leaf)
 end
 
 function predict(leaf::NSDTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
@@ -157,7 +157,7 @@ end
 ################################################################################
 
 function _empty_tree_leaves(leaf::DTLeaf{L}) where {L}
-    DTLeaf{L}(leaf.prediction, L[])
+    DTLeaf{L}(prediction(leaf), L[])
 end
 
 function _empty_tree_leaves(leaf::NSDTLeaf{L}) where {L}
@@ -197,7 +197,7 @@ function predict(
         if update_labels
             average_label(leaf.supp_labels)
         else
-            leaf.prediction
+            prediction(leaf)
         end
 
     _prediction, DTLeaf(_prediction, _supp_labels)
@@ -243,16 +243,16 @@ function predict(
 
     this_prediction, this_leaf = predict(tree.this,  X, i_instance, worlds, class, update_labels = update_labels) # TODO test whether this works correctly 
     
-    prediction, left_leaf, right_leaf =
+    pred, left_leaf, right_leaf =
         if satisfied
-            prediction, left_leaf = predict(tree.left,  X, i_instance, worlds, class, update_labels = update_labels)
-            prediction, left_leaf, tree.right
+            pred, left_leaf = predict(tree.left,  X, i_instance, worlds, class, update_labels = update_labels)
+            pred, left_leaf, tree.right
         else
-            prediction, right_leaf = predict(tree.right, X, i_instance, worlds, class, update_labels = update_labels)
-            prediction, tree.left, right_leaf
+            pred, right_leaf = predict(tree.right, X, i_instance, worlds, class, update_labels = update_labels)
+            pred, tree.left, right_leaf
         end
 
-    prediction, DTInternal(tree.i_frame, tree.decision, this_leaf, left_leaf, right_leaf)
+    pred, DTInternal(tree.i_frame, tree.decision, this_leaf, left_leaf, right_leaf)
 end
 
 function predict(
@@ -272,8 +272,8 @@ function predict(
     # Propagate instances down the tree
     for i_instance in 1:n_samples(X)
         worlds = inst_init_world_sets(X, tree, i_instance)
-        prediction, root = predict(root, X, i_instance, worlds, Y[i_instance], update_labels = update_labels)
-        push!(predictions, prediction)
+        pred, root = predict(root, X, i_instance, worlds, Y[i_instance], update_labels = update_labels)
+        push!(preds, prediction)
     end
     predictions, DTree(root, tree.worldTypes, tree.initConditions)
 end
