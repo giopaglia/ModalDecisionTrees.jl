@@ -56,7 +56,7 @@ function get_internalnode_dirname(node::DTInternal)::String
     replace(display_decision(node), " " => "_")
 end
 
-mk_tree_path(leaf::DTLeaf; path::String) = touch(path * "/" * string(leaf.prediction) * ".txt")
+mk_tree_path(leaf::DTLeaf; path::String) = touch(path * "/" * string(prediction(leaf)) * ".txt")
 function mk_tree_path(node::DTInternal; path::String)
     dir_name = get_internalnode_dirname(node)
     mkpath(path * "/Y_" * dir_name)

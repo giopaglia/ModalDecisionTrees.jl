@@ -10,7 +10,7 @@ print_forest(forest::DForest, args...; kwargs...) = print_forest(stdout, forest,
 print_tree(tree::Union{DTree,DTNode}, args...; kwargs...) = print_tree(stdout, tree, args...; kwargs...)
 
 function brief_prediction_str(leaf::DTLeaf)
-    string(leaf.prediction)
+    string(prediction(leaf))
 end
 
 function brief_prediction_str(leaf::NSDTLeaf)
