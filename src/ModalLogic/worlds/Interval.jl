@@ -28,7 +28,7 @@ dimensionality(::Type{Interval}) = 1
 interpret_world(w::Interval, instance::DimensionalInstance{T,2}) where {T} = instance[w.x:w.y-1,:]
 
 # Convenience functions: enumerate all & 1-length intervals in a given range
-_intervals_in(a::Integer, b::Integer) = Iterators.filter(((x,y))->x<y, Iterators.product(a:b-1, a+1:b))
+_intervals_in(a::Integer, b::Integer) = Iterators.filter(((x,y),)->x<y, Iterators.product(a:b-1, a+1:b))
 intervals_in(a::Integer, b::Integer) = IterTools.imap(Interval, _intervals_in(a, b))
 short_intervals_in(a::Integer, b::Integer) = IterTools.imap((x)->Interval(x,x+1), a:b-1)
 

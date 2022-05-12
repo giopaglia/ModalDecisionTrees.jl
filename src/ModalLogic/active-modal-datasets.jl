@@ -1,4 +1,4 @@
-using .ModalDecisionTrees: _CanonicalFeatureGeq, _CanonicalFeatureGeqSoft, _CanonicalFeatureLeq, _CanonicalFeatureLeqSoft
+using ..ModalDecisionTrees: _CanonicalFeatureGeq, _CanonicalFeatureGeqSoft, _CanonicalFeatureLeq, _CanonicalFeatureLeqSoft, aggregator_to_binary
 
 const initWorldSetFunction = Function
 const accFunction = Function
@@ -77,8 +77,8 @@ end
         ontology::Ontology{WorldType},
         mixed_features::AbstractVector{<:MixedFeature},
     ) where {T, N, D, WorldType<:AbstractWorld}
-        features, featsnops = begin
-            features = ModalFeature[]
+        _features, featsnops = begin
+            _features = ModalFeature[]
             featsnops = Vector{<:TestOperatorFun}[]
 
             # readymade features
@@ -97,7 +97,7 @@ end
             @assert length(readymade_cfs) + length(attribute_specific_cfs) == length(mixed_features) "Unexpected mixed_features: $(filter(x->(! (x in readymade_cfs) && ! (x in attribute_specific_cfs)), mixed_features))"
 
             for (test_ops,cf) in readymade_cfs
-                push!(features, cf)
+                push!(_features, cf)
                 push!(featsnops, test_ops)
             end
 
@@ -111,13 +111,13 @@ end
             for i_attr in 1:n_attributes(domain)
                 for (test_ops,cf) in map((cf)->single_attr_feats_n_featsnops(i_attr,cf),attribute_specific_cfs)
                     push!(featsnops, test_ops)
-                    push!(features, cf)
+                    push!(_features, cf)
                 end
             end
-            features, featsnops
+            _features, featsnops
         end
         ontology = getIntervalOntologyOfDim(Val(D-1-1))
-        InterpretedModalDataset{T, N, world_type(ontology)}(domain, ontology, features, featsnops)
+        InterpretedModalDataset{T, N, world_type(ontology)}(domain, ontology, _features, featsnops)
     end
 
     function InterpretedModalDataset(
@@ -188,17 +188,17 @@ Base.size(imd::InterpretedModalDataset)              = size(imd.domain)
 features(imd::InterpretedModalDataset)               = imd.features
 grouped_featsaggrsnops(imd::InterpretedModalDataset) = imd.grouped_featsaggrsnops
 n_attributes(imd::InterpretedModalDataset)           = n_attributes(imd.domain)::Int64
-n_features(imd::InterpretedModalDataset)             = length(imd.features)::Int64
+n_features(imd::InterpretedModalDataset)             = length(features(imd))::Int64
 n_relations(imd::InterpretedModalDataset)            = length(relations(imd))::Int64
 n_samples(imd::InterpretedModalDataset)              = n_samples(imd.domain)::Int64
 relations(imd::InterpretedModalDataset)              = relations(imd.ontology)
 world_type(imd::InterpretedModalDataset{T,N,WT}) where {T,N,WT} = WT
 
-init_world_sets_fun(imd::InterpretedModalDataset{T, N, WorldType},  i_instance::Integer) where {T, N, WorldType} =
-    (iC)->ModalDecisionTrees.init_world_set(iC, WorldType, instance_channel_size(get_instance(imd, i_instance)))
-accessibles_fun(imd::InterpretedModalDataset, i_instance) = (w,R)->accessibles(w,R, instance_channel_size(get_instance(imd, i_instance))...)
-all_worlds_fun(imd::InterpretedModalDataset{T, N, WorldType}, i_instance) where {T, N, WorldType} = all_worlds(WorldType, accessibles_fun(imd, i_instance))
-accessibles_aggr_fun(imd::InterpretedModalDataset, i_instance)  = (f,a,w,R)->accessibles_aggr(f,a,w,R,instance_channel_size(get_instance(imd, i_instance))...)
+init_world_sets_fun(imd::InterpretedModalDataset{T, N, WorldType},  i_sample::Integer) where {T, N, WorldType} =
+    (iC)->ModalDecisionTrees.init_world_set(iC, WorldType, instance_channel_size(get_instance(imd, i_sample)))
+accessibles_fun(imd::InterpretedModalDataset, i_sample) = (w,R)->accessibles(w,R, instance_channel_size(get_instance(imd, i_sample))...)
+all_worlds_fun(imd::InterpretedModalDataset{T, N, WorldType}, i_sample) where {T, N, WorldType} = all_worlds(WorldType, accessibles_fun(imd, i_sample))
+accessibles_aggr_fun(imd::InterpretedModalDataset, i_sample)  = (f,a,w,R)->accessibles_aggr(f,a,w,R,instance_channel_size(get_instance(imd, i_sample))...)
 
 # Note: Can't define Base.length(::DimensionalDataset) & Base.iterate(::DimensionalDataset)
 Base.length(imd::InterpretedModalDataset)                = n_samples(imd)
@@ -208,7 +208,7 @@ max_channel_size(imd::InterpretedModalDataset)          = max_channel_size(imd.d
 get_instance(imd::InterpretedModalDataset, args...)     = get_instance(imd.domain, args...)
 
 slice_dataset(imd::InterpretedModalDataset, inds::AbstractVector{<:Integer}, args...; allow_no_instances = false, kwargs...)    =
-    InterpretedModalDataset(slice_dataset(imd.domain, inds, args...; allow_no_instances = allow_no_instances, kwargs...), imd.ontology, imd.features, imd.grouped_featsaggrsnops; allow_no_instances = allow_no_instances)
+    InterpretedModalDataset(slice_dataset(imd.domain, inds, args...; allow_no_instances = allow_no_instances, kwargs...), imd.ontology, features(imd), imd.grouped_featsaggrsnops; allow_no_instances = allow_no_instances)
 
 
 display_structure(imd::InterpretedModalDataset; indent_str = "") = begin
@@ -279,27 +279,33 @@ goes_with(::Type{<:AbstractFWD}, ::Type{<:AbstractWorld}) = false
 # end
 
 # # A function for initializing individual world slices
-# function fwd_init_world_slice(fwd::GenericFWD{T}, i_instance::Integer, w::AbstractWorld) where {T}
-#     fwd.d[i_instance][w] = Array{T,1}(undef, fwd.n_features)
+# function fwd_init_world_slice(fwd::GenericFWD{T}, i_sample::Integer, w::AbstractWorld) where {T}
+#     fwd.d[i_sample][w] = Array{T,1}(undef, fwd.n_features)
 # end
 
 # # A function for getting a threshold value from the lookup table
 # fwd_get(
 #     fwd         :: GenericFWD{T},
-#     i_instance  :: Integer,
+#     i_sample    :: Integer,
 #     w           :: AbstractWorld,
-#     i_feature   :: Integer) where {T} = fwd.d[i_instance][w][i_feature]
+#     i_feature   :: Integer) where {T} = fwd.d[i_sample][w][i_feature]
+
+Base.getindex(
+    fwd         :: AbstractFWD{T},
+    i_sample    :: Integer,
+    w           :: AbstractWorld,
+    i_feature   :: Integer) where {T} = fwd_get(i_sample, w, i_feature)
 
 # # A function for setting a threshold value in the lookup table
-# function fwd_set(fwd::GenericFWD{T}, w::AbstractWorld, i_instance::Integer, i_feature::Integer, threshold::T) where {T}
-#     fwd.d[i_instance][w][i_feature] = threshold
+# function fwd_set(fwd::GenericFWD{T}, w::AbstractWorld, i_sample::Integer, i_feature::Integer, threshold::T) where {T}
+#     fwd.d[i_sample][w][i_feature] = threshold
 # end
 
 # # A function for setting threshold values for a single feature (from a feature slice, experimental)
 # function fwd_set_feature(fwd::GenericFWD{T}, i_feature::Integer, fwd_feature_slice::Any) where {T}
 #     throw_n_log("Warning! fwd_set_feature with GenericFWD is not yet implemented!")
-#     for ((i_instance,w),threshold::T) in read_fwd_feature_slice(fwd_feature_slice)
-#         fwd.d[i_instance][w][i_feature] = threshold
+#     for ((i_sample,w),threshold::T) in read_fwd_feature_slice(fwd_feature_slice)
+#         fwd.d[i_sample][w][i_feature] = threshold
 #     end
 # end
 
@@ -310,7 +316,7 @@ goes_with(::Type{<:AbstractFWD}, ::Type{<:AbstractWorld}) = false
 # end
 
 # Others...
-# fwd_get_channel(fwd::GenericFWD{T}, i_instance::Integer, i_feature::Integer) where {T} = TODO
+# fwd_get_channel(fwd::GenericFWD{T}, i_sample::Integer, i_feature::Integer) where {T} = TODO
 # const GenericFeaturedChannel{T} = TODO
 # fwd_channel_interpret_world(fwc::GenericFeaturedChannel{T}, w::AbstractWorld) where {T} = TODO
 
@@ -400,7 +406,8 @@ struct ExplicitModalDataset{T<:Number, WorldType<:AbstractWorld} <: ActiveModalD
     # Quite importantly, an fwd can be computed from a dataset in implicit form (domain + ontology + features)
     Base.@propagate_inbounds function ExplicitModalDataset(
         imd                  :: InterpretedModalDataset{T, N, WorldType},
-        FWD::Type{<:AbstractFWD} = default_fwd_type(WorldType),
+        # FWD                  ::Type{<:AbstractFWD{T,WorldType}} = default_fwd_type(WorldType),
+        FWD                  ::Type = default_fwd_type(WorldType),
         args...;
         kwargs...,
     ) where {T, N, WorldType<:AbstractWorld}
@@ -409,10 +416,9 @@ struct ExplicitModalDataset{T<:Number, WorldType<:AbstractWorld} <: ActiveModalD
 
             @logmsg DTOverview "InterpretedModalDataset -> ExplicitModalDataset"
 
-            features = imd.features
+            _features = features(imd)
             
-            n_instances = n_samples(imd)
-            n_features = length(features)
+            _n_samples = n_samples(imd)
             
             @assert goes_with(FWD, WorldType)
 
@@ -420,56 +426,57 @@ struct ExplicitModalDataset{T<:Number, WorldType<:AbstractWorld} <: ActiveModalD
             fwd = fwd_init(FWD, imd)
 
             # Load any (possible) external features
-            if any(isa.(features, ExternalFWDFeature))
-                i_external_features = first.(filter(((i_feature,is_external_fwd),)->(is_external_fwd), collect(enumerate(isa.(features, ExternalFWDFeature)))))
+            if any(isa.(_features, ExternalFWDFeature))
+                i_external_features = first.(filter(((i_feature,is_external_fwd),)->(is_external_fwd), collect(enumerate(isa.(_features, ExternalFWDFeature)))))
                 for i_feature in i_external_features
-                    feature = features[i_feature]
+                    feature = _features[i_feature]
                     fwd_set_feature_slice(fwd, i_feature, feature.fwd)
                 end
             end
 
             # Load any internal features
-            i_features = first.(filter(((i_feature,is_external_fwd),)->!(is_external_fwd), collect(enumerate(isa.(features, ExternalFWDFeature)))))
-            enum_features = zip(i_features, features[i_features])
+            i_features = first.(filter(((i_feature,is_external_fwd),)->!(is_external_fwd), collect(enumerate(isa.(_features, ExternalFWDFeature)))))
+            enum_features = zip(i_features, _features[i_features])
 
             # Compute features
-            @inbounds Threads.@threads for i_instance in 1:n_instances
-                @logmsg DTDebug "Instance $(i_instance)/$(n_instances)"
+            Threads.@threads for i_sample in 1:_n_samples
+                @logmsg DTDebug "Instance $(i_sample)/$(_n_samples)"
                 
-                if i_instance == 1 || ((i_instance+1) % (floor(Int, ((n_instances)/4))+1)) == 0
-                    @logmsg DTOverview "Instance $(i_instance)/$(n_instances)"
+                if i_sample == 1 || ((i_sample+1) % (floor(Int, ((_n_samples)/4))+1)) == 0
+                    @logmsg DTOverview "Instance $(i_sample)/$(_n_samples)"
                 end
 
-                # instance = get_instance(imd, i_instance)
+                # instance = get_instance(imd, i_sample)
                 # @logmsg DTDebug "instance" instance
 
-                for w in all_worlds_fun(imd, i_instance)
+                for w in all_worlds_fun(imd, i_sample)
                     
-                    fwd_init_world_slice(fwd, i_instance, w)
+                    fwd_init_world_slice(fwd, i_sample, w)
 
                     @logmsg DTDebug "World" w
 
                     for (i_feature,feature) in enum_features
 
                         # threshold = computePropositionalThreshold(feature, w, instance)
-                        threshold = get_gamma(imd, i_instance, w, feature)
+                        threshold = get_gamma(imd, i_sample, w, feature)
 
                         @logmsg DTDebug "Feature $(i_feature)" threshold
                     
-                        fwd_set(fwd, w, i_instance, i_feature, threshold)
+                        fwd_set(fwd, w, i_sample, i_feature, threshold)
 
                     end
                 end
             end
+            fwd
         end
 
         # TODO Think about it, and optimize this: when the underlying DimensionalDataset is an Array,
         #  this is going to be an array of a single function.
-        init_world_sets_funs  = [init_world_sets_fun(imd,  i_instance) for i_instance in 1:n_samples(imd)]
-        accessibles_funs      = [accessibles_fun(imd,      i_instance) for i_instance in 1:n_samples(imd)]
-        accessibles_aggr_funs = [accessibles_aggr_fun(imd, i_instance) for i_instance in 1:n_samples(imd)]
+        init_world_sets_funs  = [init_world_sets_fun(imd,  i_sample) for i_sample in 1:n_samples(imd)]
+        accessibles_funs      = [accessibles_fun(imd,      i_sample) for i_sample in 1:n_samples(imd)]
+        accessibles_aggr_funs = [accessibles_aggr_fun(imd, i_sample) for i_sample in 1:n_samples(imd)]
 
-        ExplicitModalDataset(fwd, relations(imd), init_world_sets_funs, accessibles_funs, accessibles_aggr_funs, features(imd), grouped_featsaggrsnops(imd), args...; kwargs...)
+        ExplicitModalDataset(fwd, relations(imd), init_world_sets_funs, accessibles_funs, accessibles_aggr_funs, _features, grouped_featsaggrsnops(imd), args...; kwargs...)
     end
 
 end
@@ -485,10 +492,10 @@ relations(X::ExplicitModalDataset)                                 = X.relations
 world_type(X::ExplicitModalDataset{T,WorldType}) where {T,WorldType<:AbstractWorld} = WorldType
 
 
-init_world_sets_fun(X::ExplicitModalDataset,          i_instance)  = X.init_world_sets_funs[i_instance]
-accessibles_fun(X::ExplicitModalDataset,              i_instance)  = X.accessibles_funs[i_instance]
-all_worlds_fun(X::ExplicitModalDataset{T, WorldType}, i_instance) where {T, WorldType} = all_worlds(WorldType, accessibles_fun(X, i_instance))
-accessibles_aggr_fun(X::ExplicitModalDataset,         i_instance)  = X.accessibles_aggr_funs[i_instance]
+init_world_sets_fun(X::ExplicitModalDataset,          i_sample::Integer)  = X.init_world_sets_funs[i_sample]
+accessibles_fun(X::ExplicitModalDataset,              i_sample::Integer)  = X.accessibles_funs[i_sample]
+all_worlds_fun(X::ExplicitModalDataset{T, WorldType}, i_sample::Integer) where {T, WorldType} = all_worlds(WorldType, accessibles_fun(X, i_sample))
+accessibles_aggr_fun(X::ExplicitModalDataset,         i_sample::Integer)  = X.accessibles_aggr_funs[i_sample]
 
 
 slice_dataset(X::ExplicitModalDataset{T,WorldType}, inds::AbstractVector{<:Integer}, args...; allow_no_instances = false, kwargs...) where {T,WorldType} =
@@ -510,11 +517,11 @@ find_relation_id(X::ExplicitModalDataset{T,WorldType}, relation::AbstractRelatio
 
 get_gamma(
         X::ExplicitModalDataset{T,WorldType},
-        i_instance::Integer,
+        i_sample::Integer,
         w::WorldType,
         feature::ModalFeature) where {WorldType<:AbstractWorld, T} = begin
     i_feature = find_feature_id(X, feature)
-    X[i_instance, w, i_feature]
+    X[i_sample, w, i_feature]
 end
 
 
@@ -577,10 +584,10 @@ n_featsnaggrs(emds::GenericRelationalSupport) = size(emds, 2)
 n_relations(emds::GenericRelationalSupport)   = size(emds, 3)
 Base.getindex(
     emds         :: GenericRelationalSupport{T, WorldType},
-    i_instance   :: Integer,
+    i_sample     :: Integer,
     w            :: WorldType,
     i_featsnaggr :: Integer,
-    i_relation   :: Integer) where {T, WorldType<:AbstractWorld} = emds.d[i_instance, i_featsnaggr, i_relation][w]
+    i_relation   :: Integer) where {T, WorldType<:AbstractWorld} = emds.d[i_sample, i_featsnaggr, i_relation][w]
 Base.size(emds::GenericRelationalSupport, args...) = size(emds.d, args...)
 
 fwd_rs_init(emd::ExplicitModalDataset{T, WorldType}, n_featsnaggrs::Integer, n_relations::Integer; perform_initialization = false) where {T, WorldType} = begin
@@ -592,10 +599,10 @@ fwd_rs_init(emd::ExplicitModalDataset{T, WorldType}, n_featsnaggrs::Integer, n_r
         GenericRelationalSupport{T, WorldType}(_fwd_rs)
     end
 end
-fwd_rs_init_world_slice(emds::GenericRelationalSupport{T, WorldType}, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer) where {T, WorldType} =
-    emds.d[i_instance, i_featsnaggr, i_relation] = Dict{WorldType,T}()
-fwd_rs_set(emds::GenericRelationalSupport{T, WorldType}, i_instance::Integer, w::AbstractWorld, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T, WorldType} =
-    emds.d[i_instance, i_featsnaggr, i_relation][w] = threshold
+fwd_rs_init_world_slice(emds::GenericRelationalSupport{T, WorldType}, i_sample::Integer, i_featsnaggr::Integer, i_relation::Integer) where {T, WorldType} =
+    emds.d[i_sample, i_featsnaggr, i_relation] = Dict{WorldType,T}()
+fwd_rs_set(emds::GenericRelationalSupport{T, WorldType}, i_sample::Integer, w::AbstractWorld, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T, WorldType} =
+    emds.d[i_sample, i_featsnaggr, i_relation][w] = threshold
 function slice_dataset(emds::GenericRelationalSupport{T, WorldType}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T, WorldType}
     @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
     GenericRelationalSupport{T, WorldType}(if return_view @view emds.d[inds,:,:] else emds.d[inds,:,:] end)
@@ -615,14 +622,14 @@ n_samples(emds::GenericGlobalSupport{T}) where {T}  = size(emds, 1)
 n_featsnaggrs(emds::GenericGlobalSupport{T}) where {T} = size(emds, 2)
 Base.getindex(
     emds         :: GenericGlobalSupport{T},
-    i_instance   :: Integer,
-    i_featsnaggr  :: Integer) where {T} = emds.d[i_instance, i_featsnaggr]
+    i_sample     :: Integer,
+    i_featsnaggr  :: Integer) where {T} = emds.d[i_sample, i_featsnaggr]
 Base.size(emds::GenericGlobalSupport{T}, args...) where {T} = size(emds.d, args...)
 
 fwd_gs_init(emd::ExplicitModalDataset{T}, n_featsnaggrs::Integer) where {T} =
     GenericGlobalSupport{T}(Array{T, 2}(undef, n_samples(emd), n_featsnaggrs))
-fwd_gs_set(emds::GenericGlobalSupport{T}, i_instance::Integer, i_featsnaggr::Integer, threshold::T) where {T} =
-    emds.d[i_instance, i_featsnaggr] = threshold
+fwd_gs_set(emds::GenericGlobalSupport{T}, i_sample::Integer, i_featsnaggr::Integer, threshold::T) where {T} =
+    emds.d[i_sample, i_featsnaggr] = threshold
 function slice_dataset(emds::GenericGlobalSupport{T}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T}
     @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
     GenericGlobalSupport{T}(if return_view @view emds.d[inds,:] else emds.d[inds,:] end)
@@ -639,13 +646,13 @@ Base.@propagate_inbounds function compute_fwd_supports(
     @logmsg DTOverview "ExplicitModalDataset -> ExplicitModalDatasetS"
 
     fwd = emd.fwd
-    features = emd.features
-    relations = emd.relations
+    _features = features(emd)
+    _relations = relations(emd)
 
     compute_fwd_gs = begin
-        if RelationGlob in relations
-            throw_n_log("RelationGlob in relations: $(relations)")
-            relations = filter!(l->l≠RelationGlob, relations)
+        if RelationGlob in _relations
+            throw_n_log("RelationGlob in relations: $(_relations)")
+            _relations = filter!(l->l≠RelationGlob, _relations)
             true
         elseif computeRelationGlob
             true
@@ -654,11 +661,11 @@ Base.@propagate_inbounds function compute_fwd_supports(
         end
     end
 
-    n_instances = n_samples(emd)
-    n_relations = length(relations)
+    _n_samples = n_samples(emd)
+    n_relations = length(_relations)
     n_featsnaggrs = sum(length.(grouped_featsnaggrs))
 
-    # println(n_instances)
+    # println(_n_samples)
     # println(n_relations)
     # println(n_featsnaggrs)
     # println(grouped_featsnaggrs)
@@ -675,18 +682,18 @@ Base.@propagate_inbounds function compute_fwd_supports(
         end
     end
 
-    @inbounds Threads.@threads for i_instance in 1:n_instances
-        @logmsg DTDebug "Instance $(i_instance)/$(n_instances)"
+    Threads.@threads for i_sample in 1:_n_samples
+        @logmsg DTDebug "Instance $(i_sample)/$(_n_samples)"
         
-        if i_instance == 1 || ((i_instance+1) % (floor(Int, ((n_instances)/4))+1)) == 0
-            @logmsg DTOverview "Instance $(i_instance)/$(n_instances)"
+        if i_sample == 1 || ((i_sample+1) % (floor(Int, ((_n_samples)/4))+1)) == 0
+            @logmsg DTOverview "Instance $(i_sample)/$(_n_samples)"
         end
 
         for (i_feature,aggregators) in enumerate(grouped_featsnaggrs)
             
             @logmsg DTDebug "Feature $(i_feature)"
             
-            cur_fwd_slice = fwd_get_channel(fwd, i_instance, i_feature)
+            cur_fwd_slice = fwd_get_channel(fwd, i_sample, i_feature)
 
             @logmsg DTDebug cur_fwd_slice
 
@@ -698,9 +705,9 @@ Base.@propagate_inbounds function compute_fwd_supports(
                 for (i_featsnaggr,aggregator) in aggregators
                 # Threads.@threads for (i_featsnaggr,aggregator) in aggregators
                     
-                    # accessible_worlds = all_worlds_fun(emd, i_instance)
-                    # TODO reintroduce the improvements for some operators: e.g. later. Actually, these can be simplified by using a set of representatives, as in some enumAccRepr!
-                    accessible_worlds = ModalLogic.all_worlds_aggr(WorldType, accessibles_aggr_fun(emd, i_instance), features[i_feature], aggregator)
+                    # accessible_worlds = all_worlds_fun(emd, i_sample)
+                    # TODO reintroduce the improvements for some operators: e.g. later. Actually, these can be simplified by using a set of representatives, as in some enum_acc_repr!
+                    accessible_worlds = ModalLogic.all_worlds_aggr(WorldType, accessibles_aggr_fun(emd, i_sample), _features[i_feature], aggregator)
 
                     threshold = compute_modal_gamma(cur_fwd_slice, accessible_worlds, aggregator)
 
@@ -708,37 +715,37 @@ Base.@propagate_inbounds function compute_fwd_supports(
                     
                     # @logmsg DTDebug "Aggregator" aggregator threshold
                     
-                    fwd_gs_set(fwd_gs, i_instance, i_featsnaggr, threshold)
+                    fwd_gs_set(fwd_gs, i_sample, i_featsnaggr, threshold)
                 end
             end
             # readline()
 
             if !simply_init_modal
                 # Other relations
-                for (i_relation,relation) in enumerate(relations)
+                for (i_relation,relation) in enumerate(_relations)
 
                     @logmsg DTDebug "Relation $(i_relation)/$(n_relations)"
 
                     for (i_featsnaggr,aggregator) in aggregators
-                        fwd_rs_init_world_slice(fwd_rs, i_instance, i_featsnaggr, i_relation)
+                        fwd_rs_init_world_slice(fwd_rs, i_sample, i_featsnaggr, i_relation)
                     end
 
-                    for w in all_worlds_fun(emd, i_instance)
+                    for w in all_worlds_fun(emd, i_sample)
 
                         @logmsg DTDebug "World" w
                         
                         # TODO optimize: all aggregators are likely reading the same raw values.
                         for (i_featsnaggr,aggregator) in aggregators
                                                 
-                            # accessible_worlds = accessibles_fun(emd, i_instance)(w, relation)
-                            # TODO reintroduce the improvements for some operators: e.g. later. Actually, these can be simplified by using a set of representatives, as in some enumAccRepr!
-                            accessible_worlds = accessibles_aggr_fun(emd, i_instance)(features[i_feature], aggregator, w, relation)
+                            # accessible_worlds = accessibles_fun(emd, i_sample)(w, relation)
+                            # TODO reintroduce the improvements for some operators: e.g. later. Actually, these can be simplified by using a set of representatives, as in some enum_acc_repr!
+                            accessible_worlds = accessibles_aggr_fun(emd, i_sample)(_features[i_feature], aggregator, w, relation)
                         
                             threshold = compute_modal_gamma(cur_fwd_slice, accessible_worlds, aggregator)
 
                             # @logmsg DTDebug "Aggregator" aggregator threshold
                             
-                            fwd_rs_set(fwd_rs, i_instance, w, i_featsnaggr, i_relation, threshold)
+                            fwd_rs_set(fwd_rs, i_sample, w, i_featsnaggr, i_relation, threshold)
                         end
                     end
                 end
@@ -776,7 +783,6 @@ struct ExplicitModalDatasetS{T<:Number, WorldType<:AbstractWorld} <: ExplicitMod
     ) where {T,WorldType<:AbstractWorld}
         @assert n_samples(emd) == n_samples(fwd_rs)                               "Can't instantiate ExplicitModalDatasetS{$(T), $(WorldType)} with unmatching n_samples for emd and fwd_rs support: $(n_samples(emd)) and $(n_samples(fwd_rs))"
         @assert n_relations(emd) == n_relations(fwd_rs)                           "Can't instantiate ExplicitModalDatasetS{$(T), $(WorldType)} with unmatching n_relations for emd and fwd_rs support: $(n_relations(emd)) and $(n_relations(fwd_rs))"
-        @assert world_type(emd) == world_type(fwd_rs)                             "Can't instantiate ExplicitModalDatasetS{$(T), $(WorldType)} with unmatching world_type for emd and fwd_rs support: $(world_type(emd)) and $(world_type(fwd_rs))"
         @assert sum(length.(grouped_featsnaggrs)) == length(featsnaggrs)          "Can't instantiate ExplicitModalDatasetS{$(T), $(WorldType)} with unmatching n_featsnaggrs (grouped vs flattened structure): $(sum(length.(emd.grouped_featsaggrsnops))) and $(length(featsnaggrs))"
         @assert sum(length.(emd.grouped_featsaggrsnops)) == length(featsnaggrs)   "Can't instantiate ExplicitModalDatasetS{$(T), $(WorldType)} with unmatching n_featsnaggrs for emd and provided featsnaggrs: $(sum(length.(emd.grouped_featsaggrsnops))) and $(length(featsnaggrs))"
         @assert sum(length.(emd.grouped_featsaggrsnops)) == n_featsnaggrs(fwd_rs) "Can't instantiate ExplicitModalDatasetS{$(T), $(WorldType)} with unmatching n_featsnaggrs for emd and fwd_rs support: $(sum(length.(emd.grouped_featsaggrsnops))) and $(n_featsnaggrs(fwd_rs))"
@@ -784,7 +790,6 @@ struct ExplicitModalDatasetS{T<:Number, WorldType<:AbstractWorld} <: ExplicitMod
         if fwd_gs != nothing
             @assert n_samples(emd) == n_samples(fwd_gs) "Can't instantiate ExplicitModalDatasetS{$(T), $(WorldType)} with unmatching n_samples for emd and fwd_gs support: $(n_samples(emd)) and $(n_samples(fwd_gs))"
             # @assert somethinglike(emd) == n_featsnaggrs(fwd_gs) "Can't instantiate ExplicitModalDatasetS{$(T), $(WorldType)} with unmatching somethinglike for emd and fwd_gs support: $(somethinglike(emd)) and $(n_featsnaggrs(fwd_gs))"
-            # @assert world_type(emd) == world_type(fwd_gs) "Can't instantiate ExplicitModalDatasetS{$(T), $(WorldType)} with unmatching world_type for emd and fwd_gs support: $(world_type(emd)) and $(world_type(fwd_gs))"
             @assert sum(length.(emd.grouped_featsaggrsnops)) == n_featsnaggrs(fwd_gs) "Can't instantiate ExplicitModalDatasetS{$(T), $(WorldType)} with unmatching n_featsnaggrs for emd and fwd_gs support: $(sum(length.(emd.grouped_featsaggrsnops))) and $(n_featsnaggrs(fwd_gs))"
         end
 
@@ -864,7 +869,6 @@ mutable struct ExplicitModalDatasetSMemo{T<:Number, WorldType<:AbstractWorld} <:
     ) where {T,WorldType<:AbstractWorld}
         @assert n_samples(emd) == n_samples(fwd_rs) "Can't instantiate ExplicitModalDatasetSMemo{$(T), $(WorldType)} with unmatching n_samples for emd and fwd_rs support: $(n_samples(emd)) and $(n_samples(fwd_rs))"
         @assert n_relations(emd) == n_relations(fwd_rs) "Can't instantiate ExplicitModalDatasetSMemo{$(T), $(WorldType)} with unmatching n_relations for emd and fwd_rs support: $(n_relations(emd)) and $(n_relations(fwd_rs))"
-        @assert world_type(emd) == world_type(fwd_rs) "Can't instantiate ExplicitModalDatasetSMemo{$(T), $(WorldType)} with unmatching world_type for emd and fwd_rs support: $(world_type(emd)) and $(world_type(fwd_rs))"
         @assert sum(length.(grouped_featsnaggrs)) == length(featsnaggrs) "Can't instantiate ExplicitModalDatasetSMemo{$(T), $(WorldType)} with unmatching n_featsnaggrs (grouped vs flattened structure): $(sum(length.(emd.grouped_featsaggrsnops))) and $(length(featsnaggrs))"
         @assert sum(length.(emd.grouped_featsaggrsnops)) == length(featsnaggrs) "Can't instantiate ExplicitModalDatasetSMemo{$(T), $(WorldType)} with unmatching n_featsnaggrs for emd and provided featsnaggrs: $(sum(length.(emd.grouped_featsaggrsnops))) and $(length(featsnaggrs))"
         @assert sum(length.(emd.grouped_featsaggrsnops)) == n_featsnaggrs(fwd_rs) "Can't instantiate ExplicitModalDatasetSMemo{$(T), $(WorldType)} with unmatching n_featsnaggrs for emd and fwd_rs support: $(sum(length.(emd.grouped_featsaggrsnops))) and $(n_featsnaggrs(fwd_rs))"
@@ -872,7 +876,6 @@ mutable struct ExplicitModalDatasetSMemo{T<:Number, WorldType<:AbstractWorld} <:
         if fwd_gs != nothing
             @assert n_samples(emd) == n_samples(fwd_gs) "Can't instantiate ExplicitModalDatasetSMemo{$(T), $(WorldType)} with unmatching n_samples for emd and fwd_gs support: $(n_samples(emd)) and $(n_samples(fwd_gs))"
             # @assert somethinglike(emd) == n_featsnaggrs(fwd_gs) "Can't instantiate ExplicitModalDatasetSMemo{$(T), $(WorldType)} with unmatching somethinglike for emd and fwd_gs support: $(somethinglike(emd)) and $(n_featsnaggrs(fwd_gs))"
-            # @assert world_type(emd) == world_type(fwd_gs) "Can't instantiate ExplicitModalDatasetSMemo{$(T), $(WorldType)} with unmatching world_type for emd and fwd_gs support: $(world_type(emd)) and $(world_type(fwd_gs))"
             @assert sum(length.(emd.grouped_featsaggrsnops)) == n_featsnaggrs(fwd_gs) "Can't instantiate ExplicitModalDatasetSMemo{$(T), $(WorldType)} with unmatching n_featsnaggrs for emd and fwd_gs support: $(sum(length.(emd.grouped_featsaggrsnops))) and $(n_featsnaggrs(fwd_gs))"
         end
 
@@ -942,7 +945,7 @@ n_samples(X::ExplicitModalDatasetWithSupport{T, WorldType}) where {T, WorldType}
 relations(X::ExplicitModalDatasetWithSupport)                                      = relations(X.emd)
 world_type(X::ExplicitModalDatasetWithSupport{T,WorldType}) where {T,WorldType}    = WorldType
 
-init_world_sets_fun(X::ExplicitModalDatasetWithSupport,  args...) = init_world_sets_fun(X.emd, args...)
+init_world_sets_fun(X::ExplicitModalDatasetWithSupport,  i_sample::Integer, ::Type{WorldType}) where {WorldType<:AbstractWorld} = init_world_sets_fun(X.emd, i_sample)
 accessibles_fun(X::ExplicitModalDatasetWithSupport,     args...) = accessibles_fun(X.emd, args...)
 all_worlds_fun(X::ExplicitModalDatasetWithSupport,  args...) = all_worlds_fun(X.emd, args...)
 accessibles_aggr_fun(X::ExplicitModalDatasetWithSupport, args...) = accessibles_aggr_fun(X.emd, args...)
@@ -965,32 +968,32 @@ find_featsnaggr_id(X::ExplicitModalDatasetWithSupport, feature::ModalFeature, ag
 
 get_gamma(
         X::ExplicitModalDatasetWithSupport{T,WorldType},
-        i_instance::Integer,
+        i_sample::Integer,
         w::WorldType,
-        feature::ModalFeature) where {WorldType<:AbstractWorld, T} = get_gamma(X.emd, i_instance, w, feature)
+        feature::ModalFeature) where {WorldType<:AbstractWorld, T} = get_gamma(X.emd, i_sample, w, feature)
 
 ############################################################################################
 
 get_global_gamma(
         X::ExplicitModalDatasetWithSupport{T,WorldType},
-        i_instance::Integer,
+        i_sample::Integer,
         feature::ModalFeature,
         test_operator::TestOperatorFun) where {WorldType<:AbstractWorld, T} = begin
             # @assert !isnothing(X.fwd_gs) "Error. ExplicitModalDatasetWithSupport must be built with computeRelationGlob = true for it to be ready to test global decisions."
             i_featsnaggr = find_featsnaggr_id(X, feature, existential_aggregator(test_operator))
-            X.fwd_gs[i_instance, i_featsnaggr]
+            X.fwd_gs[i_sample, i_featsnaggr]
 end
 
 get_modal_gamma(
         X::ExplicitModalDatasetS{T,WorldType},
-        i_instance::Integer,
+        i_sample::Integer,
         w::WorldType,
         relation::AbstractRelation,
         feature::ModalFeature,
         test_operator::TestOperatorFun) where {WorldType<:AbstractWorld, T} = begin
             i_relation = find_relation_id(X, relation)
             i_featsnaggr = find_featsnaggr_id(X, feature, existential_aggregator(test_operator))
-            X.fwd_rs[i_instance, w, i_featsnaggr, i_relation]
+            X.fwd_rs[i_sample, w, i_featsnaggr, i_relation]
 end
 
 display_structure(X::ExplicitModalDatasetS; indent_str = "") = begin
@@ -1031,17 +1034,17 @@ end
 
 test_decision(
         X::ExplicitModalDatasetWithSupport{T,WorldType},
-        i_instance::Integer,
+        i_sample::Integer,
         w::WorldType,
         decision::Decision) where {T, WorldType<:AbstractWorld} = begin
     if is_propositional_decision(decision)
-        test_decision(X, i_instance, w, decision.feature, decision.test_operator, decision.threshold)
+        test_decision(X, i_sample, w, decision.feature, decision.test_operator, decision.threshold)
     else
         gamma = begin
             if decision.relation isa ModalLogic._RelationGlob
-                get_global_gamma(X, i_instance, decision.feature, decision.test_operator)
+                get_global_gamma(X, i_sample, decision.feature, decision.test_operator)
             else
-                get_modal_gamma(X, i_instance, w, decision.relation, decision.feature, decision.test_operator)
+                get_modal_gamma(X, i_sample, w, decision.relation, decision.feature, decision.test_operator)
             end
         end
         evaluate_thresh_decision(decision.test_operator, gamma, decision.threshold)
@@ -1056,10 +1059,10 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
         features_inds::AbstractVector{<:Integer},
         ) where {T, WorldType<:AbstractWorld}
     relation = RelationId
-    n_instances = length(instances_inds)
+    _n_samples = length(instances_inds)
 
     # For each feature
-    @inbounds for i_feature in features_inds
+    for i_feature in features_inds
         feature = features(emd)[i_feature]
         @logmsg DTDebug "Feature $(i_feature): $(feature)"
 
@@ -1072,32 +1075,32 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
         # aggrsnops = [aggrsnops[i_aggr] for i_aggr in aggregators]
 
         # Initialize thresholds with the bottoms
-        thresholds = Array{T,2}(undef, length(aggregators), n_instances)
+        thresholds = Array{T,2}(undef, length(aggregators), _n_samples)
         for (i_aggr,aggr) in enumerate(aggregators)
             thresholds[i_aggr,:] .= aggregator_bottom(aggr, T)
         end
 
         # For each instance, compute thresholds by applying each aggregator to the set of existing values (from the worldset)
-        for (instance_idx,i_instance) in enumerate(instances_inds)
-            @logmsg DTDetail " Instance $(instance_idx)/$(n_instances)"
+        for (instance_idx,i_sample) in enumerate(instances_inds)
+            @logmsg DTDetail " Instance $(instance_idx)/$(_n_samples)"
             worlds = Sf[instance_idx]
 
             # TODO also try this instead
-            # values = [X.emd[i_instance, w, i_feature] for w in worlds]
+            # values = [X.emd[i_sample, w, i_feature] for w in worlds]
             # thresholds[:,instance_idx] = map(aggr->aggr(values), aggregators)
             
             for w in worlds
                 gamma = begin
                     if emd isa ExplicitModalDataset{T,WorldType}
-                        fwd_get(emd.fwd, i_instance, w, i_feature) # faster but equivalent to get_gamma(emd, i_instance, w, feature)
+                        fwd_get(emd.fwd, i_sample, w, i_feature) # faster but equivalent to get_gamma(emd, i_sample, w, feature)
                     elseif emd isa InterpretedModalDataset{T,WorldType}
-                        get_gamma(emd, i_instance, w, feature)
+                        get_gamma(emd, i_sample, w, feature)
                     else
                         error("generate_propositional_feasible_decisions is broken.")
                     end
                 end
                 for (i_aggr,aggr) in enumerate(aggregators)
-                    thresholds[i_aggr,instance_idx] = ModalLogic.aggregator_to_binary(aggr)(gamma, thresholds[i_aggr,instance_idx])
+                    thresholds[i_aggr,instance_idx] = aggregator_to_binary(aggr)(gamma, thresholds[i_aggr,instance_idx])
                 end
             end
         end
@@ -1145,12 +1148,12 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
         features_inds::AbstractVector{<:Integer},
         ) where {T, WorldType<:AbstractWorld}
     relation = RelationGlob
-    n_instances = length(instances_inds)
+    _n_samples = length(instances_inds)
     
     @assert !isnothing(X.fwd_gs) "Error. ExplicitModalDatasetWithSupport must be built with computeRelationGlob = true for it to be ready to generate global decisions."
 
     # For each feature
-    @inbounds for i_feature in features_inds
+    for i_feature in features_inds
         feature = features(X)[i_feature]
         @logmsg DTDebug "Feature $(i_feature): $(feature)"
 
@@ -1170,16 +1173,16 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
         # thresholds = transpose(X.fwd_gs[instances_inds, aggregators_ids])
 
         # Initialize thresholds with the bottoms
-        thresholds = Array{T,2}(undef, length(aggregators_with_ids), n_instances)
+        thresholds = Array{T,2}(undef, length(aggregators_with_ids), _n_samples)
         for (i_aggr,(_,aggr)) in enumerate(aggregators_with_ids)
             thresholds[i_aggr,:] .= aggregator_bottom(aggr, T)
         end
         
         # For each instance, compute thresholds by applying each aggregator to the set of existing values (from the worldset)
-        for (instance_id,i_instance) in enumerate(instances_inds)
-            @logmsg DTDetail " Instance $(instance_id)/$(n_instances)"
+        for (instance_id,i_sample) in enumerate(instances_inds)
+            @logmsg DTDetail " Instance $(instance_id)/$(_n_samples)"
             for (i_aggr,(i_featsnaggr,aggr)) in enumerate(aggregators_with_ids)
-                gamma = X.fwd_gs[i_instance, i_featsnaggr]
+                gamma = X.fwd_gs[i_sample, i_featsnaggr]
                 thresholds[i_aggr,instance_id] = aggregator_to_binary(aggr)(gamma, thresholds[i_aggr,instance_id])
                 # println(gamma)
                 # println(thresholds[i_aggr,instance_id])
@@ -1219,10 +1222,10 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
         modal_relations_inds::AbstractVector{<:Integer},
         features_inds::AbstractVector{<:Integer},
         ) where {T, WorldType<:AbstractWorld}
-    n_instances = length(instances_inds)
+    _n_samples = length(instances_inds)
 
     # For each relational operator
-    @inbounds for i_relation in modal_relations_inds
+    for i_relation in modal_relations_inds
         relation = relations(X)[i_relation]
         @logmsg DTDebug "Relation $(relation)..."
 
@@ -1240,24 +1243,24 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
             # aggrsnops = [aggrsnops[i_aggr] for i_aggr in aggregators]
 
             # Initialize thresholds with the bottoms
-            thresholds = Array{T,2}(undef, length(aggregators_with_ids), n_instances)
+            thresholds = Array{T,2}(undef, length(aggregators_with_ids), _n_samples)
             for (i_aggr,(_,aggr)) in enumerate(aggregators_with_ids)
                 thresholds[i_aggr,:] .= aggregator_bottom(aggr, T)
             end
 
             # For each instance, compute thresholds by applying each aggregator to the set of existing values (from the worldset)
-                for (i_instance,instance_id) in enumerate(instances_inds)
-                @logmsg DTDetail " Instance $(i_instance)/$(n_instances)"
-                worlds = Sf[i_instance] # TODO could also use accessibles_aggr_funs here?
+                for (i_sample,instance_id) in enumerate(instances_inds)
+                @logmsg DTDetail " Instance $(i_sample)/$(_n_samples)"
+                worlds = Sf[i_sample] # TODO could also use accessibles_aggr_funs here?
 
                 # TODO also try this instead (TODO fix first)
                 # values = [X.fwd_rs[instance_id, w, i_feature] for w in worlds]
-                # thresholds[:,i_instance] = map((_,aggr)->aggr(values), aggregators_with_ids)
+                # thresholds[:,i_sample] = map((_,aggr)->aggr(values), aggregators_with_ids)
                     
                 for (i_aggr,(i_featsnaggr,aggr)) in enumerate(aggregators_with_ids)
                     for w in worlds
                         gamma = X.fwd_rs[instance_id, w, i_featsnaggr, i_relation]
-                        thresholds[i_aggr,i_instance] = ModalLogic.aggregator_to_binary(aggr)(gamma, thresholds[i_aggr,i_instance])
+                        thresholds[i_aggr,i_sample] = aggregator_to_binary(aggr)(gamma, thresholds[i_aggr,i_sample])
                     end
                 end
             end
@@ -1287,20 +1290,20 @@ end
 
 # get_global_gamma(
 #       X::ExplicitModalDatasetSMemo{T,WorldType},
-#       i_instance::Integer,
+#       i_sample::Integer,
 #       feature::ModalFeature,
 #       test_operator::TestOperatorFun) where {WorldType<:AbstractWorld, T} = begin
 #   @assert !isnothing(X.fwd_gs) "Error. ExplicitModalDatasetSMemo must be built with computeRelationGlob = true for it to be ready to test global decisions."
 #   i_featsnaggr = find_featsnaggr_id(X, feature, existential_aggregator(test_operator))
-#   # if !isnothing(X.fwd_gs[i_instance, i_featsnaggr])
-#   X.fwd_gs[i_instance, i_featsnaggr]
+#   # if !isnothing(X.fwd_gs[i_sample, i_featsnaggr])
+#   X.fwd_gs[i_sample, i_featsnaggr]
 #   # else
 #   #   i_feature = find_feature_id(X, feature)
 #   #   aggregator = existential_aggregator(test_operator)
-#   #   fwd_feature_slice = fwd_get_channel(X.emd.fwd, i_instance, i_feature)
-#   #   accessible_worlds = all_worlds_aggr(WorldType, accessibles_aggr_fun(X.emd, i_instance), feature, aggregator)
+#   #   fwd_feature_slice = fwd_get_channel(X.emd.fwd, i_sample, i_feature)
+#   #   accessible_worlds = all_worlds_aggr(WorldType, accessibles_aggr_fun(X.emd, i_sample), feature, aggregator)
 #   #   gamma = compute_modal_gamma(fwd_feature_slice, accessible_worlds, aggregator)
-#   #   fwd_gs_set(X.fwd_gs, i_instance, i_featsnaggr, gamma)
+#   #   fwd_gs_set(X.fwd_gs, i_sample, i_featsnaggr, gamma)
 #   # end
 # end
 
@@ -1318,7 +1321,7 @@ end
 
 get_modal_gamma(
         X::ExplicitModalDatasetSMemo{T,WorldType},
-        i_instance::Integer,
+        i_sample::Integer,
         w::WorldType,
         relation::AbstractRelation,
         feature::ModalFeature,
@@ -1328,14 +1331,14 @@ get_modal_gamma(
     i_featsnaggr = find_featsnaggr_id(X, feature, aggregator)
     # if coin_flip_no_look_ExplicitModalDatasetSWithMemoization() || 
     if false || 
-            isnothing(X.fwd_rs[i_instance, w, i_featsnaggr, i_relation])
+            isnothing(X.fwd_rs[i_sample, w, i_featsnaggr, i_relation])
         i_feature = find_feature_id(X, feature)
-        fwd_feature_slice = fwd_get_channel(X.emd.fwd, i_instance, i_feature)
-        accessible_worlds = accessibles_aggr_fun(X.emd, i_instance)(feature, aggregator, w, relation)
+        fwd_feature_slice = fwd_get_channel(X.emd.fwd, i_sample, i_feature)
+        accessible_worlds = accessibles_aggr_fun(X.emd, i_sample)(feature, aggregator, w, relation)
         gamma = compute_modal_gamma(fwd_feature_slice, accessible_worlds, aggregator)
-        fwd_rs_set(X.fwd_rs, i_instance, w, i_featsnaggr, i_relation, gamma)
+        fwd_rs_set(X.fwd_rs, i_sample, w, i_featsnaggr, i_relation, gamma)
     else
-        X.fwd_rs[i_instance, w, i_featsnaggr, i_relation]
+        X.fwd_rs[i_sample, w, i_featsnaggr, i_relation]
     end
 end
 
@@ -1347,10 +1350,10 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
         modal_relations_inds::AbstractVector{<:Integer},
         features_inds::AbstractVector{<:Integer},
         ) where {T, WorldType<:AbstractWorld}
-    n_instances = length(instances_inds)
+    _n_samples = length(instances_inds)
 
     # For each relational operator
-    @inbounds for i_relation in modal_relations_inds
+    for i_relation in modal_relations_inds
         relation = relations(X)[i_relation]
         @logmsg DTDebug "Relation $(relation)..."
 
@@ -1368,18 +1371,18 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
             # aggrsnops = [aggrsnops[i_aggr] for i_aggr in aggregators]
 
             # Initialize thresholds with the bottoms
-            thresholds = Array{T,2}(undef, length(aggregators_with_ids), n_instances)
+            thresholds = Array{T,2}(undef, length(aggregators_with_ids), _n_samples)
             for (i_aggr,(_,aggr)) in enumerate(aggregators_with_ids)
                 thresholds[i_aggr,:] .= aggregator_bottom(aggr, T)
             end
 
             # For each instance, compute thresholds by applying each aggregator to the set of existing values (from the worldset)
-            for (instance_id,i_instance) in enumerate(instances_inds)
-                @logmsg DTDetail " Instance $(instance_id)/$(n_instances)"
+            for (instance_id,i_sample) in enumerate(instances_inds)
+                @logmsg DTDetail " Instance $(instance_id)/$(_n_samples)"
                 worlds = Sf[instance_id] # TODO could also use accessibles_aggr_funs here?
 
                 # TODO also try this instead (TODO fix first)
-                # values = [X.fwd_rs[i_instance, w, i_feature] for w in worlds]
+                # values = [X.fwd_rs[i_sample, w, i_feature] for w in worlds]
                 # thresholds[:,instance_id] = map((_,aggr)->aggr(values), aggregators_with_ids)
                     
                 for (i_aggr,(i_featsnaggr,aggregator)) in enumerate(aggregators_with_ids)
@@ -1387,13 +1390,13 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
                         gamma = 
                             # if coin_flip_no_look_ExplicitModalDatasetSWithMemoization() || 
                             if false || 
-                                isnothing(X.fwd_rs[i_instance, w, i_featsnaggr, i_relation])
-                                fwd_feature_slice = fwd_get_channel(X.emd.fwd, i_instance, i_feature)
-                                accessible_worlds = accessibles_aggr_fun(X.emd, i_instance)(feature, aggregator, w, relation)
+                                isnothing(X.fwd_rs[i_sample, w, i_featsnaggr, i_relation])
+                                fwd_feature_slice = fwd_get_channel(X.emd.fwd, i_sample, i_feature)
+                                accessible_worlds = accessibles_aggr_fun(X.emd, i_sample)(feature, aggregator, w, relation)
                                 gamma = compute_modal_gamma(fwd_feature_slice, accessible_worlds, aggregator)
-                                fwd_rs_set(X.fwd_rs, i_instance, w, i_featsnaggr, i_relation, gamma)
+                                fwd_rs_set(X.fwd_rs, i_sample, w, i_featsnaggr, i_relation, gamma)
                             else
-                                X.fwd_rs[i_instance, w, i_featsnaggr, i_relation]
+                                X.fwd_rs[i_sample, w, i_featsnaggr, i_relation]
                             end
                         thresholds[i_aggr,instance_id] = aggregator_to_binary(aggregator)(gamma, thresholds[i_aggr,instance_id])
                     end
@@ -1431,7 +1434,7 @@ end
 #  on a domain, and eventually compute the new world set.
 function modal_step(
         X::Union{ActiveModalDataset{T,WorldType},InterpretedModalDataset{T,N,WorldType}},
-        i_instance::Integer,
+        i_sample::Integer,
         worlds::WorldSetType,
         decision::Decision{T},
         returns_survivors::Union{Val{true},Val{false}} = Val(false)
@@ -1458,15 +1461,15 @@ function modal_step(
         acc_worlds = 
             if returns_survivors isa Val{true}
                 Threads.@threads for curr_w in worlds
-                    worlds_map[curr_w] = accessibles_fun(X, i_instance)(curr_w, decision.relation)
+                    worlds_map[curr_w] = accessibles_fun(X, i_sample)(curr_w, decision.relation)
                 end
                 unique(cat([ worlds_map[k] for k in keys(worlds_map) ]...; dims = 1))
             else
-                accessibles_fun(X, i_instance)(worlds, decision.relation)
+                accessibles_fun(X, i_sample)(worlds, decision.relation)
             end
 
         for w in acc_worlds
-            if test_decision(X, i_instance, w, decision.feature, decision.test_operator, decision.threshold)
+            if test_decision(X, i_sample, w, decision.feature, decision.test_operator, decision.threshold)
                 # @logmsg DTDetail " Found world " w ch_readWorld ... ch_readWorld(w, channel)
                 satisfied = true
                 push!(new_worlds, w)
@@ -1494,21 +1497,21 @@ end
 
 test_decision(
         X::ModalDataset{T},
-        i_instance::Integer,
+        i_sample::Integer,
         w::AbstractWorld,
         feature::ModalFeature,
         test_operator::TestOperatorFun,
         threshold::T) where {T} = begin
-    gamma = get_gamma(X, i_instance, w, feature)
+    gamma = get_gamma(X, i_sample, w, feature)
     evaluate_thresh_decision(test_operator, gamma, threshold)
 end
 
 test_decision(
         X::ModalDataset{T},
-        i_instance::Integer,
+        i_sample::Integer,
         w::AbstractWorld,
         decision::Decision{T}) where {T} = begin
-    instance = get_instance(X, i_instance)
+    instance = get_instance(X, i_sample)
 
     aggregator = existential_aggregator(decision.test_operator)
     
@@ -1516,7 +1519,7 @@ test_decision(
     gamma = if length(worlds |> collect) == 0
         ModalLogic.aggregator_bottom(aggregator, T)
     else
-        aggregator((w)->get_gamma(X, i_instance, w, decision.feature), worlds)
+        aggregator((w)->get_gamma(X, i_sample, w, decision.feature), worlds)
     end
 
     evaluate_thresh_decision(decision.test_operator, gamma, decision.threshold)

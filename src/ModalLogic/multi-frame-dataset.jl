@@ -21,8 +21,11 @@ struct MultiFrameModalDataset{MD<:ModalDataset}
     function MultiFrameModalDataset{MD}(X::MD) where {MD<:ModalDataset}
         MultiFrameModalDataset{MD}(MD[X])
     end
-    function MultiFrameModalDataset(XorXs::Union{MD,AbstractVector{<:MD}}) where {MD<:ModalDataset}
-        MultiFrameModalDataset{MD}(XorXs)
+    function MultiFrameModalDataset(Xs::AbstractVector{<:MD}) where {MD<:ModalDataset}
+        MultiFrameModalDataset{MD}(Xs)
+    end
+    function MultiFrameModalDataset(X::MD) where {MD<:ModalDataset}
+        MultiFrameModalDataset{MD}(X)
     end
 end
 
@@ -37,7 +40,7 @@ n_samples(X::MultiFrameModalDataset)                                = n_samples(
 Base.push!(X::MultiFrameModalDataset, f::ModalDataset) = push!(frames(X), f)
 
 # max_channel_size(X::MultiFrameModalDataset) = map(max_channel_size, frames(X)) # TODO: figure if this is useless or not. Note: channel_size doesn't make sense at this point. Only the accessibles_funs[i] functions.
-# n_features(X::MultiFrameModalDataset) = map(n_features, frames(X)) # TODO: figure if this is useless or not
+n_features(X::MultiFrameModalDataset) = map(n_features, frames(X)) # Note: used for safety checks in tree.jl
 # n_relations(X::MultiFrameModalDataset) = map(n_relations, frames(X)) # TODO: figure if this is useless or not
 n_features(X::MultiFrameModalDataset,  i_frame::Integer) = n_features(get_frame(X, i_frame))
 n_relations(X::MultiFrameModalDataset, i_frame::Integer) = n_relations(get_frame(X, i_frame))
@@ -48,8 +51,8 @@ get_instance(X::MultiFrameModalDataset,  i_frame::Integer, idx_i::Integer, args.
 # slice_dataset(X::MultiFrameModalDataset, i_frame::Integer, inds::AbstractVector{<:Integer}, args...)  = slice_dataset(get_frame(X, i_frame), inds, args...; kwargs...)
 
 # get_instance(X::MultiFrameModalDataset, idx_i::Integer, args...)  = get_instance(get_frame(X, i), idx_i, args...) # TODO should slice across the frames!
-slice_dataset(X::MultiFrameModalDataset, inds::AbstractVector{<:Integer}, args...; kwargs...) =
-    MultiFrameModalDataset(Vector{ActiveModalDataset}(map(frame->slice_dataset(frame, inds, args...; kwargs...), frames(X))))
+slice_dataset(X::MultiFrameModalDataset{MD}, inds::AbstractVector{<:Integer}, args...; kwargs...) where {MD<:ModalDataset} = 
+    MultiFrameModalDataset{MD}(Vector{MD}(map(frame->slice_dataset(frame, inds, args...; kwargs...), frames(X))))
 
 display_structure(Xs::MultiFrameModalDataset; indent_str = "") = begin
     out = "$(typeof(Xs))" # * "\t\t\t$(Base.summarysize(Xs) / 1024 / 1024 |> x->round(x, digits=2)) MBs"

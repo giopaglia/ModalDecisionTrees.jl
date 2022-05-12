@@ -29,12 +29,12 @@ end
 
 fwd_get(
     fwd         :: OneWorldFWD{T},
-    i_instance  :: Integer,
+    i_sample  :: Integer,
     w           :: OneWorld,
-    i_feature   :: Integer) where {T} = fwd.d[i_instance, i_feature]
+    i_feature   :: Integer) where {T} = fwd.d[i_sample, i_feature]
 
-function fwd_set(fwd::OneWorldFWD{T}, w::OneWorld, i_instance::Integer, i_feature::Integer, threshold::T) where {T}
-    fwd.d[i_instance, i_feature] = threshold
+function fwd_set(fwd::OneWorldFWD{T}, w::OneWorld, i_sample::Integer, i_feature::Integer, threshold::T) where {T}
+    fwd.d[i_sample, i_feature] = threshold
 end
 
 function fwd_set_feature_slice(fwd::OneWorldFWD{T}, i_feature::Integer, feature_fwd::Array{T, 1}) where {T}
@@ -46,8 +46,8 @@ function slice_dataset(fwd::OneWorldFWD{T}, inds::AbstractVector{<:Integer}; all
     OneWorldFWD{T}(if return_view @view fwd.d[inds,:] else fwd.d[inds,:] end)
 end
 
-fwd_get_channel(fwd::OneWorldFWD{T}, i_instance::Integer, i_feature::Integer) where {T} =
-    fwd.d[i_instance, i_feature]
+fwd_get_channel(fwd::OneWorldFWD{T}, i_sample::Integer, i_feature::Integer) where {T} =
+    fwd.d[i_sample, i_feature]
 const OneWorldFeaturedChannel{T} = T
 fwd_channel_interpret_world(fwc::T #=Note: should be OneWorldFeaturedChannel{T}, but it throws error =#, w::OneWorld) where {T} = fwc
 
@@ -76,12 +76,12 @@ end
 
 fwd_get(
     fwd         :: IntervalFWD{T},
-    i_instance  :: Integer,
+    i_sample  :: Integer,
     w           :: Interval,
-    i_feature   :: Integer) where {T} = fwd.d[w.x, w.y, i_instance, i_feature]
+    i_feature   :: Integer) where {T} = fwd.d[w.x, w.y, i_sample, i_feature]
 
-function fwd_set(fwd::IntervalFWD{T}, w::Interval, i_instance::Integer, i_feature::Integer, threshold::T) where {T}
-    fwd.d[w.x, w.y, i_instance, i_feature] = threshold
+function fwd_set(fwd::IntervalFWD{T}, w::Interval, i_sample::Integer, i_feature::Integer, threshold::T) where {T}
+    fwd.d[w.x, w.y, i_sample, i_feature] = threshold
 end
 
 function fwd_set_feature_slice(fwd::IntervalFWD{T}, i_feature::Integer, feature_fwd::Array{T, 3}) where {T}
@@ -92,8 +92,8 @@ function slice_dataset(fwd::IntervalFWD{T}, inds::AbstractVector{<:Integer}; all
     @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
     IntervalFWD{T}(if return_view @view fwd.d[:,:,inds,:] else fwd.d[:,:,inds,:] end)
 end
-fwd_get_channel(fwd::IntervalFWD{T}, i_instance::Integer, i_feature::Integer) where {T} =
-    @views fwd.d[:,:,i_instance, i_feature]
+fwd_get_channel(fwd::IntervalFWD{T}, i_sample::Integer, i_feature::Integer) where {T} =
+    @views fwd.d[:,:,i_sample, i_feature]
 const IntervalFeaturedChannel{T} = AbstractArray{T, 2}
 fwd_channel_interpret_world(fwc::IntervalFeaturedChannel{T}, w::Interval) where {T} =
     fwc[w.x, w.y]
@@ -124,12 +124,12 @@ end
 
 fwd_get(
     fwd         :: Interval2DFWD{T},
-    i_instance  :: Integer,
+    i_sample  :: Integer,
     w           :: Interval2D,
-    i_feature   :: Integer) where {T} = fwd.d[w.x.x, w.x.y, w.y.x, w.y.y, i_instance, i_feature]
+    i_feature   :: Integer) where {T} = fwd.d[w.x.x, w.x.y, w.y.x, w.y.y, i_sample, i_feature]
 
-function fwd_set(fwd::Interval2DFWD{T}, w::Interval2D, i_instance::Integer, i_feature::Integer, threshold::T) where {T}
-    fwd.d[w.x.x, w.x.y, w.y.x, w.y.y, i_instance, i_feature] = threshold
+function fwd_set(fwd::Interval2DFWD{T}, w::Interval2D, i_sample::Integer, i_feature::Integer, threshold::T) where {T}
+    fwd.d[w.x.x, w.x.y, w.y.x, w.y.y, i_sample, i_feature] = threshold
 end
 
 function fwd_set_feature_slice(fwd::Interval2DFWD{T}, i_feature::Integer, feature_fwd::Array{T, 5}) where {T}
@@ -140,8 +140,8 @@ function slice_dataset(fwd::Interval2DFWD{T}, inds::AbstractVector{<:Integer}; a
     @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
     Interval2DFWD{T}(if return_view @view fwd.d[:,:,:,:,inds,:] else fwd.d[:,:,:,:,inds,:] end)
 end
-fwd_get_channel(fwd::Interval2DFWD{T}, i_instance::Integer, i_feature::Integer) where {T} =
-    @views fwd.d[:,:,:,:,i_instance, i_feature]
+fwd_get_channel(fwd::Interval2DFWD{T}, i_sample::Integer, i_feature::Integer) where {T} =
+    @views fwd.d[:,:,:,:,i_sample, i_feature]
 const Interval2DFeaturedChannel{T} = AbstractArray{T, 4}
 fwd_channel_interpret_world(fwc::Interval2DFeaturedChannel{T}, w::Interval2D) where {T} =
     fwc[w.x.x, w.x.y, w.y.x, w.y.y]
@@ -201,10 +201,10 @@ n_featsnaggrs(emds::OneWorldFWD_RS{T}) where {T} = size(emds, 2)
 n_relations(emds::OneWorldFWD_RS{T}) where {T}   = size(emds, 3)
 Base.getindex(
     emds         :: OneWorldFWD_RS{T},
-    i_instance   :: Integer,
+    i_sample     :: Integer,
     w            :: OneWorld,
     i_featsnaggr :: Integer,
-    i_relation   :: Integer) where {T} = emds.d[i_instance, i_featsnaggr, i_relation]
+    i_relation   :: Integer) where {T} = emds.d[i_sample, i_featsnaggr, i_relation]
 Base.size(emds::OneWorldFWD_RS{T}, args...) where {T} = size(emds.d, args...)
 goes_with(::Type{OneWorldFWD_RS}, ::Type{OneWorld}) = true
 
@@ -217,10 +217,10 @@ fwd_rs_init(emd::ExplicitModalDataset{T, OneWorld}, n_featsnaggrs::Integer, n_re
         OneWorldFWD_RS{T}(_fwd_rs)
     end
 end
-fwd_rs_init_world_slice(emds::OneWorldFWD_RS, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer) =
+fwd_rs_init_world_slice(emds::OneWorldFWD_RS, i_sample::Integer, i_featsnaggr::Integer, i_relation::Integer) =
     nothing
-fwd_rs_set(emds::OneWorldFWD_RS{T}, i_instance::Integer, w::OneWorld, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
-    emds.d[i_instance, i_featsnaggr, i_relation] = threshold
+fwd_rs_set(emds::OneWorldFWD_RS{T}, i_sample::Integer, w::OneWorld, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
+    emds.d[i_sample, i_featsnaggr, i_relation] = threshold
 function slice_dataset(emds::OneWorldFWD_RS{T}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T}
     @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
     OneWorldFWD_RS{T}(if return_view @view emds.d[inds,:,:] else emds.d[inds,:,:] end)
@@ -240,10 +240,10 @@ n_featsnaggrs(emds::IntervalFWD_RS{T}) where {T} = size(emds, 4)
 n_relations(emds::IntervalFWD_RS{T}) where {T}   = size(emds, 5)
 Base.getindex(
     emds         :: IntervalFWD_RS{T},
-    i_instance   :: Integer,
+    i_sample     :: Integer,
     w            :: Interval,
     i_featsnaggr :: Integer,
-    i_relation   :: Integer) where {T} = emds.d[w.x, w.y, i_instance, i_featsnaggr, i_relation]
+    i_relation   :: Integer) where {T} = emds.d[w.x, w.y, i_sample, i_featsnaggr, i_relation]
 Base.size(emds::IntervalFWD_RS{T}, args...) where {T} = size(emds.d, args...)
 goes_with(::Type{IntervalFWD_RS}, ::Type{Interval}) = true
 
@@ -257,10 +257,10 @@ fwd_rs_init(emd::ExplicitModalDataset{T, Interval}, n_featsnaggrs::Integer, n_re
         IntervalFWD_RS{T}(_fwd_rs)
     end
 end
-fwd_rs_init_world_slice(emds::IntervalFWD_RS, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer) =
+fwd_rs_init_world_slice(emds::IntervalFWD_RS, i_sample::Integer, i_featsnaggr::Integer, i_relation::Integer) =
     nothing
-fwd_rs_set(emds::IntervalFWD_RS{T}, i_instance::Integer, w::Interval, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
-    emds.d[w.x, w.y, i_instance, i_featsnaggr, i_relation] = threshold
+fwd_rs_set(emds::IntervalFWD_RS{T}, i_sample::Integer, w::Interval, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
+    emds.d[w.x, w.y, i_sample, i_featsnaggr, i_relation] = threshold
 function slice_dataset(emds::IntervalFWD_RS{T}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T}
     @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
     IntervalFWD_RS{T}(if return_view @view emds.d[:,:,inds,:,:] else emds.d[:,:,inds,:,:] end)
@@ -279,10 +279,10 @@ end
 # n_relations(emds::Interval2DFWD_RS{T}) where {T}   = size(emds, 7)
 # getindex(
 #   emds         :: Interval2DFWD_RS{T},
-#   i_instance   :: Integer,
+#   i_sample     :: Integer,
 #   w            :: Interval2D,
 #   i_featsnaggr :: Integer,
-#   i_relation   :: Integer) where {T} = emds.d[w.x.x, w.x.y, w.y.x, w.y.y, i_instance, i_featsnaggr, i_relation]
+#   i_relation   :: Integer) where {T} = emds.d[w.x.x, w.x.y, w.y.x, w.y.y, i_sample, i_featsnaggr, i_relation]
 # size(emds::Interval2DFWD_RS{T}, args...) where {T} = size(emds.d, args...)
 # goes_with(::Type{Interval2DFWD_RS}, ::Type{Interval2D}) = true
 
@@ -295,10 +295,10 @@ end
 #       Interval2DFWD_RS{T}(_fwd_rs)
 #   end
 # end
-# fwd_rs_init_world_slice(emds::Interval2DFWD_RS, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer) =
+# fwd_rs_init_world_slice(emds::Interval2DFWD_RS, i_sample::Integer, i_featsnaggr::Integer, i_relation::Integer) =
 #   nothing
-# fwd_rs_set(emds::Interval2DFWD_RS{T}, i_instance::Integer, w::Interval2D, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
-#   emds.d[w.x.x, w.x.y, w.y.x, w.y.y, i_instance, i_featsnaggr, i_relation] = threshold
+# fwd_rs_set(emds::Interval2DFWD_RS{T}, i_sample::Integer, w::Interval2D, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
+#   emds.d[w.x.x, w.x.y, w.y.x, w.y.y, i_sample, i_featsnaggr, i_relation] = threshold
 # function slice_dataset(emds::Interval2DFWD_RS{T}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T}
 # @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
 #   Interval2DFWD_RS{T}(if return_view @view emds.d[:,:,:,:,inds,:,:] else emds.d[:,:,:,:,inds,:,:] end)
@@ -318,10 +318,10 @@ n_featsnaggrs(emds::Interval2DFWD_RS{T}) where {T} = size(emds, 4)
 n_relations(emds::Interval2DFWD_RS{T}) where {T}   = size(emds, 5)
 Base.getindex(
     emds         :: Interval2DFWD_RS{T},
-    i_instance   :: Integer,
+    i_sample     :: Integer,
     w            :: Interval2D,
     i_featsnaggr :: Integer,
-    i_relation   :: Integer) where {T} = emds.d[w.x.x+div((w.x.y-2)*(w.x.y-1),2), w.y.x+div((w.y.y-2)*(w.y.y-1),2), i_instance, i_featsnaggr, i_relation]
+    i_relation   :: Integer) where {T} = emds.d[w.x.x+div((w.x.y-2)*(w.x.y-1),2), w.y.x+div((w.y.y-2)*(w.y.y-1),2), i_sample, i_featsnaggr, i_relation]
 Base.size(emds::Interval2DFWD_RS{T}, args...) where {T} = size(emds.d, args...)
 goes_with(::Type{Interval2DFWD_RS}, ::Type{Interval2D}) = true
 
@@ -334,10 +334,10 @@ fwd_rs_init(emd::ExplicitModalDataset{T, Interval2D}, n_featsnaggrs::Integer, n_
         Interval2DFWD_RS{T}(_fwd_rs)
     end
 end
-fwd_rs_init_world_slice(emds::Interval2DFWD_RS, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer) =
+fwd_rs_init_world_slice(emds::Interval2DFWD_RS, i_sample::Integer, i_featsnaggr::Integer, i_relation::Integer) =
     nothing
-fwd_rs_set(emds::Interval2DFWD_RS{T}, i_instance::Integer, w::Interval2D, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
-    emds.d[w.x.x+div((w.x.y-2)*(w.x.y-1),2), w.y.x+div((w.y.y-2)*(w.y.y-1),2), i_instance, i_featsnaggr, i_relation] = threshold
+fwd_rs_set(emds::Interval2DFWD_RS{T}, i_sample::Integer, w::Interval2D, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
+    emds.d[w.x.x+div((w.x.y-2)*(w.x.y-1),2), w.y.x+div((w.y.y-2)*(w.y.y-1),2), i_sample, i_featsnaggr, i_relation] = threshold
 function slice_dataset(emds::Interval2DFWD_RS{T}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T}
     @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
     Interval2DFWD_RS{T}(if return_view @view emds.d[:,:,inds,:,:] else emds.d[:,:,inds,:,:] end)

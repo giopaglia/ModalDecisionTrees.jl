@@ -22,7 +22,7 @@ abstract type ModalFeature <: Function end
 
 # Dummy modal feature
 struct _ModalFeatureNone  <: ModalFeature end; const ModalFeatureNone  = _ModalFeatureNone();
-function get_interpretation_function(f::_ModalFeatureNone)
+function interpret_feature(f::_ModalFeatureNone, args...)
     @error "Can't intepret ModalFeatureNone on any structure at all."
 end
 Base.show(io::IO, f::_ModalFeatureNone) = print(io, "(Empty ModalFeature)")
@@ -33,11 +33,11 @@ Base.show(io::IO, f::_ModalFeatureNone) = print(io, "(Empty ModalFeature)")
 #  is an entity that lives in a dimensional context; for example, the world
 #  can be a region of the matrix representing a b/w image.
 abstract type DimensionalFeature <: ModalFeature end
-(f::DimensionalFeature)(args...) = (get_interpretation_function(f))(args...)
+@inline (f::DimensionalFeature)(args...) = interpret_feature(f, args...)
 
 # Dimensional features functions are computed on dimensional channels, 
 #  namely, interpretations of worlds on a dimensional contexts
-const DimensionalFeatureFunction = FunctionWrapper{Number,Tuple{AbstractArray{<:Number}}}
+# const DimensionalFeatureFunction = FunctionWrapper{Number,Tuple{AbstractArray{<:Number}}}
 
 ############################################################################################
 
@@ -46,16 +46,16 @@ const DimensionalFeatureFunction = FunctionWrapper{Number,Tuple{AbstractArray{<:
 struct SingleAttributeMin <: DimensionalFeature
     i_attribute::Integer
 end
-function get_interpretation_function(f::SingleAttributeMin)
-    DimensionalFeatureFunction(minimum ∘ (x)->ModalLogic.get_instance_attribute(x,f.i_attribute))
+function interpret_feature(f::SingleAttributeMin, inst::AbstractDimensionalInstance{T}) where {T}
+    (minimum(get_instance_attribute(inst,f.i_attribute)))::T
 end
 Base.show(io::IO, f::SingleAttributeMin) = print(io, "min(A$(f.i_attribute))")
 
 struct SingleAttributeMax <: DimensionalFeature
     i_attribute::Integer
 end
-function get_interpretation_function(f::SingleAttributeMax)
-    DimensionalFeatureFunction(maximum ∘ (x)->ModalLogic.get_instance_attribute(x,f.i_attribute))
+function interpret_feature(f::SingleAttributeMax, inst::AbstractDimensionalInstance{T}) where {T}
+    (maximum(get_instance_attribute(inst,f.i_attribute)))::T
 end
 Base.show(io::IO, f::SingleAttributeMax) = print(io, "max(A$(f.i_attribute))")
 
@@ -78,8 +78,8 @@ end
 alpha(f::SingleAttributeSoftMin) = f.alpha
 Base.show(io::IO, f::SingleAttributeSoftMin) = print(io, "min" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
 
-function get_interpretation_function(f::SingleAttributeSoftMin)
-    DimensionalFeatureFunction((x)->(vals = util.vectorize(ModalLogic.get_instance_attribute(x,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals)); rev=true)))
+function interpret_feature(f::SingleAttributeSoftMin, inst::AbstractDimensionalInstance{T}) where {T}
+    ((vals = util.vectorize(get_instance_attribute(inst,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals)); rev=true)))::T
 end
 struct SingleAttributeSoftMax{T<:AbstractFloat} <: DimensionalFeature
     i_attribute::Integer
@@ -93,18 +93,18 @@ struct SingleAttributeSoftMax{T<:AbstractFloat} <: DimensionalFeature
         new{T}(i_attribute, alpha)
     end
 end
-function get_interpretation_function(f::SingleAttributeSoftMax)
-    DimensionalFeatureFunction((x)->(vals = util.vectorize(ModalLogic.get_instance_attribute(x,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals)))))
+function interpret_feature(f::SingleAttributeSoftMax, inst::AbstractDimensionalInstance{T}) where {T}
+    ((vals = util.vectorize(get_instance_attribute(inst,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals)))))::T
 end
 alpha(f::SingleAttributeSoftMax) = f.alpha
 Base.show(io::IO, f::SingleAttributeSoftMax) = print(io, "max" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
 
 # TODO simplify OneWorld case:
-# function get_interpretation_function(f::SingleAttributeSoftMin)
-#     ModalLogic.get_instance_attribute(x,f.i_attribute)
+# function interpret_feature(f::SingleAttributeSoftMin, inst::AbstractDimensionalInstance{T}) where {T}
+#     get_instance_attribute(inst,f.i_attribute)::T
 # end
-# function get_interpretation_function(f::SingleAttributeSoftMax)
-#     ModalLogic.get_instance_attribute(x,f.i_attribute)
+# function interpret_feature(f::SingleAttributeSoftMax, inst::AbstractDimensionalInstance{T}) where {T}
+#     get_instance_attribute(inst,f.i_attribute)::T
 # end
 # Note: Maybe features should dispatch on WorldType, (as well or on the type of underlying data?)
 
@@ -116,8 +116,8 @@ struct SingleAttributeFeature <: DimensionalFeature
     i_attribute::Integer
     f::Function
 end
-function get_interpretation_function(f::SingleAttributeFeature)
-    DimensionalFeatureFunction(f.f ∘ (x)->(vals = util.vectorize(ModalLogic.get_instance_attribute(x,f.i_attribute));))
+function interpret_feature(f::SingleAttributeFeature, inst::AbstractDimensionalInstance{T}) where {T}
+    (f.f(util.vectorize(get_instance_attribute(inst,f.i_attribute));))::T
 end
 Base.show(io::IO, f::SingleAttributeFeature) = print(io, "$(f.f)(A$(f.i_attribute))")
 
@@ -128,8 +128,8 @@ Base.show(io::IO, f::SingleAttributeFeature) = print(io, "$(f.f)(A$(f.i_attribut
 struct MultiAttributeFeature <: DimensionalFeature
     f::Function
 end
-function get_interpretation_function(f::MultiAttributeFeature)
-    DimensionalFeatureFunction(f.f)
+function interpret_feature(f::MultiAttributeFeature, inst::AbstractDimensionalInstance{T}) where {T}
+    (f.f(inst))::T
 end
 Base.show(io::IO, f::MultiAttributeFeature) = print(io, "$(f.f)")
 
@@ -140,7 +140,7 @@ struct ExternalFWDFeature <: ModalFeature
     name::String
     fwd::Any
 end
-function get_interpretation_function(f::ExternalFWDFeature)
+function interpret_feature(f::ExternalFWDFeature, inst::AbstractDimensionalInstance{T}) where {T}
     @error "Can't intepret ModalFeatureNone on any structure at all."
 end
 Base.show(io::IO, f::ExternalFWDFeature) = print(io, "$(f.name)")

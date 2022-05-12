@@ -242,7 +242,7 @@ Base.@propagate_inbounds @inline function split_node!(
 
     # Region of idxs to use to perform the split
     region = node.region
-    n_instances = length(region)
+    _n_samples = length(region)
     r_start = region.start - 1
 
     # DEBUGprintln("split_node!"); readline()
@@ -253,9 +253,9 @@ Base.@propagate_inbounds @inline function split_node!(
     @inbounds Yf = Y[idxs[region]]
     @inbounds Wf = W[idxs[region]]
 
-    # Yf = Vector{L}(undef, n_instances)
-    # Wf = Vector{U}(undef, n_instances)
-    # @inbounds @simd for i in 1:n_instances
+    # Yf = Vector{L}(undef, _n_samples)
+    # Wf = Vector{U}(undef, _n_samples)
+    # @inbounds @simd for i in 1:_n_samples
     #   Yf[i] = Y[idxs[i + r_start]]
     #   Wf[i] = W[idxs[i + r_start]]
     # end
@@ -267,7 +267,7 @@ Base.@propagate_inbounds @inline function split_node!(
         (nc, nt),
         (node.purity, node.prediction) = begin
             nc = fill(zero(U), n_classes)
-            @inbounds @simd for i in 1:n_instances
+            @inbounds @simd for i in 1:_n_samples
                 nc[Yf[i]] += Wf[i]
             end
             nt = sum(nc)
@@ -281,9 +281,9 @@ Base.@propagate_inbounds @inline function split_node!(
     else
         sums, (tsum, nt),
         (node.purity, node.prediction) = begin
-            # sums = [Wf[i]*Yf[i]       for i in 1:n_instances]
+            # sums = [Wf[i]*Yf[i]       for i in 1:_n_samples]
             sums = Yf
-            # ssqs = [Wf[i]*Yf[i]*Yf[i] for i in 1:n_instances]
+            # ssqs = [Wf[i]*Yf[i]*Yf[i] for i in 1:_n_samples]
             
             # tssq = zero(U)
             # tssq = sum(ssqs)
@@ -291,7 +291,7 @@ Base.@propagate_inbounds @inline function split_node!(
             tsum = sum(sums)
             # nt = zero(U)
             nt = sum(Wf)
-            # @inbounds @simd for i in 1:n_instances
+            # @inbounds @simd for i in 1:_n_samples
             #   # tssq += Wf[i]*Yf[i]*Yf[i]
             #   # tsum += Wf[i]*Yf[i]   
             #   nt += Wf[i]
@@ -320,7 +320,7 @@ Base.@propagate_inbounds @inline function split_node!(
     ############################################################################
     ############################################################################
 
-    @logmsg DTDebug "_split!(...) " n_instances region nt
+    @logmsg DTDebug "_split!(...) " _n_samples region nt
 
     ############################################################################
     # Preemptive leaf conditions
@@ -331,7 +331,7 @@ Base.@propagate_inbounds @inline function split_node!(
                 (nc[node.prediction]       == nt)
             # No binary split can honor min_samples_leaf if there aren't as many as
             #  min_samples_leaf*2 instances in the first place
-             || (min_samples_leaf * 2 >  n_instances)
+             || (min_samples_leaf * 2 >  _n_samples)
             # If the node is pure enough, avoid splitting # TODO rename purity to loss
              || (node.purity          > max_purity_at_leaf)
             # Honor maximum depth constraint
@@ -340,28 +340,28 @@ Base.@propagate_inbounds @inline function split_node!(
             # DEBUGprintln(nc[node.prediction])
             # DEBUGprintln(nt)
             # DEBUGprintln(min_samples_leaf)
-            # DEBUGprintln(n_instances)
+            # DEBUGprintln(_n_samples)
             # DEBUGprintln(node.purity)
             # DEBUGprintln(max_purity_at_leaf)
             # DEBUGprintln(max_depth)
             # DEBUGprintln(node.depth)
             # readline()
             node.is_leaf = true
-            @logmsg DTDetail "leaf created: " (min_samples_leaf * 2 >  n_instances) (nc[node.prediction] == nt) (node.purity  > max_purity_at_leaf) (max_depth <= node.depth)
+            @logmsg DTDetail "leaf created: " (min_samples_leaf * 2 >  _n_samples) (nc[node.prediction] == nt) (node.purity  > max_purity_at_leaf) (max_depth <= node.depth)
             return
         end
     else
         if (
             # No binary split can honor min_samples_leaf if there aren't as many as
             #  min_samples_leaf*2 instances in the first place
-                (min_samples_leaf * 2 >  n_instances)
+                (min_samples_leaf * 2 >  _n_samples)
           # equivalent to old_purity > -1e-7
              || (node.purity          > max_purity_at_leaf) # TODO
              # || (tsum * node.prediction    > -1e-7 * nt + tssq)
             # Honor maximum depth constraint
              || (max_depth            < node.depth))
             node.is_leaf = true
-            @logmsg DTDetail "leaf created: " (min_samples_leaf * 2 >  n_instances) (tsum * node.prediction    > -1e-7 * nt + tssq) (tsum * node.prediction) (-1e-7 * nt + tssq) (max_depth <= node.depth)
+            @logmsg DTDetail "leaf created: " (min_samples_leaf * 2 >  _n_samples) (tsum * node.prediction    > -1e-7 * nt + tssq) (tsum * node.prediction) (-1e-7 * nt + tssq) (max_depth <= node.depth)
             return
         end
     end
@@ -370,17 +370,17 @@ Base.@propagate_inbounds @inline function split_node!(
     ############################################################################
 
     # TODO try this solution for rsums and lsums (regression case)
-    # rsums = Vector{U}(undef, n_instances)
-    # lsums = Vector{U}(undef, n_instances)
-    # @simd for i in 1:n_instances
+    # rsums = Vector{U}(undef, _n_samples)
+    # lsums = Vector{U}(undef, _n_samples)
+    # @simd for i in 1:_n_samples
     #   rsums[i] = zero(U)
     #   lsums[i] = zero(U)
     # end
 
     Sfs = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, n_frames(Xs))
     for (i_frame,WT) in enumerate(world_types(Xs))
-        Sfs[i_frame] = Vector{Vector{WT}}(undef, n_instances)
-        @simd for i in 1:n_instances
+        Sfs[i_frame] = Vector{Vector{WT}}(undef, _n_samples)
+        @simd for i in 1:_n_samples
             Sfs[i_frame][i] = Ss[i_frame][idxs[i + r_start]]
         end
     end
@@ -390,7 +390,7 @@ Base.@propagate_inbounds @inline function split_node!(
     best_purity_times_nt = typemin(P)
     best_decision = Decision(RelationNone, ModalDecisionTrees.ModalFeatureNone, >=, nothing)
     if isa(_perform_consistency_check,Val{true})
-        consistency_sat_check = Vector{Bool}(undef, n_instances)
+        consistency_sat_check = Vector{Bool}(undef, _n_samples)
     end
     best_consistency = nothing
     
@@ -475,18 +475,18 @@ Base.@propagate_inbounds @inline function split_node!(
                     if isa(_perform_consistency_check,Val{true})
                         consistency_sat_check .= 1
                     end
-                    for i_instance in 1:n_instances
-                        gamma = aggr_thresholds[i_instance]
-                        satisfied = ModalLogic.evaluate_thresh_decision(test_operator, gamma, threshold)
-                        @logmsg DTDetail " instance $i_instance/$n_instances: (f=$(gamma)) -> satisfied = $(satisfied)"
+                    for i_sample in 1:_n_samples
+                        gamma = aggr_thresholds[i_sample]
+                        satisfied = evaluate_thresh_decision(test_operator, gamma, threshold)
+                        @logmsg DTDetail " instance $i_sample/$_n_samples: (f=$(gamma)) -> satisfied = $(satisfied)"
                         
                         # TODO make this satisfied a fuzzy value
                         if !satisfied
-                            nr += Wf[i_instance]
-                            ncr[Yf[i_instance]] += Wf[i_instance]
+                            nr += Wf[i_sample]
+                            ncr[Yf[i_sample]] += Wf[i_sample]
                         else
                             if isa(_perform_consistency_check,Val{true})
-                                consistency_sat_check[i_instance] = 0
+                                consistency_sat_check[i_sample] = 0
                             end
                         end
                     end
@@ -505,29 +505,29 @@ Base.@propagate_inbounds @inline function split_node!(
                     nr   = zero(U)
                     # TODO experiment with running mean instead, because this may cause a lot of memory inefficiency
                     # https://it.wikipedia.org/wiki/Algoritmi_per_il_calcolo_della_varianza
-                    rsums = Float64[] # Vector{U}(undef, n_instances)
-                    lsums = Float64[] # Vector{U}(undef, n_instances)
+                    rsums = Float64[] # Vector{U}(undef, _n_samples)
+                    lsums = Float64[] # Vector{U}(undef, _n_samples)
 
                     if isa(_perform_consistency_check,Val{true})
                         consistency_sat_check .= 1
                     end
-                    for i_instance in 1:n_instances
-                        gamma = aggr_thresholds[i_instance]
-                        satisfied = ModalLogic.evaluate_thresh_decision(test_operator, gamma, threshold)
-                        @logmsg DTDetail " instance $i_instance/$n_instances: (f=$(gamma)) -> satisfied = $(satisfied)"
+                    for i_sample in 1:_n_samples
+                        gamma = aggr_thresholds[i_sample]
+                        satisfied = evaluate_thresh_decision(test_operator, gamma, threshold)
+                        @logmsg DTDetail " instance $i_sample/$_n_samples: (f=$(gamma)) -> satisfied = $(satisfied)"
                         
                         # TODO make this satisfied a fuzzy value
                         if !satisfied
-                            push!(rsums, sums[i_instance])
-                            # rsums[i_instance] = sums[i_instance]
-                            nr   += Wf[i_instance]
-                            rsum += sums[i_instance]
-                            # rssq += ssqs[i_instance]
+                            push!(rsums, sums[i_sample])
+                            # rsums[i_sample] = sums[i_sample]
+                            nr   += Wf[i_sample]
+                            rsum += sums[i_sample]
+                            # rssq += ssqs[i_sample]
                         else
-                            push!(lsums, sums[i_instance])
-                            # lsums[i_instance] = sums[i_instance]
+                            push!(lsums, sums[i_sample])
+                            # lsums[i_sample] = sums[i_sample]
                             if isa(_perform_consistency_check,Val{true})
-                                consistency_sat_check[i_instance] = 0
+                                consistency_sat_check[i_sample] = 0
                             end
                         end
                     end
@@ -548,7 +548,7 @@ Base.@propagate_inbounds @inline function split_node!(
             @logmsg DTDebug "  (n_left,n_right) = ($nl,$nr)"
 
             # Honor min_samples_leaf
-            if nl >= min_samples_leaf && (n_instances - nl) >= min_samples_leaf
+            if nl >= min_samples_leaf && (_n_samples - nl) >= min_samples_leaf
                 purity_times_nt = begin
                     if _is_classification isa Val{true}
                         loss_function(ncl, nl, ncr, nr)
@@ -592,7 +592,7 @@ Base.@propagate_inbounds @inline function split_node!(
                     #################################
                     best_consistency = begin
                         if isa(_perform_consistency_check,Val{true})
-                            consistency_sat_check[1:n_instances]
+                            consistency_sat_check[1:_n_samples]
                         else
                             nr
                         end
@@ -648,32 +648,32 @@ Base.@propagate_inbounds @inline function split_node!(
         # println(decision_str)
         decision_str = display_decision(best_i_frame, best_decision)
         
-        # TODO instead of using memory, here, just use two opposite indices and perform substitutions. indj = n_instances
-        unsatisfied_flags = fill(1, n_instances)
+        # TODO instead of using memory, here, just use two opposite indices and perform substitutions. indj = _n_samples
+        unsatisfied_flags = fill(1, _n_samples)
         if isa(_perform_consistency_check,Val{true})
             world_refs = []
         end
-        for i_instance in 1:n_instances
+        for i_sample in 1:_n_samples
             # TODO perform step with an OntologicalModalDataset
 
-            # instance = ModalLogic.get_instance(X, best_i_frame, idxs[i_instance + r_start])
+            # instance = ModalLogic.get_instance(X, best_i_frame, idxs[i_sample + r_start])
             X = get_frame(Xs, best_i_frame)
             Sf = Sfs[best_i_frame]
-            # instance = ModalLogic.get_instance(X, idxs[i_instance + r_start])
+            # instance = ModalLogic.get_instance(X, idxs[i_sample + r_start])
 
             # println(instance)
-            # println(Sf[i_instance])
-            _sat, _ss = ModalLogic.modal_step(X, idxs[i_instance + r_start], Sf[i_instance], best_decision)
+            # println(Sf[i_sample])
+            _sat, _ss = ModalLogic.modal_step(X, idxs[i_sample + r_start], Sf[i_sample], best_decision)
             # Threads.lock(writing_lock)
-            (satisfied,Ss[best_i_frame][idxs[i_instance + r_start]]) = _sat, _ss
+            (satisfied,Ss[best_i_frame][idxs[i_sample + r_start]]) = _sat, _ss
             # Threads.unlock(writing_lock)
-            @logmsg DTDetail " [$satisfied] Instance $(i_instance)/$(n_instances)" Sf[i_instance] (if satisfied Ss[best_i_frame][idxs[i_instance + r_start]] end)
+            @logmsg DTDetail " [$satisfied] Instance $(i_sample)/$(_n_samples)" Sf[i_sample] (if satisfied Ss[best_i_frame][idxs[i_sample + r_start]] end)
             # println(satisfied)
-            # println(Ss[best_i_frame][idxs[i_instance + r_start]])
+            # println(Ss[best_i_frame][idxs[i_sample + r_start]])
             # readline()
 
             # I'm using unsatisfied because sorting puts YES instances first, but TODO use the inverse sorting and use satisfied flag instead
-            unsatisfied_flags[i_instance] = !satisfied
+            unsatisfied_flags[i_sample] = !satisfied
             if isa(_perform_consistency_check,Val{true})
                 push!(world_refs, _ss)
             end
@@ -684,9 +684,9 @@ Base.@propagate_inbounds @inline function split_node!(
         if length(unique(unsatisfied_flags)) == 1
             throw_n_log("An uninformative split was reached. Something's off\nPurity: $(node.purity)\nSplit: $(decision_str)\nUnsatisfied flags: $(unsatisfied_flags)")
         end
-        @logmsg DTOverview " Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(best_i_frame) with decision: $(decision_str), purity $(best_purity)"
+        @logmsg DTOverview " Branch ($(sum(unsatisfied_flags))+$(_n_samples-sum(unsatisfied_flags))=$(_n_samples) samples) on frame $(best_i_frame) with decision: $(decision_str), purity $(best_purity)"
 
-        # if sum(unsatisfied_flags) >= min_samples_leaf && (n_instances - sum(unsatisfied_flags)) >= min_samples_leaf
+        # if sum(unsatisfied_flags) >= min_samples_leaf && (_n_samples - sum(unsatisfied_flags)) >= min_samples_leaf
             # DEBUGprintln("LEAF!")
         #     node.is_leaf = true
         #     return
@@ -706,7 +706,7 @@ Base.@propagate_inbounds @inline function split_node!(
             errStr *= "- feature returning NaNs\n"
             errStr *= "- erroneous accessibles_aggr for relation $(best_decision.relation), aggregator $(ModalLogic.existential_aggregator(best_decision.test_operator)) and feature $(best_decision.feature)\n"
             errStr *= "\n"
-            errStr *= "Branch ($(sum(unsatisfied_flags))+$(n_instances-sum(unsatisfied_flags))=$(n_instances) samples) on frame $(best_i_frame) with decision: $(decision_str), purity $(best_purity)\n"
+            errStr *= "Branch ($(sum(unsatisfied_flags))+$(_n_samples-sum(unsatisfied_flags))=$(_n_samples) samples) on frame $(best_i_frame) with decision: $(decision_str), purity $(best_purity)\n"
             errStr *= "$(length(idxs[region])) Instances: $(idxs[region])\n"
             errStr *= "Different partition was expected:\n"
             if isa(_perform_consistency_check,Val{true})
@@ -724,10 +724,10 @@ Base.@propagate_inbounds @inline function split_node!(
 
             if isa(_perform_consistency_check,Val{true})
                 errStr *= "world_refs = $(world_refs)\n"
-                errStr *= "new world_refs = $([Ss[best_i_frame][idxs[i_instance + r_start]] for i_instance in 1:n_instances])\n"
+                errStr *= "new world_refs = $([Ss[best_i_frame][idxs[i_sample + r_start]] for i_sample in 1:_n_samples])\n"
             end
             
-            # for i in 1:n_instances
+            # for i in 1:_n_samples
                 # errStr *= "$(ModalLogic.get_channel(Xs, idxs[i + r_start], best_decision.feature))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[best_i_frame][idxs[i + r_start]])\n";
             # end
 
@@ -768,7 +768,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # partition!(idxs, unsatisfied_flags, 0, 1:10)
             
             # Sort [Xf, Yf, Wf, Sf and idxs] by Xf
-            # util.q_bi_sort!(unsatisfied_flags, idxs, 1, n_instances, r_start)
+            # util.q_bi_sort!(unsatisfied_flags, idxs, 1, _n_samples, r_start)
             # node.split_at = searchsortedfirst(unsatisfied_flags, true)
         end
     end
@@ -796,19 +796,19 @@ end
         kwargs...,
     ) where{L<:_Label, U}
 
-    n_instances = n_samples(Xs)
+    _n_samples = n_samples(Xs)
     
     # Initialize world sets for each instance
     Ss = init_world_sets(Xs, initConditions)
 
     # Distribution of the instances indices throughout the tree.
     #  It will be recursively permuted, and regions of it assigned to the tree nodes (idxs[node.region])
-    idxs = collect(1:n_instances)
+    idxs = collect(1:_n_samples)
     
     # Create root node
     NodeMetaT = NodeMeta{Float64,(_is_classification isa Val{true} ? Int64 : Float64)}
     onlyallowRelationGlob = [(iC == startWithRelationGlob) for iC in initConditions]
-    root = NodeMetaT(1:n_instances, 0, 0, onlyallowRelationGlob)
+    root = NodeMetaT(1:_n_samples, 0, 0, onlyallowRelationGlob)
     # writing_lock = Threads.Condition()
     
     # Process nodes recursively, using multi-threading
@@ -859,12 +859,12 @@ end
         ##########################################################################
         kwargs...,
     ) where {S, U}
-    n_instances = n_samples(Xs)
+    _n_samples = n_samples(Xs)
 
-    if length(Y) != n_instances
-        throw_n_log("dimension mismatch between dataset and label vector Y: ($(n_instances)) vs $(size(Y))")
-    elseif length(W) != n_instances
-        throw_n_log("dimension mismatch between dataset and weights vector W: ($(n_instances)) vs $(size(W))")
+    if length(Y) != _n_samples
+        throw_n_log("dimension mismatch between dataset and label vector Y: ($(_n_samples)) vs $(size(Y))")
+    elseif length(W) != _n_samples
+        throw_n_log("dimension mismatch between dataset and weights vector W: ($(_n_samples)) vs $(size(W))")
     ############################################################################
     elseif length(n_subrelations) != n_frames(Xs)
         throw_n_log("mismatching number of n_subrelations with number of frames: $(length(n_subrelations)) vs $(n_frames(Xs))")
@@ -902,9 +902,9 @@ end
     #       println("Warning! It is advised to use max_purity_at_leaf<$(min_purity_increase_thresh) with loss $(loss_function)"
     #           * "(given $(min_purity_increase))")
     # end
-    elseif loss_function in [util.gini, util.zero_one] && (max_purity_at_leaf > 1.0 || max_purity_at_leaf <= 0.0)
-        throw_n_log("max_purity_at_leaf for loss $(loss_function) must be in (0,1]"
-            * "(given $(max_purity_at_leaf))")
+    # elseif loss_function in [util.gini, util.zero_one] && (max_purity_at_leaf > 1.0 || max_purity_at_leaf <= 0.0)
+    #     throw_n_log("max_purity_at_leaf for loss $(loss_function) must be in (0,1]"
+    #         * "(given $(max_purity_at_leaf))")
     elseif max_depth < -1
         throw_n_log("unexpected value for max_depth: $(max_depth) (expected:"
             * " max_depth >= 0, or max_depth = -1 for infinite depth)")
