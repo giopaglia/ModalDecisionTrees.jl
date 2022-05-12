@@ -4,20 +4,10 @@ export apply_tree, apply_forest, apply_trees, apply_model, print_apply, tree_wal
 ############################################################################################
 ############################################################################################
 
-inst_init_world_sets(Xs::MultiFrameModalDataset, tree::DTree, i_instance::Integer) = begin
+inst_init_world_sets(Xs::MultiFrameModalDataset, tree::DTree, i_sample::Integer) = begin
     Ss = Vector{WorldSet}(undef, n_frames(Xs))
     for (i_frame,X) in enumerate(frames(Xs))
-        Ss[i_frame] = init_world_sets_fun(X, i_instance, tree.worldTypes[i_frame])(tree.initConditions[i_frame])
-    end
-    Ss
-end
-
-init_world_sets(Xs::MultiFrameModalDataset, initConditions::AbstractVector{<:_initCondition}) = begin
-    Ss = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, n_frames(Xs))
-    for (i_frame,X) in enumerate(frames(Xs))
-        WT = world_type(X)
-        Ss[i_frame] = WorldSet{WT}[init_world_sets_fun(X, i_instance, tree.worldTypes[i_frame])(initConditions[i_frame]) for i_instance in 1:n_samples(Xs)]
-        # Ss[i_frame] = WorldSet{WT}[[ModalLogic.Interval(1,2)] for i_instance in 1:n_samples(Xs)]
+        Ss[i_frame] = init_world_sets_fun(X, i_sample, tree.worldTypes[i_frame])(tree.initConditions[i_frame])
     end
     Ss
 end
@@ -61,44 +51,44 @@ predict(tree::DTree, X::ModalDataset, args...; kwargs...) =
 # Apply models: predict labels for a new dataset of instances
 ################################################################################
 
-function predict(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
+function predict(leaf::DTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
     prediction(leaf)
 end
 
-function predict(leaf::NSDTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
-    d = slice_dataset(X, [i_instance])
+function predict(leaf::NSDTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
+    d = slice_dataset(X, [i_sample])
     leaf.predicting_function(d)[1]
 end
 
-function predict(tree::DTInternal, X::MultiFrameModalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
+function predict(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
     @logmsg DTDetail "applying branch..."
     @logmsg DTDetail " worlds" worlds
     (satisfied,new_worlds) =
         ModalLogic.modal_step(
             get_frame(X, tree.i_frame),
-            i_instance,
+            i_sample,
             worlds[tree.i_frame],
             tree.decision,
     )
 
     worlds[tree.i_frame] = new_worlds
     @logmsg DTDetail " ->(satisfied,worlds')" satisfied worlds
-    predict((satisfied ? tree.left : tree.right), X, i_instance, worlds)
+    predict((satisfied ? tree.left : tree.right), X, i_sample, worlds)
 end
 
 # Obtain predictions of a tree on a dataset
 function predict(tree::DTree{L}, X::MultiFrameModalDataset) where {L}
     @logmsg DTDetail "predict..."
-    n_instances = n_samples(X)
-    predictions = Vector{L}(undef, n_instances)
+    _n_samples = n_samples(X)
+    predictions = Vector{L}(undef, _n_samples)
     
-    for i_instance in 1:n_instances
-        @logmsg DTDetail " instance $i_instance/$n_instances"
+    for i_sample in 1:_n_samples
+        @logmsg DTDetail " instance $i_sample/$_n_samples"
         # TODO figure out: is it better to interpret the whole dataset at once, or instance-by-instance? The first one enables reusing training code
 
-        worlds = inst_init_world_sets(X, tree, i_instance)
+        worlds = inst_init_world_sets(X, tree, i_sample)
 
-        predictions[i_instance] = predict(tree.root, X, i_instance, worlds)
+        predictions[i_sample] = predict(tree.root, X, i_sample, worlds)
     end
     predictions
     # return (if L <: Float64 # TODO remove
@@ -117,21 +107,21 @@ function predict(
     ) where {L, Z<:Real}
     @logmsg DTDetail "predict..."
     n_trees = length(trees)
-    n_instances = n_samples(X)
+    _n_samples = n_samples(X)
 
     if !isnothing(tree_weights)
         @assert length(trees) === length(tree_weights) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
     end
 
     # apply each tree to the whole dataset
-    _predictions = Matrix{L}(undef, n_trees, n_instances)
+    _predictions = Matrix{L}(undef, n_trees, _n_samples)
     Threads.@threads for i_tree in 1:n_trees
         _predictions[i_tree,:] = predict(trees[i_tree], X)
     end
 
     # for each instance, aggregate the predictions
-    predictions = Vector{L}(undef, n_instances)
-    Threads.@threads for i in 1:n_instances
+    predictions = Vector{L}(undef, _n_samples)
+    Threads.@threads for i in 1:_n_samples
         predictions[i] = majority_vote(_predictions[:,i], tree_weights; suppress_parity_warning = suppress_parity_warning)
     end
 
@@ -186,7 +176,7 @@ end
 function predict(
         leaf::DTLeaf{L},
         X::MultiFrameModalDataset,
-        i_instance::Integer,
+        i_sample::Integer,
         worlds::AbstractVector{<:AbstractWorldSet},
         class::L;
         update_labels = false,
@@ -206,13 +196,13 @@ end
 function predict(
         leaf::NSDTLeaf{L},
         X::MultiFrameModalDataset,
-        i_instance::Integer,
+        i_sample::Integer,
         worlds::AbstractVector{<:AbstractWorldSet},
         class::L;
         update_labels = false,
     ) where {L<:Label}
     _supp_train_labels      = L[leaf.supp_train_labels...,      class]
-    _supp_train_predictions = L[leaf.supp_train_predictions..., predict(leaf, X, i_instance, worlds)]
+    _supp_train_predictions = L[leaf.supp_train_predictions..., predict(leaf, X, i_sample, worlds)]
 
     _predicting_function = 
         if update_labels
@@ -220,20 +210,20 @@ function predict(
         else
             leaf.predicting_function
         end
-    d = slice_dataset(X, [i_instance])
+    d = slice_dataset(X, [i_sample])
     _predicting_function(d)[1], NSDTLeaf{L}(_predicting_function, _supp_train_labels, leaf.supp_valid_labels, _supp_train_predictions, leaf.supp_valid_predictions)
 end
 
 function predict(
     tree::DTInternal{T, L},
     X::MultiFrameModalDataset,
-    i_instance::Integer,
+    i_sample::Integer,
     worlds::AbstractVector{<:AbstractWorldSet},
     class::L;
     update_labels = false,
 ) where {T, L}
     
-    (satisfied,new_worlds) = ModalLogic.modal_step(get_frame(X, tree.i_frame), i_instance, worlds[tree.i_frame], tree.decision)
+    (satisfied,new_worlds) = ModalLogic.modal_step(get_frame(X, tree.i_frame), i_sample, worlds[tree.i_frame], tree.decision)
     
     # if satisfied
     #   println("new_worlds: $(new_worlds)")
@@ -241,14 +231,14 @@ function predict(
 
     worlds[tree.i_frame] = new_worlds
 
-    this_prediction, this_leaf = predict(tree.this,  X, i_instance, worlds, class, update_labels = update_labels) # TODO test whether this works correctly 
+    this_prediction, this_leaf = predict(tree.this,  X, i_sample, worlds, class, update_labels = update_labels) # TODO test whether this works correctly 
     
     pred, left_leaf, right_leaf =
         if satisfied
-            pred, left_leaf = predict(tree.left,  X, i_instance, worlds, class, update_labels = update_labels)
+            pred, left_leaf = predict(tree.left,  X, i_sample, worlds, class, update_labels = update_labels)
             pred, left_leaf, tree.right
         else
-            pred, right_leaf = predict(tree.right, X, i_instance, worlds, class, update_labels = update_labels)
+            pred, right_leaf = predict(tree.right, X, i_sample, worlds, class, update_labels = update_labels)
             pred, tree.left, right_leaf
         end
 
@@ -270,9 +260,9 @@ function predict(
     root = tree.root
 
     # Propagate instances down the tree
-    for i_instance in 1:n_samples(X)
-        worlds = inst_init_world_sets(X, tree, i_instance)
-        pred, root = predict(root, X, i_instance, worlds, Y[i_instance], update_labels = update_labels)
+    for i_sample in 1:n_samples(X)
+        worlds = inst_init_world_sets(X, tree, i_sample)
+        pred, root = predict(root, X, i_sample, worlds, Y[i_sample], update_labels = update_labels)
         push!(preds, prediction)
     end
     predictions, DTree(root, tree.worldTypes, tree.initConditions)
@@ -296,7 +286,7 @@ end
 #     metrics = Dict()
 #     confidence = n_correct/n_inst
     
-#     metrics["n_instances"] = n_inst
+#     metrics["_n_samples"] = n_inst
 #     metrics["n_correct"] = n_correct
 #     metrics["avg_confidence"] = confidence
 #     metrics["best_confidence"] = confidence
@@ -332,8 +322,8 @@ end
 #     metrics = Dict()
 
 #     # Number of instances passing through the node
-#     metrics["n_instances"] =
-#         metrics_l["n_instances"] + metrics_r["n_instances"]
+#     metrics["_n_samples"] =
+#         metrics_l["_n_samples"] + metrics_r["_n_samples"]
 
 #     # Number of correct instances passing through the node
 #     metrics["n_correct"] =
@@ -341,22 +331,22 @@ end
     
 #     # Average confidence of the subtree
 #     metrics["avg_confidence"] =
-#         (metrics_l["n_instances"] * metrics_l["avg_confidence"] +
-#         metrics_r["n_instances"] * metrics_r["avg_confidence"]) /
-#             (metrics_l["n_instances"] + metrics_r["n_instances"])
+#         (metrics_l["_n_samples"] * metrics_l["avg_confidence"] +
+#         metrics_r["_n_samples"] * metrics_r["avg_confidence"]) /
+#             (metrics_l["_n_samples"] + metrics_r["_n_samples"])
     
 #     # Average support of the subtree (Note to self: weird...?)
 #     metrics["avg_support"] =
-#         (metrics_l["n_instances"] * metrics_l["avg_support"] +
-#         metrics_r["n_instances"] * metrics_r["avg_support"]) /
-#             (metrics_l["n_instances"] + metrics_r["n_instances"])
+#         (metrics_l["_n_samples"] * metrics_l["avg_support"] +
+#         metrics_r["_n_samples"] * metrics_r["avg_support"]) /
+#             (metrics_l["_n_samples"] + metrics_r["_n_samples"])
     
 #     # Best confidence of the best-confidence path passing through the node
 #     metrics["best_confidence"] = max(metrics_l["best_confidence"], metrics_r["best_confidence"])
     
 #     # Support of the current node
 #     if !isnothing(n_tot_inst)
-#         metrics["support"] = (metrics_l["n_instances"] + metrics_r["n_instances"])/n_tot_inst
+#         metrics["support"] = (metrics_l["_n_samples"] + metrics_r["_n_samples"])/n_tot_inst
     
 #         # Best support of the best-support path passing through the node
 #         metrics["best_support"] = max(metrics_l["best_support"], metrics_r["best_support"])

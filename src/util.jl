@@ -197,7 +197,7 @@ variance = _variance
 ############################################################################################
 
 # Translate a list of labels into categorical form
-Base.@propagate_inbounds @inline function get_categorical_form(Y :: AbstractVector)
+Base.@propagate_inbounds @inline function get_categorical_form(Y :: AbstractVector{T}) where {T}
     class_names = unique(Y)
 
     dict = Dict{T, Int64}()
@@ -296,8 +296,6 @@ end
 
 subscriptnumber(i::AbstractFloat) = subscriptnumber(string(i))
 
-end
-
 ################################################################################
 # Others
 ################################################################################
@@ -318,3 +316,5 @@ end
 # maxExtrema(extr::Union{NTuple{N,NTuple{2,T}},AbstractVector{NTuple{2,T}}}) where {T<:Real,N} = reduce(((fst,snd),(f,s))->(max(fst,f),min(snd,s)), extr; init=(typemin(T),typemax(T)))
 # minExtrema(extr::Vararg{NTuple{2,T}}) where {T<:Real} = minExtrema(extr)
 # maxExtrema(extr::Vararg{NTuple{2,T}}) where {T<:Real} = maxExtrema(extr)
+
+end

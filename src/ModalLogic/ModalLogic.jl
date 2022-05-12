@@ -1,7 +1,13 @@
 module ModalLogic
 
 using ..ModalDecisionTrees
-using ..ModalDecisionTrees: util, get_interpretation_function, alpha, display_feature_test_operator_pair
+using ..ModalDecisionTrees: util, interpret_feature, alpha, display_feature_test_operator_pair
+
+using ..ModalDecisionTrees: DimensionalDataset, AbstractDimensionalChannel, AbstractDimensionalInstance, UniformDimensionalDataset, DimensionalChannel, DimensionalInstance
+
+using ..ModalDecisionTrees: DTOverview, DTDebug, DTDetail
+
+using ..ModalDecisionTrees: test_operator_inverse
 
 using BenchmarkTools
 using ComputedFieldTypes
@@ -147,8 +153,8 @@ Base.show(io::IO, ::_RelationGlob) = print(io, "G")
 
 # Shortcuts using global relation for enumerating all worlds
 all_worlds(::Type{WorldType}, args...) where {WorldType<:AbstractWorld} = accessibles(WorldType[], RelationGlob, args...)
-all_worlds(::Type{WorldType}, enumAccFun::Function) where {WorldType<:AbstractWorld} = enumAccFun(WorldType[], RelationGlob)
-all_worlds_aggr(::Type{WorldType}, enumReprFun::Function, f::ModalFeature, a::Aggregator) where {WorldType<:AbstractWorld} = enumReprFun(f, a, WorldType[], RelationGlob)
+all_worlds(::Type{WorldType}, enum_acc_fun::Function) where {WorldType<:AbstractWorld} = enum_acc_fun(WorldType[], RelationGlob)
+all_worlds_aggr(::Type{WorldType}, enum_repr_fun::Function, f::ModalFeature, a::Aggregator) where {WorldType<:AbstractWorld} = enum_repr_fun(f, a, WorldType[], RelationGlob)
 
 ############################################################################################
 
@@ -159,16 +165,16 @@ struct Ontology{WorldType<:AbstractWorld}
 
     relations :: AbstractVector{<:AbstractRelation}
 
-    function Ontology{WorldType}(relations::AbstractVector) where {WorldType<:AbstractWorld}
-        relations = collect(unique(relations))
-        for relation in relations
+    function Ontology{WorldType}(_relations::AbstractVector) where {WorldType<:AbstractWorld}
+        _relations = collect(unique(_relations))
+        for relation in _relations
             @assert goes_with(WorldType, relation) "Can't instantiate Ontology{$(WorldType)} with relation $(relation)!"
         end
-        if WorldType == OneWorld && length(relations) > 0
-          relations = similar(relations, 0)
+        if WorldType == OneWorld && length(_relations) > 0
+          _relations = similar(_relations, 0)
           @warn "Instantiating Ontology{$(WorldType)} with empty set of relations!"
         end
-        new{WorldType}(relations)
+        new{WorldType}(_relations)
     end
 
     Ontology(worldType::Type{<:AbstractWorld}, relations) = Ontology{worldType}(relations)
@@ -270,9 +276,12 @@ end
 # Dataset structures
 ############################################################################################
 # TODO sort these
-export n_samples, n_attributes, n_features, n_relations,
-       max_channel_size,
-       slice_dataset,
+import ..ModalDecisionTrees: slice_dataset, concat_datasets,
+       n_samples, n_attributes, max_channel_size, get_instance,
+       instance_channel_size, get_instance_attribute
+
+
+export n_features, n_relations,
        n_frames, frames, get_frame,
        display_structure,
        get_gamma, test_decision,
@@ -288,16 +297,15 @@ export n_samples, n_attributes, n_features, n_relations,
        InterpretedModalDataset, 
        ExplicitModalDataset,
        ExplicitModalDatasetS,
-       ExplicitModalDatasetSMemo,
+       ExplicitModalDatasetSMemo
        # 
-       DimensionalChannel
 # 
 # A modal dataset can be *active* or *passive*.
 # 
 # A passive modal dataset is one that you can interpret decisions on, but cannot necessarily
 #  enumerate decisions for, as it doesn't have objects for storing the logic (relations, features, etc.).
 # Dimensional datasets are passive.
-include("dimensional-dataset.jl")
+include("dimensional-dataset-bindings.jl")
 # 
 const PassiveModalDataset{T} = Union{DimensionalDataset{T}}
 # 
@@ -309,8 +317,8 @@ abstract type ActiveModalDataset{T<:Number,WorldType<:AbstractWorld} end
 # 
 # Active modal datasets hold the WorldType, and thus can initialize world sets with a lighter interface
 # 
-init_world_sets_fun(imd::ActiveModalDataset{T, WorldType},  i_instance::Integer, ::Type{WorldType}) where {T, WorldType} = 
-    init_world_sets_fun(imd, i_instance)
+init_world_sets_fun(imd::ActiveModalDataset{T, WorldType},  i_sample::Integer, ::Type{WorldType}) where {T, WorldType} = 
+    init_world_sets_fun(imd, i_sample)
 # 
 const ModalDataset{T} = Union{PassiveModalDataset{T},ActiveModalDataset{T}}
 # 
@@ -321,7 +329,7 @@ include("active-modal-datasets.jl")
 # 
 include("multi-frame-dataset.jl")
 # 
-const ActiveMultiFrameModalDataset{T} = MultiFrameModalDataset{ActiveModalDataset{T}}
+const ActiveMultiFrameModalDataset{T} = MultiFrameModalDataset{<:ActiveModalDataset{<:T}}
 # 
 const GenericModalDataset = Union{ModalDataset,MultiFrameModalDataset}
 # 

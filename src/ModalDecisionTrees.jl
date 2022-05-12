@@ -58,6 +58,15 @@ include("util.jl")
 include("metrics.jl")
 
 ############################################################################################
+# Simple dataset structure (basically, an hypercube)
+############################################################################################
+
+export slice_dataset, concat_datasets,
+       n_samples, n_attributes, max_channel_size
+
+include("dimensional-dataset.jl")
+
+############################################################################################
 # Modal features
 ############################################################################################
 
@@ -100,6 +109,16 @@ init_world_set(initCondition::_startAtCenter, ::Type{WorldType}, args...) where 
 
 init_world_set(initCondition::_startAtWorld{WorldType}, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
     WorldSet{WorldType}([WorldType(initCondition.w)])
+
+init_world_sets(Xs::MultiFrameModalDataset, initConditions::AbstractVector{<:_initCondition}) = begin
+    Ss = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, n_frames(Xs))
+    for (i_frame,X) in enumerate(frames(Xs))
+        WT = world_type(X)
+        Ss[i_frame] = WorldSet{WT}[init_world_sets_fun(X, i_sample, world_type(Xs, i_frame))(initConditions[i_frame]) for i_sample in 1:n_samples(Xs)]
+        # Ss[i_frame] = WorldSet{WT}[[ModalLogic.Interval(1,2)] for i_sample in 1:n_samples(Xs)]
+    end
+    Ss
+end
 
 ############################################################################################
 # Loss & purity functions
