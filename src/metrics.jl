@@ -188,9 +188,9 @@ struct ConfusionMatrix
             class_labels
         end
 
-        n_instances = length(actual)
-        _actual    = zeros(Int, n_instances)
-        _predicted = zeros(Int, n_instances)
+        _n_samples = length(actual)
+        _actual    = zeros(Int, _n_samples)
+        _predicted = zeros(Int, _n_samples)
 
         n_classes = length(class_labels)
         for i in 1:n_classes

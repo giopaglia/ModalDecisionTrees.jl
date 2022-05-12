@@ -59,7 +59,7 @@ get_classes(dt::DecisionTreeClassifier) = dt.classes
                           :min_samples_split, :min_purity_increase, :rng])
 
 function fit!(dt::DecisionTreeClassifier, X, y)
-    n_samples, n_features = size(X)
+    n_samples, _n_features = size(X)
     dt.root = build_tree(
         y, X,
         # dt.n_subfeatures,
@@ -150,7 +150,7 @@ end
                           :max_depth, :min_samples_split, :min_purity_increase, :rng])
 
 function fit!(dt::DecisionTreeRegressor, X::AbstractMatrix, y::AbstractVector)
-    n_samples, n_features = size(X)
+    n_samples, _n_features = size(X)
     dt.root = build_tree(
         float.(y), X,
         # dt.n_subfeatures,
@@ -227,7 +227,7 @@ get_classes(rf::RandomForestClassifier) = rf.classes
                           :rng])
 
 function fit!(rf::RandomForestClassifier, X::AbstractMatrix, y::AbstractVector)
-    n_samples, n_features = size(X)
+    n_samples, _n_features = size(X)
     rf.ensemble = build_forest(
         y, X,
         # rf.n_subfeatures,
@@ -312,7 +312,7 @@ end
                           :max_depth, :rng])
 
 function fit!(rf::RandomForestRegressor, X::AbstractMatrix, y::AbstractVector)
-    n_samples, n_features = size(X)
+    n_samples, _n_features = size(X)
     rf.ensemble = build_forest(
         float.(y), X,
         # rf.n_subfeatures,

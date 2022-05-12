@@ -13,20 +13,20 @@ end
 
 const DecisionPath = Vector{DecisionPathNode}
 
-_get_path_in_tree(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, i_frame::Integer, paths::Vector{DecisionPath})::AbstractWorldSet = return worlds[i_frame]
-function _get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, i_frame::Integer, paths::Vector{DecisionPath})::AbstractWorldSet
+_get_path_in_tree(leaf::DTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet}, i_frame::Integer, paths::Vector{DecisionPath})::AbstractWorldSet = return worlds[i_frame]
+function _get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet}, i_frame::Integer, paths::Vector{DecisionPath})::AbstractWorldSet
     satisfied = true
     (satisfied,new_worlds,worlds_map) =
         ModalLogic.modal_step(
                         get_frame(X, tree.i_frame),
-                        i_instance,
+                        i_sample,
                         worlds[tree.i_frame],
                         tree.decision,
                         Val(true)
                     )
 
     worlds[tree.i_frame] = new_worlds
-    survivors = _get_path_in_tree((satisfied ? tree.left : tree.right), X, i_instance, worlds, tree.i_frame, paths)
+    survivors = _get_path_in_tree((satisfied ? tree.left : tree.right), X, i_sample, worlds, tree.i_frame, paths)
 
     # if survivors of next step are in the list of worlds viewed by one
     # of the just accumulated "new_worlds" then that world is a survivor
@@ -38,16 +38,16 @@ function _get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_instan
         end
     end
 
-    pushfirst!(paths[i_instance], DecisionPathNode(satisfied, tree.decision.feature, tree.decision.test_operator, tree.decision.threshold, deepcopy(new_survivors)))
+    pushfirst!(paths[i_sample], DecisionPathNode(satisfied, tree.decision.feature, tree.decision.test_operator, tree.decision.threshold, deepcopy(new_survivors)))
 
     return new_survivors
 end
 function get_path_in_tree(tree::DTree{S}, X::GenericModalDataset)::Vector{DecisionPath} where {S}
-    n_instances = n_samples(X)
-    paths::Vector{DecisionPath} = [ DecisionPath() for i in 1:n_instances ]
-    for i_instance in 1:n_instances
-        worlds = ModalDecisionTrees.inst_init_world_sets(X, tree, i_instance)
-        _get_path_in_tree(tree.root, X, i_instance, worlds, 1, paths)
+    _n_samples = n_samples(X)
+    paths::Vector{DecisionPath} = [ DecisionPath() for i in 1:_n_samples ]
+    for i_sample in 1:_n_samples
+        worlds = ModalDecisionTrees.inst_init_world_sets(X, tree, i_sample)
+        _get_path_in_tree(tree.root, X, i_sample, worlds, 1, paths)
     end
     paths
 end
