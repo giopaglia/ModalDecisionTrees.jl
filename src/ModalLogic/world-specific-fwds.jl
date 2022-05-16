@@ -167,7 +167,7 @@ compute_modal_gamma(fwd_feature_slice::FWDFeatureSlice{T}, worlds::Any, aggregat
     # TODO remove this aggregator_to_binary...
     
     if length(worlds |> collect) == 0
-        ModalLogic.aggregator_bottom(aggregator, T)
+        aggregator_bottom(aggregator, T)
     else
         aggregator((w)->fwd_channel_interpret_world(fwd_feature_slice, w), worlds)
     end
