@@ -1,4 +1,5 @@
-using ..ModalDecisionTrees: _CanonicalFeatureGeq, _CanonicalFeatureGeqSoft, _CanonicalFeatureLeq, _CanonicalFeatureLeqSoft, aggregator_to_binary
+using ..ModalDecisionTrees: _CanonicalFeatureGeq, _CanonicalFeatureGeqSoft, _CanonicalFeatureLeq, _CanonicalFeatureLeqSoft
+using ..ModalDecisionTrees: evaluate_thresh_decision, existential_aggregator, aggregator_bottom, aggregator_to_binary
 
 const initWorldSetFunction = Function
 const accFunction = Function
@@ -12,7 +13,7 @@ function grouped_featsnops2grouped_featsaggrsnops(grouped_featsnops::AbstractVec
     for (i_feature, test_operators) in enumerate(grouped_featsnops)
         aggrsnops = Dict{Aggregator,AbstractVector{<:TestOperatorFun}}()
         for test_operator in test_operators
-            aggregator = ModalLogic.existential_aggregator(test_operator)
+            aggregator = existential_aggregator(test_operator)
             if (!haskey(aggrsnops, aggregator))
                 aggrsnops[aggregator] = TestOperatorFun[]
             end
@@ -294,7 +295,7 @@ Base.getindex(
     fwd         :: AbstractFWD{T},
     i_sample    :: Integer,
     w           :: AbstractWorld,
-    i_feature   :: Integer) where {T} = fwd_get(i_sample, w, i_feature)
+    i_feature   :: Integer) where {T} = fwd_get(fwd, i_sample, w, i_feature)
 
 # # A function for setting a threshold value in the lookup table
 # function fwd_set(fwd::GenericFWD{T}, w::AbstractWorld, i_sample::Integer, i_feature::Integer, threshold::T) where {T}
@@ -1517,7 +1518,7 @@ test_decision(
     
     worlds = accessibles_aggr(decision.feature, aggregator, w, decision.relation, instance_channel_size(instance)...)
     gamma = if length(worlds |> collect) == 0
-        ModalLogic.aggregator_bottom(aggregator, T)
+        aggregator_bottom(aggregator, T)
     else
         aggregator((w)->get_gamma(X, i_sample, w, decision.feature), worlds)
     end
