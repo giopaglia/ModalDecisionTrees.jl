@@ -5,7 +5,6 @@ export ModalFeature,
         SingleAttributeFeature, MultiAttributeFeature,
         ExternalFWDFeature
 
-
 ############################################################################################
 ############################################################################################
 ############################################################################################
@@ -107,6 +106,10 @@ Base.show(io::IO, f::SingleAttributeSoftMax) = print(io, "max" * util.subscriptn
 #     get_instance_attribute(inst,f.i_attribute)::T
 # end
 # Note: Maybe features should dispatch on WorldType, (as well or on the type of underlying data?)
+
+# These features collapse to a single value; this can be useful to know
+const CollapsingSingleAttributeDimensionalFeature = Union{SingleAttributeMin, SingleAttributeMax, SingleAttributeSoftMin, SingleAttributeSoftMax}
+i_attribute(f:: CollapsingSingleAttributeDimensionalFeature) = f.i_attribute
 
 ############################################################################################
 

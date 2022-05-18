@@ -29,7 +29,7 @@ end
 
 fwd_get(
     fwd         :: OneWorldFWD{T},
-    i_sample  :: Integer,
+    i_sample    :: Integer,
     w           :: OneWorld,
     i_feature   :: Integer) where {T} = fwd.d[i_sample, i_feature]
 
@@ -76,7 +76,7 @@ end
 
 fwd_get(
     fwd         :: IntervalFWD{T},
-    i_sample  :: Integer,
+    i_sample    :: Integer,
     w           :: Interval,
     i_feature   :: Integer) where {T} = fwd.d[w.x, w.y, i_sample, i_feature]
 
@@ -124,7 +124,7 @@ end
 
 fwd_get(
     fwd         :: Interval2DFWD{T},
-    i_sample  :: Integer,
+    i_sample    :: Integer,
     w           :: Interval2D,
     i_feature   :: Integer) where {T} = fwd.d[w.x.x, w.x.y, w.y.x, w.y.y, i_sample, i_feature]
 
