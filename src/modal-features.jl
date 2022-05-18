@@ -123,8 +123,8 @@ Base.show(io::IO, f::SingleAttributeFeature) = print(io, "$(f.f)(A$(f.i_attribut
 ############################################################################################
 
 # These features collapse to a single value; this can be useful to know
-is_collapsing_single_attribute_feature(feat::Union{SingleAttributeMin, SingleAttributeMax, SingleAttributeSoftMin, SingleAttributeSoftMax}) = true
-is_collapsing_single_attribute_feature(feat::SingleAttributeFeature) = (f in [minimum, maximum, mean])
+is_collapsing_single_attribute_feature(f::Union{SingleAttributeMin, SingleAttributeMax, SingleAttributeSoftMin, SingleAttributeSoftMax}) = true
+is_collapsing_single_attribute_feature(f::SingleAttributeFeature) = (f.f in [minimum, maximum, mean])
 i_attribute(f::Union{SingleAttributeMin, SingleAttributeMax, SingleAttributeSoftMin, SingleAttributeSoftMax, SingleAttributeMin}) = f.i_attribute
 
 ############################################################################################
