@@ -416,6 +416,9 @@ getIntervalRCC5OntologyOfDim(::DimensionalDataset{T,D}) where {T,D} = getInterva
 getIntervalRCC5OntologyOfDim(::Val{1}) = IntervalRCC5Ontology
 getIntervalRCC5OntologyOfDim(::Val{2}) = Interval2DRCC5Ontology
 
+const WorldType0D = Union{Point}
+const WorldType1D = Union{Interval}
+const WorldType2D = Union{Interval2D}
 
 ############################################################################################
 # World-specific featured world datasets and supports

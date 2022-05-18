@@ -16,7 +16,7 @@
 #  series with same number of points, or images of same width and height)
 ############################################################################################
 
-const DimensionalDataset{T<:Number,D}     = AbstractArray{T,D}
+const DimensionalDataset{T<:Number,D}             = AbstractArray{T,D}
 const AbstractDimensionalChannel{T<:Number,N}     = AbstractArray{T,N}
 const AbstractDimensionalInstance{T<:Number,MN}   = AbstractArray{T,MN}
 
