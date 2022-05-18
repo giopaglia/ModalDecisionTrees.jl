@@ -102,10 +102,10 @@ end
                 push!(featsnops, test_ops)
             end
 
-            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureGeq) = ([≥],ModalLogic.SingleAttributeMin(i_attr))
-            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureLeq) = ([≤],ModalLogic.SingleAttributeMax(i_attr))
-            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureGeqSoft) = ([≥],ModalLogic.SingleAttributeSoftMin(i_attr, cf.alpha))
-            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureLeqSoft) = ([≤],ModalLogic.SingleAttributeSoftMax(i_attr, cf.alpha))
+            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureGeq) = ([≥],ModalDecisionTrees.SingleAttributeMin(i_attr))
+            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureLeq) = ([≤],ModalDecisionTrees.SingleAttributeMax(i_attr))
+            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureGeqSoft) = ([≥],ModalDecisionTrees.SingleAttributeSoftMin(i_attr, cf.alpha))
+            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureLeqSoft) = ([≤],ModalDecisionTrees.SingleAttributeSoftMax(i_attr, cf.alpha))
             single_attr_feats_n_featsnops(i_attr,(test_ops,cf)::Tuple{<:AbstractVector{<:TestOperatorFun},Function}) = (test_ops,SingleAttributeFeature(i_attr, cf))
             single_attr_feats_n_featsnops(i_attr,::Any) = throw_n_log("Unknown mixed_feature type: $(cf), $(typeof(cf))")
 
