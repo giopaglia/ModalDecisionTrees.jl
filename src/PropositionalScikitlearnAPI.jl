@@ -14,7 +14,7 @@ get_classes,
                            max_depth::Int=-1,
                            min_samples_leaf::Int=1,
                            min_samples_split::Int=2,
-                           min_purity_increase::Float=0.0,
+                       min_purity_increase::AbstractFloat=0.0,
                            # n_subfeatures::Int=0,
                            rng=Random.GLOBAL_RNG)
 
@@ -104,7 +104,7 @@ end
                           max_depth::Int-1,
                           min_samples_leaf::Int=5,
                           min_samples_split::Int=2,
-                          min_purity_increase::Float=0.0,
+                          min_purity_increase::AbstractFloat=0.0,
                           # n_subfeatures::Int=0,
                           rng=Random.GLOBAL_RNG)
 Decision tree regression. See [DecisionTree.jl's documentation](https://github.com/bensadeghi/DecisionTree.jl)
@@ -183,7 +183,7 @@ end
 """
     # RandomForestClassifier(; n_subfeatures::Int=-1,
                            n_trees::Int=10,
-                           partial_sampling::Float=0.7,
+                           partial_sampling::AbstractFloat=0.7,
                            max_depth::Int=-1,
                            rng=Random.GLOBAL_RNG)
 Random forest classification. See [DecisionTree.jl's documentation](https://github.com/bensadeghi/DecisionTree.jl)
@@ -267,7 +267,7 @@ end
 """
     # RandomForestRegressor(; n_subfeatures::Int=-1,
                           n_trees::Int=10,
-                          partial_sampling::Float=0.7,
+                          partial_sampling::AbstractFloat=0.7,
                           max_depth::Int=-1,
                           min_samples_leaf::Int=5,
                           rng=Random.GLOBAL_RNG)
