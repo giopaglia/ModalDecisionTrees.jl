@@ -263,7 +263,7 @@ function predict(
     for i_sample in 1:n_samples(X)
         worlds = inst_init_world_sets(X, tree, i_sample)
         pred, root = predict(root, X, i_sample, worlds, Y[i_sample], update_labels = update_labels)
-        push!(pred, prediction)
+        push!(predictions, pred)
     end
     predictions, DTree(root, tree.worldTypes, tree.initConditions)
 end
