@@ -107,10 +107,6 @@ Base.show(io::IO, f::SingleAttributeSoftMax) = print(io, "max" * util.subscriptn
 # end
 # Note: Maybe features should dispatch on WorldType, (as well or on the type of underlying data?)
 
-# These features collapse to a single value; this can be useful to know
-const CollapsingSingleAttributeDimensionalFeature = Union{SingleAttributeMin, SingleAttributeMax, SingleAttributeSoftMin, SingleAttributeSoftMax}
-i_attribute(f:: CollapsingSingleAttributeDimensionalFeature) = f.i_attribute
-
 ############################################################################################
 
 # A dimensional feature represented by the application of a function to a
@@ -123,6 +119,13 @@ function interpret_feature(f::SingleAttributeFeature, inst::AbstractDimensionalI
     (f.f(util.vectorize(get_instance_attribute(inst,f.i_attribute));))::T
 end
 Base.show(io::IO, f::SingleAttributeFeature) = print(io, "$(f.f)(A$(f.i_attribute))")
+
+############################################################################################
+
+# These features collapse to a single value; this can be useful to know
+is_collapsing_single_attribute_feature(feat::Union{SingleAttributeMin, SingleAttributeMax, SingleAttributeSoftMin, SingleAttributeSoftMax}) = true
+is_collapsing_single_attribute_feature(feat::SingleAttributeFeature) = (f in [minimum, maximum, mean])
+i_attribute(f::Union{SingleAttributeMin, SingleAttributeMax, SingleAttributeSoftMin, SingleAttributeSoftMax, SingleAttributeMin}) = f.i_attribute
 
 ############################################################################################
 
