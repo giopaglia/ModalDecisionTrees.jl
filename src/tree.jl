@@ -664,9 +664,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # println(instance)
             # println(Sf[i_sample])
             _sat, _ss = ModalLogic.modal_step(X, idxs[i_sample + r_start], Sf[i_sample], best_decision)
-            # Threads.lock(writing_lock)
             (satisfied,Ss[best_i_frame][idxs[i_sample + r_start]]) = _sat, _ss
-            # Threads.unlock(writing_lock)
             @logmsg DTDetail " [$satisfied] Instance $(i_sample)/$(_n_samples)" Sf[i_sample] (if satisfied Ss[best_i_frame][idxs[i_sample + r_start]] end)
             # println(satisfied)
             # println(Ss[best_i_frame][idxs[i_sample + r_start]])
@@ -809,7 +807,6 @@ end
     NodeMetaT = NodeMeta{Float64,(_is_classification isa Val{true} ? Int64 : Float64)}
     onlyallowRelationGlob = [(iC == startWithRelationGlob) for iC in initConditions]
     root = NodeMetaT(1:_n_samples, 0, 0, onlyallowRelationGlob)
-    # writing_lock = Threads.Condition()
     
     # Process nodes recursively, using multi-threading
     function process_node!(node, rng)

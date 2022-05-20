@@ -1,0 +1,8 @@
+- ERROR? ModalDecisionTrees.entropy([1,2],2) == ModalDecisionTrees.entropy([0,2],2)
+- Question: without pruning, must purity always increase?
+	entl=ModalDecisionTrees.entropy([0,40],40)*40                        
+	entr=ModalDecisionTrees.entropy([1,3],4)*4                           
+	ent=ModalDecisionTrees.entropy([1,43],44)                         
+	newent = (entl + entr)/44
+	purity = -ent
+	newpurity = -newent

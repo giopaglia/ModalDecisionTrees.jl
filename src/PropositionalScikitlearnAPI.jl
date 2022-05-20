@@ -6,6 +6,20 @@ fit!,
 get_classes,
 @declare_hyperparameters
 
+const ClassificationLabel = String
+const RegressionLabel = Float64 # AbstractFloat
+
+# ScikitLearn API
+export DecisionTreeClassifier,
+#        DecisionTreeRegressor, RandomForestClassifier,
+#        RandomForestRegressor, AdaBoostStumpClassifier,
+#        # Should we export these functions? They have a conflict with
+#        # DataFrames/RDataset over fit!, and users can always
+#        # `using ScikitLearnBase`.
+            predict,
+            # predict_proba,
+            fit!, get_classes
+
 ################################################################################
 # Classifier
 
