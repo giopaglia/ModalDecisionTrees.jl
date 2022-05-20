@@ -222,7 +222,7 @@ display_structure(imd::InterpretedModalDataset; indent_str = "") = begin
     out
 end
 
-get_gamma(imd::InterpretedModalDataset, args...) = get_gamma(imd.domain, args...)
+Base.@propagate_inbounds @inline get_gamma(imd::InterpretedModalDataset, args...) = get_gamma(imd.domain, args...)
 
 ############################################################################################
 # Featured world dataset
@@ -287,7 +287,7 @@ goes_with(::Type{<:AbstractFWD}, ::Type{<:AbstractWorld}) = false
 # end
 
 # # A function for getting a threshold value from the lookup table
-# fwd_get(
+# Base.@propagate_inbounds @inline fwd_get(
 #     fwd         :: GenericFWD{T},
 #     i_sample    :: Integer,
 #     w           :: AbstractWorld,
@@ -300,12 +300,12 @@ Base.getindex(
     i_feature   :: Integer) where {T} = fwd_get(fwd, i_sample, w, i_feature)
 
 # # A function for setting a threshold value in the lookup table
-# function fwd_set(fwd::GenericFWD{T}, w::AbstractWorld, i_sample::Integer, i_feature::Integer, threshold::T) where {T}
+# Base.@propagate_inbounds @inline function fwd_set(fwd::GenericFWD{T}, w::AbstractWorld, i_sample::Integer, i_feature::Integer, threshold::T) where {T}
 #     fwd.d[i_sample][w][i_feature] = threshold
 # end
 
 # # A function for setting threshold values for a single feature (from a feature slice, experimental)
-# function fwd_set_feature(fwd::GenericFWD{T}, i_feature::Integer, fwd_feature_slice::Any) where {T}
+# Base.@propagate_inbounds @inline function fwd_set_feature(fwd::GenericFWD{T}, i_feature::Integer, fwd_feature_slice::Any) where {T}
 #     throw_n_log("Warning! fwd_set_feature with GenericFWD is not yet implemented!")
 #     for ((i_sample,w),threshold::T) in read_fwd_feature_slice(fwd_feature_slice)
 #         fwd.d[i_sample][w][i_feature] = threshold
@@ -319,7 +319,7 @@ Base.getindex(
 # end
 
 # Others...
-# fwd_get_channel(fwd::GenericFWD{T}, i_sample::Integer, i_feature::Integer) where {T} = TODO
+# Base.@propagate_inbounds @inline fwd_get_channel(fwd::GenericFWD{T}, i_sample::Integer, i_feature::Integer) where {T} = TODO
 # const GenericFeaturedChannel{T} = TODO
 # fwd_channel_interpret_world(fwc::GenericFeaturedChannel{T}, w::AbstractWorld) where {T} = TODO
 
@@ -442,7 +442,7 @@ struct ExplicitModalDataset{T<:Number, WorldType<:AbstractWorld} <: ActiveModalD
             enum_features = zip(i_features, _features[i_features])
 
             # Compute features
-            Threads.@threads for i_sample in 1:_n_samples
+            @inbounds Threads.@threads for i_sample in 1:_n_samples
                 @logmsg DTDebug "Instance $(i_sample)/$(_n_samples)"
                 
                 if i_sample == 1 || ((i_sample+1) % (floor(Int, ((_n_samples)/4))+1)) == 0
@@ -518,7 +518,7 @@ find_feature_id(X::ExplicitModalDataset{T,WorldType}, feature::ModalFeature) whe
 find_relation_id(X::ExplicitModalDataset{T,WorldType}, relation::AbstractRelation) where {T,WorldType} =
     findall(x->x==relation, relations(X))[1]
 
-get_gamma(
+Base.@propagate_inbounds @inline get_gamma(
         X::ExplicitModalDataset{T,WorldType},
         i_sample::Integer,
         w::WorldType,
@@ -969,7 +969,7 @@ find_relation_id(X::ExplicitModalDatasetWithSupport, relation::AbstractRelation)
 find_featsnaggr_id(X::ExplicitModalDatasetWithSupport, feature::ModalFeature, aggregator::Aggregator) =
     findall(x->x==(feature, aggregator), featsnaggrs(X))[1]
 
-get_gamma(
+Base.@propagate_inbounds @inline get_gamma(
         X::ExplicitModalDatasetWithSupport{T,WorldType},
         i_sample::Integer,
         w::WorldType,
@@ -1065,7 +1065,7 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
     _n_samples = length(instances_inds)
 
     # For each feature
-    for i_feature in features_inds
+    @inbounds for i_feature in features_inds
         feature = features(emd)[i_feature]
         @logmsg DTDebug "Feature $(i_feature): $(feature)"
 

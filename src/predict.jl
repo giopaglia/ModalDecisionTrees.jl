@@ -91,11 +91,6 @@ function predict(tree::DTree{L}, X::MultiFrameModalDataset) where {L}
         predictions[i_sample] = predict(tree.root, X, i_sample, worlds)
     end
     predictions
-    # return (if L <: Float64 # TODO remove
-    #     Float64.(predictions)
-    #   else
-    #     predictions
-    #   end)
 end
 
 # use an array of trees to test features

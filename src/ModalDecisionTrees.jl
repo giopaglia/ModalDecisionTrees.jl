@@ -763,6 +763,7 @@ end
         # cls_tree = @test_nowarn DTree(cls_node, [ModalLogic.Interval], [startWithRelationGlob])
         # cls_forest = @test_nowarn DForest([cls_tree, cls_tree, cls_tree])
     end
+    
 end
 
 end # module
