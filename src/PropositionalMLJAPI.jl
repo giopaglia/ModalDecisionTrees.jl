@@ -10,6 +10,9 @@ import Tables
 using Random
 import Random.GLOBAL_RNG
 
+const ClassificationLabel = String
+const RegressionLabel = Float64 # AbstractFloat
+
 const MMI = MLJModelInterface
 const MDT = ModalDecisionTrees
 const PKG = "MLJDecisionTreeInterface"

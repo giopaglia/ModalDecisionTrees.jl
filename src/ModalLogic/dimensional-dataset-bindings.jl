@@ -1,7 +1,7 @@
 
 ############################################################################################
 
-function get_gamma(d::DimensionalDataset{T,N}, i_sample::Integer, w::AbstractWorld, feature::ModalFeature) where {T,N}
+Base.@propagate_inbounds @inline function get_gamma(d::DimensionalDataset{T,N}, i_sample::Integer, w::AbstractWorld, feature::ModalFeature) where {T,N}
     w_values = interpret_world(w, get_instance(d, i_sample))::AbstractDimensionalInstance{T,N-1}
     interpret_feature(feature, w_values)::T
 end
