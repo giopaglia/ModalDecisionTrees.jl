@@ -288,6 +288,10 @@ function train_functional_leaves(
     @assert length(datasets) == 2 "TODO expand code: $(length(datasets))"
     (train_X, train_Y), (valid_X, valid_Y) = datasets[1], datasets[2]
 
+    println("train_functional_leaves")
+    println(typeof(train_X))
+    println(typeof(valid_X))
+    
     supp_train_labels = train_Y
     supp_valid_labels = valid_Y
     supp_train_predictions = functional_model(train_X) # TODO conversion here?
