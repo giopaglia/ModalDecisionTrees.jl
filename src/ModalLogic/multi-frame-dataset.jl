@@ -68,3 +68,5 @@ display_structure(Xs::MultiFrameModalDataset; indent_str = "") = begin
     end
     out
 end
+
+nframes = n_frames # TODO remove
