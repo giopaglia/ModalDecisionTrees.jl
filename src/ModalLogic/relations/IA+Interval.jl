@@ -213,14 +213,14 @@ accessibles_aggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_
 accessibles_aggr(f::SingleAttributeMax, a::typeof(minimum), w::Interval, r::_IA_Oi, X::Integer) = (1 < w.x && w.x+1 < w.y)    ?  Interval[Interval(w.x-1, w.x+1)] : Interval[]
 
 # e.g., minimum + ≥
-accessibles_aggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, r::_IA_Bi, X::Integer) = (w.y < X+1)                 ?  Interval[Interval(w.x,   w.X+1)] : Interval[]
+accessibles_aggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, r::_IA_Bi, X::Integer) = (w.y < X+1)                 ?  Interval[Interval(w.x,   X+1)]   : Interval[]
 accessibles_aggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, r::_IA_Ei, X::Integer) = (1 < w.x)                   ?  Interval[Interval(1,     w.y  )] : Interval[]
 accessibles_aggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, r::_IA_Di, X::Integer) = (1 < w.x && w.y < X+1)      ?  Interval[Interval(1,     X+1  )] : Interval[]
 accessibles_aggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, r::_IA_O,  X::Integer) = (w.x+1 < w.y && w.y < X+1)  ?  Interval[Interval(w.x+1, X+1  )] : Interval[]
 accessibles_aggr(f::SingleAttributeMin, a::typeof(minimum), w::Interval, r::_IA_Oi, X::Integer) = (1 < w.x && w.x+1 < w.y)    ?  Interval[Interval(1,     w.y-1)] : Interval[]
 
 # e.g., maximum + ≤
-accessibles_aggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, r::_IA_Bi, X::Integer) = (w.y < X+1)                 ?  Interval[Interval(w.x,   w.X+1)] : Interval[]
+accessibles_aggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, r::_IA_Bi, X::Integer) = (w.y < X+1)                 ?  Interval[Interval(w.x,   X+1)]   : Interval[]
 accessibles_aggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, r::_IA_Ei, X::Integer) = (1 < w.x)                   ?  Interval[Interval(1,     w.y  )] : Interval[]
 accessibles_aggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, r::_IA_Di, X::Integer) = (1 < w.x && w.y < X+1)      ?  Interval[Interval(1,     X+1  )] : Interval[]
 accessibles_aggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, r::_IA_O,  X::Integer) = (w.x+1 < w.y && w.y < X+1)  ?  Interval[Interval(w.x+1, X+1  )] : Interval[]
