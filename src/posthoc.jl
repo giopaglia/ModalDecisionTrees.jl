@@ -306,11 +306,7 @@ function train_functional_leaves(
     supp_valid_predictions = functional_model(valid_X)
 
     function predicting_function(n_samples)::Vector{L} # TODO avoid this definition, just return the model
-        if n_samples(n_samples) == 0
-            L[]
-        else
-            functional_model(X)
-        end
+        functional_model(X)
     end
     NSDTLeaf{L}(predicting_function, supp_train_labels, supp_valid_labels, supp_train_predictions, supp_valid_predictions)
 end
