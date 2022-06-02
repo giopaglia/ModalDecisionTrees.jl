@@ -291,11 +291,11 @@ function train_functional_leaves(
     println("train_functional_leaves")
     println(typeof(train_X))
     println(typeof(valid_X))
-    
+
     supp_train_labels = train_Y
     supp_valid_labels = valid_Y
-    supp_train_predictions = functional_model(train_X) # TODO conversion here?
-    supp_valid_predictions = functional_model(valid_X) # TODO conversion here?
+    supp_train_predictions = functional_model(train_X)
+    supp_valid_predictions = functional_model(valid_X)
 
     NSDTLeaf{L}(functional_model, supp_train_labels, supp_valid_labels, supp_train_predictions, supp_valid_predictions)
 end
