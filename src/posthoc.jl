@@ -297,6 +297,7 @@ function train_functional_leaves(
     supp_train_predictions = functional_model(train_X)
     supp_valid_predictions = functional_model(valid_X)
 
-    NSDTLeaf{L}(functional_model, supp_train_labels, supp_valid_labels, supp_train_predictions, supp_valid_predictions)
+
+    NSDTLeaf{L}((X)->apply_model(functional_model, X), supp_train_labels, supp_valid_labels, supp_train_predictions, supp_valid_predictions)
 end
 
