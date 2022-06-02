@@ -288,8 +288,7 @@ struct PredictingFunction{L<:Label}
         new{L}(FunctionWrapper{Any,Tuple{MultiFrameModalDataset}}(f))
     end
 end
-(pf::PredictingFunction{L} where {L})(args...; kwargs...) = pf.f(args...; kwargs...)::Vector{L}
-
+(pf::PredictingFunction{L})(args...; kwargs...) where {L} = pf.f(args...; kwargs...)::Vector{L}
 
 # const ModalInstance = Union{AbstractArray,Any}
 # const LFun{L} = FunctionWrapper{L,Tuple{ModalInstance}}
