@@ -60,11 +60,10 @@ function predict(leaf::NSDTLeaf, X::Any, i_sample::Integer, worlds::AbstractVect
     println(typeof(d))
     println(hasmethod(size,   (typeof(d),)) ? size(d)   : nothing)
     println(hasmethod(length, (typeof(d),)) ? length(d) : nothing)
-    "avatar_1"
-    # preds = leaf.predicting_function(d)
-    # println(preds)
-    # println(typeof(preds))
-    # preds[1]
+    preds = leaf.predicting_function(d)
+    println(preds)
+    println(typeof(preds))
+    preds[1]
 end
 
 function predict(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
