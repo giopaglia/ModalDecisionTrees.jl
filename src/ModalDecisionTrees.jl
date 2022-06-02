@@ -280,10 +280,12 @@ end
 ############################################################################################
 
 struct PredictingFunction{L<:Label}
-    f::FunctionWrapper{Vector{L},Tuple{MultiFrameModalDataset}}
+    # f::FunctionWrapper{Vector{L},Tuple{MultiFrameModalDataset}}
+    f::FunctionWrapper{Any,Tuple{MultiFrameModalDataset}} # TODO restore!!!
 
     function PredictingFunction{L}(f::Any) where {L<:Label}
-        new{L}(FunctionWrapper{Vector{L},Tuple{MultiFrameModalDataset}}(f))
+        new{L}(FunctionWrapper{Any,Tuple{MultiFrameModalDataset}}(f))
+        # new{L}(FunctionWrapper{Vector{L},Tuple{MultiFrameModalDataset}}(f)) # TODO restore!!!
     end
 end
 (pf::PredictingFunction)(args...; kwargs...) = pf.f(args...; kwargs...)
