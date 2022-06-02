@@ -292,13 +292,13 @@ function train_functional_leaves(
     # println(typeof(train_X))
     # println(hasmethod(size,   (typeof(train_X),)) ? size(train_X)   : nothing)
     # println(hasmethod(length, (typeof(train_X),)) ? length(train_X) : nothing)
-    # println(n_samples(X_train_t))
+    # println(n_samples(train_X))
 
     # println(typeof(valid_X))
     # println(hasmethod(size,   (typeof(valid_X),)) ? size(valid_X)   : nothing)
     # println(hasmethod(length, (typeof(valid_X),)) ? length(valid_X) : nothing)
 
-    # println(n_samples(X_train_v))
+    # println(n_samples(valid_X))
 
     supp_train_labels = train_Y
     supp_valid_labels = valid_Y
