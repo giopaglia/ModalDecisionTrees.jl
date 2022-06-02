@@ -290,15 +290,27 @@ function train_functional_leaves(
 
     println("train_functional_leaves")
     println(typeof(train_X))
+    println(hasmethod(size,   (typeof(train_X),)) ? size(train_X)   : nothing)
+    println(hasmethod(length, (typeof(train_X),)) ? length(train_X) : nothing)
+    println(n_samples(X_train_t))
+
     println(typeof(valid_X))
+    println(hasmethod(size,   (typeof(valid_X),)) ? size(valid_X)   : nothing)
+    println(hasmethod(length, (typeof(valid_X),)) ? length(valid_X) : nothing)
+
+    println(n_samples(X_train_v))
 
     supp_train_labels = train_Y
     supp_valid_labels = valid_Y
     supp_train_predictions = functional_model(train_X)
     supp_valid_predictions = functional_model(valid_X)
 
-    function predicting_function(X)::Vector{L}
-        functional_model(X)
+    function predicting_function(n_samples)::Vector{L} # TODO avoid this definition, just return the model
+        if n_samples(n_samples) == 0
+            L[]
+        else
+            functional_model(X)
+        end
     end
     NSDTLeaf{L}(predicting_function, supp_train_labels, supp_valid_labels, supp_train_predictions, supp_valid_predictions)
 end
