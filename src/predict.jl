@@ -57,12 +57,12 @@ end
 
 function predict(leaf::NSDTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
     d = slice_dataset(X, [i_sample])
-    println(typeof(d))
-    println(hasmethod(size,   (typeof(d),)) ? size(d)   : nothing)
-    println(hasmethod(length, (typeof(d),)) ? length(d) : nothing)
+    # println(typeof(d))
+    # println(hasmethod(size,   (typeof(d),)) ? size(d)   : nothing)
+    # println(hasmethod(length, (typeof(d),)) ? length(d) : nothing)
     preds = leaf.predicting_function(d)
-    println(preds)
-    println(typeof(preds))
+    # println(preds)
+    # println(typeof(preds))
     preds[1]
 end
 
