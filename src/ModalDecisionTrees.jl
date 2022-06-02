@@ -282,7 +282,7 @@ end
 struct PredictingFunction{L<:Label}
     f::FunctionWrapper{Vector{L},Tuple{MultiFrameModalDataset}}
 
-    function PredictingFunction{L}(f::Function) where {L<:Label}
+    function PredictingFunction{L}(f::Any) where {L<:Label}
         new{L}(FunctionWrapper{Vector{L},Tuple{MultiFrameModalDataset}}(f))
     end
 end
@@ -341,8 +341,8 @@ struct NSDTLeaf{L<:Label} <: AbstractDecisionLeaf{L}
         )
     end
 
-    function NSDTLeaf{L}(predicting_function::Function, args...; kwargs...) where {L<:Label}
-        NSDTLeaf{L}(PredictingFunction{L}(predicting_function), args...; kwargs...)
+    function NSDTLeaf{L}(f::Any, args...; kwargs...) where {L<:Label}
+        NSDTLeaf{L}(PredictingFunction{L}(f), args...; kwargs...)
     end
 
     # create leaf from supporting labels

@@ -282,7 +282,8 @@ import ..ModalDecisionTrees: slice_dataset, concat_datasets,
 
 
 export n_features, n_relations,
-       n_frames, frames, get_frame,
+       n_frames, # TODO remove
+       nframes, frames, get_frame,
        display_structure,
        get_gamma, test_decision,
        # 
@@ -328,6 +329,9 @@ include("active-modal-datasets.jl")
 #  same number of instances)
 # 
 include("multi-frame-dataset.jl")
+# 
+# TODO figure out which convert function works best: convert(::Type{<:MultiFrameModalDataset{T}}, X::MD) where {T,MD<:ModalDataset{T}} = MultiFrameModalDataset{MD}([X])
+# convert(::Type{<:MultiFrameModalDataset}, X::ModalDataset) = MultiFrameModalDataset([X])
 # 
 const ActiveMultiFrameModalDataset{T} = MultiFrameModalDataset{<:ActiveModalDataset{<:T}}
 # 
