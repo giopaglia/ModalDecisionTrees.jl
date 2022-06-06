@@ -162,40 +162,42 @@ function build_forest(
     num_samples = floor(Int64, partial_sampling * tot_samples)
 
     trees = Vector{DTree{L}}(undef, n_trees)
-    oob_metrics = Vector{NamedTuple}(undef, n_trees)
     oob_samples = Vector{Vector{Integer}}(undef, n_trees)
+    oob_metrics = Vector{NamedTuple}(undef, n_trees)
 
     rngs = [util.spawn_rng(rng) for i_tree in 1:n_trees]
 
     Threads.@threads for i_tree in 1:n_trees
-        inds = rand(rngs[i_tree], 1:tot_samples, num_samples)
+        train_idxs = rand(rngs[i_tree], 1:tot_samples, num_samples)
 
-        X_slice = slice_dataset(X, inds; return_view = true)
-        Y_slice = @view Y[inds]
+        X_slice = slice_dataset(X, train_idxs; return_view = true)
+        Y_slice = @view Y[train_idxs]
+        W_slice = _slice_weights(W, train_idxs)
 
         trees[i_tree] = build_tree(
             X_slice
             , Y_slice
-            , _slice_weights(W, inds)
+            , W_slice
             ;
-            ####
+            ################################################################################
             loss_function        = loss_function,
             max_depth            = max_depth,
             min_samples_leaf     = min_samples_leaf,
             min_purity_increase  = min_purity_increase,
             max_purity_at_leaf   = max_purity_at_leaf,
-            ####
+            ################################################################################
             n_subrelations       = n_subrelations,
             n_subfeatures        = n_subfeatures,
             initConditions       = initConditions,
             allowRelationGlob    = allowRelationGlob,
-            ####
+            ################################################################################
             perform_consistency_check = perform_consistency_check,
-            ####
-            rng                  = rngs[i_tree])
+            ################################################################################
+            rng                  = rngs[i_tree]
+        )
 
         # grab out-of-bag indices
-        oob_samples[i_tree] = setdiff(1:tot_samples, inds)
+        oob_samples[i_tree] = setdiff(1:tot_samples, train_idxs)
 
         oob_metrics[i_tree] = begin
             if length(oob_samples[i_tree]) == 0
@@ -203,7 +205,7 @@ function build_forest(
                 compute_metrics(["__FAKE__"],["__FAKE2__"]) # TODO
             else
                 tree_preds = apply_tree(trees[i_tree], slice_dataset(X, oob_samples[i_tree]; return_view = true))
-                compute_metrics(Y[oob_samples[i_tree]], tree_preds, _slice_weights(W, inds))
+                compute_metrics(Y[oob_samples[i_tree]], tree_preds, _slice_weights(W, oob_samples[i_tree]))
             end
         end
 
