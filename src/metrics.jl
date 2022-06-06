@@ -169,12 +169,12 @@ struct ConfusionMatrix
             predicted::AbstractVector{L},
             weights = nothing,
         ) where {L<:CLabel}
-        @assert length(actual) == length(predicted) "Can't compute ConfusionMatrixs with uneven number of actual $(length(actual)) and predicted $(length(predicted)) labels."
+        @assert length(actual) == length(predicted) "Can't compute ConfusionMatrix with uneven number of actual $(length(actual)) and predicted $(length(predicted)) labels."
         
         if isnothing(weights)
             weights = default_weights(length(actual))
         end
-        @assert length(actual) == length(weights)   "Can't compute ConfusionMatrixs with uneven number of actual $(length(actual)) and weights $(length(weights)) labels."
+        @assert length(actual) == length(weights)   "Can't compute ConfusionMatrix with uneven number of actual $(length(actual)) and weights $(length(weights)) labels."
 
         class_labels = begin
             class_labels = unique([actual; predicted])
