@@ -417,7 +417,7 @@ struct ExplicitModalDataset{T<:Number, WorldType<:AbstractWorld} <: ActiveModalD
 
         fwd = begin
 
-            @logmsg DTOverview "InterpretedModalDataset -> ExplicitModalDataset"
+            # @logmsg DTOverview "InterpretedModalDataset -> ExplicitModalDataset"
 
             _features = features(imd)
             
@@ -442,12 +442,13 @@ struct ExplicitModalDataset{T<:Number, WorldType<:AbstractWorld} <: ActiveModalD
             enum_features = zip(i_features, _features[i_features])
 
             # Compute features
+            p = Progress(_n_samples, 1, "Computing EMD...")
             @inbounds Threads.@threads for i_sample in 1:_n_samples
                 @logmsg DTDebug "Instance $(i_sample)/$(_n_samples)"
                 
-                if i_sample == 1 || ((i_sample+1) % (floor(Int, ((_n_samples)/4))+1)) == 0
-                    @logmsg DTOverview "Instance $(i_sample)/$(_n_samples)"
-                end
+                # if i_sample == 1 || ((i_sample+1) % (floor(Int, ((_n_samples)/4))+1)) == 0
+                #     @logmsg DTOverview "Instance $(i_sample)/$(_n_samples)"
+                # end
 
                 # instance = get_instance(imd, i_sample)
                 # @logmsg DTDebug "instance" instance
@@ -469,6 +470,7 @@ struct ExplicitModalDataset{T<:Number, WorldType<:AbstractWorld} <: ActiveModalD
 
                     end
                 end
+                next!(p)
             end
             fwd
         end
@@ -646,7 +648,7 @@ Base.@propagate_inbounds function compute_fwd_supports(
         simply_init_modal = false,
     ) where {T, N, WorldType<:AbstractWorld}
     
-    @logmsg DTOverview "ExplicitModalDataset -> ExplicitModalDatasetS"
+    # @logmsg DTOverview "ExplicitModalDataset -> ExplicitModalDatasetS "
 
     fwd = emd.fwd
     _features = features(emd)
@@ -685,12 +687,13 @@ Base.@propagate_inbounds function compute_fwd_supports(
         end
     end
 
+    p = Progress(_n_samples, 1, "Computing EMD supports...")
     Threads.@threads for i_sample in 1:_n_samples
         @logmsg DTDebug "Instance $(i_sample)/$(_n_samples)"
         
-        if i_sample == 1 || ((i_sample+1) % (floor(Int, ((_n_samples)/4))+1)) == 0
-            @logmsg DTOverview "Instance $(i_sample)/$(_n_samples)"
-        end
+        # if i_sample == 1 || ((i_sample+1) % (floor(Int, ((_n_samples)/4))+1)) == 0
+        #     @logmsg DTOverview "Instance $(i_sample)/$(_n_samples)"
+        # end
 
         for (i_feature,aggregators) in enumerate(grouped_featsnaggrs)
             
@@ -754,6 +757,7 @@ Base.@propagate_inbounds function compute_fwd_supports(
                 end
             end
         end
+        next!(p)
     end
     fwd_rs, fwd_gs
 end

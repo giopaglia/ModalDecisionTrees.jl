@@ -37,24 +37,25 @@ end
 # TODO set default pruning arguments for tree, and make sure that forests override these
 # Build a tree
 function build_tree(
-    X                   :: ActiveMultiFrameModalDataset,
-    Y                   :: AbstractVector{L},
-    W                   :: Union{Nothing,AbstractVector{U}}   = nothing;
-    ##############################################################################
-    loss_function       :: Union{Nothing,Function}            = nothing,
-    max_depth           :: Int64                              = default_max_depth,
-    min_samples_leaf    :: Int64                              = default_min_samples_leaf,
-    min_purity_increase :: AbstractFloat                      = default_min_purity_increase,
-    max_purity_at_leaf  :: AbstractFloat                      = default_max_purity_at_leaf,
-    ##############################################################################
-    n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
-    n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = identity,
-    initConditions      :: Union{_initCondition,AbstractVector{<:_initCondition}} = startWithRelationGlob,
-    allowRelationGlob   :: Union{Bool,AbstractVector{Bool}}                       = true,
-    ##############################################################################
-    perform_consistency_check :: Bool = true,
-    ##############################################################################
-    rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {L<:Label, U}
+        X                   :: ActiveMultiFrameModalDataset,
+        Y                   :: AbstractVector{L},
+        W                   :: Union{Nothing,AbstractVector{U}}   = nothing;
+        ##############################################################################
+        loss_function       :: Union{Nothing,Function}            = nothing,
+        max_depth           :: Int64                              = default_max_depth,
+        min_samples_leaf    :: Int64                              = default_min_samples_leaf,
+        min_purity_increase :: AbstractFloat                      = default_min_purity_increase,
+        max_purity_at_leaf  :: AbstractFloat                      = default_max_purity_at_leaf,
+        ##############################################################################
+        n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
+        n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = identity,
+        initConditions      :: Union{_initCondition,AbstractVector{<:_initCondition}} = startWithRelationGlob,
+        allowRelationGlob   :: Union{Bool,AbstractVector{Bool}}                       = true,
+        ##############################################################################
+        perform_consistency_check :: Bool = true,
+        ##############################################################################
+        rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG,
+    ) where {L<:Label, U}
     
     if isnothing(W)
         W = default_weights(n_samples(X))
@@ -101,37 +102,39 @@ function build_tree(
         ############################################################################
         perform_consistency_check = perform_consistency_check,
         ############################################################################
-        rng                 = rng)
+        rng                 = rng,
+    )
 end
 
 
 function build_forest(
-    X                   :: ActiveMultiFrameModalDataset,
-    Y                   :: AbstractVector{L},
-    # Use unary weights if no weight is supplied
-    W                   :: AbstractVector{U} = default_weights(n_samples(X));
-    # W                   :: AbstractVector{U} = Ones{Int64}(n_samples(X));      # from FillArrays
-    ##############################################################################
-    # Forest logic-agnostic parameters
-    n_trees             = 100,
-    partial_sampling    = 0.7,      # portion of instances sampled (without replacement) by each tree
-    ##############################################################################
-    # Tree logic-agnostic parameters
-    loss_function       :: Union{Nothing,Function}          = nothing,
-    max_depth           :: Int64                            = default_max_depth,
-    min_samples_leaf    :: Int64                            = default_min_samples_leaf,
-    min_purity_increase :: AbstractFloat                    = default_min_purity_increase,
-    max_purity_at_leaf  :: AbstractFloat                    = default_max_purity_at_leaf,
-    ##############################################################################
-    # Modal parameters
-    n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
-    n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = x -> ceil(Int64, sqrt(x)),
-    initConditions      :: Union{_initCondition,AbstractVector{<:_initCondition}} = startWithRelationGlob,
-    allowRelationGlob   :: Union{Bool,AbstractVector{Bool}}                       = true,
-    ##############################################################################
-    perform_consistency_check :: Bool = true,
-    ##############################################################################
-    rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG) where {L<:Label, U}
+        X                   :: ActiveMultiFrameModalDataset,
+        Y                   :: AbstractVector{L},
+        # Use unary weights if no weight is supplied
+        W                   :: AbstractVector{U} = default_weights(n_samples(X));
+        # W                   :: AbstractVector{U} = Ones{Int64}(n_samples(X));      # from FillArrays
+        ##############################################################################
+        # Forest logic-agnostic parameters
+        n_trees             = 100,
+        partial_sampling    = 0.7,      # portion of instances sampled (without replacement) by each tree
+        ##############################################################################
+        # Tree logic-agnostic parameters
+        loss_function       :: Union{Nothing,Function}          = nothing,
+        max_depth           :: Int64                            = default_max_depth,
+        min_samples_leaf    :: Int64                            = default_min_samples_leaf,
+        min_purity_increase :: AbstractFloat                    = default_min_purity_increase,
+        max_purity_at_leaf  :: AbstractFloat                    = default_max_purity_at_leaf,
+        ##############################################################################
+        # Modal parameters
+        n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
+        n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = x -> ceil(Int64, sqrt(x)),
+        initConditions      :: Union{_initCondition,AbstractVector{<:_initCondition}} = startWithRelationGlob,
+        allowRelationGlob   :: Union{Bool,AbstractVector{Bool}}                       = true,
+        ##############################################################################
+        perform_consistency_check :: Bool = true,
+        ##############################################################################
+        rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG,
+    ) where {L<:Label, U}
 
     if n_subrelations isa Function
         n_subrelations = fill(n_subrelations, n_frames(X))
@@ -167,6 +170,7 @@ function build_forest(
 
     rngs = [util.spawn_rng(rng) for i_tree in 1:n_trees]
 
+    p = Progress(n_trees, 1, "Computing DForest...")
     Threads.@threads for i_tree in 1:n_trees
         train_idxs = rand(rngs[i_tree], 1:tot_samples, num_samples)
 
@@ -193,7 +197,7 @@ function build_forest(
             ################################################################################
             perform_consistency_check = perform_consistency_check,
             ################################################################################
-            rng                  = rngs[i_tree]
+            rng                  = rngs[i_tree],
         )
 
         # grab out-of-bag indices
@@ -208,7 +212,7 @@ function build_forest(
                 compute_metrics(Y[oob_samples[i_tree]], tree_preds, _slice_weights(W, oob_samples[i_tree]))
             end
         end
-
+        next!(p)
     end
 
     metrics = (;
@@ -239,9 +243,9 @@ function build_forest(
             X_slice = slice_dataset(X, [i]; return_view = true)
             Y_slice = [Y[i]]
             
-            pred = apply_trees(trees[index_of_trees_to_test_with], X_slice)
+            preds = apply_trees(trees[index_of_trees_to_test_with], X_slice)
             
-            push!(oob_classified, Y_slice[1] == pred[1])
+            push!(oob_classified, Y_slice[1] == preds[1])
         end
         oob_error = 1.0 - (sum(W[findall(oob_classified)]) / sum(W))
         metrics = merge(metrics, (
