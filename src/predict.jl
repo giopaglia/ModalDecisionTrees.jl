@@ -26,7 +26,7 @@ function apply_tree(tree::DTree, X::GenericModalDataset, args...; kwargs...)
     predict(tree, X, args...; kwargs...)
 end
 
-function apply_trees(trees::AbstractVector{DTree}, X::GenericModalDataset; kwargs...)
+function apply_trees(trees::AbstractVector{<:DTree}, X::GenericModalDataset; kwargs...)
     predict(trees, X; kwargs...)
 end
 
@@ -101,11 +101,11 @@ end
 
 # use an array of trees to test features
 function predict(
-        trees::AbstractVector{DTree{L}},
+        trees::AbstractVector{<:DTree{<:L}},
         X::MultiFrameModalDataset;
         suppress_parity_warning = false,
         tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
-    ) where {L, Z<:Real}
+    ) where {L<:Label, Z<:Real}
     @logmsg DTDetail "predict..."
     n_trees = length(trees)
     _n_samples = n_samples(X)
