@@ -9,6 +9,7 @@ using FunctionWrappers: FunctionWrapper
 using LinearAlgebra
 using Logging: LogLevel, @logmsg
 using Printf
+using ProgressMeter
 using Random
 using ReTest
 using StatsBase

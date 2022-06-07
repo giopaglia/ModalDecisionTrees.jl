@@ -682,7 +682,7 @@ Base.@propagate_inbounds @inline function split_node!(
         if length(unique(unsatisfied_flags)) == 1
             throw_n_log("An uninformative split was reached. Something's off\nPurity: $(node.purity)\nSplit: $(decision_str)\nUnsatisfied flags: $(unsatisfied_flags)")
         end
-        @logmsg DTOverview " Branch ($(sum(unsatisfied_flags))+$(_n_samples-sum(unsatisfied_flags))=$(_n_samples) samples) on frame $(best_i_frame) with decision: $(decision_str), purity $(best_purity)"
+        @logmsg DTDetail " Branch ($(sum(unsatisfied_flags))+$(_n_samples-sum(unsatisfied_flags))=$(_n_samples) samples) on frame $(best_i_frame) with decision: $(decision_str), purity $(best_purity)"
 
         # if sum(unsatisfied_flags) >= min_samples_leaf && (_n_samples - sum(unsatisfied_flags)) >= min_samples_leaf
             # DEBUGprintln("LEAF!")
