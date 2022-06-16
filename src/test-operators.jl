@@ -1,6 +1,6 @@
 export EQ, GT, LT, GEQ, LEQ,
-				existential_aggregator, aggregator_bottom,
-				TestOperatorFun, Aggregator
+        existential_aggregator, aggregator_bottom,
+        TestOperatorFun, Aggregator
 
 const Aggregator = Function
 
@@ -12,59 +12,59 @@ const TestOperatorFun = Function
 
 # # TODO improved version for Rational numbers
 # # TODO check
-# @inline test_op_partialsort!(test_op::_TestOpGeqSoft, vals::Vector{T}) where {T} = 
-# 	partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)); rev=true)
-# @inline test_op_partialsort!(test_op::_TestOpLeqSoft, vals::Vector{T}) where {T} = 
-# 	partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)))
+# @inline test_op_partialsort!(test_op::_CanonicalFeatureGeqSoft, vals::Vector{T}) where {T} = 
+#   partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)); rev=true)
+# @inline test_op_partialsort!(test_op::_CanonicalFeatureLeqSoft, vals::Vector{T}) where {T} = 
+#   partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)))
 
-# @inline computePropositionalThreshold(test_op::Union{_TestOpGeqSoft,_TestOpLeqSoft}, w::AbstractWorld, channel::DimensionalChannel{T,N}) where {T,N} = begin
-# 	vals = vec(ch_readWorld(w,channel))
-# 	test_op_partialsort!(test_op,vals)
+# @inline computePropositionalThreshold(test_op::Union{_CanonicalFeatureGeqSoft,_CanonicalFeatureLeqSoft}, w::AbstractWorld, channel::DimensionalChannel{T,N}) where {T,N} = begin
+#   vals = vec(ch_readWorld(w,channel))
+#   test_op_partialsort!(test_op,vals)
 # end
 # @inline computePropositionalThresholdMany(test_ops::Vector{<:TestOperator}, w::AbstractWorld, channel::DimensionalChannel{T,N}) where {T,N} = begin
-# 	vals = vec(ch_readWorld(w,channel))
-# 	(test_op_partialsort!(test_op,vals) for test_op in test_ops)
+#   vals = vec(ch_readWorld(w,channel))
+#   (test_op_partialsort!(test_op,vals) for test_op in test_ops)
 # end
 
-# @inline test_decision(test_operator::_TestOpGeqSoft, w::AbstractWorld, channel::DimensionalChannel{T,N}, threshold::Real) where {T,N} = begin 
-# 	ys = 0
-# 	# TODO write with reduce, and optimize it (e.g. by stopping early if the decision is reached already)
-# 	vals = ch_readWorld(w,channel)
-# 	for x in vals
-# 		if x >= threshold
-# 			ys+=1
-# 		end
-# 	end
-# 	(ys/length(vals)) >= test_operator.alpha
+# @inline test_decision(test_operator::_CanonicalFeatureGeqSoft, w::AbstractWorld, channel::DimensionalChannel{T,N}, threshold::Real) where {T,N} = begin 
+#   ys = 0
+#   # TODO write with reduce, and optimize it (e.g. by stopping early if the decision is reached already)
+#   vals = ch_readWorld(w,channel)
+#   for x in vals
+#     if x >= threshold
+#       ys+=1
+#     end
+#   end
+#   (ys/length(vals)) >= test_operator.alpha
 # end
 
-# @inline test_decision(test_operator::_TestOpLeqSoft, w::AbstractWorld, channel::DimensionalChannel{T,N}, threshold::Real) where {T,N} = begin 
-# 	ys = 0
-# 	# TODO write with reduce, and optimize it (e.g. by stopping early if the decision is reached already)
-# 	vals = ch_readWorld(w,channel)
-# 	for x in vals
-# 		if x <= threshold
-# 			ys+=1
-# 		end
-# 	end
-# 	(ys/length(vals)) >= test_operator.alpha
+# @inline test_decision(test_operator::_CanonicalFeatureLeqSoft, w::AbstractWorld, channel::DimensionalChannel{T,N}, threshold::Real) where {T,N} = begin 
+#   ys = 0
+#   # TODO write with reduce, and optimize it (e.g. by stopping early if the decision is reached already)
+#   vals = ch_readWorld(w,channel)
+#   for x in vals
+#     if x <= threshold
+#       ys+=1
+#     end
+#   end
+#   (ys/length(vals)) >= test_operator.alpha
 # end
 
 # const all_lowlevel_test_operators = [
-# 		TestOpGeq, TestOpLeq,
-# 		SoftenedOperators...
-# 	]
+#     CanonicalFeatureGeq, CanonicalFeatureLeq,
+#     SoftenedOperators...
+#   ]
 
 # const all_ordered_test_operators = [
-# 		TestOpGeq, TestOpLeq,
-# 		SoftenedOperators...
-# 	]
+#     CanonicalFeatureGeq, CanonicalFeatureLeq,
+#     SoftenedOperators...
+#   ]
 # const all_test_operators_order = [
-# 		TestOpGeq, TestOpLeq,
-# 		SoftenedOperators...
-# 	]
+#     CanonicalFeatureGeq, CanonicalFeatureLeq,
+#     SoftenedOperators...
+#   ]
 # sort_test_operators!(x::Vector{TO}) where {TO<:TestOperator} = begin
-# 	intersect(all_test_operators_order, x)
+#   intersect(all_test_operators_order, x)
 # end
 
 # crisp operators
@@ -128,117 +128,117 @@ existential_aggregator(::typeof(≤))  = minimum
 
 # =ₕ
 function get_fuzzy_linear_eq(h::T, fuzzy_type::Type{<:Real} = Float64) where {T}
-	fun = function (x::S, y::S) where {S}
-		Δ = y-x
-		if abs(Δ) ≥ h
-			zero(fuzzy_type)
-		else
-			fuzzy_type(1-(abs(Δ)/h))
-		end
-	end
-	@eval global existential_aggregator(::typeof($fun)) = ∪
-	fun
+  fun = function (x::S, y::S) where {S}
+    Δ = y-x
+    if abs(Δ) ≥ h
+      zero(fuzzy_type)
+    else
+      fuzzy_type(1-(abs(Δ)/h))
+    end
+  end
+  @eval global existential_aggregator(::typeof($fun)) = ∪
+  fun
 end
 
 
 # >ₕ
 function get_fuzzy_linear_gt(h::T, fuzzy_type::Type{<:Real} = Float64) where {T}
-	fun = function (x::S, y::S) where {S}
-		Δ = y-x
-		if Δ ≥ 0
-			zero(fuzzy_type)
-		elseif Δ ≤ -h
-			one(fuzzy_type)
-		else
-			fuzzy_type(Δ/h)
-		end
-	end
-	@eval global existential_aggregator(::typeof($fun)) = maximum
-	fun
+  fun = function (x::S, y::S) where {S}
+    Δ = y-x
+    if Δ ≥ 0
+      zero(fuzzy_type)
+    elseif Δ ≤ -h
+      one(fuzzy_type)
+    else
+      fuzzy_type(Δ/h)
+    end
+  end
+  @eval global existential_aggregator(::typeof($fun)) = maximum
+  fun
 end
 
 # <ₕ
 function get_fuzzy_linear_lt(h::T, fuzzy_type::Type{<:Real} = Float64) where {T}
-	fun = function (x::S, y::S) where {S}
-		Δ = y-x
-		if Δ ≥ h
-			one(fuzzy_type)
-		elseif Δ ≤ 0
-			zero(fuzzy_type)
-		else
-			fuzzy_type(Δ/h)
-		end
-	end
-	@eval global existential_aggregator(::typeof($fun)) = minimum
-	fun
+  fun = function (x::S, y::S) where {S}
+    Δ = y-x
+    if Δ ≥ h
+      one(fuzzy_type)
+    elseif Δ ≤ 0
+      zero(fuzzy_type)
+    else
+      fuzzy_type(Δ/h)
+    end
+  end
+  @eval global existential_aggregator(::typeof($fun)) = minimum
+  fun
 end
 
 
 # ≧ₕ
 function get_fuzzy_linear_geq(h::T, fuzzy_type::Type{<:Real} = Float64) where {T}
-	fun = function (x::S, y::S) where {S}
-		Δ = y-x
-		if Δ ≤ 0
-			one(fuzzy_type)
-		elseif Δ ≥ h
-			zero(fuzzy_type)
-		else
-			fuzzy_type(1-Δ/h)
-		end
-	end
-	@eval global existential_aggregator(::typeof($fun)) = maximum
-	fun
+  fun = function (x::S, y::S) where {S}
+    Δ = y-x
+    if Δ ≤ 0
+      one(fuzzy_type)
+    elseif Δ ≥ h
+      zero(fuzzy_type)
+    else
+      fuzzy_type(1-Δ/h)
+    end
+  end
+  @eval global existential_aggregator(::typeof($fun)) = maximum
+  fun
 end
 
 
 # ≦ₕ
 function get_fuzzy_linear_leq(h::T, fuzzy_type::Type{<:Real} = Float64) where {T}
-	fun = function (x::S, y::S) where {S}
-		Δ = x-y
-		if Δ ≤ 0
-			one(fuzzy_type)
-		elseif Δ ≥ h
-			zero(fuzzy_type)
-		else
-			fuzzy_type(1-Δ/h)
-		end
-	end
-	@eval global existential_aggregator(::typeof($fun)) = minimum
-	fun
+  fun = function (x::S, y::S) where {S}
+    Δ = x-y
+    if Δ ≤ 0
+      one(fuzzy_type)
+    elseif Δ ≥ h
+      zero(fuzzy_type)
+    else
+      fuzzy_type(1-Δ/h)
+    end
+  end
+  @eval global existential_aggregator(::typeof($fun)) = minimum
+  fun
 end
 
 # ≥ₕ
 function get_fuzzy_linear_geqt(h::T, fuzzy_type::Type{<:Real} = Float64) where {T}
-	h_2 = h/2
-	fun = function (x::S, y::S) where {S}
-		Δ = y-x
-		if Δ ≥ h_2
-			zero(fuzzy_type)
-		elseif Δ ≤ -h_2
-			one(fuzzy_type)
-		else
-			fuzzy_type((h_2-Δ)/h)
-		end
-	end
-	@eval global existential_aggregator(::typeof($fun)) = maximum
-	fun
+  h_2 = h/2
+  fun = function (x::S, y::S) where {S}
+    Δ = y-x
+    if Δ ≥ h_2
+      zero(fuzzy_type)
+    elseif Δ ≤ -h_2
+      one(fuzzy_type)
+    else
+      fuzzy_type((h_2-Δ)/h)
+    end
+  end
+  @eval global existential_aggregator(::typeof($fun)) = maximum
+  fun
 end
 
 # ≤ₕ
 function get_fuzzy_linear_leqt(h::T, fuzzy_type::Type{<:Real} = Float64) where {T}
-	h_2 = h/2
-	fun = function (x::S, y::S) where {S}
-		Δ = y-x
-		if Δ ≥ h_2
-			one(fuzzy_type)
-		elseif Δ ≤ -h_2
-			zero(fuzzy_type)
-		else
-			fuzzy_type((Δ+h_2)/h)
-		end
-	end
-	@eval global existential_aggregator(::typeof($fun)) = minimum
-	fun
+  h_2 = h/2
+  fun = function (x::S, y::S) where {S}
+    Δ = y-x
+    if Δ ≥ h_2
+      one(fuzzy_type)
+    elseif Δ ≤ -h_2
+      zero(fuzzy_type)
+    else
+      fuzzy_type((Δ+h_2)/h)
+    end
+  end
+  @eval global existential_aggregator(::typeof($fun)) = minimum
+  fun
 end
 
 # h = 4
@@ -278,7 +278,7 @@ struct _CanonicalFeatureGeq <: CanonicalFeature end; const CanonicalFeatureGeq  
 struct _CanonicalFeatureLeq <: CanonicalFeature end; const CanonicalFeatureLeq  = _CanonicalFeatureLeq();
 
 export CanonicalFeatureGeq_95, CanonicalFeatureGeq_90, CanonicalFeatureGeq_85, CanonicalFeatureGeq_80, CanonicalFeatureGeq_75, CanonicalFeatureGeq_70, CanonicalFeatureGeq_60,
-                CanonicalFeatureLeq_95, CanonicalFeatureLeq_90, CanonicalFeatureLeq_85, CanonicalFeatureLeq_80, CanonicalFeatureLeq_75, CanonicalFeatureLeq_70, CanonicalFeatureLeq_60
+       CanonicalFeatureLeq_95, CanonicalFeatureLeq_90, CanonicalFeatureLeq_85, CanonicalFeatureLeq_80, CanonicalFeatureLeq_75, CanonicalFeatureLeq_70, CanonicalFeatureLeq_60
 
 # ⪴_α and ⪳_α, that is, "*at least α⋅100 percent* of the values on this world are at least, or at most ..."
 
@@ -306,25 +306,6 @@ const CanonicalFeatureLeq_80  = _CanonicalFeatureLeqSoft((Rational(80,100)));
 const CanonicalFeatureLeq_75  = _CanonicalFeatureLeqSoft((Rational(75,100)));
 const CanonicalFeatureLeq_70  = _CanonicalFeatureLeqSoft((Rational(70,100)));
 const CanonicalFeatureLeq_60  = _CanonicalFeatureLeqSoft((Rational(60,100)));
-
-# TODO deprecated, remove
-export TestOpGeq_95, TestOpGeq_90, TestOpGeq_85, TestOpGeq_80, TestOpGeq_75, TestOpGeq_70, TestOpGeq_60, TestOpLeq_95, TestOpLeq_90, TestOpLeq_85, TestOpLeq_80, TestOpLeq_75, TestOpLeq_70, TestOpLeq_60, TestOpGeq, TestOpLeq
-TestOpGeq_95 = CanonicalFeatureGeq_95
-TestOpGeq_90 = CanonicalFeatureGeq_90
-TestOpGeq_85 = CanonicalFeatureGeq_85
-TestOpGeq_80 = CanonicalFeatureGeq_80
-TestOpGeq_75 = CanonicalFeatureGeq_75
-TestOpGeq_70 = CanonicalFeatureGeq_70
-TestOpGeq_60 = CanonicalFeatureGeq_60
-TestOpLeq_95 = CanonicalFeatureLeq_95
-TestOpLeq_90 = CanonicalFeatureLeq_90
-TestOpLeq_85 = CanonicalFeatureLeq_85
-TestOpLeq_80 = CanonicalFeatureLeq_80
-TestOpLeq_75 = CanonicalFeatureLeq_75
-TestOpLeq_70 = CanonicalFeatureLeq_70
-TestOpLeq_60 = CanonicalFeatureLeq_60
-TestOpGeq    = CanonicalFeatureGeq
-TestOpLeq    = CanonicalFeatureLeq
 
 MixedFeature = Union{ModalFeature,CanonicalFeature,Function,Tuple{TestOperatorFun,Function},Tuple{TestOperatorFun,ModalFeature}}
 

@@ -9,8 +9,8 @@ struct Interval <: AbstractWorld
     # TODO: perhaps check x<y (and  x<=N, y<=N ?), but only in debug mode.
     # Interval(x,y) = x>0 && y>0 && x < y ? new(x,y) : throw_n_log("Can't instantiate Interval(x={$x},y={$y})")
     # 
-    Interval(::_emptyWorld) = Interval(-1,0)
-    Interval(::_centeredWorld, X::Integer) = Interval(div(X,2)+1,div(X,2)+1+1+(isodd(X) ? 0 : 1))
+    Interval(::EmptyWorld) = Interval(-1,0)
+    Interval(::CenteredWorld, X::Integer) = Interval(div(X,2)+1,div(X,2)+1+1+(isodd(X) ? 0 : 1))
 end
 
 Base.show(io::IO, w::Interval) = begin

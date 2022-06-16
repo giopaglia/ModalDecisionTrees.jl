@@ -21,7 +21,7 @@ import Base: size, show, getindex, iterate, length, push!
 export AbstractWorld, AbstractRelation,
        Ontology,
        AbstractWorldSet, WorldSet,
-       RelationGlob, RelationNone, RelationId,
+       RelationGlob, RelationId,
        world_type, world_types
 
 # Fix (not needed from Julia 1.7, see https://github.com/JuliaLang/julia/issues/34674 )
@@ -37,13 +37,13 @@ end
 abstract type AbstractWorld end
 
 # These constants is used for specifying different initial world conditions for each world type
-#  (e.g. Interval(::_emptyWorld) = Interval(-1,0))
-struct _emptyWorld end;
-struct _centeredWorld end;
+#  (e.g. Interval(::EmptyWorld) = Interval(-1,0))
+struct EmptyWorld end;
+struct CenteredWorld end;
 
 # More specifically, any world type W must provide constructors for:
-# `W(::_emptyWorld)` # A dummy world (= no world in particular)
-# `W(::_centeredWorld, args...)` # A world that is *central* to the modal frame
+# `W(::EmptyWorld)` # A dummy world (= no world in particular)
+# `W(::CenteredWorld, args...)` # A world that is *central* to the modal frame
 
 # Any world type W must also provide an `interpret_world` method for interpreting a world
 #  onto a modal instance:
@@ -120,11 +120,6 @@ accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::AbstractRelation
 
 ############################################################################################
 # Singletons representing natural relations
-############################################################################################
-
-# Dummy relation (= no relation)
-struct _RelationNone  <: AbstractRelation end; const RelationNone = _RelationNone();
-
 ############################################################################################
 
 # Identity relation: any world -> itself
@@ -238,6 +233,19 @@ struct Decision{T}
 
     # Threshold value
     threshold     :: T
+
+    function Decision{T}() where {T}
+        new{T}()
+    end
+
+    function Decision{T}(
+        relation      :: AbstractRelation,
+        feature       :: ModalFeature,
+        test_operator :: TestOperatorFun,
+        threshold     :: T
+    ) where {T}
+        new{T}(relation, feature, test_operator, threshold)
+    end
 end
 
 is_propositional_decision(d::Decision) = (d.relation isa ModalLogic._RelationId)

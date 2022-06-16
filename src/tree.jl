@@ -128,8 +128,8 @@ end
 #       # No ontological relation
 #       ontology_relations = []
 #       if test_operators ⊆ ModalLogic.all_lowlevel_test_operators
-#           test_operators = [TestOpGeq]
-#           # test_operators = filter(e->e ≠ TestOpGeq,test_operators)
+#           test_operators = [CanonicalFeatureGeq]
+#           # test_operators = filter(e->e ≠ CanonicalFeatureGeq,test_operators)
 #       else
 #           warn("Test operators set includes non-lowlevel test operators. Update this part of the code accordingly.")
 #       end
@@ -139,11 +139,11 @@ end
 #   #  when the largest world only has a few values, softened operators fallback
 #   #  to being hard operators
 #   # max_world_wratio = 1/prod(max_channel_size(X))
-#   # if TestOpGeq in test_operators
-#   #   test_operators = filter((e)->(typeof(e) != _TestOpGeqSoft || e.alpha < 1-max_world_wratio), test_operators)
+#   # if CanonicalFeatureGeq in test_operators
+#   #   test_operators = filter((e)->(typeof(e) != _CanonicalFeatureGeqSoft || e.alpha < 1-max_world_wratio), test_operators)
 #   # end
-#   # if TestOpLeq in test_operators
-#   #   test_operators = filter((e)->(typeof(e) != _TestOpLeqSoft || e.alpha < 1-max_world_wratio), test_operators)
+#   # if CanonicalFeatureLeq in test_operators
+#   #   test_operators = filter((e)->(typeof(e) != _CanonicalFeatureLeqSoft || e.alpha < 1-max_world_wratio), test_operators)
 #   # end
 
 
@@ -167,7 +167,7 @@ end
 #   relationGlob_id = 2
 #   ontology_relation_ids = map((x)->x+2, 1:length(ontology_relations))
 
-#   needToComputeRelationGlob = (allowRelationGlob || (initCondition == startWithRelationGlob))
+#   needToComputeRelationGlob = (allowRelationGlob || (initCondition == ModalDecisionTrees.start_without_world))
 
 #   # Modal relations to compute gammas for
 #   inUseRelation_ids = if needToComputeRelationGlob
@@ -388,7 +388,7 @@ Base.@propagate_inbounds @inline function split_node!(
     # Optimization-tracking variables
     best_i_frame = -1
     best_purity_times_nt = typemin(P)
-    best_decision = Decision(RelationNone, ModalDecisionTrees.ModalFeatureNone, >=, nothing)
+    best_decision = Decision{Float64}()
     if isa(_perform_consistency_check,Val{true})
         consistency_sat_check = Vector{Bool}(undef, _n_samples)
     end
@@ -805,7 +805,7 @@ end
     
     # Create root node
     NodeMetaT = NodeMeta{Float64,(_is_classification isa Val{true} ? Int64 : Float64)}
-    onlyallowRelationGlob = [(iC == startWithRelationGlob) for iC in initConditions]
+    onlyallowRelationGlob = [(iC == ModalDecisionTrees.start_without_world) for iC in initConditions]
     root = NodeMetaT(1:_n_samples, 0, 0, onlyallowRelationGlob)
     
     # Process nodes recursively, using multi-threading

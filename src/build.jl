@@ -49,7 +49,7 @@ function build_tree(
         ##############################################################################
         n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
         n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = identity,
-        initConditions      :: Union{_initCondition,AbstractVector{<:_initCondition}} = startWithRelationGlob,
+        initConditions      :: Union{_initCondition,AbstractVector{<:_initCondition}} = start_without_world,
         allowRelationGlob   :: Union{Bool,AbstractVector{Bool}}                       = true,
         ##############################################################################
         perform_consistency_check :: Bool = true,
@@ -59,10 +59,10 @@ function build_tree(
     
     @assert W isa AbstractVector || W in [nothing, :rebalance, :default]
 
-    W = if isnothing(W) || W == :rebalance
-        default_weights_rebalance(Y)
-    elseif :default
+    W = if isnothing(W) || W == :default
         default_weights(n_samples(X))
+    elseif :rebalance
+        default_weights_rebalance(Y)
     else
         W
     end
@@ -132,7 +132,7 @@ function build_forest(
         # Modal parameters
         n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
         n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = x -> ceil(Int64, sqrt(x)),
-        initConditions      :: Union{_initCondition,AbstractVector{<:_initCondition}} = startWithRelationGlob,
+        initConditions      :: Union{_initCondition,AbstractVector{<:_initCondition}} = start_without_world,
         allowRelationGlob   :: Union{Bool,AbstractVector{Bool}}                       = true,
         ##############################################################################
         perform_consistency_check :: Bool = true,

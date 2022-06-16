@@ -4,8 +4,8 @@ export OneWorld
 struct OneWorld    <: AbstractWorld
     OneWorld() = new()
     # 
-    OneWorld(w::_emptyWorld) = new()
-    OneWorld(w::_centeredWorld) = new()
+    OneWorld(w::EmptyWorld) = new()
+    OneWorld(w::CenteredWorld) = new()
 end;
 
 Base.show(io::IO, w::OneWorld) = begin

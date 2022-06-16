@@ -92,23 +92,21 @@ import .ModalLogic: n_samples, display_decision
 # Initial world conditions
 ############################################################################################
 
-export startWithRelationGlob, startAtCenter, startAtWorld
-
 abstract type _initCondition end
-struct _startWithRelationGlob           <: _initCondition end; const startWithRelationGlob  = _startWithRelationGlob();
-struct _startAtCenter                   <: _initCondition end; const startAtCenter          = _startAtCenter();
-struct _startAtWorld{wT<:AbstractWorld} <: _initCondition w::wT end;
+struct StartWithoutWorld               <: _initCondition end; const start_without_world  = StartWithoutWorld();
+struct StartAtCenter                   <: _initCondition end; const start_at_center      = StartAtCenter();
+struct StartAtWorld{WT<:AbstractWorld} <: _initCondition w::WT end;
 
 init_world_set(initConditions::AbstractVector{<:_initCondition}, worldTypes::AbstractVector{<:Type#={<:AbstractWorld}=#}, args...) =
     [init_world_set(iC, WT, args...) for (iC, WT) in zip(initConditions, Vector{Type{<:AbstractWorld}}(worldTypes))]
 
-init_world_set(initCondition::_startWithRelationGlob, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
-    WorldSet{WorldType}([WorldType(ModalLogic._emptyWorld())])
+init_world_set(initCondition::StartWithoutWorld, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
+    WorldSet{WorldType}([WorldType(ModalLogic.EmptyWorld())])
 
-init_world_set(initCondition::_startAtCenter, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
-    WorldSet{WorldType}([WorldType(ModalLogic._centeredWorld(), args...)])
+init_world_set(initCondition::StartAtCenter, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
+    WorldSet{WorldType}([WorldType(ModalLogic.CenteredWorld(), args...)])
 
-init_world_set(initCondition::_startAtWorld{WorldType}, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
+init_world_set(initCondition::StartAtWorld{WorldType}, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
     WorldSet{WorldType}([WorldType(initCondition.w)])
 
 init_world_sets(Xs::MultiFrameModalDataset, initConditions::AbstractVector{<:_initCondition}) = begin
@@ -775,7 +773,7 @@ end
         # # create node without frame nor local decision
         # cls_node = @test_nowarn DTInternal(decision, cls_node, cls_leaf)
 
-        # cls_tree = @test_nowarn DTree(cls_node, [ModalLogic.Interval], [startWithRelationGlob])
+        # cls_tree = @test_nowarn DTree(cls_node, [ModalLogic.Interval], [start_without_world])
         # cls_forest = @test_nowarn DForest([cls_tree, cls_tree, cls_tree])
     end
     
