@@ -61,7 +61,7 @@ function build_tree(
 
     W = if isnothing(W) || W == :default
         default_weights(n_samples(X))
-    elseif :rebalance
+    elseif W == :rebalance
         default_weights_rebalance(Y)
     else
         W
