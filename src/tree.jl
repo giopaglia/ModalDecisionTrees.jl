@@ -480,7 +480,7 @@ Base.@propagate_inbounds @inline function split_node!(
                         satisfied = evaluate_thresh_decision(test_operator, gamma, threshold)
                         @logmsg DTDetail " instance $i_sample/$_n_samples: (f=$(gamma)) -> satisfied = $(satisfied)"
                         
-                        # TODO make this satisfied a fuzzy value
+                        # Note: in a fuzzy generalization, `satisfied` becomes a [0-1] value
                         if !satisfied
                             nr += Wf[i_sample]
                             ncr[Yf[i_sample]] += Wf[i_sample]

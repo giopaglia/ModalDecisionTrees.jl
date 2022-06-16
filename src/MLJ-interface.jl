@@ -1,6 +1,7 @@
 # Inspired from JuliaAI/MLJDecisionTreeInterface.jl
 
-module MLJDecisionTreeInterface
+# Reference: https://alan-turing-institute.github.io/MLJ.jl/dev/quick_start_guide_to_adding_models/#Quick-Start-Guide-to-Adding-Models
+# Reference: https://alan-turing-institute.github.io/MLJ.jl/dev/adding_models_for_general_use/
 
 import MLJModelInterface
 using MLJModelInterface.ScientificTypesBase
@@ -10,47 +11,49 @@ import Tables
 using Random
 import Random.GLOBAL_RNG
 
-const ClassificationLabel = String
-const RegressionLabel = Float64 # AbstractFloat
+struct ModelPrinter{T}
+    tree::T
+end
+(c::ModelPrinter)(max_depth = 5) = MDT.print_model(c.model, max_depth = depth)
+
+Base.show(stream::IO, c::ModelPrinter) =
+    print(stream, "ModelPrinter object (call with display depth)")
+
 
 const MMI = MLJModelInterface
 const MDT = ModalDecisionTrees
-const PKG = "MLJDecisionTreeInterface"
+const PKG = "ModalDecisionTrees"
 
-struct TreePrinter{T}
-    tree::T
-end
-(c::TreePrinter)(depth) = MDT.print_tree(c.tree, depth)
-(c::TreePrinter)() = MDT.print_tree(c.tree, 5)
-
-Base.show(stream::IO, c::TreePrinter) =
-    print(stream, "TreePrinter object (call with display depth)")
-
-
-# # DECISION TREE CLASSIFIER
-
-# The following meets the MLJ standard for a `Model` docstring and is
-# created without the use of interpolation so it can be used a
-# template for authors of other MLJ model interfaces. The other
-# doc-strings, defined later, are generated using the `doc_header`
-# utility to automatically generate the header, another option.
-
-MMI.@mlj_model mutable struct DecisionTreeClassifier <: MMI.Probabilistic
-    max_depth::Int               = (-)(1)::(_ ≥ -1)
-    min_samples_leaf::Int        = 1::(_ ≥ 0)
-    min_samples_split::Int       = 2::(_ ≥ 2)
-    min_purity_increase::Float64 = 0.0::(_ ≥ 0)
-    n_subfeatures::Int           = 0::(_ ≥ -1)
-    post_prune::Bool             = false
-    merge_purity_threshold::Float64 = 1.0::(_ ≤ 1)
-    display_depth::Int           = 5::(_ ≥ 1)
-    rng::Union{AbstractRNG,Integer} = GLOBAL_RNG
+MMI.@mlj_model mutable struct DecisionTreeClassifier <: MMI.Deterministic
+    # Pruning hyper-parameters
+    max_depth              :: Union{Nothing,Int}           = nothing::(isnothing(_) || _ ≥ -1)
+    min_samples_leaf       :: Int                          = MDT.default_min_samples_leaf::(_ ≥ 1)
+    min_purity_increase    :: Float64                      = MDT.default_min_purity_increase
+    max_purity_at_leaf     :: Float64                      = MDT.default_max_purity_at_leaf
+    # Modal hyper-parameters
+    ontology               :: Union{Nothing,MDT.Ontology}  = nothing
+    initConditions         :: MDT._initCondition           = MDT._startWithRelationGlob
+    allowRelationGlob      :: Bool                         = false
+    # Other
+    display_depth          :: Union{Nothing,Int}           = 5::(isnothing(_) || _ ≥ 0)
+    rng                    :: Union{AbstractRNG,Integer}   = GLOBAL_RNG
 end
 
 function MMI.fit(m::DecisionTreeClassifier, verbosity::Int, X, y)
     schema = Tables.schema(X)
     Xmatrix = MMI.matrix(X)
     yplain  = MMI.int(y)
+
+
+    max_depth
+    min_samples_leaf
+    min_purity_increase
+    max_purity_at_leaf
+    display_depth
+    ontology
+    initConditions
+    allowRelationGlob
+    rng
 
     if schema === nothing
         features = [Symbol("x$j") for j in 1:size(Xmatrix, 2)]
@@ -71,13 +74,13 @@ function MMI.fit(m::DecisionTreeClassifier, verbosity::Int, X, y)
     if m.post_prune
         tree = MDT.prune_tree(tree, m.merge_purity_threshold)
     end
-    verbosity < 2 || MDT.print_tree(tree, m.display_depth)
+    verbosity < 2 || MDT.print_model(tree, m.display_depth)
 
     fitresult = (tree, classes_seen, integers_seen, features)
 
     cache  = nothing
     report = (classes_seen=classes_seen,
-              print_tree=TreePrinter(tree),
+              print_tree=ModelPrinter(tree),
               features=features)
 
     return fitresult, cache, report
@@ -159,110 +162,111 @@ end
 
 # # ADA BOOST STUMP CLASSIFIER
 
-MMI.@mlj_model mutable struct AdaBoostStumpClassifier <: MMI.Probabilistic
-    n_iter::Int            = 10::(_ ≥ 1)
-end
+# TODO
+# MMI.@mlj_model mutable struct AdaBoostStumpClassifier <: MMI.Probabilistic
+#     n_iter::Int            = 10::(_ ≥ 1)
+# end
 
-function MMI.fit(m::AdaBoostStumpClassifier, verbosity::Int, X, y)
-    Xmatrix = MMI.matrix(X)
-    yplain  = MMI.int(y)
+# function MMI.fit(m::AdaBoostStumpClassifier, verbosity::Int, X, y)
+#     Xmatrix = MMI.matrix(X)
+#     yplain  = MMI.int(y)
 
-    classes_seen  = filter(in(unique(y)), MMI.classes(y[1]))
-    integers_seen = MMI.int(classes_seen)
+#     classes_seen  = filter(in(unique(y)), MMI.classes(y[1]))
+#     integers_seen = MMI.int(classes_seen)
 
-    stumps, coefs = MDT.build_adaboost_stumps(yplain, Xmatrix,
-                                             m.n_iter)
-    cache  = nothing
-    report = NamedTuple()
-    return (stumps, coefs, classes_seen, integers_seen), cache, report
-end
+#     stumps, coefs = MDT.build_adaboost_stumps(yplain, Xmatrix,
+#                                              m.n_iter)
+#     cache  = nothing
+#     report = NamedTuple()
+#     return (stumps, coefs, classes_seen, integers_seen), cache, report
+# end
 
-MMI.fitted_params(::AdaBoostStumpClassifier, (stumps,coefs,_)) =
-    (stumps=stumps,coefs=coefs)
+# MMI.fitted_params(::AdaBoostStumpClassifier, (stumps,coefs,_)) =
+#     (stumps=stumps,coefs=coefs)
 
-function MMI.predict(m::AdaBoostStumpClassifier, fitresult, Xnew)
-    Xmatrix = MMI.matrix(Xnew)
-    stumps, coefs, classes_seen, integers_seen = fitresult
-    scores = MDT.apply_adaboost_stumps_proba(stumps, coefs,
-                                            Xmatrix, integers_seen)
-    return MMI.UnivariateFinite(classes_seen, scores)
-end
-
-
-# # DECISION TREE REGRESSOR
-
-MMI.@mlj_model mutable struct DecisionTreeRegressor <: MMI.Deterministic
-    max_depth::Int                               = (-)(1)::(_ ≥ -1)
-    min_samples_leaf::Int                = 5::(_ ≥ 0)
-    min_samples_split::Int               = 2::(_ ≥ 2)
-    min_purity_increase::Float64 = 0.0::(_ ≥ 0)
-    n_subfeatures::Int                   = 0::(_ ≥ -1)
-    post_prune::Bool                     = false
-    merge_purity_threshold::Float64 = 1.0::(0 ≤ _ ≤ 1)
-    rng::Union{AbstractRNG,Integer} = GLOBAL_RNG
-end
-
-function MMI.fit(m::DecisionTreeRegressor, verbosity::Int, X, y)
-    Xmatrix = MMI.matrix(X)
-    tree    = MDT.build_tree(float(y), Xmatrix,
-                            m.n_subfeatures,
-                            m.max_depth,
-                            m.min_samples_leaf,
-                            m.min_samples_split,
-                            m.min_purity_increase;
-                            rng=m.rng)
-
-    if m.post_prune
-        tree = MDT.prune_tree(tree, m.merge_purity_threshold)
-    end
-    cache  = nothing
-    report = NamedTuple()
-    return tree, cache, report
-end
-
-MMI.fitted_params(::DecisionTreeRegressor, tree) = (tree=tree,)
-
-function MMI.predict(::DecisionTreeRegressor, tree, Xnew)
-    Xmatrix = MMI.matrix(Xnew)
-    return MDT.apply_tree(tree, Xmatrix)
-end
+# function MMI.predict(m::AdaBoostStumpClassifier, fitresult, Xnew)
+#     Xmatrix = MMI.matrix(Xnew)
+#     stumps, coefs, classes_seen, integers_seen = fitresult
+#     scores = MDT.apply_adaboost_stumps_proba(stumps, coefs,
+#                                             Xmatrix, integers_seen)
+#     return MMI.UnivariateFinite(classes_seen, scores)
+# end
 
 
-# # RANDOM FOREST REGRESSOR
+# # # DECISION TREE REGRESSOR
 
-MMI.@mlj_model mutable struct RandomForestRegressor <: MMI.Deterministic
-    max_depth::Int               = (-)(1)::(_ ≥ -1)
-    min_samples_leaf::Int        = 1::(_ ≥ 0)
-    min_samples_split::Int       = 2::(_ ≥ 2)
-    min_purity_increase::Float64 = 0.0::(_ ≥ 0)
-    n_subfeatures::Int           = (-)(1)::(_ ≥ -1)
-    n_trees::Int                 = 10::(_ ≥ 2)
-    sampling_fraction::Float64   = 0.7::(0 < _ ≤ 1)
-    rng::Union{AbstractRNG,Integer} = GLOBAL_RNG
-end
+# MMI.@mlj_model mutable struct DecisionTreeRegressor <: MMI.Deterministic
+#     max_depth::Int                               = (-)(1)::(_ ≥ -1)
+#     min_samples_leaf::Int                = 5::(_ ≥ 0)
+#     min_samples_split::Int               = 2::(_ ≥ 2)
+#     min_purity_increase::Float64 = 0.0::(_ ≥ 0)
+#     n_subfeatures::Int                   = 0::(_ ≥ -1)
+#     post_prune::Bool                     = false
+#     merge_purity_threshold::Float64 = 1.0::(0 ≤ _ ≤ 1)
+#     rng::Union{AbstractRNG,Integer} = GLOBAL_RNG
+# end
 
-function MMI.fit(m::RandomForestRegressor, verbosity::Int, X, y)
-    Xmatrix = MMI.matrix(X)
-    forest  = MDT.build_forest(float(y), Xmatrix,
-                              m.n_subfeatures,
-                              m.n_trees,
-                              m.sampling_fraction,
-                              m.max_depth,
-                              m.min_samples_leaf,
-                              m.min_samples_split,
-                              m.min_purity_increase,
-                              rng=m.rng)
-    cache  = nothing
-    report = NamedTuple()
-    return forest, cache, report
-end
+# function MMI.fit(m::DecisionTreeRegressor, verbosity::Int, X, y)
+#     Xmatrix = MMI.matrix(X)
+#     tree    = MDT.build_tree(float(y), Xmatrix,
+#                             m.n_subfeatures,
+#                             m.max_depth,
+#                             m.min_samples_leaf,
+#                             m.min_samples_split,
+#                             m.min_purity_increase;
+#                             rng=m.rng)
 
-MMI.fitted_params(::RandomForestRegressor, forest) = (forest=forest,)
+#     if m.post_prune
+#         tree = MDT.prune_tree(tree, m.merge_purity_threshold)
+#     end
+#     cache  = nothing
+#     report = NamedTuple()
+#     return tree, cache, report
+# end
 
-function MMI.predict(::RandomForestRegressor, forest, Xnew)
-    Xmatrix = MMI.matrix(Xnew)
-    return MDT.apply_forest(forest, Xmatrix)
-end
+# MMI.fitted_params(::DecisionTreeRegressor, tree) = (tree=tree,)
+
+# function MMI.predict(::DecisionTreeRegressor, tree, Xnew)
+#     Xmatrix = MMI.matrix(Xnew)
+#     return MDT.apply_tree(tree, Xmatrix)
+# end
+
+
+# # # RANDOM FOREST REGRESSOR
+
+# MMI.@mlj_model mutable struct RandomForestRegressor <: MMI.Deterministic
+#     max_depth::Int               = (-)(1)::(_ ≥ -1)
+#     min_samples_leaf::Int        = 1::(_ ≥ 0)
+#     min_samples_split::Int       = 2::(_ ≥ 2)
+#     min_purity_increase::Float64 = 0.0::(_ ≥ 0)
+#     n_subfeatures::Int           = (-)(1)::(_ ≥ -1)
+#     n_trees::Int                 = 10::(_ ≥ 2)
+#     sampling_fraction::Float64   = 0.7::(0 < _ ≤ 1)
+#     rng::Union{AbstractRNG,Integer} = GLOBAL_RNG
+# end
+
+# function MMI.fit(m::RandomForestRegressor, verbosity::Int, X, y)
+#     Xmatrix = MMI.matrix(X)
+#     forest  = MDT.build_forest(float(y), Xmatrix,
+#                               m.n_subfeatures,
+#                               m.n_trees,
+#                               m.sampling_fraction,
+#                               m.max_depth,
+#                               m.min_samples_leaf,
+#                               m.min_samples_split,
+#                               m.min_purity_increase,
+#                               rng=m.rng)
+#     cache  = nothing
+#     report = NamedTuple()
+#     return forest, cache, report
+# end
+
+# MMI.fitted_params(::RandomForestRegressor, forest) = (forest=forest,)
+
+# function MMI.predict(::RandomForestRegressor, forest, Xnew)
+#     Xmatrix = MMI.matrix(Xnew)
+#     return MDT.apply_forest(forest, Xmatrix)
+# end
 
 
 # # METADATA (MODEL TRAITS)
@@ -629,4 +633,3 @@ the unwrapped model type
 """
 RandomForestRegressor
 
-end # module

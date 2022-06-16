@@ -232,6 +232,19 @@ end
 function default_weights(n::Integer)
     Ones{Int64}(n)
 end
+function default_weights_rebalance(Y::AbstractVector{L}) where {L<:Label}
+    class_counts_dict = countmap(Y)
+    if length(unique(values(class_counts)_dict)) == 1 # balanced case
+        default_weights(length(Y))
+    else
+        # Assign weights in such a way that the dataset becomes balanced 
+        tot = sum(values(class_counts_dict))
+        balanced_tot_per_class = tot/length(class_counts_dict)
+        weights_map = Dict{L,Float64}([class => (balanced_tot_per_class/n_instances) for (class,n_instances) in class_counts_dict])
+        W = [weights_map[y] for y in Y]
+        W ./ sum(W)
+    end
+end
 _slice_weights(W::Ones{Int64}, inds::AbstractVector) = default_weights(length(inds))
 _slice_weights(W::Any,         inds::AbstractVector) = @view W[inds]
 _slice_weights(W::Ones{Int64}, i::Integer) = 1

@@ -27,7 +27,7 @@ end
 function build_stump(
         X                 :: ActiveMultiFrameModalDataset,
         Y                 :: AbstractVector{L},
-        W                 :: Union{Nothing,AbstractVector{U}} = nothing;
+        W                 :: Union{Nothing,AbstractVector{U},Symbol} = nothing;
         kwargs...) where {L<:Label, U}
     params = NamedTuple(kwargs)
     @assert !haskey(params, :max_depth) || params.max_depth == 1 "build_stump doesn't allow max_depth != 1"
@@ -39,7 +39,7 @@ end
 function build_tree(
         X                   :: ActiveMultiFrameModalDataset,
         Y                   :: AbstractVector{L},
-        W                   :: Union{Nothing,AbstractVector{U}}   = nothing;
+        W                   :: Union{Nothing,AbstractVector{U},Symbol}   = default_weights(n_samples(X));
         ##############################################################################
         loss_function       :: Union{Nothing,Function}            = nothing,
         max_depth           :: Int64                              = default_max_depth,
@@ -57,9 +57,17 @@ function build_tree(
         rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG,
     ) where {L<:Label, U}
     
-    if isnothing(W)
-        W = default_weights(n_samples(X))
+    @assert W isa AbstractVector || W in [nothing, :rebalance, :default]
+
+    W = if isnothing(W) || W == :rebalance
+        default_weights_rebalance(Y)
+    elseif :default
+        default_weights(n_samples(X))
+    else
+        W
     end
+
+    @assert n_samples(X) == length(Y) == length(W) "Mismatching number of samples in X, Y & W: $(n_samples(X)), $(length(Y)), $(length(W))"
     
     if isnothing(loss_function)
         loss_function = default_loss_function(L)
@@ -78,9 +86,6 @@ function build_tree(
         initConditions = fill(initConditions, n_frames(X))
     end
 
-    if max_depth == -1
-        max_depth = default_max_depth
-    end
     @assert max_depth > 0
 
     if any(map(f->f isa DimensionalDataset, frames(X)))
@@ -111,8 +116,7 @@ function build_forest(
         X                   :: ActiveMultiFrameModalDataset,
         Y                   :: AbstractVector{L},
         # Use unary weights if no weight is supplied
-        W                   :: AbstractVector{U} = default_weights(n_samples(X));
-        # W                   :: AbstractVector{U} = Ones{Int64}(n_samples(X));      # from FillArrays
+        W                   :: Union{Nothing,AbstractVector{U},Symbol} = default_weights(n_samples(X));
         ##############################################################################
         # Forest logic-agnostic parameters
         n_trees             = 100,

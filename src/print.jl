@@ -95,15 +95,20 @@ function print_tree(
     io::IO,
     node::DTInternal;
     indentation_str="",
+    max_depth = nothing,
     # TODO print_rules = false,
     metrics_kwargs...,
 )
     print(io, "$(display_decision(node))\t\t\t")
     print_tree(io, node.this; indentation_str = "", metrics_kwargs...)
-    print(io, indentation_str * "✔ ") # "╭✔ "
-    print_tree(io, node.left; indentation_str = indentation_str*"│", metrics_kwargs...)
-    print(io, indentation_str * "✘ ") # "╰✘ "
-    print_tree(io, node.right; indentation_str = indentation_str*" ", metrics_kwargs...)
+    if isnothing(max_depth) || length(indentation_str) > max_depth
+        print(io, indentation_str * "✔ ") # "╭✔ "
+        print_tree(io, node.left; indentation_str = indentation_str*"│", metrics_kwargs...)
+        print(io, indentation_str * "✘ ") # "╰✘ "
+        print_tree(io, node.right; indentation_str = indentation_str*" ", metrics_kwargs...)
+    else
+        println(io, " [...]")
+    end
 end
 
 function print_tree(
