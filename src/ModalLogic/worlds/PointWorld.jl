@@ -3,7 +3,7 @@
 # # BEGIN PointWorld
 # ################################################################################
 
-# struct PointWorld <: AbstractWorld
+# struct PointWorld <: World
     # PointWorld(w::PointWorld) = new(w.x,w.y)
 #   x :: Integer
 #   # TODO check x<=N but only in debug mode

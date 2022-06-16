@@ -1,6 +1,6 @@
 
 # An interval is a pair of natural numbers (x,y) where: i) x > 0; ii) y > 0; iii) x < y.
-struct Interval <: AbstractWorld
+struct Interval <: World
     x :: Integer
     y :: Integer
     # 

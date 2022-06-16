@@ -18,7 +18,7 @@ using ResumableFunctions
 
 import Base: size, show, getindex, iterate, length, push!
 
-export AbstractWorld, AbstractRelation,
+export World, Relation,
        Ontology,
        AbstractWorldSet, WorldSet,
        RelationGlob, RelationId,
@@ -34,7 +34,7 @@ end
 ############################################################################################
 
 # Abstract types for worlds
-abstract type AbstractWorld end
+abstract type World end
 
 # These constants is used for specifying different initial world conditions for each world type
 #  (e.g. Interval(::EmptyWorld) = Interval(-1,0))
@@ -56,28 +56,28 @@ struct CenteredWorld end;
 # For example, dimensionality(Interval) = 1.
 
 # For convenience, each world type can be instantiated with a tuple of values, one for each field.
-(W::Type{<:AbstractWorld})(args::Tuple) = W(args...)
+(W::Type{<:World})(args::Tuple) = W(args...)
 
 # World enumerators generate array/set-like structures
-const AbstractWorldSet{W} = Union{AbstractVector{W},AbstractSet{W}} where {W<:AbstractWorld}
-const WorldSet{W} = Vector{W} where {W<:AbstractWorld}
-WorldSet{W}(S::WorldSet{W}) where {W<:AbstractWorld} = S
+const AbstractWorldSet{W} = Union{AbstractVector{W},AbstractSet{W}} where {W<:World}
+const WorldSet{W} = Vector{W} where {W<:World}
+WorldSet{W}(S::WorldSet{W}) where {W<:World} = S
 
 ############################################################################################
 # Relations
 ############################################################################################
 
 # Abstract types for relations
-abstract type AbstractRelation end
+abstract type Relation end
 
 # Relations must indicate their compatible world types via `goes_with`.
 #  For example, if world type W is compatible with relation R
 # goes_with(::Type{W}, ::R) = true
 # Here's the fallback:
-goes_with(::Type{W}, ::AbstractRelation) where {W<:AbstractWorld} = false
+goes_with(::Type{W}, ::Relation) where {W<:World} = false
 
 # Relations are defined via methods that return iterators the accessible worlds.
-# Each relation R<:AbstractRelation must provide a method for `accessibles`, which returns an iterator
+# Each relation R<:Relation must provide a method for `accessibles`, which returns an iterator
 #  to the worlds that are accessible from a given world w:
 # `accessibles(w::W,           ::R, args...)`
 
@@ -86,7 +86,7 @@ goes_with(::Type{W}, ::AbstractRelation) where {W<:AbstractWorld} = false
 # `_accessibles(w::W,           ::R, args...)`
 
 # The following fallback ensures that the two definitions are equivalent
-accessibles(w::WorldType, r::AbstractRelation, args...) where {T,WorldType<:AbstractWorld} = begin
+accessibles(w::WorldType, r::Relation, args...) where {T,WorldType<:World} = begin
     IterTools.imap(WorldType, _accessibles(w, r, args...))
 end
 
@@ -96,7 +96,7 @@ end
 #  single world. Generally, this falls back to calling `_accessibles` on each world in
 #  the set, and returning a constructor of wolds from the union; however, one may provide
 #  improved implementations for special cases (e.g. ⟨L⟩ of a world set in interval algebra).
-accessibles(S::AbstractWorldSet{WorldType}, r::AbstractRelation, args...) where {T,WorldType<:AbstractWorld} = begin
+accessibles(S::AbstractWorldSet{WorldType}, r::Relation, args...) where {T,WorldType<:World} = begin
     IterTools.imap(WorldType,
         IterTools.distinct(
             Iterators.flatten(
@@ -116,26 +116,26 @@ end
 #  worlds.
 # accessibles_aggr(f::ModalFeature, a::Aggregator, S::AbstractWorldSet{W}, ::R, args...)
 # Of course, the fallback is enumerating all accessible worlds via `accessibles`
-accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::AbstractRelation, args...) where {WorldType<:AbstractWorld} = accessibles(w, r, args...)
+accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::Relation, args...) where {WorldType<:World} = accessibles(w, r, args...)
 
 ############################################################################################
 # Singletons representing natural relations
 ############################################################################################
 
 # Identity relation: any world -> itself
-struct _RelationId    <: AbstractRelation end; const RelationId   = _RelationId();
+struct _RelationId    <: Relation end; const RelationId   = _RelationId();
 
 Base.show(io::IO, ::_RelationId) = print(io, "=")
 
-accessibles(w::WorldType,           ::_RelationId, args...) where {WorldType<:AbstractWorld} = [w] # TODO try IterTools.imap(identity, [w])
-accessibles(S::AbstractWorldSet{W}, ::_RelationId, args...) where {W<:AbstractWorld} = S # TODO try IterTools.imap(identity, S)
+accessibles(w::WorldType,           ::_RelationId, args...) where {WorldType<:World} = [w] # TODO try IterTools.imap(identity, [w])
+accessibles(S::AbstractWorldSet{W}, ::_RelationId, args...) where {W<:World} = S # TODO try IterTools.imap(identity, S)
 
-accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::_RelationId,      args...) where {WorldType<:AbstractWorld} = accessibles(w, r, args...)
+accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::_RelationId,      args...) where {WorldType<:World} = accessibles(w, r, args...)
 
 ############################################################################################
 
 # Global relation:  any world -> all worlds
-struct _RelationGlob   <: AbstractRelation end; const RelationGlob  = _RelationGlob();
+struct _RelationGlob   <: Relation end; const RelationGlob  = _RelationGlob();
 
 Base.show(io::IO, ::_RelationGlob) = print(io, "G")
 
@@ -147,20 +147,20 @@ Base.show(io::IO, ::_RelationGlob) = print(io, "G")
 ############################################################################################
 
 # Shortcuts using global relation for enumerating all worlds
-all_worlds(::Type{WorldType}, args...) where {WorldType<:AbstractWorld} = accessibles(WorldType[], RelationGlob, args...)
-all_worlds(::Type{WorldType}, enum_acc_fun::Function) where {WorldType<:AbstractWorld} = enum_acc_fun(WorldType[], RelationGlob)
-all_worlds_aggr(::Type{WorldType}, enum_repr_fun::Function, f::ModalFeature, a::Aggregator) where {WorldType<:AbstractWorld} = enum_repr_fun(f, a, WorldType[], RelationGlob)
+all_worlds(::Type{WorldType}, args...) where {WorldType<:World} = accessibles(WorldType[], RelationGlob, args...)
+all_worlds(::Type{WorldType}, enum_acc_fun::Function) where {WorldType<:World} = enum_acc_fun(WorldType[], RelationGlob)
+all_worlds_aggr(::Type{WorldType}, enum_repr_fun::Function, f::ModalFeature, a::Aggregator) where {WorldType<:World} = enum_repr_fun(f, a, WorldType[], RelationGlob)
 
 ############################################################################################
 
 # Concrete type for ontologies
 # An ontology is a pair `world type` + `set of relations`, and represents the kind of
 #  modal frame that underlies a certain logic
-struct Ontology{WorldType<:AbstractWorld}
+struct Ontology{WorldType<:World}
 
-    relations :: AbstractVector{<:AbstractRelation}
+    relations :: AbstractVector{<:Relation}
 
-    function Ontology{WorldType}(_relations::AbstractVector) where {WorldType<:AbstractWorld}
+    function Ontology{WorldType}(_relations::AbstractVector) where {WorldType<:World}
         _relations = collect(unique(_relations))
         for relation in _relations
             @assert goes_with(WorldType, relation) "Can't instantiate Ontology{$(WorldType)} with relation $(relation)!"
@@ -172,13 +172,13 @@ struct Ontology{WorldType<:AbstractWorld}
         new{WorldType}(_relations)
     end
 
-    Ontology(worldType::Type{<:AbstractWorld}, relations) = Ontology{worldType}(relations)
+    Ontology(worldType::Type{<:World}, relations) = Ontology{worldType}(relations)
 end
 
-world_type(::Ontology{WT}) where {WT<:AbstractWorld} = WT
+world_type(::Ontology{WT}) where {WT<:World} = WT
 relations(o::Ontology) = o.relations
 
-Base.show(io::IO, o::Ontology{WT}) where {WT<:AbstractWorld} = begin
+Base.show(io::IO, o::Ontology{WT}) where {WT<:World} = begin
     if o == OneWorldOntology
         print(io, "OneWorldOntology")
     else
@@ -223,7 +223,7 @@ struct Decision{T}
     
     # Relation, interpreted as an existential modal operator
     #  Note: RelationId for propositional decisions
-    relation      :: AbstractRelation
+    relation      :: Relation
     
     # Modal feature (a scalar function that can be computed on a world)
     feature       :: ModalFeature
@@ -239,7 +239,7 @@ struct Decision{T}
     end
 
     function Decision{T}(
-        relation      :: AbstractRelation,
+        relation      :: Relation,
         feature       :: ModalFeature,
         test_operator :: TestOperatorFun,
         threshold     :: T
@@ -248,7 +248,7 @@ struct Decision{T}
     end
 
     function Decision(
-        relation      :: AbstractRelation,
+        relation      :: Relation,
         feature       :: ModalFeature,
         test_operator :: TestOperatorFun,
         threshold     :: T
@@ -275,8 +275,8 @@ function display_decision(decision::Decision; threshold_display_method::Function
     end
 end
 
-display_existential(rel::AbstractRelation) = "⟨$(rel)⟩"
-display_universal(rel::AbstractRelation)   = "[$(rel)]"
+display_existential(rel::Relation) = "⟨$(rel)⟩"
+display_universal(rel::Relation)   = "[$(rel)]"
 
 ############################################################################################
 
@@ -331,7 +331,7 @@ const PassiveModalDataset{T} = Union{DimensionalDataset{T}}
 #  etc. While learning a model can be done only with active modal datasets, testing a model
 #  can be done with both active and passive modal datasets.
 # 
-abstract type ActiveModalDataset{T<:Number,WorldType<:AbstractWorld} end
+abstract type ActiveModalDataset{T<:Number,WorldType<:World} end
 # 
 # Active modal datasets hold the WorldType, and thus can initialize world sets with a lighter interface
 # 
@@ -360,10 +360,10 @@ const GenericModalDataset = Union{ModalDataset,MultiFrameModalDataset}
 ############################################################################################
 
 # Directional relations
-abstract type DirectionalRelation <: AbstractRelation end
+abstract type DirectionalRelation <: Relation end
 
 # Topological relations
-abstract type TopologicalRelation <: AbstractRelation end
+abstract type TopologicalRelation <: Relation end
 
 # Here are the definitions for world types and relations for known modal logics
 #  
@@ -389,7 +389,7 @@ export OneWorldOntology,
 #  and `Decision`s only allow the RelationId.
 include("worlds/OneWorld.jl")                 # <- OneWorld world type
 
-const OneWorldOntology   = Ontology{OneWorld}(AbstractRelation[])
+const OneWorldOntology   = Ontology{OneWorld}(Relation[])
 
 ############################################################################################
 # Dimensionality: 1

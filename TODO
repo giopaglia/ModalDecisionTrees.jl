@@ -71,7 +71,7 @@ Renamings:
 ☐	? MODALLOGIC.JL: Remove n_relations()?
 ☐	MODALLOGIC.JL: OPTIMIZE: enumAccessibles and others for sets. But wait, maybe they are not that useful nor needed?
 ☐	MODALLOGIC.JL computePropositionalThreshold, computeModalThreshold, test_decision seem to do similar things. Maybe uniform their style and naming
-☐	MODALLOGIC.JL Add a generalized solution for unions of relations: struct _UnionOfRelations{T<:NTuple{N,<:AbstractRelation} where N} <: AbstractRelation end;. _UnionOfRelations{typeof((RelationId,))} "A relation can be defined as a union of other relations. In this case, thresholds can be computed by maximization/minimization of the thresholds referred to the relations involved." (so you can rewrite RCC5 from RCC8 relations and RCC8 from IA, maybe it's cleaner in some cases?)
+☐	MODALLOGIC.JL Add a generalized solution for unions of relations: struct _UnionOfRelations{T<:NTuple{N,<:Relation} where N} <: Relation end;. _UnionOfRelations{typeof((RelationId,))} "A relation can be defined as a union of other relations. In this case, thresholds can be computed by maximization/minimization of the thresholds referred to the relations involved." (so you can rewrite RCC5 from RCC8 relations and RCC8 from IA, maybe it's cleaner in some cases?)
 ☐	MODALLOGIC.JL: DIMENSIONAL/MODAL difference, An ontology interpreted over an N-dimensional domain gives rise to a Kripke model/frame, but one can *generalize for a Kripke model/frame in graph form*.
 	abstract type AbstractKripkeFrame end
 	Generic Kripke frame: worlds & relations

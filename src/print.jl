@@ -101,7 +101,7 @@ function print_tree(
 )
     print(io, "$(display_decision(node))\t\t\t")
     print_tree(io, node.this; indentation_str = "", metrics_kwargs...)
-    if isnothing(max_depth) || length(indentation_str) > max_depth
+    if isnothing(max_depth) || length(indentation_str) < max_depth
         print(io, indentation_str * "✔ ") # "╭✔ "
         print_tree(io, node.left; indentation_str = indentation_str*"│", metrics_kwargs...)
         print(io, indentation_str * "✘ ") # "╰✘ "

@@ -11,6 +11,10 @@ import Tables
 using Random
 import Random.GLOBAL_RNG
 
+############################################################################################
+############################################################################################
+############################################################################################
+
 struct ModelPrinter{T}
     tree::T
 end
@@ -18,6 +22,10 @@ end
 
 Base.show(stream::IO, c::ModelPrinter) =
     print(stream, "ModelPrinter object (call with display depth)")
+
+############################################################################################
+############################################################################################
+############################################################################################
 
 
 const MMI = MLJModelInterface
@@ -31,10 +39,9 @@ MMI.@mlj_model mutable struct DecisionTreeClassifier <: MMI.Deterministic
     min_purity_increase    :: Float64                      = MDT.default_min_purity_increase
     max_purity_at_leaf     :: Float64                      = MDT.default_max_purity_at_leaf
     # Modal hyper-parameters
-    relation_set           :: Union{Nothing,Symbol,AbstractVector{<:AbstractRelation}} = nothing?
-    # ontology               :: Union{Nothing,Symbol,MDT.Ontology}  = nothing
-    init_conditions        :: Symbol           = [:start_with_global, :start_at_center]
-    allow_global_splits    :: Bool                         = false
+    relation_set           :: Union{Nothing,Symbol,AbstractVector{<:MDT.Relation}} = nothing::(isnothing(_) || _ in [:auto, :IA, :IA3, IA7] || _ isa AbstractVector{<:MDT.Relation})
+    init_conditions        :: Symbol                       = :start_with_global::(_ in [:start_with_global, :start_at_center])
+    allow_global_splits    :: Bool                         = true
     # Other
     display_depth          :: Union{Nothing,Int}           = 5::(isnothing(_) || _ ≥ 0)
     rng                    :: Union{AbstractRNG,Integer}   = GLOBAL_RNG

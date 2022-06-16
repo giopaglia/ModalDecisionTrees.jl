@@ -23,7 +23,7 @@ polarity(::TestOperatorNegative) = false
 @inline evaluate_thresh_decision(::TestOperatorPositive, t::T, gamma::T) where {T} = (t <= gamma)
 @inline evaluate_thresh_decision(::TestOperatorNegative, t::T, gamma::T) where {T} = (t >= gamma)
 
-compute_modal_gamma(test_operator::Union{TestOperatorPositive,TestOperatorNegative}, w::WorldType, relation::AbstractRelation, channel::DimensionalChannel{T,N}) where {WorldType<:AbstractWorld,T,N} = begin
+compute_modal_gamma(test_operator::Union{TestOperatorPositive,TestOperatorNegative}, w::WorldType, relation::Relation, channel::DimensionalChannel{T,N}) where {WorldType<:World,T,N} = begin
     worlds = accessibles([w], relation, channel)
     # TODO rewrite as reduce(opt(test_operator), (computePropositionalThreshold(test_operator, w, channel) for w in worlds); init=bottom(test_operator, T))
     v = bottom(test_operator, T)
@@ -33,7 +33,7 @@ compute_modal_gamma(test_operator::Union{TestOperatorPositive,TestOperatorNegati
     end
     v
 end
-computeModalThresholdDual(test_operator::TestOperatorPositive, w::WorldType, relation::AbstractRelation, channel::DimensionalChannel{T,N}) where {WorldType<:AbstractWorld,T,N} = begin
+computeModalThresholdDual(test_operator::TestOperatorPositive, w::WorldType, relation::Relation, channel::DimensionalChannel{T,N}) where {WorldType<:World,T,N} = begin
     worlds = accessibles([w], relation, channel)
     extr = (typemin(T),typemax(T))
     for w in worlds
@@ -42,7 +42,7 @@ computeModalThresholdDual(test_operator::TestOperatorPositive, w::WorldType, rel
     end
     extr
 end
-computeModalThresholdMany(test_ops::Vector{<:TestOperator}, w::WorldType, relation::AbstractRelation, channel::DimensionalChannel{T,N}) where {WorldType<:AbstractWorld,T,N} = begin
+computeModalThresholdMany(test_ops::Vector{<:TestOperator}, w::WorldType, relation::Relation, channel::DimensionalChannel{T,N}) where {WorldType<:World,T,N} = begin
     [compute_modal_gamma(test_op, w, relation, channel) for test_op in test_ops]
 end
 
@@ -66,7 +66,7 @@ siblings(::CanonicalFeatureLeq) = []
 Base.show(io::IO, test_operator::CanonicalFeatureGeq) = print(io, "⪴")
 Base.show(io::IO, test_operator::CanonicalFeatureLeq) = print(io, "⪳")
 
-@inline computePropositionalThreshold(::CanonicalFeatureGeq, w::AbstractWorld, channel::DimensionalChannel{T,N}) where {T,N} = begin
+@inline computePropositionalThreshold(::CanonicalFeatureGeq, w::World, channel::DimensionalChannel{T,N}) where {T,N} = begin
     # println(CanonicalFeatureGeq)
     # println(w)
     # println(channel)
@@ -74,16 +74,16 @@ Base.show(io::IO, test_operator::CanonicalFeatureLeq) = print(io, "⪳")
     # readline()
     minimum(ch_readWorld(w,channel))
 end
-@inline computePropositionalThreshold(::CanonicalFeatureLeq, w::AbstractWorld, channel::DimensionalChannel{T,N}) where {T,N} = begin
+@inline computePropositionalThreshold(::CanonicalFeatureLeq, w::World, channel::DimensionalChannel{T,N}) where {T,N} = begin
     # println(CanonicalFeatureLeq)
     # println(w)
     # println(channel)
     # readline()
     maximum(ch_readWorld(w,channel))
 end
-@inline computePropositionalThresholdDual(::CanonicalFeatureGeq, w::AbstractWorld, channel::DimensionalChannel{T,N}) where {T,N} = extrema(ch_readWorld(w,channel))
+@inline computePropositionalThresholdDual(::CanonicalFeatureGeq, w::World, channel::DimensionalChannel{T,N}) where {T,N} = extrema(ch_readWorld(w,channel))
 
-@inline test_decision(test_operator::CanonicalFeatureGeq, w::AbstractWorld, channel::DimensionalChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
+@inline test_decision(test_operator::CanonicalFeatureGeq, w::World, channel::DimensionalChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
     # Source: https://stackoverflow.com/questions/47564825/check-if-all-the-elements-of-a-julia-array-are-equal
     # @inbounds
     # TODO try:
@@ -93,7 +93,7 @@ end
     end
     return true
 end
-@inline test_decision(test_operator::CanonicalFeatureLeq, w::AbstractWorld, channel::DimensionalChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
+@inline test_decision(test_operator::CanonicalFeatureLeq, w::World, channel::DimensionalChannel{T,N}, threshold::Number) where {T,N} = begin # TODO maybe this becomes SIMD, or sum/all(ch_readWorld(w,channel)  .<= threshold)
     # Source: https://stackoverflow.com/questions/47564825/check-if-all-the-elements-of-a-julia-array-are-equal
     # @info "WLes" w threshold #n ch_readWorld(w,channel)
     # @inbounds
@@ -173,23 +173,23 @@ Base.show(io::IO, test_operator::CanonicalFeatureLeqSoft) = print(io, "⪳" * su
 @inline test_op_partialsort!(test_op::CanonicalFeatureLeqSoft, vals::Vector{T}) where {T} = 
     partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)))
 
-@inline computePropositionalThreshold(test_op::Union{CanonicalFeatureGeqSoft,CanonicalFeatureLeqSoft}, w::AbstractWorld, channel::DimensionalChannel{T,N}) where {T,N} = begin
+@inline computePropositionalThreshold(test_op::Union{CanonicalFeatureGeqSoft,CanonicalFeatureLeqSoft}, w::World, channel::DimensionalChannel{T,N}) where {T,N} = begin
     vals = vec(ch_readWorld(w,channel))
     test_op_partialsort!(test_op,vals)
 end
-# @inline computePropositionalThresholdDual(test_op::CanonicalFeatureGeqSoft, w::AbstractWorld, channel::DimensionalChannel{T,N}) where {T,N} = begin
+# @inline computePropositionalThresholdDual(test_op::CanonicalFeatureGeqSoft, w::World, channel::DimensionalChannel{T,N}) where {T,N} = begin
 #   vals = vec(ch_readWorld(w,channel))
 #   xmin = test_op_partialsort!(test_op,vec(ch_readWorld(w,channel)))
 #   xmin = partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)); rev=true)
 #   xmax = partialsort!(vals,ceil(Int, (alpha(test_op))*length(vals)))
 #   xmin,xmax
 # end
-@inline computePropositionalThresholdMany(test_ops::Vector{<:TestOperator}, w::AbstractWorld, channel::DimensionalChannel{T,N}) where {T,N} = begin
+@inline computePropositionalThresholdMany(test_ops::Vector{<:TestOperator}, w::World, channel::DimensionalChannel{T,N}) where {T,N} = begin
     vals = vec(ch_readWorld(w,channel))
     (test_op_partialsort!(test_op,vals) for test_op in test_ops)
 end
 
-@inline test_decision(test_operator::CanonicalFeatureGeqSoft, w::AbstractWorld, channel::DimensionalChannel{T,N}, threshold::Number) where {T,N} = begin 
+@inline test_decision(test_operator::CanonicalFeatureGeqSoft, w::World, channel::DimensionalChannel{T,N}, threshold::Number) where {T,N} = begin 
     ys = 0
     # TODO write with reduce, and optimize it (e.g. by stopping early if the decision is reached already)
     vals = ch_readWorld(w,channel)
@@ -201,7 +201,7 @@ end
     (ys/length(vals)) >= test_operator.alpha
 end
 
-@inline test_decision(test_operator::CanonicalFeatureLeqSoft, w::AbstractWorld, channel::DimensionalChannel{T,N}, threshold::Number) where {T,N} = begin 
+@inline test_decision(test_operator::CanonicalFeatureLeqSoft, w::World, channel::DimensionalChannel{T,N}, threshold::Number) where {T,N} = begin 
     ys = 0
     # TODO write with reduce, and optimize it (e.g. by stopping early if the decision is reached already)
     vals = ch_readWorld(w,channel)
@@ -242,7 +242,7 @@ end
 function test_decision(
         X::DimensionalDataset{T},
         i_sample::Integer,
-        w::AbstractWorld,
+        w::World,
         feature::ModalFeature,
         test_operator::OrderingTestOperator,
         threshold::T) where {T}
@@ -252,7 +252,7 @@ end
 function test_decision(
         X::DimensionalDataset{T},
         i_sample::Integer,
-        w::AbstractWorld,
+        w::World,
         feature::ModalFeature... ,
         aggregator::typeof(maximum),
         threshold::T) where {T}
@@ -263,7 +263,7 @@ end
 function test_decision(
         X::InterpretedModalDataset{T},
         i_sample::Integer,
-        w::AbstractWorld,
+        w::World,
         feature::ModalFeature,
         test_operator::TestOperatorFun,
         threshold::T) where {T}
@@ -275,14 +275,14 @@ end
 ############################################################################################
 
 
-function computePropositionalThreshold(feature::ModalFeature, w::AbstractWorld, instance::DimensionalInstance{T,N}) where {T,N}
+function computePropositionalThreshold(feature::ModalFeature, w::World, instance::DimensionalInstance{T,N}) where {T,N}
     interpret_feature(feature, inst_readWorld(w, instance)::DimensionalChannel{T,N-1})::T
 end
 
-computeModalThresholdDual(test_operator::TestOperatorFun, w::WorldType, relation::R where R<:_UnionOfRelations{relsTuple}, channel::DimensionalChannel{T,N}) where {WorldType<:AbstractWorld,T,N} =
+computeModalThresholdDual(test_operator::TestOperatorFun, w::WorldType, relation::R where R<:_UnionOfRelations{relsTuple}, channel::DimensionalChannel{T,N}) where {WorldType<:World,T,N} =
   computePropositionalThresholdDual(test_operator, w, channel)
   fieldtypes(relsTuple)
-compute_modal_gamma(test_operator::TestOperatorFun, w::WorldType, relation::R where R<:_UnionOfRelations{relsTuple}, channel::DimensionalChannel{T,N}) where {WorldType<:AbstractWorld,T,N} =
+compute_modal_gamma(test_operator::TestOperatorFun, w::WorldType, relation::R where R<:_UnionOfRelations{relsTuple}, channel::DimensionalChannel{T,N}) where {WorldType<:World,T,N} =
   computePropositionalThreshold(test_operator, w, channel)
   fieldtypes(relsTuple)
 
@@ -314,9 +314,9 @@ enum_acc_repr(test_operator::CanonicalFeatureGeq, w::Interval, ::_RelationGlob, 
 enum_acc_repr(test_operator::CanonicalFeatureLeq, w::Interval, ::_RelationGlob, X::Integer) = _ReprMin(Interval(1,X+1))
 
 # TODO optimize relationGlob
-computeModalThresholdDual(test_operator::CanonicalFeatureGeq, w::Interval, r::R where R<:AbstractRelation, channel::DimensionalChannel{T,1}) where {T} =
+computeModalThresholdDual(test_operator::CanonicalFeatureGeq, w::Interval, r::R where R<:Relation, channel::DimensionalChannel{T,1}) where {T} =
     yieldReprs(test_operator, enum_acc_repr(test_operator, w, r, size(channel)...), channel)
-computeModalThreshold(test_operator::Union{CanonicalFeatureGeq,CanonicalFeatureLeq}, w::Interval, r::R where R<:AbstractRelation, channel::DimensionalChannel{T,1}) where {T} =
+computeModalThreshold(test_operator::Union{CanonicalFeatureGeq,CanonicalFeatureLeq}, w::Interval, r::R where R<:Relation, channel::DimensionalChannel{T,1}) where {T} =
     yieldRepr(test_operator, enum_acc_repr(test_operator, w, r, size(channel)...), channel)
 
 # TODO optimize relationGlob?
@@ -380,14 +380,14 @@ enum_acc_repr(test_operator::CanonicalFeatureLeq, w::Interval2D, ::_RelationGlob
 
 # TODO write only one ExtremeModal/ExtremaModal
 # TODO optimize relationGlob
-computeModalThresholdDual(test_operator::CanonicalFeatureGeq, w::Interval2D, r::R where R<:AbstractRelation, channel::DimensionalChannel{T,2}) where {T} = begin
+computeModalThresholdDual(test_operator::CanonicalFeatureGeq, w::Interval2D, r::R where R<:Relation, channel::DimensionalChannel{T,2}) where {T} = begin
   # if (channel == [412 489 559 619 784; 795 771 1317 854 1256; 971 874 878 1278 560] && w.x.x==1 && w.x.y==3 && w.y.x==3 && w.y.y==4)
   #   println(enum_acc_repr(test_operator, w, r, size(channel)...))
   #   readline()
   # end
   yieldReprs(test_operator, enum_acc_repr(test_operator, w, r, size(channel)...), channel)
 end
-compute_modal_gamma(test_operator::Union{CanonicalFeatureGeq,CanonicalFeatureLeq}, w::Interval2D, r::R where R<:AbstractRelation, channel::DimensionalChannel{T,2}) where {T} =
+compute_modal_gamma(test_operator::Union{CanonicalFeatureGeq,CanonicalFeatureLeq}, w::Interval2D, r::R where R<:Relation, channel::DimensionalChannel{T,2}) where {T} =
   yieldRepr(test_operator, enum_acc_repr(test_operator, w, r, size(channel)...), channel)
 # channel = [1,2,3,2,8,349,0,830,7290,298,20,29,2790,27,90279,270,2722,79072,0]
 # w = ModalLogic.Interval(3,9)
@@ -594,15 +594,15 @@ const _IA2DRelSingleVal = Union{_IA_A,_IA_Ai,_IA_B,_IA_E}
 # TODO remove (needed for GAMMAS)
 # Utility type for enhanced computation of thresholds
 abstract type _ReprTreatment end
-struct _ReprFake{WorldType<:AbstractWorld} <: _ReprTreatment w :: WorldType end
-struct _ReprMax{WorldType<:AbstractWorld}  <: _ReprTreatment w :: WorldType end
-struct _ReprMin{WorldType<:AbstractWorld}  <: _ReprTreatment w :: WorldType end
-struct _ReprVal{WorldType<:AbstractWorld}  <: _ReprTreatment w :: WorldType end
-struct _ReprNone{WorldType<:AbstractWorld} <: _ReprTreatment end
-# enum_acc_repr(::CanonicalFeatureGeq, w::WorldType, ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = _ReprMin(w)
-# enum_acc_repr(::CanonicalFeatureLeq, w::WorldType, ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:AbstractWorld,N} = _ReprMax(w)
+struct _ReprFake{WorldType<:World} <: _ReprTreatment w :: WorldType end
+struct _ReprMax{WorldType<:World}  <: _ReprTreatment w :: WorldType end
+struct _ReprMin{WorldType<:World}  <: _ReprTreatment w :: WorldType end
+struct _ReprVal{WorldType<:World}  <: _ReprTreatment w :: WorldType end
+struct _ReprNone{WorldType<:World} <: _ReprTreatment end
+# enum_acc_repr(::CanonicalFeatureGeq, w::WorldType, ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:World,N} = _ReprMin(w)
+# enum_acc_repr(::CanonicalFeatureLeq, w::WorldType, ::_RelationId, XYZ::Vararg{Integer,N}) where {WorldType<:World,N} = _ReprMax(w)
 
-@inline enum_acc_repr2D(test_operator::TestOperator, w::Interval2D, rx::R1 where R1<:AbstractRelation, ry::R2 where R2<:AbstractRelation, X::Integer, Y::Integer, _ReprConstructor::Type{rT}) where {rT<:_ReprTreatment} = begin
+@inline enum_acc_repr2D(test_operator::TestOperator, w::Interval2D, rx::R1 where R1<:Relation, ry::R2 where R2<:Relation, X::Integer, Y::Integer, _ReprConstructor::Type{rT}) where {rT<:_ReprTreatment} = begin
     x = enum_acc_repr(test_operator, w.x, rx, X)
     # println(x)
     if x == _ReprNone{Interval}()
@@ -733,7 +733,7 @@ end
 # TODO optimize RCC5
 
 # Virtual relation used for computing Topo_DC on Interval2D
-struct _Virtual_Enlarge <: AbstractRelation end; const Virtual_Enlarge = _Virtual_Enlarge();     # Virtual_Enlarge
+struct _Virtual_Enlarge <: Relation end; const Virtual_Enlarge = _Virtual_Enlarge();     # Virtual_Enlarge
 enlargeInterval(w::Interval, X::Integer) = Interval(max(1,w.x-1),min(w.y+1,X+1))
 
 enum_acc_repr(test_operator::CanonicalFeatureGeq, w::Interval, ::_Virtual_Enlarge,  X::Integer) = _ReprMin(enlargeInterval(w,X))
