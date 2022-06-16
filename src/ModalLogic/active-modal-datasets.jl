@@ -36,7 +36,7 @@ end
 # 
 ############################################################################################
 
-@computed struct InterpretedModalDataset{T<:Number, N, WorldType<:AbstractWorld} <: ActiveModalDataset{T, WorldType}
+@computed struct InterpretedModalDataset{T<:Number, N, WorldType<:World} <: ActiveModalDataset{T, WorldType}
     
     # Core data (a dimensional domain)
     domain                  :: DimensionalDataset{T,N+1+1}
@@ -55,7 +55,7 @@ end
         domain::DimensionalDataset{T,D},
         ontology::Ontology{WorldType},
         mixed_features::AbstractVector{<:MixedFeature},
-    ) where {T, N, D, WorldType<:AbstractWorld}
+    ) where {T, N, D, WorldType<:World}
         InterpretedModalDataset{T}(domain, ontology, mixed_features)
     end
 
@@ -63,7 +63,7 @@ end
         domain::DimensionalDataset{T,D},
         ontology::Ontology{WorldType},
         mixed_features::AbstractVector{<:MixedFeature},
-    ) where {T, N, D, WorldType<:AbstractWorld}
+    ) where {T, N, D, WorldType<:World}
         InterpretedModalDataset{T, D-1-1}(domain, ontology, mixed_features)
     end
 
@@ -71,7 +71,7 @@ end
         domain::DimensionalDataset{T,D},
         ontology::Ontology{WorldType},
         mixed_features::AbstractVector{<:MixedFeature},
-    ) where {T, N, D, WorldType<:AbstractWorld}
+    ) where {T, N, D, WorldType<:World}
         InterpretedModalDataset{T, N, WorldType}(domain, ontology, mixed_features)
     end
     
@@ -79,7 +79,7 @@ end
         domain::DimensionalDataset{T,D},
         ontology::Ontology{WorldType},
         mixed_features::AbstractVector{<:MixedFeature},
-    ) where {T, N, D, WorldType<:AbstractWorld}
+    ) where {T, N, D, WorldType<:World}
         _features, featsnops = begin
             _features = ModalFeature[]
             featsnops = Vector{<:TestOperatorFun}[]
@@ -131,7 +131,7 @@ end
         features::AbstractVector{<:ModalFeature},
         grouped_featsaggrsnops_or_featsnops; # AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}}
         kwargs...,
-    ) where {T, D, WorldType<:AbstractWorld}
+    ) where {T, D, WorldType<:World}
         InterpretedModalDataset{T}(domain, ontology, features, grouped_featsaggrsnops_or_featsnops; kwargs...)
     end
 
@@ -141,7 +141,7 @@ end
         features::AbstractVector{<:ModalFeature},
         grouped_featsaggrsnops_or_featsnops; # AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}}
         kwargs...,
-    ) where {T, D, WorldType<:AbstractWorld}
+    ) where {T, D, WorldType<:World}
         InterpretedModalDataset{T, D-1-1}(domain, ontology, features, grouped_featsaggrsnops_or_featsnops; kwargs...)
     end
 
@@ -151,7 +151,7 @@ end
         features::AbstractVector{<:ModalFeature},
         grouped_featsaggrsnops_or_featsnops; # AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}}
         kwargs...,
-    ) where {T, N, D, WorldType<:AbstractWorld}
+    ) where {T, N, D, WorldType<:World}
         InterpretedModalDataset{T, N, WorldType}(domain, ontology, features, grouped_featsaggrsnops_or_featsnops; kwargs...)
     end
     
@@ -161,7 +161,7 @@ end
         features::AbstractVector{<:ModalFeature},
         grouped_featsnops  :: AbstractVector{<:AbstractVector{<:TestOperatorFun}};
         kwargs...,
-    ) where {T, N, D, WorldType<:AbstractWorld}
+    ) where {T, N, D, WorldType<:World}
 
         grouped_featsaggrsnops = grouped_featsnops2grouped_featsaggrsnops(grouped_featsnops)
         
@@ -173,7 +173,7 @@ end
         features::AbstractVector{<:ModalFeature},
         grouped_featsaggrsnops::AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}};
         allow_no_instances = false,
-    ) where {T, N, D, WorldType<:AbstractWorld}
+    ) where {T, N, D, WorldType<:World}
 
         @assert allow_no_instances || n_samples(domain) > 0 "Can't instantiate InterpretedModalDataset{$(T), $(N), $(WorldType)} with no instance. (domain's type $(typeof(domain)))"
         @assert N == dimensionality(WorldType) "ERROR! Dimensionality mismatch: can't interpret WorldType $(WorldType) (dimensionality = $(dimensionality(WorldType)) on DimensionalDataset of dimensionality = $(N))"
@@ -243,15 +243,15 @@ Base.@propagate_inbounds @inline get_gamma(imd::InterpretedModalDataset, args...
 # 
 ############################################################################################
 
-abstract type AbstractFWD{T<:Number,WorldType<:AbstractWorld} end
+abstract type AbstractFWD{T<:Number,WorldType<:World} end
 
 # Any implementation for a fwd must indicate their compatible world types via `goes_with`.
 # Fallback:
-goes_with(::Type{<:AbstractFWD}, ::Type{<:AbstractWorld}) = false
+goes_with(::Type{<:AbstractFWD}, ::Type{<:World}) = false
 
 # Any world type must also specify their default fwd constructor, which must accept a type
 #  parameter for the data type {T}, via:
-# default_fwd_type(::Type{<:AbstractWorld})
+# default_fwd_type(::Type{<:World})
 
 # 
 # Actually, the interface for AbstractFWD's is a bit tricky; the most straightforward
@@ -265,10 +265,10 @@ goes_with(::Type{<:AbstractFWD}, ::Type{<:AbstractWorld}) = false
 # end
 
 # # It goes for any world type
-# goes_with(::Type{<:GenericFWD}, ::Type{<:AbstractWorld}) = true
+# goes_with(::Type{<:GenericFWD}, ::Type{<:World}) = true
 
 # # And it is the default fwd structure for an world type
-# default_fwd_type(::Type{<:AbstractWorld}) = GenericFWD
+# default_fwd_type(::Type{<:World}) = GenericFWD
 
 # n_samples(fwd::GenericFWD{T}) where {T}  = size(fwd, 1)
 # n_features(fwd::GenericFWD{T}) where {T} = fwd.d
@@ -284,7 +284,7 @@ goes_with(::Type{<:AbstractFWD}, ::Type{<:AbstractWorld}) = false
 # end
 
 # # A function for initializing individual world slices
-# function fwd_init_world_slice(fwd::GenericFWD{T}, i_sample::Integer, w::AbstractWorld) where {T}
+# function fwd_init_world_slice(fwd::GenericFWD{T}, i_sample::Integer, w::World) where {T}
 #     fwd.d[i_sample][w] = Array{T,1}(undef, fwd.n_features)
 # end
 
@@ -292,17 +292,17 @@ goes_with(::Type{<:AbstractFWD}, ::Type{<:AbstractWorld}) = false
 # Base.@propagate_inbounds @inline fwd_get(
 #     fwd         :: GenericFWD{T},
 #     i_sample    :: Integer,
-#     w           :: AbstractWorld,
+#     w           :: World,
 #     i_feature   :: Integer) where {T} = fwd.d[i_sample][w][i_feature]
 
 Base.getindex(
     fwd         :: AbstractFWD{T},
     i_sample    :: Integer,
-    w           :: AbstractWorld,
+    w           :: World,
     i_feature   :: Integer) where {T} = fwd_get(fwd, i_sample, w, i_feature)
 
 # # A function for setting a threshold value in the lookup table
-# Base.@propagate_inbounds @inline function fwd_set(fwd::GenericFWD{T}, w::AbstractWorld, i_sample::Integer, i_feature::Integer, threshold::T) where {T}
+# Base.@propagate_inbounds @inline function fwd_set(fwd::GenericFWD{T}, w::World, i_sample::Integer, i_feature::Integer, threshold::T) where {T}
 #     fwd.d[i_sample][w][i_feature] = threshold
 # end
 
@@ -323,7 +323,7 @@ Base.getindex(
 # Others...
 # Base.@propagate_inbounds @inline fwd_get_channel(fwd::GenericFWD{T}, i_sample::Integer, i_feature::Integer) where {T} = TODO
 # const GenericFeaturedChannel{T} = TODO
-# fwd_channel_interpret_world(fwc::GenericFeaturedChannel{T}, w::AbstractWorld) where {T} = TODO
+# fwd_channel_interpret_world(fwc::GenericFeaturedChannel{T}, w::World) where {T} = TODO
 
 ############################################################################################
 # Explicit modal dataset
@@ -335,23 +335,23 @@ Base.getindex(
 # 
 ############################################################################################
 
-struct ExplicitModalDataset{T<:Number, WorldType<:AbstractWorld} <: ActiveModalDataset{T, WorldType}
+struct ExplicitModalDataset{T<:Number, WorldType<:World} <: ActiveModalDataset{T, WorldType}
     
     # Core data (fwd lookup table)
     fwd                :: AbstractFWD{T,WorldType}
     
     ## Modal frame:
     # Accessibility relations
-    relations          :: AbstractVector{<:AbstractRelation}
+    relations          :: AbstractVector{<:Relation}
     
     # Worldset initialization functions (one per instance)
     #  with signature (iC::InitCondition) -> vs::AbstractWorldSet{WorldType}
     init_world_sets_funs   :: AbstractVector{<:initWorldSetFunction}
     # Accessibility functions (one per instance)
-    #  with signature (w::WorldType/AbstractWorldSet{WorldType}, r::AbstractRelation) -> vs::AbstractVector{WorldType}
+    #  with signature (w::WorldType/AbstractWorldSet{WorldType}, r::Relation) -> vs::AbstractVector{WorldType}
     accessibles_funs      :: AbstractVector{<:accFunction}
     # Representative accessibility functions (one per instance)
-    #  with signature (feature::ModalFeature, aggregator::Aggregator, w::WorldType/AbstractWorldSet{WorldType}, r::AbstractRelation) -> vs::AbstractVector{WorldType}
+    #  with signature (feature::ModalFeature, aggregator::Aggregator, w::WorldType/AbstractWorldSet{WorldType}, r::Relation) -> vs::AbstractVector{WorldType}
     accessibles_aggr_funs  :: AbstractVector{<:accReprFunction}
     
     # Features
@@ -362,7 +362,7 @@ struct ExplicitModalDataset{T<:Number, WorldType<:AbstractWorld} <: ActiveModalD
 
     ExplicitModalDataset(
         fwd                :: AbstractFWD{T,WorldType},
-        relations          :: AbstractVector{<:AbstractRelation},
+        relations          :: AbstractVector{<:Relation},
         init_world_sets_funs   :: AbstractVector{<:initWorldSetFunction},
         accessibles_funs      :: AbstractVector{<:accFunction},
         accessibles_aggr_funs  :: AbstractVector{<:accReprFunction},
@@ -374,14 +374,14 @@ struct ExplicitModalDataset{T<:Number, WorldType<:AbstractWorld} <: ActiveModalD
 
     function ExplicitModalDataset{T, WorldType}(
         fwd                :: AbstractFWD{T,WorldType},
-        relations          :: AbstractVector{<:AbstractRelation},
+        relations          :: AbstractVector{<:Relation},
         init_world_sets_funs   :: AbstractVector{<:initWorldSetFunction},
         accessibles_funs      :: AbstractVector{<:accFunction},
         accessibles_aggr_funs  :: AbstractVector{<:accReprFunction},
         features           :: AbstractVector{<:ModalFeature},
         grouped_featsaggrsnops  :: AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}};
         allow_no_instances = false,
-    ) where {T,WorldType<:AbstractWorld}
+    ) where {T,WorldType<:World}
         @assert allow_no_instances || n_samples(fwd) > 0     "Can't instantiate ExplicitModalDataset{$(T), $(WorldType)} with no instance. (fwd's type $(typeof(fwd)))"
         @assert length(grouped_featsaggrsnops) > 0 && sum(length.(grouped_featsaggrsnops)) > 0 && sum(vcat([[length(test_ops) for test_ops in aggrs] for aggrs in grouped_featsaggrsnops]...)) > 0 "Can't instantiate ExplicitModalDataset{$(T), $(WorldType)} with no test operator: grouped_featsaggrsnops"
         @assert  n_samples(fwd) == length(init_world_sets_funs)  "Can't instantiate ExplicitModalDataset{$(T), $(WorldType)} with different numbers of instances $(n_samples(fwd)) and of init_world_sets_funs $(length(init_world_sets_funs))."
@@ -393,7 +393,7 @@ struct ExplicitModalDataset{T<:Number, WorldType<:AbstractWorld} <: ActiveModalD
 
     function ExplicitModalDataset(
         fwd                :: AbstractFWD{T,WorldType},
-        relations          :: AbstractVector{<:AbstractRelation},
+        relations          :: AbstractVector{<:Relation},
         init_world_sets_funs   :: AbstractVector{<:initWorldSetFunction},
         accessibles_funs      :: AbstractVector{<:accFunction},
         accessibles_aggr_funs  :: AbstractVector{<:accReprFunction},
@@ -401,7 +401,7 @@ struct ExplicitModalDataset{T<:Number, WorldType<:AbstractWorld} <: ActiveModalD
         grouped_featsnops  :: AbstractVector{<:AbstractVector{<:TestOperatorFun}},
         args...;
         kwargs...,
-    ) where {T,WorldType<:AbstractWorld}
+    ) where {T,WorldType<:World}
 
         grouped_featsaggrsnops = grouped_featsnops2grouped_featsaggrsnops(grouped_featsnops)
  
@@ -415,7 +415,7 @@ struct ExplicitModalDataset{T<:Number, WorldType<:AbstractWorld} <: ActiveModalD
         FWD                  ::Type = default_fwd_type(WorldType),
         args...;
         kwargs...,
-    ) where {T, N, WorldType<:AbstractWorld}
+    ) where {T, N, WorldType<:World}
 
         fwd = begin
 
@@ -496,7 +496,7 @@ n_features(X::ExplicitModalDataset{T, WorldType})  where {T, WorldType} = length
 n_relations(X::ExplicitModalDataset{T, WorldType}) where {T, WorldType} = length(X.relations)
 n_samples(X::ExplicitModalDataset{T, WorldType})   where {T, WorldType} = n_samples(X.fwd)::Int64
 relations(X::ExplicitModalDataset)                                 = X.relations
-world_type(X::ExplicitModalDataset{T,WorldType}) where {T,WorldType<:AbstractWorld} = WorldType
+world_type(X::ExplicitModalDataset{T,WorldType}) where {T,WorldType<:World} = WorldType
 
 
 init_world_sets_fun(X::ExplicitModalDataset,          i_sample::Integer)  = X.init_world_sets_funs[i_sample]
@@ -519,14 +519,14 @@ slice_dataset(X::ExplicitModalDataset{T,WorldType}, inds::AbstractVector{<:Integ
 
 find_feature_id(X::ExplicitModalDataset{T,WorldType}, feature::ModalFeature) where {T,WorldType} =
     findall(x->x==feature, features(X))[1]
-find_relation_id(X::ExplicitModalDataset{T,WorldType}, relation::AbstractRelation) where {T,WorldType} =
+find_relation_id(X::ExplicitModalDataset{T,WorldType}, relation::Relation) where {T,WorldType} =
     findall(x->x==relation, relations(X))[1]
 
 Base.@propagate_inbounds @inline get_gamma(
         X::ExplicitModalDataset{T,WorldType},
         i_sample::Integer,
         w::WorldType,
-        feature::ModalFeature) where {WorldType<:AbstractWorld, T} = begin
+        feature::ModalFeature) where {WorldType<:World, T} = begin
     i_feature = find_feature_id(X, feature)
     X[i_sample, w, i_feature]
 end
@@ -559,7 +559,7 @@ abstract type AbstractSupport{T, WorldType} end
 #  relations, it is natural to differentiate between global and relational support tables:
 # 
 abstract type AbstractRelationalSupport{T, WorldType} <: AbstractSupport{T, WorldType}     end
-abstract type AbstractGlobalSupport{T}                <: AbstractSupport{T, AbstractWorld} end
+abstract type AbstractGlobalSupport{T}                <: AbstractSupport{T, World} end
 # 
 # Be an *fwd_rs* an fwd relational support, and a *fwd_gs* an fwd global support,
 #  for simple support tables like these, it is convenient to store, again, modal *gamma* values.
@@ -583,8 +583,8 @@ struct GenericRelationalSupport{T, WorldType} <: AbstractRelationalSupport{T, Wo
     d :: AbstractArray{Dict{WorldType,T}, 3}
 end
 
-goes_with(::Type{GenericRelationalSupport}, ::Type{<:AbstractWorld}) = true
-# default_fwd_rs_type(::Type{<:AbstractWorld}) = GenericRelationalSupport # TODO implement similar pattern used for fwd
+goes_with(::Type{GenericRelationalSupport}, ::Type{<:World}) = true
+# default_fwd_rs_type(::Type{<:World}) = GenericRelationalSupport # TODO implement similar pattern used for fwd
 
 n_samples(emds::GenericRelationalSupport)     = size(emds, 1)
 n_featsnaggrs(emds::GenericRelationalSupport) = size(emds, 2)
@@ -594,7 +594,7 @@ Base.getindex(
     i_sample     :: Integer,
     w            :: WorldType,
     i_featsnaggr :: Integer,
-    i_relation   :: Integer) where {T, WorldType<:AbstractWorld} = emds.d[i_sample, i_featsnaggr, i_relation][w]
+    i_relation   :: Integer) where {T, WorldType<:World} = emds.d[i_sample, i_featsnaggr, i_relation][w]
 Base.size(emds::GenericRelationalSupport, args...) = size(emds.d, args...)
 
 fwd_rs_init(emd::ExplicitModalDataset{T, WorldType}, n_featsnaggrs::Integer, n_relations::Integer; perform_initialization = false) where {T, WorldType} = begin
@@ -608,7 +608,7 @@ fwd_rs_init(emd::ExplicitModalDataset{T, WorldType}, n_featsnaggrs::Integer, n_r
 end
 fwd_rs_init_world_slice(emds::GenericRelationalSupport{T, WorldType}, i_sample::Integer, i_featsnaggr::Integer, i_relation::Integer) where {T, WorldType} =
     emds.d[i_sample, i_featsnaggr, i_relation] = Dict{WorldType,T}()
-fwd_rs_set(emds::GenericRelationalSupport{T, WorldType}, i_sample::Integer, w::AbstractWorld, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T, WorldType} =
+fwd_rs_set(emds::GenericRelationalSupport{T, WorldType}, i_sample::Integer, w::World, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T, WorldType} =
     emds.d[i_sample, i_featsnaggr, i_relation][w] = threshold
 function slice_dataset(emds::GenericRelationalSupport{T, WorldType}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T, WorldType}
     @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
@@ -622,8 +622,8 @@ struct GenericGlobalSupport{T} <: AbstractGlobalSupport{T}
     d :: AbstractArray{T, 2}
 end
 
-goes_with(::Type{AbstractGlobalSupport}, ::Type{<:AbstractWorld}) = true
-# default_fwd_gs_type(::Type{<:AbstractWorld}) = GenericGlobalSupport # TODO implement similar pattern used for fwd
+goes_with(::Type{AbstractGlobalSupport}, ::Type{<:World}) = true
+# default_fwd_gs_type(::Type{<:World}) = GenericGlobalSupport # TODO implement similar pattern used for fwd
 
 n_samples(emds::GenericGlobalSupport{T}) where {T}  = size(emds, 1)
 n_featsnaggrs(emds::GenericGlobalSupport{T}) where {T} = size(emds, 2)
@@ -648,7 +648,7 @@ Base.@propagate_inbounds function compute_fwd_supports(
         grouped_featsnaggrs :: AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}};
         computeRelationGlob = false,
         simply_init_modal = false,
-    ) where {T, N, WorldType<:AbstractWorld}
+    ) where {T, N, WorldType<:World}
     
     # @logmsg DTOverview "ExplicitModalDataset -> ExplicitModalDatasetS "
 
@@ -770,7 +770,7 @@ end
 # TODO avoid code duplication
 ############################################################################################
 
-struct ExplicitModalDatasetS{T<:Number, WorldType<:AbstractWorld} <: ExplicitModalDatasetWithSupport{T, WorldType}
+struct ExplicitModalDatasetS{T<:Number, WorldType<:World} <: ExplicitModalDatasetWithSupport{T, WorldType}
     
     # Core dataset
     emd                :: ExplicitModalDataset{T, WorldType}
@@ -789,7 +789,7 @@ struct ExplicitModalDatasetS{T<:Number, WorldType<:AbstractWorld} <: ExplicitMod
         fwd_gs              :: Union{AbstractGlobalSupport{T},Nothing},
         featsnaggrs         :: AbstractVector{Tuple{<:ModalFeature,<:Aggregator}},
         grouped_featsnaggrs :: AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}},
-    ) where {T,WorldType<:AbstractWorld}
+    ) where {T,WorldType<:World}
         @assert n_samples(emd) == n_samples(fwd_rs)                               "Can't instantiate ExplicitModalDatasetS{$(T), $(WorldType)} with unmatching n_samples for emd and fwd_rs support: $(n_samples(emd)) and $(n_samples(fwd_rs))"
         @assert n_relations(emd) == n_relations(fwd_rs)                           "Can't instantiate ExplicitModalDatasetS{$(T), $(WorldType)} with unmatching n_relations for emd and fwd_rs support: $(n_relations(emd)) and $(n_relations(fwd_rs))"
         @assert sum(length.(grouped_featsnaggrs)) == length(featsnaggrs)          "Can't instantiate ExplicitModalDatasetS{$(T), $(WorldType)} with unmatching n_featsnaggrs (grouped vs flattened structure): $(sum(length.(emd.grouped_featsaggrsnops))) and $(length(featsnaggrs))"
@@ -808,14 +808,14 @@ struct ExplicitModalDatasetS{T<:Number, WorldType<:AbstractWorld} <: ExplicitMod
     function ExplicitModalDatasetS(
         emd                 :: ExplicitModalDataset{T, WorldType};
         computeRelationGlob :: Bool = true,
-    ) where {T,WorldType<:AbstractWorld}
+    ) where {T,WorldType<:World}
         ExplicitModalDatasetS{T, WorldType}(emd, computeRelationGlob = computeRelationGlob)
     end
 
     function ExplicitModalDatasetS{T, WorldType}(
         emd                 :: ExplicitModalDataset{T, WorldType};
         computeRelationGlob :: Bool = true,
-    ) where {T,WorldType<:AbstractWorld}
+    ) where {T,WorldType<:World}
         
         featsnaggrs = Tuple{<:ModalFeature,<:Aggregator}[]
         grouped_featsnaggrs = AbstractVector{Tuple{<:Integer,<:Aggregator}}[]
@@ -840,14 +840,14 @@ struct ExplicitModalDatasetS{T<:Number, WorldType<:AbstractWorld} <: ExplicitMod
     function ExplicitModalDatasetS(
         X                   :: InterpretedModalDataset{T, N, WorldType};
         computeRelationGlob :: Bool = true,
-    ) where {T, N, WorldType<:AbstractWorld}
+    ) where {T, N, WorldType<:World}
         ExplicitModalDatasetS{T, WorldType}(X, computeRelationGlob = computeRelationGlob)
     end
 
     function ExplicitModalDatasetS{T, WorldType}(
         X                   :: InterpretedModalDataset{T, N, WorldType};
         computeRelationGlob :: Bool = true,
-    ) where {T, N, WorldType<:AbstractWorld}
+    ) where {T, N, WorldType<:World}
 
         # Compute modal dataset propositions
         emd = ExplicitModalDataset(X);
@@ -856,7 +856,7 @@ struct ExplicitModalDatasetS{T<:Number, WorldType<:AbstractWorld} <: ExplicitMod
     end
 end
 
-mutable struct ExplicitModalDatasetSMemo{T<:Number, WorldType<:AbstractWorld} <: ExplicitModalDatasetWithSupport{T, WorldType}
+mutable struct ExplicitModalDatasetSMemo{T<:Number, WorldType<:World} <: ExplicitModalDatasetWithSupport{T, WorldType}
     
     # Core dataset
     emd                :: ExplicitModalDataset{T, WorldType}
@@ -875,7 +875,7 @@ mutable struct ExplicitModalDatasetSMemo{T<:Number, WorldType<:AbstractWorld} <:
         fwd_gs              :: Union{AbstractGlobalSupport{T},Nothing},
         featsnaggrs         :: AbstractVector{Tuple{<:ModalFeature,<:Aggregator}},
         grouped_featsnaggrs :: AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}},
-    ) where {T,WorldType<:AbstractWorld}
+    ) where {T,WorldType<:World}
         @assert n_samples(emd) == n_samples(fwd_rs) "Can't instantiate ExplicitModalDatasetSMemo{$(T), $(WorldType)} with unmatching n_samples for emd and fwd_rs support: $(n_samples(emd)) and $(n_samples(fwd_rs))"
         @assert n_relations(emd) == n_relations(fwd_rs) "Can't instantiate ExplicitModalDatasetSMemo{$(T), $(WorldType)} with unmatching n_relations for emd and fwd_rs support: $(n_relations(emd)) and $(n_relations(fwd_rs))"
         @assert sum(length.(grouped_featsnaggrs)) == length(featsnaggrs) "Can't instantiate ExplicitModalDatasetSMemo{$(T), $(WorldType)} with unmatching n_featsnaggrs (grouped vs flattened structure): $(sum(length.(emd.grouped_featsaggrsnops))) and $(length(featsnaggrs))"
@@ -894,14 +894,14 @@ mutable struct ExplicitModalDatasetSMemo{T<:Number, WorldType<:AbstractWorld} <:
     function ExplicitModalDatasetSMemo(
         emd                 :: ExplicitModalDataset{T, WorldType};
         computeRelationGlob :: Bool = true,
-    ) where {T,WorldType<:AbstractWorld}
+    ) where {T,WorldType<:World}
         ExplicitModalDatasetSMemo{T, WorldType}(emd, computeRelationGlob = computeRelationGlob)
     end
 
     function ExplicitModalDatasetSMemo{T, WorldType}(
         emd                 :: ExplicitModalDataset{T, WorldType};
         computeRelationGlob :: Bool = true,
-    ) where {T,WorldType<:AbstractWorld}
+    ) where {T,WorldType<:World}
         
         featsnaggrs = Tuple{<:ModalFeature,<:Aggregator}[]
         grouped_featsnaggrs = AbstractVector{Tuple{<:Integer,<:Aggregator}}[]
@@ -926,14 +926,14 @@ mutable struct ExplicitModalDatasetSMemo{T<:Number, WorldType<:AbstractWorld} <:
     function ExplicitModalDatasetSMemo(
         X                   :: InterpretedModalDataset{T, N, WorldType};
         computeRelationGlob :: Bool = true,
-    ) where {T, N, WorldType<:AbstractWorld}
+    ) where {T, N, WorldType<:World}
         ExplicitModalDatasetSMemo{T, WorldType}(X, computeRelationGlob = computeRelationGlob)
     end
 
     function ExplicitModalDatasetSMemo{T, WorldType}(
         X                   :: InterpretedModalDataset{T, N, WorldType};
         computeRelationGlob :: Bool = true,
-    ) where {T, N, WorldType<:AbstractWorld}
+    ) where {T, N, WorldType<:World}
 
         # Compute modal dataset propositions
         emd = ExplicitModalDataset(X);
@@ -954,7 +954,7 @@ n_samples(X::ExplicitModalDatasetWithSupport{T, WorldType}) where {T, WorldType}
 relations(X::ExplicitModalDatasetWithSupport)                                      = relations(X.emd)
 world_type(X::ExplicitModalDatasetWithSupport{T,WorldType}) where {T,WorldType}    = WorldType
 
-init_world_sets_fun(X::ExplicitModalDatasetWithSupport,  i_sample::Integer, ::Type{WorldType}) where {WorldType<:AbstractWorld} = init_world_sets_fun(X.emd, i_sample)
+init_world_sets_fun(X::ExplicitModalDatasetWithSupport,  i_sample::Integer, ::Type{WorldType}) where {WorldType<:World} = init_world_sets_fun(X.emd, i_sample)
 accessibles_fun(X::ExplicitModalDatasetWithSupport,     args...) = accessibles_fun(X.emd, args...)
 all_worlds_fun(X::ExplicitModalDatasetWithSupport,  args...) = all_worlds_fun(X.emd, args...)
 accessibles_aggr_fun(X::ExplicitModalDatasetWithSupport, args...) = accessibles_aggr_fun(X.emd, args...)
@@ -970,7 +970,7 @@ end
 
 find_feature_id(X::ExplicitModalDatasetWithSupport, feature::ModalFeature) =
     findall(x->x==feature, features(X))[1]
-find_relation_id(X::ExplicitModalDatasetWithSupport, relation::AbstractRelation) =
+find_relation_id(X::ExplicitModalDatasetWithSupport, relation::Relation) =
     findall(x->x==relation, relations(X))[1]
 find_featsnaggr_id(X::ExplicitModalDatasetWithSupport, feature::ModalFeature, aggregator::Aggregator) =
     findall(x->x==(feature, aggregator), featsnaggrs(X))[1]
@@ -979,7 +979,7 @@ Base.@propagate_inbounds @inline get_gamma(
         X::ExplicitModalDatasetWithSupport{T,WorldType},
         i_sample::Integer,
         w::WorldType,
-        feature::ModalFeature) where {WorldType<:AbstractWorld, T} = get_gamma(X.emd, i_sample, w, feature)
+        feature::ModalFeature) where {WorldType<:World, T} = get_gamma(X.emd, i_sample, w, feature)
 
 ############################################################################################
 
@@ -987,7 +987,7 @@ get_global_gamma(
         X::ExplicitModalDatasetWithSupport{T,WorldType},
         i_sample::Integer,
         feature::ModalFeature,
-        test_operator::TestOperatorFun) where {WorldType<:AbstractWorld, T} = begin
+        test_operator::TestOperatorFun) where {WorldType<:World, T} = begin
             # @assert !isnothing(X.fwd_gs) "Error. ExplicitModalDatasetWithSupport must be built with computeRelationGlob = true for it to be ready to test global decisions."
             i_featsnaggr = find_featsnaggr_id(X, feature, existential_aggregator(test_operator))
             X.fwd_gs[i_sample, i_featsnaggr]
@@ -997,9 +997,9 @@ get_modal_gamma(
         X::ExplicitModalDatasetS{T,WorldType},
         i_sample::Integer,
         w::WorldType,
-        relation::AbstractRelation,
+        relation::Relation,
         feature::ModalFeature,
-        test_operator::TestOperatorFun) where {WorldType<:AbstractWorld, T} = begin
+        test_operator::TestOperatorFun) where {WorldType<:World, T} = begin
             i_relation = find_relation_id(X, relation)
             i_featsnaggr = find_featsnaggr_id(X, feature, existential_aggregator(test_operator))
             X.fwd_rs[i_sample, w, i_featsnaggr, i_relation]
@@ -1045,7 +1045,7 @@ test_decision(
         X::ExplicitModalDatasetWithSupport{T,WorldType},
         i_sample::Integer,
         w::WorldType,
-        decision::Decision) where {T, WorldType<:AbstractWorld} = begin
+        decision::Decision) where {T, WorldType<:World} = begin
     if is_propositional_decision(decision)
         test_decision(X, i_sample, w, decision.feature, decision.test_operator, decision.threshold)
     else
@@ -1066,7 +1066,7 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
         instances_inds::AbstractVector{<:Integer},
         Sf::AbstractVector{<:AbstractWorldSet{WorldType}},
         features_inds::AbstractVector{<:Integer},
-        ) where {T, WorldType<:AbstractWorld}
+        ) where {T, WorldType<:World}
     relation = RelationId
     _n_samples = length(instances_inds)
 
@@ -1144,7 +1144,7 @@ end
 Base.@propagate_inbounds @resumable function generate_propositional_feasible_decisions(
         X::ExplicitModalDatasetWithSupport{T,WorldType},
         args...
-        ) where {T, WorldType<:AbstractWorld}
+        ) where {T, WorldType<:World}
         for decision in generate_propositional_feasible_decisions(X.emd, args...)
             @yield decision
         end
@@ -1155,7 +1155,7 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
         instances_inds::AbstractVector{<:Integer},
         Sf::AbstractVector{<:AbstractWorldSet{WorldType}},
         features_inds::AbstractVector{<:Integer},
-        ) where {T, WorldType<:AbstractWorld}
+        ) where {T, WorldType<:World}
     relation = RelationGlob
     _n_samples = length(instances_inds)
     
@@ -1230,7 +1230,7 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
         Sf::AbstractVector{<:AbstractWorldSet{WorldType}},
         modal_relations_inds::AbstractVector{<:Integer},
         features_inds::AbstractVector{<:Integer},
-        ) where {T, WorldType<:AbstractWorld}
+        ) where {T, WorldType<:World}
     _n_samples = length(instances_inds)
 
     # For each relational operator
@@ -1301,7 +1301,7 @@ end
 #       X::ExplicitModalDatasetSMemo{T,WorldType},
 #       i_sample::Integer,
 #       feature::ModalFeature,
-#       test_operator::TestOperatorFun) where {WorldType<:AbstractWorld, T} = begin
+#       test_operator::TestOperatorFun) where {WorldType<:World, T} = begin
 #   @assert !isnothing(X.fwd_gs) "Error. ExplicitModalDatasetSMemo must be built with computeRelationGlob = true for it to be ready to test global decisions."
 #   i_featsnaggr = find_featsnaggr_id(X, feature, existential_aggregator(test_operator))
 #   # if !isnothing(X.fwd_gs[i_sample, i_featsnaggr])
@@ -1332,9 +1332,9 @@ get_modal_gamma(
         X::ExplicitModalDatasetSMemo{T,WorldType},
         i_sample::Integer,
         w::WorldType,
-        relation::AbstractRelation,
+        relation::Relation,
         feature::ModalFeature,
-        test_operator::TestOperatorFun) where {WorldType<:AbstractWorld, T} = begin
+        test_operator::TestOperatorFun) where {WorldType<:World, T} = begin
     i_relation = find_relation_id(X, relation)
     aggregator = existential_aggregator(test_operator)
     i_featsnaggr = find_featsnaggr_id(X, feature, aggregator)
@@ -1358,7 +1358,7 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
         Sf::AbstractVector{<:AbstractWorldSet{WorldType}},
         modal_relations_inds::AbstractVector{<:Integer},
         features_inds::AbstractVector{<:Integer},
-        ) where {T, WorldType<:AbstractWorld}
+        ) where {T, WorldType<:World}
     _n_samples = length(instances_inds)
 
     # For each relational operator
@@ -1447,7 +1447,7 @@ function modal_step(
         worlds::WorldSetType,
         decision::Decision{T},
         returns_survivors::Union{Val{true},Val{false}} = Val(false)
-    ) where {T, N, WorldType<:AbstractWorld, WorldSetType<:AbstractWorldSet{WorldType}}
+    ) where {T, N, WorldType<:World, WorldSetType<:AbstractWorldSet{WorldType}}
     @logmsg DTDetail "modal_step" worlds display_decision(decision)
 
     satisfied = false
@@ -1455,7 +1455,7 @@ function modal_step(
     # TODO space for optimization here: with some relations (e.g. IA_A, IA_L) can be made smaller
 
     if returns_survivors isa Val{true}
-        worlds_map = Dict{AbstractWorld,AbstractWorldSet{WorldType}}()
+        worlds_map = Dict{World,AbstractWorldSet{WorldType}}()
     end
     if length(worlds) == 0
         # If there are no neighboring worlds, then the modal decision is not met
@@ -1507,7 +1507,7 @@ end
 test_decision(
         X::ModalDataset{T},
         i_sample::Integer,
-        w::AbstractWorld,
+        w::World,
         feature::ModalFeature,
         test_operator::TestOperatorFun,
         threshold::T) where {T} = begin
@@ -1518,7 +1518,7 @@ end
 test_decision(
         X::ModalDataset{T},
         i_sample::Integer,
-        w::AbstractWorld,
+        w::World,
         decision::Decision{T}) where {T} = begin
     instance = get_instance(X, i_sample)
 
@@ -1550,7 +1550,7 @@ Base.@propagate_inbounds @resumable function generate_feasible_decisions(
         allow_global_decisions::Bool,
         modal_relations_inds::AbstractVector{<:Integer},
         features_inds::AbstractVector{<:Integer},
-        ) where {T, WorldType<:AbstractWorld}
+        ) where {T, WorldType<:World}
     # Propositional splits
     if allow_propositional_decisions
         for decision in generate_propositional_feasible_decisions(X, instances_inds, Sf, features_inds)

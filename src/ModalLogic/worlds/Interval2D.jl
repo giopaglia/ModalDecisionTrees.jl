@@ -1,6 +1,6 @@
 
 # 2-dimensional Interval counterpart: combination of two orthogonal Intervals
-struct Interval2D <: AbstractWorld
+struct Interval2D <: World
     x :: Interval
     y :: Interval
     # 

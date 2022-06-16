@@ -31,7 +31,7 @@ function _get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_sample
     # if survivors of next step are in the list of worlds viewed by one
     # of the just accumulated "new_worlds" then that world is a survivor
     # for this step
-    new_survivors::AbstractWorldSet = Vector{AbstractWorld}()
+    new_survivors::AbstractWorldSet = Vector{World}()
     for curr_w in keys(worlds_map)
         if length(intersect(worlds_map[curr_w], survivors)) > 0
             push!(new_survivors, curr_w)

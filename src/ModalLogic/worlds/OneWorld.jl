@@ -1,7 +1,7 @@
 export OneWorld
 
 # One unique world (propositional case)
-struct OneWorld    <: AbstractWorld
+struct OneWorld    <: World
     OneWorld() = new()
     # 
     OneWorld(w::EmptyWorld) = new()
