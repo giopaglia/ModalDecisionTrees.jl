@@ -61,6 +61,7 @@ function predict(leaf::NSDTLeaf, X::Any, i_sample::Integer, worlds::AbstractVect
     # println(hasmethod(size,   (typeof(d),)) ? size(d)   : nothing)
     # println(hasmethod(length, (typeof(d),)) ? length(d) : nothing)
     preds = leaf.predicting_function(d)
+    @assert length(preds) == 1 "Error in predict(::NSDTLeaf, ...) The predicting function returned some malformed output. Expected is a Vector of a single prediction, while the returned value is:\n$(preds)\n$(hasmethod(length, (typeof(preds),)) ? length(preds) : "(length = $(length(preds)))")\n$(hasmethod(size, (typeof(preds),)) ? size(preds) : "(size = $(size(preds)))")"
     # println(preds)
     # println(typeof(preds))
     preds[1]
@@ -270,7 +271,7 @@ function predict(
 end
 
 # function predict(tree::DTNode{T, L}, X::DimensionalDataset{T,D}, Y::Vector{L}; reset_leaves = true, update_labels = false) where {L, T, D}
-#   return predict(DTree(tree, [world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2)))], [startWithRelationGlob]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
+#   return predict(DTree(tree, [world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2)))], [start_without_world]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
 # end
 
 
