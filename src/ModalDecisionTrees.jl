@@ -92,28 +92,28 @@ import .ModalLogic: n_samples, display_decision
 # Initial world conditions
 ############################################################################################
 
-abstract type _initCondition end
-struct StartWithoutWorld               <: _initCondition end; const start_without_world  = StartWithoutWorld();
-struct StartAtCenter                   <: _initCondition end; const start_at_center      = StartAtCenter();
-struct StartAtWorld{WT<:AbstractWorld} <: _initCondition w::WT end;
+abstract type InitCondition end
+struct StartWithoutWorld               <: InitCondition end; const start_without_world  = StartWithoutWorld();
+struct StartAtCenter                   <: InitCondition end; const start_at_center      = StartAtCenter();
+struct StartAtWorld{WT<:AbstractWorld} <: InitCondition w::WT end;
 
-init_world_set(initConditions::AbstractVector{<:_initCondition}, worldTypes::AbstractVector{<:Type#={<:AbstractWorld}=#}, args...) =
-    [init_world_set(iC, WT, args...) for (iC, WT) in zip(initConditions, Vector{Type{<:AbstractWorld}}(worldTypes))]
+init_world_set(init_conditions::AbstractVector{<:InitCondition}, worldTypes::AbstractVector{<:Type#={<:AbstractWorld}=#}, args...) =
+    [init_world_set(iC, WT, args...) for (iC, WT) in zip(init_conditions, Vector{Type{<:AbstractWorld}}(worldTypes))]
 
-init_world_set(initCondition::StartWithoutWorld, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
+init_world_set(iC::StartWithoutWorld, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
     WorldSet{WorldType}([WorldType(ModalLogic.EmptyWorld())])
 
-init_world_set(initCondition::StartAtCenter, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
+init_world_set(iC::StartAtCenter, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
     WorldSet{WorldType}([WorldType(ModalLogic.CenteredWorld(), args...)])
 
-init_world_set(initCondition::StartAtWorld{WorldType}, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
-    WorldSet{WorldType}([WorldType(initCondition.w)])
+init_world_set(iC::StartAtWorld{WorldType}, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
+    WorldSet{WorldType}([WorldType(iC.w)])
 
-init_world_sets(Xs::MultiFrameModalDataset, initConditions::AbstractVector{<:_initCondition}) = begin
+init_world_sets(Xs::MultiFrameModalDataset, init_conditions::AbstractVector{<:InitCondition}) = begin
     Ss = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, n_frames(Xs))
     for (i_frame,X) in enumerate(frames(Xs))
         WT = world_type(X)
-        Ss[i_frame] = WorldSet{WT}[init_world_sets_fun(X, i_sample, world_type(Xs, i_frame))(initConditions[i_frame]) for i_sample in 1:n_samples(Xs)]
+        Ss[i_frame] = WorldSet{WT}[init_world_sets_fun(X, i_sample, world_type(Xs, i_frame))(init_conditions[i_frame]) for i_sample in 1:n_samples(Xs)]
         # Ss[i_frame] = WorldSet{WT}[[ModalLogic.Interval(1,2)] for i_sample in 1:n_samples(Xs)]
     end
     Ss
@@ -470,22 +470,22 @@ struct DTree{L<:Label}
     # worldTypes (one per frame)
     worldTypes     :: Vector{Type{<:AbstractWorld}}
     # initial world conditions (one per frame)
-    initConditions :: Vector{<:_initCondition}
+    init_conditions :: Vector{<:InitCondition}
 
     function DTree{L}(
         root           :: DTNode,
         worldTypes     :: AbstractVector{<:Type},
-        initConditions :: AbstractVector{<:_initCondition},
+        init_conditions :: AbstractVector{<:InitCondition},
     ) where {L<:Label}
-        new{L}(root, collect(worldTypes), collect(initConditions))
+        new{L}(root, collect(worldTypes), collect(init_conditions))
     end
 
     function DTree(
         root           :: DTNode{T, L},
         worldTypes     :: AbstractVector{<:Type},
-        initConditions :: AbstractVector{<:_initCondition},
+        init_conditions :: AbstractVector{<:InitCondition},
     ) where {T, L<:Label}
-        DTree{L}(root, worldTypes, initConditions)
+        DTree{L}(root, worldTypes, init_conditions)
     end
 end
 
@@ -646,7 +646,7 @@ end
 function Base.show(io::IO, tree::DTree{L}) where {L}
     println(io, "Decision Tree{$(L)}(")
     println(io, "\tworldTypes:     $(tree.worldTypes)")
-    println(io, "\tinitConditions: $(tree.initConditions)")
+    println(io, "\tinitConditions: $(tree.init_conditions)")
     println(io, "\t###########################################################")
     println(io, "\tsub-tree leaves: $(num_leaves(tree))")
     println(io, "\tsub-tree nodes: $(num_nodes(tree))")

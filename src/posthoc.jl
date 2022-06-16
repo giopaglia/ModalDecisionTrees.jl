@@ -9,7 +9,7 @@ export prune_tree, prune_forest
 using DataStructures
 
 function prune_tree(tree::DTree; kwargs...)
-    DTree(prune_tree(tree.root; depth = 0, kwargs...), tree.worldTypes, tree.initConditions)
+    DTree(prune_tree(tree.root; depth = 0, kwargs...), tree.worldTypes, tree.init_conditions)
 end
 
 function prune_tree(leaf::AbstractDecisionLeaf; kwargs...)
@@ -135,8 +135,8 @@ function nondominated_pruning_parametrizations(args::AbstractVector; do_it_or_no
                 :loss_function,
                 :n_subrelations,
                 :n_subfeatures,
-                :initConditions,
-                :allowRelationGlob,
+                :init_conditions,
+                :allow_global_splits,
                 :rng,
                 :partial_sampling,
                 :perform_consistency_check,
@@ -221,9 +221,9 @@ function train_functional_leaves(
     )
     # World sets for (dataset, frame, instance)
     worlds = Vector{Vector{Vector{<:WST} where {WorldType<:AbstractWorld,WST<:WorldSet{WorldType}}}}([
-        init_world_sets(X, tree.initConditions)
+        init_world_sets(X, tree.init_conditions)
     for (X,Y) in datasets])
-    DTree(train_functional_leaves(tree.root, worlds, datasets, args...; kwargs...), tree.worldTypes, tree.initConditions)
+    DTree(train_functional_leaves(tree.root, worlds, datasets, args...; kwargs...), tree.worldTypes, tree.init_conditions)
 end
 
 # At internal nodes, a functional model is trained by calling a callback function, and the leaf is created

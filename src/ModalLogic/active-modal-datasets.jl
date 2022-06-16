@@ -1,6 +1,6 @@
 using ProgressMeter
 
-using ..ModalDecisionTrees: _CanonicalFeatureGeq, _CanonicalFeatureGeqSoft, _CanonicalFeatureLeq, _CanonicalFeatureLeqSoft
+using ..ModalDecisionTrees: CanonicalFeatureGeq, CanonicalFeatureGeqSoft, CanonicalFeatureLeq, CanonicalFeatureLeqSoft
 using ..ModalDecisionTrees: evaluate_thresh_decision, existential_aggregator, aggregator_bottom, aggregator_to_binary
 
 const initWorldSetFunction = Function
@@ -104,10 +104,10 @@ end
                 push!(featsnops, test_ops)
             end
 
-            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureGeq) = ([≥],ModalDecisionTrees.SingleAttributeMin(i_attr))
-            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureLeq) = ([≤],ModalDecisionTrees.SingleAttributeMax(i_attr))
-            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureGeqSoft) = ([≥],ModalDecisionTrees.SingleAttributeSoftMin(i_attr, cf.alpha))
-            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic._CanonicalFeatureLeqSoft) = ([≤],ModalDecisionTrees.SingleAttributeSoftMax(i_attr, cf.alpha))
+            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic.CanonicalFeatureGeq) = ([≥],ModalDecisionTrees.SingleAttributeMin(i_attr))
+            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic.CanonicalFeatureLeq) = ([≤],ModalDecisionTrees.SingleAttributeMax(i_attr))
+            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic.CanonicalFeatureGeqSoft) = ([≥],ModalDecisionTrees.SingleAttributeSoftMin(i_attr, cf.alpha))
+            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic.CanonicalFeatureLeqSoft) = ([≤],ModalDecisionTrees.SingleAttributeSoftMax(i_attr, cf.alpha))
             single_attr_feats_n_featsnops(i_attr,(test_ops,cf)::Tuple{<:AbstractVector{<:TestOperatorFun},Function})        = (test_ops,SingleAttributeFeature(i_attr, cf))
             single_attr_feats_n_featsnops(i_attr,(test_ops,cf)::Tuple{<:AbstractVector{<:TestOperatorFun},typeof(minimum)}) = (test_ops,SingleAttributeMin(i_attr))
             single_attr_feats_n_featsnops(i_attr,(test_ops,cf)::Tuple{<:AbstractVector{<:TestOperatorFun},typeof(maximum)}) = (test_ops,SingleAttributeMax(i_attr))
@@ -345,7 +345,7 @@ struct ExplicitModalDataset{T<:Number, WorldType<:AbstractWorld} <: ActiveModalD
     relations          :: AbstractVector{<:AbstractRelation}
     
     # Worldset initialization functions (one per instance)
-    #  with signature (initCondition) -> vs::AbstractWorldSet{WorldType}
+    #  with signature (iC::InitCondition) -> vs::AbstractWorldSet{WorldType}
     init_world_sets_funs   :: AbstractVector{<:initWorldSetFunction}
     # Accessibility functions (one per instance)
     #  with signature (w::WorldType/AbstractWorldSet{WorldType}, r::AbstractRelation) -> vs::AbstractVector{WorldType}
