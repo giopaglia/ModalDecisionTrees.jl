@@ -59,7 +59,13 @@ function build_tree(
     
     @assert W isa AbstractVector || W in [nothing, :rebalance, :default]
 
+<<<<<<< Updated upstream
     W = if isnothing(W) || W == :rebalance
+=======
+    W = if isnothing(W) || W == :default
+        default_weights(n_samples(X))
+    elseif W == :rebalance
+>>>>>>> Stashed changes
         default_weights_rebalance(Y)
     elseif :default
         default_weights(n_samples(X))
