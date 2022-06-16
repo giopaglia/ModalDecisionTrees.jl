@@ -246,6 +246,15 @@ struct Decision{T}
     ) where {T}
         new{T}(relation, feature, test_operator, threshold)
     end
+
+    function Decision(
+        relation      :: AbstractRelation,
+        feature       :: ModalFeature,
+        test_operator :: TestOperatorFun,
+        threshold     :: T
+    ) where {T}
+        Decision{T}(relation, feature, test_operator, threshold)
+    end
 end
 
 is_propositional_decision(d::Decision) = (d.relation isa ModalLogic._RelationId)
