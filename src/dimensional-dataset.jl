@@ -12,7 +12,7 @@
 #   e.g. const AbstractDimensionalInstance{T,N} = AbstractArray{T,N+1+1}
 # Unfortunately, this is not currently allowed ( see https://github.com/JuliaLang/julia/issues/8322 )
 # 
-# Note: This implementation assumes that all instances have uniform channel size (e.g. time
+# Note: This implementation assumes that all samples have uniform channel size (e.g. time
 #  series with same number of points, or images of same width and height)
 ############################################################################################
 

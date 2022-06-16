@@ -49,8 +49,8 @@ function build_tree(
         ##############################################################################
         n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
         n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = identity,
-        initConditions      :: Union{_initCondition,AbstractVector{<:_initCondition}} = start_without_world,
-        allowRelationGlob   :: Union{Bool,AbstractVector{Bool}}                       = true,
+        init_conditions     :: Union{InitCondition,AbstractVector{<:InitCondition}} = start_without_world,
+        allow_global_splits :: Union{Bool,AbstractVector{Bool}}                       = true,
         ##############################################################################
         perform_consistency_check :: Bool = true,
         ##############################################################################
@@ -73,8 +73,8 @@ function build_tree(
         loss_function = default_loss_function(L)
     end
     
-    if allowRelationGlob isa Bool
-        allowRelationGlob = fill(allowRelationGlob, n_frames(X))
+    if allow_global_splits isa Bool
+        allow_global_splits = fill(allow_global_splits, n_frames(X))
     end
     if n_subrelations isa Function
         n_subrelations = fill(n_subrelations, n_frames(X))
@@ -82,8 +82,8 @@ function build_tree(
     if n_subfeatures isa Function
         n_subfeatures  = fill(n_subfeatures, n_frames(X))
     end
-    if initConditions isa _initCondition
-        initConditions = fill(initConditions, n_frames(X))
+    if init_conditions isa InitCondition
+        init_conditions = fill(init_conditions, n_frames(X))
     end
 
     @assert max_depth > 0
@@ -93,7 +93,7 @@ function build_tree(
     end
 
     # TODO figure out what to do here. Maybe it can be helpful to make rng either an rng or a seed, and then mk_rng transforms it into an rng
-    fit(X, Y, initConditions, W
+    fit(X, Y, init_conditions, W
         ;###########################################################################
         loss_function       = loss_function,
         max_depth           = max_depth,
@@ -103,7 +103,7 @@ function build_tree(
         ############################################################################
         n_subrelations      = n_subrelations,
         n_subfeatures       = [ n_subfeatures[i](n_features(frame)) for (i,frame) in enumerate(frames(X)) ],
-        allowRelationGlob   = allowRelationGlob,
+        allow_global_splits = allow_global_splits,
         ############################################################################
         perform_consistency_check = perform_consistency_check,
         ############################################################################
@@ -120,7 +120,7 @@ function build_forest(
         ##############################################################################
         # Forest logic-agnostic parameters
         n_trees             = 100,
-        partial_sampling    = 0.7,      # portion of instances sampled (without replacement) by each tree
+        partial_sampling    = 0.7,      # portion of sub-sampled samples (without replacement) by each tree
         ##############################################################################
         # Tree logic-agnostic parameters
         loss_function       :: Union{Nothing,Function}          = nothing,
@@ -132,8 +132,8 @@ function build_forest(
         # Modal parameters
         n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
         n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = x -> ceil(Int64, sqrt(x)),
-        initConditions      :: Union{_initCondition,AbstractVector{<:_initCondition}} = start_without_world,
-        allowRelationGlob   :: Union{Bool,AbstractVector{Bool}}                       = true,
+        init_conditions     :: Union{InitCondition,AbstractVector{<:InitCondition}} = start_without_world,
+        allow_global_splits :: Union{Bool,AbstractVector{Bool}}                       = true,
         ##############################################################################
         perform_consistency_check :: Bool = true,
         ##############################################################################
@@ -146,11 +146,11 @@ function build_forest(
     if n_subfeatures isa Function
         n_subfeatures  = fill(n_subfeatures, n_frames(X))
     end
-    if initConditions isa _initCondition
-        initConditions = fill(initConditions, n_frames(X))
+    if init_conditions isa InitCondition
+        init_conditions = fill(init_conditions, n_frames(X))
     end
-    if allowRelationGlob isa Bool
-        allowRelationGlob = fill(allowRelationGlob, n_frames(X))
+    if allow_global_splits isa Bool
+        allow_global_splits = fill(allow_global_splits, n_frames(X))
     end
 
     if n_trees < 1
@@ -196,8 +196,8 @@ function build_forest(
             ################################################################################
             n_subrelations       = n_subrelations,
             n_subfeatures        = n_subfeatures,
-            initConditions       = initConditions,
-            allowRelationGlob    = allowRelationGlob,
+            init_conditions      = init_conditions,
+            allow_global_splits  = allow_global_splits,
             ################################################################################
             perform_consistency_check = perform_consistency_check,
             ################################################################################

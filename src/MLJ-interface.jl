@@ -33,8 +33,8 @@ MMI.@mlj_model mutable struct DecisionTreeClassifier <: MMI.Deterministic
     # Modal hyper-parameters
     relation_set           :: Union{Nothing,Symbol,AbstractVector{<:AbstractRelation}} = nothing?
     # ontology               :: Union{Nothing,Symbol,MDT.Ontology}  = nothing
-    initConditions         :: Symbol           = [:start_with_global, :start_at_center]
-    allowRelationGlob      :: Bool                         = false
+    init_conditions        :: Symbol           = [:start_with_global, :start_at_center]
+    allow_global_splits    :: Bool                         = false
     # Other
     display_depth          :: Union{Nothing,Int}           = 5::(isnothing(_) || _ ≥ 0)
     rng                    :: Union{AbstractRNG,Integer}   = GLOBAL_RNG
@@ -52,8 +52,8 @@ function MMI.fit(m::DecisionTreeClassifier, verbosity::Int, X, y)
     max_purity_at_leaf
     display_depth
     ontology
-    initConditions
-    allowRelationGlob
+    init_conditions
+    allow_global_splits
     rng
 
     divider

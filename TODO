@@ -44,10 +44,11 @@ Half-ideas:
 
 
 Renamings:
-☐ decision->condition
+☐ Decision->Condition (careful: conflicts with Base.Condition)
 ☐	n_frames -> nframes
 ☐	n_features -> nfeatures
-☐	pick one between samples & instances, then n_instances -> ninstances
+☐	pick one between samples & instances
+☐	n_instances -> ninstances
 
 ############################################################################################
 
@@ -164,7 +165,7 @@ Archive:
 	✔	rename _n_samples -> n_samples @done (21-10-07 23:14)
 	✔	clean modallogic.jl @done (21-05-06 12:55)
 	✔	timeit -> symbol @done (21-05-06 10:51)
-	✔	Clean initCondition and worldType code @done (21-05-06 10:36)
+	✔	Clean InitCondition and worldType code @done (21-05-06 10:36)
 	✔	check that missing is not in X or Y @done (21-05-06 10:18)
 	✔	Play with parameters: @done (21-04-03 20:04)
 	✔	Preliminary scan on logic-agnostic parameters @done (21-03-19 15:05)
@@ -177,7 +178,7 @@ Archive:
 	✔	Calculate per-class accuracy. @done (21-03-12 17:10)
 	✔	Create a dataset with many but tiny worlds. Even a completely random one. @done (21-03-12 14:07)
 	✔	> doubles the time but doesn't seem to improve performances. Is this a bug? Try to come up with a dataset that shows if it works. If it's not a bug, maybe we should consider parametrizing on whether this is to be used or not. @done (21-03-12 14:07)
-	✔	Rename TestOpLes to CanonicalFeatureLeq @done (21-03-12 14:05)
+	✔	Rename TestOpLes to canonical_leq @done (21-03-12 14:05)
 	✔	Fix compute-threshold and enum_acc_repr so that it works with soft test operator as well! @done (21-03-12 14:03)
 	✔	Figure out why we reach "Uninformative split." when using Les only @done (21-03-10 17:21)
 	✔	Test 5x5 @done (21-03-08 00:59)
@@ -192,7 +193,7 @@ Archive:
 	✔	Fix print_world @done (21-02-02 14:07)
 	✔	Check the speedup with/without inbounds (3x3 and 5x5 cases) @done (21-02-02 13:56)
 	✔	verify new code. (test all datasets (avoid dataset[2] flattened)) @done (21-01-26 18:06)
-	✔	Test with no initCondition @done (21-01-26 18:06)
+	✔	Test with no InitCondition @done (21-01-26 18:06)
 	✔	Try different starting condition: start at the central pixel. @done (21-01-25 00:10)
 	✔	Note that we need to know the speedup for using the extremes array. Hide computation of the extremes. @done (21-01-24 14:32)
 	✔	Bring back the extremes, noting that this leads to constant propositional check. @done (21-01-24 14:32)
