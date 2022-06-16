@@ -388,7 +388,7 @@ Base.@propagate_inbounds @inline function split_node!(
     # Optimization-tracking variables
     best_i_frame = -1
     best_purity_times_nt = typemin(P)
-    best_decision = Decision{}()
+    best_decision = Decision{Float64}()
     if isa(_perform_consistency_check,Val{true})
         consistency_sat_check = Vector{Bool}(undef, _n_samples)
     end
