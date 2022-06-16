@@ -45,7 +45,7 @@ perform_consistency_check  = true
 
 # @code_warntype n_samples(Xs)
 
-initConditions             = [startWithRelationGlob]
+initConditions             = [ModalDecisionTrees.start_without_world]
 
 ################################################################################
 # fit
@@ -101,7 +101,7 @@ Y  = Int64[fill(1, _n_samples_h)..., fill(2, _n_samples_h)...]
 idxs = collect(1:_n_samples)
 Ss = ModalDecisionTrees.init_world_sets(Xs, initConditions)
 
-onlyallowRelationGlob = [(iC == startWithRelationGlob) for iC in initConditions]
+onlyallowRelationGlob = [(iC == ModalDecisionTrees.start_without_world) for iC in initConditions]
 node = ModalDecisionTrees.NodeMeta{Float64,Int64}(1:_n_samples, 0, 0, onlyallowRelationGlob)
 
 

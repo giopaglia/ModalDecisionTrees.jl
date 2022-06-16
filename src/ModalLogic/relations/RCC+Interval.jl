@@ -115,45 +115,45 @@ _accessibles(w::Interval, ::_Topo_NTPPi, X::Integer) = _accessibles(w, IA_Di, X)
 
 # RCC5 computed as a combination
 _accessibles(w::Interval, r::_TopoRelRCC5,  XYZ::Vararg{Integer,1}) =
-	# Iterators.flatten((_accessibles(w, IA_r,  XYZ...) for RCC8_r in RCC52RCC8Relations(r) for IA_r in topo2IARelations(RCC8_r)))
+    # Iterators.flatten((_accessibles(w, IA_r,  XYZ...) for RCC8_r in RCC52RCC8Relations(r) for IA_r in topo2IARelations(RCC8_r)))
     Iterators.flatten((_accessibles(w, IA_r,  XYZ...) for IA_r in RCC52IARelations(r)))
 
 #=
 
-computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval, r::_TopoRelRCC8FromIA, channel::DimensionalChannel{T,1}) where {T} = begin
-	maxExtrema(
-		map((IA_r)->(yieldReprs(test_operator, enum_acc_repr(test_operator, w, IA_r, length(channel)), channel)), topo2IARelations(r))
-	)
+computeModalThresholdDual(test_operator::_CanonicalFeatureGeq, w::Interval, r::_TopoRelRCC8FromIA, channel::DimensionalChannel{T,1}) where {T} = begin
+    maxExtrema(
+        map((IA_r)->(yieldReprs(test_operator, enum_acc_repr(test_operator, w, IA_r, length(channel)), channel)), topo2IARelations(r))
+    )
 end
-compute_modal_gamma(test_operator::_TestOpGeq, w::Interval, r::_TopoRelRCC8FromIA, channel::DimensionalChannel{T,1}) where {T} = begin
-	maximum(
-		map((IA_r)->(yieldRepr(test_operator, enum_acc_repr(test_operator, w, IA_r, length(channel)), channel)), topo2IARelations(r))
-	)
+compute_modal_gamma(test_operator::_CanonicalFeatureGeq, w::Interval, r::_TopoRelRCC8FromIA, channel::DimensionalChannel{T,1}) where {T} = begin
+    maximum(
+        map((IA_r)->(yieldRepr(test_operator, enum_acc_repr(test_operator, w, IA_r, length(channel)), channel)), topo2IARelations(r))
+    )
 end
-compute_modal_gamma(test_operator::_TestOpLeq, w::Interval, r::_TopoRelRCC8FromIA, channel::DimensionalChannel{T,1}) where {T} = begin
-	mininimum(
-		map((IA_r)->(yieldRepr(test_operator, enum_acc_repr(test_operator, w, IA_r, length(channel)), channel)), topo2IARelations(r))
-	)
+compute_modal_gamma(test_operator::_CanonicalFeatureLeq, w::Interval, r::_TopoRelRCC8FromIA, channel::DimensionalChannel{T,1}) where {T} = begin
+    mininimum(
+        map((IA_r)->(yieldRepr(test_operator, enum_acc_repr(test_operator, w, IA_r, length(channel)), channel)), topo2IARelations(r))
+    )
 end
 
 enum_acc_repr(test_operator::TestOperator, w::Interval, ::_Topo_NTPP,  X::Integer) = enum_acc_repr(test_operator, w, IA_D, X)
 enum_acc_repr(test_operator::TestOperator, w::Interval, ::_Topo_NTPPi, X::Integer) = enum_acc_repr(test_operator, w, IA_Di, X)
 
-computeModalThresholdDual(test_operator::_TestOpGeq, w::Interval, r::_TopoRelRCC5, channel::DimensionalChannel{T,1}) where {T} = begin
-	maxExtrema(
-		map((IA_r)->(yieldReprs(test_operator, enum_acc_repr(test_operator, w, IA_r, size(channel)...), channel)), [IA_r for RCC8_r in RCC52RCC8Relations(r) for IA_r in topo2IARelations(RCC8_r)])
-	)
+computeModalThresholdDual(test_operator::_CanonicalFeatureGeq, w::Interval, r::_TopoRelRCC5, channel::DimensionalChannel{T,1}) where {T} = begin
+    maxExtrema(
+        map((IA_r)->(yieldReprs(test_operator, enum_acc_repr(test_operator, w, IA_r, size(channel)...), channel)), [IA_r for RCC8_r in RCC52RCC8Relations(r) for IA_r in topo2IARelations(RCC8_r)])
+    )
 end
-compute_modal_gamma(test_operator::_TestOpGeq, w::Interval, r::_TopoRelRCC5, channel::DimensionalChannel{T,1}) where {T} = begin
-	maximum(
-		map((IA_r)->(yieldRepr(test_operator, enum_acc_repr(test_operator, w, IA_r, size(channel)...), channel)), [IA_r for RCC8_r in RCC52RCC8Relations(r) for IA_r in topo2IARelations(RCC8_r)])
-	)
+compute_modal_gamma(test_operator::_CanonicalFeatureGeq, w::Interval, r::_TopoRelRCC5, channel::DimensionalChannel{T,1}) where {T} = begin
+    maximum(
+        map((IA_r)->(yieldRepr(test_operator, enum_acc_repr(test_operator, w, IA_r, size(channel)...), channel)), [IA_r for RCC8_r in RCC52RCC8Relations(r) for IA_r in topo2IARelations(RCC8_r)])
+    )
 end
-compute_modal_gamma(test_operator::_TestOpLeq, w::Interval, r::_TopoRelRCC5, channel::DimensionalChannel{T,1}) where {T} = begin
-	mininimum(
-		map((IA_r)->(yieldRepr(test_operator, enum_acc_repr(test_operator, w, IA_r, size(channel)...), channel)), [IA_r for RCC8_r in RCC52RCC8Relations(r) for IA_r in topo2IARelations(RCC8_r)])
-	)
+compute_modal_gamma(test_operator::_CanonicalFeatureLeq, w::Interval, r::_TopoRelRCC5, channel::DimensionalChannel{T,1}) where {T} = begin
+    mininimum(
+        map((IA_r)->(yieldRepr(test_operator, enum_acc_repr(test_operator, w, IA_r, size(channel)...), channel)), [IA_r for RCC8_r in RCC52RCC8Relations(r) for IA_r in topo2IARelations(RCC8_r)])
+    )
 end
 
 =#
-	
+    

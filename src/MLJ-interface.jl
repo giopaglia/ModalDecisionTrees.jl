@@ -31,8 +31,9 @@ MMI.@mlj_model mutable struct DecisionTreeClassifier <: MMI.Deterministic
     min_purity_increase    :: Float64                      = MDT.default_min_purity_increase
     max_purity_at_leaf     :: Float64                      = MDT.default_max_purity_at_leaf
     # Modal hyper-parameters
-    ontology               :: Union{Nothing,MDT.Ontology}  = nothing
-    initConditions         :: MDT._initCondition           = MDT._startWithRelationGlob
+    relation_set           :: Union{Nothing,Symbol,AbstractVector{<:AbstractRelation}} = nothing?
+    # ontology               :: Union{Nothing,Symbol,MDT.Ontology}  = nothing
+    initConditions         :: Symbol           = [:start_with_global, :start_at_center]
     allowRelationGlob      :: Bool                         = false
     # Other
     display_depth          :: Union{Nothing,Int}           = 5::(isnothing(_) || _ ≥ 0)
@@ -55,6 +56,7 @@ function MMI.fit(m::DecisionTreeClassifier, verbosity::Int, X, y)
     allowRelationGlob
     rng
 
+    divider
     if schema === nothing
         features = [Symbol("x$j") for j in 1:size(Xmatrix, 2)]
     else

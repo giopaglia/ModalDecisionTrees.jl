@@ -19,15 +19,6 @@ abstract type ModalFeature <: Function end
 ################################################################################
 ################################################################################
 
-# Dummy modal feature
-struct _ModalFeatureNone  <: ModalFeature end; const ModalFeatureNone  = _ModalFeatureNone();
-function interpret_feature(f::_ModalFeatureNone, args...)
-    @error "Can't intepret ModalFeatureNone on any structure at all."
-end
-Base.show(io::IO, f::_ModalFeatureNone) = print(io, "(Empty ModalFeature)")
-
-############################################################################################
-
 # A dimensional feature represents a function that can be computed when the world
 #  is an entity that lives in a dimensional context; for example, the world
 #  can be a region of the matrix representing a b/w image.
@@ -147,7 +138,7 @@ struct ExternalFWDFeature <: ModalFeature
     fwd::Any
 end
 function interpret_feature(f::ExternalFWDFeature, inst::AbstractDimensionalInstance{T}) where {T}
-    @error "Can't intepret ModalFeatureNone on any structure at all."
+    @error "Can't intepret ExternalFWDFeature on any structure at all."
 end
 Base.show(io::IO, f::ExternalFWDFeature) = print(io, "$(f.name)")
 
