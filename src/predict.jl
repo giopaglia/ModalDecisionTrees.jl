@@ -271,7 +271,7 @@ function predict(
 end
 
 # function predict(tree::DTNode{T, L}, X::DimensionalDataset{T,D}, Y::Vector{L}; reset_leaves = true, update_labels = false) where {L, T, D}
-#   return predict(DTree(tree, [world_type(ModalLogic.getIntervalOntologyOfDim(Val(D-2)))], [start_without_world]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
+#   return predict(DTree(tree, [world_type(ModalLogic.get_interval_ontology(Val(D-2)))], [start_without_world]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
 # end
 
 

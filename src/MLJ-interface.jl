@@ -27,6 +27,82 @@ Base.show(stream::IO, c::ModelPrinter) =
 ############################################################################################
 ############################################################################################
 
+function DataFrame2MultiFrameModalDataset(X, relations, mixed_features)
+
+    columns = names(X)
+    channel_sizes = [unique(_size.(X)[:,col]) for col in columns]
+
+    # Must have common channel size across instances
+    _uniform_columns = (length.(channel_sizes) .== 1)
+    _nonmissing_columns = (((cs)->all((!).(ismissing.(cs)))).(channel_sizes))
+
+    __uniform_cols = columns[(!).(_uniform_columns)]
+    if length(__uniform_cols) > 0
+        println("Dropping columns due to non-uniform channel size across instances: $(__uniform_cols)...")
+    end
+    __uniform_non_missing_cols = columns[_uniform_columns .&& (!).(_nonmissing_columns)]
+    if length(__uniform_non_missing_cols) > 0
+        println("Dropping columns due to missings: $(__uniform_non_missing_cols)...")
+    end
+    _good_columns = _uniform_columns .&& _nonmissing_columns
+
+    _good_columns = _uniform_columns .&& _nonmissing_columns
+    channel_sizes = channel_sizes[_good_columns]
+    columns = columns[_good_columns]
+    channel_sizes = getindex.(channel_sizes, 1)
+
+    unique_channel_sizes = sort(unique(channel_sizes))
+
+    frame_ids = [findfirst((ucs)->(ucs==cs), unique_channel_sizes) for cs in channel_sizes]
+
+    frames = Dict([frame_id => [] for frame_id in unique(frame_ids)])
+    for (frame_id, col) in zip(frame_ids, columns)
+        push!(frames[frame_id], col)
+    end
+    frames = [frames[frame_id] for frame_id in unique(frame_ids)]
+
+    println("Frames:");
+    display(collect(((x)->Pair(x...)).((enumerate(frames)))));
+
+    Xs = [begin
+        println((i_frame, frame))
+        X_frame = X[:,frame]
+        channel_size = unique([unique(_size.(X_frame[:, col])) for col in names(X_frame)])
+        @assert length(channel_size) == 1
+        @assert length(channel_size[1]) == 1
+        channel_size = channel_size[1][1]
+        println("Channel size: $(channel_size)")
+        
+        _X = begin
+            # dataframe2cube(X_frame)
+            common_type = supertype(Type{Union{eltype.(eltype.(eachcol(X_frame)))...}})
+            _X = Array{common_type}(undef, channel_size..., ncol(X_frame), nrow(X_frame))
+            for (i_col, col) in enumerate(eachcol(X_frame))
+                for (i_row, row) in enumerate(col)
+                    _X[[(:) for i in 1:length(size(row))]...,i_col,i_row] = row
+                end
+            end
+            _X
+        end
+        channel_dim = length(channel_size)
+        InterpretedModalDataset(_X, MDT.get_interval_ontology(channel_dim, :interval, relations), mixed_features) end for (i_frame, frame) in enumerate(frames)]
+    
+    WorldType = world_type(data_modal_args[i_frame].ontology)
+    
+    needToComputeRelationGlob =
+        WorldType != OneWorld && (
+            (modal_args.allow_global_splits || (modal_args.init_conditions == ModalDecisionTrees.start_without_world))
+                || ((modal_args.init_conditions isa AbstractVector) && modal_args.init_conditions[i_frame] == ModalDecisionTrees.start_without_world)
+        )
+    ExplicitModalDatasetSMemo(X, computeRelationGlob = needToComputeRelationGlob);
+
+    Xs = MultiFrameModalDataset(Xs)
+end
+
+############################################################################################
+############################################################################################
+############################################################################################
+
 
 const MMI = MLJModelInterface
 const MDT = ModalDecisionTrees
@@ -39,7 +115,9 @@ MMI.@mlj_model mutable struct DecisionTreeClassifier <: MMI.Deterministic
     min_purity_increase    :: Float64                      = MDT.default_min_purity_increase
     max_purity_at_leaf     :: Float64                      = MDT.default_max_purity_at_leaf
     # Modal hyper-parameters
-    relation_set           :: Union{Nothing,Symbol,AbstractVector{<:MDT.Relation}} = nothing::(isnothing(_) || _ in [:auto, :IA, :IA3, IA7] || _ isa AbstractVector{<:MDT.Relation})
+    relations              :: Union{Nothing,Symbol,AbstractVector{<:MDT.Relation}} = nothing::(isnothing(_) || _ in [:IA, :IA3, :IA7, :RCC5, :RCC8] || _ isa AbstractVector{<:MDT.Relation})
+    # TODO expand to ModalFeature
+    features               :: Vector{Function}             = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Number) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
     init_conditions        :: Symbol                       = :start_with_global::(_ in [:start_with_global, :start_at_center])
     allow_global_splits    :: Bool                         = true
     # Other
@@ -47,27 +125,56 @@ MMI.@mlj_model mutable struct DecisionTreeClassifier <: MMI.Deterministic
     rng                    :: Union{AbstractRNG,Integer}   = GLOBAL_RNG
 end
 
-function MMI.fit(m::DecisionTreeClassifier, verbosity::Int, X, y)
+function MMI.fit(m::DecisionTreeClassifier, verbosity::Int, X, y, w=nothing)
     schema = Tables.schema(X)
     Xmatrix = MMI.matrix(X)
     yplain  = MMI.int(y)
 
+    Xs = DataFrame2MultiFrameModalDataset(X, m.relations, features)
 
+    function build_tree(
+        Xs,
+        Y                   :: AbstractVector{L},
+        W                   :: Union{Nothing,AbstractVector{U},Symbol}   = default_weights(n_samples(X));
+        ##############################################################################
+        loss_function       :: Union{Nothing,Function}            = nothing,
+        max_depth           :: Int64                              = default_max_depth,
+        min_samples_leaf    :: Int64                              = default_min_samples_leaf,
+        min_purity_increase :: AbstractFloat                      = default_min_purity_increase,
+        max_purity_at_leaf  :: AbstractFloat                      = default_max_purity_at_leaf,
+        ##############################################################################
+        n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
+        n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = identity,
+        init_conditions     :: Union{InitCondition,AbstractVector{<:InitCondition}} = start_without_world,
+        allow_global_splits :: Union{Bool,AbstractVector{Bool}}                       = true,
+        ##############################################################################
+        perform_consistency_check :: Bool = false,
+        ##############################################################################
+        rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG,
+    ) where {L<:Label, U}
+    
+
+    Xs, y, w
     max_depth
     min_samples_leaf
     min_purity_increase
     max_purity_at_leaf
-    display_depth
-    ontology
+    # 
+    relations
     init_conditions
     allow_global_splits
+    # 
+    display_depth
     rng
 
-    divider
-    if schema === nothing
-        features = [Symbol("x$j") for j in 1:size(Xmatrix, 2)]
-    else
-        features = schema.names |> collect
+end
+"
+    features = begin
+        if schema === nothing
+            [Symbol("x$j") for j in 1:size(Xmatrix, 2)]
+        else
+            schema.names |> collect
+        end
     end
 
     classes_seen  = filter(in(unique(y)), MMI.classes(y[1]))
@@ -93,7 +200,7 @@ function MMI.fit(m::DecisionTreeClassifier, verbosity::Int, X, y)
               features=features)
 
     return fitresult, cache, report
-end
+end"
 
 function get_encoding(classes_seen)
     a_cat_element = classes_seen[1]
@@ -138,7 +245,7 @@ MMI.@mlj_model mutable struct RandomForestClassifier <: MMI.Probabilistic
     rng::Union{AbstractRNG,Integer} = GLOBAL_RNG
 end
 
-function MMI.fit(m::RandomForestClassifier, verbosity::Int, X, y)
+function MMI.fit(m::RandomForestClassifier, verbosity::Int, X, y, w=nothing)
     Xmatrix = MMI.matrix(X)
     yplain  = MMI.int(y)
 

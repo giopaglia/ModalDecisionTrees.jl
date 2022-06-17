@@ -368,19 +368,8 @@ abstract type TopologicalRelation <: Relation end
 # Here are the definitions for world types and relations for known modal logics
 #  
 
-export OneWorldOntology,
-       # 
-       IntervalOntology,
-       Interval2DOntology,
-       getIntervalOntologyOfDim,
-       # 
-       IntervalRCC8Ontology,
-       Interval2DRCC8Ontology,
-       getIntervalRCC8OntologyOfDim,
-       # 
-       IntervalRCC5Ontology,
-       Interval2DRCC5Ontology,
-       getIntervalRCC5OntologyOfDim
+export get_ontology,
+       get_interval_ontology
 
 ############################################################################################
 # Dimensionality: 0
@@ -403,6 +392,9 @@ include("relations/IA+Interval.jl")       # <- Allen relations
 include("relations/RCC+Interval.jl")    # <- RCC relations
 
 const IntervalOntology       = Ontology{Interval}(IARelations)
+const Interval3Ontology      = Ontology{ModalLogic.Interval}(ModalLogic.IA7Relations)
+const Interval7Ontology      = Ontology{ModalLogic.Interval}(ModalLogic.IA3Relations)
+
 const IntervalRCC8Ontology   = Ontology{Interval}(RCC8Relations)
 const IntervalRCC5Ontology   = Ontology{Interval}(RCC5Relations)
 
@@ -421,21 +413,53 @@ const Interval2DRCC5Ontology = Ontology{Interval2D}(RCC5Relations)
 
 ############################################################################################
 
+get_ontology(::DimensionalDataset{T,D}, args...) where {T,D} = get_ontology(Val(D-2), args...)
+get_ontology(N::Integer, args...) = get_ontology(Val(N), args...)
+get_ontology(::Val{0}) = OneWorldOntology
+function get_ontology(::Val{1}, world = :interval, relations = :IA)
+    world_possible_values = [:point, :interval, :rectangle, :hyperrectangle]
+    relations_possible_values = [:IA, :IA3, :IA7, :RCC5, :RCC8]
+    @assert world in world_possible_values "Unexpected value encountered for `world`. Legal values are in $(world_possible_values)"
+    @assert relations in relations_possible_values "Unexpected value encountered for `relations`. Legal values are in $(relations_possible_values)"
 
-getIntervalOntologyOfDim(N::Integer) = getIntervalOntologyOfDim(Val(N))
-getIntervalOntologyOfDim(::DimensionalDataset{T,D}) where {T,D} = getIntervalOntologyOfDim(Val(D-2))
-getIntervalOntologyOfDim(::Val{1}) = IntervalOntology
-getIntervalOntologyOfDim(::Val{2}) = Interval2DOntology
+    if world in [:point]
+        error("TODO point-based ontologies not implemented yet")
+    elseif world in [:interval, :rectangle, :hyperrectangle]
+        if     relations_possible_values == :IA   IntervalOntology
+        elseif relations_possible_values == :IA3  Interval3Ontology
+        elseif relations_possible_values == :IA7  Interval7Ontology
+        elseif relations_possible_values == :RCC5 IntervalRCC8Ontology
+        elseif relations_possible_values == :RCC8 IntervalRCC5Ontology
+        else
+            error("Unexpected value encountered for `relations`. Legal values are in $(relations_possible_values)")
+        end
+    else
+        error("Unexpected value encountered for `world`. Legal values are in $(possible_values)")
+    end
+end
 
-getIntervalRCC8OntologyOfDim(N::Integer) = getIntervalRCC8OntologyOfDim(Val(N))
-getIntervalRCC8OntologyOfDim(::DimensionalDataset{T,D}) where {T,D} = getIntervalRCC8OntologyOfDim(Val(D-2))
-getIntervalRCC8OntologyOfDim(::Val{1}) = IntervalRCC8Ontology
-getIntervalRCC8OntologyOfDim(::Val{2}) = Interval2DRCC8Ontology
+function get_ontology(::Val{1}, world = :interval, relations = :IA)
+    world_possible_values = [:point, :interval, :rectangle, :hyperrectangle]
+    relations_possible_values = [:IA, :RCC5, :RCC8]
+    @assert world in world_possible_values "Unexpected value encountered for `world`. Legal values are in $(world_possible_values)"
+    @assert relations in relations_possible_values "Unexpected value encountered for `relations`. Legal values are in $(relations_possible_values)"
 
-getIntervalRCC5OntologyOfDim(N::Integer) = getIntervalRCC5OntologyOfDim(Val(N))
-getIntervalRCC5OntologyOfDim(::DimensionalDataset{T,D}) where {T,D} = getIntervalRCC5OntologyOfDim(Val(D-2))
-getIntervalRCC5OntologyOfDim(::Val{1}) = IntervalRCC5Ontology
-getIntervalRCC5OntologyOfDim(::Val{2}) = Interval2DRCC5Ontology
+    if world in [:point]
+        error("TODO point-based ontologies not implemented yet")
+    elseif world in [:interval, :rectangle, :hyperrectangle]
+        if     relations_possible_values == :IA   Interval2DOntology
+        elseif relations_possible_values == :RCC5 Interval2DRCC8Ontology
+        elseif relations_possible_values == :RCC8 Interval2DRCC5Ontology
+        else
+            error("Unexpected value encountered for `relations`. Legal values are in $(relations_possible_values)")
+        end
+    else
+        error("Unexpected value encountered for `world`. Legal values are in $(possible_values)")
+    end
+end
+
+get_interval_ontology(::DimensionalDataset{T,D}, args...) where {T,D} = get_interval_ontology(Val(D-2), args...)
+get_interval_ontology(N::Integer, relations = :IA) = get_interval_ontology(N, world = :interval, relations = relations)
 
 const WorldType0D = Union{OneWorld}
 const WorldType1D = Union{Interval}

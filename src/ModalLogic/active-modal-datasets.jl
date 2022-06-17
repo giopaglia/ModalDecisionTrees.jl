@@ -121,7 +121,7 @@ end
             end
             _features, featsnops
         end
-        ontology = getIntervalOntologyOfDim(Val(D-1-1))
+        ontology = get_interval_ontology(Val(D-1-1))
         InterpretedModalDataset{T, N, world_type(ontology)}(domain, ontology, _features, featsnops)
     end
 
