@@ -63,7 +63,7 @@ Renamings:
 ☐	MODEL: Model may not have an answer? problem with argmax when testing (e.g. RF), especially on unbalanced datasets. better to randomly pick one of the best answers then?
 ☐	MODEL: attach more info to the models: algorithm used, full namedtuple of training arguments, pre-process pipeline. remove cm and oob_error from random forest? OR also attach a structure that measures training performances. See what other libraries do
 ☐	MODEL: add info gain of the split to each internal node, purity to each node/leaf
-☐	MODEL: Add tree parser and convenience methods for tree editing.
+☐	MODEL: [almost done!] Add tree parser and convenience methods for tree editing.
 ☐	MODEL: introduce post pruning (improve pre-pruning/post-pruning against a dataset and introduce validation/test set distinction)
 ############################################################################################
 ☐	MODALLOGIC.JL: OPTIMIZE: add enum_acc_reprAggr for relationGlob, and for all worldtypes and relations
