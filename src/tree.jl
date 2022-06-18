@@ -68,28 +68,32 @@ end
 function _convert(
         node          :: NodeMeta,
         labels        :: AbstractVector{L},
-        class_names   :: AbstractVector{L}) where {L<:CLabel}
+        class_names   :: AbstractVector{L},
+        threshold_backmap :: Vector{<:Function}
+    ) where {L<:CLabel}
     this_leaf = DTLeaf(class_names[node.prediction], labels[node.region])
     if node.is_leaf
         this_leaf
     else
         left  = _convert(node.l, labels, class_names)
         right = _convert(node.r, labels, class_names)
-        DTInternal(node.i_frame, node.decision, this_leaf, left, right)
+        DTInternal(node.i_frame, decision(node.decision, threshold_backmap[i_frame]), this_leaf, left, right)
     end
 end
 
 # Conversion: NodeMeta (node + training info) -> DTNode (bare decision tree model)
 function _convert(
         node   :: NodeMeta,
-        labels :: AbstractVector{L}) where {L<:RLabel}
+        labels :: AbstractVector{L},
+        threshold_backmap :: Vector{<:Function}
+    ) where {L<:RLabel}
     this_leaf = DTLeaf(node.prediction, labels[node.region])
     if node.is_leaf
         this_leaf
     else
         left  = _convert(node.l, labels)
         right = _convert(node.r, labels)
-        DTInternal(node.i_frame, node.decision, this_leaf, left, right)
+        DTInternal(node.i_frame, decision(node.decision, threshold_backmap[i_frame]), this_leaf, left, right)
     end
 end
 
@@ -942,6 +946,8 @@ function fit(
         W                         :: AbstractVector{U} = default_weights(n_samples(Xs))
         # W                       :: AbstractVector{U} = Ones{Int}(n_samples(Xs)), # TODO check whether this is faster
         ;
+        # Perform minification: transform dataset so that learning happens faster
+        perform_minification      :: Bool,
         # Debug-only: checks the consistency of the dataset during training
         perform_consistency_check :: Bool,
         kwargs...,
@@ -959,6 +965,14 @@ function fit(
         end
     end
 
+    Xs, threshold_backmaps = begin
+        if perform_minification
+            minify(Xs)
+        else
+            Xs, fill(identity, n_frames(Xs))
+        end
+    end
+
     # Call core learning function
     root, idxs = _fit(Xs, Y, init_conditions, W;
         n_classes = n_classes,
@@ -970,9 +984,9 @@ function fit(
     # Finally create Tree
     root = begin
         if L<:CLabel
-            _convert(root, map((y)->class_names[y], Y[idxs]), class_names)
+            _convert(root, map((y)->class_names[y], Y[idxs]), class_names, threshold_backmaps)
         else
-            _convert(root, Y[idxs])
+            _convert(root, Y[idxs], threshold_backmaps)
         end
     end
     DTree{L}(root, world_types(Xs), init_conditions)

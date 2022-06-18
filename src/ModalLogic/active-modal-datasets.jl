@@ -361,24 +361,24 @@ struct ExplicitModalDataset{T<:Number, WorldType<:World} <: ActiveModalDataset{T
     grouped_featsaggrsnops  :: AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}}
 
     ExplicitModalDataset(
-        fwd                :: AbstractFWD{T,WorldType},
-        relations          :: AbstractVector{<:Relation},
+        fwd                    :: AbstractFWD{T,WorldType},
+        relations              :: AbstractVector{<:Relation},
         init_world_sets_funs   :: AbstractVector{<:initWorldSetFunction},
-        accessibles_funs      :: AbstractVector{<:accFunction},
+        accessibles_funs       :: AbstractVector{<:accFunction},
         accessibles_aggr_funs  :: AbstractVector{<:accReprFunction},
-        features           :: AbstractVector{<:ModalFeature},
+        features               :: AbstractVector{<:ModalFeature},
         grouped_featsaggrsnops_or_featsnops, # AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}}
         args...;
         kwargs...,
     ) where {T,WorldType} = begin ExplicitModalDataset{T, WorldType}(fwd, relations, init_world_sets_funs, accessibles_funs, accessibles_aggr_funs, features, grouped_featsaggrsnops_or_featsnops, args...; kwargs...) end
 
     function ExplicitModalDataset{T, WorldType}(
-        fwd                :: AbstractFWD{T,WorldType},
-        relations          :: AbstractVector{<:Relation},
-        init_world_sets_funs   :: AbstractVector{<:initWorldSetFunction},
-        accessibles_funs      :: AbstractVector{<:accFunction},
-        accessibles_aggr_funs  :: AbstractVector{<:accReprFunction},
-        features           :: AbstractVector{<:ModalFeature},
+        fwd                     :: AbstractFWD{T,WorldType},
+        relations               :: AbstractVector{<:Relation},
+        init_world_sets_funs    :: AbstractVector{<:initWorldSetFunction},
+        accessibles_funs        :: AbstractVector{<:accFunction},
+        accessibles_aggr_funs   :: AbstractVector{<:accReprFunction},
+        features                :: AbstractVector{<:ModalFeature},
         grouped_featsaggrsnops  :: AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}};
         allow_no_instances = false,
     ) where {T,WorldType<:World}
@@ -392,13 +392,13 @@ struct ExplicitModalDataset{T<:Number, WorldType<:World} <: ActiveModalDataset{T
     end
 
     function ExplicitModalDataset(
-        fwd                :: AbstractFWD{T,WorldType},
-        relations          :: AbstractVector{<:Relation},
+        fwd                    :: AbstractFWD{T,WorldType},
+        relations              :: AbstractVector{<:Relation},
         init_world_sets_funs   :: AbstractVector{<:initWorldSetFunction},
-        accessibles_funs      :: AbstractVector{<:accFunction},
+        accessibles_funs       :: AbstractVector{<:accFunction},
         accessibles_aggr_funs  :: AbstractVector{<:accReprFunction},
-        features           :: AbstractVector{<:ModalFeature},
-        grouped_featsnops  :: AbstractVector{<:AbstractVector{<:TestOperatorFun}},
+        features               :: AbstractVector{<:ModalFeature},
+        grouped_featsnops      :: AbstractVector{<:AbstractVector{<:TestOperatorFun}},
         args...;
         kwargs...,
     ) where {T,WorldType<:World}
@@ -531,6 +531,21 @@ Base.@propagate_inbounds @inline get_gamma(
     X[i_sample, w, i_feature]
 end
 
+isminifiable(::ExplicitModalDataset) = true
+
+function minify(X::ExplicitModalDataset)
+    new_fwd, backmap = minify(X.fwd)
+    X = ExplicitModalDataset(
+        new_fwd,
+        X.relations,
+        X.init_world_sets_funs,
+        X.accessibles_funs,
+        X.accessibles_aggr_funs,
+        X.features,
+        X.grouped_featsaggrsnops,
+    )
+    X, backmap
+end
 
 ############################################################################################
 # Explicit modal dataset with support
@@ -577,6 +592,16 @@ abstract type AbstractGlobalSupport{T}                <: AbstractSupport{T, Worl
 #  is actually inherently world agnostic); world type-specific implementations can be defined
 #  in a similar way.
 
+############################################################################################
+############################################################################################
+
+isminifiable(::Union{AbstractFWD,AbstractRelationalSupport,AbstractGlobalSupport}) = true
+
+function minify(fwd_or_support::Union{AbstractFWD,AbstractRelationalSupport,AbstractGlobalSupport})
+    util.minify(fwd_or_support.d)
+end
+
+############################################################################################
 ############################################################################################
 
 struct GenericRelationalSupport{T, WorldType} <: AbstractRelationalSupport{T, WorldType}
@@ -773,7 +798,7 @@ end
 struct ExplicitModalDatasetS{T<:Number, WorldType<:World} <: ExplicitModalDatasetWithSupport{T, WorldType}
     
     # Core dataset
-    emd                :: ExplicitModalDataset{T, WorldType}
+    emd                 :: ExplicitModalDataset{T, WorldType}
 
     # Relational and global support
     fwd_rs              :: AbstractRelationalSupport{T, WorldType}
@@ -784,7 +809,7 @@ struct ExplicitModalDatasetS{T<:Number, WorldType<:World} <: ExplicitModalDatase
     grouped_featsnaggrs :: AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}}
 
     function ExplicitModalDatasetS{T, WorldType}(
-        emd                :: ExplicitModalDataset{T, WorldType},
+        emd                 :: ExplicitModalDataset{T, WorldType},
         fwd_rs              :: AbstractRelationalSupport{T, WorldType},
         fwd_gs              :: Union{AbstractGlobalSupport{T},Nothing},
         featsnaggrs         :: AbstractVector{Tuple{<:ModalFeature,<:Aggregator}},
@@ -859,7 +884,7 @@ end
 mutable struct ExplicitModalDatasetSMemo{T<:Number, WorldType<:World} <: ExplicitModalDatasetWithSupport{T, WorldType}
     
     # Core dataset
-    emd                :: ExplicitModalDataset{T, WorldType}
+    emd                 :: ExplicitModalDataset{T, WorldType}
 
     # Relational and global support
     fwd_rs              :: AbstractRelationalSupport{<:Union{T,Nothing}, WorldType}
@@ -870,7 +895,7 @@ mutable struct ExplicitModalDatasetSMemo{T<:Number, WorldType<:World} <: Explici
     grouped_featsnaggrs :: AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}}
 
     function ExplicitModalDatasetSMemo{T, WorldType}(
-        emd                :: ExplicitModalDataset{T, WorldType},
+        emd                 :: ExplicitModalDataset{T, WorldType},
         fwd_rs              :: AbstractRelationalSupport{<:Union{T,Nothing}, WorldType},
         fwd_gs              :: Union{AbstractGlobalSupport{T},Nothing},
         featsnaggrs         :: AbstractVector{Tuple{<:ModalFeature,<:Aggregator}},
@@ -981,6 +1006,25 @@ Base.@propagate_inbounds @inline get_gamma(
         w::WorldType,
         feature::ModalFeature) where {WorldType<:World, T} = get_gamma(X.emd, i_sample, w, feature)
 
+isminifiable(::ExplicitModalDatasetWithSupport) = true
+
+function minify(X::EMD) where {EMD<:ExplicitModalDatasetWithSupport}
+    (new_emd, new_fwd_rs, new_fwd_gs), backmap = 
+        util.minify([
+            X.emd,
+            X.fwd_rs,
+            X.fwd_gs,
+        ])
+
+    X = EMD(
+        new_emd,
+        new_fwd_rs,
+        new_fwd_gs,
+        featsnaggrs,
+        grouped_featsnaggrs,
+    )
+    X, backmap
+end
 ############################################################################################
 
 get_global_gamma(

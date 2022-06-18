@@ -255,6 +255,13 @@ struct Decision{T}
     ) where {T}
         Decision{T}(relation, feature, test_operator, threshold)
     end
+
+    function Decision(
+        decision      :: Decision{T},
+        threshold_f   :: Function
+    ) where {T}
+        Decision{T}(relation, feature, test_operator, threshold_f(threshold))
+    end
 end
 
 is_propositional_decision(d::Decision) = (d.relation isa ModalLogic._RelationId)
@@ -337,6 +344,9 @@ abstract type ActiveModalDataset{T<:Number,WorldType<:World} end
 # 
 init_world_sets_fun(imd::ActiveModalDataset{T, WorldType},  i_sample::Integer, ::Type{WorldType}) where {T, WorldType} = 
     init_world_sets_fun(imd, i_sample)
+# 
+# By default an active modal dataset cannot be miniaturized
+isminifiable(::ActiveModalDataset) = false
 # 
 const ModalDataset{T} = Union{PassiveModalDataset{T},ActiveModalDataset{T}}
 # 
@@ -438,7 +448,7 @@ function get_ontology(::Val{1}, world = :interval, relations = :IA)
     end
 end
 
-function get_ontology(::Val{1}, world = :interval, relations = :IA)
+function get_ontology(::Val{2}, world = :interval, relations = :IA)
     world_possible_values = [:point, :interval, :rectangle, :hyperrectangle]
     relations_possible_values = [:IA, :RCC5, :RCC8]
     @assert world in world_possible_values "Unexpected value encountered for `world`. Legal values are in $(world_possible_values)"
