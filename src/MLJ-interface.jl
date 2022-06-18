@@ -55,6 +55,8 @@ function MMI.fit(m::DecisionTreeClassifier, verbosity::Int, X, y)
     allowRelationGlob
     rng
 
+    Per il learning, magari fai la moving average e usa solo maximum e minimum
+
     if schema === nothing
         features = [Symbol("x$j") for j in 1:size(Xmatrix, 2)]
     else

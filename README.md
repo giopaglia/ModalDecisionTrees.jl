@@ -5,7 +5,7 @@
 Features & differences with [DecisionTree.jl](https://github.com/JuliaAI/DecisionTree.jl):
 - Can handle attributes that are `AbstractVector{<:Real}` or `AbstractMatrix{<:Real};
 - A unique algorithm extending CART and C4.5;
-- Fully optimized implementation (weird data structures, multithreading, memoization, minification, Pareto-based pruning optimizations, etc).
+- Fully optimized implementation (fancy data structures, multithreading, memoization, minification, Pareto-based pruning optimizations, etc).
 <!-- - TODO -->
 <!-- - Four pruning conditions: max_depth, min_samples_leaf, min_purity_increase, max_purity_at_leaf -->
 <!-- TODO - Top-down pre-pruning & post-pruning -->
