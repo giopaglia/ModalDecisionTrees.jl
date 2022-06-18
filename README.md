@@ -1,11 +1,11 @@
 # Modal Decision Trees & Forests
 
-### Interpretable classification models that natively deal with time-series!
+### Interpretable models for native time-series classification!
 
 This package provides algorithms for learning *decision trees* and *decision forests* with enhanced abilities.
 Leveraging the express power of Modal Logic, these models can extract *temporal/spatial patterns*, and can natively handle data such as *time series* and *images* (without any data preprocessing).
 
-Features & differences with [DecisionTree.jl](https://github.com/JuliaAI/DecisionTree.jl):
+#### Features & differences with [DecisionTree.jl](https://github.com/JuliaAI/DecisionTree.jl):
 - Ability to handle attributes that are `AbstractVector{<:Real}` or `AbstractMatrix{<:Real}`;
 - Enables interpretable *multimodal* learning
 - Fully optimized implementation (fancy data structures, multithreading, memoization, minification, Pareto-based pruning optimizations, etc).
@@ -15,7 +15,7 @@ Features & differences with [DecisionTree.jl](https://github.com/JuliaAI/Decisio
 <!-- TODO - Top-down pre-pruning & post-pruning -->
 <!-- - Bagging (Random Forests) TODO dillo meglio -->
 
-*Current* limitations (also see [TODO](#todo)):
+#### *Current* limitations (also see [TODO](#todo)):
 - Only supports numeric features;
 - Only supports classification tasks;
 - Only available via [MLJ.jl](https://github.com/alan-turing-institute/MLJ.jl);
