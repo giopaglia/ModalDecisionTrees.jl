@@ -1,6 +1,6 @@
 export EQ, GT, LT, GEQ, LEQ,
-				existential_aggregator, aggregator_bottom,
-				TestOperatorFun, Aggregator
+        existential_aggregator, aggregator_bottom,
+        TestOperatorFun, Aggregator
 
 const Aggregator = Function
 
@@ -13,58 +13,58 @@ const TestOperatorFun = Function
 # # TODO improved version for Rational numbers
 # # TODO check
 # @inline test_op_partialsort!(test_op::_TestOpGeqSoft, vals::Vector{T}) where {T} = 
-# 	partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)); rev=true)
+#   partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)); rev=true)
 # @inline test_op_partialsort!(test_op::_TestOpLeqSoft, vals::Vector{T}) where {T} = 
-# 	partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)))
+#   partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)))
 
 # @inline computePropositionalThreshold(test_op::Union{_TestOpGeqSoft,_TestOpLeqSoft}, w::AbstractWorld, channel::DimensionalChannel{T,N}) where {T,N} = begin
-# 	vals = vec(ch_readWorld(w,channel))
-# 	test_op_partialsort!(test_op,vals)
+#   vals = vec(ch_readWorld(w,channel))
+#   test_op_partialsort!(test_op,vals)
 # end
 # @inline computePropositionalThresholdMany(test_ops::Vector{<:TestOperator}, w::AbstractWorld, channel::DimensionalChannel{T,N}) where {T,N} = begin
-# 	vals = vec(ch_readWorld(w,channel))
-# 	(test_op_partialsort!(test_op,vals) for test_op in test_ops)
+#   vals = vec(ch_readWorld(w,channel))
+#   (test_op_partialsort!(test_op,vals) for test_op in test_ops)
 # end
 
 # @inline test_decision(test_operator::_TestOpGeqSoft, w::AbstractWorld, channel::DimensionalChannel{T,N}, threshold::Real) where {T,N} = begin 
-# 	ys = 0
-# 	# TODO write with reduce, and optimize it (e.g. by stopping early if the decision is reached already)
-# 	vals = ch_readWorld(w,channel)
-# 	for x in vals
-# 		if x >= threshold
-# 			ys+=1
-# 		end
-# 	end
-# 	(ys/length(vals)) >= test_operator.alpha
+#   ys = 0
+#   # TODO write with reduce, and optimize it (e.g. by stopping early if the decision is reached already)
+#   vals = ch_readWorld(w,channel)
+#   for x in vals
+#     if x >= threshold
+#       ys+=1
+#     end
+#   end
+#   (ys/length(vals)) >= test_operator.alpha
 # end
 
 # @inline test_decision(test_operator::_TestOpLeqSoft, w::AbstractWorld, channel::DimensionalChannel{T,N}, threshold::Real) where {T,N} = begin 
-# 	ys = 0
-# 	# TODO write with reduce, and optimize it (e.g. by stopping early if the decision is reached already)
-# 	vals = ch_readWorld(w,channel)
-# 	for x in vals
-# 		if x <= threshold
-# 			ys+=1
-# 		end
-# 	end
-# 	(ys/length(vals)) >= test_operator.alpha
+#   ys = 0
+#   # TODO write with reduce, and optimize it (e.g. by stopping early if the decision is reached already)
+#   vals = ch_readWorld(w,channel)
+#   for x in vals
+#     if x <= threshold
+#       ys+=1
+#     end
+#   end
+#   (ys/length(vals)) >= test_operator.alpha
 # end
 
 # const all_lowlevel_test_operators = [
-# 		TestOpGeq, TestOpLeq,
-# 		SoftenedOperators...
-# 	]
+#     TestOpGeq, TestOpLeq,
+#     SoftenedOperators...
+#   ]
 
 # const all_ordered_test_operators = [
-# 		TestOpGeq, TestOpLeq,
-# 		SoftenedOperators...
-# 	]
+#     TestOpGeq, TestOpLeq,
+#     SoftenedOperators...
+#   ]
 # const all_test_operators_order = [
-# 		TestOpGeq, TestOpLeq,
-# 		SoftenedOperators...
-# 	]
+#     TestOpGeq, TestOpLeq,
+#     SoftenedOperators...
+#   ]
 # sort_test_operators!(x::Vector{TO}) where {TO<:TestOperator} = begin
-# 	intersect(all_test_operators_order, x)
+#   intersect(all_test_operators_order, x)
 # end
 
 # crisp operators
@@ -128,117 +128,117 @@ existential_aggregator(::typeof(≤))  = minimum
 
 # =ₕ
 function get_fuzzy_linear_eq(h::T, fuzzy_type::Type{<:Real} = Float64) where {T}
-	fun = function (x::S, y::S) where {S}
-		Δ = y-x
-		if abs(Δ) ≥ h
-			zero(fuzzy_type)
-		else
-			fuzzy_type(1-(abs(Δ)/h))
-		end
-	end
-	@eval global existential_aggregator(::typeof($fun)) = ∪
-	fun
+  fun = function (x::S, y::S) where {S}
+    Δ = y-x
+    if abs(Δ) ≥ h
+      zero(fuzzy_type)
+    else
+      fuzzy_type(1-(abs(Δ)/h))
+    end
+  end
+  @eval global existential_aggregator(::typeof($fun)) = ∪
+  fun
 end
 
 
 # >ₕ
 function get_fuzzy_linear_gt(h::T, fuzzy_type::Type{<:Real} = Float64) where {T}
-	fun = function (x::S, y::S) where {S}
-		Δ = y-x
-		if Δ ≥ 0
-			zero(fuzzy_type)
-		elseif Δ ≤ -h
-			one(fuzzy_type)
-		else
-			fuzzy_type(Δ/h)
-		end
-	end
-	@eval global existential_aggregator(::typeof($fun)) = maximum
-	fun
+  fun = function (x::S, y::S) where {S}
+    Δ = y-x
+    if Δ ≥ 0
+      zero(fuzzy_type)
+    elseif Δ ≤ -h
+      one(fuzzy_type)
+    else
+      fuzzy_type(Δ/h)
+    end
+  end
+  @eval global existential_aggregator(::typeof($fun)) = maximum
+  fun
 end
 
 # <ₕ
 function get_fuzzy_linear_lt(h::T, fuzzy_type::Type{<:Real} = Float64) where {T}
-	fun = function (x::S, y::S) where {S}
-		Δ = y-x
-		if Δ ≥ h
-			one(fuzzy_type)
-		elseif Δ ≤ 0
-			zero(fuzzy_type)
-		else
-			fuzzy_type(Δ/h)
-		end
-	end
-	@eval global existential_aggregator(::typeof($fun)) = minimum
-	fun
+  fun = function (x::S, y::S) where {S}
+    Δ = y-x
+    if Δ ≥ h
+      one(fuzzy_type)
+    elseif Δ ≤ 0
+      zero(fuzzy_type)
+    else
+      fuzzy_type(Δ/h)
+    end
+  end
+  @eval global existential_aggregator(::typeof($fun)) = minimum
+  fun
 end
 
 
 # ≧ₕ
 function get_fuzzy_linear_geq(h::T, fuzzy_type::Type{<:Real} = Float64) where {T}
-	fun = function (x::S, y::S) where {S}
-		Δ = y-x
-		if Δ ≤ 0
-			one(fuzzy_type)
-		elseif Δ ≥ h
-			zero(fuzzy_type)
-		else
-			fuzzy_type(1-Δ/h)
-		end
-	end
-	@eval global existential_aggregator(::typeof($fun)) = maximum
-	fun
+  fun = function (x::S, y::S) where {S}
+    Δ = y-x
+    if Δ ≤ 0
+      one(fuzzy_type)
+    elseif Δ ≥ h
+      zero(fuzzy_type)
+    else
+      fuzzy_type(1-Δ/h)
+    end
+  end
+  @eval global existential_aggregator(::typeof($fun)) = maximum
+  fun
 end
 
 
 # ≦ₕ
 function get_fuzzy_linear_leq(h::T, fuzzy_type::Type{<:Real} = Float64) where {T}
-	fun = function (x::S, y::S) where {S}
-		Δ = x-y
-		if Δ ≤ 0
-			one(fuzzy_type)
-		elseif Δ ≥ h
-			zero(fuzzy_type)
-		else
-			fuzzy_type(1-Δ/h)
-		end
-	end
-	@eval global existential_aggregator(::typeof($fun)) = minimum
-	fun
+  fun = function (x::S, y::S) where {S}
+    Δ = x-y
+    if Δ ≤ 0
+      one(fuzzy_type)
+    elseif Δ ≥ h
+      zero(fuzzy_type)
+    else
+      fuzzy_type(1-Δ/h)
+    end
+  end
+  @eval global existential_aggregator(::typeof($fun)) = minimum
+  fun
 end
 
 # ≥ₕ
 function get_fuzzy_linear_geqt(h::T, fuzzy_type::Type{<:Real} = Float64) where {T}
-	h_2 = h/2
-	fun = function (x::S, y::S) where {S}
-		Δ = y-x
-		if Δ ≥ h_2
-			zero(fuzzy_type)
-		elseif Δ ≤ -h_2
-			one(fuzzy_type)
-		else
-			fuzzy_type((h_2-Δ)/h)
-		end
-	end
-	@eval global existential_aggregator(::typeof($fun)) = maximum
-	fun
+  h_2 = h/2
+  fun = function (x::S, y::S) where {S}
+    Δ = y-x
+    if Δ ≥ h_2
+      zero(fuzzy_type)
+    elseif Δ ≤ -h_2
+      one(fuzzy_type)
+    else
+      fuzzy_type((h_2-Δ)/h)
+    end
+  end
+  @eval global existential_aggregator(::typeof($fun)) = maximum
+  fun
 end
 
 # ≤ₕ
 function get_fuzzy_linear_leqt(h::T, fuzzy_type::Type{<:Real} = Float64) where {T}
-	h_2 = h/2
-	fun = function (x::S, y::S) where {S}
-		Δ = y-x
-		if Δ ≥ h_2
-			one(fuzzy_type)
-		elseif Δ ≤ -h_2
-			zero(fuzzy_type)
-		else
-			fuzzy_type((Δ+h_2)/h)
-		end
-	end
-	@eval global existential_aggregator(::typeof($fun)) = minimum
-	fun
+  h_2 = h/2
+  fun = function (x::S, y::S) where {S}
+    Δ = y-x
+    if Δ ≥ h_2
+      one(fuzzy_type)
+    elseif Δ ≤ -h_2
+      zero(fuzzy_type)
+    else
+      fuzzy_type((Δ+h_2)/h)
+    end
+  end
+  @eval global existential_aggregator(::typeof($fun)) = minimum
+  fun
 end
 
 # h = 4
@@ -333,17 +333,17 @@ MixedFeature = Union{ModalFeature,CanonicalFeature,Function,Tuple{TestOperatorFu
 
 display_feature_test_operator_pair(feature::ModalFeature,     test_operator::TestOperatorFun)        = "$(feature) $(test_operator)"
 
-display_feature_test_operator_pair(feature::SingleAttributeMin,     test_operator::typeof(≥))        = "A$(feature.i_attribute) ⪴"
-display_feature_test_operator_pair(feature::SingleAttributeMax,     test_operator::typeof(≤))        = "A$(feature.i_attribute) ⪳"
-display_feature_test_operator_pair(feature::SingleAttributeSoftMin, test_operator::typeof(≥))        = "A$(feature.i_attribute) $("⪴" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
-display_feature_test_operator_pair(feature::SingleAttributeSoftMax, test_operator::typeof(≤))        = "A$(feature.i_attribute) $("⪳" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
+# display_feature_test_operator_pair(feature::SingleAttributeMin,     test_operator::typeof(≥))        = "A$(feature.i_attribute) ⪴"
+# display_feature_test_operator_pair(feature::SingleAttributeMax,     test_operator::typeof(≤))        = "A$(feature.i_attribute) ⪳"
+# display_feature_test_operator_pair(feature::SingleAttributeSoftMin, test_operator::typeof(≥))        = "A$(feature.i_attribute) $("⪴" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
+# display_feature_test_operator_pair(feature::SingleAttributeSoftMax, test_operator::typeof(≤))        = "A$(feature.i_attribute) $("⪳" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
 
-display_feature_test_operator_pair(feature::SingleAttributeMin,     test_operator::typeof(<))        = "A$(feature.i_attribute) ⪶"
-display_feature_test_operator_pair(feature::SingleAttributeMax,     test_operator::typeof(>))        = "A$(feature.i_attribute) ⪵"
-display_feature_test_operator_pair(feature::SingleAttributeSoftMin, test_operator::typeof(<))        = "A$(feature.i_attribute) $("⪶" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
-display_feature_test_operator_pair(feature::SingleAttributeSoftMax, test_operator::typeof(>))        = "A$(feature.i_attribute) $("⪵" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
+# display_feature_test_operator_pair(feature::SingleAttributeMin,     test_operator::typeof(<))        = "A$(feature.i_attribute) ⪶"
+# display_feature_test_operator_pair(feature::SingleAttributeMax,     test_operator::typeof(>))        = "A$(feature.i_attribute) ⪵"
+# display_feature_test_operator_pair(feature::SingleAttributeSoftMin, test_operator::typeof(<))        = "A$(feature.i_attribute) $("⪶" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
+# display_feature_test_operator_pair(feature::SingleAttributeSoftMax, test_operator::typeof(>))        = "A$(feature.i_attribute) $("⪵" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
 
-display_feature_test_operator_pair(feature::SingleAttributeMin,     test_operator::typeof(≤))        = "A$(feature.i_attribute) ↘"
-display_feature_test_operator_pair(feature::SingleAttributeMax,     test_operator::typeof(≥))        = "A$(feature.i_attribute) ↗"
-display_feature_test_operator_pair(feature::SingleAttributeSoftMin, test_operator::typeof(≤))        = "A$(feature.i_attribute) $("↘" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
-display_feature_test_operator_pair(feature::SingleAttributeSoftMax, test_operator::typeof(≥))        = "A$(feature.i_attribute) $("↗" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
+# display_feature_test_operator_pair(feature::SingleAttributeMin,     test_operator::typeof(≤))        = "A$(feature.i_attribute) ↘"
+# display_feature_test_operator_pair(feature::SingleAttributeMax,     test_operator::typeof(≥))        = "A$(feature.i_attribute) ↗"
+# display_feature_test_operator_pair(feature::SingleAttributeSoftMin, test_operator::typeof(≤))        = "A$(feature.i_attribute) $("↘" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
+# display_feature_test_operator_pair(feature::SingleAttributeSoftMax, test_operator::typeof(≥))        = "A$(feature.i_attribute) $("↗" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"

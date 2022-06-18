@@ -76,6 +76,7 @@ A DecisionTree model can be visualized using the print_tree-function of its nati
 - [x]  Enable choosing a loss functions different from Shannon's entropy (*untested*)
 - [x]  Enable use of weights (*untested*)
 - [x]  Enable regression (*untested*)
+- [x]  Enable support for images (*untested*)
 - [x]  Enable multimodal learning (learning with scalars, time-series and images together)
 - [ ]  Proper test suite
 - [ ]  Visualizations of modal rules/patterns
