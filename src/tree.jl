@@ -171,10 +171,10 @@ end
 #   relationGlob_id = 2
 #   ontology_relation_ids = map((x)->x+2, 1:length(ontology_relations))
 
-#   needToComputeRelationGlob = (allow_global_splits || (iC == ModalDecisionTrees.start_without_world))
+#   compute_relation_glob = (allow_global_splits || (iC == ModalDecisionTrees.start_without_world))
 
 #   # Modal relations to compute gammas for
-#   inUseRelation_ids = if needToComputeRelationGlob
+#   inUseRelation_ids = if compute_relation_glob
 #       [relationGlob_id, ontology_relation_ids...]
 #   else
 #       ontology_relation_ids

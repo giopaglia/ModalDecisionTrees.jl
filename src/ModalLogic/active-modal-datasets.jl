@@ -671,7 +671,7 @@ end
 Base.@propagate_inbounds function compute_fwd_supports(
         emd                 :: ExplicitModalDataset{T, WorldType},
         grouped_featsnaggrs :: AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}};
-        computeRelationGlob = false,
+        compute_relation_glob = false,
         simply_init_modal = false,
     ) where {T, N, WorldType<:World}
     
@@ -686,7 +686,7 @@ Base.@propagate_inbounds function compute_fwd_supports(
             throw_n_log("RelationGlob in relations: $(_relations)")
             _relations = filter!(l->l≠RelationGlob, _relations)
             true
-        elseif computeRelationGlob
+        elseif compute_relation_glob
             true
         else
             false
@@ -832,14 +832,14 @@ struct ExplicitModalDatasetS{T<:Number, WorldType<:World} <: ExplicitModalDatase
 
     function ExplicitModalDatasetS(
         emd                 :: ExplicitModalDataset{T, WorldType};
-        computeRelationGlob :: Bool = true,
+        compute_relation_glob :: Bool = true,
     ) where {T,WorldType<:World}
-        ExplicitModalDatasetS{T, WorldType}(emd, computeRelationGlob = computeRelationGlob)
+        ExplicitModalDatasetS{T, WorldType}(emd, compute_relation_glob = compute_relation_glob)
     end
 
     function ExplicitModalDatasetS{T, WorldType}(
         emd                 :: ExplicitModalDataset{T, WorldType};
-        computeRelationGlob :: Bool = true,
+        compute_relation_glob :: Bool = true,
     ) where {T,WorldType<:World}
         
         featsnaggrs = Tuple{<:ModalFeature,<:Aggregator}[]
@@ -857,27 +857,27 @@ struct ExplicitModalDatasetS{T<:Number, WorldType<:World} <: ExplicitModalDatase
         end
 
         # Compute modal dataset propositions and 1-modal decisions
-        fwd_rs, fwd_gs = compute_fwd_supports(emd, grouped_featsnaggrs, computeRelationGlob = computeRelationGlob);
+        fwd_rs, fwd_gs = compute_fwd_supports(emd, grouped_featsnaggrs, compute_relation_glob = compute_relation_glob);
 
         ExplicitModalDatasetS{T, WorldType}(emd, fwd_rs, fwd_gs, featsnaggrs, grouped_featsnaggrs)
     end
 
     function ExplicitModalDatasetS(
         X                   :: InterpretedModalDataset{T, N, WorldType};
-        computeRelationGlob :: Bool = true,
+        compute_relation_glob :: Bool = true,
     ) where {T, N, WorldType<:World}
-        ExplicitModalDatasetS{T, WorldType}(X, computeRelationGlob = computeRelationGlob)
+        ExplicitModalDatasetS{T, WorldType}(X, compute_relation_glob = compute_relation_glob)
     end
 
     function ExplicitModalDatasetS{T, WorldType}(
         X                   :: InterpretedModalDataset{T, N, WorldType};
-        computeRelationGlob :: Bool = true,
+        compute_relation_glob :: Bool = true,
     ) where {T, N, WorldType<:World}
 
         # Compute modal dataset propositions
         emd = ExplicitModalDataset(X);
 
-        ExplicitModalDatasetS{T, WorldType}(emd, computeRelationGlob = computeRelationGlob)
+        ExplicitModalDatasetS{T, WorldType}(emd, compute_relation_glob = compute_relation_glob)
     end
 end
 
@@ -918,14 +918,14 @@ mutable struct ExplicitModalDatasetSMemo{T<:Number, WorldType<:World} <: Explici
 
     function ExplicitModalDatasetSMemo(
         emd                 :: ExplicitModalDataset{T, WorldType};
-        computeRelationGlob :: Bool = true,
+        compute_relation_glob :: Bool = true,
     ) where {T,WorldType<:World}
-        ExplicitModalDatasetSMemo{T, WorldType}(emd, computeRelationGlob = computeRelationGlob)
+        ExplicitModalDatasetSMemo{T, WorldType}(emd, compute_relation_glob = compute_relation_glob)
     end
 
     function ExplicitModalDatasetSMemo{T, WorldType}(
         emd                 :: ExplicitModalDataset{T, WorldType};
-        computeRelationGlob :: Bool = true,
+        compute_relation_glob :: Bool = true,
     ) where {T,WorldType<:World}
         
         featsnaggrs = Tuple{<:ModalFeature,<:Aggregator}[]
@@ -943,27 +943,27 @@ mutable struct ExplicitModalDatasetSMemo{T<:Number, WorldType<:World} <: Explici
         end
 
         # Compute modal dataset propositions and 1-modal decisions
-        fwd_rs, fwd_gs = compute_fwd_supports(emd, grouped_featsnaggrs, computeRelationGlob = computeRelationGlob, simply_init_modal = true);
+        fwd_rs, fwd_gs = compute_fwd_supports(emd, grouped_featsnaggrs, compute_relation_glob = compute_relation_glob, simply_init_modal = true);
 
         ExplicitModalDatasetSMemo{T, WorldType}(emd, fwd_rs, fwd_gs, featsnaggrs, grouped_featsnaggrs)
     end
 
     function ExplicitModalDatasetSMemo(
         X                   :: InterpretedModalDataset{T, N, WorldType};
-        computeRelationGlob :: Bool = true,
+        compute_relation_glob :: Bool = true,
     ) where {T, N, WorldType<:World}
-        ExplicitModalDatasetSMemo{T, WorldType}(X, computeRelationGlob = computeRelationGlob)
+        ExplicitModalDatasetSMemo{T, WorldType}(X, compute_relation_glob = compute_relation_glob)
     end
 
     function ExplicitModalDatasetSMemo{T, WorldType}(
         X                   :: InterpretedModalDataset{T, N, WorldType};
-        computeRelationGlob :: Bool = true,
+        compute_relation_glob :: Bool = true,
     ) where {T, N, WorldType<:World}
 
         # Compute modal dataset propositions
         emd = ExplicitModalDataset(X);
 
-        ExplicitModalDatasetSMemo{T, WorldType}(emd, computeRelationGlob = computeRelationGlob)
+        ExplicitModalDatasetSMemo{T, WorldType}(emd, compute_relation_glob = compute_relation_glob)
     end
 end
 
@@ -1032,7 +1032,7 @@ get_global_gamma(
         i_sample::Integer,
         feature::ModalFeature,
         test_operator::TestOperatorFun) where {WorldType<:World, T} = begin
-            # @assert !isnothing(X.fwd_gs) "Error. ExplicitModalDatasetWithSupport must be built with computeRelationGlob = true for it to be ready to test global decisions."
+            # @assert !isnothing(X.fwd_gs) "Error. ExplicitModalDatasetWithSupport must be built with compute_relation_glob = true for it to be ready to test global decisions."
             i_featsnaggr = find_featsnaggr_id(X, feature, existential_aggregator(test_operator))
             X.fwd_gs[i_sample, i_featsnaggr]
 end
@@ -1203,7 +1203,7 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
     relation = RelationGlob
     _n_samples = length(instances_inds)
     
-    @assert !isnothing(X.fwd_gs) "Error. ExplicitModalDatasetWithSupport must be built with computeRelationGlob = true for it to be ready to generate global decisions."
+    @assert !isnothing(X.fwd_gs) "Error. ExplicitModalDatasetWithSupport must be built with compute_relation_glob = true for it to be ready to generate global decisions."
 
     # For each feature
     for i_feature in features_inds
@@ -1346,7 +1346,7 @@ end
 #       i_sample::Integer,
 #       feature::ModalFeature,
 #       test_operator::TestOperatorFun) where {WorldType<:World, T} = begin
-#   @assert !isnothing(X.fwd_gs) "Error. ExplicitModalDatasetSMemo must be built with computeRelationGlob = true for it to be ready to test global decisions."
+#   @assert !isnothing(X.fwd_gs) "Error. ExplicitModalDatasetSMemo must be built with compute_relation_glob = true for it to be ready to test global decisions."
 #   i_featsnaggr = find_featsnaggr_id(X, feature, existential_aggregator(test_operator))
 #   # if !isnothing(X.fwd_gs[i_sample, i_featsnaggr])
 #   X.fwd_gs[i_sample, i_featsnaggr]
