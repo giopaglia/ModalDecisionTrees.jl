@@ -1,5 +1,7 @@
 # Modal Decision Trees & Forests
 
+### Interpretable classification models that natively deal with time-series!
+
 This package provides algorithms for learning *decision trees* and *decision forests* with enhanced abilities.
 Leveraging the express power of Modal Logic, these models can extract *temporal/spatial patterns*, and can natively handle data such as *time series* and *images* (without any data preprocessing).
 
