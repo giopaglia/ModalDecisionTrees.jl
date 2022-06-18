@@ -1,11 +1,13 @@
 # Modal Decision Trees & Forests
 
-#### This package provides algorithms for learning *trees* and *forests* with the enhanced ability of performing *temporal/spatial reasoning*, and natively handling data in form of *time series* and *images* (without any data preprocessing step).
+This package provides algorithms for learning *decision trees* and *decision forests* with enhanced abilities.
+Leveraging the express power of Modal Logic, these models can extract *temporal/spatial patterns*, and can natively handle data such as *time series* and *images* (without any data preprocessing).
 
 Features & differences with [DecisionTree.jl](https://github.com/JuliaAI/DecisionTree.jl):
-- Can handle attributes that are `AbstractVector{<:Real}` or `AbstractMatrix{<:Real};
-- A unique algorithm extending CART and C4.5;
+- Ability to handle attributes that are `AbstractVector{<:Real}` or `AbstractMatrix{<:Real}`;
+- Enables interpretable *multimodal* learning
 - Fully optimized implementation (fancy data structures, multithreading, memoization, minification, Pareto-based pruning optimizations, etc).
+- A unique algorithm that extends CART and C4.5;
 <!-- - TODO -->
 <!-- - Four pruning conditions: max_depth, min_samples_leaf, min_purity_increase, max_purity_at_leaf -->
 <!-- TODO - Top-down pre-pruning & post-pruning -->
@@ -14,7 +16,8 @@ Features & differences with [DecisionTree.jl](https://github.com/JuliaAI/Decisio
 *Current* limitations (also see [TODO](#todo)):
 - Only supports numeric features;
 - Only supports classification tasks;
-- Only available via [MLJ.jl](https://github.com/alan-turing-institute/MLJ.jl).
+- Only available via [MLJ.jl](https://github.com/alan-turing-institute/MLJ.jl);
+- Does not support missing values.
 
 <!-- 
 ## Installation
@@ -22,16 +25,15 @@ Features & differences with [DecisionTree.jl](https://github.com/JuliaAI/Decisio
 Simply type the following commands in Julia's REPL:
 
 ```julia
-using Pkg; Pkg.add("https://github.com/aclailab/ModalDecisionTrees.jl")
+using Pkg; Pkg.add("https://github.com/giopaglia/ModalDecisionTrees.jl")
 ```
-<!-- TODO https://github.com/giopaglia/DecisionTree.jl -->
 
 ## Usage
 
 ```julia
 # Install package
 using Pkg;
-Pkg.add("https://github.com/aclailab/ModalDecisionTrees.jl")
+Pkg.add("https://github.com/giopaglia/ModalDecisionTrees.jl")
 Pkg.add("MLJ")
 
 using MLJ
@@ -72,8 +74,8 @@ A DecisionTree model can be visualized using the print_tree-function of its nati
 - [x]  Enable choosing a loss functions different from Shannon's entropy (*untested*)
 - [x]  Enable use of weights (*untested*)
 - [x]  Enable regression (*untested*)
-- [x]  Enable multimodal learning
-- [ ]  Test suite
+- [x]  Enable multimodal learning (learning with scalars, time-series and images together)
+- [ ]  Proper test suite
 - [ ]  Visualizations of modal rules/patterns
 
 ## Theoretical foundations
@@ -85,7 +87,7 @@ This technology also offers a natural extension for *multimodal* learning [[5]](
 
 ## Credits
 
-The package is developed by Giovanni Pagliarini ([@giopaglia](https://giopaglia.github.io/)) and Federico Manzella (@[ferdiu](https://ferdiu.github.io/)).
+The package is developed by Giovanni Pagliarini ([@giopaglia](https://giopaglia.github.io/)) and Federico Manzella ([@ferdiu](https://ferdiu.github.io/)).
 
 Thanks to [ACLAI Lab](https://aclai.unife.it/index.php/en/home-page/) @ University of Ferrara.
 
