@@ -73,9 +73,9 @@ function print_tree(
         io::IO,
         leaf::DTLeaf;
         indentation_str="",
-        metrics_kwargs...,
+        kwargs...,
     )
-    metrics = get_metrics(leaf; metrics_kwargs...)
+    metrics = get_metrics(leaf; kwargs...)
     metrics_str = get_metrics_str(metrics)
     println(io, "$(brief_prediction_str(leaf)) : $(metrics_str)")
 end
@@ -84,10 +84,10 @@ function print_tree(
         io::IO,
         leaf::NSDTLeaf;
         indentation_str="",
-        metrics_kwargs...,
+        kwargs...,
     )
-    train_metrics_str = metrics_str(get_metrics(leaf; train_or_valid = true, metrics_kwargs...))
-    valid_metrics_str = metrics_str(get_metrics(leaf; train_or_valid = false, metrics_kwargs...))
+    train_metrics_str = metrics_str(get_metrics(leaf; train_or_valid = true, kwargs...))
+    valid_metrics_str = metrics_str(get_metrics(leaf; train_or_valid = false, kwargs...))
     println(io, "$(brief_prediction_str(leaf)) : {TRAIN: $(train_metrics_str); VALID: $(valid_metrics_str)}")
 end
 

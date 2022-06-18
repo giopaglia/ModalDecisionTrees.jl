@@ -5,11 +5,14 @@
 
 import MLJModelInterface
 using MLJModelInterface.ScientificTypesBase
-import ModalDecisionTrees
 import Tables
 
 using Random
 import Random.GLOBAL_RNG
+
+const MMI = MLJModelInterface
+const MDT = ModalDecisionTrees
+const PKG = "ModalDecisionTrees"
 
 ############################################################################################
 ############################################################################################
@@ -27,7 +30,7 @@ Base.show(stream::IO, c::ModelPrinter) =
 ############################################################################################
 ############################################################################################
 
-function DataFrame2MultiFrameModalDataset(X, relations, mixed_features)
+function DataFrame2MultiFrameModalDataset(X, relations, mixed_features, init_conditions, allow_global_splits)
 
     columns = names(X)
     channel_sizes = [unique(_size.(X)[:,col]) for col in columns]
@@ -85,17 +88,18 @@ function DataFrame2MultiFrameModalDataset(X, relations, mixed_features)
             _X
         end
         channel_dim = length(channel_size)
-        InterpretedModalDataset(_X, MDT.get_interval_ontology(channel_dim, :interval, relations), mixed_features) end for (i_frame, frame) in enumerate(frames)]
-    
-    WorldType = world_type(data_modal_args[i_frame].ontology)
-    
-    needToComputeRelationGlob =
-        WorldType != OneWorld && (
-            (modal_args.allow_global_splits || (modal_args.init_conditions == ModalDecisionTrees.start_without_world))
-                || ((modal_args.init_conditions isa AbstractVector) && modal_args.init_conditions[i_frame] == ModalDecisionTrees.start_without_world)
-        )
-    ExplicitModalDatasetSMemo(X, computeRelationGlob = needToComputeRelationGlob);
+        ontology = MDT.get_interval_ontology(channel_dim, :interval, relations)
+        X = InterpretedModalDataset(_X, ontology, mixed_features)
 
+        WorldType = world_type(ontology)
+        
+        compute_relation_glob =
+            WorldType != OneWorld && (
+                (allow_global_splits || init_conditions == MDT.start_without_world)
+            )
+        ExplicitModalDatasetSMemo(X, compute_relation_glob = compute_relation_glob);
+        end for (i_frame, frame) in enumerate(frames)]
+    
     Xs = MultiFrameModalDataset(Xs)
 end
 
@@ -103,10 +107,6 @@ end
 ############################################################################################
 ############################################################################################
 
-
-const MMI = MLJModelInterface
-const MDT = ModalDecisionTrees
-const PKG = "ModalDecisionTrees"
 
 MMI.@mlj_model mutable struct DecisionTreeClassifier <: MMI.Deterministic
     # Pruning hyper-parameters
@@ -122,7 +122,6 @@ MMI.@mlj_model mutable struct DecisionTreeClassifier <: MMI.Deterministic
     allow_global_splits    :: Bool                         = true
     # Other
     display_depth          :: Union{Nothing,Int}           = 5::(isnothing(_) || _ ≥ 0)
-    rng                    :: Union{AbstractRNG,Integer}   = GLOBAL_RNG
 end
 
 function MMI.fit(m::DecisionTreeClassifier, verbosity::Int, X, y, w=nothing)
@@ -130,45 +129,38 @@ function MMI.fit(m::DecisionTreeClassifier, verbosity::Int, X, y, w=nothing)
     Xmatrix = MMI.matrix(X)
     yplain  = MMI.int(y)
 
-    Xs = DataFrame2MultiFrameModalDataset(X, m.relations, features)
+    init_conditions_d = Dict([
+        :start_with_global => MDT.start_without_world
+        :start_at_center   => MDT.start_at_center, 
+    ])
+    init_conditions = init_conditions_d[m.init_conditions]
+    allow_global_splits = m.allow_global_splits
 
-    function build_tree(
+    Xs = DataFrame2MultiFrameModalDataset(X, m.relations, features, init_conditions, allow_global_splits)
+
+    @assert y isa AbstractVector{<:CLabel} "y should be an AbstractVector{<:$(CLabel)}, got $(typeof(y)) instead"
+
+    tree = MDT.build_tree(
         Xs,
-        Y                   :: AbstractVector{L},
-        W                   :: Union{Nothing,AbstractVector{U},Symbol}   = default_weights(n_samples(X));
+        y,
+        w,
         ##############################################################################
-        loss_function       :: Union{Nothing,Function}            = nothing,
-        max_depth           :: Int64                              = default_max_depth,
-        min_samples_leaf    :: Int64                              = default_min_samples_leaf,
-        min_purity_increase :: AbstractFloat                      = default_min_purity_increase,
-        max_purity_at_leaf  :: AbstractFloat                      = default_max_purity_at_leaf,
+        loss_function        = nothing,
+        max_depth            = m.max_depth,
+        min_samples_leaf     = m.min_samples_leaf,
+        min_purity_increase  = m.min_purity_increase,
+        max_purity_at_leaf   = m.max_purity_at_leaf,
         ##############################################################################
-        n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
-        n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = identity,
-        init_conditions     :: Union{InitCondition,AbstractVector{<:InitCondition}} = start_without_world,
-        allow_global_splits :: Union{Bool,AbstractVector{Bool}}                       = true,
+        n_subrelations       = identity,
+        n_subfeatures        = identity,
+        init_conditions      = init_conditions,
+        allow_global_splits  = allow_global_splits,
         ##############################################################################
-        perform_consistency_check :: Bool = false,
-        ##############################################################################
-        rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG,
-    ) where {L<:Label, U}
-    
-
-    Xs, y, w
-    max_depth
-    min_samples_leaf
-    min_purity_increase
-    max_purity_at_leaf
+        perform_consistency_check = false,
+    )
     # 
-    relations
-    init_conditions
-    allow_global_splits
-    # 
-    display_depth
-    rng
+    TODO ...
 
-end
-"
     features = begin
         if schema === nothing
             [Symbol("x$j") for j in 1:size(Xmatrix, 2)]
@@ -180,17 +172,7 @@ end
     classes_seen  = filter(in(unique(y)), MMI.classes(y[1]))
     integers_seen = MMI.int(classes_seen)
 
-    tree = MDT.build_tree(yplain, Xmatrix,
-                         m.n_subfeatures,
-                         m.max_depth,
-                         m.min_samples_leaf,
-                         m.min_samples_split,
-                         m.min_purity_increase,
-                         rng=m.rng)
-    if m.post_prune
-        tree = MDT.prune_tree(tree, m.merge_purity_threshold)
-    end
-    verbosity < 2 || MDT.print_model(tree, m.display_depth)
+    verbosity < 2 || MDT.print_model(tree; max_depth = m.display_depth)
 
     fitresult = (tree, classes_seen, integers_seen, features)
 
@@ -200,7 +182,7 @@ end
               features=features)
 
     return fitresult, cache, report
-end"
+end
 
 function get_encoding(classes_seen)
     a_cat_element = classes_seen[1]
