@@ -92,3 +92,5 @@ The package is developed by Giovanni Pagliarini ([@giopaglia](https://giopaglia.
 Thanks to [ACLAI Lab](https://aclai.unife.it/index.php/en/home-page/) @ University of Ferrara.
 
 Thanks to Ben Sadeghi (@bensadeghi) [DecisionTree.jl](https://github.com/bensadeghi/DecisionTree.jl).
+
+<!-- TODO add citation and CITATION.bib file -->
