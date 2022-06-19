@@ -3,6 +3,7 @@
 # Reference: https://alan-turing-institute.github.io/MLJ.jl/dev/quick_start_guide_to_adding_models/#Quick-Start-Guide-to-Adding-Models
 # Reference: https://alan-turing-institute.github.io/MLJ.jl/dev/adding_models_for_general_use/
 
+using MLJBase
 import MLJModelInterface
 using MLJModelInterface.ScientificTypesBase
 import Tables
@@ -67,14 +68,27 @@ function DataFrame2MultiFrameModalDataset(X, relations, mixed_features, init_con
     println("Frames:");
     display(collect(((x)->Pair(x...)).((enumerate(frames)))));
 
-    Xs = [begin
-        println((i_frame, frame))
+    Xs, attribute_names_map = collect(zip([begin
         X_frame = X[:,frame]
+
+        _attribute_names_map = begin
+            schema = Tables.schema(X_frame)
+            if schema === nothing
+                X_frame_matrix = MMI.matrix(X_frame)
+                [Symbol("x$j") for j in 1:size(X_frame_matrix, 2)]
+            else
+                schema.names |> collect
+            end
+        end
+
+        println("$(i_frame)\tchannel size: $(channel_size)\t => $(_attribute_names_map)")
+
+        push!(attribute_names_map, _attribute_names_map)
+
         channel_size = unique([unique(_size.(X_frame[:, col])) for col in names(X_frame)])
         @assert length(channel_size) == 1
         @assert length(channel_size[1]) == 1
         channel_size = channel_size[1][1]
-        println("Channel size: $(channel_size)")
         
         _X = begin
             # dataframe2cube(X_frame)
@@ -87,6 +101,7 @@ function DataFrame2MultiFrameModalDataset(X, relations, mixed_features, init_con
             end
             _X
         end
+
         channel_dim = length(channel_size)
         ontology = MDT.get_interval_ontology(channel_dim, :interval, relations)
         X = InterpretedModalDataset(_X, ontology, mixed_features)
@@ -97,10 +112,10 @@ function DataFrame2MultiFrameModalDataset(X, relations, mixed_features, init_con
             WorldType != OneWorld && (
                 (allow_global_splits || init_conditions == MDT.start_without_world)
             )
-        ExplicitModalDatasetSMemo(X, compute_relation_glob = compute_relation_glob);
-        end for (i_frame, frame) in enumerate(frames)]
+        (ExplicitModalDatasetSMemo(X, compute_relation_glob = compute_relation_glob), _attribute_names_map)
+        end for (i_frame, frame) in enumerate(frames)]...))
     
-    Xs = MultiFrameModalDataset(Xs)
+    Xs = MultiFrameModalDataset(Xs), attribute_names_map
 end
 
 ############################################################################################
@@ -108,37 +123,37 @@ end
 ############################################################################################
 
 
-MMI.@mlj_model mutable struct DecisionTreeClassifier <: MMI.Deterministic
+MMI.@mlj_model mutable struct ModalDecisionTreeClassifier <: MMI.Deterministic
     # Pruning hyper-parameters
     max_depth              :: Union{Nothing,Int}           = nothing::(isnothing(_) || _ ≥ -1)
     min_samples_leaf       :: Int                          = MDT.default_min_samples_leaf::(_ ≥ 1)
     min_purity_increase    :: Float64                      = MDT.default_min_purity_increase
     max_purity_at_leaf     :: Float64                      = MDT.default_max_purity_at_leaf
     # Modal hyper-parameters
-    relations              :: Union{Nothing,Symbol,AbstractVector{<:MDT.Relation}} = nothing::(isnothing(_) || _ in [:IA, :IA3, :IA7, :RCC5, :RCC8] || _ isa AbstractVector{<:MDT.Relation})
+    relations              :: Union{Nothing,Symbol,Vector{<:MDT.Relation}} = nothing::(isnothing(_) || _ in [:IA, :IA3, :IA7, :RCC5, :RCC8] || _ isa AbstractVector{<:MDT.Relation})
     # TODO expand to ModalFeature
-    features               :: Vector{Function}             = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Number) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
+    # features               :: Vector{<:Function}           = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Number) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
+    features               :: Vector{<:MDT.CanonicalFeature,Function}       = [MDT.CanonicalFeatureGeq, MDT.CanonicalFeatureLeq]::(all(Iterators.flatten([map((f)->(_ isa CanonicalFeature || (ret = f(ch); isa(ret, Number) && typeof(ret) == eltype(ch))), _) for ch in [collect(1:10), collect(1.:10.)]])))
     init_conditions        :: Symbol                       = :start_with_global::(_ in [:start_with_global, :start_at_center])
     allow_global_splits    :: Bool                         = true
     # Other
     display_depth          :: Union{Nothing,Int}           = 5::(isnothing(_) || _ ≥ 0)
 end
 
-function MMI.fit(m::DecisionTreeClassifier, verbosity::Int, X, y, w=nothing)
-    schema = Tables.schema(X)
-    Xmatrix = MMI.matrix(X)
-    yplain  = MMI.int(y)
+function MMI.fit(m::ModalDecisionTreeClassifier, verbosity::Int, X, y, w=nothing)
 
     init_conditions_d = Dict([
         :start_with_global => MDT.start_without_world
         :start_at_center   => MDT.start_at_center, 
     ])
+    features = m.features
     init_conditions = init_conditions_d[m.init_conditions]
     allow_global_splits = m.allow_global_splits
 
-    Xs = DataFrame2MultiFrameModalDataset(X, m.relations, features, init_conditions, allow_global_splits)
+    Xs, attribute_names_map = DataFrame2MultiFrameModalDataset(X, m.relations, features, init_conditions, allow_global_splits)
 
-    @assert y isa AbstractVector{<:CLabel} "y should be an AbstractVector{<:$(CLabel)}, got $(typeof(y)) instead"
+    # @assert y isa AbstractVector{<:CLabel} "y should be an AbstractVector{<:$(CLabel)}, got $(typeof(y)) instead"
+    y  = MMI.int(y)
 
     tree = MDT.build_tree(
         Xs,
@@ -158,28 +173,20 @@ function MMI.fit(m::DecisionTreeClassifier, verbosity::Int, X, y, w=nothing)
         ##############################################################################
         perform_consistency_check = false,
     )
-    # 
-    TODO ...
-
-    features = begin
-        if schema === nothing
-            [Symbol("x$j") for j in 1:size(Xmatrix, 2)]
-        else
-            schema.names |> collect
-        end
-    end
 
     classes_seen  = filter(in(unique(y)), MMI.classes(y[1]))
     integers_seen = MMI.int(classes_seen)
 
-    verbosity < 2 || MDT.print_model(tree; max_depth = m.display_depth)
+    verbosity < 2 || MDT.print_model(tree; max_depth = m.display_depth, attribute_names_map = attribute_names_map)
 
     fitresult = (tree, classes_seen, integers_seen, features)
 
     cache  = nothing
-    report = (classes_seen=classes_seen,
-              print_tree=ModelPrinter(tree),
-              features=features)
+    report = (
+        classes_seen         = classes_seen,
+        print_tree           = ModelPrinter(tree),
+        attribute_names_map  = attribute_names_map
+    )
 
     return fitresult, cache, report
 end
@@ -189,10 +196,12 @@ function get_encoding(classes_seen)
     return Dict(c => MMI.int(c) for c in MMI.classes(a_cat_element))
 end
 
-MMI.fitted_params(::DecisionTreeClassifier, fitresult) =
-    (tree=fitresult[1],
-     encoding=get_encoding(fitresult[2]),
-     features=fitresult[4])
+MMI.fitted_params(::ModalDecisionTreeClassifier, fitresult) =
+    (
+        tree     = fitresult[1],
+        encoding = get_encoding(fitresult[2]),
+        features = fitresult[4]
+    )
 
 function smooth(scores, smoothing)
     iszero(smoothing) && return scores
@@ -203,7 +212,7 @@ function smooth(scores, smoothing)
     return scores ./ sum(scores, dims=2)
 end
 
-function MMI.predict(m::DecisionTreeClassifier, fitresult, Xnew)
+function MMI.predict(m::ModalDecisionTreeClassifier, fitresult, Xnew)
     Xmatrix = MMI.matrix(Xnew)
     tree, classes_seen, integers_seen = fitresult
     # retrieve the predicted scores
@@ -373,14 +382,14 @@ end
 # MLJModelInterface:
 # https://github.com/JuliaAI/MLJModelInterface.jl/pull/139
 
-# MMI.human_name(::Type{<:DecisionTreeClassifier}) = "CART decision tree classifier"
+# MMI.human_name(::Type{<:ModalDecisionTreeClassifier}) = "CART decision tree classifier"
 # MMI.human_name(::Type{<:RandomForestClassifier}) = "CART random forest classifier"
 # MMI.human_name(::Type{<:AdaBoostStumpClassifier}) = "Ada-boosted stump classifier"
 # MMI.human_name(::Type{<:DecisionTreeRegressor}) = "CART decision tree regressor"
 # MMI.human_name(::Type{<:RandomForestRegressor}) = "CART random forest regressor"
 
 MMI.metadata_pkg.(
-    (DecisionTreeClassifier, DecisionTreeRegressor,
+    (ModalDecisionTreeClassifier, DecisionTreeRegressor,
      RandomForestClassifier, RandomForestRegressor,
      AdaBoostStumpClassifier),
     name = "DecisionTree",
@@ -391,11 +400,11 @@ MMI.metadata_pkg.(
 )
 
 MMI.metadata_model(
-    DecisionTreeClassifier,
+    ModalDecisionTreeClassifier,
     input_scitype = Table(Continuous, Count, OrderedFactor),
     target_scitype = AbstractVector{<:Finite},
     human_name = "CART decision tree classifier",
-    load_path = "$PKG.DecisionTreeClassifier"
+    load_path = "$PKG.ModalDecisionTreeClassifier"
 )
 
 MMI.metadata_model(
@@ -442,8 +451,8 @@ const DOC_RANDOM_FOREST = "[Random Forest algorithm]"*
     "Breiman, L. (2001): \"Random Forests.\", *Machine Learning*, vol. 45, pp. 5–32"
 
 """
-$(MMI.doc_header(DecisionTreeClassifier))
-`DecisionTreeClassifier` implements the $DOC_CART.
+$(MMI.doc_header(ModalDecisionTreeClassifier))
+`ModalDecisionTreeClassifier` implements the $DOC_CART.
 # Training data
 In MLJ or MLJBase, bind an instance `model` to data with
     mach = machine(model, X, y)
@@ -493,7 +502,7 @@ The fields of `report(mach)` are:
 # Examples
 ```
 using MLJ
-Tree = @load DecisionTreeClassifier pkg=DecisionTree
+Tree = @load ModalDecisionTreeClassifier pkg=DecisionTree
 tree = Tree(max_depth=4, min_samples_split=3)
 X, y = @load_iris
 mach = machine(tree, X, y) |> fit!
@@ -526,9 +535,9 @@ Dict{CategoricalArrays.CategoricalValue{String, UInt32}, UInt32} with 3 entries:
 ```
 See also
 [DecisionTree.jl](https://github.com/bensadeghi/DecisionTree.jl) and
-the unwrapped model type [`MLJDecisionTreeInterface.DecisionTree.DecisionTreeClassifier`](@ref).
+the unwrapped model type [`MLJDecisionTreeInterface.DecisionTree.ModalDecisionTreeClassifier`](@ref).
 """
-DecisionTreeClassifier
+ModalDecisionTreeClassifier
 
 """
 $(MMI.doc_header(RandomForestClassifier))

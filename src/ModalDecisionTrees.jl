@@ -578,10 +578,10 @@ is_modal_node(tree::DTree)      = is_modal_node(tree.root)
 ############################################################################################
 ############################################################################################
 
-display_decision(node::DTInternal; threshold_display_method::Function = x -> x) =
-    display_decision(node.i_frame, node.decision; threshold_display_method = threshold_display_method)
-display_decision_inverse(node::DTInternal; threshold_display_method::Function = x -> x) =
-    display_decision_inverse(node.i_frame, node.decision; threshold_display_method = threshold_display_method)
+display_decision(node::DTInternal, args...; kwargs...) =
+    display_decision(node.i_frame, node.decision, args...; kwargs...)
+display_decision_inverse(node::DTInternal, args...; kwargs...) =
+    display_decision_inverse(node.i_frame, node.decision, args...; kwargs...)
 
 ############################################################################################
 ############################################################################################
