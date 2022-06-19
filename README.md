@@ -27,15 +27,16 @@ Leveraging the express power of Modal Logic, these models can extract *temporal/
 Simply type the following commands in Julia's REPL:
 
 ```julia
-using Pkg; Pkg.add("https://github.com/giopaglia/ModalDecisionTrees.jl")
+Pkg.add(url="https://github.com/giopaglia/ModalDecisionTrees.jl")
 ```
+-->
 
 ## Usage
 
 ```julia
 # Install package
 using Pkg;
-Pkg.add("https://github.com/giopaglia/ModalDecisionTrees.jl")
+Pkg.add(url="https://github.com/giopaglia/ModalDecisionTrees.jl")
 Pkg.add("MLJ")
 
 using MLJ
@@ -94,6 +95,6 @@ The package is developed by Giovanni Pagliarini ([@giopaglia](https://giopaglia.
 
 Thanks to [ACLAI Lab](https://aclai.unife.it/index.php/en/home-page/) @ University of Ferrara.
 
-Thanks to Ben Sadeghi (@bensadeghi) [DecisionTree.jl](https://github.com/bensadeghi/DecisionTree.jl).
+Thanks to Ben Sadeghi (@bensadeghi), author of [DecisionTree.jl](https://github.com/bensadeghi/DecisionTree.jl).
 
 <!-- TODO add citation and CITATION.bib file -->
