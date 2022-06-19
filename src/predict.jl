@@ -35,7 +35,7 @@ function apply_forest(forest::DForest, X::GenericModalDataset; kwargs...)
 end
 
 # TODO discriminate between kwargs for apply_tree & print_tree
-function print_apply(tree::DTree, X::GenericModalDataset, Y::Vector; kwargs...)
+function print_apply(tree::DTree, X::GenericModalDataset, Y::AbstractVector; kwargs...)
     predictions, new_tree = apply_tree(tree, X, Y)
     print_tree(new_tree; kwargs...)
     predictions, new_tree
@@ -250,7 +250,7 @@ end
 function predict(
     tree::DTree{L},
     X::MultiFrameModalDataset,
-    Y::Vector{L};
+    Y::AbstractVector{<:L};
     reset_leaves = true,
     update_labels = false,
 ) where {L}
@@ -270,7 +270,7 @@ function predict(
     predictions, DTree(root, tree.worldTypes, tree.init_conditions)
 end
 
-# function predict(tree::DTNode{T, L}, X::DimensionalDataset{T,D}, Y::Vector{L}; reset_leaves = true, update_labels = false) where {L, T, D}
+# function predict(tree::DTNode{T, L}, X::DimensionalDataset{T,D}, Y::AbstractVector{<:L}; reset_leaves = true, update_labels = false) where {L, T, D}
 #   return predict(DTree(tree, [world_type(ModalLogic.get_interval_ontology(Val(D-2)))], [start_without_world]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
 # end
 
