@@ -311,3 +311,29 @@ function train_functional_leaves(
     NSDTLeaf{L}(predicting_function, supp_train_labels, supp_valid_labels, supp_train_predictions, supp_valid_predictions)
 end
 
+
+############################################################################################
+############################################################################################
+############################################################################################
+
+function tree_attribute_countmap(tree::DTree{L}; weighted = false) where {L<:Label}
+    vals = _tree_attribute_countmap(tree.root; weighted = weighted)
+    if !weighted
+        countmap(first.(vals))
+    else
+        c = Dict([attr => 0 for attr in unique(first.(vals))])
+        for (attr, weight) in vals
+            c[attr] += weight
+        end
+        Dict([attr => count/sum(values(c)) for (attr, count) in c])
+    end
+end
+
+function _tree_attribute_countmap(node::DTInternal{L}; weighted = false) where {L<:Label}
+    Int[_tree_attribute_countmap(node.this; weighted = weighted)..., _tree_attribute_countmap(node.left; weighted = weighted)..., _tree_attribute_countmap(node.right; weighted = weighted)...]
+end
+
+function _tree_attribute_countmap(leaf::AbstractDecisionLeaf{L}; weighted = false) where {L<:Label}
+    f = decision(leaf).feature
+    (f isa SingleAttributeFeature) ? Int[((f.frame, f.i_attribute), (weighted ? length(supp_labels) : 1))] : Int[]
+end

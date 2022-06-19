@@ -47,10 +47,9 @@ display_feature(f::MultiAttributeFeature,         args...; kwargs...) = "$(f.f)"
 
 abstract type SingleAttributeFeature <: DimensionalFeature end
 
-i_attribute(f::SingleAttributeFeature) = f.i_attribute
-attribute_name(f::SingleAttributeFeature) = "A$(i_attribute(f))"
+attribute_name(f::SingleAttributeFeature) = "A$(f.i_attribute)"
 attribute_name(f::SingleAttributeFeature, attribute_names_map::Nothing) = attribute_name(f)
-attribute_name(f::SingleAttributeFeature, attribute_names_map::Union{AbstractDict,AbstractVector}) = "$(attribute_names_map[i_attribute(f)])"
+attribute_name(f::SingleAttributeFeature, attribute_names_map::Union{AbstractDict,AbstractVector}) = "$(attribute_names_map[f.i_attribute])"
 
 ############################################################################################
 
