@@ -41,7 +41,7 @@ end
 function interpret_feature(f::MultiAttributeFeature, inst::AbstractDimensionalInstance{T}) where {T}
     (f.f(inst))::T
 end
-display_feature(f::SingleAttributeFeature,         args...; kwargs...) = "$(f.f)"
+display_feature(f::MultiAttributeFeature,         args...; kwargs...) = "$(f.f)"
 
 ############################################################################################
 
