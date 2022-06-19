@@ -1,6 +1,6 @@
 # Inspired from JuliaAI/MLJDecisionTreeInterface.jl
 
-module MLKInterface
+module MLJInterface
 
 # Reference: https://alan-turing-institute.github.io/MLJ.jl/dev/quick_start_guide_to_adding_models/#Quick-Start-Guide-to-Adding-Models
 # Reference: https://alan-turing-institute.github.io/MLJ.jl/dev/adding_models_for_general_use/
@@ -82,6 +82,8 @@ function DataFrame2MultiFrameModalDataset(X, frame_grouping, relations, mixed_fe
 
     Xs = [begin
         X_frame = X[:,frame]
+        
+        println("$(i_frame)\tchannel size: $(channel_size)\t => $(_attribute_names_map)")
 
         channel_size = unique([unique(_size.(X_frame[:, col])) for col in names(X_frame)])
         @assert length(channel_size) == 1
@@ -136,7 +138,7 @@ function _check_features(features)
     good
 end
 
-MMI.@mlj_model mutable struct ModalDecisionTreeClassifier <: MMI.Deterministic
+MMI.@mlj_model mutable struct ModalDecisionTree <: MMI.Deterministic
     # Pruning hyper-parameters
     max_depth              :: Union{Nothing,Int}           = nothing::(isnothing(_) || _ ≥ -1)
     min_samples_leaf       :: Int                          = MDT.default_min_samples_leaf::(_ ≥ 1)
@@ -153,7 +155,7 @@ MMI.@mlj_model mutable struct ModalDecisionTreeClassifier <: MMI.Deterministic
     display_depth          :: Union{Nothing,Int}           = 5::(isnothing(_) || _ ≥ 0)
 end
 
-function MMI.fit(m::ModalDecisionTreeClassifier, verbosity::Int, X, y, w=nothing)
+function MMI.fit(m::ModalDecisionTree, verbosity::Int, X, y, w=nothing)
 
     init_conditions_d = Dict([
         :start_with_global => MDT.start_without_world,
@@ -195,23 +197,17 @@ function MMI.fit(m::ModalDecisionTreeClassifier, verbosity::Int, X, y, w=nothing
         perform_consistency_check = false,
     )
 
-    # classes_seen  = filter(in(unique(y)), MMI.classes(y[1]))
-    # integers_seen = MMI.int(classes_seen)
-
     verbosity < 2 || MDT.print_model(tree; max_depth = m.display_depth, attribute_names_map = frame_grouping)
 
     feature_importance_by_count = Dict([attr => frame_grouping[i_frame][i_attr] for ((i_frame, i_attr), count) in MDT.tree_attribute_countmap(tree)])
 
     fitresult = (
         tree           = tree,
-        # classes_seen   = classes_seen,
-        # integers_seen  = integers_seen,
         frame_grouping = frame_grouping,
     )
 
     cache  = nothing
     report = (
-        classes_seen                = classes_seen,
         print_tree                  = ModelPrinter(tree, frame_grouping),
         frame_grouping              = frame_grouping,
         feature_importance_by_count = feature_importance_by_count,
@@ -220,12 +216,7 @@ function MMI.fit(m::ModalDecisionTreeClassifier, verbosity::Int, X, y, w=nothing
     return fitresult, cache, report
 end
 
-function get_encoding(classes_seen)
-    a_cat_element = classes_seen[1]
-    return Dict(c => MMI.int(c) for c in MMI.classes(a_cat_element))
-end
-
-MMI.fitted_params(::ModalDecisionTreeClassifier, fitresult) =
+MMI.fitted_params(::ModalDecisionTree, fitresult) =
     (
         tree           = fitresult.tree,
         frame_grouping = frame_grouping,
@@ -241,7 +232,7 @@ MMI.fitted_params(::ModalDecisionTreeClassifier, fitresult) =
 #     return scores ./ sum(scores, dims=2)
 # end
 
-function MMI.predict(m::ModalDecisionTreeClassifier, fitresult, Xnew)
+function MMI.predict(m::ModalDecisionTree, fitresult, Xnew)
     
     relations = m.relations
     features = m.features
@@ -412,7 +403,7 @@ end
 # MLJModelInterface:
 # https://github.com/JuliaAI/MLJModelInterface.jl/pull/139
 
-# MMI.human_name(::Type{<:ModalDecisionTreeClassifier}) = "CART decision tree classifier"
+# MMI.human_name(::Type{<:ModalDecisionTree}) = "CART decision tree classifier"
 # MMI.human_name(::Type{<:RandomForestClassifier}) = "CART random forest classifier"
 # MMI.human_name(::Type{<:AdaBoostStumpClassifier}) = "Ada-boosted stump classifier"
 # MMI.human_name(::Type{<:DecisionTreeRegressor}) = "CART decision tree regressor"
@@ -420,7 +411,7 @@ end
 
 MMI.metadata_pkg.(
     (
-        ModalDecisionTreeClassifier,
+        ModalDecisionTree,
         # DecisionTreeRegressor,
         # RandomForestClassifier,
         # RandomForestRegressor,
@@ -428,14 +419,14 @@ MMI.metadata_pkg.(
     ),
     name = "ModalDecisionTrees",
     package_uuid = "e54bda2e-c571-11ec-9d64-0242ac120002",
-    package_url = "https://github.com/giopaglia/ModalDecisionTreeClassifier.jl",
+    package_url = "https://github.com/giopaglia/ModalDecisionTree.jl",
     is_pure_julia = true,
     package_license = "MIT",
     is_wrapper = false,
 )
 
 MMI.metadata_model(
-    ModalDecisionTreeClassifier,
+    ModalDecisionTree,
     input_scitype = Table(
         Continuous,
         Count,
@@ -445,10 +436,10 @@ MMI.metadata_model(
         AbstractVector{<:OrderedFactor},
     ),
     target_scitype = AbstractVector{<:Finite},
-    human_name = "Modal Decision Tree classifier (MDT)",
-    descr   = "A Modal Decision Tree classifier offers high level of interpretability for classification tasks with images and time-series.",
+    human_name = "Modal Decision Tree (MDT)",
+    descr   = "A Modal Decision Tree (MDT) offers high level of interpretability for classification and regression tasks with images and time-series.",
     supports_weights = true,
-    load_path = "$PKG.ModalDecisionTreeClassifier",
+    load_path = "$PKG.ModalDecisionTree",
 )
 
 # MMI.metadata_model(
@@ -495,8 +486,8 @@ const DOC_RANDOM_FOREST = "[Random Forest algorithm]"*
     "Breiman, L. (2001): \"Random Forests.\", *Machine Learning*, vol. 45, pp. 5–32"
 
 """
-$(MMI.doc_header(ModalDecisionTreeClassifier))
-`ModalDecisionTreeClassifier` implements the $DOC_CART.
+$(MMI.doc_header(ModalDecisionTree))
+`ModalDecisionTree` implements the $DOC_CART.
 # Training data
 In MLJ or MLJBase, bind an instance `model` to data with
     mach = machine(model, X, y)
@@ -546,7 +537,7 @@ The fields of `report(mach)` are:
 # Examples
 ```
 using MLJ
-Tree = @load ModalDecisionTreeClassifier pkg=DecisionTree
+Tree = @load ModalDecisionTree pkg=DecisionTree
 tree = Tree(max_depth=4, min_samples_split=3)
 X, y = @load_iris
 mach = machine(tree, X, y) |> fit!
@@ -579,9 +570,9 @@ Dict{CategoricalArrays.CategoricalValue{String, UInt32}, UInt32} with 3 entries:
 ```
 See also
 [DecisionTree.jl](https://github.com/bensadeghi/DecisionTree.jl) and
-the unwrapped model type [`MLJDecisionTreeInterface.DecisionTree.ModalDecisionTreeClassifier`](@ref).
+the unwrapped model type [`MLJDecisionTreeInterface.DecisionTree.ModalDecisionTree`](@ref).
 """
-ModalDecisionTreeClassifier
+ModalDecisionTree
 
 # """
 # $(MMI.doc_header(RandomForestClassifier))
