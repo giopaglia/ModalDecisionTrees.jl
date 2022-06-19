@@ -26,9 +26,9 @@ const PKG = "ModalDecisionTrees"
 
 struct ModelPrinter{T}
     tree::T
-    attribute_names_map::Union{Nothing,AbstractVector,AbstractDict}
+    frame_grouping::Union{Nothing,AbstractVector{<:AbstractVector},AbstractVector{<:AbstractDict}}
 end
-(c::ModelPrinter)(max_depth = 5) = MDT.print_model(c.model; attribute_names_map = attribute_names_map, max_depth = depth)
+(c::ModelPrinter)(max_depth = 5) = MDT.print_model(c.model; frame_grouping = frame_grouping, max_depth = depth)
 
 Base.show(io::IO, c::ModelPrinter) =
     print(io, "ModelPrinter object (call with display depth)")
@@ -37,7 +37,7 @@ Base.show(io::IO, c::ModelPrinter) =
 ############################################################################################
 ############################################################################################
 
-function DataFrame2MultiFrameModalDataset(X, relations, mixed_features, init_conditions, allow_global_splits)
+function separate_attributes_into_frames()
 
     columns = names(X)
     channel_sizes = [unique(_size.(X)[:,col]) for col in columns]
@@ -74,22 +74,14 @@ function DataFrame2MultiFrameModalDataset(X, relations, mixed_features, init_con
     println("Frames:");
     display(collect(((x)->Pair(x...)).((enumerate(frames)))));
 
-    Xs, attribute_names_map = collect(zip([begin
+    frames
+end
+
+function DataFrame2MultiFrameModalDataset(X, frame_grouping, relations, mixed_features, init_conditions, allow_global_splits, mode)
+    @assert mode in [:explicit, :implicit]
+
+    Xs = [begin
         X_frame = X[:,frame]
-
-        _attribute_names_map = begin
-            schema = Tables.schema(X_frame)
-            if schema === nothing
-                X_frame_matrix = MMI.matrix(X_frame)
-                [Symbol("x$j") for j in 1:size(X_frame_matrix, 2)]
-            else
-                schema.names |> collect
-            end
-        end
-
-        println("$(i_frame)\tchannel size: $(channel_size)\t => $(_attribute_names_map)")
-
-        push!(attribute_names_map, _attribute_names_map)
 
         channel_size = unique([unique(_size.(X_frame[:, col])) for col in names(X_frame)])
         @assert length(channel_size) == 1
@@ -97,31 +89,35 @@ function DataFrame2MultiFrameModalDataset(X, relations, mixed_features, init_con
         channel_size = channel_size[1][1]
         
         _X = begin
-            # dataframe2cube(X_frame)
-            common_type = supertype(Type{Union{eltype.(eltype.(eachcol(X_frame)))...}})
-            _X = Array{common_type}(undef, channel_size..., ncol(X_frame), nrow(X_frame))
-            for (i_col, col) in enumerate(eachcol(X_frame))
-                for (i_row, row) in enumerate(col)
-                    _X[[(:) for i in 1:length(size(row))]...,i_col,i_row] = row
+                # dataframe2cube(X_frame)
+                common_type = supertype(Type{Union{eltype.(eltype.(eachcol(X_frame)))...}})
+                _X = Array{common_type}(undef, channel_size..., ncol(X_frame), nrow(X_frame))
+                for (i_col, col) in enumerate(eachcol(X_frame))
+                    for (i_row, row) in enumerate(col)
+                        _X[[(:) for i in 1:length(size(row))]...,i_col,i_row] = row
+                    end
                 end
+                _X
             end
-            _X
-        end
 
-        channel_dim = length(channel_size)
-        ontology = MDT.get_interval_ontology(channel_dim, :interval, relations)
-        X = InterpretedModalDataset(_X, ontology, mixed_features)
+            channel_dim = length(channel_size)
+            ontology = MDT.get_interval_ontology(channel_dim, :interval, relations)
+            X = InterpretedModalDataset(_X, ontology, mixed_features)
 
-        WorldType = world_type(ontology)
-        
-        compute_relation_glob =
-            WorldType != OneWorld && (
-                (allow_global_splits || init_conditions == MDT.start_without_world)
-            )
-        (ExplicitModalDatasetSMemo(X, compute_relation_glob = compute_relation_glob), _attribute_names_map)
-        end for (i_frame, frame) in enumerate(frames)]...))
+            if mode == :implicit
+                X
+            else
+                WorldType = world_type(ontology)
+                
+                compute_relation_glob =
+                    WorldType != OneWorld && (
+                        (allow_global_splits || init_conditions == MDT.start_without_world)
+                    )
+                ExplicitModalDatasetSMemo(X, compute_relation_glob = compute_relation_glob)
+            end
+        end for (i_frame, frame) in enumerate(frame_grouping)]
     
-    Xs = MultiFrameModalDataset(Xs), attribute_names_map
+    Xs = MultiFrameModalDataset(Xs)
 end
 
 ############################################################################################
@@ -174,7 +170,8 @@ function MMI.fit(m::ModalDecisionTreeClassifier, verbosity::Int, X, y, w=nothing
     allow_global_splits = m.allow_global_splits
     display_depth = m.display_depth
 
-    Xs, attribute_names_map = DataFrame2MultiFrameModalDataset(X, relations, features, init_conditions, allow_global_splits)
+    frame_grouping = separate_attributes_into_frames(X)
+    Xs = DataFrame2MultiFrameModalDataset(X, frame_grouping, relations, features, init_conditions, allow_global_splits, :explicit)
 
     # @assert y isa AbstractVector{<:CLabel} "y should be an AbstractVector{<:$(CLabel)}, got $(typeof(y)) instead"
     y  = MMI.int(y)
@@ -198,18 +195,26 @@ function MMI.fit(m::ModalDecisionTreeClassifier, verbosity::Int, X, y, w=nothing
         perform_consistency_check = false,
     )
 
-    classes_seen  = filter(in(unique(y)), MMI.classes(y[1]))
-    integers_seen = MMI.int(classes_seen)
+    # classes_seen  = filter(in(unique(y)), MMI.classes(y[1]))
+    # integers_seen = MMI.int(classes_seen)
 
-    verbosity < 2 || MDT.print_model(tree; max_depth = m.display_depth, attribute_names_map = attribute_names_map)
+    verbosity < 2 || MDT.print_model(tree; max_depth = m.display_depth, attribute_names_map = frame_grouping)
 
-    fitresult = (tree, classes_seen, integers_seen, features)
+    feature_importance_by_count = Dict([attr => frame_grouping[i_frame][i_attr] for ((i_frame, i_attr), count) in MDT.tree_attribute_countmap(tree)])
+
+    fitresult = (
+        tree           = tree,
+        # classes_seen   = classes_seen,
+        # integers_seen  = integers_seen,
+        frame_grouping = frame_grouping,
+    )
 
     cache  = nothing
     report = (
-        classes_seen         = classes_seen,
-        print_tree           = ModelPrinter(tree, attribute_names_map),
-        attribute_names_map  = attribute_names_map
+        classes_seen                = classes_seen,
+        print_tree                  = ModelPrinter(tree, frame_grouping),
+        frame_grouping              = frame_grouping,
+        feature_importance_by_count = feature_importance_by_count,
     )
 
     return fitresult, cache, report
@@ -222,28 +227,29 @@ end
 
 MMI.fitted_params(::ModalDecisionTreeClassifier, fitresult) =
     (
-        tree     = fitresult[1],
-        encoding = get_encoding(fitresult[2]),
-        features = fitresult[4]
+        tree           = fitresult.tree,
+        frame_grouping = frame_grouping,
+        # encoding        = get_encoding(fitresult.encoding),
     )
 
-function smooth(scores, smoothing)
-    iszero(smoothing) && return scores
-    threshold = smoothing / size(scores, 2)
-    # clip low values
-    scores[scores .< threshold] .= threshold
-    # normalize
-    return scores ./ sum(scores, dims=2)
-end
+# function smooth(scores, smoothing)
+#     iszero(smoothing) && return scores
+#     threshold = smoothing / size(scores, 2)
+#     # clip low values
+#     scores[scores .< threshold] .= threshold
+#     # normalize
+#     return scores ./ sum(scores, dims=2)
+# end
 
 function MMI.predict(m::ModalDecisionTreeClassifier, fitresult, Xnew)
-    Xmatrix = MMI.matrix(Xnew)
-    tree, classes_seen, integers_seen = fitresult
-    # retrieve the predicted scores
-    scores = MDT.apply_tree_proba(tree, Xmatrix, integers_seen)
+    
+    relations = m.relations
+    features = m.features
+    init_conditions = m.init_conditions
+    allow_global_splits = m.allow_global_splits
+    Xs = DataFrame2MultiFrameModalDataset(Xnew, fitresult.frame_grouping, relations, features, init_conditions, allow_global_splits, :implicit)
 
-    # return vector of UF
-    return MMI.UnivariateFinite(classes_seen, scores)
+    MDT.apply_tree(fitresult.tree, Xs)
 end
 
 
@@ -425,14 +431,24 @@ MMI.metadata_pkg.(
     package_url = "https://github.com/giopaglia/ModalDecisionTreeClassifier.jl",
     is_pure_julia = true,
     package_license = "MIT",
+    is_wrapper = false,
 )
 
 MMI.metadata_model(
     ModalDecisionTreeClassifier,
-    input_scitype = Table(Continuous, Count, OrderedFactor),
+    input_scitype = Table(
+        Continuous,
+        Count,
+        OrderedFactor,
+        AbstractVector{<:Continuous},
+        AbstractVector{<:Count},
+        AbstractVector{<:OrderedFactor},
+    ),
     target_scitype = AbstractVector{<:Finite},
-    human_name = "CART decision tree classifier",
-    load_path = "$PKG.ModalDecisionTreeClassifier"
+    human_name = "Modal Decision Tree classifier (MDT)",
+    descr   = "A Modal Decision Tree classifier offers high level of interpretability for classification tasks with images and time-series.",
+    supports_weights = true,
+    load_path = "$PKG.ModalDecisionTreeClassifier",
 )
 
 # MMI.metadata_model(
