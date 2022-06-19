@@ -312,19 +312,19 @@ MixedFeature = Union{ModalFeature,CanonicalFeature,Function,Tuple{TestOperatorFu
 ############################################################################################
 
 
-display_feature_test_operator_pair(feature::ModalFeature,     test_operator::TestOperatorFun)        = "$(feature) $(test_operator)"
+display_feature_test_operator_pair(feature::ModalFeature,     test_operator::TestOperatorFun; kwargs...)        = "$(display_feature(feature; kwargs...)) $(test_operator)"
 
-display_feature_test_operator_pair(feature::SingleAttributeMin,     test_operator::typeof(≥))        = "A$(feature.i_attribute) ⪴"
-display_feature_test_operator_pair(feature::SingleAttributeMax,     test_operator::typeof(≤))        = "A$(feature.i_attribute) ⪳"
-display_feature_test_operator_pair(feature::SingleAttributeSoftMin, test_operator::typeof(≥))        = "A$(feature.i_attribute) $("⪴" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
-display_feature_test_operator_pair(feature::SingleAttributeSoftMax, test_operator::typeof(≤))        = "A$(feature.i_attribute) $("⪳" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
+display_feature_test_operator_pair(feature::SingleAttributeMin,     test_operator::typeof(≥); kwargs...)        = "$(attribute_name(feature; kwargs...)) ⪴"
+display_feature_test_operator_pair(feature::SingleAttributeMax,     test_operator::typeof(≤); kwargs...)        = "$(attribute_name(feature; kwargs...)) ⪳"
+display_feature_test_operator_pair(feature::SingleAttributeSoftMin, test_operator::typeof(≥); kwargs...)        = "$(attribute_name(feature; kwargs...)) $("⪴" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
+display_feature_test_operator_pair(feature::SingleAttributeSoftMax, test_operator::typeof(≤); kwargs...)        = "$(attribute_name(feature; kwargs...)) $("⪳" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
 
-display_feature_test_operator_pair(feature::SingleAttributeMin,     test_operator::typeof(<))        = "A$(feature.i_attribute) ⪶"
-display_feature_test_operator_pair(feature::SingleAttributeMax,     test_operator::typeof(>))        = "A$(feature.i_attribute) ⪵"
-display_feature_test_operator_pair(feature::SingleAttributeSoftMin, test_operator::typeof(<))        = "A$(feature.i_attribute) $("⪶" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
-display_feature_test_operator_pair(feature::SingleAttributeSoftMax, test_operator::typeof(>))        = "A$(feature.i_attribute) $("⪵" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
+display_feature_test_operator_pair(feature::SingleAttributeMin,     test_operator::typeof(<); kwargs...)        = "$(attribute_name(feature; kwargs...)) ⪶"
+display_feature_test_operator_pair(feature::SingleAttributeMax,     test_operator::typeof(>); kwargs...)        = "$(attribute_name(feature; kwargs...)) ⪵"
+display_feature_test_operator_pair(feature::SingleAttributeSoftMin, test_operator::typeof(<); kwargs...)        = "$(attribute_name(feature; kwargs...)) $("⪶" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
+display_feature_test_operator_pair(feature::SingleAttributeSoftMax, test_operator::typeof(>); kwargs...)        = "$(attribute_name(feature; kwargs...)) $("⪵" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
 
-display_feature_test_operator_pair(feature::SingleAttributeMin,     test_operator::typeof(≤))        = "A$(feature.i_attribute) ↘"
-display_feature_test_operator_pair(feature::SingleAttributeMax,     test_operator::typeof(≥))        = "A$(feature.i_attribute) ↗"
-display_feature_test_operator_pair(feature::SingleAttributeSoftMin, test_operator::typeof(≤))        = "A$(feature.i_attribute) $("↘" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
-display_feature_test_operator_pair(feature::SingleAttributeSoftMax, test_operator::typeof(≥))        = "A$(feature.i_attribute) $("↗" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
+display_feature_test_operator_pair(feature::SingleAttributeMin,     test_operator::typeof(≤); kwargs...)        = "$(attribute_name(feature; kwargs...)) ↘"
+display_feature_test_operator_pair(feature::SingleAttributeMax,     test_operator::typeof(≥); kwargs...)        = "$(attribute_name(feature; kwargs...)) ↗"
+display_feature_test_operator_pair(feature::SingleAttributeSoftMin, test_operator::typeof(≤); kwargs...)        = "$(attribute_name(feature; kwargs...)) $("↘" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
+display_feature_test_operator_pair(feature::SingleAttributeSoftMax, test_operator::typeof(≥); kwargs...)        = "$(attribute_name(feature; kwargs...)) $("↗" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"

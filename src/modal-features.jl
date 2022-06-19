@@ -2,7 +2,7 @@ export ModalFeature,
         DimensionalFeature,
         SingleAttributeMin, SingleAttributeMax,
         SingleAttributeSoftMin, SingleAttributeSoftMax,
-        SingleAttributeFeature, MultiAttributeFeature,
+        SingleAttributeGenericFeature, MultiAttributeFeature,
         ExternalFWDFeature
 
 ############################################################################################
@@ -15,6 +15,8 @@ export ModalFeature,
 # The value of a feature for a given world can be then evaluated in a condition,
 #  such as: min(A1) >= 10.
 abstract type ModalFeature <: Function end
+
+Base.show(io::IO, f::ModalFeature, args...; kwargs...) = print(io, display_feature(f, args...; kwargs...))
 
 ################################################################################
 ################################################################################
@@ -31,29 +33,50 @@ abstract type DimensionalFeature <: ModalFeature end
 
 ############################################################################################
 
+# A dimensional feature represented by the application of a function to a channel
+#  (e.g., how much a region of the image resembles a horse)
+struct MultiAttributeFeature <: DimensionalFeature
+    f::Function
+end
+function interpret_feature(f::MultiAttributeFeature, inst::AbstractDimensionalInstance{T}) where {T}
+    (f.f(inst))::T
+end
+display_feature(f::SingleAttributeFeature,         args...; kwargs...) = "$(f.f)"
+
+############################################################################################
+
+abstract type SingleAttributeFeature <: DimensionalFeature end
+
+i_attribute(f::SingleAttributeFeature) = f.i_attribute
+attribute_name(f::SingleAttributeFeature) = "A$(i_attribute(f))"
+attribute_name(f::SingleAttributeFeature, attribute_names_map::Nothing) = attribute_name(f)
+attribute_name(f::SingleAttributeFeature, attribute_names_map::Union{AbstractDict,AbstractVector}) = "$(attribute_names_map[i_attribute(f)])"
+
+############################################################################################
+
 # Notable single-attribute features: minimum and maximum of a given attribute
 #  e.g., min(A1), max(A10)
-struct SingleAttributeMin <: DimensionalFeature
+struct SingleAttributeMin <: SingleAttributeFeature
     i_attribute::Integer
 end
 function interpret_feature(f::SingleAttributeMin, inst::AbstractDimensionalInstance{T}) where {T}
     (minimum(get_instance_attribute(inst,f.i_attribute)))::T
 end
-Base.show(io::IO, f::SingleAttributeMin) = print(io, "min(A$(f.i_attribute))")
+display_feature(f::SingleAttributeMin,             attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing) = "min($(attribute_name(f, attribute_names_map = attribute_names_map)))"
 
-struct SingleAttributeMax <: DimensionalFeature
+struct SingleAttributeMax <: SingleAttributeFeature
     i_attribute::Integer
 end
 function interpret_feature(f::SingleAttributeMax, inst::AbstractDimensionalInstance{T}) where {T}
     (maximum(get_instance_attribute(inst,f.i_attribute)))::T
 end
-Base.show(io::IO, f::SingleAttributeMax) = print(io, "max(A$(f.i_attribute))")
+display_feature(f::SingleAttributeMax,             attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing) = "max($(attribute_name(f, attribute_names_map = attribute_names_map)))"
 
 ############################################################################################
 
 # Softened versions (quantiles) of single-attribute minimum and maximum
 #  e.g., min80(A1), max80(A10)
-struct SingleAttributeSoftMin{T<:AbstractFloat} <: DimensionalFeature
+struct SingleAttributeSoftMin{T<:AbstractFloat} <: SingleAttributeFeature
     i_attribute::Integer
     alpha::T
     function SingleAttributeSoftMin(
@@ -66,12 +89,12 @@ struct SingleAttributeSoftMin{T<:AbstractFloat} <: DimensionalFeature
     end
 end
 alpha(f::SingleAttributeSoftMin) = f.alpha
-Base.show(io::IO, f::SingleAttributeSoftMin) = print(io, "min" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
+display_feature(f::SingleAttributeSoftMin,         attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing) = "min" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "($(attribute_name(f, attribute_names_map = attribute_names_map)))"
 
 function interpret_feature(f::SingleAttributeSoftMin, inst::AbstractDimensionalInstance{T}) where {T}
     ((vals = util.vectorize(get_instance_attribute(inst,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals)); rev=true)))::T
 end
-struct SingleAttributeSoftMax{T<:AbstractFloat} <: DimensionalFeature
+struct SingleAttributeSoftMax{T<:AbstractFloat} <: SingleAttributeFeature
     i_attribute::Integer
     alpha::T
     function SingleAttributeSoftMax(
@@ -87,7 +110,7 @@ function interpret_feature(f::SingleAttributeSoftMax, inst::AbstractDimensionalI
     ((vals = util.vectorize(get_instance_attribute(inst,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals)))))::T
 end
 alpha(f::SingleAttributeSoftMax) = f.alpha
-Base.show(io::IO, f::SingleAttributeSoftMax) = print(io, "max" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
+display_feature(f::SingleAttributeSoftMax,         attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing) = "max" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "($(attribute_name(f, attribute_names_map = attribute_names_map)))"
 
 # TODO simplify OneWorld case:
 # function interpret_feature(f::SingleAttributeSoftMin, inst::AbstractDimensionalInstance{T}) where {T}
@@ -102,33 +125,20 @@ Base.show(io::IO, f::SingleAttributeSoftMax) = print(io, "max" * util.subscriptn
 
 # A dimensional feature represented by the application of a function to a
 #  single attribute (e.g., avg(red), that is, how much red is in an image region)
-struct SingleAttributeFeature <: DimensionalFeature
+struct SingleAttributeGenericFeature <: SingleAttributeFeature
     i_attribute::Integer
     f::Function
 end
-function interpret_feature(f::SingleAttributeFeature, inst::AbstractDimensionalInstance{T}) where {T}
+function interpret_feature(f::SingleAttributeGenericFeature, inst::AbstractDimensionalInstance{T}) where {T}
     (f.f(util.vectorize(get_instance_attribute(inst,f.i_attribute));))::T
 end
-Base.show(io::IO, f::SingleAttributeFeature) = print(io, "$(f.f)(A$(f.i_attribute))")
+display_feature(f::SingleAttributeGenericFeature,  attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing) = "$(f.f)($(attribute_name(f, attribute_names_map = attribute_names_map)))"
 
 ############################################################################################
 
 # These features collapse to a single value; this can be useful to know
 is_collapsing_single_attribute_feature(f::Union{SingleAttributeMin, SingleAttributeMax, SingleAttributeSoftMin, SingleAttributeSoftMax}) = true
-is_collapsing_single_attribute_feature(f::SingleAttributeFeature) = (f.f in [minimum, maximum, mean])
-i_attribute(f::Union{SingleAttributeFeature, SingleAttributeMin, SingleAttributeMax, SingleAttributeSoftMin, SingleAttributeSoftMax, SingleAttributeMin}) = f.i_attribute
-
-############################################################################################
-
-# A dimensional feature represented by the application of a function to a channel
-#  (e.g., how much a region of the image resembles a horse)
-struct MultiAttributeFeature <: DimensionalFeature
-    f::Function
-end
-function interpret_feature(f::MultiAttributeFeature, inst::AbstractDimensionalInstance{T}) where {T}
-    (f.f(inst))::T
-end
-Base.show(io::IO, f::MultiAttributeFeature) = print(io, "$(f.f)")
+is_collapsing_single_attribute_feature(f::SingleAttributeGenericFeature) = (f.f in [minimum, maximum, mean])
 
 ############################################################################################
 
@@ -140,6 +150,6 @@ end
 function interpret_feature(f::ExternalFWDFeature, inst::AbstractDimensionalInstance{T}) where {T}
     @error "Can't intepret ExternalFWDFeature on any structure at all."
 end
-Base.show(io::IO, f::ExternalFWDFeature) = print(io, "$(f.name)")
+display_feature(f::ExternalFWDFeature,             args...; kwargs...) = "$(f.name)"
 
 ################################################################################

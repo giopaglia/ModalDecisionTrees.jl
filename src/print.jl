@@ -95,11 +95,12 @@ function print_tree(
     io::IO,
     node::DTInternal;
     indentation_str="",
+    attribute_names_map = nothing,
     max_depth = nothing,
     # TODO print_rules = false,
     metrics_kwargs...,
 )
-    print(io, "$(display_decision(node))\t\t\t")
+    print(io, "$(display_decision(node; attribute_names_map = attribute_names_map))\t\t\t")
     print_tree(io, node.this; indentation_str = "", metrics_kwargs...)
     if isnothing(max_depth) || length(indentation_str) < max_depth
         print(io, indentation_str * "✔ ") # "╭✔ "

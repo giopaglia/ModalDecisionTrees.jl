@@ -271,10 +271,19 @@ function Base.show(io::IO, decision::Decision)
     println(io, display_decision(decision))
 end
 
-function display_decision(decision::Decision; threshold_display_method::Function = x -> x, universal = false)
-    display_propositional_decision(feature::ModalFeature, test_operator::TestOperatorFun, threshold::Number; threshold_display_method::Function = x -> x) =
-        "$(display_feature_test_operator_pair(feature, test_operator)) $(threshold_display_method(threshold))"
-    prop_decision_str = display_propositional_decision(decision.feature, decision.test_operator, decision.threshold; threshold_display_method = threshold_display_method)
+function display_decision(
+        decision::Decision;
+        threshold_display_method::Function = x -> x,
+        universal = false,
+        attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing,
+    )
+    prop_decision_str = "$(
+        display_feature_test_operator_pair(
+            decision.feature,
+            decision.test_operator;
+            attribute_names_map = attribute_names_map,
+        )
+    ) $(threshold_display_method(decision.threshold))"
     if !is_propositional_decision(decision)
         "$((universal ? display_universal : display_existential)(decision.relation)) ($prop_decision_str)"
     else
@@ -287,8 +296,13 @@ display_universal(rel::Relation)   = "[$(rel)]"
 
 ############################################################################################
 
-function display_decision(i_frame::Integer, decision::Decision; threshold_display_method::Function = x -> x, universal = false)
-    "{$i_frame} $(display_decision(decision; threshold_display_method = threshold_display_method, universal = universal))"
+function display_decision(
+        i_frame::Integer,
+        decision::Decision;
+        attribute_names_map::Union{Nothing,AbstractVector{<:AbstractVector},AbstractVector{<:AbstractDict}} = nothing,
+        kwargs...)
+    _attribute_names_map = isnothing(_attribute_names_map) ? nothing : attribute_names_map[i_frame]
+    "{$i_frame} $(display_decision(decision; _attribute_names_map, kwargs...))"
 end
 
 function display_decision_inverse(i_frame::Integer, decision::Decision; threshold_display_method::Function = x -> x)
