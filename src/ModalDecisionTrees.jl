@@ -694,6 +694,7 @@ include("print-latex.jl")
 include("decisionpath.jl")
 
 include("MLJ-interface.jl")
+import .MLJInterface
 
 ############################################################################################
 # Tests
