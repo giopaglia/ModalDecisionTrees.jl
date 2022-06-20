@@ -49,8 +49,8 @@ function _parse_tree(tree_str::String; check_format = true, _depth = 0, offset =
     _indentation_ex = "[ │]*[✔✘]"
     _metrics_ex = "\\(\\S*.*\\)"
     _feature_ex             = "(?:\\S+)\\s+(?:(?:⫹|⫺|⪳|⪴|⪵|⪶|↗|↘|>|<|=|≤|≥|<=|>=))"
-    _normal_feature_ex_capturing    = "^(\\S+)\\(A(\\d+)\\)\\s+((?:>|<|=|≤|≥|<=|>=))$"
-    _special_feature_ex_capturing   = "^A(\\d+)\\s+((?:⫹|⫺|⪳|⪴|⪵|⪶|↗|↘))$"
+    _normal_feature_ex_capturing    = "^(\\S+)\\(A(\\d+)\\)\\s+((?:>|<|=|≤|≥|<=|>=))\$"
+    _special_feature_ex_capturing   = "^A(\\d+)\\s+((?:⫹|⫺|⪳|⪴|⪵|⪶|↗|↘))\$"
     _decision_ex            = "$(_feature_ex)\\s+(?:$(_threshold_ex))"
     _decision_ex__capturing = "($(_feature_ex))\\s+($(_threshold_ex))"
     
