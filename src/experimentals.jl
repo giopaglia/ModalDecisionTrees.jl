@@ -49,7 +49,8 @@ function _parse_tree(tree_str::String; check_format = true, _depth = 0, offset =
     _indentation_ex = "[ │]*[✔✘]"
     _metrics_ex = "\\(\\S*.*\\)"
     _feature_ex             = "(?:\\S+)\\s+(?:(?:⫹|⫺|⪳|⪴|⪵|⪶|↗|↘|>|<|=|≤|≥|<=|>=))"
-    _normal_feature_ex_capturing    = "^(\\S+)\\(A(\\d+)\\)\\s+((?:>|<|=|≤|≥|<=|>=))\$"
+    _normal_feature_ex_capturing    = "^(\\S*)\\(A(\\d+)\\)\\s+((?:>|<|=|≤|≥|<=|>=))\$"
+    _propositional_feature_ex_capturing    = "^A(\\d+)\\s+((?:>|<|=|≤|≥|<=|>=))\$"
     _special_feature_ex_capturing   = "^A(\\d+)\\s+((?:⫹|⫺|⪳|⪴|⪵|⪶|↗|↘))\$"
     _decision_ex            = "$(_feature_ex)\\s+(?:$(_threshold_ex))"
     _decision_ex__capturing = "($(_feature_ex))\\s+($(_threshold_ex))"
@@ -100,6 +101,7 @@ function _parse_tree(tree_str::String; check_format = true, _depth = 0, offset =
             
             m_normal  = match(Regex(_normal_feature_ex_capturing), feature_str)
             m_special = match(Regex(_special_feature_ex_capturing), feature_str) 
+            m_propos  = match(Regex(_propositional_feature_ex_capturing), feature_str)
 
             if !isnothing(m_normal) && length(m_normal) == 3
                 feature_fun, i_attribute, test_operator = m_normal
@@ -127,13 +129,19 @@ function _parse_tree(tree_str::String; check_format = true, _depth = 0, offset =
                     "⪳₈₀" => (i_attribute)->(ML.SingleAttributeSoftMax(i_attribute, 80), ≤),
                     "⪳"   => (i_attribute)->(ML.SingleAttributeMax(i_attribute), ≤),
                     "↘"   => (i_attribute)->(ML.SingleAttributeMin(i_attribute), ≤),
-                    "↘"   => (i_attribute)->(ML.SingleAttributeMax(i_attribute), ≥),
+                    "↗"   => (i_attribute)->(ML.SingleAttributeMax(i_attribute), ≥),
                 ])
                 feature_fun_test_operator = feature_fun_test_operator_d[feature_fun_test_operator]
                 i_attribute = parse(Int, i_attribute)
                 feature_fun_test_operator(i_attribute)
+            elseif !isnothing(m_propos) && length(m_propos) == 2
+                i_attribute, test_operator = m_propos
+                i_attribute = parse(Int, i_attribute)
+                feature_type = MDT.SingleAttributeNamedFeature(i_attribute, "")
+                test_operator = eval(Symbol(test_operator))
+                feature_type(i_attribute), test_operator
             else
-                error("Unexpected format encountered on line $(i_this_line+offset) when parsing feature: \"$(feature_str)\". Matches $(m_normal), $(m_special)")
+                error("Unexpected format encountered on line $(i_this_line+offset) when parsing feature: \"$(feature_str)\". Matches $(m_normal), $(m_special), $(m_propos)")
             end
         end 
 
