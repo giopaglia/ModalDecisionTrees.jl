@@ -301,12 +301,12 @@ function display_decision(
         decision::Decision;
         attribute_names_map::Union{Nothing,AbstractVector{<:AbstractVector},AbstractVector{<:AbstractDict}} = nothing,
         kwargs...)
-    _attribute_names_map = isnothing(_attribute_names_map) ? nothing : attribute_names_map[i_frame]
-    "{$i_frame} $(display_decision(decision; _attribute_names_map, kwargs...))"
+    _attribute_names_map = isnothing(attribute_names_map) ? nothing : attribute_names_map[i_frame]
+    "{$i_frame} $(display_decision(decision; attribute_names_map = _attribute_names_map, kwargs...))"
 end
 
 function display_decision_inverse(i_frame::Integer, decision::Decision; threshold_display_method::Function = x -> x)
-    inv_decision = Decision{T}(decision.relation, decision.feature, test_operator_inverse(test_operator), decision.threshold)
+    inv_decision = Decision(decision.relation, decision.feature, test_operator_inverse(decision.test_operator), decision.threshold)
     display_decision(i_frame, inv_decision; threshold_display_method = threshold_display_method, universal = true)
 end
 

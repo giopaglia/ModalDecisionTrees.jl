@@ -47,9 +47,20 @@ display_feature(f::MultiAttributeFeature,         args...; kwargs...) = "$(f.f)"
 
 abstract type SingleAttributeFeature <: DimensionalFeature end
 
-attribute_name(f::SingleAttributeFeature) = "A$(f.i_attribute)"
-attribute_name(f::SingleAttributeFeature, attribute_names_map::Nothing) = attribute_name(f)
-attribute_name(f::SingleAttributeFeature, attribute_names_map::Union{AbstractDict,AbstractVector}) = "$(attribute_names_map[f.i_attribute])"
+attribute_name(f::SingleAttributeFeature; attribute_names_map::Union{Nothing,AbstractDict,AbstractVector} = nothing) = (isnothing(attribute_names_map) ? "A$(f.i_attribute)" : "$(attribute_names_map[f.i_attribute])")
+
+
+# A feature can be just a name
+struct SingleAttributeNamedFeature <: SingleAttributeFeature
+    i_attribute::Integer
+    name::String
+end
+function interpret_feature(f::SingleAttributeNamedFeature, inst::AbstractDimensionalInstance{T}) where {T}
+    @error "Can't intepret SingleAttributeNamedFeature on any structure at all."
+end
+display_feature(f::SingleAttributeNamedFeature;    attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing) = "$(f.name)($(attribute_name(f; attribute_names_map = attribute_names_map)))"
+
+############################################################################################
 
 ############################################################################################
 
@@ -61,7 +72,7 @@ end
 function interpret_feature(f::SingleAttributeMin, inst::AbstractDimensionalInstance{T}) where {T}
     (minimum(get_instance_attribute(inst,f.i_attribute)))::T
 end
-display_feature(f::SingleAttributeMin,             attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing) = "min($(attribute_name(f, attribute_names_map = attribute_names_map)))"
+display_feature(f::SingleAttributeMin;             attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing) = "min($(attribute_name(f; attribute_names_map = attribute_names_map)))"
 
 struct SingleAttributeMax <: SingleAttributeFeature
     i_attribute::Integer
@@ -69,7 +80,7 @@ end
 function interpret_feature(f::SingleAttributeMax, inst::AbstractDimensionalInstance{T}) where {T}
     (maximum(get_instance_attribute(inst,f.i_attribute)))::T
 end
-display_feature(f::SingleAttributeMax,             attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing) = "max($(attribute_name(f, attribute_names_map = attribute_names_map)))"
+display_feature(f::SingleAttributeMax;             attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing) = "max($(attribute_name(f; attribute_names_map = attribute_names_map)))"
 
 ############################################################################################
 
@@ -88,7 +99,7 @@ struct SingleAttributeSoftMin{T<:AbstractFloat} <: SingleAttributeFeature
     end
 end
 alpha(f::SingleAttributeSoftMin) = f.alpha
-display_feature(f::SingleAttributeSoftMin,         attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing) = "min" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "($(attribute_name(f, attribute_names_map = attribute_names_map)))"
+display_feature(f::SingleAttributeSoftMin;         attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing) = "min" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "($(attribute_name(f; attribute_names_map = attribute_names_map)))"
 
 function interpret_feature(f::SingleAttributeSoftMin, inst::AbstractDimensionalInstance{T}) where {T}
     ((vals = util.vectorize(get_instance_attribute(inst,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals)); rev=true)))::T
@@ -109,7 +120,7 @@ function interpret_feature(f::SingleAttributeSoftMax, inst::AbstractDimensionalI
     ((vals = util.vectorize(get_instance_attribute(inst,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals)))))::T
 end
 alpha(f::SingleAttributeSoftMax) = f.alpha
-display_feature(f::SingleAttributeSoftMax,         attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing) = "max" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "($(attribute_name(f, attribute_names_map = attribute_names_map)))"
+display_feature(f::SingleAttributeSoftMax;         attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing) = "max" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "($(attribute_name(f; attribute_names_map = attribute_names_map)))"
 
 # TODO simplify OneWorld case:
 # function interpret_feature(f::SingleAttributeSoftMin, inst::AbstractDimensionalInstance{T}) where {T}
@@ -131,7 +142,7 @@ end
 function interpret_feature(f::SingleAttributeGenericFeature, inst::AbstractDimensionalInstance{T}) where {T}
     (f.f(util.vectorize(get_instance_attribute(inst,f.i_attribute));))::T
 end
-display_feature(f::SingleAttributeGenericFeature,  attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing) = "$(f.f)($(attribute_name(f, attribute_names_map = attribute_names_map)))"
+display_feature(f::SingleAttributeGenericFeature;  attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing) = "$(f.f)($(attribute_name(f; attribute_names_map = attribute_names_map)))"
 
 ############################################################################################
 
@@ -140,6 +151,18 @@ is_collapsing_single_attribute_feature(f::Union{SingleAttributeMin, SingleAttrib
 is_collapsing_single_attribute_feature(f::SingleAttributeGenericFeature) = (f.f in [minimum, maximum, mean])
 
 ############################################################################################
+
+# A feature can also be just a name
+struct NamedFeature <: ModalFeature
+    name::String
+end
+function interpret_feature(f::NamedFeature, inst::AbstractDimensionalInstance{T}) where {T}
+    @error "Can't intepret NamedFeature on any structure at all."
+end
+display_feature(f::NamedFeature,             args...; kwargs...) = "$(f.name)"
+
+############################################################################################
+
 
 # A feature can be imported from a FWD (FWD) structure (see ModalLogic module)
 struct ExternalFWDFeature <: ModalFeature

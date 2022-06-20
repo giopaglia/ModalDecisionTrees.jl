@@ -337,3 +337,38 @@ function _tree_attribute_countmap(leaf::AbstractDecisionLeaf{L}; weighted = fals
     f = decision(leaf).feature
     (f isa SingleAttributeFeature) ? Int[((f.frame, f.i_attribute), (weighted ? length(supp_labels) : 1))] : Int[]
 end
+
+############################################################################################
+############################################################################################
+############################################################################################
+
+function merge_into_leaf(nodes::AbstractVector{<:DTNode})
+    merge_into_leaf(map((n)->(n isa AbstractDecisionLeaf ? n : n.this), nodes))
+end
+
+function merge_into_leaf(leaves::AbstractVector{<:DTLeaf{L}}) where {L}
+    dtleaf_types = typeof.(leaves)
+    @assert length(unique(dtleaf_types)) == 1 "Can't aggregate different leaf types: $(dtleaf_types)"
+    dtleaf_type = dtleaf_types[1]
+    dtleaf_type(L.(collect(Iterators.flatten(map((leaf)->leaf.supp_labels, leaves)))))
+end
+
+function merge_into_leaf(leaves::AbstractVector{<:NSDTLeaf{L}}) where {L}
+    # dtleaf_types = typeof.(leaves)
+    # @assert length(unique(dtleaf_types)) == 1 "Can't aggregate different leaf types: $(dtleaf_types)"
+    # dtleaf_type = dtleaf_types[1]
+    dtleaf_type = DTLeaf{L}
+    supp_train_labels      = L.(collect(Iterators.flatten(map((leaf)->leaf.supp_train_labels, leaves))))
+    supp_valid_labels      = L.(collect(Iterators.flatten(map((leaf)->leaf.supp_valid_labels, leaves))))
+    supp_train_predictions = L.(collect(Iterators.flatten(map((leaf)->leaf.supp_train_predictions, leaves))))
+    supp_valid_predictions = L.(collect(Iterators.flatten(map((leaf)->leaf.supp_valid_predictions, leaves))))
+    supp_labels = [supp_train_labels..., supp_valid_labels..., supp_train_predictions..., supp_valid_predictions...]
+    predicting_function = (args...; kwargs...)->(average_label(supp_labels))
+    dtleaf_type(
+        predicting_function,
+        supp_train_labels,
+        supp_valid_labels,
+        supp_train_predictions,
+        supp_valid_predictions,
+    )
+end
