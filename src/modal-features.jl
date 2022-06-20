@@ -58,7 +58,7 @@ end
 function interpret_feature(f::SingleAttributeNamedFeature, inst::AbstractDimensionalInstance{T}) where {T}
     @error "Can't intepret SingleAttributeNamedFeature on any structure at all."
 end
-display_feature(f::SingleAttributeNamedFeature;    attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing) = "$(f.name)($(attribute_name(f; attribute_names_map = attribute_names_map)))"
+display_feature(f::SingleAttributeNamedFeature;    attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing) = (n = attribute_name(f; attribute_names_map = attribute_names_map); (f.name == "" ? "$(n)" : "$(f.name)($n)"))
 
 ############################################################################################
 
