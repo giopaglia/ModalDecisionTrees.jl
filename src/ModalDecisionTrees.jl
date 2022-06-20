@@ -258,7 +258,7 @@ abstract type AbstractDecisionLeaf{L<:Label} end
 # Decision leaf node, holding an output (prediction)
 struct DTLeaf{L<:Label} <: AbstractDecisionLeaf{L}
     # prediction
-    prediction         :: L
+    prediction    :: L
     # supporting (e.g., training) instances labels
     supp_labels   :: Vector{L}
 
@@ -399,6 +399,19 @@ struct DTInternal{T, L<:Label}
         left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}},
         right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}}) where {T, L<:Label}
         DTInternal{T, L}(i_frame, decision, this, left, right)
+    end
+
+    function DTInternal(
+        i_frame          :: Int64,
+        decision         :: Decision{T},
+        left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}},
+        right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}}) where {T, L<:Label}
+        node = new{T, L}()
+        node.i_frame = i_frame
+        node.decision = decision
+        node.left = left
+        node.right = right
+        node
     end
 
     # create node without local decision
