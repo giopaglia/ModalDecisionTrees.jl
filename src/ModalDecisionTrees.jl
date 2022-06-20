@@ -306,7 +306,7 @@ end
 # const LFun{L} = FunctionWrapper{L,Tuple{ModalInstance}}
 # TODO maybe join DTLeaf and NSDTLeaf Union{L,LFun{L}}
 # Decision leaf node, holding an output predicting function
-mutable struct NSDTLeaf{L<:Label} <: AbstractDecisionLeaf{L}
+struct NSDTLeaf{L<:Label} <: AbstractDecisionLeaf{L}
     # predicting function
     predicting_function         :: PredictingFunction{L}
     
@@ -373,7 +373,7 @@ predictions(leaf::NSDTLeaf; train_or_valid = true) = (train_or_valid ? leaf.supp
 ############################################################################################
 
 # Internal decision node, holding a split-decision and a frame index
-mutable struct DTInternal{T, L<:Label}
+struct DTInternal{T, L<:Label}
     # frame index + split-decision
     i_frame       :: Int64
     decision      :: Decision{T}
@@ -401,35 +401,36 @@ mutable struct DTInternal{T, L<:Label}
         DTInternal{T, L}(i_frame, decision, this, left, right)
     end
 
+    # function DTInternal( (need mutable)
+    #     i_frame          :: Int64,
+    #     decision         :: Decision{T},
+    #     left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}},
+    #     right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}}) where {T, L<:Label}
+    #     node = new{T, L}()
+    #     node.i_frame = i_frame
+    #     node.decision = decision
+    #     node.left = left
+    #     node.right = right
+    #     node
+    # end
+
+    # create node without local decision
+    function DTInternal{T, L}(
+        i_frame          :: Int64,
+        decision         :: Decision,
+        left             :: Union{AbstractDecisionLeaf, DTInternal},
+        right            :: Union{AbstractDecisionLeaf, DTInternal}) where {T, L<:Label}
+        # this = merge_into_leaf(Vector{<:Union{AbstractDecisionLeaf,DTInternal}}([left, right]))
+        this = merge_into_leaf(Union{<:AbstractDecisionLeaf,<:DTInternal}[left, right])
+        new{T, L}(i_frame, decision, this, left, right)
+    end
     function DTInternal(
         i_frame          :: Int64,
         decision         :: Decision{T},
         left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}},
         right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}}) where {T, L<:Label}
-        node = new{T, L}()
-        node.i_frame = i_frame
-        node.decision = decision
-        node.left = left
-        node.right = right
-        node
+        DTInternal{T, L}(i_frame, decision, left, right)
     end
-
-    # create node without local decision
-    # function DTInternal{T, L}(
-    #     i_frame          :: Int64,
-    #     decision         :: Decision,
-    #     left             :: Union{AbstractDecisionLeaf, DTInternal},
-    #     right            :: Union{AbstractDecisionLeaf, DTInternal}) where {T, L<:Label}
-    #     this = AbstractDecisionLeaf{<:L} (NOPE) (L[(supp_labels(left; supp_labels = supp_labels?))..., (supp_labels(right; supp_labels = supp_labels?))...])
-    #     new{T, L}(i_frame, decision, this, left, right)
-    # end
-    # function DTInternal(
-    #     i_frame          :: Int64,
-    #     decision         :: Decision{T},
-    #     left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}},
-    #     right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}}) where {T, L<:Label}
-    #     DTInternal{T, L}(i_frame, decision, left, right)
-    # end
 
     # create node without frame
     # function DTInternal{T, L}(
@@ -477,25 +478,25 @@ const DTNode{T, L} = Union{<:AbstractDecisionLeaf{<:L}, DTInternal{T, L}}
 ############################################################################################
 
 # Decision Tree
-mutable struct DTree{L<:Label}
+struct DTree{L<:Label}
     # root node
-    root           :: DTNode{T, L} where T
+    root            :: DTNode{T, L} where T
     # worldTypes (one per frame)
-    worldTypes     :: Vector{Type{<:World}}
+    worldTypes      :: Vector{Type{<:World}}
     # initial world conditions (one per frame)
     init_conditions :: Vector{<:InitCondition}
 
     function DTree{L}(
-        root           :: DTNode,
-        worldTypes     :: AbstractVector{<:Type},
+        root            :: DTNode,
+        worldTypes      :: AbstractVector{<:Type},
         init_conditions :: AbstractVector{<:InitCondition},
     ) where {L<:Label}
         new{L}(root, collect(worldTypes), collect(init_conditions))
     end
 
     function DTree(
-        root           :: DTNode{T, L},
-        worldTypes     :: AbstractVector{<:Type},
+        root            :: DTNode{T, L},
+        worldTypes      :: AbstractVector{<:Type},
         init_conditions :: AbstractVector{<:InitCondition},
     ) where {T, L<:Label}
         DTree{L}(root, worldTypes, init_conditions)
@@ -592,9 +593,9 @@ is_modal_node(tree::DTree)      = is_modal_node(tree.root)
 ############################################################################################
 
 display_decision(node::DTInternal, args...; kwargs...) =
-    display_decision(node.i_frame, node.decision, args...; kwargs...)
+    ModalLogic.display_decision(node.i_frame, node.decision, args...; kwargs...)
 display_decision_inverse(node::DTInternal, args...; kwargs...) =
-    display_decision_inverse(node.i_frame, node.decision, args...; kwargs...)
+    ModalLogic.display_decision_inverse(node.i_frame, node.decision, args...; kwargs...)
 
 ############################################################################################
 ############################################################################################
@@ -703,11 +704,13 @@ include("build.jl")
 include("predict.jl")
 include("posthoc.jl")
 include("print.jl")
-include("print-latex.jl")
 include("decisionpath.jl")
 
 include("MLJ-interface.jl")
-import .MLJInterface
+using .MLJInterface
+
+include("experimentals.jl")
+using .experimentals
 
 ############################################################################################
 # Tests
