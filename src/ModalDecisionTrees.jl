@@ -306,7 +306,7 @@ end
 # const LFun{L} = FunctionWrapper{L,Tuple{ModalInstance}}
 # TODO maybe join DTLeaf and NSDTLeaf Union{L,LFun{L}}
 # Decision leaf node, holding an output predicting function
-struct NSDTLeaf{L<:Label} <: AbstractDecisionLeaf{L}
+mutable struct NSDTLeaf{L<:Label} <: AbstractDecisionLeaf{L}
     # predicting function
     predicting_function         :: PredictingFunction{L}
     
@@ -373,7 +373,7 @@ predictions(leaf::NSDTLeaf; train_or_valid = true) = (train_or_valid ? leaf.supp
 ############################################################################################
 
 # Internal decision node, holding a split-decision and a frame index
-struct DTInternal{T, L<:Label}
+mutable struct DTInternal{T, L<:Label}
     # frame index + split-decision
     i_frame       :: Int64
     decision      :: Decision{T}
@@ -477,7 +477,7 @@ const DTNode{T, L} = Union{<:AbstractDecisionLeaf{<:L}, DTInternal{T, L}}
 ############################################################################################
 
 # Decision Tree
-struct DTree{L<:Label}
+mutable struct DTree{L<:Label}
     # root node
     root           :: DTNode{T, L} where T
     # worldTypes (one per frame)
