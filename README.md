@@ -31,6 +31,7 @@ Pkg.add(url="https://github.com/giopaglia/ModalDecisionTrees.jl")
 ```
 -->
 
+<!--
 ## Usage
 
 ```julia
@@ -51,8 +52,10 @@ TODO show tree and explain how to interpret the results
 print_tree(tree)
 ```
 
-
 TODO explain parameters
+-->
+
+
 <!-- TODO (`Y isa Vector{<:{Integer,String}}`) -->
 
 <!--
