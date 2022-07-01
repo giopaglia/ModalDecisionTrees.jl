@@ -31,11 +31,11 @@ subscript_replace = Dict{String,String}(
 # Parse Trees
 ################################################################################
 
-function parse_tree(tree_str::String; check_format = true, _depth = 0, offset = 0, worldTypes = Type{ML.World}[], init_conditions = MDT.InitCondition[])
-    worldTypes = Type{<:ML.World}[worldTypes...]
+function parse_tree(tree_str::String; check_format = true, _depth = 0, offset = 0, world_types = Type{ML.World}[], init_conditions = MDT.InitCondition[])
+    world_types = Type{<:ML.World}[world_types...]
     init_conditions = MDT.InitCondition[init_conditions...]
     root = _parse_tree(tree_str; check_format = check_format, _depth = _depth, offset = offset)
-    DTree(root, worldTypes, init_conditions)
+    DTree(root, world_types, init_conditions)
 end
 
 function _parse_tree(tree_str::String; check_format = true, _depth = 0, offset = 0)
@@ -83,12 +83,12 @@ function _parse_tree(tree_str::String; check_format = true, _depth = 0, offset =
                 "E" => ML.IA_E,
                 "D" => ML.IA_D,
                 "O" => ML.IA_O,
-                "Ai" => ML.IA_Ai,        " ̅A" => ML._IA_Ai,
-                "Li" => ML.IA_Li,        " ̅L" => ML._IA_Li,
-                "Bi" => ML.IA_Bi,        " ̅B" => ML._IA_Bi,
-                "Ei" => ML.IA_Ei,        " ̅E" => ML._IA_Ei,
-                "Di" => ML.IA_Di,        " ̅D" => ML._IA_Di,
-                "Oi" => ML.IA_Oi,        " ̅O" => ML._IA_Oi,
+                "Ai" => ML.IA_Ai,        "A̅" => ML.IA_Ai,
+                "Li" => ML.IA_Li,        "L̅" => ML.IA_Li,
+                "Bi" => ML.IA_Bi,        "B̅" => ML.IA_Bi,
+                "Ei" => ML.IA_Ei,        "E̅" => ML.IA_Ei,
+                "Di" => ML.IA_Di,        "D̅" => ML.IA_Di,
+                "Oi" => ML.IA_Oi,        "O̅" => ML.IA_Oi,
             ])
             if isnothing(relation_str)
                 RelationId
@@ -137,9 +137,9 @@ function _parse_tree(tree_str::String; check_format = true, _depth = 0, offset =
             elseif !isnothing(m_propos) && length(m_propos) == 2
                 i_attribute, test_operator = m_propos
                 i_attribute = parse(Int, i_attribute)
-                feature_type = MDT.SingleAttributeNamedFeature(i_attribute, "")
+                feature = MDT.SingleAttributeNamedFeature(i_attribute, "")
                 test_operator = eval(Symbol(test_operator))
-                feature_type(i_attribute), test_operator
+                feature, test_operator
             else
                 error("Unexpected format encountered on line $(i_this_line+offset) when parsing feature: \"$(feature_str)\". Matches $(m_normal), $(m_special), $(m_propos)")
             end

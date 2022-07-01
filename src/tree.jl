@@ -75,9 +75,9 @@ function _convert(
     if node.is_leaf
         this_leaf
     else
-        left  = _convert(node.l, labels, class_names)
-        right = _convert(node.r, labels, class_names)
-        DTInternal(node.i_frame, decision(node.decision, threshold_backmap[i_frame]), this_leaf, left, right)
+        left  = _convert(node.l, labels, class_names, threshold_backmap)
+        right = _convert(node.r, labels, class_names, threshold_backmap)
+        DTInternal(node.i_frame, Decision(node.decision, threshold_backmap[node.i_frame]), this_leaf, left, right)
     end
 end
 
@@ -91,9 +91,9 @@ function _convert(
     if node.is_leaf
         this_leaf
     else
-        left  = _convert(node.l, labels)
-        right = _convert(node.r, labels)
-        DTInternal(node.i_frame, decision(node.decision, threshold_backmap[i_frame]), this_leaf, left, right)
+        left  = _convert(node.l, labels, threshold_backmap)
+        right = _convert(node.r, labels, threshold_backmap)
+        DTInternal(node.i_frame, Decision(node.decision, threshold_backmap[node.i_frame]), this_leaf, left, right)
     end
 end
 
@@ -382,7 +382,7 @@ Base.@propagate_inbounds @inline function split_node!(
     # end
 
     Sfs = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, n_frames(Xs))
-    for (i_frame,WT) in enumerate(world_types(Xs))
+    for (i_frame,WT) in enumerate(get_world_types(Xs))
         Sfs[i_frame] = Vector{Vector{WT}}(undef, _n_samples)
         @simd for i in 1:_n_samples
             Sfs[i_frame][i] = Ss[i_frame][idxs[i + r_start]]
@@ -795,6 +795,7 @@ end
         _is_classification        :: Union{Val{true},Val{false}},
         _perform_consistency_check:: Union{Val{true},Val{false}},
         rng = Random.GLOBAL_RNG   :: Random.AbstractRNG,
+        print_progress            :: Bool = true,
         kwargs...,
     ) where{L<:_Label, U}
 
@@ -812,6 +813,10 @@ end
     onlyallowRelationGlob = [(iC == ModalDecisionTrees.start_without_world) for iC in init_conditions]
     root = NodeMetaT(1:_n_samples, 0, 0, onlyallowRelationGlob)
     
+    # if print_progress TODO
+    #     p = ProgressThresh(Inf, 1, "Computing DTree...")
+    # end
+
     # Process nodes recursively, using multi-threading
     function process_node!(node, rng)
         # Note: better to spawn rng's beforehand, to preserve reproducibility independently from split_node!
@@ -824,6 +829,7 @@ end
             rng                        = rng,
             kwargs...,
         )
+        # TODO: !print_progress || ProgressMeter.update!(p, ...idxs[region]...)
         if !node.is_leaf
             fork!(node)
             l = Threads.@spawn process_node!(node.l, rng_l)
@@ -972,7 +978,7 @@ function fit(
             Xs, fill(identity, n_frames(Xs))
         end
     end
-
+    # println(threshold_backmaps)
     # Call core learning function
     root, idxs = _fit(Xs, Y, init_conditions, W;
         n_classes = n_classes,
@@ -989,5 +995,5 @@ function fit(
             _convert(root, Y[idxs], threshold_backmaps)
         end
     end
-    DTree{L}(root, world_types(Xs), init_conditions)
+    DTree{L}(root, get_world_types(Xs), init_conditions)
 end

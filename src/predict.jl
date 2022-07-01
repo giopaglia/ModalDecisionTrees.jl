@@ -7,7 +7,7 @@ export apply_tree, apply_forest, apply_trees, apply_model, print_apply, tree_wal
 inst_init_world_sets(Xs::MultiFrameModalDataset, tree::DTree, i_sample::Integer) = begin
     Ss = Vector{WorldSet}(undef, n_frames(Xs))
     for (i_frame,X) in enumerate(frames(Xs))
-        Ss[i_frame] = init_world_sets_fun(X, i_sample, tree.worldTypes[i_frame])(tree.init_conditions[i_frame])
+        Ss[i_frame] = init_world_sets_fun(X, i_sample, tree.world_types[i_frame])(tree.init_conditions[i_frame])
     end
     Ss
 end
@@ -19,7 +19,7 @@ end
 apply_model(tree::DTree,     args...; kwargs...) = apply_tree(tree,     args...; kwargs...)
 apply_model(forest::DForest, args...; kwargs...) = apply_forest(forest, args...; kwargs...)
 
-print_apply(tree::DTree,     args...; kwargs...) = print_apply(tree,    args...; kwargs...)
+# print_apply(tree::DTree,     args...; kwargs...) = print_apply(tree,    args...; kwargs...)
 
 # Apply a tree to a dimensional dataset
 function apply_tree(tree::DTree, X::GenericModalDataset, args...; kwargs...)
@@ -169,7 +169,7 @@ end
 function _empty_tree_leaves(tree::DTree)
     return DTree(
         _empty_tree_leaves(tree.root),
-        tree.worldTypes,
+        tree.world_types,
         tree.init_conditions,
     )
 end
@@ -267,7 +267,7 @@ function predict(
         pred, root = predict(root, X, i_sample, worlds, Y[i_sample], update_labels = update_labels)
         push!(predictions, pred)
     end
-    predictions, DTree(root, tree.worldTypes, tree.init_conditions)
+    predictions, DTree(root, tree.world_types, tree.init_conditions)
 end
 
 # function predict(tree::DTNode{T, L}, X::DimensionalDataset{T,D}, Y::AbstractVector{<:L}; reset_leaves = true, update_labels = false) where {L, T, D}

@@ -260,7 +260,7 @@ struct Decision{T}
         decision      :: Decision{T},
         threshold_f   :: Function
     ) where {T}
-        Decision{T}(relation, feature, test_operator, threshold_f(threshold))
+        Decision{T}(decision.relation, decision.feature, decision.test_operator, threshold_f(decision.threshold))
     end
 end
 
@@ -305,9 +305,9 @@ function display_decision(
     "{$i_frame} $(display_decision(decision; attribute_names_map = _attribute_names_map, kwargs...))"
 end
 
-function display_decision_inverse(i_frame::Integer, decision::Decision; threshold_display_method::Function = x -> x)
+function display_decision_inverse(i_frame::Integer, decision::Decision; args...)
     inv_decision = Decision(decision.relation, decision.feature, test_operator_inverse(decision.test_operator), decision.threshold)
-    display_decision(i_frame, inv_decision; threshold_display_method = threshold_display_method, universal = true)
+    display_decision(i_frame, inv_decision; universal = true, args...)
 end
 
 ############################################################################################
@@ -439,51 +439,52 @@ const Interval2DRCC5Ontology = Ontology{Interval2D}(RCC5Relations)
 
 get_ontology(::DimensionalDataset{T,D}, args...) where {T,D} = get_ontology(Val(D-2), args...)
 get_ontology(N::Integer, args...) = get_ontology(Val(N), args...)
-get_ontology(::Val{0}) = OneWorldOntology
+get_ontology(::Val{0}, args...) = OneWorldOntology
 function get_ontology(::Val{1}, world = :interval, relations = :IA)
     world_possible_values = [:point, :interval, :rectangle, :hyperrectangle]
     relations_possible_values = [:IA, :IA3, :IA7, :RCC5, :RCC8]
-    @assert world in world_possible_values "Unexpected value encountered for `world`. Legal values are in $(world_possible_values)"
-    @assert relations in relations_possible_values "Unexpected value encountered for `relations`. Legal values are in $(relations_possible_values)"
+    @assert world in world_possible_values "Unexpected value encountered for `world`: $(world). Legal values are in $(world_possible_values)"
+    @assert relations in relations_possible_values "Unexpected value encountered for `relations`: $(relations). Legal values are in $(relations_possible_values)"
 
     if world in [:point]
         error("TODO point-based ontologies not implemented yet")
     elseif world in [:interval, :rectangle, :hyperrectangle]
-        if     relations_possible_values == :IA   IntervalOntology
-        elseif relations_possible_values == :IA3  Interval3Ontology
-        elseif relations_possible_values == :IA7  Interval7Ontology
-        elseif relations_possible_values == :RCC5 IntervalRCC8Ontology
-        elseif relations_possible_values == :RCC8 IntervalRCC5Ontology
+        if     relations == :IA   IntervalOntology
+        elseif relations == :IA3  Interval3Ontology
+        elseif relations == :IA7  Interval7Ontology
+        elseif relations == :RCC5 IntervalRCC8Ontology
+        elseif relations == :RCC8 IntervalRCC5Ontology
         else
-            error("Unexpected value encountered for `relations`. Legal values are in $(relations_possible_values)")
+            error("Unexpected value encountered for `relations`: $(relations). Legal values are in $(relations_possible_values)")
         end
     else
-        error("Unexpected value encountered for `world`. Legal values are in $(possible_values)")
+        error("Unexpected value encountered for `world`: $(world). Legal values are in $(possible_values)")
     end
 end
 
 function get_ontology(::Val{2}, world = :interval, relations = :IA)
     world_possible_values = [:point, :interval, :rectangle, :hyperrectangle]
     relations_possible_values = [:IA, :RCC5, :RCC8]
-    @assert world in world_possible_values "Unexpected value encountered for `world`. Legal values are in $(world_possible_values)"
-    @assert relations in relations_possible_values "Unexpected value encountered for `relations`. Legal values are in $(relations_possible_values)"
+    @assert world in world_possible_values "Unexpected value encountered for `world`: $(world). Legal values are in $(world_possible_values)"
+    @assert relations in relations_possible_values "Unexpected value encountered for `relations`: $(relations). Legal values are in $(relations_possible_values)"
 
     if world in [:point]
         error("TODO point-based ontologies not implemented yet")
     elseif world in [:interval, :rectangle, :hyperrectangle]
-        if     relations_possible_values == :IA   Interval2DOntology
-        elseif relations_possible_values == :RCC5 Interval2DRCC8Ontology
-        elseif relations_possible_values == :RCC8 Interval2DRCC5Ontology
+        if     relations == :IA   Interval2DOntology
+        elseif relations == :RCC5 Interval2DRCC8Ontology
+        elseif relations == :RCC8 Interval2DRCC5Ontology
         else
-            error("Unexpected value encountered for `relations`. Legal values are in $(relations_possible_values)")
+            error("Unexpected value encountered for `relations`: $(relations). Legal values are in $(relations_possible_values)")
         end
     else
-        error("Unexpected value encountered for `world`. Legal values are in $(possible_values)")
+        error("Unexpected value encountered for `world`: $(world). Legal values are in $(possible_values)")
     end
 end
 
 get_interval_ontology(::DimensionalDataset{T,D}, args...) where {T,D} = get_interval_ontology(Val(D-2), args...)
-get_interval_ontology(N::Integer, relations = :IA) = get_interval_ontology(N, world = :interval, relations = relations)
+get_interval_ontology(N::Integer, args...) = get_interval_ontology(Val(N), args...)
+get_interval_ontology(N::Val, relations = :IA) = get_ontology(N, :interval, relations)
 
 const WorldType0D = Union{OneWorld}
 const WorldType1D = Union{Interval}

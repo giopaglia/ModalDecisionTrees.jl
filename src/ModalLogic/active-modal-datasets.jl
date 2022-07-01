@@ -444,7 +444,7 @@ struct ExplicitModalDataset{T<:Number, WorldType<:World} <: ActiveModalDataset{T
             enum_features = zip(i_features, _features[i_features])
 
             # Compute features
-            p = Progress(_n_samples, 1, "Computing EMD...")
+            # p = Progress(_n_samples, 1, "Computing EMD...")
             @inbounds Threads.@threads for i_sample in 1:_n_samples
                 @logmsg DTDebug "Instance $(i_sample)/$(_n_samples)"
                 
@@ -472,7 +472,7 @@ struct ExplicitModalDataset{T<:Number, WorldType<:World} <: ActiveModalDataset{T
 
                     end
                 end
-                next!(p)
+                # next!(p)
             end
             fwd
         end
@@ -714,7 +714,7 @@ Base.@propagate_inbounds function compute_fwd_supports(
         end
     end
 
-    p = Progress(_n_samples, 1, "Computing EMD supports...")
+    # p = Progress(_n_samples, 1, "Computing EMD supports...")
     Threads.@threads for i_sample in 1:_n_samples
         @logmsg DTDebug "Instance $(i_sample)/$(_n_samples)"
         
@@ -784,7 +784,7 @@ Base.@propagate_inbounds function compute_fwd_supports(
                 end
             end
         end
-        next!(p)
+        # next!(p)
     end
     fwd_rs, fwd_gs
 end

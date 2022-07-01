@@ -9,7 +9,7 @@ export prune_tree, prune_forest
 using DataStructures
 
 function prune_tree(tree::DTree; kwargs...)
-    DTree(prune_tree(tree.root; depth = 0, kwargs...), tree.worldTypes, tree.init_conditions)
+    DTree(prune_tree(tree.root; depth = 0, kwargs...), tree.world_types, tree.init_conditions)
 end
 
 function prune_tree(leaf::AbstractDecisionLeaf; kwargs...)
@@ -223,7 +223,7 @@ function train_functional_leaves(
     worlds = Vector{Vector{Vector{<:WST} where {WorldType<:World,WST<:WorldSet{WorldType}}}}([
         init_world_sets(X, tree.init_conditions)
     for (X,Y) in datasets])
-    DTree(train_functional_leaves(tree.root, worlds, datasets, args...; kwargs...), tree.worldTypes, tree.init_conditions)
+    DTree(train_functional_leaves(tree.root, worlds, datasets, args...; kwargs...), tree.world_types, tree.init_conditions)
 end
 
 # At internal nodes, a functional model is trained by calling a callback function, and the leaf is created
@@ -330,12 +330,16 @@ function tree_attribute_countmap(tree::DTree{L}; weighted = false) where {L<:Lab
 end
 
 function _tree_attribute_countmap(node::DTInternal{L}; weighted = false) where {L<:Label}
-    Int[_tree_attribute_countmap(node.this; weighted = weighted)..., _tree_attribute_countmap(node.left; weighted = weighted)..., _tree_attribute_countmap(node.right; weighted = weighted)...]
+    th = begin
+        d = node.decision
+        f = d.feature
+        (f isa SingleAttributeFeature) ? [((node.i_frame, f.i_attribute), (weighted ? length(supp_labels) : 1))] : []
+    end
+    [th..., _tree_attribute_countmap(node.left; weighted = weighted)..., _tree_attribute_countmap(node.right; weighted = weighted)...]
 end
 
 function _tree_attribute_countmap(leaf::AbstractDecisionLeaf{L}; weighted = false) where {L<:Label}
-    f = decision(leaf).feature
-    (f isa SingleAttributeFeature) ? Int[((f.frame, f.i_attribute), (weighted ? length(supp_labels) : 1))] : Int[]
+    []
 end
 
 ############################################################################################

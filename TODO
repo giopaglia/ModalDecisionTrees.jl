@@ -135,7 +135,7 @@ Renamings:
 
 ☐	For temporal series, one may want to have timepoints that are scattered along the time axis. See if https://github.com/JuliaArrays/AxisArrays.jl can be of any help here; but note that one may need to know how to handle missing's
 ☐	Optimize RCC5
-☐	Parametrize worldTypes forcing things such as MINIMUM SIZE?
+☐	Parametrize world_types forcing things such as MINIMUM SIZE?
 ☐	Try adding ProgressMeter? https://github.com/timholy/ProgressMeter.jl
 
 ☐	Trasducers instead of iterators https://juliafolds.github.io/Transducers.jl/dev/explanation/comparison_to_iterators/#comparison-to-iterators
