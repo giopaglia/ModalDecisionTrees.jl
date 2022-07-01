@@ -83,6 +83,7 @@ A DecisionTree model can be visualized using the print_tree-function of its nati
 - [x]  Enable support for images (*untested*)
 - [x]  Enable multimodal learning (learning with scalars, time-series and images together)
 - [ ]  Proper test suite
+- [ ]  Test behavior with NaN values
 - [ ]  Visualizations of modal rules/patterns
 
 ## Theoretical foundations

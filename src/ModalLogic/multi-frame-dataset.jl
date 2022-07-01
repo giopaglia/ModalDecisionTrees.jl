@@ -5,6 +5,7 @@
 # Multi-modal learning in this context is allowed by defining learning functions on so-called
 #  `multi-frame datasets`. These are essentially vectors of modal datasets
 ############################################################################################
+export get_world_types
 
 struct MultiFrameModalDataset{MD<:ModalDataset}
     frames  :: AbstractVector{<:MD}
@@ -45,7 +46,7 @@ n_features(X::MultiFrameModalDataset) = map(n_features, frames(X)) # Note: used 
 n_features(X::MultiFrameModalDataset,  i_frame::Integer) = n_features(get_frame(X, i_frame))
 n_relations(X::MultiFrameModalDataset, i_frame::Integer) = n_relations(get_frame(X, i_frame))
 world_type(X::MultiFrameModalDataset,  i_frame::Integer) = world_type(get_frame(X, i_frame))
-world_types(X::MultiFrameModalDataset) = Vector{Type{<:AbstractWorld}}(world_type.(frames(X)))
+get_world_types(X::MultiFrameModalDataset) = Vector{Type{<:World}}(world_type.(frames(X)))
 
 get_instance(X::MultiFrameModalDataset,  i_frame::Integer, idx_i::Integer, args...)  = get_instance(get_frame(X, i_frame), idx_i, args...)
 # slice_dataset(X::MultiFrameModalDataset, i_frame::Integer, inds::AbstractVector{<:Integer}, args...)  = slice_dataset(get_frame(X, i_frame), inds, args...; kwargs...)
@@ -70,3 +71,17 @@ display_structure(Xs::MultiFrameModalDataset; indent_str = "") = begin
 end
 
 nframes = n_frames # TODO remove
+
+isminifiable(::MultiFrameModalDataset) = true
+
+function minify(Xs::MultiFrameModalDataset)
+    if !any(map(isminifiable, frames(Xs)))
+        if !all(map(isminifiable, frames(Xs)))
+            @error "Cannot perform minification with frames of types $(typeof.(frames(Xs))). Please use a minifiable format (e.g., ExplicitModalDatasetS)."
+        else
+            @warn "Cannot perform minification on some of the frames provided. Please use a minifiable format (e.g., ExplicitModalDatasetS) ($(typeof.(frames(Xs))) were used instead)."
+        end
+    end
+    Xs, backmap = zip([!isminifiable(X) ? minify(X) : (X, identity) for X in frames(Xs)]...)
+    Xs, backmap
+end

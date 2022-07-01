@@ -92,30 +92,28 @@ import .ModalLogic: n_samples, display_decision
 # Initial world conditions
 ############################################################################################
 
-export startWithRelationGlob, startAtCenter, startAtWorld
+abstract type InitCondition end
+struct StartWithoutWorld               <: InitCondition end; const start_without_world  = StartWithoutWorld();
+struct StartAtCenter                   <: InitCondition end; const start_at_center      = StartAtCenter();
+struct StartAtWorld{WT<:World} <: InitCondition w::WT end;
 
-abstract type _initCondition end
-struct _startWithRelationGlob           <: _initCondition end; const startWithRelationGlob  = _startWithRelationGlob();
-struct _startAtCenter                   <: _initCondition end; const startAtCenter          = _startAtCenter();
-struct _startAtWorld{wT<:AbstractWorld} <: _initCondition w::wT end;
+init_world_set(init_conditions::AbstractVector{<:InitCondition}, world_types::AbstractVector{<:Type#={<:World}=#}, args...) =
+    [init_world_set(iC, WT, args...) for (iC, WT) in zip(init_conditions, Vector{Type{<:World}}(world_types))]
 
-init_world_set(initConditions::AbstractVector{<:_initCondition}, worldTypes::AbstractVector{<:Type#={<:AbstractWorld}=#}, args...) =
-    [init_world_set(iC, WT, args...) for (iC, WT) in zip(initConditions, Vector{Type{<:AbstractWorld}}(worldTypes))]
+init_world_set(iC::StartWithoutWorld, ::Type{WorldType}, args...) where {WorldType<:World} =
+    WorldSet{WorldType}([WorldType(ModalLogic.EmptyWorld())])
 
-init_world_set(initCondition::_startWithRelationGlob, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
-    WorldSet{WorldType}([WorldType(ModalLogic._emptyWorld())])
+init_world_set(iC::StartAtCenter, ::Type{WorldType}, args...) where {WorldType<:World} =
+    WorldSet{WorldType}([WorldType(ModalLogic.CenteredWorld(), args...)])
 
-init_world_set(initCondition::_startAtCenter, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
-    WorldSet{WorldType}([WorldType(ModalLogic._centeredWorld(), args...)])
+init_world_set(iC::StartAtWorld{WorldType}, ::Type{WorldType}, args...) where {WorldType<:World} =
+    WorldSet{WorldType}([WorldType(iC.w)])
 
-init_world_set(initCondition::_startAtWorld{WorldType}, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
-    WorldSet{WorldType}([WorldType(initCondition.w)])
-
-init_world_sets(Xs::MultiFrameModalDataset, initConditions::AbstractVector{<:_initCondition}) = begin
+init_world_sets(Xs::MultiFrameModalDataset, init_conditions::AbstractVector{<:InitCondition}) = begin
     Ss = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, n_frames(Xs))
     for (i_frame,X) in enumerate(frames(Xs))
         WT = world_type(X)
-        Ss[i_frame] = WorldSet{WT}[init_world_sets_fun(X, i_sample, world_type(Xs, i_frame))(initConditions[i_frame]) for i_sample in 1:n_samples(Xs)]
+        Ss[i_frame] = WorldSet{WT}[init_world_sets_fun(X, i_sample, world_type(Xs, i_frame))(init_conditions[i_frame]) for i_sample in 1:n_samples(Xs)]
         # Ss[i_frame] = WorldSet{WT}[[ModalLogic.Interval(1,2)] for i_sample in 1:n_samples(Xs)]
     end
     Ss
@@ -260,7 +258,7 @@ abstract type AbstractDecisionLeaf{L<:Label} end
 # Decision leaf node, holding an output (prediction)
 struct DTLeaf{L<:Label} <: AbstractDecisionLeaf{L}
     # prediction
-    prediction         :: L
+    prediction    :: L
     # supporting (e.g., training) instances labels
     supp_labels   :: Vector{L}
 
@@ -403,22 +401,36 @@ struct DTInternal{T, L<:Label}
         DTInternal{T, L}(i_frame, decision, this, left, right)
     end
 
-    # create node without local decision
-    # function DTInternal{T, L}(
-    #     i_frame          :: Int64,
-    #     decision         :: Decision,
-    #     left             :: Union{AbstractDecisionLeaf, DTInternal},
-    #     right            :: Union{AbstractDecisionLeaf, DTInternal}) where {T, L<:Label}
-    #     this = AbstractDecisionLeaf{<:L} (NOPE) (L[(supp_labels(left; supp_labels = supp_labels?))..., (supp_labels(right; supp_labels = supp_labels?))...])
-    #     new{T, L}(i_frame, decision, this, left, right)
-    # end
-    # function DTInternal(
+    # function DTInternal( (need mutable)
     #     i_frame          :: Int64,
     #     decision         :: Decision{T},
     #     left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}},
     #     right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}}) where {T, L<:Label}
-    #     DTInternal{T, L}(i_frame, decision, left, right)
+    #     node = new{T, L}()
+    #     node.i_frame = i_frame
+    #     node.decision = decision
+    #     node.left = left
+    #     node.right = right
+    #     node
     # end
+
+    # create node without local decision
+    function DTInternal{T, L}(
+        i_frame          :: Int64,
+        decision         :: Decision,
+        left             :: Union{AbstractDecisionLeaf, DTInternal},
+        right            :: Union{AbstractDecisionLeaf, DTInternal}) where {T, L<:Label}
+        # this = merge_into_leaf(Vector{<:Union{AbstractDecisionLeaf,DTInternal}}([left, right]))
+        this = merge_into_leaf(Union{<:AbstractDecisionLeaf,<:DTInternal}[left, right])
+        new{T, L}(i_frame, decision, this, left, right)
+    end
+    function DTInternal(
+        i_frame          :: Int64,
+        decision         :: Decision{T},
+        left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}},
+        right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}}) where {T, L<:Label}
+        DTInternal{T, L}(i_frame, decision, left, right)
+    end
 
     # create node without frame
     # function DTInternal{T, L}(
@@ -468,26 +480,26 @@ const DTNode{T, L} = Union{<:AbstractDecisionLeaf{<:L}, DTInternal{T, L}}
 # Decision Tree
 struct DTree{L<:Label}
     # root node
-    root           :: DTNode{T, L} where T
-    # worldTypes (one per frame)
-    worldTypes     :: Vector{Type{<:AbstractWorld}}
+    root            :: DTNode{T, L} where T
+    # world types (one per frame)
+    world_types     :: Vector{Type{<:World}}
     # initial world conditions (one per frame)
-    initConditions :: Vector{<:_initCondition}
+    init_conditions :: Vector{<:InitCondition}
 
     function DTree{L}(
-        root           :: DTNode,
-        worldTypes     :: AbstractVector{<:Type},
-        initConditions :: AbstractVector{<:_initCondition},
+        root            :: DTNode,
+        world_types     :: AbstractVector{<:Type},
+        init_conditions :: AbstractVector{<:InitCondition},
     ) where {L<:Label}
-        new{L}(root, collect(worldTypes), collect(initConditions))
+        new{L}(root, collect(world_types), collect(init_conditions))
     end
 
     function DTree(
-        root           :: DTNode{T, L},
-        worldTypes     :: AbstractVector{<:Type},
-        initConditions :: AbstractVector{<:_initCondition},
+        root            :: DTNode{T, L},
+        world_types     :: AbstractVector{<:Type},
+        init_conditions :: AbstractVector{<:InitCondition},
     ) where {T, L<:Label}
-        DTree{L}(root, worldTypes, initConditions)
+        DTree{L}(root, world_types, init_conditions)
     end
 end
 
@@ -580,10 +592,10 @@ is_modal_node(tree::DTree)      = is_modal_node(tree.root)
 ############################################################################################
 ############################################################################################
 
-display_decision(node::DTInternal; threshold_display_method::Function = x -> x) =
-    display_decision(node.i_frame, node.decision; threshold_display_method = threshold_display_method)
-display_decision_inverse(node::DTInternal; threshold_display_method::Function = x -> x) =
-    display_decision_inverse(node.i_frame, node.decision; threshold_display_method = threshold_display_method)
+display_decision(node::DTInternal, args...; kwargs...) =
+    ModalLogic.display_decision(node.i_frame, node.decision, args...; kwargs...)
+display_decision_inverse(node::DTInternal, args...; kwargs...) =
+    ModalLogic.display_decision_inverse(node.i_frame, node.decision, args...; kwargs...)
 
 ############################################################################################
 ############################################################################################
@@ -647,8 +659,8 @@ end
 
 function Base.show(io::IO, tree::DTree{L}) where {L}
     println(io, "Decision Tree{$(L)}(")
-    println(io, "\tworldTypes:     $(tree.worldTypes)")
-    println(io, "\tinitConditions: $(tree.initConditions)")
+    println(io, "\tworld_types:    $(tree.world_types)")
+    println(io, "\tinitConditions: $(tree.init_conditions)")
     println(io, "\t###########################################################")
     println(io, "\tsub-tree leaves: $(num_leaves(tree))")
     println(io, "\tsub-tree nodes: $(num_nodes(tree))")
@@ -674,8 +686,8 @@ end
 ############################################################################################
 
 default_max_depth = typemax(Int64)
-default_min_samples_leaf = 1
-default_min_purity_increase = -Inf
+default_min_samples_leaf = 4 # min_samples_leaf = 1
+default_min_purity_increase = 0.002 # min_purity_increase = -Inf
 default_max_purity_at_leaf = Inf
 default_n_trees = typemax(Int64)
 
@@ -692,8 +704,14 @@ include("build.jl")
 include("predict.jl")
 include("posthoc.jl")
 include("print.jl")
-include("print-latex.jl")
 include("decisionpath.jl")
+
+export ModalDecisionTree
+include("MLJ-interface.jl")
+using .MLJInterface
+
+include("experimentals.jl")
+using .experimentals
 
 ############################################################################################
 # Tests
@@ -775,7 +793,7 @@ end
         # # create node without frame nor local decision
         # cls_node = @test_nowarn DTInternal(decision, cls_node, cls_leaf)
 
-        # cls_tree = @test_nowarn DTree(cls_node, [ModalLogic.Interval], [startWithRelationGlob])
+        # cls_tree = @test_nowarn DTree(cls_node, [ModalLogic.Interval], [start_without_world])
         # cls_forest = @test_nowarn DForest([cls_tree, cls_tree, cls_tree])
     end
     

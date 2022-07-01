@@ -9,7 +9,7 @@ export prune_tree, prune_forest
 using DataStructures
 
 function prune_tree(tree::DTree; kwargs...)
-    DTree(prune_tree(tree.root; depth = 0, kwargs...), tree.worldTypes, tree.initConditions)
+    DTree(prune_tree(tree.root; depth = 0, kwargs...), tree.world_types, tree.init_conditions)
 end
 
 function prune_tree(leaf::AbstractDecisionLeaf; kwargs...)
@@ -135,8 +135,8 @@ function nondominated_pruning_parametrizations(args::AbstractVector; do_it_or_no
                 :loss_function,
                 :n_subrelations,
                 :n_subfeatures,
-                :initConditions,
-                :allowRelationGlob,
+                :init_conditions,
+                :allow_global_splits,
                 :rng,
                 :partial_sampling,
                 :perform_consistency_check,
@@ -220,10 +220,10 @@ function train_functional_leaves(
         kwargs...,
     )
     # World sets for (dataset, frame, instance)
-    worlds = Vector{Vector{Vector{<:WST} where {WorldType<:AbstractWorld,WST<:WorldSet{WorldType}}}}([
-        init_world_sets(X, tree.initConditions)
+    worlds = Vector{Vector{Vector{<:WST} where {WorldType<:World,WST<:WorldSet{WorldType}}}}([
+        init_world_sets(X, tree.init_conditions)
     for (X,Y) in datasets])
-    DTree(train_functional_leaves(tree.root, worlds, datasets, args...; kwargs...), tree.worldTypes, tree.initConditions)
+    DTree(train_functional_leaves(tree.root, worlds, datasets, args...; kwargs...), tree.world_types, tree.init_conditions)
 end
 
 # At internal nodes, a functional model is trained by calling a callback function, and the leaf is created
@@ -311,3 +311,68 @@ function train_functional_leaves(
     NSDTLeaf{L}(predicting_function, supp_train_labels, supp_valid_labels, supp_train_predictions, supp_valid_predictions)
 end
 
+
+############################################################################################
+############################################################################################
+############################################################################################
+
+function tree_attribute_countmap(tree::DTree{L}; weighted = false) where {L<:Label}
+    vals = _tree_attribute_countmap(tree.root; weighted = weighted)
+    if !weighted
+        countmap(first.(vals))
+    else
+        c = Dict([attr => 0 for attr in unique(first.(vals))])
+        for (attr, weight) in vals
+            c[attr] += weight
+        end
+        Dict([attr => count/sum(values(c)) for (attr, count) in c])
+    end
+end
+
+function _tree_attribute_countmap(node::DTInternal{L}; weighted = false) where {L<:Label}
+    th = begin
+        d = node.decision
+        f = d.feature
+        (f isa SingleAttributeFeature) ? [((node.i_frame, f.i_attribute), (weighted ? length(supp_labels) : 1))] : []
+    end
+    [th..., _tree_attribute_countmap(node.left; weighted = weighted)..., _tree_attribute_countmap(node.right; weighted = weighted)...]
+end
+
+function _tree_attribute_countmap(leaf::AbstractDecisionLeaf{L}; weighted = false) where {L<:Label}
+    []
+end
+
+############################################################################################
+############################################################################################
+############################################################################################
+
+function merge_into_leaf(nodes::AbstractVector{<:DTNode})
+    merge_into_leaf(map((n)->(n isa AbstractDecisionLeaf ? n : n.this), nodes))
+end
+
+function merge_into_leaf(leaves::AbstractVector{<:DTLeaf{L}}) where {L}
+    dtleaf_types = typeof.(leaves)
+    @assert length(unique(dtleaf_types)) == 1 "Can't aggregate different leaf types: $(dtleaf_types)"
+    dtleaf_type = dtleaf_types[1]
+    dtleaf_type(L.(collect(Iterators.flatten(map((leaf)->leaf.supp_labels, leaves)))))
+end
+
+function merge_into_leaf(leaves::AbstractVector{<:NSDTLeaf{L}}) where {L}
+    # dtleaf_types = typeof.(leaves)
+    # @assert length(unique(dtleaf_types)) == 1 "Can't aggregate different leaf types: $(dtleaf_types)"
+    # dtleaf_type = dtleaf_types[1]
+    dtleaf_type = DTLeaf{L}
+    supp_train_labels      = L.(collect(Iterators.flatten(map((leaf)->leaf.supp_train_labels, leaves))))
+    supp_valid_labels      = L.(collect(Iterators.flatten(map((leaf)->leaf.supp_valid_labels, leaves))))
+    supp_train_predictions = L.(collect(Iterators.flatten(map((leaf)->leaf.supp_train_predictions, leaves))))
+    supp_valid_predictions = L.(collect(Iterators.flatten(map((leaf)->leaf.supp_valid_predictions, leaves))))
+    supp_labels = [supp_train_labels..., supp_valid_labels..., supp_train_predictions..., supp_valid_predictions...]
+    predicting_function = (args...; kwargs...)->(average_label(supp_labels))
+    dtleaf_type(
+        predicting_function,
+        supp_train_labels,
+        supp_valid_labels,
+        supp_train_predictions,
+        supp_valid_predictions,
+    )
+end

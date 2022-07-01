@@ -23,8 +23,8 @@ end
 
 Xs = MultiFrameModalDataset{ExplicitModalDatasetS}([
     ExplicitModalDatasetS(
-        InterpretedModalDataset(randn(n_pts, n_attrs, _n_samples), ModalLogic.getIntervalOntologyOfDim(Val(1)), features, featsnops),
-        computeRelationGlob = true,
+        InterpretedModalDataset(randn(n_pts, n_attrs, _n_samples), ModalLogic.get_interval_ontology(1), features, featsnops),
+        compute_relation_glob = true,
     )
 ]);
 
@@ -39,32 +39,32 @@ min_purity_increase        = -Inf,
 max_purity_at_leaf         = 0.2,
 n_subrelations             = Function[identity],
 n_subfeatures              = Int64[n_feats],
-allowRelationGlob          = [true],
+allow_global_splits        = [true],
 )
 perform_consistency_check  = true
 
 # @code_warntype n_samples(Xs)
 
-initConditions             = [startWithRelationGlob]
+init_conditions             = [ModalDecisionTrees.start_without_world]
 
 ################################################################################
 # fit
 ################################################################################
 
 Y  = String[fill("0", _n_samples_h)..., fill("1", _n_samples_h)...]
-ModalDecisionTrees.fit(Xs, Y, initConditions; perform_consistency_check = perform_consistency_check, kwargs...)
-@code_warntype ModalDecisionTrees.fit(Xs, Y, initConditions; perform_consistency_check = perform_consistency_check, kwargs...)
-@inferred ModalDecisionTrees.fit(Xs, Y, initConditions; perform_consistency_check = perform_consistency_check, kwargs...)
+ModalDecisionTrees.fit(Xs, Y, init_conditions; perform_consistency_check = perform_consistency_check, kwargs...)
+@code_warntype ModalDecisionTrees.fit(Xs, Y, init_conditions; perform_consistency_check = perform_consistency_check, kwargs...)
+@inferred ModalDecisionTrees.fit(Xs, Y, init_conditions; perform_consistency_check = perform_consistency_check, kwargs...)
 
 Y  = Int64[fill(3, _n_samples_h)..., fill(1, _n_samples_h)...]
-ModalDecisionTrees.fit(Xs, Y, initConditions; perform_consistency_check = perform_consistency_check, kwargs...)
-@code_warntype ModalDecisionTrees.fit(Xs, Y, initConditions; perform_consistency_check = perform_consistency_check, kwargs...)
-@inferred ModalDecisionTrees.fit(Xs, Y, initConditions; perform_consistency_check = perform_consistency_check, kwargs...)
+ModalDecisionTrees.fit(Xs, Y, init_conditions; perform_consistency_check = perform_consistency_check, kwargs...)
+@code_warntype ModalDecisionTrees.fit(Xs, Y, init_conditions; perform_consistency_check = perform_consistency_check, kwargs...)
+@inferred ModalDecisionTrees.fit(Xs, Y, init_conditions; perform_consistency_check = perform_consistency_check, kwargs...)
 
 Y  = Float64[fill(0.0, _n_samples_h)..., fill(1.0, _n_samples_h)...]
-ModalDecisionTrees.fit(Xs, Y, initConditions; perform_consistency_check = perform_consistency_check, kwargs...)
-@code_warntype ModalDecisionTrees.fit(Xs, Y, initConditions; perform_consistency_check = perform_consistency_check, kwargs...)
-@inferred ModalDecisionTrees.fit(Xs, Y, initConditions; perform_consistency_check = perform_consistency_check, kwargs...)
+ModalDecisionTrees.fit(Xs, Y, init_conditions; perform_consistency_check = perform_consistency_check, kwargs...)
+@code_warntype ModalDecisionTrees.fit(Xs, Y, init_conditions; perform_consistency_check = perform_consistency_check, kwargs...)
+@inferred ModalDecisionTrees.fit(Xs, Y, init_conditions; perform_consistency_check = perform_consistency_check, kwargs...)
 
 ################################################################################
 # _fit
@@ -72,22 +72,22 @@ ModalDecisionTrees.fit(Xs, Y, initConditions; perform_consistency_check = perfor
 
 Y  = Int64[fill(1, _n_samples_h)..., fill(2, _n_samples_h)...]
 
-ModalDecisionTrees._fit(Xs, Y, initConditions, W;
+ModalDecisionTrees._fit(Xs, Y, init_conditions, W;
     n_classes = 2,
     _is_classification = Val(true),
     _perform_consistency_check = Val(perform_consistency_check), kwargs...)
-@code_warntype ModalDecisionTrees._fit(Xs, Y, initConditions, W;
+@code_warntype ModalDecisionTrees._fit(Xs, Y, init_conditions, W;
     n_classes = 2,
     _is_classification = Val(true),
     _perform_consistency_check = Val(perform_consistency_check), kwargs...)
 
 
 Y  = Float64[fill(0.0, _n_samples_h)..., fill(1.0, _n_samples_h)...]
-ModalDecisionTrees._fit(Xs, Y, initConditions, W;
+ModalDecisionTrees._fit(Xs, Y, init_conditions, W;
     n_classes = 0,
     _is_classification = Val(false),
     _perform_consistency_check = Val(perform_consistency_check), kwargs...)
-@code_warntype ModalDecisionTrees._fit(Xs, Y, initConditions, W;
+@code_warntype ModalDecisionTrees._fit(Xs, Y, init_conditions, W;
     n_classes = 0,
     _is_classification = Val(false),
     _perform_consistency_check = Val(perform_consistency_check), kwargs...)
@@ -99,13 +99,13 @@ ModalDecisionTrees._fit(Xs, Y, initConditions, W;
 Y  = Int64[fill(1, _n_samples_h)..., fill(2, _n_samples_h)...]
 
 idxs = collect(1:_n_samples)
-Ss = ModalDecisionTrees.init_world_sets(Xs, initConditions)
+Ss = ModalDecisionTrees.init_world_sets(Xs, init_conditions)
 
-onlyallowRelationGlob = [(iC == startWithRelationGlob) for iC in initConditions]
+onlyallowRelationGlob = [(iC == ModalDecisionTrees.start_without_world) for iC in init_conditions]
 node = ModalDecisionTrees.NodeMeta{Float64,Int64}(1:_n_samples, 0, 0, onlyallowRelationGlob)
 
 
-@code_warntype ModalDecisionTrees.split_node!(node, Xs, Ss, Y, initConditions, W;
+@code_warntype ModalDecisionTrees.split_node!(node, Xs, Ss, Y, init_conditions, W;
     idxs                       = idxs,
     rng                        = rng,
     n_classes = 2,

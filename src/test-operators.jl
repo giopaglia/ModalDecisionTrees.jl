@@ -12,21 +12,21 @@ const TestOperatorFun = Function
 
 # # TODO improved version for Rational numbers
 # # TODO check
-# @inline test_op_partialsort!(test_op::_TestOpGeqSoft, vals::Vector{T}) where {T} = 
+# @inline test_op_partialsort!(test_op::CanonicalFeatureGeqSoft, vals::Vector{T}) where {T} = 
 #   partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)); rev=true)
-# @inline test_op_partialsort!(test_op::_TestOpLeqSoft, vals::Vector{T}) where {T} = 
+# @inline test_op_partialsort!(test_op::CanonicalFeatureLeqSoft, vals::Vector{T}) where {T} = 
 #   partialsort!(vals,ceil(Int, alpha(test_op)*length(vals)))
 
-# @inline computePropositionalThreshold(test_op::Union{_TestOpGeqSoft,_TestOpLeqSoft}, w::AbstractWorld, channel::DimensionalChannel{T,N}) where {T,N} = begin
+# @inline computePropositionalThreshold(test_op::Union{CanonicalFeatureGeqSoft,CanonicalFeatureLeqSoft}, w::World, channel::DimensionalChannel{T,N}) where {T,N} = begin
 #   vals = vec(ch_readWorld(w,channel))
 #   test_op_partialsort!(test_op,vals)
 # end
-# @inline computePropositionalThresholdMany(test_ops::Vector{<:TestOperator}, w::AbstractWorld, channel::DimensionalChannel{T,N}) where {T,N} = begin
+# @inline computePropositionalThresholdMany(test_ops::Vector{<:TestOperator}, w::World, channel::DimensionalChannel{T,N}) where {T,N} = begin
 #   vals = vec(ch_readWorld(w,channel))
 #   (test_op_partialsort!(test_op,vals) for test_op in test_ops)
 # end
 
-# @inline test_decision(test_operator::_TestOpGeqSoft, w::AbstractWorld, channel::DimensionalChannel{T,N}, threshold::Real) where {T,N} = begin 
+# @inline test_decision(test_operator::CanonicalFeatureGeqSoft, w::World, channel::DimensionalChannel{T,N}, threshold::Real) where {T,N} = begin 
 #   ys = 0
 #   # TODO write with reduce, and optimize it (e.g. by stopping early if the decision is reached already)
 #   vals = ch_readWorld(w,channel)
@@ -38,7 +38,7 @@ const TestOperatorFun = Function
 #   (ys/length(vals)) >= test_operator.alpha
 # end
 
-# @inline test_decision(test_operator::_TestOpLeqSoft, w::AbstractWorld, channel::DimensionalChannel{T,N}, threshold::Real) where {T,N} = begin 
+# @inline test_decision(test_operator::CanonicalFeatureLeqSoft, w::World, channel::DimensionalChannel{T,N}, threshold::Real) where {T,N} = begin 
 #   ys = 0
 #   # TODO write with reduce, and optimize it (e.g. by stopping early if the decision is reached already)
 #   vals = ch_readWorld(w,channel)
@@ -51,16 +51,16 @@ const TestOperatorFun = Function
 # end
 
 # const all_lowlevel_test_operators = [
-#     TestOpGeq, TestOpLeq,
+#     canonical_geq, canonical_leq,
 #     SoftenedOperators...
 #   ]
 
 # const all_ordered_test_operators = [
-#     TestOpGeq, TestOpLeq,
+#     canonical_geq, canonical_leq,
 #     SoftenedOperators...
 #   ]
 # const all_test_operators_order = [
-#     TestOpGeq, TestOpLeq,
+#     canonical_geq, canonical_leq,
 #     SoftenedOperators...
 #   ]
 # sort_test_operators!(x::Vector{TO}) where {TO<:TestOperator} = begin
@@ -269,81 +269,62 @@ end
 ################################################################################
 ################################################################################
 
-export MixedFeature, CanonicalFeature, CanonicalFeatureGeq, CanonicalFeatureLeq
+export MixedFeature, CanonicalFeature, canonical_geq, canonical_leq
 
 abstract type CanonicalFeature end
 
 # ⪴ and ⪳, that is, "*all* of the values on this world are at least, or at most ..."
-struct _CanonicalFeatureGeq <: CanonicalFeature end; const CanonicalFeatureGeq  = _CanonicalFeatureGeq();
-struct _CanonicalFeatureLeq <: CanonicalFeature end; const CanonicalFeatureLeq  = _CanonicalFeatureLeq();
+struct CanonicalFeatureGeq <: CanonicalFeature end; const canonical_geq  = CanonicalFeatureGeq();
+struct CanonicalFeatureLeq <: CanonicalFeature end; const canonical_leq  = CanonicalFeatureLeq();
 
-export CanonicalFeatureGeq_95, CanonicalFeatureGeq_90, CanonicalFeatureGeq_85, CanonicalFeatureGeq_80, CanonicalFeatureGeq_75, CanonicalFeatureGeq_70, CanonicalFeatureGeq_60,
-                CanonicalFeatureLeq_95, CanonicalFeatureLeq_90, CanonicalFeatureLeq_85, CanonicalFeatureLeq_80, CanonicalFeatureLeq_75, CanonicalFeatureLeq_70, CanonicalFeatureLeq_60
+export canonical_geq_95, canonical_geq_90, canonical_geq_85, canonical_geq_80, canonical_geq_75, canonical_geq_70, canonical_geq_60,
+       canonical_leq_95, canonical_leq_90, canonical_leq_85, canonical_leq_80, canonical_leq_75, canonical_leq_70, canonical_leq_60
 
 # ⪴_α and ⪳_α, that is, "*at least α⋅100 percent* of the values on this world are at least, or at most ..."
 
-struct _CanonicalFeatureGeqSoft  <: CanonicalFeature
+struct CanonicalFeatureGeqSoft  <: CanonicalFeature
   alpha :: AbstractFloat
-  _CanonicalFeatureGeqSoft(a::T) where {T<:Real} = (a > 0 && a < 1) ? new(a) : throw_n_log("Invalid instantiation for test operator: _CanonicalFeatureGeqSoft($(a))")
+  CanonicalFeatureGeqSoft(a::T) where {T<:Real} = (a > 0 && a < 1) ? new(a) : throw_n_log("Invalid instantiation for test operator: CanonicalFeatureGeqSoft($(a))")
 end;
-struct _CanonicalFeatureLeqSoft  <: CanonicalFeature
+struct CanonicalFeatureLeqSoft  <: CanonicalFeature
   alpha :: AbstractFloat
-  _CanonicalFeatureLeqSoft(a::T) where {T<:Real} = (a > 0 && a < 1) ? new(a) : throw_n_log("Invalid instantiation for test operator: _CanonicalFeatureLeqSoft($(a))")
+  CanonicalFeatureLeqSoft(a::T) where {T<:Real} = (a > 0 && a < 1) ? new(a) : throw_n_log("Invalid instantiation for test operator: CanonicalFeatureLeqSoft($(a))")
 end;
 
-const CanonicalFeatureGeq_95  = _CanonicalFeatureGeqSoft((Rational(95,100)));
-const CanonicalFeatureGeq_90  = _CanonicalFeatureGeqSoft((Rational(90,100)));
-const CanonicalFeatureGeq_85  = _CanonicalFeatureGeqSoft((Rational(85,100)));
-const CanonicalFeatureGeq_80  = _CanonicalFeatureGeqSoft((Rational(80,100)));
-const CanonicalFeatureGeq_75  = _CanonicalFeatureGeqSoft((Rational(75,100)));
-const CanonicalFeatureGeq_70  = _CanonicalFeatureGeqSoft((Rational(70,100)));
-const CanonicalFeatureGeq_60  = _CanonicalFeatureGeqSoft((Rational(60,100)));
+const canonical_geq_95  = CanonicalFeatureGeqSoft((Rational(95,100)));
+const canonical_geq_90  = CanonicalFeatureGeqSoft((Rational(90,100)));
+const canonical_geq_85  = CanonicalFeatureGeqSoft((Rational(85,100)));
+const canonical_geq_80  = CanonicalFeatureGeqSoft((Rational(80,100)));
+const canonical_geq_75  = CanonicalFeatureGeqSoft((Rational(75,100)));
+const canonical_geq_70  = CanonicalFeatureGeqSoft((Rational(70,100)));
+const canonical_geq_60  = CanonicalFeatureGeqSoft((Rational(60,100)));
 
-const CanonicalFeatureLeq_95  = _CanonicalFeatureLeqSoft((Rational(95,100)));
-const CanonicalFeatureLeq_90  = _CanonicalFeatureLeqSoft((Rational(90,100)));
-const CanonicalFeatureLeq_85  = _CanonicalFeatureLeqSoft((Rational(85,100)));
-const CanonicalFeatureLeq_80  = _CanonicalFeatureLeqSoft((Rational(80,100)));
-const CanonicalFeatureLeq_75  = _CanonicalFeatureLeqSoft((Rational(75,100)));
-const CanonicalFeatureLeq_70  = _CanonicalFeatureLeqSoft((Rational(70,100)));
-const CanonicalFeatureLeq_60  = _CanonicalFeatureLeqSoft((Rational(60,100)));
-
-# TODO deprecated, remove
-export TestOpGeq_95, TestOpGeq_90, TestOpGeq_85, TestOpGeq_80, TestOpGeq_75, TestOpGeq_70, TestOpGeq_60, TestOpLeq_95, TestOpLeq_90, TestOpLeq_85, TestOpLeq_80, TestOpLeq_75, TestOpLeq_70, TestOpLeq_60, TestOpGeq, TestOpLeq
-TestOpGeq_95 = CanonicalFeatureGeq_95
-TestOpGeq_90 = CanonicalFeatureGeq_90
-TestOpGeq_85 = CanonicalFeatureGeq_85
-TestOpGeq_80 = CanonicalFeatureGeq_80
-TestOpGeq_75 = CanonicalFeatureGeq_75
-TestOpGeq_70 = CanonicalFeatureGeq_70
-TestOpGeq_60 = CanonicalFeatureGeq_60
-TestOpLeq_95 = CanonicalFeatureLeq_95
-TestOpLeq_90 = CanonicalFeatureLeq_90
-TestOpLeq_85 = CanonicalFeatureLeq_85
-TestOpLeq_80 = CanonicalFeatureLeq_80
-TestOpLeq_75 = CanonicalFeatureLeq_75
-TestOpLeq_70 = CanonicalFeatureLeq_70
-TestOpLeq_60 = CanonicalFeatureLeq_60
-TestOpGeq    = CanonicalFeatureGeq
-TestOpLeq    = CanonicalFeatureLeq
+const canonical_leq_95  = CanonicalFeatureLeqSoft((Rational(95,100)));
+const canonical_leq_90  = CanonicalFeatureLeqSoft((Rational(90,100)));
+const canonical_leq_85  = CanonicalFeatureLeqSoft((Rational(85,100)));
+const canonical_leq_80  = CanonicalFeatureLeqSoft((Rational(80,100)));
+const canonical_leq_75  = CanonicalFeatureLeqSoft((Rational(75,100)));
+const canonical_leq_70  = CanonicalFeatureLeqSoft((Rational(70,100)));
+const canonical_leq_60  = CanonicalFeatureLeqSoft((Rational(60,100)));
 
 MixedFeature = Union{ModalFeature,CanonicalFeature,Function,Tuple{TestOperatorFun,Function},Tuple{TestOperatorFun,ModalFeature}}
 
 ############################################################################################
 
 
-display_feature_test_operator_pair(feature::ModalFeature,     test_operator::TestOperatorFun)        = "$(feature) $(test_operator)"
+display_feature_test_operator_pair(feature::ModalFeature,     test_operator::TestOperatorFun; kwargs...)        = "$(display_feature(feature; kwargs...)) $(test_operator)"
 
-# display_feature_test_operator_pair(feature::SingleAttributeMin,     test_operator::typeof(≥))        = "A$(feature.i_attribute) ⪴"
-# display_feature_test_operator_pair(feature::SingleAttributeMax,     test_operator::typeof(≤))        = "A$(feature.i_attribute) ⪳"
-# display_feature_test_operator_pair(feature::SingleAttributeSoftMin, test_operator::typeof(≥))        = "A$(feature.i_attribute) $("⪴" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
-# display_feature_test_operator_pair(feature::SingleAttributeSoftMax, test_operator::typeof(≤))        = "A$(feature.i_attribute) $("⪳" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
+# display_feature_test_operator_pair(feature::SingleAttributeMin,     test_operator::typeof(≥); kwargs...)        = "$(attribute_name(feature; kwargs...)) ⪴"
+# display_feature_test_operator_pair(feature::SingleAttributeMax,     test_operator::typeof(≤); kwargs...)        = "$(attribute_name(feature; kwargs...)) ⪳"
+# display_feature_test_operator_pair(feature::SingleAttributeSoftMin, test_operator::typeof(≥); kwargs...)        = "$(attribute_name(feature; kwargs...)) $("⪴" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
+# display_feature_test_operator_pair(feature::SingleAttributeSoftMax, test_operator::typeof(≤); kwargs...)        = "$(attribute_name(feature; kwargs...)) $("⪳" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
 
-# display_feature_test_operator_pair(feature::SingleAttributeMin,     test_operator::typeof(<))        = "A$(feature.i_attribute) ⪶"
-# display_feature_test_operator_pair(feature::SingleAttributeMax,     test_operator::typeof(>))        = "A$(feature.i_attribute) ⪵"
-# display_feature_test_operator_pair(feature::SingleAttributeSoftMin, test_operator::typeof(<))        = "A$(feature.i_attribute) $("⪶" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
-# display_feature_test_operator_pair(feature::SingleAttributeSoftMax, test_operator::typeof(>))        = "A$(feature.i_attribute) $("⪵" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
+# display_feature_test_operator_pair(feature::SingleAttributeMin,     test_operator::typeof(<); kwargs...)        = "$(attribute_name(feature; kwargs...)) ⪶"
+# display_feature_test_operator_pair(feature::SingleAttributeMax,     test_operator::typeof(>); kwargs...)        = "$(attribute_name(feature; kwargs...)) ⪵"
+# display_feature_test_operator_pair(feature::SingleAttributeSoftMin, test_operator::typeof(<); kwargs...)        = "$(attribute_name(feature; kwargs...)) $("⪶" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
+# display_feature_test_operator_pair(feature::SingleAttributeSoftMax, test_operator::typeof(>); kwargs...)        = "$(attribute_name(feature; kwargs...)) $("⪵" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
 
-# display_feature_test_operator_pair(feature::SingleAttributeMin,     test_operator::typeof(≤))        = "A$(feature.i_attribute) ↘"
-# display_feature_test_operator_pair(feature::SingleAttributeMax,     test_operator::typeof(≥))        = "A$(feature.i_attribute) ↗"
-# display_feature_test_operator_pair(feature::SingleAttributeSoftMin, test_operator::typeof(≤))        = "A$(feature.i_attribute) $("↘" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
-# display_feature_test_operator_pair(feature::SingleAttributeSoftMax, test_operator::typeof(≥))        = "A$(feature.i_attribute) $("↗" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
+# display_feature_test_operator_pair(feature::SingleAttributeMin,     test_operator::typeof(≤); kwargs...)        = "$(attribute_name(feature; kwargs...)) ↘"
+# display_feature_test_operator_pair(feature::SingleAttributeMax,     test_operator::typeof(≥); kwargs...)        = "$(attribute_name(feature; kwargs...)) ↗"
+# display_feature_test_operator_pair(feature::SingleAttributeSoftMin, test_operator::typeof(≤); kwargs...)        = "$(attribute_name(feature; kwargs...)) $("↘" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"
+# display_feature_test_operator_pair(feature::SingleAttributeSoftMax, test_operator::typeof(≥); kwargs...)        = "$(attribute_name(feature; kwargs...)) $("↗" * util.subscriptnumber(rstrip(rstrip(string(alpha(feature)*100), '0'), '.')))"

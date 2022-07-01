@@ -1,11 +1,11 @@
 export OneWorld
 
 # One unique world (propositional case)
-struct OneWorld    <: AbstractWorld
+struct OneWorld    <: World
     OneWorld() = new()
     # 
-    OneWorld(w::_emptyWorld) = new()
-    OneWorld(w::_centeredWorld) = new()
+    OneWorld(w::EmptyWorld) = new()
+    OneWorld(w::CenteredWorld) = new()
 end;
 
 Base.show(io::IO, w::OneWorld) = begin

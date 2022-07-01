@@ -73,9 +73,11 @@ function print_tree(
         io::IO,
         leaf::DTLeaf;
         indentation_str="",
-        metrics_kwargs...,
+        attribute_names_map = nothing,
+        max_depth = nothing,
+        kwargs...,
     )
-    metrics = get_metrics(leaf; metrics_kwargs...)
+    metrics = get_metrics(leaf; kwargs...)
     metrics_str = get_metrics_str(metrics)
     println(io, "$(brief_prediction_str(leaf)) : $(metrics_str)")
 end
@@ -84,10 +86,12 @@ function print_tree(
         io::IO,
         leaf::NSDTLeaf;
         indentation_str="",
-        metrics_kwargs...,
+        attribute_names_map = nothing,
+        max_depth = nothing,
+        kwargs...,
     )
-    train_metrics_str = metrics_str(get_metrics(leaf; train_or_valid = true, metrics_kwargs...))
-    valid_metrics_str = metrics_str(get_metrics(leaf; train_or_valid = false, metrics_kwargs...))
+    train_metrics_str = metrics_str(get_metrics(leaf; train_or_valid = true, kwargs...))
+    valid_metrics_str = metrics_str(get_metrics(leaf; train_or_valid = false, kwargs...))
     println(io, "$(brief_prediction_str(leaf)) : {TRAIN: $(train_metrics_str); VALID: $(valid_metrics_str)}")
 end
 
@@ -95,17 +99,28 @@ function print_tree(
     io::IO,
     node::DTInternal;
     indentation_str="",
+    attribute_names_map = nothing,
     max_depth = nothing,
     # TODO print_rules = false,
     metrics_kwargs...,
 )
-    print(io, "$(display_decision(node))\t\t\t")
+    print(io, "$(display_decision(node; attribute_names_map = attribute_names_map))\t\t\t")
     print_tree(io, node.this; indentation_str = "", metrics_kwargs...)
-    if isnothing(max_depth) || length(indentation_str) > max_depth
+    if isnothing(max_depth) || length(indentation_str) < max_depth
         print(io, indentation_str * "✔ ") # "╭✔ "
-        print_tree(io, node.left; indentation_str = indentation_str*"│", metrics_kwargs...)
+        print_tree(io, node.left;
+            indentation_str = indentation_str*"│",
+            attribute_names_map = attribute_names_map,
+            max_depth = max_depth,
+            metrics_kwargs...,
+        )
         print(io, indentation_str * "✘ ") # "╰✘ "
-        print_tree(io, node.right; indentation_str = indentation_str*" ", metrics_kwargs...)
+        print_tree(io, node.right;
+            indentation_str = indentation_str*" ",
+            attribute_names_map = attribute_names_map,
+            max_depth = max_depth,
+            metrics_kwargs...,
+        )
     else
         println(io, " [...]")
     end
