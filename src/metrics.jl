@@ -167,7 +167,8 @@ struct ConfusionMatrix
     function ConfusionMatrix(
             actual::AbstractVector{L},
             predicted::AbstractVector{L},
-            weights = nothing,
+            weights = nothing;
+            force_class_order = nothing,
         ) where {L<:CLabel}
         @assert length(actual) == length(predicted) "Can't compute ConfusionMatrix with uneven number of actual $(length(actual)) and predicted $(length(predicted)) labels."
         
@@ -178,7 +179,12 @@ struct ConfusionMatrix
 
         class_labels = begin
             class_labels = unique([actual; predicted])
-            class_labels = sort(class_labels, lt=util.nat_sort)
+            if isnothing(force_class_order)
+                class_labels = sort(class_labels, lt=util.nat_sort)
+            else
+                @assert length(setdiff(force_class_order, class_labels)) == 0
+                class_labels = force_class_order
+            end
             # Binary case: retain order of classes YES/NO
             if length(class_labels) == 2 &&
                     startswith(class_labels[1], "YES") &&
