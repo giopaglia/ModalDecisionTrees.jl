@@ -97,8 +97,8 @@ struct StartWithoutWorld               <: InitCondition end; const start_without
 struct StartAtCenter                   <: InitCondition end; const start_at_center      = StartAtCenter();
 struct StartAtWorld{WT<:World} <: InitCondition w::WT end;
 
-init_world_set(init_conditions::AbstractVector{<:InitCondition}, worldTypes::AbstractVector{<:Type#={<:World}=#}, args...) =
-    [init_world_set(iC, WT, args...) for (iC, WT) in zip(init_conditions, Vector{Type{<:World}}(worldTypes))]
+init_world_set(init_conditions::AbstractVector{<:InitCondition}, world_types::AbstractVector{<:Type#={<:World}=#}, args...) =
+    [init_world_set(iC, WT, args...) for (iC, WT) in zip(init_conditions, Vector{Type{<:World}}(world_types))]
 
 init_world_set(iC::StartWithoutWorld, ::Type{WorldType}, args...) where {WorldType<:World} =
     WorldSet{WorldType}([WorldType(ModalLogic.EmptyWorld())])
@@ -481,25 +481,25 @@ const DTNode{T, L} = Union{<:AbstractDecisionLeaf{<:L}, DTInternal{T, L}}
 struct DTree{L<:Label}
     # root node
     root            :: DTNode{T, L} where T
-    # worldTypes (one per frame)
-    worldTypes      :: Vector{Type{<:World}}
+    # world types (one per frame)
+    world_types     :: Vector{Type{<:World}}
     # initial world conditions (one per frame)
     init_conditions :: Vector{<:InitCondition}
 
     function DTree{L}(
         root            :: DTNode,
-        worldTypes      :: AbstractVector{<:Type},
+        world_types     :: AbstractVector{<:Type},
         init_conditions :: AbstractVector{<:InitCondition},
     ) where {L<:Label}
-        new{L}(root, collect(worldTypes), collect(init_conditions))
+        new{L}(root, collect(world_types), collect(init_conditions))
     end
 
     function DTree(
         root            :: DTNode{T, L},
-        worldTypes      :: AbstractVector{<:Type},
+        world_types     :: AbstractVector{<:Type},
         init_conditions :: AbstractVector{<:InitCondition},
     ) where {T, L<:Label}
-        DTree{L}(root, worldTypes, init_conditions)
+        DTree{L}(root, world_types, init_conditions)
     end
 end
 
@@ -659,7 +659,7 @@ end
 
 function Base.show(io::IO, tree::DTree{L}) where {L}
     println(io, "Decision Tree{$(L)}(")
-    println(io, "\tworldTypes:     $(tree.worldTypes)")
+    println(io, "\tworld_types:    $(tree.world_types)")
     println(io, "\tinitConditions: $(tree.init_conditions)")
     println(io, "\t###########################################################")
     println(io, "\tsub-tree leaves: $(num_leaves(tree))")
@@ -686,8 +686,8 @@ end
 ############################################################################################
 
 default_max_depth = typemax(Int64)
-default_min_samples_leaf = 1
-default_min_purity_increase = -Inf
+default_min_samples_leaf = 4 # min_samples_leaf = 1
+default_min_purity_increase = 0.002 # min_purity_increase = -Inf
 default_max_purity_at_leaf = Inf
 default_n_trees = typemax(Int64)
 

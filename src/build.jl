@@ -56,6 +56,7 @@ function build_tree(
         perform_consistency_check :: Bool = true,
         ##############################################################################
         rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG,
+        print_progress      :: Bool = true,
     ) where {L<:Label, U}
     
     @assert W isa AbstractVector || W in [nothing, :rebalance, :default]
@@ -110,6 +111,7 @@ function build_tree(
         perform_consistency_check = perform_consistency_check,
         ############################################################################
         rng                 = rng,
+        print_progress                 = print_progress,
     )
 end
 
@@ -141,6 +143,7 @@ function build_forest(
         perform_consistency_check :: Bool = true,
         ##############################################################################
         rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG,
+        print_progress :: Bool = true,
     ) where {L<:Label, U}
 
     if n_subrelations isa Function
@@ -177,7 +180,9 @@ function build_forest(
 
     rngs = [util.spawn_rng(rng) for i_tree in 1:n_trees]
 
-    p = Progress(n_trees, 1, "Computing DForest...")
+    if print_progress
+        p = Progress(n_trees, 1, "Computing DForest...")
+    end
     Threads.@threads for i_tree in 1:n_trees
         train_idxs = rand(rngs[i_tree], 1:tot_samples, num_samples)
 
@@ -206,6 +211,7 @@ function build_forest(
             perform_consistency_check = perform_consistency_check,
             ################################################################################
             rng                  = rngs[i_tree],
+            print_progress       = false,
         )
 
         # grab out-of-bag indices
@@ -220,7 +226,7 @@ function build_forest(
                 compute_metrics(Y[oob_samples[i_tree]], tree_preds, _slice_weights(W, oob_samples[i_tree]))
             end
         end
-        next!(p)
+        !print_progress || next!(p)
     end
 
     metrics = (;
