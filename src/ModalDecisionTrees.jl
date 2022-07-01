@@ -706,6 +706,7 @@ include("posthoc.jl")
 include("print.jl")
 include("decisionpath.jl")
 
+export ModalDecisionTree
 include("MLJ-interface.jl")
 using .MLJInterface
 

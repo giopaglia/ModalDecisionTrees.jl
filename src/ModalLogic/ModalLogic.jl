@@ -452,8 +452,8 @@ function get_ontology(::Val{1}, world = :interval, relations = :IA)
         if     relations == :IA   IntervalOntology
         elseif relations == :IA3  Interval3Ontology
         elseif relations == :IA7  Interval7Ontology
-        elseif relations == :RCC5 IntervalRCC8Ontology
-        elseif relations == :RCC8 IntervalRCC5Ontology
+        elseif relations == :RCC8 IntervalRCC8Ontology
+        elseif relations == :RCC5 IntervalRCC5Ontology
         else
             error("Unexpected value encountered for `relations`: $(relations). Legal values are in $(relations_possible_values)")
         end
@@ -472,8 +472,8 @@ function get_ontology(::Val{2}, world = :interval, relations = :IA)
         error("TODO point-based ontologies not implemented yet")
     elseif world in [:interval, :rectangle, :hyperrectangle]
         if     relations == :IA   Interval2DOntology
-        elseif relations == :RCC5 Interval2DRCC8Ontology
-        elseif relations == :RCC8 Interval2DRCC5Ontology
+        elseif relations == :RCC8 Interval2DRCC8Ontology
+        elseif relations == :RCC5 Interval2DRCC5Ontology
         else
             error("Unexpected value encountered for `relations`: $(relations). Legal values are in $(relations_possible_values)")
         end
