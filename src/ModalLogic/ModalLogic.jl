@@ -18,10 +18,10 @@ using ResumableFunctions
 
 import Base: size, show, getindex, iterate, length, push!
 
-export AbstractWorld, AbstractRelation,
+export World, Relation,
        Ontology,
        AbstractWorldSet, WorldSet,
-       RelationGlob, RelationNone, RelationId,
+       RelationGlob, RelationId,
        world_type, world_types
 
 # Fix (not needed from Julia 1.7, see https://github.com/JuliaLang/julia/issues/34674 )
@@ -34,16 +34,16 @@ end
 ############################################################################################
 
 # Abstract types for worlds
-abstract type AbstractWorld end
+abstract type World end
 
 # These constants is used for specifying different initial world conditions for each world type
-#  (e.g. Interval(::_emptyWorld) = Interval(-1,0))
-struct _emptyWorld end;
-struct _centeredWorld end;
+#  (e.g. Interval(::EmptyWorld) = Interval(-1,0))
+struct EmptyWorld end;
+struct CenteredWorld end;
 
 # More specifically, any world type W must provide constructors for:
-# `W(::_emptyWorld)` # A dummy world (= no world in particular)
-# `W(::_centeredWorld, args...)` # A world that is *central* to the modal frame
+# `W(::EmptyWorld)` # A dummy world (= no world in particular)
+# `W(::CenteredWorld, args...)` # A world that is *central* to the modal frame
 
 # Any world type W must also provide an `interpret_world` method for interpreting a world
 #  onto a modal instance:
@@ -56,28 +56,28 @@ struct _centeredWorld end;
 # For example, dimensionality(Interval) = 1.
 
 # For convenience, each world type can be instantiated with a tuple of values, one for each field.
-(W::Type{<:AbstractWorld})(args::Tuple) = W(args...)
+(W::Type{<:World})(args::Tuple) = W(args...)
 
 # World enumerators generate array/set-like structures
-const AbstractWorldSet{W} = Union{AbstractVector{W},AbstractSet{W}} where {W<:AbstractWorld}
-const WorldSet{W} = Vector{W} where {W<:AbstractWorld}
-WorldSet{W}(S::WorldSet{W}) where {W<:AbstractWorld} = S
+const AbstractWorldSet{W} = Union{AbstractVector{W},AbstractSet{W}} where {W<:World}
+const WorldSet{W} = Vector{W} where {W<:World}
+WorldSet{W}(S::WorldSet{W}) where {W<:World} = S
 
 ############################################################################################
 # Relations
 ############################################################################################
 
 # Abstract types for relations
-abstract type AbstractRelation end
+abstract type Relation end
 
 # Relations must indicate their compatible world types via `goes_with`.
 #  For example, if world type W is compatible with relation R
 # goes_with(::Type{W}, ::R) = true
 # Here's the fallback:
-goes_with(::Type{W}, ::AbstractRelation) where {W<:AbstractWorld} = false
+goes_with(::Type{W}, ::Relation) where {W<:World} = false
 
 # Relations are defined via methods that return iterators the accessible worlds.
-# Each relation R<:AbstractRelation must provide a method for `accessibles`, which returns an iterator
+# Each relation R<:Relation must provide a method for `accessibles`, which returns an iterator
 #  to the worlds that are accessible from a given world w:
 # `accessibles(w::W,           ::R, args...)`
 
@@ -86,7 +86,7 @@ goes_with(::Type{W}, ::AbstractRelation) where {W<:AbstractWorld} = false
 # `_accessibles(w::W,           ::R, args...)`
 
 # The following fallback ensures that the two definitions are equivalent
-accessibles(w::WorldType, r::AbstractRelation, args...) where {T,WorldType<:AbstractWorld} = begin
+accessibles(w::WorldType, r::Relation, args...) where {T,WorldType<:World} = begin
     IterTools.imap(WorldType, _accessibles(w, r, args...))
 end
 
@@ -96,7 +96,7 @@ end
 #  single world. Generally, this falls back to calling `_accessibles` on each world in
 #  the set, and returning a constructor of wolds from the union; however, one may provide
 #  improved implementations for special cases (e.g. ⟨L⟩ of a world set in interval algebra).
-accessibles(S::AbstractWorldSet{WorldType}, r::AbstractRelation, args...) where {T,WorldType<:AbstractWorld} = begin
+accessibles(S::AbstractWorldSet{WorldType}, r::Relation, args...) where {T,WorldType<:World} = begin
     IterTools.imap(WorldType,
         IterTools.distinct(
             Iterators.flatten(
@@ -116,31 +116,26 @@ end
 #  worlds.
 # accessibles_aggr(f::ModalFeature, a::Aggregator, S::AbstractWorldSet{W}, ::R, args...)
 # Of course, the fallback is enumerating all accessible worlds via `accessibles`
-accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::AbstractRelation, args...) where {WorldType<:AbstractWorld} = accessibles(w, r, args...)
+accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::Relation, args...) where {WorldType<:World} = accessibles(w, r, args...)
 
 ############################################################################################
 # Singletons representing natural relations
 ############################################################################################
 
-# Dummy relation (= no relation)
-struct _RelationNone  <: AbstractRelation end; const RelationNone = _RelationNone();
-
-############################################################################################
-
 # Identity relation: any world -> itself
-struct _RelationId    <: AbstractRelation end; const RelationId   = _RelationId();
+struct _RelationId    <: Relation end; const RelationId   = _RelationId();
 
 Base.show(io::IO, ::_RelationId) = print(io, "=")
 
-accessibles(w::WorldType,           ::_RelationId, args...) where {WorldType<:AbstractWorld} = [w] # TODO try IterTools.imap(identity, [w])
-accessibles(S::AbstractWorldSet{W}, ::_RelationId, args...) where {W<:AbstractWorld} = S # TODO try IterTools.imap(identity, S)
+accessibles(w::WorldType,           ::_RelationId, args...) where {WorldType<:World} = [w] # TODO try IterTools.imap(identity, [w])
+accessibles(S::AbstractWorldSet{W}, ::_RelationId, args...) where {W<:World} = S # TODO try IterTools.imap(identity, S)
 
-accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::_RelationId,      args...) where {WorldType<:AbstractWorld} = accessibles(w, r, args...)
+accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::_RelationId,      args...) where {WorldType<:World} = accessibles(w, r, args...)
 
 ############################################################################################
 
 # Global relation:  any world -> all worlds
-struct _RelationGlob   <: AbstractRelation end; const RelationGlob  = _RelationGlob();
+struct _RelationGlob   <: Relation end; const RelationGlob  = _RelationGlob();
 
 Base.show(io::IO, ::_RelationGlob) = print(io, "G")
 
@@ -152,20 +147,20 @@ Base.show(io::IO, ::_RelationGlob) = print(io, "G")
 ############################################################################################
 
 # Shortcuts using global relation for enumerating all worlds
-all_worlds(::Type{WorldType}, args...) where {WorldType<:AbstractWorld} = accessibles(WorldType[], RelationGlob, args...)
-all_worlds(::Type{WorldType}, enum_acc_fun::Function) where {WorldType<:AbstractWorld} = enum_acc_fun(WorldType[], RelationGlob)
-all_worlds_aggr(::Type{WorldType}, enum_repr_fun::Function, f::ModalFeature, a::Aggregator) where {WorldType<:AbstractWorld} = enum_repr_fun(f, a, WorldType[], RelationGlob)
+all_worlds(::Type{WorldType}, args...) where {WorldType<:World} = accessibles(WorldType[], RelationGlob, args...)
+all_worlds(::Type{WorldType}, enum_acc_fun::Function) where {WorldType<:World} = enum_acc_fun(WorldType[], RelationGlob)
+all_worlds_aggr(::Type{WorldType}, enum_repr_fun::Function, f::ModalFeature, a::Aggregator) where {WorldType<:World} = enum_repr_fun(f, a, WorldType[], RelationGlob)
 
 ############################################################################################
 
 # Concrete type for ontologies
 # An ontology is a pair `world type` + `set of relations`, and represents the kind of
 #  modal frame that underlies a certain logic
-struct Ontology{WorldType<:AbstractWorld}
+struct Ontology{WorldType<:World}
 
-    relations :: AbstractVector{<:AbstractRelation}
+    relations :: AbstractVector{<:Relation}
 
-    function Ontology{WorldType}(_relations::AbstractVector) where {WorldType<:AbstractWorld}
+    function Ontology{WorldType}(_relations::AbstractVector) where {WorldType<:World}
         _relations = collect(unique(_relations))
         for relation in _relations
             @assert goes_with(WorldType, relation) "Can't instantiate Ontology{$(WorldType)} with relation $(relation)!"
@@ -177,13 +172,13 @@ struct Ontology{WorldType<:AbstractWorld}
         new{WorldType}(_relations)
     end
 
-    Ontology(worldType::Type{<:AbstractWorld}, relations) = Ontology{worldType}(relations)
+    Ontology(worldType::Type{<:World}, relations) = Ontology{worldType}(relations)
 end
 
-world_type(::Ontology{WT}) where {WT<:AbstractWorld} = WT
+world_type(::Ontology{WT}) where {WT<:World} = WT
 relations(o::Ontology) = o.relations
 
-Base.show(io::IO, o::Ontology{WT}) where {WT<:AbstractWorld} = begin
+Base.show(io::IO, o::Ontology{WT}) where {WT<:World} = begin
     if o == OneWorldOntology
         print(io, "OneWorldOntology")
     else
@@ -228,7 +223,7 @@ struct Decision{T}
     
     # Relation, interpreted as an existential modal operator
     #  Note: RelationId for propositional decisions
-    relation      :: AbstractRelation
+    relation      :: Relation
     
     # Modal feature (a scalar function that can be computed on a world)
     feature       :: ModalFeature
@@ -238,6 +233,35 @@ struct Decision{T}
 
     # Threshold value
     threshold     :: T
+
+    function Decision{T}() where {T}
+        new{T}()
+    end
+
+    function Decision{T}(
+        relation      :: Relation,
+        feature       :: ModalFeature,
+        test_operator :: TestOperatorFun,
+        threshold     :: T
+    ) where {T}
+        new{T}(relation, feature, test_operator, threshold)
+    end
+
+    function Decision(
+        relation      :: Relation,
+        feature       :: ModalFeature,
+        test_operator :: TestOperatorFun,
+        threshold     :: T
+    ) where {T}
+        Decision{T}(relation, feature, test_operator, threshold)
+    end
+
+    function Decision(
+        decision      :: Decision{T},
+        threshold_f   :: Function
+    ) where {T}
+        Decision{T}(decision.relation, decision.feature, decision.test_operator, threshold_f(decision.threshold))
+    end
 end
 
 is_propositional_decision(d::Decision) = (d.relation isa ModalLogic._RelationId)
@@ -247,10 +271,19 @@ function Base.show(io::IO, decision::Decision)
     println(io, display_decision(decision))
 end
 
-function display_decision(decision::Decision; threshold_display_method::Function = x -> x, universal = false)
-    display_propositional_decision(feature::ModalFeature, test_operator::TestOperatorFun, threshold::Number; threshold_display_method::Function = x -> x) =
-        "$(display_feature_test_operator_pair(feature, test_operator)) $(threshold_display_method(threshold))"
-    prop_decision_str = display_propositional_decision(decision.feature, decision.test_operator, decision.threshold; threshold_display_method = threshold_display_method)
+function display_decision(
+        decision::Decision;
+        threshold_display_method::Function = x -> x,
+        universal = false,
+        attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing,
+    )
+    prop_decision_str = "$(
+        display_feature_test_operator_pair(
+            decision.feature,
+            decision.test_operator;
+            attribute_names_map = attribute_names_map,
+        )
+    ) $(threshold_display_method(decision.threshold))"
     if !is_propositional_decision(decision)
         "$((universal ? display_universal : display_existential)(decision.relation)) ($prop_decision_str)"
     else
@@ -258,18 +291,23 @@ function display_decision(decision::Decision; threshold_display_method::Function
     end
 end
 
-display_existential(rel::AbstractRelation) = "⟨$(rel)⟩"
-display_universal(rel::AbstractRelation)   = "[$(rel)]"
+display_existential(rel::Relation) = "⟨$(rel)⟩"
+display_universal(rel::Relation)   = "[$(rel)]"
 
 ############################################################################################
 
-function display_decision(i_frame::Integer, decision::Decision; threshold_display_method::Function = x -> x, universal = false)
-    "{$i_frame} $(display_decision(decision; threshold_display_method = threshold_display_method, universal = universal))"
+function display_decision(
+        i_frame::Integer,
+        decision::Decision;
+        attribute_names_map::Union{Nothing,AbstractVector{<:AbstractVector},AbstractVector{<:AbstractDict}} = nothing,
+        kwargs...)
+    _attribute_names_map = isnothing(attribute_names_map) ? nothing : attribute_names_map[i_frame]
+    "{$i_frame} $(display_decision(decision; attribute_names_map = _attribute_names_map, kwargs...))"
 end
 
-function display_decision_inverse(i_frame::Integer, decision::Decision; threshold_display_method::Function = x -> x)
-    inv_decision = Decision{T}(decision.relation, decision.feature, test_operator_inverse(test_operator), decision.threshold)
-    display_decision(i_frame, inv_decision; threshold_display_method = threshold_display_method, universal = true)
+function display_decision_inverse(i_frame::Integer, decision::Decision; args...)
+    inv_decision = Decision(decision.relation, decision.feature, test_operator_inverse(decision.test_operator), decision.threshold)
+    display_decision(i_frame, inv_decision; universal = true, args...)
 end
 
 ############################################################################################
@@ -314,12 +352,15 @@ const PassiveModalDataset{T} = Union{DimensionalDataset{T}}
 #  etc. While learning a model can be done only with active modal datasets, testing a model
 #  can be done with both active and passive modal datasets.
 # 
-abstract type ActiveModalDataset{T<:Number,WorldType<:AbstractWorld} end
+abstract type ActiveModalDataset{T<:Number,WorldType<:World} end
 # 
 # Active modal datasets hold the WorldType, and thus can initialize world sets with a lighter interface
 # 
 init_world_sets_fun(imd::ActiveModalDataset{T, WorldType},  i_sample::Integer, ::Type{WorldType}) where {T, WorldType} = 
     init_world_sets_fun(imd, i_sample)
+# 
+# By default an active modal dataset cannot be miniaturized
+isminifiable(::ActiveModalDataset) = false
 # 
 const ModalDataset{T} = Union{PassiveModalDataset{T},ActiveModalDataset{T}}
 # 
@@ -343,27 +384,16 @@ const GenericModalDataset = Union{ModalDataset,MultiFrameModalDataset}
 ############################################################################################
 
 # Directional relations
-abstract type DirectionalRelation <: AbstractRelation end
+abstract type DirectionalRelation <: Relation end
 
 # Topological relations
-abstract type TopologicalRelation <: AbstractRelation end
+abstract type TopologicalRelation <: Relation end
 
 # Here are the definitions for world types and relations for known modal logics
 #  
 
-export OneWorldOntology,
-       # 
-       IntervalOntology,
-       Interval2DOntology,
-       getIntervalOntologyOfDim,
-       # 
-       IntervalRCC8Ontology,
-       Interval2DRCC8Ontology,
-       getIntervalRCC8OntologyOfDim,
-       # 
-       IntervalRCC5Ontology,
-       Interval2DRCC5Ontology,
-       getIntervalRCC5OntologyOfDim
+export get_ontology,
+       get_interval_ontology
 
 ############################################################################################
 # Dimensionality: 0
@@ -372,7 +402,7 @@ export OneWorldOntology,
 #  and `Decision`s only allow the RelationId.
 include("worlds/OneWorld.jl")                 # <- OneWorld world type
 
-const OneWorldOntology   = Ontology{OneWorld}(AbstractRelation[])
+const OneWorldOntology   = Ontology{OneWorld}(Relation[])
 
 ############################################################################################
 # Dimensionality: 1
@@ -386,6 +416,9 @@ include("relations/IA+Interval.jl")       # <- Allen relations
 include("relations/RCC+Interval.jl")    # <- RCC relations
 
 const IntervalOntology       = Ontology{Interval}(IARelations)
+const Interval3Ontology      = Ontology{ModalLogic.Interval}(ModalLogic.IA7Relations)
+const Interval7Ontology      = Ontology{ModalLogic.Interval}(ModalLogic.IA3Relations)
+
 const IntervalRCC8Ontology   = Ontology{Interval}(RCC8Relations)
 const IntervalRCC5Ontology   = Ontology{Interval}(RCC5Relations)
 
@@ -404,21 +437,54 @@ const Interval2DRCC5Ontology = Ontology{Interval2D}(RCC5Relations)
 
 ############################################################################################
 
+get_ontology(::DimensionalDataset{T,D}, args...) where {T,D} = get_ontology(Val(D-2), args...)
+get_ontology(N::Integer, args...) = get_ontology(Val(N), args...)
+get_ontology(::Val{0}, args...) = OneWorldOntology
+function get_ontology(::Val{1}, world = :interval, relations = :IA)
+    world_possible_values = [:point, :interval, :rectangle, :hyperrectangle]
+    relations_possible_values = [:IA, :IA3, :IA7, :RCC5, :RCC8]
+    @assert world in world_possible_values "Unexpected value encountered for `world`: $(world). Legal values are in $(world_possible_values)"
+    @assert relations in relations_possible_values "Unexpected value encountered for `relations`: $(relations). Legal values are in $(relations_possible_values)"
 
-getIntervalOntologyOfDim(N::Integer) = getIntervalOntologyOfDim(Val(N))
-getIntervalOntologyOfDim(::DimensionalDataset{T,D}) where {T,D} = getIntervalOntologyOfDim(Val(D-2))
-getIntervalOntologyOfDim(::Val{1}) = IntervalOntology
-getIntervalOntologyOfDim(::Val{2}) = Interval2DOntology
+    if world in [:point]
+        error("TODO point-based ontologies not implemented yet")
+    elseif world in [:interval, :rectangle, :hyperrectangle]
+        if     relations == :IA   IntervalOntology
+        elseif relations == :IA3  Interval3Ontology
+        elseif relations == :IA7  Interval7Ontology
+        elseif relations == :RCC8 IntervalRCC8Ontology
+        elseif relations == :RCC5 IntervalRCC5Ontology
+        else
+            error("Unexpected value encountered for `relations`: $(relations). Legal values are in $(relations_possible_values)")
+        end
+    else
+        error("Unexpected value encountered for `world`: $(world). Legal values are in $(possible_values)")
+    end
+end
 
-getIntervalRCC8OntologyOfDim(N::Integer) = getIntervalRCC8OntologyOfDim(Val(N))
-getIntervalRCC8OntologyOfDim(::DimensionalDataset{T,D}) where {T,D} = getIntervalRCC8OntologyOfDim(Val(D-2))
-getIntervalRCC8OntologyOfDim(::Val{1}) = IntervalRCC8Ontology
-getIntervalRCC8OntologyOfDim(::Val{2}) = Interval2DRCC8Ontology
+function get_ontology(::Val{2}, world = :interval, relations = :IA)
+    world_possible_values = [:point, :interval, :rectangle, :hyperrectangle]
+    relations_possible_values = [:IA, :RCC5, :RCC8]
+    @assert world in world_possible_values "Unexpected value encountered for `world`: $(world). Legal values are in $(world_possible_values)"
+    @assert relations in relations_possible_values "Unexpected value encountered for `relations`: $(relations). Legal values are in $(relations_possible_values)"
 
-getIntervalRCC5OntologyOfDim(N::Integer) = getIntervalRCC5OntologyOfDim(Val(N))
-getIntervalRCC5OntologyOfDim(::DimensionalDataset{T,D}) where {T,D} = getIntervalRCC5OntologyOfDim(Val(D-2))
-getIntervalRCC5OntologyOfDim(::Val{1}) = IntervalRCC5Ontology
-getIntervalRCC5OntologyOfDim(::Val{2}) = Interval2DRCC5Ontology
+    if world in [:point]
+        error("TODO point-based ontologies not implemented yet")
+    elseif world in [:interval, :rectangle, :hyperrectangle]
+        if     relations == :IA   Interval2DOntology
+        elseif relations == :RCC8 Interval2DRCC8Ontology
+        elseif relations == :RCC5 Interval2DRCC5Ontology
+        else
+            error("Unexpected value encountered for `relations`: $(relations). Legal values are in $(relations_possible_values)")
+        end
+    else
+        error("Unexpected value encountered for `world`: $(world). Legal values are in $(possible_values)")
+    end
+end
+
+get_interval_ontology(::DimensionalDataset{T,D}, args...) where {T,D} = get_interval_ontology(Val(D-2), args...)
+get_interval_ontology(N::Integer, args...) = get_interval_ontology(Val(N), args...)
+get_interval_ontology(N::Val, relations = :IA) = get_ontology(N, :interval, relations)
 
 const WorldType0D = Union{OneWorld}
 const WorldType1D = Union{Interval}

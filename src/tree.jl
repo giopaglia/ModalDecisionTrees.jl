@@ -68,28 +68,32 @@ end
 function _convert(
         node          :: NodeMeta,
         labels        :: AbstractVector{L},
-        class_names   :: AbstractVector{L}) where {L<:CLabel}
+        class_names   :: AbstractVector{L},
+        threshold_backmap :: Vector{<:Function}
+    ) where {L<:CLabel}
     this_leaf = DTLeaf(class_names[node.prediction], labels[node.region])
     if node.is_leaf
         this_leaf
     else
-        left  = _convert(node.l, labels, class_names)
-        right = _convert(node.r, labels, class_names)
-        DTInternal(node.i_frame, node.decision, this_leaf, left, right)
+        left  = _convert(node.l, labels, class_names, threshold_backmap)
+        right = _convert(node.r, labels, class_names, threshold_backmap)
+        DTInternal(node.i_frame, Decision(node.decision, threshold_backmap[node.i_frame]), this_leaf, left, right)
     end
 end
 
 # Conversion: NodeMeta (node + training info) -> DTNode (bare decision tree model)
 function _convert(
         node   :: NodeMeta,
-        labels :: AbstractVector{L}) where {L<:RLabel}
+        labels :: AbstractVector{L},
+        threshold_backmap :: Vector{<:Function}
+    ) where {L<:RLabel}
     this_leaf = DTLeaf(node.prediction, labels[node.region])
     if node.is_leaf
         this_leaf
     else
-        left  = _convert(node.l, labels)
-        right = _convert(node.r, labels)
-        DTInternal(node.i_frame, node.decision, this_leaf, left, right)
+        left  = _convert(node.l, labels, threshold_backmap)
+        right = _convert(node.r, labels, threshold_backmap)
+        DTInternal(node.i_frame, Decision(node.decision, threshold_backmap[node.i_frame]), this_leaf, left, right)
     end
 end
 
@@ -100,8 +104,8 @@ end
 
 # function optimize_tree_parameters!(
 #       X               :: InterpretedModalDataset{T, N},
-#       initCondition   :: _initCondition,
-#       allowRelationGlob :: Bool,
+#       iC   :: InitCondition,
+#       allow_global_splits :: Bool,
 #       test_operators  :: AbstractVector{<:TestOperator}
 #   ) where {T, N}
 
@@ -128,8 +132,8 @@ end
 #       # No ontological relation
 #       ontology_relations = []
 #       if test_operators ⊆ ModalLogic.all_lowlevel_test_operators
-#           test_operators = [TestOpGeq]
-#           # test_operators = filter(e->e ≠ TestOpGeq,test_operators)
+#           test_operators = [canonical_geq]
+#           # test_operators = filter(e->e ≠ canonical_geq,test_operators)
 #       else
 #           warn("Test operators set includes non-lowlevel test operators. Update this part of the code accordingly.")
 #       end
@@ -139,11 +143,11 @@ end
 #   #  when the largest world only has a few values, softened operators fallback
 #   #  to being hard operators
 #   # max_world_wratio = 1/prod(max_channel_size(X))
-#   # if TestOpGeq in test_operators
-#   #   test_operators = filter((e)->(typeof(e) != _TestOpGeqSoft || e.alpha < 1-max_world_wratio), test_operators)
+#   # if canonical_geq in test_operators
+#   #   test_operators = filter((e)->(typeof(e) != CanonicalFeatureGeqSoft || e.alpha < 1-max_world_wratio), test_operators)
 #   # end
-#   # if TestOpLeq in test_operators
-#   #   test_operators = filter((e)->(typeof(e) != _TestOpLeqSoft || e.alpha < 1-max_world_wratio), test_operators)
+#   # if canonical_leq in test_operators
+#   #   test_operators = filter((e)->(typeof(e) != CanonicalFeatureLeqSoft || e.alpha < 1-max_world_wratio), test_operators)
 #   # end
 
 
@@ -157,9 +161,9 @@ end
 #   end
 
 #   if RelationGlob in ontology_relations
-#       throw_n_log("Found RelationGlob in ontology provided. Use allowRelationGlob = true instead.")
+#       throw_n_log("Found RelationGlob in ontology provided. Use allow_global_splits = true instead.")
 #       # ontology_relations = filter(e->e ≠ RelationGlob, ontology_relations)
-#       # allowRelationGlob = true
+#       # allow_global_splits = true
 #   end
 
 #   relations = [RelationId, RelationGlob, ontology_relations...]
@@ -167,10 +171,10 @@ end
 #   relationGlob_id = 2
 #   ontology_relation_ids = map((x)->x+2, 1:length(ontology_relations))
 
-#   needToComputeRelationGlob = (allowRelationGlob || (initCondition == startWithRelationGlob))
+#   compute_relation_glob = (allow_global_splits || (iC == ModalDecisionTrees.start_without_world))
 
 #   # Modal relations to compute gammas for
-#   inUseRelation_ids = if needToComputeRelationGlob
+#   inUseRelation_ids = if compute_relation_glob
 #       [relationGlob_id, ontology_relation_ids...]
 #   else
 #       ontology_relation_ids
@@ -180,7 +184,7 @@ end
 #   availableRelation_ids = []
 
 #   push!(availableRelation_ids, relationId_id)
-#   if allowRelationGlob
+#   if allow_global_splits
 #       push!(availableRelation_ids, relationGlob_id)
 #   end
 
@@ -216,7 +220,7 @@ Base.@propagate_inbounds @inline function split_node!(
         <:AbstractVector{WST} where {WorldType,WST<:WorldSet{WorldType}}
     }, # vector of current worlds for each instance and frame
     Y                         :: AbstractVector{L},                  # label vector
-    initConditions            :: AbstractVector{<:_initCondition},   # world starting conditions
+    init_conditions           :: AbstractVector{<:InitCondition},   # world starting conditions
     W                         :: AbstractVector{U}                   # weight vector
     ;
     ##########################################################################
@@ -230,7 +234,7 @@ Base.@propagate_inbounds @inline function split_node!(
     # Modal parameters
     n_subrelations            :: AbstractVector{NSubRelationsFunction}, # relations used for the decisions
     n_subfeatures             :: AbstractVector{Int},        # number of features for the decisions
-    allowRelationGlob         :: AbstractVector{Bool},       # allow/disallow using RelationGlob at any decisional node
+    allow_global_splits       :: AbstractVector{Bool},       # allow/disallow using RelationGlob at any decisional node
     ##########################################################################
     # Other
     idxs                      :: AbstractVector{Int},
@@ -378,7 +382,7 @@ Base.@propagate_inbounds @inline function split_node!(
     # end
 
     Sfs = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, n_frames(Xs))
-    for (i_frame,WT) in enumerate(world_types(Xs))
+    for (i_frame,WT) in enumerate(get_world_types(Xs))
         Sfs[i_frame] = Vector{Vector{WT}}(undef, _n_samples)
         @simd for i in 1:_n_samples
             Sfs[i_frame][i] = Ss[i_frame][idxs[i + r_start]]
@@ -388,7 +392,7 @@ Base.@propagate_inbounds @inline function split_node!(
     # Optimization-tracking variables
     best_i_frame = -1
     best_purity_times_nt = typemin(P)
-    best_decision = Decision(RelationNone, ModalDecisionTrees.ModalFeatureNone, >=, nothing)
+    best_decision = Decision{Float64}()
     if isa(_perform_consistency_check,Val{true})
         consistency_sat_check = Vector{Bool}(undef, _n_samples)
     end
@@ -404,8 +408,8 @@ Base.@propagate_inbounds @inline function split_node!(
                 frame_Sf,
                 frame_n_subrelations::Function,
                 frame_n_subfeatures,
-                frame_allowRelationGlob,
-                frame_onlyallowRelationGlob)) in enumerate(zip(frames(Xs), Sfs, n_subrelations, n_subfeatures, allowRelationGlob, node.onlyallowRelationGlob))
+                frame_allow_global_splits,
+                frame_onlyallowRelationGlob)) in enumerate(zip(frames(Xs), Sfs, n_subrelations, n_subfeatures, allow_global_splits, node.onlyallowRelationGlob))
 
         @logmsg DTDetail "  Frame $(best_i_frame)/$(length(frames(Xs)))"
 
@@ -423,7 +427,7 @@ Base.@propagate_inbounds @inline function split_node!(
                 elseif frame_onlyallowRelationGlob
                     false, false, true
                 else
-                    true, true, frame_allowRelationGlob
+                    true, true, frame_allow_global_splits
                 end
             end
 
@@ -784,20 +788,21 @@ end
 @inline function _fit(
         Xs                        :: ActiveMultiFrameModalDataset,       # modal dataset
         Y                         :: AbstractVector{L},                  # label vector
-        initConditions            :: AbstractVector{<:_initCondition},   # world starting conditions
+        init_conditions           :: AbstractVector{<:InitCondition},   # world starting conditions
         W                         :: AbstractVector{U}                   # weight vector
         ;
         ##########################################################################
         _is_classification        :: Union{Val{true},Val{false}},
         _perform_consistency_check:: Union{Val{true},Val{false}},
         rng = Random.GLOBAL_RNG   :: Random.AbstractRNG,
+        print_progress            :: Bool = true,
         kwargs...,
     ) where{L<:_Label, U}
 
     _n_samples = n_samples(Xs)
     
     # Initialize world sets for each instance
-    Ss = init_world_sets(Xs, initConditions)
+    Ss = init_world_sets(Xs, init_conditions)
 
     # Distribution of the instances indices throughout the tree.
     #  It will be recursively permuted, and regions of it assigned to the tree nodes (idxs[node.region])
@@ -805,21 +810,26 @@ end
     
     # Create root node
     NodeMetaT = NodeMeta{Float64,(_is_classification isa Val{true} ? Int64 : Float64)}
-    onlyallowRelationGlob = [(iC == startWithRelationGlob) for iC in initConditions]
+    onlyallowRelationGlob = [(iC == ModalDecisionTrees.start_without_world) for iC in init_conditions]
     root = NodeMetaT(1:_n_samples, 0, 0, onlyallowRelationGlob)
     
+    # if print_progress TODO
+    #     p = ProgressThresh(Inf, 1, "Computing DTree...")
+    # end
+
     # Process nodes recursively, using multi-threading
     function process_node!(node, rng)
         # Note: better to spawn rng's beforehand, to preserve reproducibility independently from split_node!
         rng_l = util.spawn_rng(rng)
         rng_r = util.spawn_rng(rng)
-        @inbounds split_node!(node, Xs, Ss, Y, initConditions, W;
+        @inbounds split_node!(node, Xs, Ss, Y, init_conditions, W;
             _is_classification         = _is_classification,
             _perform_consistency_check = _perform_consistency_check,
             idxs                       = idxs,
             rng                        = rng,
             kwargs...,
         )
+        # TODO: !print_progress || ProgressMeter.update!(p, ...idxs[region]...)
         if !node.is_leaf
             fork!(node)
             l = Threads.@spawn process_node!(node.l, rng_l)
@@ -840,7 +850,7 @@ end
 @inline function check_input(
         Xs                      :: ActiveMultiFrameModalDataset,
         Y                       :: AbstractVector{S},
-        initConditions          :: Vector{<:_initCondition},
+        init_conditions         :: Vector{<:InitCondition},
         W                       :: AbstractVector{U}
         ;
         ##########################################################################
@@ -852,7 +862,7 @@ end
         ##########################################################################
         n_subrelations          :: Vector{<:Function},
         n_subfeatures           :: Vector{<:Integer},
-        allowRelationGlob       :: Vector{Bool},
+        allow_global_splits     :: Vector{Bool},
         ##########################################################################
         kwargs...,
     ) where {S, U}
@@ -867,10 +877,10 @@ end
         throw_n_log("mismatching number of n_subrelations with number of frames: $(length(n_subrelations)) vs $(n_frames(Xs))")
     elseif length(n_subfeatures)  != n_frames(Xs)
         throw_n_log("mismatching number of n_subfeatures with number of frames: $(length(n_subfeatures)) vs $(n_frames(Xs))")
-    elseif length(initConditions) != n_frames(Xs)
-        throw_n_log("mismatching number of initConditions with number of frames: $(length(initConditions)) vs $(n_frames(Xs))")
-    elseif length(allowRelationGlob) != n_frames(Xs)
-        throw_n_log("mismatching number of allowRelationGlob with number of frames: $(length(allowRelationGlob)) vs $(n_frames(Xs))")
+    elseif length(init_conditions) != n_frames(Xs)
+        throw_n_log("mismatching number of init_conditions with number of frames: $(length(init_conditions)) vs $(n_frames(Xs))")
+    elseif length(allow_global_splits) != n_frames(Xs)
+        throw_n_log("mismatching number of allow_global_splits with number of frames: $(length(allow_global_splits)) vs $(n_frames(Xs))")
     ############################################################################
     # elseif any(n_relations(Xs) .< n_subrelations)
     #   throw_n_log("in at least one frame the total number of relations is less than the number "
@@ -937,17 +947,19 @@ function fit(
         # label vector
         Y                         :: AbstractVector{L},
         # world starting conditions
-        initConditions            :: Vector{<:_initCondition},
+        init_conditions           :: Vector{<:InitCondition},
         # Weights (unary weigths are used if no weight is supplied)
         W                         :: AbstractVector{U} = default_weights(n_samples(Xs))
         # W                       :: AbstractVector{U} = Ones{Int}(n_samples(Xs)), # TODO check whether this is faster
         ;
+        # Perform minification: transform dataset so that learning happens faster
+        perform_minification      :: Bool,
         # Debug-only: checks the consistency of the dataset during training
         perform_consistency_check :: Bool,
         kwargs...,
     ) where {L<:Union{CLabel,RLabel}, U}
     # Check validity of the input
-    check_input(Xs, Y, initConditions, W; kwargs...)
+    check_input(Xs, Y, init_conditions, W; kwargs...)
 
     # Classification-only: transform labels to categorical form (indexed by integers)
     n_classes = begin
@@ -959,8 +971,16 @@ function fit(
         end
     end
 
+    Xs, threshold_backmaps = begin
+        if perform_minification
+            minify(Xs)
+        else
+            Xs, fill(identity, n_frames(Xs))
+        end
+    end
+    # println(threshold_backmaps)
     # Call core learning function
-    root, idxs = _fit(Xs, Y, initConditions, W;
+    root, idxs = _fit(Xs, Y, init_conditions, W;
         n_classes = n_classes,
         _is_classification = Val(L<:CLabel),
         _perform_consistency_check = Val(perform_consistency_check),
@@ -970,10 +990,10 @@ function fit(
     # Finally create Tree
     root = begin
         if L<:CLabel
-            _convert(root, map((y)->class_names[y], Y[idxs]), class_names)
+            _convert(root, map((y)->class_names[y], Y[idxs]), class_names, threshold_backmaps)
         else
-            _convert(root, Y[idxs])
+            _convert(root, Y[idxs], threshold_backmaps)
         end
     end
-    DTree{L}(root, world_types(Xs), initConditions)
+    DTree{L}(root, get_world_types(Xs), init_conditions)
 end
