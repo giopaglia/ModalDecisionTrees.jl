@@ -19,7 +19,6 @@ Leveraging the express power of Modal Logic, these models can extract *temporal/
 - Only supports numeric features;
 - Only supports classification tasks;
 - Only available via [MLJ.jl](https://github.com/alan-turing-institute/MLJ.jl);
-- Does not support missing values.
 
 <!-- 
 ## Installation
