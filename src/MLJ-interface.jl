@@ -84,54 +84,195 @@ function separate_attributes_into_frames(X)
     frames
 end
 
-function DataFrame2MultiFrameModalDataset(X, frame_grouping, relations, mixed_features, init_conditions, allow_global_splits, mode)
+
+function __moving_window_without_overflow_fixed_num(
+    npoints::Integer;
+    nwindows::Integer,
+    relative_overlap::AbstractFloat,
+)::AbstractVector{UnitRange{Int}}
+    # Code by Giovanni Pagliarini (@giopaglia) & Federico Manzella (@ferdiu)
+    # 
+    # start = 1+half_context
+    # stop = npoints-half_context
+    # step = (stop-start+1)/nwindows
+    # half_context = step*relative_overlap/2
+
+    # half_context = relative_overlap * (npoints-1) / (2* nwindows+2*relative_overlap)
+    half_context = relative_overlap * npoints / (2* nwindows+2*relative_overlap)
+    start = 1+half_context
+    stop = npoints-half_context
+    step = (stop-start+1)/nwindows
+    
+    # _w = floor(Int, step+2*half_context)
+    # _w = floor(Int, ((stop-start+1)/nwindows)+2*half_context)
+    # _w = floor(Int, ((npoints-half_context)-(1+half_context)+1)/nwindows+2*half_context)
+    # _w = floor(Int, (npoints-2*half_context)/nwindows+2*half_context)
+    _w = floor(Int, (npoints-2*half_context)/nwindows + 2*half_context)
+
+    # println("step: ($(stop)-$(start)+1)/$(nwindows) = ($(stop-start+1)/$(nwindows) = $(step)")
+    # println("half_context: $(half_context)")
+    # first_points = range(start=start, stop=stop, length=nwindows+1)[1:end-1]
+    first_points = range(start=start, stop=stop, length=nwindows+1)[1:end-1] # TODO needs Julia 1.7: warn user
+    first_points = map((x)->x-half_context, first_points)
+    @assert isapprox(first_points[1], 1.0)
+    # println("first_points: $(collect(first_points))")
+    # println("window: $(step)+$(2*half_context) = $(step+2*half_context)")
+    # println("windowi: $(_w)")
+    first_points = map((x)->round(Int, x), first_points)
+    # first_points .|> (x)->(x+step/2) .|> (x)->(x-size/2,x+size/2)
+    # first_points .|> (x)->(max(1.0,x-half_context),min(x+step+half_context,npoints))
+    # first_points .|> (x)->(x-half_context,x+step+half_context)
+    first_points .|> (xi)->(xi:xi+_w-1)
+end
+
+function moving_average(
+    X::AbstractArray{T,3},
+    nwindows::Integer,
+    relative_overlap::AbstractFloat = .5,
+) where {T}
+    npoints, n_attributes, n_instances = size(X)
+    new_X = similar(X, (nwindows, n_attributes, n_instances))
+    for i_instance in 1:n_instances
+        for i_attribute in 1:n_attributes
+            new_X[:, i_attribute, i_instance] .= [mean(X[idxs, i_attribute, i_instance]) for idxs in __moving_window_without_overflow_fixed_num(npoints; nwindows = nwindows, relative_overlap = relative_overlap)]
+        end
+    end
+    return new_X
+end
+
+function moving_average(
+    X::AbstractArray{T,4},
+    new_channel_size::Tuple{Integer,Integer},
+    relative_overlap::AbstractFloat = .5,
+) where {T}
+    n_X, n_Y, n_attributes, n_instances = size(X)
+    windows_1 = __moving_window_without_overflow_fixed_num(n_X; nwindows = new_channel_size[1], relative_overlap = relative_overlap)
+    windows_2 = __moving_window_without_overflow_fixed_num(n_Y; nwindows = new_channel_size[2], relative_overlap = relative_overlap)
+    new_X = similar(X, (new_channel_size..., n_attributes, n_instances))
+    for i_instance in 1:n_instances
+        for i_attribute in 1:n_attributes
+            new_X[:, :, i_attribute, i_instance] .= [mean(X[idxs1, idxs2, i_attribute, i_instance]) for idxs1 in windows_1, idxs2 in windows_2]
+        end
+    end
+    return new_X
+end
+
+function DataFrame2MultiFrameModalDataset(
+        X,
+        frame_grouping,
+        relations,
+        mixed_features,
+        init_conditions,
+        allow_global_splits,
+        mode;
+        downsizing_function = (channel_size, n_samples)->identity,
+    )
     @assert mode in [:explicit, :implicit]
+
+    @assert all((<:).(eltype.(eachcol(X)), Union{AbstractVector{<:Real},AbstractMatrix{<:Real}})) "ModalDecisionTrees.jl only allows attributes that are `Real`, `AbstractVector{<:Real}` or `AbstractMatrix{<:Real}`"
+    @assert ! any(map((x)->(any(MDT.ModalLogic.hasnans.(x))), eachcol(X))) "ModalDecisionTrees.jl doesn't allow NaN values"
 
     Xs = [begin
         X_frame = X[:,frame]
         
-
         channel_size = unique([unique(_size.(X_frame[:, col])) for col in names(X_frame)])
         @assert length(channel_size) == 1
         @assert length(channel_size[1]) == 1
         channel_size = channel_size[1][1]
         
+        channel_dim = length(channel_size)
+        
         # println("$(i_frame)\tchannel size: $(channel_size)\t => $(frame_grouping)")
 
         _X = begin
-                # dataframe2cube(X_frame)
-                common_type = Union{eltype.(eltype.(eachcol(X_frame)))...}
-                common_type = common_type == Any ? Number : common_type
-                _X = Array{common_type}(undef, channel_size..., DataFrames.ncol(X_frame), DataFrames.nrow(X_frame))
-                for (i_col, col) in enumerate(eachcol(X_frame))
-                    for (i_row, row) in enumerate(col)
-                        _X[[(:) for i in 1:length(size(row))]...,i_col,i_row] = row
-                    end
+            n_attributes = DataFrames.ncol(X_frame)
+            n_samples = DataFrames.nrow(X_frame)
+
+            # dataframe2cube(X_frame)
+            common_type = Union{eltype.(eltype.(eachcol(X_frame)))...}
+            common_type = common_type == Any ? Real : common_type
+            _X = Array{common_type}(undef, channel_size..., n_attributes, n_samples)
+            for (i_col, col) in enumerate(eachcol(X_frame))
+                for (i_row, row) in enumerate(col)
+                    _X[[(:) for i in 1:length(size(row))]...,i_col,i_row] = row
                 end
-                _X
             end
 
-            channel_dim = length(channel_size)
-            ontology = MDT.get_interval_ontology(channel_dim, relations)
-            # println(eltype(_X))
-            X = MDT.InterpretedModalDataset(_X, ontology, mixed_features)
-            # println(MDT.display_structure(X))
+            _X = downsizing_function(channel_size, n_samples)(_X)
 
-            if mode == :implicit
-                X
-            else
-                WorldType = MDT.world_type(ontology)
-                
-                compute_relation_glob =
-                    WorldType != MDT.OneWorld && (
-                        (allow_global_splits || init_conditions == MDT.start_without_world)
-                    )
-                MDT.ExplicitModalDatasetSMemo(X, compute_relation_glob = compute_relation_glob)
-            end
-        end for (i_frame, frame) in enumerate(frame_grouping)]
-    Xs = MDT.MultiFrameModalDataset(Xs)
+            _X
+        end
+
+        ontology = MDT.get_interval_ontology(channel_dim, relations)
+        # println(eltype(_X))
+        __X = MDT.InterpretedModalDataset(_X, ontology, mixed_features)
+        # println(MDT.display_structure(__X))
+
+        if mode == :implicit
+            __X
+        else
+            WorldType = MDT.world_type(ontology)
+            
+            compute_relation_glob =
+                WorldType != MDT.OneWorld && (
+                    (allow_global_splits || init_conditions == MDT.start_without_world)
+                )
+            MDT.ExplicitModalDatasetSMemo(__X, compute_relation_glob = compute_relation_glob)
+        end
+    end for (i_frame, frame) in enumerate(frame_grouping)]
+    Xs = MDT.MultiFrameModalDataset{MDT.ModalLogic.ActiveModalDataset}(Xs)
     # println(MDT.display_structure(Xs))
     # Xs
+end
+
+tree_downsizing_function(channel_size, n_samples) = function (_X)
+    channel_dim = length(channel_size)
+    if channel_dim == 1
+        n_points = channel_size[1]
+        if n_samples > 300 && n_points > 100
+            println("Warning: downsizing series of size $(n_points) to $(100) points ($(n_samples) samples). If this process gets killed, please downsize your dataset beforehand.")
+            _X = moving_average(_X, 100)
+        elseif n_points > 150
+            println("Warning: downsizing series of size $(n_points) to $(150) points ($(n_samples) samples). If this process gets killed, please downsize your dataset beforehand.")
+            _X = moving_average(_X, 150)
+        end
+    elseif channel_dim == 2
+        if n_samples > 300 && prod(channel_size) > prod((7,7),)
+            new_channel_size = min.(channel_size, (7,7))
+            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(n_samples) samples). If this process gets killed, please downsize your dataset beforehand.")
+            _X = moving_average(_X, new_channel_size)
+        elseif prod(channel_size) > prod((10,10),)
+            new_channel_size = min.(channel_size, (10,10))
+            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(n_samples) samples). If this process gets killed, please downsize your dataset beforehand.")
+            _X = moving_average(_X, new_channel_size)
+        end
+    end
+    _X
+end
+
+forest_downsizing_function(channel_size, n_samples; n_trees) = function (_X)
+    channel_dim = length(channel_size)
+    if channel_dim == 1
+        n_points = channel_size[1]
+        if n_samples > 300 && n_points > 100
+            println("Warning: downsizing series of size $(n_points) to $(100) points ($(n_samples) samples). If this process gets killed, please downsize your dataset beforehand.")
+            _X = moving_average(_X, 100)
+        elseif n_points > 150
+            println("Warning: downsizing series of size $(n_points) to $(150) points ($(n_samples) samples). If this process gets killed, please downsize your dataset beforehand.")
+            _X = moving_average(_X, 150)
+        end
+    elseif channel_dim == 2
+        if n_samples > 300 && prod(channel_size) > prod((4,4),)
+            new_channel_size = min.(channel_size, (4,4))
+            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(n_samples) samples). If this process gets killed, please downsize your dataset beforehand.")
+            _X = moving_average(_X, new_channel_size)
+        elseif prod(channel_size) > prod((7,7),)
+            new_channel_size = min.(channel_size, (7,7))
+            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(n_samples) samples). If this process gets killed, please downsize your dataset beforehand.")
+            _X = moving_average(_X, new_channel_size)
+        end
+    end
+    _X
 end
 
 ############################################################################################
@@ -142,7 +283,7 @@ function _check_features(features)
     good = [
         [
             map(
-            (f)->(f isa CanonicalFeature || (ret = f(ch); isa(ret, Number) && typeof(ret) == eltype(ch))),
+            (f)->(f isa CanonicalFeature || (ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch))),
             features) for ch in [collect(1:10), collect(1.:10.)]
         ]
     ] |> Iterators.flatten |> all
@@ -170,15 +311,17 @@ MMI.@mlj_model mutable struct ModalDecisionTree <: MMI.Deterministic
     # Modal hyper-parameters
     relations              :: Union{Nothing,Symbol,Vector{<:Relation}} = (:IA)::(isnothing(_) || _ in [:IA, :IA3, :IA7, :RCC5, :RCC8] || _ isa AbstractVector{<:Relation})
     # TODO expand to ModalFeature
-    # features               :: Vector{<:Function}           = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Number) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
+    # features               :: Vector{<:Function}           = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
     # features               :: Vector{<:Union{CanonicalFeature,Function}}       TODO = Vector{<:Union{CanonicalFeature,Function}}([canonical_geq, canonical_leq]) # TODO: ::(_check_features(_))
     # features               :: AbstractVector{<:CanonicalFeature}       = CanonicalFeature[canonical_geq, canonical_leq] # TODO: ::(_check_features(_))
     # features               :: Vector                       = [canonical_geq, canonical_leq] # TODO: ::(_check_features(_))
     init_conditions        :: Symbol                       = :start_with_global::(_ in [:start_with_global, :start_at_center])
     allow_global_splits    :: Bool                         = true
+    automatic_downsizing   :: Bool                         = true
     # Other
     display_depth          :: Union{Nothing,Int}           = 5::(isnothing(_) || _ ≥ 0)
 end
+
 
 function MMI.fit(m::ModalDecisionTree, verbosity::Int, X, y, w=nothing)
 
@@ -196,10 +339,20 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Int, X, y, w=nothing)
     features = [canonical_geq, canonical_leq] # TODO: m.features
     init_conditions = init_conditions_d[m.init_conditions]
     allow_global_splits = m.allow_global_splits
+    automatic_downsizing = m.automatic_downsizing
     display_depth = m.display_depth
 
     frame_grouping = separate_attributes_into_frames(X)
-    Xs = DataFrame2MultiFrameModalDataset(X, frame_grouping, relations, features, init_conditions, allow_global_splits, :explicit)
+    Xs = DataFrame2MultiFrameModalDataset(
+        X,
+        frame_grouping,
+        relations,
+        features,
+        init_conditions,
+        allow_global_splits,
+        :explicit;
+        downsizing_function = (automatic_downsizing ? tree_downsizing_function : identity),
+    )
 
     # @assert y isa AbstractVector{<:CLabel} "y should be an AbstractVector{<:$(CLabel)}, got $(typeof(y)) instead"
     # original_y = y
@@ -225,7 +378,7 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Int, X, y, w=nothing)
         perform_consistency_check = false,
     )
 
-    verbosity < 2 || MDT.print_model(model; max_depth = m.display_depth, attribute_names_map = frame_grouping)
+    verbosity < 2 || MDT.print_model(model; max_depth = display_depth, attribute_names_map = frame_grouping)
 
     feature_importance_by_count = Dict([i_attr => frame_grouping[i_frame][i_attr] for ((i_frame, i_attr), count) in MDT.tree_attribute_countmap(model)])
 
@@ -266,7 +419,19 @@ function MMI.predict(m::ModalDecisionTree, fitresult, Xnew, Ynew)
     features = [canonical_geq, canonical_leq] # TODO: m.features
     init_conditions = m.init_conditions
     allow_global_splits = m.allow_global_splits
-    Xs = DataFrame2MultiFrameModalDataset(Xnew, fitresult.frame_grouping, relations, features, init_conditions, allow_global_splits, :implicit)
+    automatic_downsizing = m.automatic_downsizing
+    missing_columns = setdiff(Iterators.flatten(fitresult.frame_grouping), names(Xnew))
+    @assert length(missing_columns) == 0 "Can't perform prediction due to missing DataFrame columns: $(missing_columns)"
+    Xs = DataFrame2MultiFrameModalDataset(
+        Xnew,
+        fitresult.frame_grouping,
+        relations,
+        features,
+        init_conditions,
+        allow_global_splits,
+        :implicit,
+        downsizing_function = (automatic_downsizing ? tree_downsizing_function : identity),
+    )
 
     # MDT.apply_tree(fitresult.model, Xs)
     MDT.print_apply(fitresult.model, Xs, Ynew)
@@ -274,7 +439,7 @@ end
 
 
 # # # RANDOM FOREST CLASSIFIER
-# TODO
+
 # MMI.@mlj_model mutable struct RandomForestClassifier <: MMI.Probabilistic
 #     max_depth::Int               = (-)(1)::(_ ≥ -1)
 #     min_samples_leaf::Int        = 1::(_ ≥ 0)
