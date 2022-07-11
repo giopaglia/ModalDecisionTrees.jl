@@ -115,6 +115,7 @@ function DataFrame2MultiFrameModalDataset(X, frame_grouping, relations, mixed_fe
             ontology = MDT.get_interval_ontology(channel_dim, relations)
             # println(eltype(_X))
             X = MDT.InterpretedModalDataset(_X, ontology, mixed_features)
+            # println(MDT.display_structure(X))
 
             if mode == :implicit
                 X
@@ -128,8 +129,9 @@ function DataFrame2MultiFrameModalDataset(X, frame_grouping, relations, mixed_fe
                 MDT.ExplicitModalDatasetSMemo(X, compute_relation_glob = compute_relation_glob)
             end
         end for (i_frame, frame) in enumerate(frame_grouping)]
-    
     Xs = MDT.MultiFrameModalDataset(Xs)
+    # println(MDT.display_structure(Xs))
+    # Xs
 end
 
 ############################################################################################
