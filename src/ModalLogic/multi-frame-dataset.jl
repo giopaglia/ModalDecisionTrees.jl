@@ -55,7 +55,7 @@ get_instance(X::MultiFrameModalDataset,  i_frame::Integer, idx_i::Integer, args.
 slice_dataset(X::MultiFrameModalDataset{MD}, inds::AbstractVector{<:Integer}, args...; kwargs...) where {MD<:ModalDataset} = 
     MultiFrameModalDataset{MD}(Vector{MD}(map(frame->slice_dataset(frame, inds, args...; kwargs...), frames(X))))
 
-display_structure(Xs::MultiFrameModalDataset; indent_str = "") = begin
+function display_structure(Xs::MultiFrameModalDataset; indent_str = "")
     out = "$(typeof(Xs))" # * "\t\t\t$(Base.summarysize(Xs) / 1024 / 1024 |> x->round(x, digits=2)) MBs"
     for (i_frame, X) in enumerate(frames(Xs))
         if i_frame == n_frames(Xs)
