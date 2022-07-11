@@ -451,6 +451,8 @@ end
 #     rng::Union{AbstractRNG,Integer} = GLOBAL_RNG
 # end
 
+# TODO downsizing_function = (args...)->forest_downsizing_function(args...; n_trees = m.n_trees),...
+
 # function MMI.fit(m::RandomForestClassifier, verbosity::Int, X, y, w=nothing)
 #     Xmatrix = MMI.matrix(X)
 #     yplain  = MMI.int(y)
