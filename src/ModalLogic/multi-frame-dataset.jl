@@ -23,6 +23,7 @@ struct MultiFrameModalDataset{MD<:ModalDataset}
         MultiFrameModalDataset{MD}(MD[X])
     end
     function MultiFrameModalDataset(Xs::AbstractVector{<:MD}) where {MD<:ModalDataset}
+        println(MD)
         MultiFrameModalDataset{MD}(Xs)
     end
     function MultiFrameModalDataset(X::MD) where {MD<:ModalDataset}
@@ -71,6 +72,8 @@ function display_structure(Xs::MultiFrameModalDataset; indent_str = "")
 end
 
 nframes = n_frames # TODO remove
+
+hasnans(Xs::MultiFrameModalDataset) = any(hasnans.(frames(Xs)))
 
 isminifiable(::MultiFrameModalDataset) = true
 

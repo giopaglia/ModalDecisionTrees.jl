@@ -223,6 +223,11 @@ function display_structure(imd::InterpretedModalDataset; indent_str = "")
     out
 end
 
+hasnans(imd::InterpretedModalDataset) = begin
+    # @show hasnans(imd.domain)
+    hasnans(imd.domain)
+end
+
 Base.@propagate_inbounds @inline get_gamma(imd::InterpretedModalDataset, args...) = get_gamma(imd.domain, args...)
 
 ############################################################################################
@@ -530,6 +535,11 @@ find_feature_id(X::ExplicitModalDataset{T,WorldType}, feature::ModalFeature) whe
 find_relation_id(X::ExplicitModalDataset{T,WorldType}, relation::Relation) where {T,WorldType} =
     findall(x->x==relation, relations(X))[1]
 
+hasnans(emd::ExplicitModalDataset) = begin
+    # @show hasnans(emd.fwd)
+    hasnans(emd.fwd)
+end
+
 Base.@propagate_inbounds @inline get_gamma(
         X::ExplicitModalDataset{T,WorldType},
         i_sample::Integer,
@@ -619,6 +629,11 @@ end
 goes_with(::Type{GenericRelationalSupport}, ::Type{<:World}) = true
 # default_fwd_rs_type(::Type{<:World}) = GenericRelationalSupport # TODO implement similar pattern used for fwd
 
+hasnans(emds::GenericRelationalSupport) = begin
+    # @show any(map(d->(any(_isnan.(collect(values(d))))), emds.d))
+    any(map(d->(any(_isnan.(collect(values(d))))), emds.d))
+end
+
 n_samples(emds::GenericRelationalSupport)     = size(emds, 1)
 n_featsnaggrs(emds::GenericRelationalSupport) = size(emds, 2)
 n_relations(emds::GenericRelationalSupport)   = size(emds, 3)
@@ -657,6 +672,11 @@ end
 
 goes_with(::Type{AbstractGlobalSupport}, ::Type{<:World}) = true
 # default_fwd_gs_type(::Type{<:World}) = GenericGlobalSupport # TODO implement similar pattern used for fwd
+
+hasnans(emds::GenericGlobalSupport) = begin
+    # @show any(_isnan.(emds.d))
+    any(_isnan.(emds.d))
+end
 
 n_samples(emds::GenericGlobalSupport{T}) where {T}  = size(emds, 1)
 n_featsnaggrs(emds::GenericGlobalSupport{T}) where {T} = size(emds, 2)
@@ -1007,6 +1027,13 @@ find_relation_id(X::ExplicitModalDatasetWithSupport, relation::Relation) =
     findall(x->x==relation, relations(X))[1]
 find_featsnaggr_id(X::ExplicitModalDatasetWithSupport, feature::ModalFeature, aggregator::Aggregator) =
     findall(x->x==(feature, aggregator), featsnaggrs(X))[1]
+
+hasnans(X::ExplicitModalDatasetWithSupport) = begin
+    # @show hasnans(X.emd)
+    # @show hasnans(X.fwd_rs)
+    # @show (!isnothing(X.fwd_gs) && hasnans(X.fwd_gs))
+    hasnans(X.emd) || hasnans(X.fwd_rs) || (!isnothing(X.fwd_gs) && hasnans(X.fwd_gs))
+end
 
 Base.@propagate_inbounds @inline get_gamma(
         X::ExplicitModalDatasetWithSupport{T,WorldType},

@@ -338,6 +338,12 @@ export n_features, n_relations,
        ExplicitModalDatasetS,
        ExplicitModalDatasetSMemo
        # 
+
+_isnan(n::Number) = isnan(n)
+_isnan(n::Nothing) = false
+hasnans(n::Number) = _isnan(n)
+hasnans(n::AbstractArray{<:Union{Nothing, Number}}) = any(_isnan.(n))
+
 # 
 # A modal dataset can be *active* or *passive*.
 # 

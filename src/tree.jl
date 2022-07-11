@@ -869,35 +869,35 @@ end
     _n_samples = n_samples(Xs)
 
     if length(Y) != _n_samples
-        throw_n_log("dimension mismatch between dataset and label vector Y: ($(_n_samples)) vs $(size(Y))")
+        throw_n_log("Dimension mismatch between dataset and label vector Y: ($(_n_samples)) vs $(size(Y))")
     elseif length(W) != _n_samples
-        throw_n_log("dimension mismatch between dataset and weights vector W: ($(_n_samples)) vs $(size(W))")
+        throw_n_log("Dimension mismatch between dataset and weights vector W: ($(_n_samples)) vs $(size(W))")
     ############################################################################
     elseif length(n_subrelations) != n_frames(Xs)
-        throw_n_log("mismatching number of n_subrelations with number of frames: $(length(n_subrelations)) vs $(n_frames(Xs))")
+        throw_n_log("Mismatching number of n_subrelations with number of frames: $(length(n_subrelations)) vs $(n_frames(Xs))")
     elseif length(n_subfeatures)  != n_frames(Xs)
-        throw_n_log("mismatching number of n_subfeatures with number of frames: $(length(n_subfeatures)) vs $(n_frames(Xs))")
+        throw_n_log("Mismatching number of n_subfeatures with number of frames: $(length(n_subfeatures)) vs $(n_frames(Xs))")
     elseif length(init_conditions) != n_frames(Xs)
-        throw_n_log("mismatching number of init_conditions with number of frames: $(length(init_conditions)) vs $(n_frames(Xs))")
+        throw_n_log("Mismatching number of init_conditions with number of frames: $(length(init_conditions)) vs $(n_frames(Xs))")
     elseif length(allow_global_splits) != n_frames(Xs)
-        throw_n_log("mismatching number of allow_global_splits with number of frames: $(length(allow_global_splits)) vs $(n_frames(Xs))")
+        throw_n_log("Mismatching number of allow_global_splits with number of frames: $(length(allow_global_splits)) vs $(n_frames(Xs))")
     ############################################################################
     # elseif any(n_relations(Xs) .< n_subrelations)
-    #   throw_n_log("in at least one frame the total number of relations is less than the number "
+    #   throw_n_log("In at least one frame the total number of relations is less than the number "
     #       * "of relations required at each split\n"
     #       * "# relations:    " * string(n_relations(Xs)) * "\n\tvs\n"
     #       * "# subrelations: " * string(n_subrelations |> collect))
     # elseif length(findall(n_subrelations .< 0)) > 0
-    #   throw_n_log("total number of relations $(n_subrelations) must be >= zero ")
+    #   throw_n_log("Total number of relations $(n_subrelations) must be >= zero ")
     elseif any(n_features(Xs) .< n_subfeatures)
-        throw_n_log("in at least one frame the total number of features is less than the number "
+        throw_n_log("In at least one frame the total number of features is less than the number "
             * "of features required at each split\n"
             * "# features:    " * string(n_features(Xs)) * "\n\tvs\n"
             * "# subfeatures: " * string(n_subfeatures |> collect))
     elseif length(findall(n_subfeatures .< 0)) > 0
-        throw_n_log("total number of features $(n_subfeatures) must be >= zero ")
+        throw_n_log("Total number of features $(n_subfeatures) must be >= zero ")
     elseif min_samples_leaf < 1
-        throw_n_log("min_samples_leaf must be a positive integer "
+        throw_n_log("Min_samples_leaf must be a positive integer "
             * "(given $(min_samples_leaf))")
     # if loss_function in [util.entropy]
     #   max_purity_at_leaf_thresh = 0.75 # min_purity_increase 0.01
@@ -910,27 +910,31 @@ end
     #           * "(given $(min_purity_increase))")
     # end
     # elseif loss_function in [util.gini, util.zero_one] && (max_purity_at_leaf > 1.0 || max_purity_at_leaf <= 0.0)
-    #     throw_n_log("max_purity_at_leaf for loss $(loss_function) must be in (0,1]"
+    #     throw_n_log("Max_purity_at_leaf for loss $(loss_function) must be in (0,1]"
     #         * "(given $(max_purity_at_leaf))")
     elseif max_depth < -1
-        throw_n_log("unexpected value for max_depth: $(max_depth) (expected:"
+        throw_n_log("Unexpected value for max_depth: $(max_depth) (expected:"
             * " max_depth >= 0, or max_depth = -1 for infinite depth)")
     end
 
-    # TODO make sure how missing, nothing, NaN & infinite can be handled
-    # if nothing in Xs.fwd
-    #   throw_n_log("Warning! This algorithm doesn't allow nothing values in Xs.fwd")
-    # elseif any(isnan.(Xs.fwd)) # TODO make sure that this does its job.
-    #   throw_n_log("Warning! This algorithm doesn't allow NaN values in Xs.fwd")
-    # else
+    if ModalLogic.hasnans(Xs)
+        # println(Xs)
+        # println(ModalLogic.display_structure(Xs))
+        # println(ModalLogic.hasnans(Xs))
+        # println(ModalLogic.hasnans.([X.emd for X in frames(Xs)]))
+        # println(ModalLogic.hasnans.([X.emd.fwd for X in frames(Xs)]))
+        # println(frames(Xs)[1].emd.fwd)
+        throw_n_log("This algorithm doesn't allow NaN values")
+    end
+
     if nothing in Y
-        throw_n_log("Warning! This algorithm doesn't allow nothing values in Y")
+        throw_n_log("This algorithm doesn't allow nothing values in Y")
     # elseif any(isnan.(Y))
-    #   throw_n_log("Warning! This algorithm doesn't allow NaN values in Y")
+    #   throw_n_log("This algorithm doesn't allow NaN values in Y")
     elseif nothing in W
-        throw_n_log("Warning! This algorithm doesn't allow nothing values in W")
+        throw_n_log("This algorithm doesn't allow nothing values in W")
     elseif any(isnan.(W))
-        throw_n_log("Warning! This algorithm doesn't allow NaN values in W")
+        throw_n_log("This algorithm doesn't allow NaN values in W")
     end
 
 end
