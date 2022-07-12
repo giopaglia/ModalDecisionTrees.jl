@@ -23,8 +23,8 @@ mutable struct NodeMeta{P,L}
     r                  :: NodeMeta{P,L}                    # right child
 
     i_frame            :: Integer                          # Id of frame
-    decision           :: Decision{T} where {T}                    
-    
+    decision           :: Decision{T} where {T}
+
     onlyallowRelationGlob:: Vector{Bool}
 
     function NodeMeta{P,L}(
@@ -119,7 +119,7 @@ end
 #   # Fix test_operators order
 #   test_operators = unique(test_operators)
 #   ModalLogic.sort_test_operators!(test_operators)
-    
+
 #   # Adimensional operators:
 #   #  in the adimensional case, some pairs of operators (e.g. <= and >)
 #   #  are complementary, and thus it is redundant to check both at the same node.
@@ -150,7 +150,7 @@ end
 #   # Binary relations (= unary modal operators)
 #   # Note: the identity relation is the first, and it is the one representing
 #   #  propositional splits.
-    
+
 #   if RelationId in ontology_relations
 #       throw_n_log("Found RelationId in ontology provided. No need.")
 #       # ontology_relations = filter(e->e ≠ RelationId, ontology_relations)
@@ -284,7 +284,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # sums = [Wf[i]*Yf[i]       for i in 1:_n_samples]
             sums = Yf
             # ssqs = [Wf[i]*Yf[i]*Yf[i] for i in 1:_n_samples]
-            
+
             # tssq = zero(U)
             # tssq = sum(ssqs)
             # tsum = zero(U)
@@ -293,7 +293,7 @@ Base.@propagate_inbounds @inline function split_node!(
             nt = sum(Wf)
             # @inbounds @simd for i in 1:_n_samples
             #   # tssq += Wf[i]*Yf[i]*Yf[i]
-            #   # tsum += Wf[i]*Yf[i]   
+            #   # tsum += Wf[i]*Yf[i]
             #   nt += Wf[i]
             # end
 
@@ -393,7 +393,7 @@ Base.@propagate_inbounds @inline function split_node!(
         consistency_sat_check = Vector{Bool}(undef, _n_samples)
     end
     best_consistency = nothing
-    
+
     #####################
     ## Find best split ##
     #####################
@@ -410,9 +410,9 @@ Base.@propagate_inbounds @inline function split_node!(
         @logmsg DTDetail "  Frame $(best_i_frame)/$(length(frames(Xs)))"
 
         allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds = begin
-            
+
             # Derive subset of features to consider
-            # Note: using "sample" function instead of "randperm" allows to insert weights for features which may be wanted in the future 
+            # Note: using "sample" function instead of "randperm" allows to insert weights for features which may be wanted in the future
             features_inds = StatsBase.sample(rng, 1:n_features(X), frame_n_subfeatures, replace = false)
             sort!(features_inds)
 
@@ -434,7 +434,7 @@ Base.@propagate_inbounds @inline function split_node!(
             if allow_global_decisions
                 tot_relations += 1
             end
-            
+
             # Derive subset of relations to consider
             n_subrel = Int(frame_n_subrelations(tot_relations))
             modal_relations_inds = StatsBase.sample(rng, 1:tot_relations, n_subrel, replace = false)
@@ -448,7 +448,7 @@ Base.@propagate_inbounds @inline function split_node!(
             end
             allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds
         end
-        
+
         # println(modal_relations_inds)
         # println(features_inds)
         # readline()
@@ -456,9 +456,9 @@ Base.@propagate_inbounds @inline function split_node!(
         ########################################################################
         ########################################################################
         ########################################################################
-        
+
         @inbounds for (decision, aggr_thresholds) in generate_feasible_decisions(X, idxs[region], frame_Sf, allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds)
-            
+
             # println(display_decision(i_frame, decision))
 
             # TODO avoid ugly unpacking and figure out a different way of achieving this
@@ -479,7 +479,7 @@ Base.@propagate_inbounds @inline function split_node!(
                         gamma = aggr_thresholds[i_sample]
                         satisfied = evaluate_thresh_decision(test_operator, gamma, threshold)
                         @logmsg DTDetail " instance $i_sample/$_n_samples: (f=$(gamma)) -> satisfied = $(satisfied)"
-                        
+
                         # Note: in a fuzzy generalization, `satisfied` becomes a [0-1] value
                         if !satisfied
                             nr += Wf[i_sample]
@@ -494,7 +494,7 @@ Base.@propagate_inbounds @inline function split_node!(
                     ncl = Vector{U}(undef, n_classes)
                     ncl .= nc .- ncr
                     nl = nt - nr
-                    
+
                     (ncr, nr, ncl, nl)
                 end
             else
@@ -515,7 +515,7 @@ Base.@propagate_inbounds @inline function split_node!(
                         gamma = aggr_thresholds[i_sample]
                         satisfied = evaluate_thresh_decision(test_operator, gamma, threshold)
                         @logmsg DTDetail " instance $i_sample/$_n_samples: (f=$(gamma)) -> satisfied = $(satisfied)"
-                        
+
                         # TODO make this satisfied a fuzzy value
                         if !satisfied
                             push!(rsums, sums[i_sample])
@@ -536,15 +536,15 @@ Base.@propagate_inbounds @inline function split_node!(
                     lsum = tsum - rsum
                     # lssq = tssq - rssq
                     nl   = nt - nr
-                    
+
                     (rsums, nr, lsums, nl, rsum, lsum)
                 end
             end
-            
+
             ########################################################################
             ########################################################################
             ########################################################################
-            
+
             @logmsg DTDebug "  (n_left,n_right) = ($nl,$nr)"
 
             # Honor min_samples_leaf
@@ -561,7 +561,7 @@ Base.@propagate_inbounds @inline function split_node!(
                                 loss_function(lsums, ws_l, nl, rsums, ws_r, nr)
                             end
                         end
-                        
+
                         # TODO use loss_function instead
                         # ORIGINAL: TODO understand how it works
                         # purity_times_nt = (rsum * rsum / nr) + (lsum * lsum / nl)
@@ -627,7 +627,7 @@ Base.@propagate_inbounds @inline function split_node!(
             corrected_best_purity_times_nt == typemin(P)) ||
             dishonor_min_purity_increase(L, min_purity_increase, node.purity, corrected_best_purity_times_nt, nt)
         )
-        
+
         if _is_classification isa Val{true}
             @logmsg DTDebug " Leaf" corrected_best_purity_times_nt min_purity_increase (corrected_best_purity_times_nt/nt) node.purity ((corrected_best_purity_times_nt/nt) - node.purity)
         else
@@ -647,7 +647,7 @@ Base.@propagate_inbounds @inline function split_node!(
 
         # println(decision_str)
         decision_str = display_decision(best_i_frame, best_decision)
-        
+
         # TODO instead of using memory, here, just use two opposite indices and perform substitutions. indj = _n_samples
         unsatisfied_flags = fill(1, _n_samples)
         if isa(_perform_consistency_check,Val{true})
@@ -680,7 +680,9 @@ Base.@propagate_inbounds @inline function split_node!(
         @logmsg DTDetail " unsatisfied_flags" unsatisfied_flags
 
         if length(unique(unsatisfied_flags)) == 1
-            throw_n_log("An uninformative split was reached. Something's off\nPurity: $(node.purity)\nSplit: $(decision_str)\nUnsatisfied flags: $(unsatisfied_flags)")
+            @warn "An uninformative split was reached. Something's off\nPurity: $(node.purity)\nSplit: $(decision_str)\nUnsatisfied flags: $(unsatisfied_flags)"
+            node.is_leaf = true
+            return node
         end
         @logmsg DTDetail " Branch ($(sum(unsatisfied_flags))+$(_n_samples-sum(unsatisfied_flags))=$(_n_samples) samples) on frame $(best_i_frame) with decision: $(decision_str), purity $(best_purity)"
 
@@ -724,7 +726,7 @@ Base.@propagate_inbounds @inline function split_node!(
                 errStr *= "world_refs = $(world_refs)\n"
                 errStr *= "new world_refs = $([Ss[best_i_frame][idxs[i_sample + r_start]] for i_sample in 1:_n_samples])\n"
             end
-            
+
             # for i in 1:_n_samples
                 # errStr *= "$(ModalLogic.get_channel(Xs, idxs[i + r_start], best_decision.feature))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[best_i_frame][idxs[i + r_start]])\n";
             # end
@@ -764,7 +766,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # idxs = rand(1:10, 10)
             # unsatisfied_flags = rand([1,0], 10)
             # partition!(idxs, unsatisfied_flags, 0, 1:10)
-            
+
             # Sort [Xf, Yf, Wf, Sf and idxs] by Xf
             # util.q_bi_sort!(unsatisfied_flags, idxs, 1, _n_samples, r_start)
             # node.split_at = searchsortedfirst(unsatisfied_flags, true)
@@ -795,19 +797,19 @@ end
     ) where{L<:_Label, U}
 
     _n_samples = n_samples(Xs)
-    
+
     # Initialize world sets for each instance
     Ss = init_world_sets(Xs, initConditions)
 
     # Distribution of the instances indices throughout the tree.
     #  It will be recursively permuted, and regions of it assigned to the tree nodes (idxs[node.region])
     idxs = collect(1:_n_samples)
-    
+
     # Create root node
     NodeMetaT = NodeMeta{Float64,(_is_classification isa Val{true} ? Int64 : Float64)}
     onlyallowRelationGlob = [(iC == startWithRelationGlob) for iC in initConditions]
     root = NodeMetaT(1:_n_samples, 0, 0, onlyallowRelationGlob)
-    
+
     # Process nodes recursively, using multi-threading
     function process_node!(node, rng)
         # Note: better to spawn rng's beforehand, to preserve reproducibility independently from split_node!
@@ -966,7 +968,7 @@ function fit(
         _perform_consistency_check = Val(perform_consistency_check),
         kwargs...
     )
-    
+
     # Finally create Tree
     root = begin
         if L<:CLabel
