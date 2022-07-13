@@ -18,10 +18,10 @@ end
 
 # ModalDataset -> MultiFrameModalDataset
 
-predict(model::Any, X::ModalDataset, args...; kwargs...) =
-    predict(model, MultiFrameModalDataset(X), args...; kwargs...)
+apply(model::Any, X::ModalDataset, args...; kwargs...) =
+    apply(model, MultiFrameModalDataset(X), args...; kwargs...)
 
-apply_model = predict
+apply_model = apply
 
 # TODO remove these patches
 apply_tree   = apply_model
@@ -37,36 +37,36 @@ function print_apply(tree::DTree, X::GenericModalDataset, Y::AbstractVector; kwa
 end
 
 
-predict_proba(model::Any, X::ModalDataset, args...; kwargs...) =
-    predict_proba(model, MultiFrameModalDataset(X), args...; kwargs...)
+apply_proba(model::Any, X::ModalDataset, args...; kwargs...) =
+    apply_proba(model, MultiFrameModalDataset(X), args...; kwargs...)
 
 # apply_tree_proba   = apply_model_proba
 # apply_trees_proba  = apply_model_proba
 # apply_forest_proba = apply_model_proba
 
-apply_model_proba = predict_proba
+apply_model_proba = apply_proba
 
 ################################################################################
 # Apply models: predict labels for a new dataset of instances
 ################################################################################
 
-function predict(leaf::DTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
+function apply(leaf::DTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
     prediction(leaf)
 end
 
-function predict(leaf::NSDTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
+function apply(leaf::NSDTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
     d = slice_dataset(X, [i_sample])
     # println(typeof(d))
     # println(hasmethod(size,   (typeof(d),)) ? size(d)   : nothing)
     # println(hasmethod(length, (typeof(d),)) ? length(d) : nothing)
     preds = leaf.predicting_function(d)
-    @assert length(preds) == 1 "Error in predict(::NSDTLeaf, ...) The predicting function returned some malformed output. Expected is a Vector of a single prediction, while the returned value is:\n$(preds)\n$(hasmethod(length, (typeof(preds),)) ? length(preds) : "(length = $(length(preds)))")\n$(hasmethod(size, (typeof(preds),)) ? size(preds) : "(size = $(size(preds)))")"
+    @assert length(preds) == 1 "Error in apply(::NSDTLeaf, ...) The predicting function returned some malformed output. Expected is a Vector of a single prediction, while the returned value is:\n$(preds)\n$(hasmethod(length, (typeof(preds),)) ? length(preds) : "(length = $(length(preds)))")\n$(hasmethod(size, (typeof(preds),)) ? size(preds) : "(size = $(size(preds)))")"
     # println(preds)
     # println(typeof(preds))
     preds[1]
 end
 
-function predict(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
+function apply(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
     @logmsg DTDetail "applying branch..."
     @logmsg DTDetail " worlds" worlds
     (satisfied,new_worlds) =
@@ -79,12 +79,12 @@ function predict(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Integer,
 
     worlds[tree.i_frame] = new_worlds
     @logmsg DTDetail " ->(satisfied,worlds')" satisfied worlds
-    predict((satisfied ? tree.left : tree.right), X, i_sample, worlds)
+    apply((satisfied ? tree.left : tree.right), X, i_sample, worlds)
 end
 
 # Obtain predictions of a tree on a dataset
-function predict(tree::DTree{L}, X::MultiFrameModalDataset) where {L}
-    @logmsg DTDetail "predict..."
+function apply(tree::DTree{L}, X::MultiFrameModalDataset) where {L}
+    @logmsg DTDetail "apply..."
     _n_samples = n_samples(X)
     predictions = Vector{L}(undef, _n_samples)
     
@@ -94,19 +94,19 @@ function predict(tree::DTree{L}, X::MultiFrameModalDataset) where {L}
 
         worlds = inst_init_world_sets(X, tree, i_sample)
 
-        predictions[i_sample] = predict(tree.root, X, i_sample, worlds)
+        predictions[i_sample] = apply(tree.root, X, i_sample, worlds)
     end
     predictions
 end
 
 # use an array of trees to test features
-function predict(
+function apply(
         trees::AbstractVector{<:DTree{<:L}},
         X::MultiFrameModalDataset;
         suppress_parity_warning = false,
         tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
     ) where {L<:Label, Z<:Real}
-    @logmsg DTDetail "predict..."
+    @logmsg DTDetail "apply..."
     n_trees = length(trees)
     _n_samples = n_samples(X)
 
@@ -117,7 +117,7 @@ function predict(
     # apply each tree to the whole dataset
     _predictions = Matrix{L}(undef, n_trees, _n_samples)
     Threads.@threads for i_tree in 1:n_trees
-        _predictions[i_tree,:] = predict(trees[i_tree], X)
+        _predictions[i_tree,:] = apply(trees[i_tree], X)
     end
 
     # for each instance, aggregate the predictions
@@ -130,21 +130,26 @@ function predict(
 end
 
 # use a proper forest to test features
-function predict(forest::DForest, X::MultiFrameModalDataset; weight_trees_by::Union{Bool,Symbol,AbstractVector} = false)
+function apply(
+        forest::DForest,
+        X::MultiFrameModalDataset;
+        suppress_parity_warning = false,
+        weight_trees_by::Union{Bool,Symbol,AbstractVector} = false,
+    )
     if weight_trees_by == false
-        predict(forest.trees, X)
+        apply(forest.trees, X; suppress_parity_warning = suppress_parity_warning)
     elseif isa(weight_trees_by, AbstractVector)
-        predict(forest.trees, X; tree_weights = weight_trees_by)
+        apply(forest.trees, X; suppress_parity_warning = suppress_parity_warning, tree_weights = weight_trees_by)
     # elseif weight_trees_by == :accuracy
     #   # TODO: choose HOW to weight a tree... overall_accuracy is just an example (maybe can be parameterized)
-    #   predict(forest.trees, X; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
+    #   apply(forest.trees, X; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
     else
         @error "Unexpected value for weight_trees_by: $(weight_trees_by)"
     end
 end
 
 ################################################################################
-# Print+Apply models: predict labels for a new dataset of instances
+# Print+Apply models: apply labels for a new dataset of instances
 ################################################################################
 
 function _empty_tree_leaves(leaf::DTLeaf{L}) where {L}
@@ -174,7 +179,7 @@ function _empty_tree_leaves(tree::DTree)
 end
 
 
-function predict(
+function apply(
         leaf::DTLeaf{L},
         X::MultiFrameModalDataset,
         i_sample::Integer,
@@ -194,7 +199,7 @@ function predict(
     _prediction, DTLeaf(_prediction, _supp_labels)
 end
 
-function predict(
+function apply(
         leaf::NSDTLeaf{L},
         X::MultiFrameModalDataset,
         i_sample::Integer,
@@ -203,7 +208,7 @@ function predict(
         update_labels = false,
     ) where {L<:Label}
     _supp_train_labels      = L[leaf.supp_train_labels...,      class]
-    _supp_train_predictions = L[leaf.supp_train_predictions..., predict(leaf, X, i_sample, worlds)]
+    _supp_train_predictions = L[leaf.supp_train_predictions..., apply(leaf, X, i_sample, worlds)]
 
     _predicting_function = 
         if update_labels
@@ -215,7 +220,7 @@ function predict(
     _predicting_function(d)[1], NSDTLeaf{L}(_predicting_function, _supp_train_labels, leaf.supp_valid_labels, _supp_train_predictions, leaf.supp_valid_predictions)
 end
 
-function predict(
+function apply(
     tree::DTInternal{T, L},
     X::MultiFrameModalDataset,
     i_sample::Integer,
@@ -232,21 +237,21 @@ function predict(
 
     worlds[tree.i_frame] = new_worlds
 
-    this_prediction, this_leaf = predict(tree.this,  X, i_sample, worlds, class, update_labels = update_labels) # TODO test whether this works correctly 
+    this_prediction, this_leaf = apply(tree.this,  X, i_sample, worlds, class, update_labels = update_labels) # TODO test whether this works correctly 
     
     pred, left_leaf, right_leaf =
         if satisfied
-            pred, left_leaf = predict(tree.left,  X, i_sample, worlds, class, update_labels = update_labels)
+            pred, left_leaf = apply(tree.left,  X, i_sample, worlds, class, update_labels = update_labels)
             pred, left_leaf, tree.right
         else
-            pred, right_leaf = predict(tree.right, X, i_sample, worlds, class, update_labels = update_labels)
+            pred, right_leaf = apply(tree.right, X, i_sample, worlds, class, update_labels = update_labels)
             pred, tree.left, right_leaf
         end
 
     pred, DTInternal(tree.i_frame, tree.decision, this_leaf, left_leaf, right_leaf)
 end
 
-function predict(
+function apply(
     tree::DTree{L},
     X::MultiFrameModalDataset,
     Y::AbstractVector{<:L};
@@ -263,14 +268,14 @@ function predict(
     # Propagate instances down the tree
     for i_sample in 1:n_samples(X)
         worlds = inst_init_world_sets(X, tree, i_sample)
-        pred, root = predict(root, X, i_sample, worlds, Y[i_sample], update_labels = update_labels)
+        pred, root = apply(root, X, i_sample, worlds, Y[i_sample], update_labels = update_labels)
         push!(predictions, pred)
     end
     predictions, DTree(root, tree.world_types, tree.init_conditions)
 end
 
-# function predict(tree::DTNode{T, L}, X::DimensionalDataset{T,D}, Y::AbstractVector{<:L}; reset_leaves = true, update_labels = false) where {L, T, D}
-#   return predict(DTree(tree, [world_type(ModalLogic.get_interval_ontology(Val(D-2)))], [start_without_world]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
+# function apply(tree::DTNode{T, L}, X::DimensionalDataset{T,D}, Y::AbstractVector{<:L}; reset_leaves = true, update_labels = false) where {L, T, D}
+#   return apply(DTree(tree, [world_type(ModalLogic.get_interval_ontology(Val(D-2)))], [start_without_world]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
 # end
 
 ############################################################################################
@@ -279,11 +284,11 @@ using Distributions
 using CategoricalDistributions
 using CategoricalArrays
 
-function predict_proba(leaf::DTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
+function apply_proba(leaf::DTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
     leaf.supp_labels
 end
 
-function predict_proba(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
+function apply_proba(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
     @logmsg DTDetail "applying branch..."
     @logmsg DTDetail " worlds" worlds
     (satisfied,new_worlds) =
@@ -296,12 +301,12 @@ function predict_proba(tree::DTInternal, X::MultiFrameModalDataset, i_sample::In
 
     worlds[tree.i_frame] = new_worlds
     @logmsg DTDetail " ->(satisfied,worlds')" satisfied worlds
-    predict_proba((satisfied ? tree.left : tree.right), X, i_sample, worlds)
+    apply_proba((satisfied ? tree.left : tree.right), X, i_sample, worlds)
 end
 
 # Obtain predictions of a tree on a dataset
-function predict_proba(tree::DTree{L}, X::MultiFrameModalDataset, classes) where {L<:CLabel}
-    @logmsg DTDetail "predict_proba..."
+function apply_proba(tree::DTree{L}, X::MultiFrameModalDataset, classes) where {L<:CLabel}
+    @logmsg DTDetail "apply_proba..."
     _n_samples = n_samples(X)
     prediction_scores = Matrix{Float64}(undef, _n_samples, length(classes))
     
@@ -311,7 +316,7 @@ function predict_proba(tree::DTree{L}, X::MultiFrameModalDataset, classes) where
 
         worlds = inst_init_world_sets(X, tree, i_sample)
 
-        this_prediction_scores = predict_proba(tree.root, X, i_sample, worlds)
+        this_prediction_scores = apply_proba(tree.root, X, i_sample, worlds)
         d = Distributions.fit(CategoricalDistributions.UnivariateFinite, categorical(this_prediction_scores; levels = classes))
         prediction_scores[i_sample, :] .= [pdf(d, c) for c in classes]
     end
@@ -319,13 +324,13 @@ function predict_proba(tree::DTree{L}, X::MultiFrameModalDataset, classes) where
 end
 
 # use an array of trees to test features
-function predict_proba(
+function apply_proba(
         trees::AbstractVector{<:DTree{<:L}},
         X::MultiFrameModalDataset,
         classes;
         tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
     ) where {L<:CLabel, Z<:Real}
-    @logmsg DTDetail "predict_proba..."
+    @logmsg DTDetail "apply_proba..."
     n_trees = length(trees)
     _n_samples = n_samples(X)
 
@@ -336,7 +341,7 @@ function predict_proba(
     # apply each tree to the whole dataset
     _predictions = Array{Float64,3}(undef, _n_samples, n_trees, length(classes))
     Threads.@threads for i_tree in 1:n_trees
-        _predictions[:,i_tree,:] = predict_proba(trees[i_tree], X, classes)
+        _predictions[:,i_tree,:] = apply_proba(trees[i_tree], X, classes)
     end
 
     # Average the prediction scores
@@ -353,14 +358,14 @@ function predict_proba(
 end
 
 # use a proper forest to test features
-function predict_proba(forest::DForest{L}, X::MultiFrameModalDataset, classes; weight_trees_by::Union{Bool,Symbol,AbstractVector} = false) where {L<:CLabel}
+function apply_proba(forest::DForest{L}, X::MultiFrameModalDataset, classes; weight_trees_by::Union{Bool,Symbol,AbstractVector} = false) where {L<:CLabel}
     if weight_trees_by == false
-        predict_proba(forest.trees, X, classes)
+        apply_proba(forest.trees, X, classes)
     elseif isa(weight_trees_by, AbstractVector)
-        predict_proba(forest.trees, X, classes; tree_weights = weight_trees_by)
+        apply_proba(forest.trees, X, classes; tree_weights = weight_trees_by)
     # elseif weight_trees_by == :accuracy
     #   # TODO: choose HOW to weight a tree... overall_accuracy is just an example (maybe can be parameterized)
-    #   predict_proba(forest.trees, X, classes; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
+    #   apply_proba(forest.trees, X, classes; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
     else
         @error "Unexpected value for weight_trees_by: $(weight_trees_by)"
     end

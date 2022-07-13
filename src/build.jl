@@ -49,7 +49,7 @@ function build_tree(
         ##############################################################################
         n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
         n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = identity,
-        init_conditions     :: Union{InitCondition,AbstractVector{<:InitCondition}} = start_without_world,
+        init_conditions     :: Union{InitCondition,AbstractVector{<:InitCondition}}   = start_without_world,
         allow_global_splits :: Union{Bool,AbstractVector{Bool}}                       = true,
         ##############################################################################
         perform_minification      :: Bool = false,
@@ -138,7 +138,7 @@ function build_forest(
         # Modal parameters
         n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
         n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = x -> ceil(Int64, sqrt(x)),
-        init_conditions     :: Union{InitCondition,AbstractVector{<:InitCondition}} = start_without_world,
+        init_conditions     :: Union{InitCondition,AbstractVector{<:InitCondition}}   = start_without_world,
         allow_global_splits :: Union{Bool,AbstractVector{Bool}}                       = true,
         ##############################################################################
         perform_minification      :: Bool = false,
@@ -146,6 +146,7 @@ function build_forest(
         ##############################################################################
         rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG,
         print_progress :: Bool = true,
+        suppress_parity_warning :: Bool = false,
     ) where {L<:Label, U}
 
     @assert W isa AbstractVector || W in [nothing, :rebalance, :default]
@@ -238,7 +239,7 @@ function build_forest(
                 # compute_metrics([Inf],[-Inf])
                 compute_metrics(["__FAKE__"],["__FAKE2__"]) # TODO
             else
-                tree_preds = apply_tree(trees[i_tree], slice_dataset(X, oob_samples[i_tree]; return_view = true))
+                tree_preds = apply_tree(trees[i_tree], slice_dataset(X, oob_samples[i_tree], return_view = true))
                 compute_metrics(Y[oob_samples[i_tree]], tree_preds, _slice_weights(W, oob_samples[i_tree]))
             end
         end
@@ -273,7 +274,7 @@ function build_forest(
             X_slice = slice_dataset(X, [i]; return_view = true)
             Y_slice = [Y[i]]
             
-            preds = apply_model(trees[index_of_trees_to_test_with], X_slice)
+            preds = apply_model(trees[index_of_trees_to_test_with], X_slice; suppress_parity_warning = suppress_parity_warning)
             
             push!(oob_classified, Y_slice[1] == preds[1])
         end
