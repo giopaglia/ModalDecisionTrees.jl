@@ -477,8 +477,10 @@ const DTNode{T, L} = Union{<:AbstractDecisionLeaf{<:L}, DTInternal{T, L}}
 
 ############################################################################################
 
+abstract type SymbolicModel{T} end
+
 # Decision Tree
-struct DTree{L<:Label}
+struct DTree{L<:Label} <: SymbolicModel{L}
     # root node
     root            :: DTNode{T, L} where T
     # world types (one per frame)
@@ -506,7 +508,7 @@ end
 ############################################################################################
 
 # Decision Forest (i.e., ensable of trees via bagging)
-struct DForest{L<:Label}
+struct DForest{L<:Label} <: SymbolicModel{L}
     # trees
     trees       :: Vector{<:DTree{L}}
     # metrics
@@ -686,22 +688,22 @@ end
 ############################################################################################
 
 default_max_depth = typemax(Int64)
-default_min_samples_leaf = 4 # min_samples_leaf = 1
-default_min_purity_increase = 0.002 # min_purity_increase = -Inf
+default_min_samples_leaf = 1
+default_min_purity_increase = -Inf
 default_max_purity_at_leaf = Inf
 default_n_trees = typemax(Int64)
 
-function parametrization_is_going_to_prune(pruning_params)
-    (haskey(pruning_params, :max_depth)           && pruning_params.max_depth            < default_max_depth) ||
-    # (haskey(pruning_params, :min_samples_leaf)    && pruning_params.min_samples_leaf     > default_min_samples_leaf) ||
-    (haskey(pruning_params, :min_purity_increase) && pruning_params.min_purity_increase  > default_min_purity_increase) ||
-    (haskey(pruning_params, :max_purity_at_leaf)  && pruning_params.max_purity_at_leaf   < default_max_purity_at_leaf) ||
-    (haskey(pruning_params, :n_trees)             && pruning_params.n_trees              < default_n_trees)
-end
+# function parametrization_is_going_to_prune(pruning_params)
+#     (haskey(pruning_params, :max_depth)           && pruning_params.max_depth            < default_max_depth) ||
+#     # (haskey(pruning_params, :min_samples_leaf)    && pruning_params.min_samples_leaf     > default_min_samples_leaf) ||
+#     (haskey(pruning_params, :min_purity_increase) && pruning_params.min_purity_increase  > default_min_purity_increase) ||
+#     (haskey(pruning_params, :max_purity_at_leaf)  && pruning_params.max_purity_at_leaf   < default_max_purity_at_leaf) ||
+#     (haskey(pruning_params, :n_trees)             && pruning_params.n_trees              < default_n_trees)
+# end
 
 include("leaf-metrics.jl")
 include("build.jl")
-include("predict.jl")
+include("apply.jl")
 include("posthoc.jl")
 include("print.jl")
 include("decisionpath.jl")

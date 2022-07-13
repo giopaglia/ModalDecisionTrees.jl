@@ -6,6 +6,11 @@
 # TODO remove redundance
 export ModalDecisionTree, ModalRandomForest
 
+
+include("example-datasets.jl")
+
+export @load_japanesevowels
+
 module MLJInterface
 
 export ModalDecisionTree, ModalRandomForest
@@ -32,11 +37,11 @@ const PKG = "ModalDecisionTrees"
 ############################################################################################
 ############################################################################################
 
-struct ModelPrinter{T}
+struct ModelPrinter{T<:MDT.SymbolicModel}
     model::T
     frame_grouping::Union{Nothing,AbstractVector{<:AbstractVector},AbstractVector{<:AbstractDict}}
 end
-(c::ModelPrinter)(; args...) = c(c.model; args...)
+(c::ModelPrinter)(max_depth::Integer; args...) = c(c.model; max_depth, args...)
 (c::ModelPrinter)(model; max_depth = 5) = MDT.print_model(model; attribute_names_map = c.frame_grouping, max_depth = max_depth)
 
 Base.show(io::IO, c::ModelPrinter) =
@@ -48,7 +53,7 @@ Base.show(io::IO, c::ModelPrinter) =
 
 _size = ((x)->(hasmethod(size, (typeof(x),)) ? size(x) : missing))
 
-function separate_attributes_into_frames(X)
+function separate_variables_into_frames(X)
 
     columns = names(X)
     channel_sizes = [unique(_size.(X)[:,col]) for col in columns]
@@ -135,11 +140,11 @@ function moving_average(
     nwindows::Integer,
     relative_overlap::AbstractFloat = .5,
 ) where {T}
-    npoints, n_attributes, n_instances = size(X)
-    new_X = similar(X, (nwindows, n_attributes, n_instances))
+    npoints, n_variables, n_instances = size(X)
+    new_X = similar(X, (nwindows, n_variables, n_instances))
     for i_instance in 1:n_instances
-        for i_attribute in 1:n_attributes
-            new_X[:, i_attribute, i_instance] .= [mean(X[idxs, i_attribute, i_instance]) for idxs in __moving_window_without_overflow_fixed_num(npoints; nwindows = nwindows, relative_overlap = relative_overlap)]
+        for i_variable in 1:n_variables
+            new_X[:, i_variable, i_instance] .= [mean(X[idxs, i_variable, i_instance]) for idxs in __moving_window_without_overflow_fixed_num(npoints; nwindows = nwindows, relative_overlap = relative_overlap)]
         end
     end
     return new_X
@@ -150,13 +155,13 @@ function moving_average(
     new_channel_size::Tuple{Integer,Integer},
     relative_overlap::AbstractFloat = .5,
 ) where {T}
-    n_X, n_Y, n_attributes, n_instances = size(X)
+    n_X, n_Y, n_variables, n_instances = size(X)
     windows_1 = __moving_window_without_overflow_fixed_num(n_X; nwindows = new_channel_size[1], relative_overlap = relative_overlap)
     windows_2 = __moving_window_without_overflow_fixed_num(n_Y; nwindows = new_channel_size[2], relative_overlap = relative_overlap)
-    new_X = similar(X, (new_channel_size..., n_attributes, n_instances))
+    new_X = similar(X, (new_channel_size..., n_variables, n_instances))
     for i_instance in 1:n_instances
-        for i_attribute in 1:n_attributes
-            new_X[:, :, i_attribute, i_instance] .= [mean(X[idxs1, idxs2, i_attribute, i_instance]) for idxs1 in windows_1, idxs2 in windows_2]
+        for i_variable in 1:n_variables
+            new_X[:, :, i_variable, i_instance] .= [mean(X[idxs1, idxs2, i_variable, i_instance]) for idxs1 in windows_1, idxs2 in windows_2]
         end
     end
     return new_X
@@ -166,7 +171,7 @@ function DataFrame2MultiFrameModalDataset(
         X,
         frame_grouping,
         relations,
-        mixed_features,
+        mixed_attributes,
         init_conditions,
         allow_global_splits,
         mode;
@@ -175,7 +180,7 @@ function DataFrame2MultiFrameModalDataset(
 
     @assert mode in [:explicit, :implicit]
 
-    @assert all((<:).(eltype.(eachcol(X)), Union{Real,AbstractVector{<:Real},AbstractMatrix{<:Real}})) "ModalDecisionTrees.jl only allows attributes that are `Real`, `AbstractVector{<:Real}` or `AbstractMatrix{<:Real}`"
+    @assert all((<:).(eltype.(eachcol(X)), Union{Real,AbstractVector{<:Real},AbstractMatrix{<:Real}})) "ModalDecisionTrees.jl only allows variables that are `Real`, `AbstractVector{<:Real}` or `AbstractMatrix{<:Real}`"
     @assert ! any(map((x)->(any(MDT.ModalLogic.hasnans.(x))), eachcol(X))) "ModalDecisionTrees.jl doesn't allow NaN values"
 
     Xs_ic = [begin
@@ -191,13 +196,13 @@ function DataFrame2MultiFrameModalDataset(
         # println("$(i_frame)\tchannel size: $(channel_size)\t => $(frame_grouping)")
 
         _X = begin
-            n_attributes = DataFrames.ncol(X_frame)
+            n_variables = DataFrames.ncol(X_frame)
             n_samples = DataFrames.nrow(X_frame)
 
             # dataframe2cube(X_frame)
             common_type = Union{eltype.(eltype.(eachcol(X_frame)))...}
             common_type = common_type == Any ? Real : common_type
-            _X = Array{common_type}(undef, channel_size..., n_attributes, n_samples)
+            _X = Array{common_type}(undef, channel_size..., n_variables, n_samples)
             for (i_col, col) in enumerate(eachcol(X_frame))
                 for (i_row, row) in enumerate(col)
                     _X[[(:) for i in 1:length(size(row))]...,i_col,i_row] = row
@@ -232,7 +237,7 @@ function DataFrame2MultiFrameModalDataset(
 
         ontology = MDT.get_interval_ontology(channel_dim, _relations)
         # println(eltype(_X))
-        __X = MDT.InterpretedModalDataset(_X, ontology, mixed_features)
+        __X = MDT.InterpretedModalDataset(_X, ontology, mixed_attributes)
         # println(MDT.display_structure(__X))
 
         (if mode == :implicit
@@ -309,22 +314,19 @@ init_conditions_d = Dict([
     :start_at_center   => MDT.start_at_center,
 ])
 
-function _check_features(features)
+function _check_attributes(attributes)
     good = [
         [
             map(
             (f)->(f isa CanonicalFeature || (ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch))),
-            features) for ch in [collect(1:10), collect(1.:10.)]
+            attributes) for ch in [collect(1:10), collect(1.:10.)]
         ]
     ] |> Iterators.flatten |> all
-    @assert good "`features` should be a vector of scalar functions accepting on object of type `AbstractVector{T}` and returning an object of type `T`."
+    @assert good "`attributes` should be a vector of scalar functions accepting on object of type `AbstractVector{T}` and returning an object of type `T`."
     # println(typeof(good))
     good
 end
 
-using ModalDecisionTrees: default_min_samples_leaf
-using ModalDecisionTrees: default_min_purity_increase
-using ModalDecisionTrees: default_max_purity_at_leaf
 using ModalDecisionTrees: Relation
 using ModalDecisionTrees: CanonicalFeature
 using ModalDecisionTrees: CanonicalFeatureGeq, canonical_geq
@@ -336,19 +338,28 @@ using ModalDecisionTrees: start_at_center
 ############################################################################################
 ############################################################################################
 
+mlj_mdt_default_min_samples_leaf = 4
+mlj_mdt_default_min_purity_increase = 0.002
+mlj_mdt_default_max_purity_at_leaf = Inf
+
+mlj_mrf_default_min_samples_leaf = 1
+mlj_mrf_default_min_purity_increase = -Inf
+mlj_mrf_default_max_purity_at_leaf = Inf
+mlj_mrf_default_n_trees = 50
+
 MMI.@mlj_model mutable struct ModalDecisionTree <: MMI.Deterministic
     # Pruning hyper-parameters
     max_depth              :: Union{Nothing,Int}           = nothing::(isnothing(_) || _ ≥ -1)
-    min_samples_leaf       :: Int                          = default_min_samples_leaf::(_ ≥ 1)
-    min_purity_increase    :: Float64                      = default_min_purity_increase
-    max_purity_at_leaf     :: Float64                      = default_max_purity_at_leaf
+    min_samples_leaf       :: Int                          = mlj_mdt_default_min_samples_leaf::(_ ≥ 1)
+    min_purity_increase    :: Float64                      = mlj_mdt_default_min_purity_increase
+    max_purity_at_leaf     :: Float64                      = mlj_mdt_default_max_purity_at_leaf
     # Modal hyper-parameters
     relations              :: Union{Nothing,Symbol,Vector{<:Relation}} = (nothing)::(isnothing(nothing) || _ in [:IA, :IA3, :IA7, :RCC5, :RCC8] || _ isa AbstractVector{<:Relation})
     # TODO expand to ModalFeature
-    # features               :: Vector{<:Function}           = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
-    # features               :: Vector{<:Union{CanonicalFeature,Function}}       TODO = Vector{<:Union{CanonicalFeature,Function}}([canonical_geq, canonical_leq]) # TODO: ::(_check_features(_))
-    # features               :: AbstractVector{<:CanonicalFeature}       = CanonicalFeature[canonical_geq, canonical_leq] # TODO: ::(_check_features(_))
-    # features               :: Vector                       = [canonical_geq, canonical_leq] # TODO: ::(_check_features(_))
+    # attributes               :: Vector{<:Function}           = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
+    # attributes               :: Vector{<:Union{CanonicalFeature,Function}}       TODO = Vector{<:Union{CanonicalFeature,Function}}([canonical_geq, canonical_leq]) # TODO: ::(_check_attributes(_))
+    # attributes               :: AbstractVector{<:CanonicalFeature}       = CanonicalFeature[canonical_geq, canonical_leq] # TODO: ::(_check_attributes(_))
+    # attributes               :: Vector                       = [canonical_geq, canonical_leq] # TODO: ::(_check_attributes(_))
     init_conditions        :: Union{Nothing,Symbol}                       = nothing::(isnothing(_) || _ in [:start_with_global, :start_at_center])
     allow_global_splits    :: Bool                         = true
     automatic_downsizing   :: Bool                         = true
@@ -371,7 +382,7 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Int, X, y, w=nothing)
     min_purity_increase  = m.min_purity_increase
     max_purity_at_leaf   = m.max_purity_at_leaf
     relations            = m.relations
-    features             = [canonical_geq, canonical_leq] # TODO: m.features
+    attributes             = [canonical_geq, canonical_leq] # TODO: m.attributes
     init_conditions      = m.init_conditions
     allow_global_splits  = m.allow_global_splits
     automatic_downsizing = m.automatic_downsizing
@@ -380,12 +391,12 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Int, X, y, w=nothing)
 
     ########################################################################################
     
-    frame_grouping = separate_attributes_into_frames(X)
+    frame_grouping = separate_variables_into_frames(X)
     Xs, init_conditions = DataFrame2MultiFrameModalDataset(
         X,
         frame_grouping,
         relations,
-        features,
+        attributes,
         init_conditions,
         allow_global_splits,
         :explicit;
@@ -413,7 +424,7 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Int, X, y, w=nothing)
 
     verbosity < 2 || MDT.print_model(model; max_depth = display_depth, attribute_names_map = frame_grouping)
 
-    feature_importance_by_count = Dict([i_attr => frame_grouping[i_frame][i_attr] for ((i_frame, i_attr), count) in MDT.attribute_countmap(model)])
+    feature_importance_by_count = Dict([i_attr => frame_grouping[i_frame][i_attr] for ((i_frame, i_attr), count) in MDT.variable_countmap(model)])
 
     fitresult = (
         model           = model,
@@ -423,7 +434,6 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Int, X, y, w=nothing)
 
     cache  = nothing
     report = (
-        print_tree                   = ModelPrinter(model, frame_grouping),
         print_model                  = ModelPrinter(model, frame_grouping),
         frame_grouping              = frame_grouping,
         feature_importance_by_count = feature_importance_by_count,
@@ -446,7 +456,7 @@ function MMI.predict(m::ModalDecisionTree, fitresult, Xnew) #, ynew = nothing)
     @assert isnothing(ynew)
 
     relations = m.relations
-    features = [canonical_geq, canonical_leq] # TODO: m.features
+    attributes = [canonical_geq, canonical_leq] # TODO: m.attributes
     init_conditions = m.init_conditions
     allow_global_splits = m.allow_global_splits
     automatic_downsizing = m.automatic_downsizing
@@ -458,7 +468,7 @@ function MMI.predict(m::ModalDecisionTree, fitresult, Xnew) #, ynew = nothing)
         Xnew,
         fitresult.frame_grouping,
         relations,
-        features,
+        attributes,
         init_conditions,
         allow_global_splits,
         :implicit,
@@ -479,16 +489,16 @@ end
 MMI.@mlj_model mutable struct ModalRandomForest <: MMI.Probabilistic
     # Pruning hyper-parameters
     max_depth              :: Union{Nothing,Int}           = nothing::(isnothing(_) || _ ≥ -1)
-    min_samples_leaf       :: Int                          = default_min_samples_leaf::(_ ≥ 1)
-    min_purity_increase    :: Float64                      = default_min_purity_increase
-    max_purity_at_leaf     :: Float64                      = default_max_purity_at_leaf
+    min_samples_leaf       :: Int                          = mlj_mdt_default_min_samples_leaf::(_ ≥ 1)
+    min_purity_increase    :: Float64                      = mlj_mdt_default_min_purity_increase
+    max_purity_at_leaf     :: Float64                      = mlj_mdt_default_max_purity_at_leaf
     # Modal hyper-parameters
     relations              :: Union{Nothing,Symbol,Vector{<:Relation}} = (nothing)::(isnothing(nothing) || _ in [:IA, :IA3, :IA7, :RCC5, :RCC8] || _ isa AbstractVector{<:Relation})
     # TODO expand to ModalFeature
-    # features               :: Vector{<:Function}           = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
-    # features               :: Vector{<:Union{CanonicalFeature,Function}}       TODO = Vector{<:Union{CanonicalFeature,Function}}([canonical_geq, canonical_leq]) # TODO: ::(_check_features(_))
-    # features               :: AbstractVector{<:CanonicalFeature}       = CanonicalFeature[canonical_geq, canonical_leq] # TODO: ::(_check_features(_))
-    # features               :: Vector                       = [canonical_geq, canonical_leq] # TODO: ::(_check_features(_))
+    # attributes               :: Vector{<:Function}           = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
+    # attributes               :: Vector{<:Union{CanonicalFeature,Function}}       TODO = Vector{<:Union{CanonicalFeature,Function}}([canonical_geq, canonical_leq]) # TODO: ::(_check_attributes(_))
+    # attributes               :: AbstractVector{<:CanonicalFeature}       = CanonicalFeature[canonical_geq, canonical_leq] # TODO: ::(_check_attributes(_))
+    # attributes               :: Vector                       = [canonical_geq, canonical_leq] # TODO: ::(_check_attributes(_))
     init_conditions        :: Union{Nothing,Symbol}                       = nothing::(isnothing(_) || _ in [:start_with_global, :start_at_center])
     allow_global_splits    :: Bool                         = true
     automatic_downsizing   :: Bool                         = true
@@ -497,7 +507,7 @@ MMI.@mlj_model mutable struct ModalRandomForest <: MMI.Probabilistic
     
     n_subrelations         ::Union{Nothing,Int,Function}   = nothing::(isnothing(_) || _ isa Function || _ ≥ -1)
     n_subfeatures          ::Union{Nothing,Int,Function}   = nothing::(isnothing(_) || _ isa Function || _ ≥ -1)
-    n_trees                ::Int                 = 10::(_ ≥ 2)
+    n_trees                ::Int                 = mlj_mrf_default_n_trees::(_ ≥ 2)
     sampling_fraction      ::Float64   = 0.7::(0 < _ ≤ 1)
     rng                    ::Union{AbstractRNG,Integer} = GLOBAL_RNG
 end
@@ -516,7 +526,7 @@ function MMI.fit(m::ModalRandomForest, verbosity::Int, X, y, w=nothing)
     min_purity_increase  = m.min_purity_increase
     max_purity_at_leaf   = m.max_purity_at_leaf
     relations            = m.relations
-    features             = [canonical_geq, canonical_leq] # TODO: m.features
+    attributes             = [canonical_geq, canonical_leq] # TODO: m.attributes
     init_conditions      = m.init_conditions
     allow_global_splits  = m.allow_global_splits
     automatic_downsizing = m.automatic_downsizing
@@ -531,12 +541,12 @@ function MMI.fit(m::ModalRandomForest, verbosity::Int, X, y, w=nothing)
 
     ########################################################################################
     
-    frame_grouping = separate_attributes_into_frames(X)
+    frame_grouping = separate_variables_into_frames(X)
     Xs, init_conditions = DataFrame2MultiFrameModalDataset(
         X,
         frame_grouping,
         relations,
-        features,
+        attributes,
         init_conditions,
         allow_global_splits,
         :explicit;
@@ -564,9 +574,10 @@ function MMI.fit(m::ModalRandomForest, verbosity::Int, X, y, w=nothing)
         ##############################################################################
         perform_consistency_check = false,
         rng = rng,
+        suppress_parity_warning = true,
     )
-    # println(MDT.attribute_countmap(model))
-    feature_importance_by_count = Dict([i_attr => frame_grouping[i_frame][i_attr] for ((i_frame, i_attr), count) in MDT.attribute_countmap(model)])
+    # println(MDT.variable_countmap(model))
+    feature_importance_by_count = Dict([i_attr => frame_grouping[i_frame][i_attr] for ((i_frame, i_attr), count) in MDT.variable_countmap(model)])
 
     fitresult = (
         model           = model,
@@ -576,7 +587,6 @@ function MMI.fit(m::ModalRandomForest, verbosity::Int, X, y, w=nothing)
 
     cache  = nothing
     report = (
-        print_forest                 = ModelPrinter(model, frame_grouping),
         print_model                  = ModelPrinter(model, frame_grouping),
         frame_grouping              = frame_grouping,
         feature_importance_by_count = feature_importance_by_count,
@@ -600,7 +610,7 @@ function MMI.predict(m::ModalRandomForest, fitresult, Xnew) #, ynew = nothing)
     @assert isnothing(ynew)
 
     relations = m.relations
-    features = [canonical_geq, canonical_leq] # TODO: m.features
+    attributes = [canonical_geq, canonical_leq] # TODO: m.attributes
     init_conditions = m.init_conditions
     allow_global_splits = m.allow_global_splits
     automatic_downsizing = m.automatic_downsizing
@@ -612,7 +622,7 @@ function MMI.predict(m::ModalRandomForest, fitresult, Xnew) #, ynew = nothing)
         Xnew,
         fitresult.frame_grouping,
         relations,
-        features,
+        attributes,
         init_conditions,
         allow_global_splits,
         :implicit,
@@ -766,7 +776,7 @@ MMI.metadata_model(
         Count,          AbstractVector{Count},         AbstractMatrix{Count},
         OrderedFactor,  AbstractVector{OrderedFactor}, AbstractMatrix{OrderedFactor},
     ),
-    target_scitype = AbstractVector{<:Finite},
+    target_scitype = Union{AbstractVector{<:Finite},AbstractVector{<:Textual}},
     human_name = "Modal Decision Tree (MDT)",
     descr   = "A Modal Decision Tree (MDT) offers a high level of interpretability for classification tasks with images and time-series.",
     supports_weights = true,
@@ -816,21 +826,25 @@ const DOC_RANDOM_FOREST = "[Random Forest algorithm]"*
     "(https://en.wikipedia.org/wiki/Random_forest), originally published in "*
     "Breiman, L. (2001): \"Random Forests.\", *Machine Learning*, vol. 45, pp. 5–32"
 
-"""
-$(MMI.doc_header(ModalDecisionTree))
-`ModalDecisionTree` implements a variation of the $DOC_CART that adopts modal logics of time and space
+function docstring_piece_1(
+    default_min_samples_leaf,
+    default_min_purity_increase,
+    default_max_purity_at_leaf,
+)
+"""a variation of the $DOC_CART that adopts modal logics of time and space
 to perform temporal/spatial reasoning on non-scalar data such as time-series and image.
 # Training data
 In MLJ or MLJBase, bind an instance `model` to data with
     mach = machine(model, X, y)
 where
-- `X`: any table of input features (eg, a `DataFrame`) whose columns
+- `X`: any table of input variables (eg, a `DataFrame`) whose columns
   each have one of the following element scitypes: `Continuous`,
   `Count`, or `<:OrderedFactor`; check column scitypes with `schema(X)`
 - `y`: is the target, which can be any `AbstractVector` whose element
   scitype is `<:OrderedFactor` or `<:Multiclass`; check the scitype
   with `scitype(y)`
 Train the machine with `fit!(mach)`.
+
 # Hyper-parameters
 - `max_depth=-1`:          Maximum depth of the decision tree (-1=any)
 - `min_samples_leaf=$(default_min_samples_leaf)`:    Minimum number of samples required at each leaf
@@ -844,123 +858,185 @@ Train the machine with `fit!(mach)`.
                              while relations from :RCC5 and :RCC8 only capture topological aspects and are therefore rotation-invariant.
                             This hyper-parameter defaults to :IA for temporal variables (1D), and to :RCC8 for spatial variables (2D).
 - `init_conditions=nothing` initial conditions for evaluating modal decisions at the root; it can be a symbol in [:start_with_global, :start_at_center].
-                            :start_with_global forces the first decision to be a *global* decision (e.g., `⟨G⟩ (minimum(A2) ≥ 10)`, which translates to "there exists a region where the minimum of attribute 2 is higher than 10").
+                            :start_with_global forces the first decision to be a *global* decision (e.g., `⟨G⟩ (minimum(A2) ≥ 10)`, which translates to "there exists a region where the minimum of variable 2 is higher than 10").
                             :start_at_center forces the first decision to be evaluated on the smallest central world, that is, the central value of a time-series, or the central pixel of an image.
                             This hyper-parameter defaults to :start_with_global for temporal variables (1D), and to :start_at_center for spatial variables (2D).
 - `allow_global_splits=true`  Whether to allow global splits (e.g. `⟨G⟩ (minimum(A2) ≥ 10)`) at any point of the tree.
 - `automatic_downsizing=true` Whether to perform automatic downsizing. In fact, this algorithm has high complexity (both time and space), and can only handle small time-series (< 100 points) & small images (< 10 x 10 pixels).
+"""
+end
 
+"""
+$(MMI.doc_header(ModalDecisionTree))
+`ModalDecisionTree` implements
+$(docstring_piece_1(mlj_mdt_default_min_samples_leaf, mlj_mdt_default_min_purity_increase, mlj_mdt_default_max_purity_at_leaf))
 - `display_depth=5`:       max depth to show when displaying the tree
+
 # Operations
 - `predict(mach, Xnew)`: return predictions of the target given
-  features `Xnew` having the same scitype as `X` above.
+  variables `Xnew` having the same scitype as `X` above.
 
 # Fitted parameters
 The fields of `fitted_params(mach)` are:
-- `model`: the tree object returned by the core algorithm
-- `frame_grouping`: the adopted grouping of the features encountered in training, in an order consistent with the output of `print_model` (see below).
+- `model`: the tree object, as returned by the core algorithm
+- `frame_grouping`: the adopted grouping of the variables encountered in training, in an order consistent with the output of `print_model`.
+    The MLJ interface can currently deal with scalar, temporal and spatial variables, but
+    has one limitation, and one tricky procedure for handling them at the same time.
+    The limitation is for temporal and spatial variables to be uniform in size across the instances (the algorithm will automatically throw away variables that do not satisfy this constraint).
+    As for the tricky procedure: before the learning phase, variables are divided into groups (referred to as `frames`) according to each variable's `channel size`, that is, the size of the vector or matrix.
+    For example, if X is multimodal, and has three temporal variables :x, :y, :z with 10, 10 and 20 points, respectively,
+     plus three spatial variables :R, :G, :B, with the same size 5 × 5 pixels, the algorithm assumes that :x and :y share a temporal axis,
+     :R, :G, :B share two spatial axis, while :z does not share any axis with any other variable. As a result,
+     the model will group variables into three frames:
+        - {1} [:x, :y]
+        - {2} [:z]
+        - {3} [:R, :G, :B]
+    and `frame_grouping` will be [["x", "y"], ["z"], ["R", "G", "B"]].
+"R", "G", "B"]
+
 # Report
 The fields of `report(mach)` are:
 - `print_model`: method to print a pretty representation of the fitted
-  tree, with single argument the tree depth; interpretation requires
-  internal integer-class encoding (see "Fitted parameters" above).
-- `frame_grouping`: the adopted grouping of the features encountered in training, in an order consistent with the output of `print_model` (see below).
-- `feature_importance_by_count`: a simple count of each of the occurrences of the features across the model, in an order consistent with `frame_grouping`.
+  model, with single argument the tree depth. The interpretation of the tree requires you
+  to understand how the current MLJ interface of ModalDecisionTrees.jl handles variables of different modals.
+  See `frame_grouping` above. Note that the split conditions (or decisions) in the tree are relativized to a specific frame, of which the number is shown.
+- `frame_grouping`: the adopted grouping of the variables encountered in training, in an order consistent with the output of `print_model`.
+    See `frame_grouping` above.
+- `feature_importance_by_count`: a simple count of each of the occurrences of the variables across the model, in an order consistent with `frame_grouping`.
 - `classes_seen`: list of target classes actually observed in training.
 # Examples
 ```
 using MLJ
-MDT = @load ModalDecisionTree pkg=ModalDecisionTrees
-tree = MDT(max_depth=4, min_samples_split=3)
-X, y = @load_iris
-mach = machine(tree, X, y) |> fit!
-Xnew = (sepal_length = [6.4, 7.2, 7.4],
-        sepal_width = [2.8, 3.0, 2.8],
-        petal_length = [5.6, 5.8, 6.1],
-        petal_width = [2.1, 1.6, 1.9],)
-yhat = predict(mach, Xnew) # probabilistic predictions
-predict_mode(mach, Xnew)   # point predictions
-pdf.(yhat, "virginica")    # probabilities for the "verginica" class
-fitted_params(mach).tree # raw tree or stump object from DecisionTrees.jl
-julia> report(mach).print_model(3)
-Feature 4, Threshold 0.8
-L-> 1 : 50/50
-R-> Feature 4, Threshold 1.75
-    L-> Feature 3, Threshold 4.95
-        L->
-        R->
-    R-> Feature 3, Threshold 4.85
-        L->
-        R-> 3 : 43/43
+using ModalDecisionTrees
+using Random
+
+tree = ModalDecisionTree(min_samples_leaf=4)
+
+# Load an example dataset (a temporal one)
+X, y = @load_japanesevowels
+N = length(y)
+
+mach = machine(tree, X, y)
+
+# Split dataset
+p = randperm(N)
+train_idxs, test_idxs = p[1:round(Int, N*.8)], p[round(Int, N*.8)+1:end]
+
+# Fit
+fit!(mach, rows=train_idxs)
+
+# Perform predictions, compute accuracy
+yhat = predict(mach, X[test_idxs,:])
+accuracy = sum(yhat .== y[test_idxs])/length(yhat)
+
+# Access raw model
+fitted_params(mach).model
+report(mach).print_model(3)
+
+"{1} ⟨G⟩ (max(coefficient1) <= 0.883491)                 3 : 91/512 (conf = 0.1777)
+✔ {1} ⟨G⟩ (max(coefficient9) <= -0.157292)                      3 : 89/287 (conf = 0.3101)
+│✔ {1} ⟨L̅⟩ (max(coefficient6) <= -0.504503)                     3 : 89/209 (conf = 0.4258)
+││✔ {1} ⟨A⟩ (max(coefficient3) <= 0.220312)                     3 : 81/93 (conf = 0.8710)
+ [...]
+││✘ {1} ⟨L̅⟩ (max(coefficient1) <= 0.493004)                     8 : 47/116 (conf = 0.4052)
+ [...]
+│✘ {1} ⟨A⟩ (max(coefficient2) <= -0.285645)                     7 : 41/78 (conf = 0.5256)
+│ ✔ {1} min(coefficient3) >= 0.002931                   4 : 34/36 (conf = 0.9444)
+ [...]
+│ ✘ {1} ⟨G⟩ (min(coefficient5) >= 0.18312)                      7 : 39/42 (conf = 0.9286)
+ [...]
+✘ {1} ⟨G⟩ (max(coefficient3) <= 0.006087)                       5 : 51/225 (conf = 0.2267)
+ ✔ {1} ⟨D⟩ (max(coefficient2) <= -0.301233)                     5 : 51/102 (conf = 0.5000)
+ │✔ {1} ⟨D̅⟩ (max(coefficient3) <= -0.123654)                    5 : 51/65 (conf = 0.7846)
+ [...]
+ │✘ {1} ⟨G⟩ (max(coefficient9) <= -0.146962)                    7 : 16/37 (conf = 0.4324)
+ [...]
+ ✘ {1} ⟨G⟩ (max(coefficient9) <= -0.424346)                     1 : 47/123 (conf = 0.3821)
+  ✔ {1} min(coefficient1) >= 1.181048                   6 : 39/40 (conf = 0.9750)
+ [...]
+  ✘ {1} ⟨G⟩ (min(coefficient4) >= -0.472485)                    1 : 47/83 (conf = 0.5663)
+ [...]"
 ```
-To interpret the internal class labelling:
-```
-julia> fitted_params(mach).encoding
-Dict{CategoricalArrays.CategoricalValue{String, UInt32}, UInt32} with 3 entries:
-  "virginica"  => 0x00000003
-  "setosa"     => 0x00000001
-  "versicolor" => 0x00000002
-```
-See also
-[DecisionTree.jl](https://github.com/bensadeghi/DecisionTree.jl) and
-the unwrapped model type [`MLJDecisionTreeInterface.DecisionTree.ModalDecisionTree`](@ref).
 """
 ModalDecisionTree
 
-# """
-# $(MMI.doc_header(ModalRandomForest))
-# `ModalRandomForest` implements the standard $DOC_RANDOM_FOREST.
-# # Training data
-# In MLJ or MLJBase, bind an instance `model` to data with
-#     mach = machine(model, X, y)
-# where
-# - `X`: any table of input features (eg, a `DataFrame`) whose columns
-#   each have one of the following element scitypes: `Continuous`,
-#   `Count`, or `<:OrderedFactor`; check column scitypes with `schema(X)`
-# - `y`: the target, which can be any `AbstractVector` whose element
-#   scitype is `<:OrderedFactor` or `<:Multiclass`; check the scitype
-#   with `scitype(y)`
-# Train the machine with `fit!(mach, rows=...)`.
-# # Hyper-parameters
-# - `max_depth=-1`:          max depth of the decision tree (-1=any)
-# - `min_samples_leaf=1`:    min number of samples each leaf needs to have
-# - `min_samples_split=2`:   min number of samples needed for a split
-# - `min_purity_increase=0`: min purity needed for a split
-# - `n_subfeatures=-1`: number of features to select at random (0 for all,
-#   -1 for square root of number of features)
-# - `n_trees=10`:            number of trees to train
-# - `sampling_fraction=0.7`  fraction of samples to train each tree on
-# - `rng=Random.GLOBAL_RNG`: random number generator or seed
-# # Operations
-# - `predict(mach, Xnew)`: return predictions of the target given
-#   features `Xnew` having the same scitype as `X` above. Predictions
-#   are probabilistic, but uncalibrated.
-# - `predict_mode(mach, Xnew)`: instead return the mode of each
-#   prediction above.
-# # Fitted parameters
-# The fields of `fitted_params(mach)` are:
-# - `forest`: the `Ensemble` object returned by the core DecisionTree.jl algorithm
-# # Examples
-# ```
-# using MLJ
-# MRF = @load ModalRandomForest pkg=ModalDecisionTrees
-# forest = MRF(min_samples_split=6, n_subfeatures=3)
-# X, y = @load_iris
-# mach = machine(forest, X, y) |> fit!
-# Xnew = (sepal_length = [6.4, 7.2, 7.4],
-#         sepal_width = [2.8, 3.0, 2.8],
-#         petal_length = [5.6, 5.8, 6.1],
-#         petal_width = [2.1, 1.6, 1.9],)
-# yhat = predict(mach, Xnew) # probabilistic predictions
-# predict_mode(mach, Xnew)   # point predictions
-# pdf.(yhat, "virginica")    # probabilities for the "verginica" class
-# fitted_params(mach).forest # raw `Ensemble` object from DecisionTrees.jl
-# ```
-# See also
-# [DecisionTree.jl](https://github.com/bensadeghi/DecisionTree.jl) and
-# the unwrapped model type
-# [`MLJDecisionTreeInterface.DecisionTree.ModalRandomForest`](@ref).
-# """
+"""
+$(MMI.doc_header(ModalRandomForest))
+`ModalRandomForest` implements the standard $DOC_RANDOM_FOREST, based on
+$(docstring_piece_1(mlj_mrf_default_min_samples_leaf, mlj_mrf_default_min_purity_increase, mlj_mrf_default_max_purity_at_leaf))
+- `n_subrelations=identity`            Number of relations to randomly select at any point of the tree. Must be a function of the number of the available relations. It defaults to `identity`, that is, consider all available relations.
+- `n_subfeatures=x -> ceil(Int64, sqrt(x))`             Number of functions to randomly select at any point of the tree. Must be a function of the number of the available functions. It defaults to `x -> ceil(Int64, sqrt(x))`, that is, consider only about square root of the available functions.
+- `n_trees=$(mlj_mrf_default_n_trees)`                   Number of trees in the forest.
+- `sampling_fraction=0.7`          Fraction of samples to train each tree on.
+- `rng=Random.GLOBAL_RNG`          Random number generator or seed.
+
+# Operations
+- `predict(mach, Xnew)`: return predictions of the target given
+  variables `Xnew` having the same scitype as `X` above. Predictions
+  are probabilistic, but uncalibrated.
+- `predict_mode(mach, Xnew)`: instead return the mode of each
+  prediction above.
+
+# Fitted parameters
+The fields of `fitted_params(mach)` are:
+- `model`: the forest object, as returned by the core algorithm
+- `frame_grouping`: the adopted grouping of the variables encountered in training, in an order consistent with the output of `print_model`.
+    The MLJ interface can currently deal with scalar, temporal and spatial variables, but
+    has one limitation, and one tricky procedure for handling them at the same time.
+    The limitation is for temporal and spatial variables to be uniform in size across the instances (the algorithm will automatically throw away variables that do not satisfy this constraint).
+    As for the tricky procedure: before the learning phase, variables are divided into groups (referred to as `frames`) according to each variable's `channel size`, that is, the size of the vector or matrix.
+    For example, if X is multimodal, and has three temporal variables :x, :y, :z with 10, 10 and 20 points, respectively,
+     plus three spatial variables :R, :G, :B, with the same size 5 × 5 pixels, the algorithm assumes that :x and :y share a temporal axis,
+     :R, :G, :B share two spatial axis, while :z does not share any axis with any other variable. As a result,
+     the model will group variables into three frames:
+        - {1} [:x, :y]
+        - {2} [:z]
+        - {3} [:R, :G, :B]
+    and `frame_grouping` will be [["x", "y"], ["z"], ["R", "G", "B"]].
+
+# Report
+The fields of `report(mach)` are:
+- `print_model`: method to print a pretty representation of the fitted
+  model, with single argument the depth of the trees. The interpretation of the tree requires you
+  to understand how the current MLJ interface of ModalDecisionTrees.jl handles variables of different modals.
+  See `frame_grouping` above. Note that the split conditions (or decisions) in the tree are relativized to a specific frame, of which the number is shown.
+- `frame_grouping`: the adopted grouping of the variables encountered in training, in an order consistent with the output of `print_model`.
+    See `frame_grouping` above.
+- `feature_importance_by_count`: a simple count of each of the occurrences of the variables across the model, in an order consistent with `frame_grouping`.
+- `classes_seen`: list of target classes actually observed in training.
+# Examples
+```
+using MLJ
+using ModalDecisionTrees
+using Random
+
+forest = ModalRandomForest(n_trees = 50)
+
+# Load an example dataset (a temporal one)
+X, y = @load_japanesevowels
+N = length(y)
+
+mach = machine(forest, X, y)
+
+# Split dataset
+p = randperm(N)
+train_idxs, test_idxs = p[1:round(Int, N*.8)], p[round(Int, N*.8)+1:end]
+
+# Fit
+fit!(mach, rows=train_idxs)
+
+# Perform predictions, compute accuracy
+Xnew = X[test_idxs,:]
+yhat = predict(mach, Xnew) # probabilistic predictions
+ynew = predict_mode(mach, Xnew)   # point predictions
+accuracy = sum(ynew .== y[test_idxs])/length(yhat)
+pdf.(yhat, "1")    # probabilities for one of the classes ("1")
+
+# Access raw model
+fitted_params(mach).model
+report(mach).print_model(3)] # Note that the output here can be quite large.
+```
+"""
 ModalRandomForest
 
 # """
@@ -969,7 +1045,7 @@ ModalRandomForest
 # In MLJ or MLJBase, bind an instance `model` to data with
 #     mach = machine(model, X, y)
 # where:
-# - `X`: any table of input features (eg, a `DataFrame`) whose columns
+# - `X`: any table of input attributes (eg, a `DataFrame`) whose columns
 #   each have one of the following element scitypes: `Continuous`,
 #   `Count`, or `<:OrderedFactor`; check column scitypes with `schema(X)`
 # - `y`: the target, which can be any `AbstractVector` whose element
@@ -980,7 +1056,7 @@ ModalRandomForest
 # - `n_iter=10`:   number of iterations of AdaBoost
 # # Operations
 # - `predict(mach, Xnew)`: return predictions of the target given
-#   features `Xnew` having the same scitype as `X` above. Predictions
+#   attributes `Xnew` having the same scitype as `X` above. Predictions
 #   are probabilistic, but uncalibrated.
 # - `predict_mode(mach, Xnew)`: instead return the mode of each
 #   prediction above.
@@ -1001,7 +1077,7 @@ ModalRandomForest
 #         petal_width = [2.1, 1.6, 1.9],)
 # yhat = predict(mach, Xnew) # probabilistic predictions
 # predict_mode(mach, Xnew)   # point predictions
-# pdf.(yhat, "virginica")    # probabilities for the "verginica" class
+# pdf.(yhat, "virginica")    # probabilities for the "virginica" class
 # fitted_params(mach).stumps # raw `Ensemble` object from DecisionTree.jl
 # fitted_params(mach).coefs  # coefficient associated with each stump
 # ```
@@ -1019,7 +1095,7 @@ ModalRandomForest
 # In MLJ or MLJBase, bind an instance `model` to data with
 #     mach = machine(model, X, y)
 # where
-# - `X`: any table of input features (eg, a `DataFrame`) whose columns
+# - `X`: any table of input attributes (eg, a `DataFrame`) whose columns
 #   each have one of the following element scitypes: `Continuous`,
 #   `Count`, or `<:OrderedFactor`; check column scitypes with `schema(X)`
 # - `y`: the target, which can be any `AbstractVector` whose element
@@ -1030,15 +1106,15 @@ ModalRandomForest
 # - `min_samples_leaf=1`:    max number of samples each leaf needs to have
 # - `min_samples_split=2`:   min number of samples needed for a split
 # - `min_purity_increase=0`: min purity needed for a split
-# - `n_subfeatures=0`: number of features to select at random (0 for all,
-#   -1 for square root of number of features)
+# - `n_subfeatures=0`: number of attributes to select at random (0 for all,
+#   -1 for square root of number of attributes)
 # - `post_prune=false`:      set to `true` for post-fit pruning
 # - `merge_purity_threshold=1.0`: (post-pruning) merge leaves having
 #                            combined purity `>= merge_purity_threshold`
 # - `rng=Random.GLOBAL_RNG`: random number generator or seed
 # # Operations
 # - `predict(mach, Xnew)`: return predictions of the target given new
-#   features `Xnew` having the same scitype as `X` above.
+#   attributes `Xnew` having the same scitype as `X` above.
 # # Fitted parameters
 # The fields of `fitted_params(mach)` are:
 # - `tree`: the tree or stump object returned by the core
@@ -1052,7 +1128,7 @@ ModalRandomForest
 # mach = machine(tree, X, y) |> fit!
 # Xnew, _ = make_regression(3, 2)
 # yhat = predict(mach, Xnew) # new predictions
-# fitted_params(mach).tree # raw tree or stump object from DecisionTree.jl
+# fitted_params(mach).model # raw tree or stump object from DecisionTree.jl
 # ```
 # See also
 # [DecisionTree.jl](https://github.com/bensadeghi/DecisionTree.jl) and
@@ -1068,7 +1144,7 @@ ModalRandomForest
 # In MLJ or MLJBase, bind an instance `model` to data with
 #     mach = machine(model, X, y)
 # where
-# - `X`: any table of input features (eg, a `DataFrame`) whose columns
+# - `X`: any table of input attributes (eg, a `DataFrame`) whose columns
 #   each have one of the following element scitypes: `Continuous`,
 #   `Count`, or `<:OrderedFactor`; check column scitypes with `schema(X)`
 # - `y`: the target, which can be any `AbstractVector` whose element
@@ -1079,14 +1155,14 @@ ModalRandomForest
 # - `min_samples_leaf=1`:    min number of samples each leaf needs to have
 # - `min_samples_split=2`:   min number of samples needed for a split
 # - `min_purity_increase=0`: min purity needed for a split
-# - `n_subfeatures=-1`: number of features to select at random (0 for all,
-#   -1 for square root of number of features)
+# - `n_subfeatures=-1`: number of attributes to select at random (0 for all,
+#   -1 for square root of number of attributes)
 # - `n_trees=10`:            number of trees to train
 # - `sampling_fraction=0.7`  fraction of samples to train each tree on
 # - `rng=Random.GLOBAL_RNG`: random number generator or seed
 # # Operations
 # - `predict(mach, Xnew)`: return predictions of the target given new
-#   features `Xnew` having the same scitype as `X` above.
+#   attributes `Xnew` having the same scitype as `X` above.
 # # Fitted parameters
 # The fields of `fitted_params(mach)` are:
 # - `forest`: the `Ensemble` object returned by the core DecisionTree.jl algorithm
