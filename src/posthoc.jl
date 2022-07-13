@@ -316,8 +316,21 @@ end
 ############################################################################################
 ############################################################################################
 
-function tree_attribute_countmap(tree::DTree{L}; weighted = false) where {L<:Label}
-    vals = _tree_attribute_countmap(tree.root; weighted = weighted)
+function _attribute_countmap(leaf::AbstractDecisionLeaf{L}; weighted = false) where {L<:Label}
+    []
+end
+
+function _attribute_countmap(node::DTInternal{L}; weighted = false) where {L<:Label}
+    th = begin
+        d = node.decision
+        f = d.feature
+        (f isa SingleAttributeFeature) ? [((node.i_frame, f.i_attribute), (weighted ? length(supp_labels) : 1)),] : []
+    end
+    [th..., _attribute_countmap(node.left; weighted = weighted)..., _attribute_countmap(node.right; weighted = weighted)...]
+end
+
+function attribute_countmap(tree::DTree{L}; weighted = false) where {L<:Label}
+    vals = _attribute_countmap(tree.root; weighted = weighted)
     if !weighted
         countmap(first.(vals))
     else
@@ -329,18 +342,19 @@ function tree_attribute_countmap(tree::DTree{L}; weighted = false) where {L<:Lab
     end
 end
 
-function _tree_attribute_countmap(node::DTInternal{L}; weighted = false) where {L<:Label}
-    th = begin
-        d = node.decision
-        f = d.feature
-        (f isa SingleAttributeFeature) ? [((node.i_frame, f.i_attribute), (weighted ? length(supp_labels) : 1))] : []
+function attribute_countmap(forest::DForest{L}; weighted = false) where {L<:Label}
+    vals = [_attribute_countmap(t.root; weighted = weighted) for t in forest.trees] |> Iterators.flatten
+    if !weighted
+        countmap(first.(vals))
+    else
+        c = Dict([attr => 0 for attr in unique(first.(vals))])
+        for (attr, weight) in vals
+            c[attr] += weight
+        end
+        Dict([attr => count/sum(values(c)) for (attr, count) in c])
     end
-    [th..., _tree_attribute_countmap(node.left; weighted = weighted)..., _tree_attribute_countmap(node.right; weighted = weighted)...]
 end
 
-function _tree_attribute_countmap(leaf::AbstractDecisionLeaf{L}; weighted = false) where {L<:Label}
-    []
-end
 
 ############################################################################################
 ############################################################################################

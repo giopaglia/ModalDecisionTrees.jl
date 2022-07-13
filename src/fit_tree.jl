@@ -698,11 +698,12 @@ Base.@propagate_inbounds @inline function split_node!(
         consistency = if isa(_perform_consistency_check,Val{true})
                 unsatisfied_flags
             else
-                sum(unsatisfied_flags)
+                sum(Wf[BitVector(unsatisfied_flags)])
         end
 
-        if best_consistency != consistency
-            errStr = "Something's wrong with the optimization steps."
+        if !isapprox(best_consistency,consistency; atol=eps(Float32), rtol=eps(Float32))
+            errStr = ""
+            errStr *= "A low-level error occurred. Please open a pull request with the following info."
             errStr *= "Decision $(best_decision).\n"
             errStr *= "Possible causes:\n"
             errStr *= "- feature returning NaNs\n"
@@ -785,7 +786,7 @@ end
 ############################################################################################
 ############################################################################################
 
-@inline function _fit(
+@inline function _fit_tree(
         Xs                        :: ActiveMultiFrameModalDataset,       # modal dataset
         Y                         :: AbstractVector{L},                  # label vector
         init_conditions           :: AbstractVector{<:InitCondition},   # world starting conditions
@@ -945,7 +946,7 @@ end
 ############################################################################################
 ################################################################################
 
-function fit(
+function fit_tree(
         # modal dataset
         Xs                        :: ActiveMultiFrameModalDataset,
         # label vector
@@ -984,7 +985,7 @@ function fit(
     end
     # println(threshold_backmaps)
     # Call core learning function
-    root, idxs = _fit(Xs, Y, init_conditions, W;
+    root, idxs = _fit_tree(Xs, Y, init_conditions, W;
         n_classes = n_classes,
         _is_classification = Val(L<:CLabel),
         _perform_consistency_check = Val(perform_consistency_check),

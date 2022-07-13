@@ -446,16 +446,18 @@ const Interval2DRCC5Ontology = Ontology{Interval2D}(RCC5Relations)
 get_ontology(::DimensionalDataset{T,D}, args...) where {T,D} = get_ontology(Val(D-2), args...)
 get_ontology(N::Integer, args...) = get_ontology(Val(N), args...)
 get_ontology(::Val{0}, args...) = OneWorldOntology
-function get_ontology(::Val{1}, world = :interval, relations = :IA)
+function get_ontology(::Val{1}, world = :interval, relations::Union{Symbol,AbstractVector{<:Relation}} = :IA)
     world_possible_values = [:point, :interval, :rectangle, :hyperrectangle]
     relations_possible_values = [:IA, :IA3, :IA7, :RCC5, :RCC8]
     @assert world in world_possible_values "Unexpected value encountered for `world`: $(world). Legal values are in $(world_possible_values)"
-    @assert relations in relations_possible_values "Unexpected value encountered for `relations`: $(relations). Legal values are in $(relations_possible_values)"
+    @assert (relations isa AbstractVector{<:Relation}) || relations in relations_possible_values "Unexpected value encountered for `relations`: $(relations). Legal values are in $(relations_possible_values)"
 
     if world in [:point]
         error("TODO point-based ontologies not implemented yet")
     elseif world in [:interval, :rectangle, :hyperrectangle]
-        if     relations == :IA   IntervalOntology
+        if relations isa AbstractVector{<:Relation}
+            Ontology{Interval}(relations)
+        elseif relations == :IA   IntervalOntology
         elseif relations == :IA3  Interval3Ontology
         elseif relations == :IA7  Interval7Ontology
         elseif relations == :RCC8 IntervalRCC8Ontology
@@ -468,16 +470,18 @@ function get_ontology(::Val{1}, world = :interval, relations = :IA)
     end
 end
 
-function get_ontology(::Val{2}, world = :interval, relations = :IA)
+function get_ontology(::Val{2}, world = :interval, relations::Union{Symbol,AbstractVector{<:Relation}} = :IA)
     world_possible_values = [:point, :interval, :rectangle, :hyperrectangle]
     relations_possible_values = [:IA, :RCC5, :RCC8]
     @assert world in world_possible_values "Unexpected value encountered for `world`: $(world). Legal values are in $(world_possible_values)"
-    @assert relations in relations_possible_values "Unexpected value encountered for `relations`: $(relations). Legal values are in $(relations_possible_values)"
+    @assert (relations isa AbstractVector{<:Relation}) || relations in relations_possible_values "Unexpected value encountered for `relations`: $(relations). Legal values are in $(relations_possible_values)"
 
     if world in [:point]
         error("TODO point-based ontologies not implemented yet")
     elseif world in [:interval, :rectangle, :hyperrectangle]
-        if     relations == :IA   Interval2DOntology
+        if relations isa AbstractVector{<:Relation}
+            Ontology{Interval2D}(relations)
+        elseif relations == :IA   Interval2DOntology
         elseif relations == :RCC8 Interval2DRCC8Ontology
         elseif relations == :RCC5 Interval2DRCC5Ontology
         else
@@ -490,7 +494,7 @@ end
 
 get_interval_ontology(::DimensionalDataset{T,D}, args...) where {T,D} = get_interval_ontology(Val(D-2), args...)
 get_interval_ontology(N::Integer, args...) = get_interval_ontology(Val(N), args...)
-get_interval_ontology(N::Val, relations = :IA) = get_ontology(N, :interval, relations)
+get_interval_ontology(N::Val, relations::Union{Symbol,AbstractVector{<:Relation}} = :IA) = get_ontology(N, :interval, relations)
 
 const WorldType0D = Union{OneWorld}
 const WorldType1D = Union{Interval}
