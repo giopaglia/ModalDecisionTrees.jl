@@ -42,7 +42,7 @@ n_samples(X::MultiFrameModalDataset)                                = n_samples(
 Base.push!(X::MultiFrameModalDataset, f::ModalDataset) = push!(frames(X), f)
 
 # max_channel_size(X::MultiFrameModalDataset) = map(max_channel_size, frames(X)) # TODO: figure if this is useless or not. Note: channel_size doesn't make sense at this point. Only the accessibles_funs[i] functions.
-n_features(X::MultiFrameModalDataset) = map(n_features, frames(X)) # Note: used for safety checks in tree.jl
+n_features(X::MultiFrameModalDataset) = map(n_features, frames(X)) # Note: used for safety checks in fit_tree.jl
 # n_relations(X::MultiFrameModalDataset) = map(n_relations, frames(X)) # TODO: figure if this is useless or not
 n_features(X::MultiFrameModalDataset,  i_frame::Integer) = n_features(get_frame(X, i_frame))
 n_relations(X::MultiFrameModalDataset, i_frame::Integer) = n_relations(get_frame(X, i_frame))

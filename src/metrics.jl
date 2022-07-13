@@ -87,10 +87,10 @@ end
 ############################################################################################
 ############################################################################################
 
-struct ConfusionMatrix
+struct ConfusionMatrix{T<:Number}
     ############################################################################
     class_names::Vector{String}
-    matrix::Matrix{Int}
+    matrix::Matrix{T}
     ############################################################################
     overall_accuracy::Float64
     kappa::Float64
@@ -107,17 +107,17 @@ struct ConfusionMatrix
     function ConfusionMatrix(matrix::Matrix)
         ConfusionMatrix(string.(1:size(matrix, 1)), matrix)
     end
-    function ConfusionMatrix(class_names::Vector, matrix::Matrix)
+    function ConfusionMatrix(class_names::Vector, matrix::Matrix{T}) where {T<:Number}
         
         @assert size(matrix,1) == size(matrix,2) "Can't instantiate ConfusionMatrix with matrix of size ($(size(matrix))"
         n_classes = size(matrix,1)
         @assert length(class_names) == n_classes "Can't instantiate ConfusionMatrix with mismatching n_classes ($(n_classes)) and class_names $(class_names)"
 
         ALL = sum(matrix)
-        T = LinearAlgebra.tr(matrix)
-        F = ALL-T
+        TR = LinearAlgebra.tr(matrix)
+        F = ALL-TR
 
-        overall_accuracy = T / ALL
+        overall_accuracy = TR / ALL
         prob_chance = (sum(matrix,dims=1) * sum(matrix,dims=2))[1] / ALL^2
         kappa = (overall_accuracy - prob_chance) / (1.0 - prob_chance)
 
@@ -150,7 +150,7 @@ struct ConfusionMatrix
         PPVs          = TPs./(TPs.+FPs)
         NPVs          = TNs./(TNs.+FNs)
 
-        new(class_names,
+        new{T}(class_names,
             matrix,
             overall_accuracy,
             kappa,
@@ -167,9 +167,9 @@ struct ConfusionMatrix
     function ConfusionMatrix(
             actual::AbstractVector{L},
             predicted::AbstractVector{L},
-            weights = nothing;
+            weights::Union{Nothing,AbstractVector{Z}} = nothing;
             force_class_order = nothing,
-        ) where {L<:CLabel}
+        ) where {L<:CLabel,Z}
         @assert length(actual) == length(predicted) "Can't compute ConfusionMatrix with uneven number of actual $(length(actual)) and predicted $(length(predicted)) labels."
         
         if isnothing(weights)
@@ -204,7 +204,7 @@ struct ConfusionMatrix
             _predicted[predicted .== class_labels[i]] .= i
         end
 
-        matrix = zeros(Int,n_classes,n_classes)
+        matrix = zeros(eltype(weights),n_classes,n_classes)
         for (act,pred,w) in zip(_actual, _predicted, weights)
             matrix[act,pred] += w
         end

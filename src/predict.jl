@@ -1,4 +1,4 @@
-export apply_tree, apply_forest, apply_trees, apply_model, print_apply, tree_walk_metrics
+export apply_tree, apply_forest, apply_model, print_apply, tree_walk_metrics
 
 ############################################################################################
 ############################################################################################
@@ -16,36 +16,35 @@ end
 ############################################################################################
 ############################################################################################
 
-apply_model(tree::DTree,     args...; kwargs...) = apply_tree(tree,     args...; kwargs...)
-apply_model(forest::DForest, args...; kwargs...) = apply_forest(forest, args...; kwargs...)
+# ModalDataset -> MultiFrameModalDataset
 
-# print_apply(tree::DTree,     args...; kwargs...) = print_apply(tree,    args...; kwargs...)
+predict(model::Any, X::ModalDataset, args...; kwargs...) =
+    predict(model, MultiFrameModalDataset(X), args...; kwargs...)
 
-# Apply a tree to a dimensional dataset
-function apply_tree(tree::DTree, X::GenericModalDataset, args...; kwargs...)
-    predict(tree, X, args...; kwargs...)
-end
+apply_model = predict
 
-function apply_trees(trees::AbstractVector{<:DTree}, X::GenericModalDataset; kwargs...)
-    predict(trees, X; kwargs...)
-end
+# TODO remove these patches
+apply_tree   = apply_model
+apply_forest = apply_model
 
-function apply_forest(forest::DForest, X::GenericModalDataset; kwargs...)
-    predict(forest, X; kwargs...)
-end
+############################################################################################
 
 # TODO discriminate between kwargs for apply_tree & print_tree
 function print_apply(tree::DTree, X::GenericModalDataset, Y::AbstractVector; kwargs...)
-    predictions, new_tree = apply_tree(tree, X, Y)
+    predictions, new_tree = apply_model(tree, X, Y)
     print_tree(new_tree; kwargs...)
     predictions, new_tree
 end
 
-############################################################################################
-# ModalDataset -> MultiFrameModalDataset
 
-predict(tree::DTree, X::ModalDataset, args...; kwargs...) =
-    predict(tree, MultiFrameModalDataset(X), args...; kwargs...)
+predict_proba(model::Any, X::ModalDataset, args...; kwargs...) =
+    predict_proba(model, MultiFrameModalDataset(X), args...; kwargs...)
+
+# apply_tree_proba   = apply_model_proba
+# apply_trees_proba  = apply_model_proba
+# apply_forest_proba = apply_model_proba
+
+apply_model_proba = predict_proba
 
 ################################################################################
 # Apply models: predict labels for a new dataset of instances
@@ -274,6 +273,101 @@ end
 #   return predict(DTree(tree, [world_type(ModalLogic.get_interval_ontology(Val(D-2)))], [start_without_world]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
 # end
 
+############################################################################################
+
+using Distributions
+using CategoricalDistributions
+using CategoricalArrays
+
+function predict_proba(leaf::DTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
+    leaf.supp_labels
+end
+
+function predict_proba(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
+    @logmsg DTDetail "applying branch..."
+    @logmsg DTDetail " worlds" worlds
+    (satisfied,new_worlds) =
+        ModalLogic.modal_step(
+            get_frame(X, tree.i_frame),
+            i_sample,
+            worlds[tree.i_frame],
+            tree.decision,
+    )
+
+    worlds[tree.i_frame] = new_worlds
+    @logmsg DTDetail " ->(satisfied,worlds')" satisfied worlds
+    predict_proba((satisfied ? tree.left : tree.right), X, i_sample, worlds)
+end
+
+# Obtain predictions of a tree on a dataset
+function predict_proba(tree::DTree{L}, X::MultiFrameModalDataset, classes) where {L<:CLabel}
+    @logmsg DTDetail "predict_proba..."
+    _n_samples = n_samples(X)
+    prediction_scores = Matrix{Float64}(undef, _n_samples, length(classes))
+    
+    for i_sample in 1:_n_samples
+        @logmsg DTDetail " instance $i_sample/$_n_samples"
+        # TODO figure out: is it better to interpret the whole dataset at once, or instance-by-instance? The first one enables reusing training code
+
+        worlds = inst_init_world_sets(X, tree, i_sample)
+
+        this_prediction_scores = predict_proba(tree.root, X, i_sample, worlds)
+        d = Distributions.fit(CategoricalDistributions.UnivariateFinite, categorical(this_prediction_scores; levels = classes))
+        prediction_scores[i_sample, :] .= [pdf(d, c) for c in classes]
+    end
+    prediction_scores
+end
+
+# use an array of trees to test features
+function predict_proba(
+        trees::AbstractVector{<:DTree{<:L}},
+        X::MultiFrameModalDataset,
+        classes;
+        tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
+    ) where {L<:CLabel, Z<:Real}
+    @logmsg DTDetail "predict_proba..."
+    n_trees = length(trees)
+    _n_samples = n_samples(X)
+
+    if !isnothing(tree_weights)
+        @assert length(trees) === length(tree_weights) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
+    end
+
+    # apply each tree to the whole dataset
+    _predictions = Array{Float64,3}(undef, _n_samples, n_trees, length(classes))
+    Threads.@threads for i_tree in 1:n_trees
+        _predictions[:,i_tree,:] = predict_proba(trees[i_tree], X, classes)
+    end
+
+    # Average the prediction scores
+    if isnothing(tree_weights)
+        dropdims(mean(_predictions; dims=2), dims=2)
+    else
+        tree_weights = tree_weights./sum(tree_weights)
+        prediction_scores = Matrix{Float64}(undef, _n_samples, length(classes))
+        Threads.@threads for i in 1:_n_samples
+            prediction_scores[i,:] .= mean(_predictions[i,:,:] * tree_weights; dims=1)
+        end
+        prediction_scores
+    end
+end
+
+# use a proper forest to test features
+function predict_proba(forest::DForest{L}, X::MultiFrameModalDataset, classes; weight_trees_by::Union{Bool,Symbol,AbstractVector} = false) where {L<:CLabel}
+    if weight_trees_by == false
+        predict_proba(forest.trees, X, classes)
+    elseif isa(weight_trees_by, AbstractVector)
+        predict_proba(forest.trees, X, classes; tree_weights = weight_trees_by)
+    # elseif weight_trees_by == :accuracy
+    #   # TODO: choose HOW to weight a tree... overall_accuracy is just an example (maybe can be parameterized)
+    #   predict_proba(forest.trees, X, classes; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
+    else
+        @error "Unexpected value for weight_trees_by: $(weight_trees_by)"
+    end
+end
+
+
+############################################################################################
 
 # function tree_walk_metrics(leaf::DTLeaf; n_tot_inst = nothing, best_rule_params = [])
 #     if isnothing(n_tot_inst)
@@ -363,64 +457,3 @@ end
 # end
 
 # tree_walk_metrics(tree::DTree; kwargs...) = tree_walk_metrics(tree.root; kwargs...)
-
-
-#=
-TODO
-
-# Returns a dict ("Label1" => 1, "Label2" => 2, "Label3" => 3, ...)
-label_index(labels::AbstractVector{Label}) = Dict(v => k for (k, v) in enumerate(labels))
-
-## Helper function. Counts the votes.
-## Returns a vector of probabilities (eg. [0.2, 0.6, 0.2]) which is in the same
-## order as get_labels(classifier) (eg. ["versicolor", "setosa", "virginica"])
-function compute_probabilities(labels::AbstractVector{Label}, votes::AbstractVector{Label}, weights=1.0)
-    label2ind = label_index(labels)
-    counts = zeros(Float64, length(label2ind))
-    for (i, label) in enumerate(votes)
-        if isa(weights, Real)
-            counts[label2ind[label]] += weights
-        else
-            counts[label2ind[label]] += weights[i]
-        end
-    end
-    return counts / sum(counts) # normalize to get probabilities
-end
-
-# Applies `row_fun(X_row)::AbstractVector` to each row in X
-# and returns a matrix containing the resulting vectors, stacked vertically
-function stack_function_results(row_fun::Function, X::AbstractMatrix)
-    N = size(X, 1)
-    N_cols = length(row_fun(X[1, :])) # gets the number of columns
-    out = Array{Float64}(undef, N, N_cols)
-    for i in 1:N
-        out[i, :] = row_fun(X[i, :])
-    end
-    return out
-end
-
-"""    apply_tree_proba(::Node, features, col_labels::AbstractVector)
-
-computes P(L=label|X) for each row in `features`. It returns a `N_row x
-n_labels` matrix of probabilities, each row summing up to 1.
-
-`col_labels` is a vector containing the distinct labels
-(eg. ["versicolor", "virginica", "setosa"]). It specifies the column ordering
-of the output matrix. """
-apply_tree_proba(leaf::DTLeaf, features::AbstractVector, labels) where =
-    compute_probabilities(labels, leaf.supp_labels)
-
-function apply_tree_proba(tree::DTInternal{L, T}, features::AbstractVector{L}, labels) where {L, T}
-    if tree.decision.threshold === nothing
-        return apply_tree_proba(tree.left, features, labels)
-    elseif eval(Expr(:call, tree.decision.test_operator, tree.decision.feature ... , tree.decision.threshold))
-        return apply_tree_proba(tree.left, features, labels)
-    else
-        return apply_tree_proba(tree.right, features, labels)
-    end
-end
-
-apply_tree_proba(tree::DTNode, features::AbstractMatrix{L}, labels) =
-    stack_function_results(row->apply_tree_proba(tree, row, labels), features)
-
-=#
