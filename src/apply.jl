@@ -1,3 +1,4 @@
+using StatsBase
 export apply_tree, apply_forest, apply_model, print_apply, tree_walk_metrics
 
 ############################################################################################
@@ -280,8 +281,8 @@ end
 
 ############################################################################################
 
-using Distributions
-using CategoricalDistributions
+# using Distributions
+# using CategoricalDistributions
 using CategoricalArrays
 
 function apply_proba(leaf::DTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
@@ -317,7 +318,13 @@ function apply_proba(tree::DTree{L}, X::MultiFrameModalDataset, classes) where {
         worlds = inst_init_world_sets(X, tree, i_sample)
 
         this_prediction_scores = apply_proba(tree.root, X, i_sample, worlds)
-        d = Distributions.fit(CategoricalDistributions.UnivariateFinite, categorical(this_prediction_scores; levels = classes))
+        # d = Distributions.fit(UnivariateFinite, categorical(this_prediction_scores; levels = classes))
+        d = begin
+            c = categorical(this_prediction_scores; levels = classes)
+            cc = countmap(c)
+            s = [cc[cl] for cl in classes(c)]
+            UnivariateFinite(classes(c), s ./ sum(s))
+        end
         prediction_scores[i_sample, :] .= [pdf(d, c) for c in classes]
     end
     prediction_scores
