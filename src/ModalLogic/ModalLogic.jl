@@ -90,7 +90,7 @@ accessibles(w::WorldType, r::Relation, args...) where {T,WorldType<:World} = beg
     IterTools.imap(WorldType, _accessibles(w, r, args...))
 end
 
-# 
+#
 
 # It is convenient to define methods for `accessibles` that take a world set instead of a
 #  single world. Generally, this falls back to calling `_accessibles` on each world in
@@ -106,7 +106,7 @@ accessibles(S::AbstractWorldSet{WorldType}, r::Relation, args...) where {T,World
     )
 end
 
-# 
+#
 
 # It is also convenient to deploy some optimizations when you have intel about the decision
 #  to test. For example, when you need to test a decision ⟨L⟩ (minimum(A2) ≥ 10) on a world w,
@@ -211,23 +211,23 @@ end
 ############################################################################################
 
 export Decision,
-       # 
+       #
        relation, feature, test_operator, threshold,
        is_propositional_decision,
        is_global_decision,
-       # 
+       #
        display_decision, display_decision_inverse
 
 # A decision inducing a branching/split (e.g., ⟨L⟩ (minimum(A2) ≥ 10) )
 struct Decision{T}
-    
+
     # Relation, interpreted as an existential modal operator
     #  Note: RelationId for propositional decisions
     relation      :: Relation
-    
+
     # Modal feature (a scalar function that can be computed on a world)
     feature       :: ModalFeature
-    
+
     # Test operator (e.g. ≥)
     test_operator :: TestOperatorFun
 
@@ -305,8 +305,8 @@ function display_decision(
     "{$i_frame} $(display_decision(decision; attribute_names_map = _attribute_names_map, kwargs...))"
 end
 
-function display_decision_inverse(i_frame::Integer, decision::Decision; args...)
-    inv_decision = Decision(decision.relation, decision.feature, test_operator_inverse(decision.test_operator), decision.threshold)
+function display_decision_inverse(i_frame::Integer, decision::Decision{T}; args...) where {T}
+    inv_decision = Decision{T}(decision.relation, decision.feature, test_operator_inverse(decision.test_operator), decision.threshold)
     display_decision(i_frame, inv_decision; universal = true, args...)
 end
 
@@ -324,36 +324,34 @@ export n_features, n_relations,
        nframes, frames, get_frame,
        display_structure,
        get_gamma, test_decision,
-       # 
+       #
        relations,
        init_world_sets_fun,
-       # 
+       #
        ModalDataset,
        GenericModalDataset,
        ActiveMultiFrameModalDataset,
        MultiFrameModalDataset,
        ActiveModalDataset,
-       InterpretedModalDataset, 
+       InterpretedModalDataset,
        ExplicitModalDataset,
        ExplicitModalDatasetS,
        ExplicitModalDatasetSMemo
-       # 
 
 _isnan(n::Number) = isnan(n)
 _isnan(n::Nothing) = false
 hasnans(n::Number) = _isnan(n)
 hasnans(n::AbstractArray{<:Union{Nothing, Number}}) = any(_isnan.(n))
 
-# 
 # A modal dataset can be *active* or *passive*.
-# 
+#
 # A passive modal dataset is one that you can interpret decisions on, but cannot necessarily
 #  enumerate decisions for, as it doesn't have objects for storing the logic (relations, features, etc.).
 # Dimensional datasets are passive.
 include("dimensional-dataset-bindings.jl")
-# 
+#
 const PassiveModalDataset{T} = Union{DimensionalDataset{T}}
-# 
+#
 # Active datasets comprehend structures for representing relation sets, features, enumerating worlds,
 #  etc. While learning a model can be done only with active modal datasets, testing a model
 #  can be done with both active and passive modal datasets.
@@ -361,30 +359,30 @@ const PassiveModalDataset{T} = Union{DimensionalDataset{T}}
 abstract type ActiveModalDataset{T<:Number,WorldType<:World} end
 # 
 # Active modal datasets hold the WorldType, and thus can initialize world sets with a lighter interface
-# 
-init_world_sets_fun(imd::ActiveModalDataset{T, WorldType},  i_sample::Integer, ::Type{WorldType}) where {T, WorldType} = 
+#
+init_world_sets_fun(imd::ActiveModalDataset{T, WorldType},  i_sample::Integer, ::Type{WorldType}) where {T, WorldType} =
     init_world_sets_fun(imd, i_sample)
 # 
 # By default an active modal dataset cannot be miniaturized
 isminifiable(::ActiveModalDataset) = false
 # 
 const ModalDataset{T} = Union{PassiveModalDataset{T},ActiveModalDataset{T}}
-# 
+#
 include("active-modal-datasets.jl")
-# 
+#
 # Define the multi-modal version of modal datasets (basically, a vector of datasets with the
 #  same number of instances)
-# 
+#
 include("multi-frame-dataset.jl")
-# 
+#
 # TODO figure out which convert function works best: convert(::Type{<:MultiFrameModalDataset{T}}, X::MD) where {T,MD<:ModalDataset{T}} = MultiFrameModalDataset{MD}([X])
 # convert(::Type{<:MultiFrameModalDataset}, X::ModalDataset) = MultiFrameModalDataset([X])
-# 
+#
 const ActiveMultiFrameModalDataset{T} = MultiFrameModalDataset{<:ActiveModalDataset{<:T}}
-# 
+#
 const GenericModalDataset = Union{ModalDataset,MultiFrameModalDataset}
-# 
-# 
+#
+#
 ############################################################################################
 # Ontologies
 ############################################################################################
@@ -396,7 +394,7 @@ abstract type DirectionalRelation <: Relation end
 abstract type TopologicalRelation <: Relation end
 
 # Here are the definitions for world types and relations for known modal logics
-#  
+#
 
 export get_ontology,
        get_interval_ontology
