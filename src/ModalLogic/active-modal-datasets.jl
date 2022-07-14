@@ -77,7 +77,7 @@ end
     
     function InterpretedModalDataset{T, N, WorldType}(
         domain::DimensionalDataset{T,D},
-        ontology::Ontology{WorldType},
+        ontology::Ontology{WorldType}, # default to get_interval_ontology(Val(D-1-1)) ?
         mixed_features::AbstractVector{<:MixedFeature},
     ) where {T, N, D, WorldType<:World}
         _features, featsnops = begin
@@ -121,7 +121,6 @@ end
             end
             _features, featsnops
         end
-        ontology = get_interval_ontology(Val(D-1-1))
         InterpretedModalDataset{T, N, world_type(ontology)}(domain, ontology, _features, featsnops)
     end
 
@@ -216,12 +215,17 @@ slice_dataset(imd::InterpretedModalDataset, inds::AbstractVector{<:Integer}, arg
     InterpretedModalDataset(slice_dataset(imd.domain, inds, args...; allow_no_instances = allow_no_instances, kwargs...), imd.ontology, features(imd), imd.grouped_featsaggrsnops; allow_no_instances = allow_no_instances)
 
 
-display_structure(imd::InterpretedModalDataset; indent_str = "") = begin
+function display_structure(imd::InterpretedModalDataset; indent_str = "")
     out = "$(typeof(imd))\t$(Base.summarysize(imd) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
+    out *= indent_str * "├ relations: \t$((length(relations(imd))))\t$(relations(imd))\n"
     out *= indent_str * "├ domain shape\t$(Base.size(imd.domain))\n"
-    out *= indent_str * "├ $(length(relations(imd))) relations\t$(relations(imd))\n"
     out *= indent_str * "└ max_channel_size\t$(max_channel_size(imd))"
     out
+end
+
+hasnans(imd::InterpretedModalDataset) = begin
+    # @show hasnans(imd.domain)
+    hasnans(imd.domain)
 end
 
 Base.@propagate_inbounds @inline get_gamma(imd::InterpretedModalDataset, args...) = get_gamma(imd.domain, args...)
@@ -489,7 +493,7 @@ struct ExplicitModalDataset{T<:Number, WorldType<:World} <: ActiveModalDataset{T
 end
 
 Base.getindex(X::ExplicitModalDataset{T,WorldType}, args...) where {T,WorldType} = getindex(X.fwd, args...)
-Base.size(X::ExplicitModalDataset)                 where {T,N}          = size(X.fwd)
+Base.size(X::ExplicitModalDataset)                 where {T,N}          = size(X.fwd) # TODO fix not always defined?
 features(X::ExplicitModalDataset)               = X.features
 grouped_featsaggrsnops(X::ExplicitModalDataset) = X.grouped_featsaggrsnops
 n_features(X::ExplicitModalDataset{T, WorldType})  where {T, WorldType} = length(X.features)
@@ -517,10 +521,24 @@ slice_dataset(X::ExplicitModalDataset{T,WorldType}, inds::AbstractVector{<:Integ
         allow_no_instances = allow_no_instances
     )
 
+
+function display_structure(emd::ExplicitModalDataset; indent_str = "")
+    out = "$(typeof(emd))\t$(Base.summarysize(emd) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
+    out *= indent_str * "├ relations: \t$((length(relations(emd))))\t$(relations(emd))\n"
+    out *= indent_str * "└ fwd: \t$(typeof(emd.fwd))\t$(Base.summarysize(emd.fwd) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
+    out
+end
+
+
 find_feature_id(X::ExplicitModalDataset{T,WorldType}, feature::ModalFeature) where {T,WorldType} =
     findall(x->x==feature, features(X))[1]
 find_relation_id(X::ExplicitModalDataset{T,WorldType}, relation::Relation) where {T,WorldType} =
     findall(x->x==relation, relations(X))[1]
+
+hasnans(emd::ExplicitModalDataset) = begin
+    # @show hasnans(emd.fwd)
+    hasnans(emd.fwd)
+end
 
 Base.@propagate_inbounds @inline get_gamma(
         X::ExplicitModalDataset{T,WorldType},
@@ -611,6 +629,11 @@ end
 goes_with(::Type{GenericRelationalSupport}, ::Type{<:World}) = true
 # default_fwd_rs_type(::Type{<:World}) = GenericRelationalSupport # TODO implement similar pattern used for fwd
 
+hasnans(emds::GenericRelationalSupport) = begin
+    # @show any(map(d->(any(_isnan.(collect(values(d))))), emds.d))
+    any(map(d->(any(_isnan.(collect(values(d))))), emds.d))
+end
+
 n_samples(emds::GenericRelationalSupport)     = size(emds, 1)
 n_featsnaggrs(emds::GenericRelationalSupport) = size(emds, 2)
 n_relations(emds::GenericRelationalSupport)   = size(emds, 3)
@@ -649,6 +672,11 @@ end
 
 goes_with(::Type{AbstractGlobalSupport}, ::Type{<:World}) = true
 # default_fwd_gs_type(::Type{<:World}) = GenericGlobalSupport # TODO implement similar pattern used for fwd
+
+hasnans(emds::GenericGlobalSupport) = begin
+    # @show any(_isnan.(emds.d))
+    any(_isnan.(emds.d))
+end
 
 n_samples(emds::GenericGlobalSupport{T}) where {T}  = size(emds, 1)
 n_featsnaggrs(emds::GenericGlobalSupport{T}) where {T} = size(emds, 2)
@@ -1000,6 +1028,13 @@ find_relation_id(X::ExplicitModalDatasetWithSupport, relation::Relation) =
 find_featsnaggr_id(X::ExplicitModalDatasetWithSupport, feature::ModalFeature, aggregator::Aggregator) =
     findall(x->x==(feature, aggregator), featsnaggrs(X))[1]
 
+hasnans(X::ExplicitModalDatasetWithSupport) = begin
+    # @show hasnans(X.emd)
+    # @show hasnans(X.fwd_rs)
+    # @show (!isnothing(X.fwd_gs) && hasnans(X.fwd_gs))
+    hasnans(X.emd) || hasnans(X.fwd_rs) || (!isnothing(X.fwd_gs) && hasnans(X.fwd_gs))
+end
+
 Base.@propagate_inbounds @inline get_gamma(
         X::ExplicitModalDatasetWithSupport{T,WorldType},
         i_sample::Integer,
@@ -1049,8 +1084,9 @@ get_modal_gamma(
             X.fwd_rs[i_sample, w, i_featsnaggr, i_relation]
 end
 
-display_structure(X::ExplicitModalDatasetS; indent_str = "") = begin
+function display_structure(X::ExplicitModalDatasetS; indent_str = "")
     out = "$(typeof(X))\t$((Base.summarysize(X.emd) + Base.summarysize(X.fwd_rs) + Base.summarysize(X.fwd_gs)) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
+    out *= indent_str * "├ relations: \t$((length(relations(X.emd))))\t$(relations(X.emd))\n"
     out *= indent_str * "├ emd\t$(Base.summarysize(X.emd) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t(shape $(Base.size(X.emd)))\n"
     out *= indent_str * "├ fwd_rs\t$(Base.summarysize(X.fwd_rs) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t(shape $(Base.size(X.fwd_rs)))\n"
     out *= indent_str * "└ fwd_gs\t$(Base.summarysize(X.fwd_gs) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t"
@@ -1062,8 +1098,9 @@ display_structure(X::ExplicitModalDatasetS; indent_str = "") = begin
     out
 end
 
-display_structure(X::ExplicitModalDatasetSMemo; indent_str = "") = begin
+function display_structure(X::ExplicitModalDatasetSMemo; indent_str = "")
     out = "$(typeof(X))\t$((Base.summarysize(X.emd) + Base.summarysize(X.fwd_rs) + Base.summarysize(X.fwd_gs)) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
+    out *= indent_str * "├ relations: \t$((length(relations(X.emd))))\t$(relations(X.emd))\n"
     out *= indent_str * "├ emd\t$(Base.summarysize(X.emd) / 1024 / 1024 |> x->round(x, digits=2)) MBs"
         out *= "\t(shape $(Base.size(X.emd.fwd)))\n"
         # out *= "\t(shape $(Base.size(X.emd.fwd)), $(n_nothing) nothings, $((1-(n_nothing    / size(X.emd)))*100)%)\n"

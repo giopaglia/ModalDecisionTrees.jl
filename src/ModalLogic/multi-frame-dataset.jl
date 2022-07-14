@@ -23,6 +23,7 @@ struct MultiFrameModalDataset{MD<:ModalDataset}
         MultiFrameModalDataset{MD}(MD[X])
     end
     function MultiFrameModalDataset(Xs::AbstractVector{<:MD}) where {MD<:ModalDataset}
+        println(MD)
         MultiFrameModalDataset{MD}(Xs)
     end
     function MultiFrameModalDataset(X::MD) where {MD<:ModalDataset}
@@ -41,7 +42,7 @@ n_samples(X::MultiFrameModalDataset)                                = n_samples(
 Base.push!(X::MultiFrameModalDataset, f::ModalDataset) = push!(frames(X), f)
 
 # max_channel_size(X::MultiFrameModalDataset) = map(max_channel_size, frames(X)) # TODO: figure if this is useless or not. Note: channel_size doesn't make sense at this point. Only the accessibles_funs[i] functions.
-n_features(X::MultiFrameModalDataset) = map(n_features, frames(X)) # Note: used for safety checks in tree.jl
+n_features(X::MultiFrameModalDataset) = map(n_features, frames(X)) # Note: used for safety checks in fit_tree.jl
 # n_relations(X::MultiFrameModalDataset) = map(n_relations, frames(X)) # TODO: figure if this is useless or not
 n_features(X::MultiFrameModalDataset,  i_frame::Integer) = n_features(get_frame(X, i_frame))
 n_relations(X::MultiFrameModalDataset, i_frame::Integer) = n_relations(get_frame(X, i_frame))
@@ -55,7 +56,7 @@ get_instance(X::MultiFrameModalDataset,  i_frame::Integer, idx_i::Integer, args.
 slice_dataset(X::MultiFrameModalDataset{MD}, inds::AbstractVector{<:Integer}, args...; kwargs...) where {MD<:ModalDataset} = 
     MultiFrameModalDataset{MD}(Vector{MD}(map(frame->slice_dataset(frame, inds, args...; kwargs...), frames(X))))
 
-display_structure(Xs::MultiFrameModalDataset; indent_str = "") = begin
+function display_structure(Xs::MultiFrameModalDataset; indent_str = "")
     out = "$(typeof(Xs))" # * "\t\t\t$(Base.summarysize(Xs) / 1024 / 1024 |> x->round(x, digits=2)) MBs"
     for (i_frame, X) in enumerate(frames(Xs))
         if i_frame == n_frames(Xs)
@@ -71,6 +72,8 @@ display_structure(Xs::MultiFrameModalDataset; indent_str = "") = begin
 end
 
 nframes = n_frames # TODO remove
+
+hasnans(Xs::MultiFrameModalDataset) = any(hasnans.(frames(Xs)))
 
 isminifiable(::MultiFrameModalDataset) = true
 

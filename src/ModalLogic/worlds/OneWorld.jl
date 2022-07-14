@@ -5,7 +5,7 @@ struct OneWorld    <: World
     OneWorld() = new()
     # 
     OneWorld(w::EmptyWorld) = new()
-    OneWorld(w::CenteredWorld) = new()
+    OneWorld(w::CenteredWorld, args...) = new()
 end;
 
 Base.show(io::IO, w::OneWorld) = begin
