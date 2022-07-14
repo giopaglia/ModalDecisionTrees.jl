@@ -5,6 +5,7 @@ desc = "Julia implementation of Modal Decision Trees and Random Forest algorithm
 version = "0.8.0"
 
 [deps]
+AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"
 ComputedFieldTypes = "459fdd68-db75-56b8-8c15-d717a790f88e"

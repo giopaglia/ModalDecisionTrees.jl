@@ -709,6 +709,7 @@ include("print.jl")
 include("decisionpath.jl")
 
 include("MLJ-interface.jl")
+include("AbstractTrees-interface.jl")
 
 include("experimentals.jl")
 using .experimentals
