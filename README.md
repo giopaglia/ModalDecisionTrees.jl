@@ -1,6 +1,6 @@
 # Modal Decision Trees & Forests
 
-### Interpretable models for native time-series classification!
+### Interpretable models for native time-series & image classification!
 
 This package provides algorithms for learning *decision trees* and *decision forests* with enhanced abilities.
 Leveraging the express power of Modal Logic, these models can extract *temporal/spatial patterns*, and can natively handle *time series* and *images* (without any data preprocessing). Currently available via [MLJ.jl](https://github.com/alan-turing-institute/MLJ.jl).
@@ -78,9 +78,7 @@ A DecisionTree model can be visualized using the print_tree-function of its nati
 ## TODO
 
 - [x]  Enable choosing a loss functions different from Shannon's entropy (*untested*)
-- [x]  Enable use of weights (*untested*)
 - [x]  Enable regression (*untested*)
-- [x]  Enable support for images (*untested*)
 - [x]  Enable multimodal learning (learning with scalars, time-series and images together)
 - [ ]  Proper test suite
 - [ ]  Test behavior with NaN values
