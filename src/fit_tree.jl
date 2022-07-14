@@ -643,7 +643,6 @@ Base.@propagate_inbounds @inline function split_node!(
         # DEBUGprintln("AFTER LEAF!")
         # readline()
         node.is_leaf = true
-        return
     else
         best_purity = corrected_best_purity_times_nt/nt
 
@@ -750,7 +749,6 @@ Base.@propagate_inbounds @inline function split_node!(
             println("ERROR! " * errStr) # TODO fix
             # throw_n_log(errStr)
             node.is_leaf = true
-            return
         else
             # split the samples into two parts:
             #  ones for which the is satisfied and those for whom it's not
@@ -778,7 +776,7 @@ Base.@propagate_inbounds @inline function split_node!(
 
     # println("END split!")
     # readline()
-    node
+    # node
 end
 
 
