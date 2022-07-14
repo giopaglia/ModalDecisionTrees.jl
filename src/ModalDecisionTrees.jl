@@ -134,7 +134,7 @@ function majority_vote(
         weights::Union{Nothing,AbstractVector} = nothing;
         suppress_parity_warning = false,
     ) where {L<:CLabel}
-    
+
     if length(labels) == 0
         return nothing
     end
@@ -235,7 +235,7 @@ function default_weights_rebalance(Y::AbstractVector{L}) where {L<:Label}
     if length(unique(values(class_counts)_dict)) == 1 # balanced case
         default_weights(length(Y))
     else
-        # Assign weights in such a way that the dataset becomes balanced 
+        # Assign weights in such a way that the dataset becomes balanced
         tot = sum(values(class_counts_dict))
         balanced_tot_per_class = tot/length(class_counts_dict)
         weights_map = Dict{L,Float64}([class => (balanced_tot_per_class/n_instances) for (class,n_instances) in class_counts_dict])
@@ -309,7 +309,7 @@ end
 struct NSDTLeaf{L<:Label} <: AbstractDecisionLeaf{L}
     # predicting function
     predicting_function         :: PredictingFunction{L}
-    
+
     # supporting labels
     supp_train_labels        :: Vector{L}
     supp_valid_labels        :: Vector{L}
@@ -448,7 +448,7 @@ struct DTInternal{T, L<:Label}
     #     right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}}) where {T, L<:Label}
     #     DTInternal{T, L}(decision, this, left, right)
     # end
-    
+
     # # create node without frame nor local decision
     # function DTInternal{T, L}(
     #     decision         :: Decision,
@@ -571,15 +571,15 @@ modal_height(leaf::AbstractDecisionLeaf)     = 0
 modal_height(node::DTInternal) = Int(is_modal_node(node)) + max(modal_height(node.left), modal_height(node.right))
 modal_height(tree::DTree)      = modal_height(tree.root)
 
-# Number of supporting instances 
+# Number of supporting instances
 n_samples(leaf::AbstractDecisionLeaf; train_or_valid = true) = length(supp_labels(leaf; train_or_valid = train_or_valid))
 n_samples(node::DTInternal;           train_or_valid = true) = n_samples(node.left; train_or_valid = train_or_valid) + n_samples(node.right; train_or_valid = train_or_valid)
 n_samples(tree::DTree;                train_or_valid = true) = n_samples(tree.root; train_or_valid = train_or_valid)
 
 # TODO remove deprecated use num_leaves
-Base.length(leaf::AbstractDecisionLeaf)     = num_leaves(leaf)    
+Base.length(leaf::AbstractDecisionLeaf)     = num_leaves(leaf)
 Base.length(node::DTInternal) = num_leaves(node)
-Base.length(tree::DTree)      = num_leaves(tree)        
+Base.length(tree::DTree)      = num_leaves(tree)
 
 ############################################################################################
 ############################################################################################
@@ -735,7 +735,7 @@ end
         # Construct a leaf from a label
         @test DTLeaf(1)        == DTLeaf{Int64}(1, Int64[])
         @test DTLeaf{Int64}(1) == DTLeaf{Int64}(1, Int64[])
-        
+
         @test DTLeaf("Class_1")           == DTLeaf{String}("Class_1", String[])
         @test DTLeaf{String}("Class_1")   == DTLeaf{String}("Class_1", String[])
 
@@ -754,7 +754,7 @@ end
 
         # Inferring the label from supporting labels
         @test prediction(DTLeaf{String}(["Class_1", "Class_1", "Class_2"])) == "Class_1"
-        
+
         @test_nowarn DTLeaf(["1.5"])
         @test_throws MethodError DTLeaf([1.0,"Class_1"])
 
@@ -796,7 +796,7 @@ end
         # cls_tree = @test_nowarn DTree(cls_node, [ModalLogic.Interval], [start_without_world])
         # cls_forest = @test_nowarn DForest([cls_tree, cls_tree, cls_tree])
     end
-    
+
 end
 
 end # module
