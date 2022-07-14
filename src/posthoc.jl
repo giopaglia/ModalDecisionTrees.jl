@@ -91,11 +91,11 @@ function prune_forest(forest::DForest{L}, rng::Random.AbstractRNG = Random.GLOBA
     ))
 
     # Prune trees
-    if parametrization_is_going_to_prune(pruning_params)
-        v_trees = map((t)->prune_tree(t, pruning_params), v_trees)
-        # Note: metrics are lost
-        forest = DForest{L}(v_trees)
-    end
+    # if parametrization_is_going_to_prune(pruning_params)
+    v_trees = map((t)->prune_tree(t, pruning_params), v_trees)
+    # Note: metrics are lost
+    forest = DForest{L}(v_trees)
+    # end
 
     forest
 end
@@ -316,8 +316,21 @@ end
 ############################################################################################
 ############################################################################################
 
-function tree_attribute_countmap(tree::DTree{L}; weighted = false) where {L<:Label}
-    vals = _tree_attribute_countmap(tree.root; weighted = weighted)
+function _variable_countmap(leaf::AbstractDecisionLeaf{L}; weighted = false) where {L<:Label}
+    []
+end
+
+function _variable_countmap(node::DTInternal{L}; weighted = false) where {L<:Label}
+    th = begin
+        d = node.decision
+        f = d.feature
+        (f isa SingleAttributeFeature) ? [((node.i_frame, f.i_attribute), (weighted ? length(supp_labels) : 1)),] : []
+    end
+    [th..., _variable_countmap(node.left; weighted = weighted)..., _variable_countmap(node.right; weighted = weighted)...]
+end
+
+function variable_countmap(tree::DTree{L}; weighted = false) where {L<:Label}
+    vals = _variable_countmap(tree.root; weighted = weighted)
     if !weighted
         countmap(first.(vals))
     else
@@ -329,18 +342,19 @@ function tree_attribute_countmap(tree::DTree{L}; weighted = false) where {L<:Lab
     end
 end
 
-function _tree_attribute_countmap(node::DTInternal{L}; weighted = false) where {L<:Label}
-    th = begin
-        d = node.decision
-        f = d.feature
-        (f isa SingleAttributeFeature) ? [((node.i_frame, f.i_attribute), (weighted ? length(supp_labels) : 1))] : []
+function variable_countmap(forest::DForest{L}; weighted = false) where {L<:Label}
+    vals = [_variable_countmap(t.root; weighted = weighted) for t in forest.trees] |> Iterators.flatten
+    if !weighted
+        countmap(first.(vals))
+    else
+        c = Dict([attr => 0 for attr in unique(first.(vals))])
+        for (attr, weight) in vals
+            c[attr] += weight
+        end
+        Dict([attr => count/sum(values(c)) for (attr, count) in c])
     end
-    [th..., _tree_attribute_countmap(node.left; weighted = weighted)..., _tree_attribute_countmap(node.right; weighted = weighted)...]
 end
 
-function _tree_attribute_countmap(leaf::AbstractDecisionLeaf{L}; weighted = false) where {L<:Label}
-    []
-end
 
 ############################################################################################
 ############################################################################################

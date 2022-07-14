@@ -27,6 +27,8 @@ function fwd_init_world_slice(fwd::OneWorldFWD{T}, args...) where {T}
     nothing
 end
 
+hasnans(fwd::OneWorldFWD) = any(_isnan.(fwd.d))
+
 Base.@propagate_inbounds @inline fwd_get(
     fwd         :: OneWorldFWD{T},
     i_sample    :: Integer,
@@ -72,6 +74,11 @@ end
 
 function fwd_init_world_slice(fwd::IntervalFWD{T}, args...) where {T}
     nothing
+end
+
+hasnans(fwd::IntervalFWD) = begin
+    # @show ([hasnans(fwd.d[x,y,:,:]) for x in 1:size(fwd.d, 1) for y in (x+1):size(fwd.d, 2)])
+    any([hasnans(fwd.d[x,y,:,:]) for x in 1:size(fwd.d, 1) for y in (x+1):size(fwd.d, 2)])
 end
 
 Base.@propagate_inbounds @inline fwd_get(
@@ -120,6 +127,11 @@ end
 
 function fwd_init_world_slice(fwd::Interval2DFWD{T}, args...) where {T}
     nothing
+end
+
+hasnans(fwd::Interval2DFWD) = begin
+    # @show ([hasnans(fwd.d[xx,xy,yx,yy,:,:]) for xx in 1:size(fwd.d, 1) for xy in (xx+1):size(fwd.d, 2) for yx in 1:size(fwd.d, 3) for yy in (yx+1):size(fwd.d, 4)])
+    any([hasnans(fwd.d[xx,xy,yx,yy,:,:]) for xx in 1:size(fwd.d, 1) for xy in (xx+1):size(fwd.d, 2) for yx in 1:size(fwd.d, 3) for yy in (yx+1):size(fwd.d, 4)])
 end
 
 Base.@propagate_inbounds @inline fwd_get(
@@ -208,6 +220,8 @@ Base.@propagate_inbounds @inline Base.getindex(
 Base.size(emds::OneWorldFWD_RS{T}, args...) where {T} = size(emds.d, args...)
 goes_with(::Type{OneWorldFWD_RS}, ::Type{OneWorld}) = true
 
+hasnans(emds::OneWorldFWD_RS) = any(_isnan.(emds.d))
+
 fwd_rs_init(emd::ExplicitModalDataset{T, OneWorld}, n_featsnaggrs::Integer, n_relations::Integer; perform_initialization = false) where {T} = begin
     if perform_initialization
         _fwd_rs = fill!(Array{Union{T,Nothing}, 3}(undef, n_samples(emd), n_featsnaggrs, n_relations), nothing)
@@ -246,6 +260,12 @@ Base.@propagate_inbounds @inline Base.getindex(
     i_relation   :: Integer) where {T} = emds.d[w.x, w.y, i_sample, i_featsnaggr, i_relation]
 Base.size(emds::IntervalFWD_RS{T}, args...) where {T} = size(emds.d, args...)
 goes_with(::Type{IntervalFWD_RS}, ::Type{Interval}) = true
+
+
+hasnans(emds::IntervalFWD_RS) = begin
+    # @show [hasnans(emds.d[x,y,:,:,:]) for x in 1:size(emds.d, 1) for y in (x+1):size(emds.d, 2)]
+    any([hasnans(emds.d[x,y,:,:,:]) for x in 1:size(emds.d, 1) for y in (x+1):size(emds.d, 2)])
+end
 
 # Note: assuming default_fwd_type(::Type{Interval}) = IntervalFWD
 fwd_rs_init(emd::ExplicitModalDataset{T, Interval}, n_featsnaggrs::Integer, n_relations::Integer; perform_initialization = false) where {T} = begin
@@ -286,6 +306,9 @@ end
 # size(emds::Interval2DFWD_RS{T}, args...) where {T} = size(emds.d, args...)
 # goes_with(::Type{Interval2DFWD_RS}, ::Type{Interval2D}) = true
 
+# TODO... hasnans(emds::Interval2DFWD_RS) = any(_isnan.(emds.d))
+# TODO...? hasnans(emds::Interval2DFWD_RS) = any([hasnans(emds.d[xx,xy,yx,yy,:,:]) for xx in 1:size(emds.d, 1) for xy in (xx+1):size(emds.d, 2) for yx in 1:size(emds.d, 3) for yy in (yx+1):size(emds.d, 4)])
+
 # fwd_rs_init(emd::ExplicitModalDataset{T, Interval2D}, n_featsnaggrs::Integer, n_relations::Integer; perform_initialization = false) where {T} = begin
 #   if perform_initialization
 #       _fwd_rs = fill!(Array{Union{T,Nothing}, 7}(undef, size(emd.fwd, 1), size(emd.fwd, 2), size(emd.fwd, 3), size(emd.fwd, 4), n_samples(emd), n_featsnaggrs, n_relations), nothing)
@@ -324,6 +347,8 @@ Base.@propagate_inbounds @inline Base.getindex(
     i_relation   :: Integer) where {T} = emds.d[w.x.x+div((w.x.y-2)*(w.x.y-1),2), w.y.x+div((w.y.y-2)*(w.y.y-1),2), i_sample, i_featsnaggr, i_relation]
 Base.size(emds::Interval2DFWD_RS{T}, args...) where {T} = size(emds.d, args...)
 goes_with(::Type{Interval2DFWD_RS}, ::Type{Interval2D}) = true
+
+hasnans(emds::Interval2DFWD_RS) = any(_isnan.(emds.d))
 
 fwd_rs_init(emd::ExplicitModalDataset{T, Interval2D}, n_featsnaggrs::Integer, n_relations::Integer; perform_initialization = false) where {T} = begin
     if perform_initialization

@@ -16,6 +16,7 @@ Cool ideas:
 
 ☐	add a parameter controlling how many thresholds are (randomly) considered at each node. Check that this optimization doesn't degrade performances and improves training times
 ☐ test: create a proper test suite, and test reproducibility of the results
+☐	min_samples_at_leaf should be treated as any other of the pruning parameters; certify that an algorithmic change won't affect performances, and make the change
 
 ☐ Rule-Extraction from DT's and RF's + compute rule's conjuct metrics
 ☐	posthoc.jl: add Reduced Error Pruning, and/or bottom-up pruning (i.e, from leaves until no change), whereas now there's only top-down pruning (i.e, prune as soon as any pruning condition is met)?
