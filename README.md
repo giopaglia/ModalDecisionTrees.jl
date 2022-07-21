@@ -43,14 +43,12 @@ using MLJ
 using ModalDecisionTrees
 using Random
 
-# A Modal Decision Tree with ≥ 4 samples at leaf
-tree = ModalDecisionTree(min_samples_leaf=4)
-
 # Load an example dataset (a temporal one)
 X, y = @load_japanesevowels
 N = length(y)
 
-mach = machine(tree, X, y)
+# Instantiate an MLJ machine based on a Modal Decision Tree with ≥ 4 samples at leaf
+mach = machine(ModalDecisionTree(min_samples_leaf=4), X, y)
 
 # Split dataset
 p = randperm(N)
@@ -63,11 +61,29 @@ fit!(mach, rows=train_idxs)
 yhat = predict(mach, X[test_idxs,:])
 accuracy = sum(yhat .== y[test_idxs])/length(yhat)
 
-# Access raw model
-fitted_params(mach).model
+# Print model
 report(mach).print_model(3)
+
+# Access raw model
+model = fitted_params(mach).model
 ```
 
+
+<!--
+# Render raw model
+Pkg.add("GraphRecipes"); Pkg.add("Plots")
+
+using GraphRecipes
+using Plots
+
+plot(
+  TreePlot(model), 
+  method = :buchheim,
+  nodeshape = :rect,
+  root = :left,
+  curves = false
+)
+-->
 
 <!-- TODO (`Y isa Vector{<:{Integer,String}}`) -->
 
