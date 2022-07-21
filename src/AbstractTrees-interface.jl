@@ -73,11 +73,30 @@ the model produces binary trees where all nodes have exactly one left and
 one right child. `children` is used for tree traversal.
 The additional information `info` is carried over from `node` to its children.
 """
+function AbstractTrees.children(io::IO, dt::MDT.DTree)
+    AbstractTrees.children(io, dt.root)
+end
+AbstractTrees.children(dt_node::MDT.DTInternal) = (
+    dt_node.left,
+    dt_node.right,
+)
+AbstractTrees.children(dt_leaf::MDT.AbstractDecisionLeaf) = ()
+
 AbstractTrees.children(node::InfoNode) = (
     wrap(node.node.left,  node.info),
     wrap(node.node.right, node.info),
 )
 AbstractTrees.children(leaf::InfoLeaf) = ()
+
+"""
+    TODO use AbstractTrees.nodevalue when a version > 0.4 is available
+"""
+
+_nodevalue(dt_node::MDT.DTInternal) = (dt_node.i_frame, dt_node.decision)
+_nodevalue(dt_leaf::MDT.AbstractDecisionLeaf) = (dt_leaf.prediction, )
+
+_nodevalue(node::InfoNode) = _nodevalue(node.node)
+_nodevalue(leaf::InfoLeaf) = _nodevalue(leaf.node)
 
 """
     printnode(io::IO, node::InfoNode)
@@ -92,6 +111,15 @@ Note that the left subtree of any split node represents the 'yes-branch', while 
  the 'no-branch', respectively. `AbstractTrees.print_tree` outputs the left subtree first
 and then below the right subtree.
 """
+function AbstractTrees.printnode(io::IO, dt_node::MDT.DTInternal)
+    print(io, display_decision(dt_node))
+end
+
+function AbstractTrees.printnode(io::IO, dt_leaf::MDT.AbstractDecisionLeaf)
+    metrics = MDT.get_metrics(dt_leaf)
+    print(io, MDT.brief_prediction_str(dt_leaf), " ($(metrics.n_correct)/$(metrics.n_inst))")
+end
+
 function AbstractTrees.printnode(io::IO, node::InfoNode)
     dt_node = node.node
     if :variable_names ∈ keys(node.info)
@@ -103,7 +131,7 @@ end
 
 function AbstractTrees.printnode(io::IO, leaf::InfoLeaf)
     dt_leaf = leaf.leaf
-    metrics = get_metrics(dt_leaf)
+    metrics = MDT.get_metrics(dt_leaf)
 
     if :classlabels ∈ keys(leaf.info)
         print(io, leaf.info.classlabels[MDT.brief_prediction_str(dt_leaf)], " ($(metrics.n_correct)/$(metrics.n_inst))")
