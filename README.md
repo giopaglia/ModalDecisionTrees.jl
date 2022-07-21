@@ -15,7 +15,7 @@ Leveraging the express power of Modal Logic, these models can extract *temporal/
 <!-- TODO - Top-down pre-pruning & post-pruning -->
 <!-- - Bagging (Random Forests) TODO dillo meglio -->
 
-#### *Current* limitations (also see [TODO](#todo)):
+#### *Current* limitations (also see [TODOs](#todos)):
 - Only supports numeric features;
 - Only supports classification tasks;
 <!-- - Only available via [MLJ.jl](https://github.com/alan-turing-institute/MLJ.jl); -->
@@ -27,33 +27,46 @@ Leveraging the express power of Modal Logic, these models can extract *temporal/
 Simply type the following commands in Julia's REPL:
 
 ```julia
-Pkg.add(url="https://github.com/giopaglia/ModalDecisionTrees.jl")
+using Pkg; Pkg.add(url="https://github.com/giopaglia/ModalDecisionTrees.jl")
 ```
 -->
 
-<!--
-## Usage
+## Installation & Usage
 
 ```julia
-# Install package
-using Pkg;
-Pkg.add(url="https://github.com/giopaglia/ModalDecisionTrees.jl")
+# Install packages
+using Pkg; Pkg.add(url="https://github.com/giopaglia/ModalDecisionTrees.jl")
 Pkg.add("MLJ")
 
+# Import packages
 using MLJ
 using ModalDecisionTrees
+using Random
 
-TODO load dummy dataset
-TODO perform learning
+# A Modal Decision Tree with ≥ 4 samples at leaf
+tree = ModalDecisionTree(min_samples_leaf=4)
 
-...
+# Load an example dataset (a temporal one)
+X, y = @load_japanesevowels
+N = length(y)
 
-TODO show tree and explain how to interpret the results
-print_tree(tree)
+mach = machine(tree, X, y)
+
+# Split dataset
+p = randperm(N)
+train_idxs, test_idxs = p[1:round(Int, N*.8)], p[round(Int, N*.8)+1:end]
+
+# Fit
+fit!(mach, rows=train_idxs)
+
+# Perform predictions, compute accuracy
+yhat = predict(mach, X[test_idxs,:])
+accuracy = sum(yhat .== y[test_idxs])/length(yhat)
+
+# Access raw model
+fitted_params(mach).model
+report(mach).print_model(3)
 ```
-
-TODO explain parameters
--->
 
 
 <!-- TODO (`Y isa Vector{<:{Integer,String}}`) -->
@@ -75,14 +88,13 @@ Available models are: AdaBoostStumpClassifier, DecisionTreeClassifier, DecisionT
 
 A DecisionTree model can be visualized using the print_tree-function of its native interface (for an example see above in section 'Classification Example'). -->
 
-## TODO
+## TODOs
 
-- [x]  Enable choosing a loss functions different from Shannon's entropy (*untested*)
+- [x]  Enable loss functions different from Shannon's entropy (*untested*)
 - [x]  Enable regression (*untested*)
-- [x]  Enable multimodal learning (learning with scalars, time-series and images together)
 - [ ]  Proper test suite
-- [ ]  Test behavior with NaN values
 - [ ]  Visualizations of modal rules/patterns
+<!-- - [x]  AbstractTrees interface -->
 
 ## Theoretical foundations
 
