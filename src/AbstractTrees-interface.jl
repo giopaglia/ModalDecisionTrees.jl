@@ -54,13 +54,14 @@ for this package (e.g., `MLJ`, see their docs for further details).
 Using the function `build_tree` of the native interface returns such an object. 
 To use a ModalDecisionTree `mdt` (obtained this way) with the abstraction layer 
 provided by the `AbstractTrees`-interface implemented here
-and optionally add variable names (`variable_names`, an arrays of arrays of strings)
+and optionally add variable names (`frame_variable_names`, an arrays of arrays of strings)
  use the following syntax:
 1.  `wdc = wrap(mdt)` 
-2.  `wdc = wrap(mdt, (variable_names = variable_names, ))`
+2.  `wdc = wrap(mdt, (frame_variable_names = frame_variable_names, ))`
 In the first case `mdt` gets just wrapped, no information is added. No. 2 adds variable names.
 Note that the trailing comma is needed, in order to create a NamedTuple.
 """
+wrap(node::MDT.DTree,                info::NamedTuple = NamedTuple()) = wrap(node.root, info = info)
 wrap(node::MDT.DTInternal,           info::NamedTuple = NamedTuple()) = InfoNode(node, info)
 wrap(leaf::MDT.AbstractDecisionLeaf, info::NamedTuple = NamedTuple()) = InfoLeaf(leaf, info)
 
@@ -101,7 +102,7 @@ _nodevalue(leaf::InfoLeaf) = _nodevalue(leaf.node)
     printnode(io::IO, leaf::InfoLeaf)
 Write a printable representation of `node` or `leaf` to output-stream `io`.
 If `node.info`/`leaf.info` have a field called
-- `variable_names` it is expected to be an array of arrays of variable names corresponding 
+- `frame_variable_names` it is expected to be an array of arrays of variable names corresponding 
   to the variable names used in the tree nodes; note that there are two layers of reference
   because variables are grouped into `frames` (see MLJ's docs for ModalDecisionTree: @doc ModalDecisionTree)
   They will be used for printing instead of the ids.
@@ -120,8 +121,8 @@ end
 
 function AbstractTrees.printnode(io::IO, node::InfoNode)
     dt_node = node.node
-    if :variable_names ∈ keys(node.info)
-        print(io, display_decision(dt_node; attribute_names_map = node.info.variable_names))
+    if :frame_variable_names ∈ keys(node.info)
+        print(io, display_decision(dt_node; attribute_names_map = node.info.frame_variable_names))
     else
 	    print(io, display_decision(dt_node))
     end
@@ -131,9 +132,9 @@ function AbstractTrees.printnode(io::IO, leaf::InfoLeaf)
     dt_leaf = leaf.leaf
     metrics = MDT.get_metrics(dt_leaf)
 
-    if :classlabels ∈ keys(leaf.info)
-        print(io, leaf.info.classlabels[MDT.brief_prediction_str(dt_leaf)], " ($(metrics.n_correct)/$(metrics.n_inst))")
-    else
+    # if :class_labels ∈ keys(leaf.info)
+    #     print(io, leaf.info.class_labels[MDT.brief_prediction_str(dt_leaf)], " ($(metrics.n_correct)/$(metrics.n_inst))")
+    # else
 	    print(io, MDT.brief_prediction_str(dt_leaf), " ($(metrics.n_correct)/$(metrics.n_inst))")
-    end
+    # end
 end

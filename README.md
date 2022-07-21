@@ -70,14 +70,17 @@ model = fitted_params(mach).model
 
 
 <!--
+# TODO
 # Render raw model
 Pkg.add("GraphRecipes"); Pkg.add("Plots")
 
 using GraphRecipes
 using Plots
 
+
+wrapped_model = wrap(model.root, (frame_variable_names = report(mach).frame_grouping,))
 plot(
-  TreePlot(model), 
+  TreePlot(wrapped_model), 
   method = :buchheim,
   nodeshape = :rect,
   root = :left,
