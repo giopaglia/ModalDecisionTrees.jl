@@ -73,8 +73,8 @@ the model produces binary trees where all nodes have exactly one left and
 one right child. `children` is used for tree traversal.
 The additional information `info` is carried over from `node` to its children.
 """
-function AbstractTrees.children(io::IO, dt::MDT.DTree)
-    AbstractTrees.children(io, dt.root)
+function AbstractTrees.children(dt::MDT.DTree)
+    AbstractTrees.children(dt.root)
 end
 AbstractTrees.children(dt_node::MDT.DTInternal) = (
     dt_node.left,
