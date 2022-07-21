@@ -78,14 +78,24 @@ using GraphRecipes
 using Plots
 
 
-wrapped_model = wrap(model.root, (frame_variable_names = report(mach).frame_grouping,))
-plot(
-  TreePlot(wrapped_model), 
-  method = :buchheim,
-  nodeshape = :rect,
-  root = :left,
-  curves = false
-)
+#wrapped_model = ModalDecisionTrees.wrap(model.root, (attribute_names_map = report(mach).frame_grouping,))
+# for _method in [:spectral, :sfdp, :circular, :shell, :stress, :spring, :tree, :buchheim, :arcdiagram, :chorddiagram]
+wrapped_model = ModalDecisionTrees.wrap(model.root, (; threshold_display_method = x->round(x, digits=2)), use_feature_abbreviations = true)
+for _method in [:tree, :buchheim]
+	for _nodeshape in [:rect] # , [:rect, :ellipse]
+		display(plot(
+ 		TreePlot(wrapped_model), 
+ 		method = _method,
+ 		nodeshape = _nodeshape,
+ 		# nodesize = (3,10),
+ 		# root = :left,
+ 		curves = false,
+		fontsize = 10,
+		size=(860, 640),
+		title = "$(_method)"
+		))
+	end
+end
 -->
 
 <!-- TODO (`Y isa Vector{<:{Integer,String}}`) -->

@@ -119,13 +119,13 @@ function AbstractTrees.printnode(io::IO, dt_leaf::MDT.AbstractDecisionLeaf)
     print(io, MDT.brief_prediction_str(dt_leaf), " ($(metrics.n_correct)/$(metrics.n_inst))")
 end
 
+# https://discourse.julialang.org/t/filtering-keys-out-of-named-tuples/73564
+filter_nt_fields(f, nt) = NamedTuple{filter(f, keys(nt))}(nt)
+
 function AbstractTrees.printnode(io::IO, node::InfoNode)
+    kwargs = filter_nt_fields(x -> x in [:attribute_names_map, :threshold_display_method, :use_feature_abbreviations], node.info)
     dt_node = node.node
-    if :frame_variable_names ∈ keys(node.info)
-        print(io, display_decision(dt_node; attribute_names_map = node.info.frame_variable_names))
-    else
-	    print(io, display_decision(dt_node))
-    end
+    print(io, display_decision(dt_node; kwargs...))
 end
 
 function AbstractTrees.printnode(io::IO, leaf::InfoLeaf)
