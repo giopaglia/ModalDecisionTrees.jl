@@ -276,12 +276,14 @@ function display_decision(
         threshold_display_method::Function = x -> x,
         universal = false,
         attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing,
+        use_feature_abbreviations::Bool = false,
     )
     prop_decision_str = "$(
         display_feature_test_operator_pair(
             decision.feature,
             decision.test_operator;
             attribute_names_map = attribute_names_map,
+            use_feature_abbreviations = use_feature_abbreviations,
         )
     ) $(threshold_display_method(decision.threshold))"
     if !is_propositional_decision(decision)
