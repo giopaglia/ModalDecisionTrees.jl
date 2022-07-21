@@ -27,33 +27,46 @@ Leveraging the express power of Modal Logic, these models can extract *temporal/
 Simply type the following commands in Julia's REPL:
 
 ```julia
-Pkg.add(url="https://github.com/giopaglia/ModalDecisionTrees.jl")
+using Pkg; Pkg.add(url="https://github.com/giopaglia/ModalDecisionTrees.jl")
 ```
 -->
 
-<!--
-## Usage
+## Installation & Usage
 
 ```julia
-# Install package
-using Pkg;
-Pkg.add(url="https://github.com/giopaglia/ModalDecisionTrees.jl")
+# Install packages
+using Pkg; Pkg.add(url="https://github.com/giopaglia/ModalDecisionTrees.jl")
 Pkg.add("MLJ")
 
+# Import packages
 using MLJ
 using ModalDecisionTrees
+using Random
 
-TODO load dummy dataset
-TODO perform learning
+# A Modal Decision Tree with ≥ 4 samples at leaf
+tree = ModalDecisionTree(min_samples_leaf=4)
 
-...
+# Load an example dataset (a temporal one)
+X, y = @load_japanesevowels
+N = length(y)
 
-TODO show tree and explain how to interpret the results
-print_tree(tree)
+mach = machine(tree, X, y)
+
+# Split dataset
+p = randperm(N)
+train_idxs, test_idxs = p[1:round(Int, N*.8)], p[round(Int, N*.8)+1:end]
+
+# Fit
+fit!(mach, rows=train_idxs)
+
+# Perform predictions, compute accuracy
+yhat = predict(mach, X[test_idxs,:])
+accuracy = sum(yhat .== y[test_idxs])/length(yhat)
+
+# Access raw model
+fitted_params(mach).model
+report(mach).print_model(3)
 ```
-
-TODO explain parameters
--->
 
 
 <!-- TODO (`Y isa Vector{<:{Integer,String}}`) -->
@@ -88,9 +101,7 @@ A DecisionTree model can be visualized using the print_tree-function of its nati
 Most of the works in *symbolic learning* are based either on Propositional Logics (PLs) or First-order Logics (FOLs); PLs are the simplest kind of logic and can only handle *tabular data*, while FOLs can express complex entity-relation concepts. Machine Learning with FOLs enables handling data with complex topologies, such as time series, images, or videos; however, these logics are computationally challenging. Instead, Modal Logics (e.g. [Interval Logic](https://en.wikipedia.org/wiki/Interval_temporal_logic)) represent a perfect trade-off in terms of computational tractability and expressive power, and naturally lend themselves for expressing some forms of *temporal/spatial reasoning*.
 
 Recently, symbolic learning techniques such as Decision Trees, Random Forests and Rule-Based models have been extended to the use of Modal Logics of time and space. *Modal Decision Trees* and *Modal Random Forests* have been applied to classification tasks, showing statistical performances that are often comparable to those of functional methods (e.g., neural networks), while providing, at the same time, highly-interpretable classification models. Examples of these tasks are COVID-19 diagnosis from cough/breath audio [[1]](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4102488), [[2]](https://drops.dagstuhl.de/opus/volltexte/2021/14783/pdf/LIPIcs-TIME-2021-7.pdf), land cover classification from aereal images [[3]](https://arxiv.org/abs/2109.08325), EEG-related tasks [[4]](https://link.springer.com/chapter/10.1007/978-3-031-06242-1_53), and gas turbine trip prediction.
-This technology also offers a natural extension for *
-
-* learning [[5]](http://ceur-ws.org/Vol-2987/paper7.pdf).
+This technology also offers a natural extension for *multimodal* learning [[5]](http://ceur-ws.org/Vol-2987/paper7.pdf).
 
 ## Credits
 
