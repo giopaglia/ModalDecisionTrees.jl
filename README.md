@@ -77,7 +77,6 @@ Pkg.add("GraphRecipes"); Pkg.add("Plots")
 using GraphRecipes
 using Plots
 
-
 #wrapped_model = ModalDecisionTrees.wrap(model.root, (attribute_names_map = report(mach).frame_grouping,))
 # for _method in [:spectral, :sfdp, :circular, :shell, :stress, :spring, :tree, :buchheim, :arcdiagram, :chorddiagram]
 wrapped_model = ModalDecisionTrees.wrap(model.root, (; threshold_display_method = x->round(x, digits=2)), use_feature_abbreviations = true)
