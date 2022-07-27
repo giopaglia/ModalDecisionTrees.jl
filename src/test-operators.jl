@@ -278,7 +278,7 @@ struct _CanonicalFeatureGeq <: CanonicalFeature end; const CanonicalFeatureGeq  
 struct _CanonicalFeatureLeq <: CanonicalFeature end; const CanonicalFeatureLeq  = _CanonicalFeatureLeq();
 
 export CanonicalFeatureGeq_95, CanonicalFeatureGeq_90, CanonicalFeatureGeq_85, CanonicalFeatureGeq_80, CanonicalFeatureGeq_75, CanonicalFeatureGeq_70, CanonicalFeatureGeq_60,
-                CanonicalFeatureLeq_95, CanonicalFeatureLeq_90, CanonicalFeatureLeq_85, CanonicalFeatureLeq_80, CanonicalFeatureLeq_75, CanonicalFeatureLeq_70, CanonicalFeatureLeq_60
+    CanonicalFeatureLeq_95, CanonicalFeatureLeq_90, CanonicalFeatureLeq_85, CanonicalFeatureLeq_80, CanonicalFeatureLeq_75, CanonicalFeatureLeq_70, CanonicalFeatureLeq_60
 
 # ⪴_α and ⪳_α, that is, "*at least α⋅100 percent* of the values on this world are at least, or at most ..."
 
