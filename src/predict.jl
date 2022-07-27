@@ -44,8 +44,8 @@ end
 ############################################################################################
 # ModalDataset -> MultiFrameModalDataset
 
-predict(tree::DTree, X::ModalDataset, args...; kwargs...) =
-    predict(tree, MultiFrameModalDataset(X), args...; kwargs...)
+predict(model::Any, X::ModalDataset, args...; kwargs...) =
+    predict(model, MultiFrameModalDataset(X), args...; kwargs...)
 
 ################################################################################
 # Apply models: predict labels for a new dataset of instances
