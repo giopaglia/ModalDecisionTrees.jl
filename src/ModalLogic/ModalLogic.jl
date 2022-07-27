@@ -407,6 +407,7 @@ const Interval2DRCC5Ontology = Ontology{Interval2D}(RCC5Relations)
 
 getIntervalOntologyOfDim(N::Integer) = getIntervalOntologyOfDim(Val(N))
 getIntervalOntologyOfDim(::DimensionalDataset{T,D}) where {T,D} = getIntervalOntologyOfDim(Val(D-2))
+getIntervalOntologyOfDim(::Val{0}) = OneWorldOntology
 getIntervalOntologyOfDim(::Val{1}) = IntervalOntology
 getIntervalOntologyOfDim(::Val{2}) = Interval2DOntology
 
