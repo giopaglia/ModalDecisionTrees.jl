@@ -78,7 +78,7 @@ alpha(f::SingleAttributeSoftMin) = f.alpha
 Base.show(io::IO, f::SingleAttributeSoftMin) = print(io, "min" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
 
 function interpret_feature(f::SingleAttributeSoftMin, inst::AbstractDimensionalInstance{T}) where {T}
-    ((vals = util.vectorize(get_instance_attribute(inst,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals)); rev=true)))::T
+    util.softminimum(get_instance_attribute(inst,f.i_attribute), f.alpha)::T
 end
 struct SingleAttributeSoftMax{T<:AbstractFloat} <: DimensionalFeature
     i_attribute::Integer
@@ -93,7 +93,7 @@ struct SingleAttributeSoftMax{T<:AbstractFloat} <: DimensionalFeature
     end
 end
 function interpret_feature(f::SingleAttributeSoftMax, inst::AbstractDimensionalInstance{T}) where {T}
-    ((vals = util.vectorize(get_instance_attribute(inst,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals)))))::T
+    util.softmaximum(get_instance_attribute(inst,f.i_attribute), f.alpha)::T
 end
 alpha(f::SingleAttributeSoftMax) = f.alpha
 Base.show(io::IO, f::SingleAttributeSoftMax) = print(io, "max" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "(A$(f.i_attribute))")
