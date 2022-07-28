@@ -29,26 +29,24 @@ macro load_japanesevowels()
         # countmap(take_col)
         X[:,:take] = take_col
 
-        X = combine(groupby(X, [:speaker, :take, :utterance]), Not([:speaker, :take, :utterance, :frame]) .=> Ref; renamecols=false)
+        X = combine(DataFrames.groupby(X, [:speaker, :take, :utterance]), Not([:speaker, :take, :utterance, :frame]) .=> Ref; renamecols=false)
 
         Y = X[:,:speaker]
-        select!(X, Not([:speaker, :take, :utterance]))
+        # select!(X, Not([:speaker, :take, :utterance]))
 
         # Force uniform size across instances by capping series
-        minimum_n_points = minimum(collect(Iterators.flatten(eachrow(length.(X)))))
-        X = (x->x[1:minimum_n_points]).(X)
+        minimum_n_points = minimum(collect(Iterators.flatten(eachrow(length.(X[:,Not([:speaker, :take, :utterance])])))))
+        new_X = (x->x[1:minimum_n_points]).(X[:,Not([:speaker, :take, :utterance])])
 
-        # instances = []
-        # Y = eltype(X[:,:speaker])[]
-        # for group in groupby(X, [:speaker, :take, :utterance])
-        #     push!(Y, group[1,:speaker])
-        #     instance = hcat([collect(row) for row in eachrow(select!(sort!(group[:,setdiff(names(X), ["speaker", "take", "utterance"])], :frame), Not(:frame)))]...)'
-        #     push!(instances, instance)
+        # dataframe2cube(new_X)
+        # instances, n_attrs, minimum_n_points = begin
+        #     instances = [hcat([collect(attr) for attr in instance]...) for instance in eachrow(new_X)]
+        #     n_attrs = unique((x->x[2]).(size.(instances)))
+        #     @assert length(n_attrs) == 1
+        #     n_attrs = n_attrs[1]
+        #     minimum_n_points = minimum(first.(size.(instances)))
+        #     instances, n_attrs, minimum_n_points
         # end
-        # n_attrs = unique((x->x[2]).(size.(instances)))
-        # @assert length(n_attrs) == 1
-        # n_attrs = n_attrs[1]
-        # minimum_n_points = minimum(first.(size.(instances)))
 
         # X_cube = Array{Float64, 3}(undef, minimum_n_points, n_attrs, length(instances))
 
@@ -56,9 +54,6 @@ macro load_japanesevowels()
         #     X_cube[:,:,i_instance] = instance[1:minimum_n_points,:]
         # end
 
-        # X_cube, Y
-        # minimum(values(countmap(X[:,:speaker])))
-
-        (X, Y)
+        new_X, Y
     end
 end
