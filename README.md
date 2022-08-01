@@ -7,9 +7,10 @@ Leveraging the express power of Modal Logic, these models can extract *temporal/
 
 #### Features & differences with [DecisionTree.jl](https://github.com/JuliaAI/DecisionTree.jl):
 - Ability to handle attributes that are `AbstractVector{<:Real}` or `AbstractMatrix{<:Real}`;
-- Supports *multimodal* learning (i.e., learning from *combinations* of scalars, time series and images)
-- Fully optimized implementation (fancy data structures, multithreading, memoization, minification, Pareto-based pruning optimizations, etc).
+- Supports *multimodal* learning (i.e., learning from *combinations* of scalars, time series and images);
+- Fully optimized implementation (fancy data structures, multithreading, memoization, minification, Pareto-based pruning optimizations, etc);
 - A unique algorithm that extends CART and C4.5;
+- Slightly different set of hyperparameters (e.g., no `min_samples_split`, `post_prune` & `merge_purity_threshold`);
 <!-- - TODO -->
 <!-- - Four pruning conditions: max_depth, min_samples_leaf, min_purity_increase, max_purity_at_leaf -->
 <!-- TODO - Top-down pre-pruning & post-pruning -->
