@@ -10,7 +10,7 @@ Leveraging the express power of Modal Logic, these models can extract *temporal/
 - Supports *multimodal* learning (i.e., learning from *combinations* of scalars, time series and images);
 - Fully optimized implementation (fancy data structures, multithreading, memoization, minification, Pareto-based pruning optimizations, etc);
 - A unique algorithm that extends CART and C4.5;
-- Slightly different set of hyperparameters (e.g., no `min_samples_split`, `post_prune` & `merge_purity_threshold`);
+- Slightly different set of hyperparameters (e.g., no `min_samples_split`, `post_prune` & `merge_purity_threshold`).
 <!-- - TODO -->
 <!-- - Four pruning conditions: max_depth, min_samples_leaf, min_purity_increase, max_purity_at_leaf -->
 <!-- TODO - Top-down pre-pruning & post-pruning -->
@@ -20,7 +20,7 @@ Leveraging the express power of Modal Logic, these models can extract *temporal/
 - Only supports numeric features;
 - Only supports classification tasks;
 <!-- - Only available via [MLJ.jl](https://github.com/alan-turing-institute/MLJ.jl); -->
-- Does not support `missing`, `nothing`, nor `NaN` values.
+- Does not support `missing` or `NaN` values.
 
 <!-- 
 ## Installation
