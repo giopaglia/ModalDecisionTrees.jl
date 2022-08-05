@@ -5,11 +5,11 @@ struct Interval2D <: AbstractWorld
 	y :: Interval
     # 
 	Interval2D(x::Interval,y::Interval) = new(x,y)
-	Interval2D(w::Interval2D) = Interval(w.x,w.y)
-	Interval2D(x::Tuple{Integer,Integer}, y::Tuple{Integer,Integer}) = Interval(Interval(x),Interval(y))
+	Interval2D(w::Interval2D) = Interval2D(w.x,w.y)
+	Interval2D(x::Tuple{Integer,Integer}, y::Tuple{Integer,Integer}) = Interval2D(Interval(x),Interval(y))
     # 
-	Interval2D(w::_emptyWorld) = Interval(Interval(w),Interval(w))
-	Interval2D(w::_centeredWorld, X::Integer, Y::Integer) = Interval(Interval(w,X),Interval(w,Y))
+	Interval2D(w::_emptyWorld) = Interval2D(Interval(w),Interval(w))
+	Interval2D(w::_centeredWorld, X::Integer, Y::Integer) = Interval2D(Interval(w,X),Interval(w,Y))
 end
 
 Base.show(io::IO, w::Interval2D) = begin
