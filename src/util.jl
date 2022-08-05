@@ -385,6 +385,16 @@ end
 vectorize(x::Real) = [x]
 vectorize(x::AbstractVector) = x
 
+@inline function softminimum(vals, alpha)
+    _vals = util.vectorize(vals);
+    partialsort!(_vals,ceil(Int, alpha*length(_vals)); rev=true)
+end
+
+@inline function softmaximum(vals, alpha)
+    _vals = util.vectorize(vals);
+    partialsort!(_vals,ceil(Int, alpha*length(_vals)))
+end
+
 function all_broadcast_sc(test_operator, values, threshold)
     # Note: this is faster than all(broadcast(test_operator, values, threshold))
     for x in values

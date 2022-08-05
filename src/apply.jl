@@ -47,6 +47,9 @@ apply_proba(model::Any, X::ModalDataset, args...; kwargs...) =
 
 apply_model_proba = apply_proba
 
+predict(model::Any, X::ModalDataset, args...; kwargs...) =
+    predict(model, MultiFrameModalDataset(X), args...; kwargs...)
+
 ################################################################################
 # Apply models: predict labels for a new dataset of instances
 ################################################################################
