@@ -102,7 +102,7 @@ alpha(f::SingleAttributeSoftMin) = f.alpha
 display_feature(f::SingleAttributeSoftMin;         attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing) = "min" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "($(attribute_name(f; attribute_names_map = attribute_names_map)))"
 
 function interpret_feature(f::SingleAttributeSoftMin, inst::AbstractDimensionalInstance{T}) where {T}
-    ((vals = util.vectorize(get_instance_attribute(inst,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals)); rev=true)))::T
+    util.softminimum(get_instance_attribute(inst,f.i_attribute), f.alpha)::T
 end
 struct SingleAttributeSoftMax{T<:AbstractFloat} <: SingleAttributeFeature
     i_attribute::Integer
@@ -117,7 +117,7 @@ struct SingleAttributeSoftMax{T<:AbstractFloat} <: SingleAttributeFeature
     end
 end
 function interpret_feature(f::SingleAttributeSoftMax, inst::AbstractDimensionalInstance{T}) where {T}
-    ((vals = util.vectorize(get_instance_attribute(inst,f.i_attribute)); partialsort!(vals,ceil(Int, f.alpha*length(vals)))))::T
+    util.softmaximum(get_instance_attribute(inst,f.i_attribute), f.alpha)::T
 end
 alpha(f::SingleAttributeSoftMax) = f.alpha
 display_feature(f::SingleAttributeSoftMax;         attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing) = "max" * util.subscriptnumber(rstrip(rstrip(string(f.alpha*100), '0'), '.')) * "($(attribute_name(f; attribute_names_map = attribute_names_map)))"

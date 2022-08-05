@@ -3,7 +3,10 @@ Fixes:
 ☐ Entropy: regression, fix variance-based loss, and test it; Finally understand how entropy works, and fix it!!! (check test-entropy.txt)
 
 Cool ideas:
+☐ Create package from scratch with PkgTemplates!
 ☐	MLJ and ScikitLearn interfaces; restore optimizations for edge cases (remember optimize_tree_parameters!?)
+☐	Smart MLJ interface with hyper parameter search and/or data cache method (for training many symbolic models on the same data)
+☐	MLJ: Create non-deterministic DecisionTree model
 ☐	INTERFACE: build_forest Add (Val{Bool}?) oob_error parameter (note that oob computation is expensive)
 ☐	MODEL: Bagging and boosting. ADABoost code n_iterations        = defaulted to 10; model, coeffs = build_adaboost_stumps(train_labels, train_features, n_iterations); predictions = apply_adaboost_stumps(model, coeffs, test_features [XGBoost](https://towardsdatascience.com/ensemble-learning-bagging-and-boosting-explained-in-3-minutes-2e6d2240ae21)
 ✔	use ProgressMeter: \@showprogress @done (22-07-14 18:23)
@@ -43,6 +46,8 @@ Half-ideas:
 
 ☐	enumAccessibles(set) is not needed?!
 
+☐ Perhaps use MLJ.ConfusionMatrix?
+
 
 Renamings:
 ☐ Decision->Condition (careful: conflicts with Base.Condition)
@@ -73,6 +78,7 @@ Renamings:
 ☐	MODALLOGIC.JL: OPTIMIZE: enumAccessibles and others for sets. But wait, maybe they are not that useful nor needed?
 ☐	MODALLOGIC.JL computePropositionalThreshold, computeModalThreshold, test_decision seem to do similar things. Maybe uniform their style and naming
 ☐	MODALLOGIC.JL Add a generalized solution for unions of relations: struct _UnionOfRelations{T<:NTuple{N,<:Relation} where N} <: Relation end;. _UnionOfRelations{typeof((RelationId,))} "A relation can be defined as a union of other relations. In this case, thresholds can be computed by maximization/minimization of the thresholds referred to the relations involved." (so you can rewrite RCC5 from RCC8 relations and RCC8 from IA, maybe it's cleaner in some cases?)
+☐	RCC3 (DC + PP + everything-else)
 ☐	MODALLOGIC.JL: DIMENSIONAL/MODAL difference, An ontology interpreted over an N-dimensional domain gives rise to a Kripke model/frame, but one can *generalize for a Kripke model/frame in graph form*.
 	abstract type AbstractKripkeFrame end
 	Generic Kripke frame: worlds & relations
