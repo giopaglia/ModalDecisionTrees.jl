@@ -22,6 +22,8 @@ Leveraging the express power of Modal Logic, these models can extract *temporal/
 <!-- - Only available via [MLJ.jl](https://github.com/alan-turing-institute/MLJ.jl); -->
 - Does not support `missing` or `NaN` values.
 
+#### Checkout the 8-minute [lightning talk](https://www.youtube.com/watch?v=8F1vZsl8Zvg) at JuliaCon 2022!
+
 <!-- 
 ## Installation
 
