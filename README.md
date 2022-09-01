@@ -1,5 +1,7 @@
 # Modal Decision Trees & Forests
 
+[![DOI](https://zenodo.org/badge/323867446.svg)](https://zenodo.org/badge/latestdoi/323867446)
+
 ### Interpretable models for native time-series & image classification!
 
 This package provides algorithms for learning *decision trees* and *decision forests* with enhanced abilities.
