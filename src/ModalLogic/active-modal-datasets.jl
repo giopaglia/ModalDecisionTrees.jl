@@ -863,7 +863,7 @@ mutable struct ExplicitModalDatasetSMemo{T<:Number, WorldType<:AbstractWorld} <:
 
     # Relational and global support
     fwd_rs              :: AbstractRelationalSupport{<:Union{T,Nothing}, WorldType}
-    fwd_gs              :: Union{AbstractGlobalSupport{T},Nothing}
+    fwd_gs              :: Union{AbstractGlobalSupport{T},Nothing} # TODO maybe nothing is not needed here
 
     # Features and Aggregators
     featsnaggrs         :: AbstractVector{Tuple{<:ModalFeature,<:Aggregator}}
