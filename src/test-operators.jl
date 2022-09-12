@@ -110,7 +110,7 @@ const GEQ = greater_eq_than_operator
 const LEQ = lesser_eq_than_operator
 
 
-OrderingTestOperator = Union{
+const OrderingTestOperator = Union{
     typeof(GT),
     typeof(LT),
     typeof(GEQ),
@@ -307,7 +307,7 @@ const canonical_leq_75  = CanonicalFeatureLeqSoft((Rational(75,100)));
 const canonical_leq_70  = CanonicalFeatureLeqSoft((Rational(70,100)));
 const canonical_leq_60  = CanonicalFeatureLeqSoft((Rational(60,100)));
 
-MixedFeature = Union{ModalFeature,CanonicalFeature,Function,Tuple{TestOperatorFun,Function},Tuple{TestOperatorFun,ModalFeature}}
+const MixedFeature = Union{ModalFeature,CanonicalFeature,Function,Tuple{TestOperatorFun,Function},Tuple{TestOperatorFun,ModalFeature}}
 
 ############################################################################################
 

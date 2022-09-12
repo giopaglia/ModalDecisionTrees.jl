@@ -372,12 +372,12 @@ function minify(d::AbstractVector{<:MID}) where {ID,MID<:Dict{<:ID,T where T<:Un
     end
 end
 
-# Minifiable = Union{
+# const Minifiable = Union{
 #     AbstractArray{T} where {T<:Union{Number,Missing,Nothing}},
 #     AbstractArray{<:AbstractArray{T}} where {T<:Union{Number,Missing,Nothing}},
 #     AbstractArray{<:MID} where {T<:Union{Number,Missing,Nothing},ID,MID<:Dict{ID,T}},
 # }
-# Backmap = Union{
+# const Backmap = Union{
 #     Vector{<:Integer}
 # }
 
