@@ -17,8 +17,7 @@ end
 ############################################################################################
 ############################################################################################
 
-# ModalDataset -> MultiFrameModalDataset
-
+# Patch single-frame _-> multi-frame
 apply(model::Any, X::ModalDataset, args...; kwargs...) =
     apply(model, MultiFrameModalDataset(X), args...; kwargs...)
 
@@ -276,6 +275,62 @@ function apply(
         push!(predictions, pred)
     end
     predictions, DTree(root, tree.world_types, tree.init_conditions)
+end
+
+# use an array of trees to test features
+function apply(
+        trees::AbstractVector{<:DTree{<:L}},
+        X::MultiFrameModalDataset,
+        Y::AbstractVector{<:L};
+        suppress_parity_warning = false,
+        tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
+    ) where {L<:Label, Z<:Real}
+    @logmsg DTDetail "apply..."
+    trees = deepcopy(trees)
+    n_trees = length(trees)
+    _n_samples = n_samples(X)
+
+    if !isnothing(tree_weights)
+        @assert length(trees) === length(tree_weights) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
+    end
+
+    # apply each tree to the whole dataset
+    _predictions = Matrix{L}(undef, n_trees, _n_samples)
+    Threads.@threads for i_tree in 1:n_trees
+        _predictions[i_tree,:], trees[i_tree] = apply(trees[i_tree], X, Y)
+    end
+
+    # for each instance, aggregate the predictions
+    predictions = Vector{L}(undef, _n_samples)
+    Threads.@threads for i in 1:_n_samples
+        predictions[i] = majority_vote(_predictions[:,i], tree_weights; suppress_parity_warning = suppress_parity_warning)
+    end
+
+    predictions, trees
+end
+
+# use a proper forest to test features
+function apply(
+        forest::DForest,
+        X::MultiFrameModalDataset,
+        Y::AbstractVector{<:L};
+        suppress_parity_warning = false,
+        weight_trees_by::Union{Bool,Symbol,AbstractVector} = false,
+        kwargs...
+    ) where {L<:Label}
+    predictions, trees = begin
+        if weight_trees_by == false
+            apply(forest.trees, X, Y; suppress_parity_warning = suppress_parity_warning, kwargs...)
+        elseif isa(weight_trees_by, AbstractVector)
+            apply(forest.trees, X, Y; suppress_parity_warning = suppress_parity_warning, tree_weights = weight_trees_by, kwargs...)
+        # elseif weight_trees_by == :accuracy
+        #   # TODO: choose HOW to weight a tree... overall_accuracy is just an example (maybe can be parameterized)
+        #   apply(forest.trees, X; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
+        else
+            @error "Unexpected value for weight_trees_by: $(weight_trees_by)"
+        end
+    end
+    predictions, DForest{L}(trees, (;)) # TODO note that the original metrics are lost here
 end
 
 # function apply(tree::DTNode{T, L}, X::DimensionalDataset{T,D}, Y::AbstractVector{<:L}; reset_leaves = true, update_labels = false) where {L, T, D}
