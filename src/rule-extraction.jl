@@ -41,7 +41,7 @@
 #         Label        CLabel or RLabel
 #         dataset      starting dataset
 #         ruleset      forest rules
-#         bound_den = nothing->1.0e-6  parameter limiting the value of decay_i when x is 0
+#         s = nothing->1.0e-6  parameter limiting the value of decay_i when x is 0
 #                                      or very small  (s in the paper)
 #         decay_threshold = nothing->0.05   threshold below which a variable-value pair is
 #                                           dropped from the rule condition
@@ -51,7 +51,7 @@
 #         for every variable-value pair in rule in inverse order
 #             E_minus_i = error_rule(Label,dataset,rule\{i-th pair})   #rule's error without
 #                                                                      # i-th pair
-#             decay_i = (E_minus_i - E_zero) / max(E_zero,bound_den)
+#             decay_i = (E_minus_i - E_zero) / max(E_zero,s)
 #             if decay_i < decay_threshold
 #                 i-th pair of the rule is eliminated from the antecedent
 #                 recalculation of E_zero
@@ -129,7 +129,7 @@ function extract_rules(
     # Prune rules according to the confidence metric (with respect to a dataset)
     #  (and similar metrics: support, confidence, and length)
     if prune_rules
-        ruleset = prune_ruleset(ruleset, X, Y; bound_den = bound_den, decay_threshold = decay_threshold)
+        ruleset = prune_ruleset(ruleset, X, Y; s = s, decay_threshold = decay_threshold)
     end
     ########################################################################################
 
