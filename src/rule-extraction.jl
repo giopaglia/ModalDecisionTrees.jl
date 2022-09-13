@@ -66,7 +66,7 @@
 # # STEL - Simplified Tree Ensemble Learner
 # simplified_tree_ensemble_learner(   CLabel       classification problem
 #                                     best_rules   better rules from feature selection
-#                                     min_frequency = 0.01  threshold below which a is
+#                                     min_support = 0.01  threshold below which a is
 #                                                       dropped from S to avoid overfitting
 #                                 ) =
 #     R = {}  #ordered rule list
@@ -156,6 +156,6 @@ function extract_rules(
 
     ########################################################################################
     # Construct a rule-based model from the set of best rules
-    simplified_tree_ensemble_learner(best_rules, min_frequency)
+    simplified_tree_ensemble_learner(best_rules, min_support)
     ########################################################################################
 end
