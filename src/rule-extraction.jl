@@ -101,11 +101,11 @@ function extract_rules(
         X::MultiFrameModalDataset,
         Y::AbstractVector;
         prune_rules = false,
-        bound_den = nothing,
+        s = nothing,
         decay_threshold = nothing,
         #
         method = :TODO_give_a_proper_name_like_CBC_or_something_like_that,
-        min_frequency = 0.01,
+        min_support = 0.01,
 
     )
     # Update supporting labels
