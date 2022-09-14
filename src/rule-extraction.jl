@@ -225,6 +225,30 @@ function metrics_rule(rule::Rule{L,C},X::MultiFrameModalDataset,Y::AbstractVecto
     return metrics
 end
 
+#prune_ruleset -> prune of rule in ruleset
+function prune_ruleset(
+        ruleset::RuleBasedModel{L,C},
+        X::MultiFrameModalDataset,
+        Y::AbstractVector;
+        s = 1.0e-6,
+        decay_threshold = 0.05
+    )
+
+    isnothing(s) && (s = 1.0e-6)
+    isnothing(decay_threshold) && (decay_threshold = 0.05)
+
+    for rule in ruleset
+        E_zero::Float64 = metrics_rule(rule,X,Y)[2]  #error in second position
+        for every variable-value pair in reverse(antecedent(rule))
+            E_minus_i = metrics_rule(rule,X,Y)[2]
+            decay_i = (E_minus_i-E_zero)/max(E_zero,s)
+            if decay_i < decay_threshold
+                #TODO: delete i-th pair in rule
+                E_zero = metrics_rule(rule,X,Y)[2]
+            end
+        end
+    end
+end
 # Patch single-frame _-> multi-frame
 extract_rules(model::Any, X::ModalDataset, args...; kwargs...) =
     extract_rules(model, MultiFrameModalDataset(X), args...; kwargs...)
