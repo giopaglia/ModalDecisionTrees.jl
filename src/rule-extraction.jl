@@ -1,10 +1,120 @@
 ############################################################################################
-# rules(
-#     ruleset  it will contain all the rules of the tree
-#     node     current node, start with root of the tree
-#     C       conjunction of the variable-value pairs from the root node to the current node
-# )
-############################################################################################
+using SoleLogics
+
+const Consequent = Any
+
+struct Rule{L<:Logic,C<:Consequent}
+    antecedent :: Formula{L}
+    consequent :: C
+end
+
+antecedent(rule::Rule) = rule.antecedent
+consequent(rule::Rule) = rule.consequent
+
+const ClassificationRule = Rule{L,CLabel} where {L}
+const RegressionRule     = Rule{L,RLabel} where {L}
+
+struct RuleBasedModel{L<:Logic,C<:Consequent}
+    rules :: Vector{<:Rule{L,C}}
+end
+
+const RuleBasedClassifier = RuleBasedModel{L,CLabel} where {L}
+const RuleBasedRegressor  = RuleBasedModel{L,RLabel} where {L}
+
+"""
+TODO document
+"""
+function list_rules(tree::DTree)
+    list_rules(tree.root) # TODO what about world_types and init_conditions?
+end
+
+function list_rules(node::DTInternal)
+    pos_lambda = get_lambda(node.decision)
+    neg_lambda = get_inverse_lambda(node.decision)
+    return [
+        [advance_rule(rule, pos_lambda) for rule in list_rules(node.left)]...,
+        [advance_rule(rule, neg_lambda) for rule in list_rules(node.right)]...,
+    ]
+end
+
+function list_rules(leaf::DTLeaf{L})
+    Rule{TODO, L}(TODO: SoleLogics.True, prediction(leaf))
+end
+
+function list_rules(leaf::NSDTLeaf{L})
+    Rule{TODO, PredictingFunction{L}}(TODO: SoleLogics.True, predicting_function(leaf))
+end
+
+
+function get_lambda(decision::Decision)
+    Formula( # TODO formula of any logic, or formula of a specific logic?
+        if is_propositional_decision(decision)
+            return PropositionalDimensionalLetter( # TODO
+                decision.feature,
+                decision.test_operator,
+                decision.threshold
+            )
+        else
+            ModalExistentialOperator{decision.relation}(
+                PropositionalDimensionalLetter( # TODO
+                    decision.feature,
+                    decision.test_operator,
+                    decision.threshold
+                )
+            )
+        end
+    )
+end
+function get_inverse_lambda(decision::Decision)
+    Formula( # TODO formula of any logic, or formula of a specific logic?
+        if is_propositional_decision(decision)
+            return Operator{negation...}(
+                PropositionalDimensionalLetter( # TODO
+                    decision.feature,
+                    decision.test_operator,
+                    decision.threshold
+                )
+            )
+        else
+            ModalUniversalOperator{decision.relation}(
+                Operator{negation...}(
+                    PropositionalDimensionalLetter( # TODO
+                        decision.feature,
+                        decision.test_operator,
+                        decision.threshold
+                    )
+                )
+            )
+        end
+    )
+end
+
+function advance_rule(rule::Rule{L,C}, lambda::Formula{L}) where {L,C}
+    Rule{L,C}(advance_rule(antecedent(rule), lambda), consequent(rule))
+end
+
+function advance_rule(rule_antecedent::Formula{L}, lambda::Formula{L}) where {L}
+    conjuncts = begin
+        Formula{L}[TODO derive conjuncts from rule_antecedent...]
+        una sorta di `conjuncts = split(formula, :(\wedge))`
+    end
+    Formula{L}(tipo join(advance_conjunct.(conjuncts, lambda), :(\wedge)))
+end
+
+function advance_conjunct(conjunct::Formula{L}, lambda::Formula{L}) where {L}
+    # TODO
+    is_positive(conjunct)
+    is_left(lambda)
+end
+
+function is_positive(conjunct::Formula{L}) where {L}
+    # TODO
+end
+
+function is_left(lambda::Formula{L}) where {L}
+    # TODO
+end
+
 ############################################################################################
 
 # frequency_rule(  dataset     starting dataset
@@ -118,7 +228,7 @@ function extract_rules(
     ruleset = begin
         ruleset = []
         for every tree in the forest
-            tree_rules = rules(tree) # TODO implement
+            tree_rules = list_rules(tree) # TODO implement
             append!(ruleset, tree_rules)
         end
         unique(ruleset) # TODO maybe also sort (which requires a definition of isless(formula1, formula2))

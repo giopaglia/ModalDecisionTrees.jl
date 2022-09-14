@@ -48,12 +48,12 @@ end
 ############################################################################################
 
 # Classification and regression labels
-CLabel  = Union{String,Integer}
-RLabel  = AbstractFloat
-Label   = Union{CLabel,RLabel}
+const CLabel  = Union{String,Integer}
+const RLabel  = AbstractFloat
+const Label   = Union{CLabel,RLabel}
 # Raw labels
-_CLabel = Integer # (classification labels are internally represented as integers)
-_Label  = Union{_CLabel,RLabel}
+const _CLabel = Integer # (classification labels are internally represented as integers)
+const _Label  = Union{_CLabel,RLabel}
 
 include("util.jl")
 include("metrics.jl")
@@ -368,7 +368,6 @@ end
 
 supp_labels(leaf::NSDTLeaf; train_or_valid = true) = (train_or_valid ? leaf.supp_train_labels      : leaf.supp_valid_labels)
 predictions(leaf::NSDTLeaf; train_or_valid = true) = (train_or_valid ? leaf.supp_train_predictions : leaf.supp_valid_predictions)
-
 
 ############################################################################################
 
