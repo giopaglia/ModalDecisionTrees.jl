@@ -200,6 +200,30 @@ end
 #     end
 # end
 ############################################################################################
+using StatsBase
+using Statistics
+
+evaluate_rule(rule::Rule,X:MultiFrameModalDataset) = nothing #TODO
+
+#metrics_rule -> confidence, error for classification problem and regression problem
+#TODO: support, length of the rule
+function metrics_rule(rule::Rule{L,C},X::MultiFrameModalDataset,Y::AbstractVector) where {L,C}
+    metrics = Float64[]
+
+    predictions = evaluate_rule(rule,X)
+    n_instances = size(X,1)
+
+    confidence = sum(predictions .== Y) / n_instances
+    append!(metrics,confidence)
+    if C <: CLabel
+        error = sum(abs.(predictions .- Y)) / n_instances
+    elseif C <: RLabel
+        error = msd(predictions,Y)
+    end
+    append!(metrics,error)
+
+    return metrics
+end
 
 # Patch single-frame _-> multi-frame
 extract_rules(model::Any, X::ModalDataset, args...; kwargs...) =
