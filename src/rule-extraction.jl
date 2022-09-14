@@ -151,7 +151,7 @@ end
 #         Label        CLabel or RLabel
 #         dataset      starting dataset
 #         ruleset      forest rules
-#         bound_den = nothing->1.0e-6  parameter limiting the value of decay_i when x is 0
+#         s = nothing->1.0e-6  parameter limiting the value of decay_i when x is 0
 #                                      or very small  (s in the paper)
 #         decay_threshold = nothing->0.05   threshold below which a variable-value pair is
 #                                           dropped from the rule condition
@@ -161,7 +161,7 @@ end
 #         for every variable-value pair in rule in inverse order
 #             E_minus_i = error_rule(Label,dataset,rule\{i-th pair})   #rule's error without
 #                                                                      # i-th pair
-#             decay_i = (E_minus_i - E_zero) / max(E_zero,bound_den)
+#             decay_i = (E_minus_i - E_zero) / max(E_zero,s)
 #             if decay_i < decay_threshold
 #                 i-th pair of the rule is eliminated from the antecedent
 #                 recalculation of E_zero
@@ -176,7 +176,7 @@ end
 # # STEL - Simplified Tree Ensemble Learner
 # simplified_tree_ensemble_learner(   CLabel       classification problem
 #                                     best_rules   better rules from feature selection
-#                                     min_frequency = 0.01  threshold below which a is
+#                                     min_support = 0.01  threshold below which a is
 #                                                       dropped from S to avoid overfitting
 #                                 ) =
 #     R = {}  #ordered rule list
@@ -211,11 +211,11 @@ function extract_rules(
         X::MultiFrameModalDataset,
         Y::AbstractVector;
         prune_rules = false,
-        bound_den = nothing,
+        s = nothing,
         decay_threshold = nothing,
         #
         method = :TODO_give_a_proper_name_like_CBC_or_something_like_that,
-        min_frequency = 0.01,
+        min_support = 0.01,
 
     )
     # Update supporting labels
@@ -239,7 +239,7 @@ function extract_rules(
     # Prune rules according to the confidence metric (with respect to a dataset)
     #  (and similar metrics: support, confidence, and length)
     if prune_rules
-        ruleset = prune_ruleset(ruleset, X, Y; bound_den = bound_den, decay_threshold = decay_threshold)
+        ruleset = prune_ruleset(ruleset, X, Y; s = s, decay_threshold = decay_threshold)
     end
     ########################################################################################
 
@@ -266,6 +266,6 @@ function extract_rules(
 
     ########################################################################################
     # Construct a rule-based model from the set of best rules
-    simplified_tree_ensemble_learner(best_rules, min_frequency)
+    simplified_tree_ensemble_learner(best_rules, min_support)
     ########################################################################################
 end
