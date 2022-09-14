@@ -156,6 +156,6 @@ function extract_rules(
 
     ########################################################################################
     # Construct a rule-based model from the set of best rules
-    simplified_tree_ensemble_learner(best_rules, min_support)
+    simplified_tree_ensemble_learner(best_rules, X, Y, min_support)
     ########################################################################################
 end
