@@ -777,7 +777,7 @@ MMI.metadata_model(
         OrderedFactor,  AbstractVector{OrderedFactor}, AbstractMatrix{OrderedFactor},
     ),
     target_scitype = Union{AbstractVector{<:Finite},AbstractVector{<:Textual}},
-    human_name = "Modal Decision Tree (MDT)",
+    # human_name = "Modal Decision Tree (MDT)",
     descr   = "A Modal Decision Tree (MDT) offers a high level of interpretability for classification tasks with images and time-series.",
     supports_weights = true,
     load_path = "$PKG.ModalDecisionTree",
