@@ -249,6 +249,35 @@ function prune_ruleset(
         end
     end
 end
+
+default(C <: CLabel, Y::AbstractVector) = mean(Y) #TODO: Rounding
+
+#TODO: default per regression problem
+
+#TODO: return nothing
+delete_rules_by_frequency(S::RuleBasedModel) = nothing
+
+#stel -> learner to get a rule list for future predictions
+function simplified_tree_ensemble_learner(
+        best_rules::RuleBasedModel{L,C},
+        X::MultiFrameModalDataset,
+        Y::AbstractVector;
+        min_support=0.01
+    ) where {L,C}
+
+    R = RuleBasedModel()  #vector of ordered list
+    rule_default = default(C,Y)
+    S = RuleBasedModel()  #vector of rules left
+    append!(S.rules,best_rules)
+    append!(S.rules,rule_default)
+
+    idx_delete_rule = delete_rules_by_frequency(S)
+    D = copy(X)
+
+    #to finish
+
+end
+
 # Patch single-frame _-> multi-frame
 extract_rules(model::Any, X::ModalDataset, args...; kwargs...) =
     extract_rules(model, MultiFrameModalDataset(X), args...; kwargs...)
