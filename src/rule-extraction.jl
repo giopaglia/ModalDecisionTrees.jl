@@ -186,7 +186,7 @@ end
 #     D = copy(dataSet)    #insieme delle istanze di allenamento
 #     while true
 #         si calcola le metriche error, frequency e length per ogni regola sulla base delle istanze (rimaste) in D
-#         per andare a selezionare la regola con l'errore minimo o, se ci sono legami, quella con la
+#         per andare a selezionare la regola con l'errore minimo o, se c'è parità, quella con la
 #         frequenza più alta e la condizione più corta, per aggiungerla poi alla fine di R
 #         Le istanze che soddisfano la miglior regola sono rimosse da D
 #         t* = average_label(Y[ids delle istanze rimaste in D])
@@ -206,6 +206,7 @@ using SoleLogics
 
 evaluate_rule(rule::Rule,X:MultiFrameModalDataset) = nothing #TODO
 
+#length_rule -> number of pairs in rules
 function length_rule(node::Node,operators_set::Operators)
     left = leftchild(node)
     right = rightchild(node)
@@ -232,25 +233,26 @@ function length_rule(node::Node,operators_set::Operators)
 
 end
 
-#metrics_rule -> confidence, error for classification problem and regression problem
-#TODO: support
+#metrics_rule -> return frequency, error and length of the rule
+#TODO: fix evaluate_rule
 function metrics_rule(rule::Rule{L,C},X::MultiFrameModalDataset,Y::AbstractVector) where {L,C}
     metrics = Float64[]
 
     predictions = evaluate_rule(rule,X)
     n_instances = size(X,1)
+    n_instances_satisfy = sum(evaluate_rule(rule,X))
 
-    #confidence
-    confidence = sum(predictions .== Y) / n_instances
-    append!(metrics,confidence)
+    #frequency of the rule
+    frequency_rule =  n_instances_satisfy / n_instances
+    append!(metrics,frequency_rule)
 
     #error
     if C <: CLabel
-        error = sum(abs.(predictions .- Y)) / n_instances
+        error_rule = sum(abs.(predictions .- Y)) / n_instances_satisfy
     elseif C <: RLabel
-        error = msd(predictions,Y)
+        error_rule = msd(predictions,Y)
     end
-    append!(metrics,error)
+    append!(metrics,error_rule)
 
     #length of the rule
     length = length_rule(rule.tree,operators(L))  #to check
@@ -273,7 +275,7 @@ function prune_ruleset(
 
     for rule in ruleset
         E_zero::Float64 = metrics_rule(rule,X,Y)[2]  #error in second position
-        for every variable-value pair in reverse(antecedent(rule))
+        for every variable-value pair in reverse(antecedent(rule)) #to check
             E_minus_i = metrics_rule(rule,X,Y)[2]
             decay_i = (E_minus_i-E_zero)/max(E_zero,s)
             if decay_i < decay_threshold
@@ -286,7 +288,7 @@ end
 
 default(C <: CLabel, Y::AbstractVector) = mean(Y) #TODO: Rounding
 
-#TODO: default per regression problem
+#TODO: default for regression problem
 
 #TODO: return nothing
 delete_rules_by_frequency(S::RuleBasedModel) = nothing
@@ -367,7 +369,7 @@ function extract_rules(
             end
             # TODO implement CBC
             best_rules_idxs = CBC(M)
-            M = M[:, best_rules_idxs] (or M[best_rules_idxs, :])
+            M = M[:, best_rules_idxs] #(or M[best_rules_idxs, :])
             ruleset[best_rules_idxs]
         else
             error("Unexpected method specified: $(method)")
