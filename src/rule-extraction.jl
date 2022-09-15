@@ -202,25 +202,59 @@ end
 ############################################################################################
 using StatsBase
 using Statistics
+using SoleLogics
 
 evaluate_rule(rule::Rule,X:MultiFrameModalDataset) = nothing #TODO
 
+function length_rule(node::Node,operators_set::Operators)
+    left = leftchild(node)
+    right = rightchild(node)
+    left_size = 0
+    right_size = 0
+
+    if isnothing(left) && isnothing(right)
+        #leaf
+        if token(node) ∉ operators_set
+            return 1
+        else
+            return 0
+        end
+    end
+
+    !isnothing(left) && (left_size = length_rule(left,operators_set))
+    !isnothing(right) && (right_size = length_rule(right,operators_set))
+
+    if token(node) ∉ operators_set
+        return 1 + left_size + right_size
+    else
+        return left_size + right_size
+    end
+
+end
+
 #metrics_rule -> confidence, error for classification problem and regression problem
-#TODO: support, length of the rule
+#TODO: support
 function metrics_rule(rule::Rule{L,C},X::MultiFrameModalDataset,Y::AbstractVector) where {L,C}
     metrics = Float64[]
 
     predictions = evaluate_rule(rule,X)
     n_instances = size(X,1)
 
+    #confidence
     confidence = sum(predictions .== Y) / n_instances
     append!(metrics,confidence)
+
+    #error
     if C <: CLabel
         error = sum(abs.(predictions .- Y)) / n_instances
     elseif C <: RLabel
         error = msd(predictions,Y)
     end
     append!(metrics,error)
+
+    #length of the rule
+    length = length_rule(rule.tree,operators(L))  #to check
+    append!(metrics,length)
 
     return metrics
 end
