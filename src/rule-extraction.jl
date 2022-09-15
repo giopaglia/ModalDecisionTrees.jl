@@ -176,7 +176,7 @@ end
 # # STEL - Simplified Tree Ensemble Learner
 # simplified_tree_ensemble_learner(   CLabel       classification problem
 #                                     best_rules   better rules from feature selection
-#                                     min_support = 0.01  threshold below which a is
+#                                     min_frequency = 0.01  threshold below which a is
 #                                                       dropped from S to avoid overfitting
 #                                 ) =
 #     R = {}  #ordered rule list
@@ -287,7 +287,7 @@ function prune_ruleset(
     end
 end
 
-default(C <: CLabel, Y::AbstractVector) = mean(Y) #TODO: Rounding
+default(C <: CLabel, Y::AbstractVector) = round(Int64,mean(Y))
 
 #TODO: default for regression problem
 
@@ -299,7 +299,7 @@ function simplified_tree_ensemble_learner(
         best_rules::RuleBasedModel{L,C},
         X::MultiFrameModalDataset,
         Y::AbstractVector;
-        min_support=0.01
+        min_frequency=0.01
     ) where {L,C}
 
     R = RuleBasedModel()  #vector of ordered list
@@ -329,7 +329,7 @@ function extract_rules(
         decay_threshold = nothing,
         #
         method = :TODO_give_a_proper_name_like_CBC_or_something_like_that,
-        min_support = 0.01,
+        min_frequency = 0.01,
 
     )
     # Update supporting labels
@@ -380,6 +380,6 @@ function extract_rules(
 
     ########################################################################################
     # Construct a rule-based model from the set of best rules
-    simplified_tree_ensemble_learner(best_rules, X, Y, min_support)
+    simplified_tree_ensemble_learner(best_rules, X, Y, min_frequency)
     ########################################################################################
 end
