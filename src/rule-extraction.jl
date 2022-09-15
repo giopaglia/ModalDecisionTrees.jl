@@ -203,6 +203,7 @@ end
 using StatsBase
 using Statistics
 using SoleLogics
+using SoleFeatures
 
 evaluate_rule(rule::Rule,X:MultiFrameModalDataset) = nothing #TODO
 
@@ -368,7 +369,7 @@ function extract_rules(
                 TODO use (antset, X, Y) accordingly and compute M
             end
             # TODO implement CBC
-            best_rules_idxs = CBC(M)
+            best_rules_idxs = correlation(M,cor)
             M = M[:, best_rules_idxs] #(or M[best_rules_idxs, :])
             ruleset[best_rules_idxs]
         else
