@@ -291,9 +291,6 @@ default(C <: CLabel, Y::AbstractVector) = round(Int64,mean(Y))
 
 #TODO: default for regression problem
 
-#TODO: return nothing
-delete_rules_by_frequency(S::RuleBasedModel) = nothing
-
 #stel -> learner to get a rule list for future predictions
 function simplified_tree_ensemble_learner(
         best_rules::RuleBasedModel{L,C},
@@ -308,10 +305,58 @@ function simplified_tree_ensemble_learner(
     append!(S.rules,best_rules)
     append!(S.rules,rule_default)
 
-    idx_delete_rule = delete_rules_by_frequency(S)
+    #delete rules that have a frequency less than 0.01
+    S = begin
+        freq_rules = metrics_rule.(S,X,Y)[:,1][1] #TODO: think better implementation
+        idx_delete_rules = findall(freq_rules .>= min_frequency)
+
+        S[idx_delete_rules]
+    end
+
     D = copy(X)
 
-    #to finish
+    while true
+        metrics = transpose(hcat(metrics_rule.(S,D,Y)...))
+
+        idx_best_rule = begin
+            #first: find the rule with minimum error
+            idx = findall(metrics[:,2] .== min(metrics[:,2]...))
+            (length(idx) == 0) && (return idx)
+
+            #if not one, find the rule with maximum frequency
+            idx = findall(metrics[idx,1] .== max(metrics[idx,1]...))
+            (length(idx) == 0) && (return idx)
+
+            #if not one, find the rule with minimum length
+            idx = findall(metrics[idx,3] .== min(metrics[idx,3]...))
+            (length(idx) == 0) && (return idx)
+
+            #TODO: final case, more than one rule with minimum length
+        end
+
+        #add at the end the best rule
+        append!(R,S[idx_best_rule])
+
+        #delete the instances satisfying the best rule
+        idx_remain_rule = begin
+            #there remain instances that do not meet the rule's condition
+            predictions = evaluate_rule(S[idx_best_rule],D)
+            idx = findall(predictions .== 0)
+        end
+
+        D = D[idx_remain_rule,:]
+        rule_default = default(C,Y[idx_remain_rule])
+
+        if S[idx_best_rule,:] != rule_default
+            return R
+        end
+
+        if metrics[idx_best_rule,:][3] == 0
+            append!(R,class(C,Y))
+            return R
+        end
+
+    end
 
 end
 
