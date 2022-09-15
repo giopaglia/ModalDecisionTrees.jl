@@ -276,11 +276,11 @@ function prune_ruleset(
 
     for rule in ruleset
         E_zero::Float64 = metrics_rule(rule,X,Y)[2]  #error in second position
-        for every variable-value pair in reverse(antecedent(rule)) #to check
+        for every variable-value pair in reverse(antecedent(rule)) #to check, TODO
             E_minus_i = metrics_rule(rule,X,Y)[2]
             decay_i = (E_minus_i-E_zero)/max(E_zero,s)
             if decay_i < decay_threshold
-                #TODO: delete i-th pair in rule
+                #TODO: delete i-th pair in rule    #TODO
                 E_zero = metrics_rule(rule,X,Y)[2]
             end
         end
@@ -347,6 +347,7 @@ function simplified_tree_ensemble_learner(
         D = D[idx_remain_rule,:]
         rule_default = default(C,Y[idx_remain_rule])
 
+        #to fix
         if S[idx_best_rule,:] != rule_default
             return R
         end
