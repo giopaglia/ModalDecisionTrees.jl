@@ -1,8 +1,7 @@
 using ModalDecisionTrees
 using DelimitedFiles
 using Random
-using ScikitLearnBase
-using StatsBase
+# using StatsBase
 using Test
 
 println("Julia version: ", VERSION)
@@ -17,6 +16,10 @@ end
 
 test_suites = [
     ("Classification", [
+        "classification/japanesevowels.jl",
+        "classification/iris.jl",
+        # "classification/demo-juliacon2022.jl",
+        # 
         # "classification/random.jl",
         # "classification/low_precision.jl",
         # "classification/heterogeneous.jl",
