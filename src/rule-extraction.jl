@@ -287,9 +287,10 @@ function prune_ruleset(
     end
 end
 
-default(C <: CLabel, Y::AbstractVector) = round(Int64,mean(Y))
+#StatsBase.mode(x::Vector) -> return the most frequent number in a vector
+default(C <: CLabel, Y::AbstractVector) = mode(Y)
 
-#TODO: default for regression problem
+default(C <: RLabel, Y::AbstractVector) = round(Int64,mean(Y))
 
 #stel -> learner to get a rule list for future predictions
 function simplified_tree_ensemble_learner(
@@ -348,11 +349,11 @@ function simplified_tree_ensemble_learner(
         rule_default = default(C,Y[idx_remain_rule])
 
         #to fix
-        if S[idx_best_rule,:] != rule_default
+        if S[idx_best_rule,:] == rule_default
             return R
         end
 
-        if metrics[idx_best_rule,:][3] == 0
+        if metrics[idx_best_rule,3] == 0
             append!(R,class(C,Y))
             return R
         end
