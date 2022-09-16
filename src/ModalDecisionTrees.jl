@@ -63,7 +63,7 @@ include("metrics.jl")
 ############################################################################################
 
 export slice_dataset, concat_datasets,
-       n_samples, n_attributes, max_channel_size
+       nframes, n_samples, n_attributes, max_channel_size
 
 include("dimensional-dataset.jl")
 
