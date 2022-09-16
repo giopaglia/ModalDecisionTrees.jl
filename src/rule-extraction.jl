@@ -201,6 +201,7 @@ end
 # end
 ############################################################################################
 using StatsBase
+using Metrics
 using Statistics
 using SoleLogics
 using SoleFeatures
@@ -231,7 +232,6 @@ function length_rule(node::Node,operators_set::Operators)
     else
         return left_size + right_size
     end
-
 end
 
 #metrics_rule -> return frequency, error and length of the rule
@@ -251,7 +251,7 @@ function metrics_rule(rule::Rule{L,C},X::MultiFrameModalDataset,Y::AbstractVecto
     if C <: CLabel
         error_rule = sum(abs.(predictions .- Y)) / n_instances_satisfy
     elseif C <: RLabel
-        error_rule = msd(predictions,Y)
+        error_rule = mse(predictions,Y)
     end
     append!(metrics,error_rule)
 
@@ -308,7 +308,7 @@ function simplified_tree_ensemble_learner(
 
     #delete rules that have a frequency less than 0.01
     S = begin
-        freq_rules = metrics_rule.(S,X,Y)[:,1][1] #TODO: think better implementation
+        freq_rules = transpose(hcat(metrics_rule.(S,X,Y)...))[:,1] #TODO: think better implementation
         idx_delete_rules = findall(freq_rules .>= min_frequency)
 
         S[idx_delete_rules]
@@ -411,11 +411,11 @@ function extract_rules(
             # Extract antecedents
             # TODO: implement antecedent(rule)
             antset = antecedent.(ruleset)
-            # Build the binary satisfuction matrix (m × j+1, with m instances and j antecedents
+            # Build the binary satisfuction matrix (m × j+1, with m instances and j antecedents)
             M = begin
-                TODO use (antset, X, Y) accordingly and compute M
+                #TODO use (antset, X, Y) accordingly and compute M
             end
-            # TODO implement CBC
+            #correlation() -> function in SoleFeatures
             best_rules_idxs = correlation(M,cor)
             M = M[:, best_rules_idxs] #(or M[best_rules_idxs, :])
             ruleset[best_rules_idxs]
