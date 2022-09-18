@@ -183,12 +183,13 @@ end
 #     t* = average_label(Y)     #default rule
 #     S = {t*,best_rules}
 #     delete rules from S with frequency < min_frequency
-#     D = copy(dataSet)    #insieme delle istanze di allenamento
+#     D = copy(dataSet)    #copy of original dataset
 #     while true
-#         si calcola le metriche error, frequency e length per ogni regola sulla base delle istanze (rimaste) in D
-#         per andare a selezionare la regola con l'errore minimo o, se c'è parità, quella con la
-#         frequenza più alta e la condizione più corta, per aggiungerla poi alla fine di R
-#         Le istanze che soddisfano la miglior regola sono rimosse da D
+#         use error, frequency and length to select the rule with the least error based on
+#         the instances in D or, if multiple instances have the same value, we select the
+#         rule with the highest frequency and the shortest condition; this rule will then
+#         be added to the end of R
+#         Instances that satisfy the best rule are removed from D
 #         t* = average_label(Y[ids delle istanze rimaste in D])
 #         if good_rule == t*
 #             return R
