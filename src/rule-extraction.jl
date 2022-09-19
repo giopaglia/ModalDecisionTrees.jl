@@ -254,7 +254,7 @@ function metrics_rule(
     if C <: CLabel
         #number of incorrectly classified instances divided by number of instances
         #satisfying the rule condition
-        error_rule = sum(abs.(predictions .- Y)) / n_instances_satisfy
+        error_rule = sum(predictions .!= Y) / n_instances_satisfy
     elseif C <: RLabel
         #Mean Squared Error (mse)
         error_rule = mse(predictions,Y)
@@ -422,6 +422,11 @@ function extract_rules(
             # Build the binary satisfuction matrix (m × j+1, with m instances and j antecedents)
             M = begin
                 #TODO use (antset, X, Y) accordingly and compute M
+                M = Matrix{Bool}(undef,size(X,1),length(antset))
+                for rule in antset
+                    hcat(M,evaluate_rule(rule,X))
+                end
+                hcat(M,Y)
             end
             #correlation() -> function in SoleFeatures
             best_rules_idxs = correlation(M,cor)
