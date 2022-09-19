@@ -293,7 +293,7 @@ end
 #StatsBase.mode(x::Vector) -> return the most frequent number in a vector
 default(C <: CLabel, Y::AbstractVector) = mode(Y)
 
-default(C <: RLabel, Y::AbstractVector) = round(Int64,mean(Y))
+default(C <: RLabel, Y::AbstractVector) = mean(Y)
 
 #stel -> learner to get a rule list for future predictions
 function simplified_tree_ensemble_learner(
