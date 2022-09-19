@@ -307,6 +307,8 @@ function simplified_tree_ensemble_learner(
         min_frequency=0.01
     ) where {L,C}
 
+    isnothing(min_frequency) && (min_frequency = 0.01)
+
     R = RuleBasedModel()  #vector of ordered list
     rule_default = default(C,Y)
     S = RuleBasedModel()  #vector of rules left
@@ -440,6 +442,6 @@ function extract_rules(
 
     ########################################################################################
     # Construct a rule-based model from the set of best rules
-    simplified_tree_ensemble_learner(best_rules, X, Y, min_frequency)
+    simplified_tree_ensemble_learner(best_rules, X, Y; min_frequency = min_frequency)
     ########################################################################################
 end
