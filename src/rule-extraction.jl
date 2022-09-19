@@ -209,14 +209,12 @@ using SoleFeatures
 
 evaluate_rule(rule::Rule,X:MultiFrameModalDataset) = nothing #TODO
 
-#length_rule -> number of pairs in rules
+#length_rule -> number of pairs in a rule
 function length_rule(node::Node,operators_set::Operators)
-    left = leftchild(node)
-    right = rightchild(node)
     left_size = 0
     right_size = 0
 
-    if isnothing(left) && isnothing(right)
+    if !isdefined(node,:leftchild) && !isdefined(node,:rightchild)
         #leaf
         if token(node) ∉ operators_set
             return 1
@@ -225,8 +223,8 @@ function length_rule(node::Node,operators_set::Operators)
         end
     end
 
-    !isnothing(left) && (left_size = length_rule(left,operators_set))
-    !isnothing(right) && (right_size = length_rule(right,operators_set))
+    isdefined(node,:leftchild) && (left_size = length_rule(leftchild(node),operators_set))
+    isdefined(node,:rightchild) && (right_size = length_rule(rightchild(node),operators_set))
 
     if token(node) ∉ operators_set
         return 1 + left_size + right_size
