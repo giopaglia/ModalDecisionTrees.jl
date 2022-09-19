@@ -235,12 +235,16 @@ end
 
 #metrics_rule -> return frequency, error and length of the rule
 #TODO: fix evaluate_rule
-function metrics_rule(rule::Rule{L,C},X::MultiFrameModalDataset,Y::AbstractVector) where {L,C}
+function metrics_rule(
+        rule::Rule{L,C},
+        X::MultiFrameModalDataset,
+        Y::AbstractVector
+    ) where {L,C}
     metrics = Float64[]
 
     predictions = evaluate_rule(rule,X)
-    n_instances = size(X,1)
-    n_instances_satisfy = sum(evaluate_rule(rule,X))
+    n_instances = Base.size(X,1)
+    n_instances_satisfy = sum(predictions)
 
     #frequency of the rule
     frequency_rule =  n_instances_satisfy / n_instances
@@ -255,7 +259,7 @@ function metrics_rule(rule::Rule{L,C},X::MultiFrameModalDataset,Y::AbstractVecto
     append!(metrics,error_rule)
 
     #length of the rule
-    length = length_rule(rule.tree,operators(L))  #to check
+    length = length_rule(rule.tree,SoleLogics.operators(L))
     append!(metrics,length)
 
     return metrics
@@ -376,7 +380,6 @@ function extract_rules(
         #
         method = :TODO_give_a_proper_name_like_CBC_or_something_like_that,
         min_frequency = 0.01,
-
     )
     # Update supporting labels
     _, forest = apply(forest, X, Y; kwargs...)
