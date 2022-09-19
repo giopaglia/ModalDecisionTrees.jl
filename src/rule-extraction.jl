@@ -243,24 +243,27 @@ function metrics_rule(
     metrics = Float64[]
 
     predictions = evaluate_rule(rule,X)
-    n_instances = Base.size(X,1)
+    n_instances = size(X,1)
     n_instances_satisfy = sum(predictions)
 
     #frequency of the rule
     frequency_rule =  n_instances_satisfy / n_instances
     append!(metrics,frequency_rule)
 
-    #error
+    #error of the rule
     if C <: CLabel
+        #number of incorrectly classified instances divided by number of instances
+        #satisfying the rule condition
         error_rule = sum(abs.(predictions .- Y)) / n_instances_satisfy
     elseif C <: RLabel
+        #Mean Squared Error (mse)
         error_rule = mse(predictions,Y)
     end
     append!(metrics,error_rule)
 
     #length of the rule
-    length = length_rule(rule.tree,SoleLogics.operators(L))
-    append!(metrics,length)
+    n_pairs = length_rule(rule.tree,SoleLogics.operators(L))
+    append!(metrics,n_pairs)
 
     return metrics
 end
@@ -277,7 +280,7 @@ function prune_ruleset(
     isnothing(s) && (s = 1.0e-6)
     isnothing(decay_threshold) && (decay_threshold = 0.05)
 
-    for rule in ruleset
+    for rule in ruleset.rules
         E_zero::Float64 = metrics_rule(rule,X,Y)[2]  #error in second position
         for every variable-value pair in reverse(antecedent(rule)) #to check, TODO
             E_minus_i = metrics_rule(rule,X,Y)[2]
@@ -291,8 +294,9 @@ function prune_ruleset(
 end
 
 #StatsBase.mode(x::Vector) -> return the most frequent number in a vector
+#default rule for classification problem
 default(C <: CLabel, Y::AbstractVector) = mode(Y)
-
+#default rule for regression problem
 default(C <: RLabel, Y::AbstractVector) = mean(Y)
 
 #stel -> learner to get a rule list for future predictions
@@ -309,18 +313,19 @@ function simplified_tree_ensemble_learner(
     append!(S.rules,best_rules)
     append!(S.rules,rule_default)
 
-    #delete rules that have a frequency less than 0.01
+    #delete rules that have a frequency less than 0.01 (min_frequency)
     S = begin
-        freq_rules = transpose(hcat(metrics_rule.(S,X,Y)...))[:,1] #TODO: think better implementation
-        idx_delete_rules = findall(freq_rules .>= min_frequency)
-
-        S[idx_delete_rules]
+        #reduce(hcat,metrics_rule.(S,X,Y))' -> transpose of the matrix of rules metrics
+        freq_rules = reduce(hcat,metrics_rule.(S,X,Y))'[:,1]
+        idx_not_delete_rules = findall(freq_rules .>= min_frequency)
+        S[idx_not_delete_rules]
     end
 
+    #D -> copy of the original dataset
     D = copy(X)
 
     while true
-        metrics = transpose(hcat(metrics_rule.(S,D,Y)...))
+        metrics = reduce(hcat,metrics_rule.(S,D,Y))'
 
         idx_best_rule = begin
             #first: find the rule with minimum error
@@ -343,21 +348,22 @@ function simplified_tree_ensemble_learner(
 
         #delete the instances satisfying the best rule
         idx_remain_rule = begin
-            #there remain instances that do not meet the rule's condition
+            #there remain instances that do not meet the best rule's condition
+            #(S[idx_best_rule])
             predictions = evaluate_rule(S[idx_best_rule],D)
-            idx = findall(predictions .== 0)
+            #remain in D the rule that not satisfying the best rule's condition
+            findall(predictions .== 0)
         end
 
         D = D[idx_remain_rule,:]
         rule_default = default(C,Y[idx_remain_rule])
 
-        #to fix
         if S[idx_best_rule,:] == rule_default
             return R
         end
 
         if metrics[idx_best_rule,3] == 0
-            append!(R,class(C,Y))
+            append!(R,default(C,Y))
             return R
         end
 
