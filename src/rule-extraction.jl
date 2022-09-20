@@ -364,7 +364,7 @@ function simplified_tree_ensemble_learner(
             return R
         end
 
-        if metrics[idx_best_rule,3] == 0
+        if size(D,1) == 0  #there are no instances in D
             append!(R,default(C,Y))
             return R
         end
