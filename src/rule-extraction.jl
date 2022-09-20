@@ -273,8 +273,8 @@ function prune_ruleset(
         ruleset::RuleBasedModel{L,C},
         X::MultiFrameModalDataset,
         Y::AbstractVector;
-        s = 1.0e-6,
-        decay_threshold = 0.05
+        s = nothing,
+        decay_threshold = nothing
     )
 
     isnothing(s) && (s = 1.0e-6)
@@ -304,7 +304,7 @@ function simplified_tree_ensemble_learner(
         best_rules::RuleBasedModel{L,C},
         X::MultiFrameModalDataset,
         Y::AbstractVector;
-        min_frequency=0.01
+        min_frequency = nothing
     ) where {L,C}
 
     isnothing(min_frequency) && (min_frequency = 0.01)
