@@ -268,6 +268,28 @@ function metrics_rule(
     return metrics
 end
 
+#extract decisions from rule
+function extract_decisions(node::Node,operators_set::Operators,decs::Vector)
+
+    if !isdefined(node,:leftchild) && !isdefined(node,:rightchild)
+        #leaf
+        if token(node) ∉ operators_set
+            return append!(decs,token(node))
+        else
+            return nothing
+        end
+    end
+
+    isdefined(node,:leftchild) && extract_decisions(leftchild(node),operators_set,decs)
+    isdefined(node,:rightchild) && extract_decisions(rightchild(node),operators_set,decs)
+
+    if token(node) ∉ operators_set
+        return append!(decs,token(node))
+    else
+        return nothing
+    end
+end
+
 #prune_ruleset -> prune of rule in ruleset
 function prune_ruleset(
         ruleset::RuleBasedModel{L,C},
@@ -282,7 +304,11 @@ function prune_ruleset(
 
     for rule in ruleset.rules
         E_zero::Float64 = metrics_rule(rule,X,Y)[2]  #error in second position
-        for every variable-value pair in reverse(antecedent(rule)) #to check, TODO
+        #extract decisions from rule
+        decs = []
+        extract_decisions(antecedent(rule).tree,operations(L),decs)
+        for conds in reverse(decs)
+            #temp_formula = SoleModelChecking.gen_formula(ceil(length(decs)/2),)
             E_minus_i = metrics_rule(rule,X,Y)[2]
             decay_i = (E_minus_i-E_zero)/max(E_zero,s)
             if decay_i < decay_threshold
