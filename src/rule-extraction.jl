@@ -257,7 +257,7 @@ function metrics_rule(
         error_rule = sum(predictions .!= Y) / n_instances_satisfy
     elseif C <: RLabel
         #Mean Squared Error (mse)
-        error_rule = mse(predictions,Y)
+        error_rule = Metrics.mse(predictions,Y)
     end
     append!(metrics,error_rule)
 
