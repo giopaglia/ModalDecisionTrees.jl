@@ -207,7 +207,7 @@ using Statistics
 using SoleLogics
 using SoleFeatures
 
-evaluate_rule(rule::Rule,X:MultiFrameModalDataset) = nothing #TODO
+evaluate_rule(rule::Formula{L},X:MultiFrameModalDataset) = nothing #TODO
 
 #length_rule -> number of pairs in a rule
 function length_rule(node::Node,operators_set::Operators)
@@ -308,7 +308,7 @@ function prune_ruleset(
         decs = []
         extract_decisions(antecedent(rule).tree,operations(L),decs)
         for conds in reverse(decs)
-            #temp_formula = SoleModelChecking.gen_formula(ceil(length(decs)/2),)
+            #temp_formula = SoleModelChecking.gen_formula(ceil(length(decs)/2),) TODO
             E_minus_i = metrics_rule(rule,X,Y)[2]
             decay_i = (E_minus_i-E_zero)/max(E_zero,s)
             if decay_i < decay_threshold
@@ -338,7 +338,7 @@ function simplified_tree_ensemble_learner(
     R = RuleBasedModel()  #vector of ordered list
     rule_default = default(C,Y)
     S = RuleBasedModel()  #vector of rules left
-    append!(S.rules,best_rules)
+    append!(S.rules,best_rules.rules)
     append!(S.rules,rule_default)
 
     #delete rules that have a frequency less than 0.01 (min_frequency)
@@ -450,7 +450,7 @@ function extract_rules(
             # Build the binary satisfuction matrix (m × j+1, with m instances and j antecedents)
             M = begin
                 #TODO use (antset, X, Y) accordingly and compute M
-                M = Matrix{Bool}(undef,size(X,1),length(antset))
+                M = Matrix{Bool}(undef,size(X,1),length(antset)+1)
                 for rule in antset
                     hcat(M,evaluate_rule(rule,X))
                 end
