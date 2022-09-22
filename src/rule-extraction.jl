@@ -321,9 +321,9 @@ end
 
 #StatsBase.mode(x::Vector) -> return the most frequent number in a vector
 #default rule for classification problem
-default(C <: CLabel, Y::AbstractVector) = mode(Y)
+default(::CLabel, Y::AbstractVector) = mode(Y)
 #default rule for regression problem
-default(C <: RLabel, Y::AbstractVector) = mean(Y)
+default(::RLabel, Y::AbstractVector) = mean(Y)
 
 #stel -> learner to get a rule list for future predictions
 function simplified_tree_ensemble_learner(
