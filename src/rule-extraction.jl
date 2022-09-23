@@ -375,7 +375,7 @@ function simplified_tree_ensemble_learner(
         # Delete the instances satisfying the best rule
         idx_remaining = begin
             # There remain instances that do not meet the best rule's condition
-            # (S[idx_best_rule]).
+            # (S[idx_best]).
             predictions = evaluate_rule(S[idx_best], D)
             #remain in D the rule that not satisfying the best rule's condition
             findall(predictions .== 0)
@@ -384,7 +384,7 @@ function simplified_tree_ensemble_learner(
         D = D[idx_remaining,:]
         rule_default = default(C,Y[idx_remaining])
 
-        if S[idx_best_rule,:] == rule_default
+        if S[idx_best,:] == rule_default
             return R
         end
 
