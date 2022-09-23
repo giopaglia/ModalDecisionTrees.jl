@@ -1,5 +1,9 @@
 ############################################################################################
-using SoleLogics
+using Metrics: mse
+using SoleFeatures: correlation
+using SoleLogics: operators
+using Statistics: mean
+using StatsBase: mode
 
 const Consequent = Any
 
@@ -17,6 +21,8 @@ const RegressionRule     = Rule{L,RLabel} where {L}
 struct RuleBasedModel{L<:Logic,C<:Consequent}
     rules :: Vector{<:Rule{L,C}}
 end
+
+rules(model::RuleBasedModel) = model.rules
 
 const RuleBasedClassifier = RuleBasedModel{L,CLabel} where {L}
 const RuleBasedRegressor  = RuleBasedModel{L,RLabel} where {L}
@@ -201,197 +207,189 @@ end
 #     end
 # end
 ############################################################################################
-using StatsBase
-using Metrics
-using Statistics
-using SoleLogics
-using SoleFeatures
 
 evaluate_rule(rule::Formula{L},X:MultiFrameModalDataset) = nothing #TODO
 
-#length_rule -> number of pairs in a rule
-function length_rule(node::Node,operators_set::Operators)
+# length_rule -> number of pairs in a rule
+function length_rule(node::Node, operators::Operators)
     left_size = 0
     right_size = 0
 
-    if !isdefined(node,:leftchild) && !isdefined(node,:rightchild)
-        #leaf
-        if token(node) ∉ operators_set
-            return 1
-        else
+    if !isdefined(node, :leftchild) && !isdefined(node, :rightchild)
+        # Leaf
+        if token(node) in operators
             return 0
+        else
+            return 1
         end
     end
 
-    isdefined(node,:leftchild) && (left_size = length_rule(leftchild(node),operators_set))
-    isdefined(node,:rightchild) && (right_size = length_rule(rightchild(node),operators_set))
+    isdefined(node, :leftchild) && (left_size = length_rule(leftchild(node), operators))
+    isdefined(node, :rightchild) && (right_size = length_rule(rightchild(node), operators))
 
-    if token(node) ∉ operators_set
-        return 1 + left_size + right_size
-    else
+    if token(node) in operators
         return left_size + right_size
+    else
+        return 1 + left_size + right_size
     end
 end
 
-#metrics_rule -> return frequency, error and length of the rule
-#TODO: fix evaluate_rule
+# metrics_rule -> return frequency, error and length of the rule
+# TODO: fix evaluate_rule
 function metrics_rule(
         rule::Rule{L,C},
         X::MultiFrameModalDataset,
         Y::AbstractVector
-    ) where {L,C}
-    metrics = Float64[]
-
-    predictions = evaluate_rule(rule,X)
-    n_instances = size(X,1)
+) where {L,C}
+    metrics = AbstractFloat[]
+    predictions = evaluate_rule(rule, X)
+    n_instances = size(X, 1)
     n_instances_satisfy = sum(predictions)
 
-    #frequency of the rule
+    # Frequency of the rule
     frequency_rule =  n_instances_satisfy / n_instances
-    append!(metrics,frequency_rule)
+    append!(metrics, frequency_rule)
 
-    #error of the rule
+    # Error of the rule
     if C <: CLabel
-        #number of incorrectly classified instances divided by number of instances
-        #satisfying the rule condition
+        # Number of incorrectly classified instances divided by number of instances
+        # satisfying the rule condition.
         error_rule = sum(predictions .!= Y) / n_instances_satisfy
     elseif C <: RLabel
-        #Mean Squared Error (mse)
-        error_rule = Metrics.mse(predictions,Y)
+        # Mean Squared Error (mse)
+        error_rule = mse(predictions, Y)
     end
-    append!(metrics,error_rule)
+    append!(metrics, error_rule)
 
-    #length of the rule
-    n_pairs = length_rule(rule.tree,SoleLogics.operators(L))
-    append!(metrics,n_pairs)
+    # Length of the rule
+    n_pairs = length_rule(rule.tree, operators(L))
+    append!(metrics, n_pairs)
 
     return metrics
 end
 
-#extract decisions from rule
-function extract_decisions(node::Node,operators_set::Operators,decs::Vector)
-
-    if !isdefined(node,:leftchild) && !isdefined(node,:rightchild)
-        #leaf
-        if token(node) ∉ operators_set
-            return append!(decs,token(node))
-        else
+# Extract decisions from rule
+function extract_decisions(node::Node,operators_set::Operators,decs::AbstractVector)
+    if !isdefined(node, :leftchild) && !isdefined(node, :rightchild)
+        # Leaf
+        if token(node) in operators_set
             return nothing
+        else
+            return append!(decs, token(node))
         end
     end
 
-    isdefined(node,:leftchild) && extract_decisions(leftchild(node),operators_set,decs)
-    isdefined(node,:rightchild) && extract_decisions(rightchild(node),operators_set,decs)
+    isdefined(node, :leftchild) && extract_decisions(leftchild(node), operators_set, decs)
+    isdefined(node, :rightchild) && extract_decisions(rightchild(node), operators_set, decs)
 
-    if token(node) ∉ operators_set
-        return append!(decs,token(node))
-    else
+    if token(node) in operators_set
         return nothing
+    else
+        return append!(decs,token(node))
     end
 end
 
-#prune_ruleset -> prune of rule in ruleset
+# prune_ruleset -> prune of rule in ruleset
 function prune_ruleset(
-        ruleset::RuleBasedModel{L,C},
-        X::MultiFrameModalDataset,
-        Y::AbstractVector;
-        s = nothing,
-        decay_threshold = nothing
-    )
-
+    ruleset::RuleBasedModel{L,C},
+    X::MultiFrameModalDataset,
+    Y::AbstractVector;
+    s = nothing,
+    decay_threshold = nothing
+)
     isnothing(s) && (s = 1.0e-6)
     isnothing(decay_threshold) && (decay_threshold = 0.05)
 
     for rule in ruleset.rules
-        E_zero::Float64 = metrics_rule(rule,X,Y)[2]  #error in second position
-        #extract decisions from rule
+        E_zero::AbstractFloat = metrics_rule(rule, X, Y)[2]  #error in second position
+        # Extract decisions from rule
         decs = []
-        extract_decisions(antecedent(rule).tree,operations(L),decs)
+        extract_decisions(antecedent(rule).tree, operations(L), decs)
         for conds in reverse(decs)
-            #temp_formula = SoleModelChecking.gen_formula(ceil(length(decs)/2),) TODO
-            E_minus_i = metrics_rule(rule,X,Y)[2]
-            decay_i = (E_minus_i-E_zero)/max(E_zero,s)
+            # temp_formula = SoleModelChecking.gen_formula(ceil(length(decs)/2),) TODO
+            E_minus_i = metrics_rule(rule, X, Y)[2]
+            decay_i = (E_minus_i - E_zero) / max(E_zero, s)
             if decay_i < decay_threshold
-                #TODO: delete i-th pair in rule    #TODO
-                E_zero = metrics_rule(rule,X,Y)[2]
+                # TODO: delete i-th pair in rule    #TODO
+                E_zero = metrics_rule(rule, X, Y)[2]
             end
         end
     end
 end
 
-#StatsBase.mode(x::Vector) -> return the most frequent number in a vector
-#default rule for classification problem
+# StatsBase.mode(x::Vector) -> return the most frequent number in a vector
+# Default rule for classification problem
 default(::CLabel, Y::AbstractVector) = mode(Y)
-#default rule for regression problem
+
+# Default rule for regression problem
 default(::RLabel, Y::AbstractVector) = mean(Y)
 
-#stel -> learner to get a rule list for future predictions
+# STEL -> learner to get a rule list for future predictions
 function simplified_tree_ensemble_learner(
-        best_rules::RuleBasedModel{L,C},
-        X::MultiFrameModalDataset,
-        Y::AbstractVector;
-        min_frequency = nothing
-    ) where {L,C}
-
+    best_rules::RuleBasedModel{L,C},
+    X::MultiFrameModalDataset,
+    Y::AbstractVector;
+    min_frequency = nothing
+) where {L,C}
     isnothing(min_frequency) && (min_frequency = 0.01)
 
-    R = RuleBasedModel()  #vector of ordered list
-    rule_default = default(C,Y)
-    S = RuleBasedModel()  #vector of rules left
-    append!(S.rules,best_rules.rules)
-    append!(S.rules,rule_default)
+    R = RuleBasedModel()  # Vector of ordered list
+    S = RuleBasedModel()  # Vector of rules left
+    append!(S.rules, rules(best_rules))
+    append!(S.rules, default(C, Y))
 
-    #delete rules that have a frequency less than 0.01 (min_frequency)
+    # Delete rules that have a frequency less than 0.01 (min_frequency)
     S = begin
-        #reduce(hcat,metrics_rule.(S,X,Y))' -> transpose of the matrix of rules metrics
-        freq_rules = reduce(hcat,metrics_rule.(S,X,Y))'[:,1]
-        idx_not_delete_rules = findall(freq_rules .>= min_frequency)
-        S[idx_not_delete_rules]
+        # reduce(hcat,metrics_rule.(S,X,Y))' -> transpose of the matrix of rules metrics
+        freq_rules = reduce(hcat, metrics_rule.(S, X, Y))'[:,1]
+        idx_undeleted = findall(freq_rules .>= min_frequency) # Undeleted rule indexes
+        S[idx_undeleted]
     end
 
-    #D -> copy of the original dataset
+    # D -> copy of the original dataset
     D = copy(X)
 
     while true
-        metrics = reduce(hcat,metrics_rule.(S,D,Y))'
+        metrics = reduce(hcat, metrics_rule.(S, D, Y))'
 
-        idx_best_rule = begin
-            #first: find the rule with minimum error
+        # Best rule index
+        idx_best = begin
+            # First: find the rule with minimum error
             idx = findall(metrics[:,2] .== min(metrics[:,2]...))
             (length(idx) == 0) && (return idx)
 
-            #if not one, find the rule with maximum frequency
+            # If not one, find the rule with maximum frequency
             idx = findall(metrics[idx,1] .== max(metrics[idx,1]...))
             (length(idx) == 0) && (return idx)
 
-            #if not one, find the rule with minimum length
+            # If not one, find the rule with minimum length
             idx = findall(metrics[idx,3] .== min(metrics[idx,3]...))
             (length(idx) == 0) && (return idx)
 
-            #TODO: final case, more than one rule with minimum length
+            # TODO: final case, more than one rule with minimum length
         end
 
-        #add at the end the best rule
-        append!(R,S[idx_best_rule])
+        # Add at the end the best rule
+        append!(R,S[idx_best])
 
-        #delete the instances satisfying the best rule
-        idx_remain_rule = begin
-            #there remain instances that do not meet the best rule's condition
-            #(S[idx_best_rule])
-            predictions = evaluate_rule(S[idx_best_rule],D)
+        # Delete the instances satisfying the best rule
+        idx_remaining = begin
+            # There remain instances that do not meet the best rule's condition
+            # (S[idx_best_rule]).
+            predictions = evaluate_rule(S[idx_best], D)
             #remain in D the rule that not satisfying the best rule's condition
             findall(predictions .== 0)
         end
 
-        D = D[idx_remain_rule,:]
-        rule_default = default(C,Y[idx_remain_rule])
+        D = D[idx_remaining,:]
+        rule_default = default(C,Y[idx_remaining])
 
         if S[idx_best_rule,:] == rule_default
             return R
         end
 
-        if size(D,1) == 0  #there are no instances in D
-            append!(R,default(C,Y))
+        if size(D, 1) == 0  #there are no instances in D
+            append!(R, default(C, Y))
             return R
         end
 
@@ -449,17 +447,17 @@ function extract_rules(
             antset = antecedent.(ruleset)
             # Build the binary satisfuction matrix (m × j+1, with m instances and j antecedents)
             M = begin
-                #TODO use (antset, X, Y) accordingly and compute M
-                M = Matrix{Bool}(undef,size(X,1),length(antset)+1)
+                # TODO use (antset, X, Y) accordingly and compute M
+                M = Matrix{Integer}(undef, size(X, 1), length(antset) + 1)
                 for rule in antset
-                    hcat(M,evaluate_rule(rule,X))
+                    hcat(M, evaluate_rule(rule, X))
                 end
-                hcat(M,Y)
+                hcat(M, Y)
             end
-            #correlation() -> function in SoleFeatures
-            best_rules_idxs = correlation(M,cor)
-            M = M[:, best_rules_idxs] #(or M[best_rules_idxs, :])
-            ruleset[best_rules_idxs]
+            # correlation() -> function in SoleFeatures
+            best_idxs = correlation(M,cor)
+            M = M[:, best_idxs] # (or M[best_rules_idxs, :])
+            ruleset[best_idxs]
         else
             error("Unexpected method specified: $(method)")
         end
