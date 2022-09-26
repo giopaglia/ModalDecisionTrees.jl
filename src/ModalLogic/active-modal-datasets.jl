@@ -1469,8 +1469,12 @@ function modal_step(
         # List all accessible worlds
         acc_worlds =
             if returns_survivors isa Val{true}
+                l = Threads.Condition()
                 Threads.@threads for curr_w in worlds
-                    worlds_map[curr_w] = accessibles_fun(X, i_sample)(curr_w, decision.relation) |> collect
+                    a = accessibles_fun(X, i_sample)(curr_w, decision.relation) |> collect
+                    lock(l)
+                    worlds_map[curr_w] = a
+                    unlock(l)
                 end
                 unique(cat([ worlds_map[k] for k in keys(worlds_map) ]...; dims = 1))
             else
