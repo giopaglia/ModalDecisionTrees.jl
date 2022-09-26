@@ -210,86 +210,6 @@ end
 
 evaluate_rule(rule::Formula{L},X:MultiFrameModalDataset) = nothing #TODO
 
-"""
-    length_rule(node::Node, operators::Operators) -> Int
-
-    Computer the number of pairs in a rule (length of the rule)
-
-# Arguments
-- `node::Node`: node on which you refer
-- `operators::Operators`: set of operators of the considered logic
-
-# Returns
-- `Int`: number of pairs
-"""
-function length_rule(node::Node, operators::Operators)
-    left_size = 0
-    right_size = 0
-
-    if !isdefined(node, :leftchild) && !isdefined(node, :rightchild)
-        # Leaf
-        if token(node) in operators
-            return 0
-        else
-            return 1
-        end
-    end
-
-    isdefined(node, :leftchild) && (left_size = length_rule(leftchild(node), operators))
-    isdefined(node, :rightchild) && (right_size = length_rule(rightchild(node), operators))
-
-    if token(node) in operators
-        return left_size + right_size
-    else
-        return 1 + left_size + right_size
-    end
-end
-
-"""
-    metrics_rule(args...) -> AbstractVector
-
-    Compute frequency, error and length of the rule
-
-# Arguments
-- `rule::Rule{L,C}`: rule
-- `X::MultiFrameModalDataset`: starting dataset
-- `Y::AbstractVector`: target values of X
-
-# Returns
-- `AbstractVector`: metrics values vector of the rule
-"""
-function metrics_rule(
-        rule::Rule{L,C},
-        X::MultiFrameModalDataset,
-        Y::AbstractVector
-) where {L,C}
-    metrics = AbstractFloat[]
-    predictions = evaluate_rule(rule, X) # Fix evaluate_rule
-    n_instances = size(X, 1)
-    n_instances_satisfy = sum(predictions)
-
-    # Frequency of the rule
-    frequency_rule =  n_instances_satisfy / n_instances
-    append!(metrics, frequency_rule)
-
-    # Error of the rule
-    if C <: CLabel
-        # Number of incorrectly classified instances divided by number of instances
-        # satisfying the rule condition.
-        error_rule = sum(predictions .!= Y) / n_instances_satisfy
-    elseif C <: RLabel
-        # Mean Squared Error (mse)
-        error_rule = mse(predictions, Y)
-    end
-    append!(metrics, error_rule)
-
-    # Length of the rule
-    n_pairs = length_rule(rule.tree, operators(L))
-    append!(metrics, n_pairs)
-
-    return metrics
-end
-
 # Extract decisions from rule
 function extract_decisions(node::Node,operators_set::Operators,decs::AbstractVector)
     if !isdefined(node, :leftchild) && !isdefined(node, :rightchild)
@@ -308,53 +228,6 @@ function extract_decisions(node::Node,operators_set::Operators,decs::AbstractVec
         return nothing
     else
         return append!(decs,token(node))
-    end
-end
-
-"""
-    prune_ruleset(args...; kwargs...) -> RuleBasedModel
-
-Prune the rules in ruleset with error metric
-
-If `s` and `decay_threshold` is unspecified, their values are set to nothing and the first
-two rows of the function set s and decay_threshold with their default values
-
-# Arguments
-- `ruleset::RuleBasedModel{L,C}`: rules to prune
-- `X::MultiFrameModalDataset`: starting dataset
-- `Y::AbstractVector`: target values of X
-
-# Keywords
-- `s = nothing`: parameter limiting the value of decay_i when x is 0 or very small
-- `decay_threshold = nothing`: threshold below which a pair is dropped from rule condition
-
-# Returns
-- `RuleBasedModel`: rules after the prune
-"""
-function prune_ruleset(
-    ruleset::RuleBasedModel{L,C},
-    X::MultiFrameModalDataset,
-    Y::AbstractVector;
-    s = nothing,
-    decay_threshold = nothing
-) where {L,C}
-    isnothing(s) && (s = 1.0e-6)
-    isnothing(decay_threshold) && (decay_threshold = 0.05)
-
-    for rule in ruleset.rules
-        E_zero::AbstractFloat = metrics_rule(rule, X, Y)[2]  #error in second position
-        # Extract decisions from rule
-        decs = []
-        extract_decisions(antecedent(rule).tree, operations(L), decs)
-        for conds in reverse(decs)
-            # temp_formula = SoleModelChecking.gen_formula(ceil(length(decs)/2),) TODO
-            E_minus_i = metrics_rule(rule, X, Y)[2]
-            decay_i = (E_minus_i - E_zero) / max(E_zero, s)
-            if decay_i < decay_threshold
-                # TODO: delete i-th pair in rule    #TODO
-                E_zero = metrics_rule(rule, X, Y)[2]
-            end
-        end
     end
 end
 
@@ -387,40 +260,195 @@ default(::CLabel, Y::AbstractVector) = mode(Y)
 """
 default(::RLabel, Y::AbstractVector) = mean(Y)
 
-"""
-    simplified_tree_ensemble_learner(args...; kwargs...) -> RuleBasedModel
+# Patch single-frame _-> multi-frame
+extract_rules(model::Any, X::ModalDataset, args...; kwargs...) =
+    extract_rules(model, MultiFrameModalDataset(X), args...; kwargs...)
 
-    Define a learner to get a rules vector for future predictions
+# Extract rules from a forest, with respect to a dataset
+function extract_rules(
+        forest::DForest,
+        X::MultiFrameModalDataset,
+        Y::AbstractVector;
+        prune_rules = false,
+        s = nothing,
+        decay_threshold = nothing,
+        #
+        method = :CBC,
+        min_frequency = nothing,
+)
+    """
+        length_rule(node::Node, operators::Operators) -> Int
 
-If `min_frequency` is unspecified, the first row of the function set the variable to default
-value 0.01
+        Computer the number of pairs in a rule (length of the rule)
 
-# Arguments
-- `best_rules::RuleBasedModel{L,C}`: list of best rules
-- `X::MultiFrameModalDataset`: starting dataset
-- `Y::AbstractVector`: target values of X
+    # Arguments
+    - `node::Node`: node on which you refer
+    - `operators::Operators`: set of operators of the considered logic
 
-# Keywords
-- `min_frequency = nothing`: threshold below which a rule is dropped from S to avoid
-                             overfitting
+    # Returns
+    - `Int`: number of pairs
+    """
+    function length_rule(node::Node, operators::Operators)
+        left_size = 0
+        right_size = 0
 
-#Returns
-- `RuleBasedModel`: rules vector
-"""
-function simplified_tree_ensemble_learner(
-    best_rules::RuleBasedModel{L,C},
-    X::MultiFrameModalDataset,
-    Y::AbstractVector;
-    min_frequency = nothing
-) where {L,C}
+        if !isdefined(node, :leftchild) && !isdefined(node, :rightchild)
+            # Leaf
+            if token(node) in operators
+                return 0
+            else
+                return 1
+            end
+        end
+
+        isdefined(node, :leftchild) && (left_size = length_rule(leftchild(node), operators))
+        isdefined(node, :rightchild) && (right_size = length_rule(rightchild(node), operators))
+
+        if token(node) in operators
+            return left_size + right_size
+        else
+            return 1 + left_size + right_size
+        end
+    end
+
+    """
+        metrics_rule(args...) -> AbstractVector
+
+        Compute frequency, error and length of the rule
+
+    # Arguments
+    - `rule::Rule{L,C}`: rule
+    - `X::MultiFrameModalDataset`: dataset
+    - `Y::AbstractVector`: target values of X
+
+    # Returns
+    - `AbstractVector`: metrics values vector of the rule
+    """
+    function metrics_rule(
+        rule::Rule{L,C},
+        X::MultiFrameModalDataset,
+        Y::AbstractVector
+    ) where {L,C}
+        metrics = (;)
+        predictions = evaluate_rule(rule, X) # Fix evaluate_rule
+        n_instances = size(X, 1)
+        n_instances_satisfy =
+
+        # Frequency of the rule
+        frequency_rule =  n_instances_satisfy / n_instances
+        metrics = merge(metrics, (frequency_rule = frequency_rule))
+
+        # Error of the rule
+        error_rule = begin
+            if C <: CLabel
+                # Number of incorrectly classified instances divided by number of instances
+                # satisfying the rule condition.
+                sum(predictions .!= Y) / n_instances_satisfy
+            elseif C <: RLabel
+                # Mean Squared Error (mse)
+                mse(predictions, Y)
+            end
+        end
+        metrics = merge(metrics, (error_rule = error_rule))
+
+        # Length of the rule
+        n_pairs = length_rule(rule.tree, operators(L))
+        metrics = merge(metrics, (n_pairs = n_pairs))
+
+        return metrics
+    end
+
+    """
+        prune_ruleset(ruleset::RuleBasedModel{L,C}) -> RuleBasedModel
+
+        Prune the rules in ruleset with error metric
+
+    If `s` and `decay_threshold` is unspecified, their values are set to nothing and the
+    first two rows of the function set s and decay_threshold with their default values
+
+    # Arguments
+    - `ruleset::RuleBasedModel{L,C}`: rules to prune
+
+    # Returns
+    - `RuleBasedModel`: rules after the prune
+    """
+    function prune_ruleset(
+        ruleset::RuleBasedModel{L,C}
+    ) where {L,C}
+        isnothing(s) && (s = 1.0e-6)
+        isnothing(decay_threshold) && (decay_threshold = 0.05)
+
+        for rule in ruleset.rules
+            E_zero::AbstractFloat = metrics_rule(rule, X, Y)[2]  #error in second position
+            # Extract decisions from rule
+            decs = []
+            extract_decisions(antecedent(rule).tree, operations(L), decs)
+            for conds in reverse(decs)
+                # temp_formula = SoleModelChecking.gen_formula(ceil(length(decs)/2),) TODO
+                E_minus_i = metrics_rule(rule, X, Y)[2]
+                decay_i = (E_minus_i - E_zero) / max(E_zero, s)
+                if decay_i < decay_threshold
+                    # TODO: delete i-th pair in rule    #TODO
+                    E_zero = metrics_rule(rule, X, Y)[2]
+                end
+            end
+        end
+    end
+
+    # Update supporting labels
+    _, forest = apply(forest, X, Y; kwargs...)
+
+    ########################################################################################
+    # Extract rules from each tree
+    ########################################################################################
+    # Obtain full ruleset
+    ruleset = begin
+        ruleset = []
+        for every tree in the forest
+            tree_rules = list_rules(tree) # TODO implement
+            append!(ruleset, tree_rules)
+        end
+        unique(ruleset) # TODO maybe also sort (which requires a definition of isless(formula1, formula2))
+    end
+    ########################################################################################
+
+    ########################################################################################
+    # Prune rules according to the confidence metric (with respect to a dataset)
+    #  (and similar metrics: support, confidence, and length)
+    if prune_rules
+        ruleset = prune_ruleset(ruleset)
+    end
+    ########################################################################################
+
+    ########################################################################################
+    # Obtain the best rules
+    best_rules = begin
+        if method == :CBC
+            # Extract antecedents
+            # TODO: implement antecedent(rule)
+            antset = antecedent.(ruleset)
+            # Build the binary satisfuction matrix (m × j, with m instances and j antecedents)
+            M = hcat([evaluate_antecedent(antecent(rule), X) for rule in antset]...)
+            # correlation() -> function in SoleFeatures
+            best_idxs = correlation(M,cor)
+            M = M[:, best_idxs] # (or M[best_rules_idxs, :])
+            ruleset[best_idxs]
+        else
+            error("Unexpected method specified: $(method)")
+        end
+    end
+    ########################################################################################
+
+    ########################################################################################
+    # Construct a rule-based model from the set of best rules
     isnothing(min_frequency) && (min_frequency = 0.01)
 
     R = RuleBasedModel()  # Vector of ordered list
     S = RuleBasedModel()  # Vector of rules left
-    append!(S.rules, rules(best_rules))
-    append!(S.rules, default(C, Y))
+    append!(S.rules, best_rules)
+    append!(S.rules, majority_vote(Y))
 
-    # Delete rules that have a frequency less than 0.01 (min_frequency)
+    # Delete rules that have a frequency less than min_frequency
     S = begin
         # reduce(hcat,metrics_rule.(S,X,Y))' -> transpose of the matrix of rules metrics
         freq_rules = reduce(hcat, metrics_rule.(S, X, Y))'[:,1]
@@ -464,90 +492,16 @@ function simplified_tree_ensemble_learner(
         end
 
         D = D[idx_remaining,:]
-        rule_default = default(C,Y[idx_remaining])
+        rule_default = majority_vote(Y[idx_remaining])
 
         if S[idx_best,:] == rule_default
             return R
         end
 
         if size(D, 1) == 0  #there are no instances in D
-            append!(R, default(C, Y))
+            append!(R, majority_vote(Y))
             return R
         end
-
     end
-
-end
-
-# Patch single-frame _-> multi-frame
-extract_rules(model::Any, X::ModalDataset, args...; kwargs...) =
-    extract_rules(model, MultiFrameModalDataset(X), args...; kwargs...)
-
-# Extract rules from a forest, with respect to a dataset
-function extract_rules(
-        forest::DForest,
-        X::MultiFrameModalDataset,
-        Y::AbstractVector;
-        prune_rules = false,
-        s = nothing,
-        decay_threshold = nothing,
-        #
-        method = :TODO_give_a_proper_name_like_CBC_or_something_like_that,
-        min_frequency = 0.01,
-    )
-    # Update supporting labels
-    _, forest = apply(forest, X, Y; kwargs...)
-
-    ########################################################################################
-    # Extract rules from each tree
-    ########################################################################################
-    # Obtain full ruleset
-    ruleset = begin
-        ruleset = []
-        for every tree in the forest
-            tree_rules = list_rules(tree) # TODO implement
-            append!(ruleset, tree_rules)
-        end
-        unique(ruleset) # TODO maybe also sort (which requires a definition of isless(formula1, formula2))
-    end
-    ########################################################################################
-
-    ########################################################################################
-    # Prune rules according to the confidence metric (with respect to a dataset)
-    #  (and similar metrics: support, confidence, and length)
-    if prune_rules
-        ruleset = prune_ruleset(ruleset, X, Y; s = s, decay_threshold = decay_threshold)
-    end
-    ########################################################################################
-
-    ########################################################################################
-    # Obtain the best rules
-    best_rules = begin
-        if method == :TODO_give_a_proper_name_like_CBC_or_something_like_that
-            # Extract antecedents
-            # TODO: implement antecedent(rule)
-            antset = antecedent.(ruleset)
-            # Build the binary satisfuction matrix (m × j+1, with m instances and j antecedents)
-            M = begin
-                # TODO use (antset, X, Y) accordingly and compute M
-                M = Matrix{Integer}(undef, size(X, 1), length(antset) + 1)
-                for rule in antset
-                    hcat(M, evaluate_rule(rule, X))
-                end
-                hcat(M, Y)
-            end
-            # correlation() -> function in SoleFeatures
-            best_idxs = correlation(M,cor)
-            M = M[:, best_idxs] # (or M[best_rules_idxs, :])
-            ruleset[best_idxs]
-        else
-            error("Unexpected method specified: $(method)")
-        end
-    end
-    ########################################################################################
-
-    ########################################################################################
-    # Construct a rule-based model from the set of best rules
-    simplified_tree_ensemble_learner(best_rules, X, Y; min_frequency = min_frequency)
     ########################################################################################
 end
