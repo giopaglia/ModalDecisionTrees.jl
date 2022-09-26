@@ -210,7 +210,18 @@ end
 
 evaluate_rule(rule::Formula{L},X:MultiFrameModalDataset) = nothing #TODO
 
-# length_rule -> number of pairs in a rule
+"""
+    length_rule(node::Node, operators::Operators) -> Int
+
+    Computer the number of pairs in a rule (length of the rule)
+
+# Arguments
+- `node::Node`: node on which you refer
+- `operators::Operators`: set of operators of the considered logic
+
+# Returns
+- `Int`: number of pairs
+"""
 function length_rule(node::Node, operators::Operators)
     left_size = 0
     right_size = 0
@@ -234,15 +245,26 @@ function length_rule(node::Node, operators::Operators)
     end
 end
 
-# metrics_rule -> return frequency, error and length of the rule
-# TODO: fix evaluate_rule
+"""
+    metrics_rule(args...) -> AbstractVector
+
+    Compute frequency, error and length of the rule
+
+# Arguments
+- `rule::Rule{L,C}`: rule
+- `X::MultiFrameModalDataset`: starting dataset
+- `Y::AbstractVector`: target values of X
+
+# Returns
+- `AbstractVector`: metrics values vector of the rule
+"""
 function metrics_rule(
         rule::Rule{L,C},
         X::MultiFrameModalDataset,
         Y::AbstractVector
 ) where {L,C}
     metrics = AbstractFloat[]
-    predictions = evaluate_rule(rule, X)
+    predictions = evaluate_rule(rule, X) # Fix evaluate_rule
     n_instances = size(X, 1)
     n_instances_satisfy = sum(predictions)
 
@@ -289,14 +311,33 @@ function extract_decisions(node::Node,operators_set::Operators,decs::AbstractVec
     end
 end
 
-# prune_ruleset -> prune of rule in ruleset
+"""
+    prune_ruleset(args...; kwargs...) -> RuleBasedModel
+
+Prune the rules in ruleset with error metric
+
+If `s` and `decay_threshold` is unspecified, their values are set to nothing and the first
+two rows of the function set s and decay_threshold with their default values
+
+# Arguments
+- `ruleset::RuleBasedModel{L,C}`: rules to prune
+- `X::MultiFrameModalDataset`: starting dataset
+- `Y::AbstractVector`: target values of X
+
+# Keywords
+- `s = nothing`: parameter limiting the value of decay_i when x is 0 or very small
+- `decay_threshold = nothing`: threshold below which a pair is dropped from rule condition
+
+# Returns
+- `RuleBasedModel`: rules after the prune
+"""
 function prune_ruleset(
     ruleset::RuleBasedModel{L,C},
     X::MultiFrameModalDataset,
     Y::AbstractVector;
     s = nothing,
     decay_threshold = nothing
-)
+) where {L,C}
     isnothing(s) && (s = 1.0e-6)
     isnothing(decay_threshold) && (decay_threshold = 0.05)
 
@@ -317,14 +358,55 @@ function prune_ruleset(
     end
 end
 
-# StatsBase.mode(x::Vector) -> return the most frequent number in a vector
-# Default rule for classification problem
+"""
+    default(::CLabel, Y::AbstractVector) -> Any
+
+    Compute the most frequent class in the vector Y, default rule for classification
+    problem
+
+# Arguments
+- `::CLabel`: classification problem
+- `Y::AbstractVector`: target values of starting dataset
+
+# Returns
+- `Any`: most frequent class that can be a number or string
+"""
 default(::CLabel, Y::AbstractVector) = mode(Y)
 
-# Default rule for regression problem
+"""
+    default(::RLabel, Y::AbstractVector) -> AbstractFloat
+
+    Compute the mean of the vector Y, default rule for regression problem
+
+# Arguments
+- `::RLabel`: regression problem
+- `Y::AbstractVector`: target values of starting dataset
+
+# Returns
+- `AbstractFloat`: mean
+"""
 default(::RLabel, Y::AbstractVector) = mean(Y)
 
-# STEL -> learner to get a rule list for future predictions
+"""
+    simplified_tree_ensemble_learner(args...; kwargs...) -> RuleBasedModel
+
+    Define a learner to get a rules vector for future predictions
+
+If `min_frequency` is unspecified, the first row of the function set the variable to default
+value 0.01
+
+# Arguments
+- `best_rules::RuleBasedModel{L,C}`: list of best rules
+- `X::MultiFrameModalDataset`: starting dataset
+- `Y::AbstractVector`: target values of X
+
+# Keywords
+- `min_frequency = nothing`: threshold below which a rule is dropped from S to avoid
+                             overfitting
+
+#Returns
+- `RuleBasedModel`: rules vector
+"""
 function simplified_tree_ensemble_learner(
     best_rules::RuleBasedModel{L,C},
     X::MultiFrameModalDataset,
