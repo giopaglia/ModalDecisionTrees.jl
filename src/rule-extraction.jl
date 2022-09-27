@@ -476,17 +476,18 @@ function extract_rules(
         idx_best = begin
             # First: find the rule with minimum error
             idx = findall(metrics[:,2] .== min(metrics[:,2]...))
-            (length(idx) == 0) && (return idx)
+            (length(idx) == 1) && (return idx)
 
             # If not one, find the rule with maximum frequency
-            idx = findall(metrics[idx,1] .== max(metrics[idx,1]...))
-            (length(idx) == 0) && (return idx)
+            idx_frequency = findall(metrics[:,1] .== max(metrics[idx,1]...))
+            (length(intersect!(idx,idx_frequency)) == 1) && (return idx)
 
             # If not one, find the rule with minimum length
-            idx = findall(metrics[idx,3] .== min(metrics[idx,3]...))
-            (length(idx) == 0) && (return idx)
+            idx_length = findall(metrics[:,3] .== min(metrics[idx,3]...))
+            (length(intersect!(idx,idx_length)) == 1) && (return idx)
 
-            # TODO: final case, more than one rule with minimum length
+            # Final case, more than one rule with minimum length
+            rand(idx)
         end
 
         # Add at the end the best rule
