@@ -208,7 +208,45 @@ end
 # end
 ############################################################################################
 
-evaluate_rule(rule::Formula{L},X:MultiFrameModalDataset) = nothing #TODO
+# Evaluation for single decision
+#TODO
+function evaluation_decision(dec::Decision,X::MultiFrameModalDataset) end
+
+# Evalutaion for an antecedent
+function evaluation_antecedent(decs::AbstractVector,X::MultiFrameModalDataset)
+    D = hcat([evaluation_decision(d, X) for d in decs]...)
+    # If all values in a row is true, then true (and logical)
+    return [ all(x[row,:]) for row in 1:size(X,1)]
+end
+
+function evaluation_antecedent(antecedent::Formula{L},X::MultiFrameModalDataset)
+    decs = []
+    extract_decisions(antecedent.tree,operator(L),decs)
+
+    return evaluation_antecedent(decs,X)
+end
+
+# Evaluation for a rule
+function evaluation_rule(rule::Rule,X::MultiFrameModalDataset,Y::AbstractVector)
+    vals_rule = (;)
+    vals_cons = Union{Bool, Nothing}[nothing for _ in 1:length(Y)]
+
+    # Vector ant where 0 not satisfiable, 1 satisfiable for each instances in X
+    vals_ant = evaluation_antecedent(antecedent(rule),X)
+    vals_rule = merge(vals_rule,(vals_ant = vals_ant))
+
+    # Compare the consequent of the rule with each satisfied instance
+    cons = consequent(rule)
+    idxs = begin
+        idx_sat = findall(ant .== true)
+        idx_cons = findall(cons .== Y)
+        intersect(idx_sat,idx_cons)
+    end
+    vals_cons[idxs] .= true
+    vals_rule = merge(vals_rule,(vals_cons = vals_cons))
+
+    return vals_rule
+end
 
 # Extract decisions from rule
 function extract_decisions(node::Node,operators_set::Operators,decs::AbstractVector)
@@ -230,35 +268,6 @@ function extract_decisions(node::Node,operators_set::Operators,decs::AbstractVec
         return append!(decs,token(node))
     end
 end
-
-"""
-    default(::CLabel, Y::AbstractVector) -> Any
-
-    Compute the most frequent class in the vector Y, default rule for classification
-    problem
-
-# Arguments
-- `::CLabel`: classification problem
-- `Y::AbstractVector`: target values of starting dataset
-
-# Returns
-- `Any`: most frequent class that can be a number or string
-"""
-default(::CLabel, Y::AbstractVector) = mode(Y)
-
-"""
-    default(::RLabel, Y::AbstractVector) -> AbstractFloat
-
-    Compute the mean of the vector Y, default rule for regression problem
-
-# Arguments
-- `::RLabel`: regression problem
-- `Y::AbstractVector`: target values of starting dataset
-
-# Returns
-- `AbstractFloat`: mean
-"""
-default(::RLabel, Y::AbstractVector) = mean(Y)
 
 # Patch single-frame _-> multi-frame
 extract_rules(model::Any, X::ModalDataset, args...; kwargs...) =
@@ -330,7 +339,7 @@ function extract_rules(
         Y::AbstractVector
     ) where {L,C}
         metrics = (;)
-        predictions = evaluate_rule(rule, X) # Fix evaluate_rule
+        predictions = evaluation_rule(rule, X, Y)
         n_instances = size(X, 1)
         n_instances_satisfy =
 
@@ -486,7 +495,7 @@ function extract_rules(
         idx_remaining = begin
             # There remain instances that do not meet the best rule's condition
             # (S[idx_best]).
-            predictions = evaluate_rule(S[idx_best], D)
+            predictions = evaluation_rule(S[idx_best], D, Y)
             #remain in D the rule that not satisfying the best rule's condition
             findall(predictions .== 0)
         end
