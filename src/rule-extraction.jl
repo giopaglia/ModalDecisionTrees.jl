@@ -228,12 +228,12 @@ end
 
 # Evaluation for a rule
 function evaluation_rule(rule::Rule,X::MultiFrameModalDataset,Y::AbstractVector)
-    vals_rule = (;)
+    vals_rule = []
     vals_cons = Union{Bool, Nothing}[nothing for _ in 1:length(Y)]
 
     # Vector ant where 0 not satisfiable, 1 satisfiable for each instances in X
     vals_ant = evaluation_antecedent(antecedent(rule),X)
-    vals_rule = merge(vals_rule,(vals_ant = vals_ant))
+    vals_rule = hcat(vals_rule,vals_ant)
 
     # Compare the consequent of the rule with each satisfied instance
     cons = consequent(rule)
@@ -243,7 +243,7 @@ function evaluation_rule(rule::Rule,X::MultiFrameModalDataset,Y::AbstractVector)
         intersect(idx_sat,idx_cons)
     end
     vals_cons[idxs] .= true
-    vals_rule = merge(vals_rule,(vals_cons = vals_cons))
+    vals_rule = hcat(vals_rule,vals_cons)
 
     return vals_rule
 end
@@ -339,9 +339,10 @@ function extract_rules(
         Y::AbstractVector
     ) where {L,C}
         metrics = (;)
-        predictions = evaluation_rule(rule, X, Y)
+        vals_rule = evaluation_rule(rule, X, Y)
         n_instances = size(X, 1)
-        n_instances_satisfy =
+        misclassified_instances = n_instances - length(findall(vals_rule[:,1] .== true))
+        n_instances_satisfy = sum(vals_rule[:,1])
 
         # Frequency of the rule
         frequency_rule =  n_instances_satisfy / n_instances
@@ -352,10 +353,10 @@ function extract_rules(
             if C <: CLabel
                 # Number of incorrectly classified instances divided by number of instances
                 # satisfying the rule condition.
-                sum(predictions .!= Y) / n_instances_satisfy
+                misclassified_instances / n_instances_satisfy
             elseif C <: RLabel
                 # Mean Squared Error (mse)
-                mse(predictions, Y)
+                mse(predictions, Y)   # To fix
             end
         end
         metrics = merge(metrics, (error_rule = error_rule))
