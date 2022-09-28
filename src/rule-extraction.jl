@@ -2,8 +2,6 @@
 using Metrics: mse
 using SoleFeatures: correlation
 using SoleLogics: operators
-using Statistics: mean
-using StatsBase: mode
 
 const Consequent = Any
 
@@ -212,31 +210,45 @@ end
 #TODO
 function evaluation_decision(dec::Decision,X::MultiFrameModalDataset) end
 
-# Evalutaion for an antecedent
+# Evaluation for an antecedent
 function evaluation_antecedent(decs::AbstractVector,X::MultiFrameModalDataset)
     D = hcat([evaluation_decision(d, X) for d in decs]...)
     # If all values in a row is true, then true (and logical)
     return [ all(x[row,:]) for row in 1:size(X,1)]
 end
 
-function evaluation_antecedent(antecedent::Formula{L},X::MultiFrameModalDataset)
-    decs = []
-    extract_decisions(antecedent.tree,operator(L),decs)
-
-    return evaluation_antecedent(decs,X)
-end
+evaluation_antecedent(antecedent::Formula{L},X::MultiFrameModalDataset) =
+    evaluation_antecedent(extract_decisions(antecedent.tree,operators(L),[]),X)
 
 # Evaluation for a rule
-function evaluation_rule(rule::Rule,X::MultiFrameModalDataset,Y::AbstractVector)
+
+# From rule to antecedent and consequent
+evaluation_rule(rule::Rule,X::MultiFrameModalDataset,Y::AbstractVector) =
+    evaluation_rule(antecedent(rule),consequent(rule),X,Y)
+
+# From antecedent to decision
+evaluation_rule(
+    ant::Formula{L},
+    cons::Consequent,
+    X::MultiFrameModalDataset,
+    Y::AbstractVector
+) = evaluation_rule(extract_decisions(ant.tree,operators(L),[]),cons,X,Y)
+
+# Use decision and consequent
+function evaluation_rule(
+    decs::AbstractVector,
+    cons::Consequent,
+    X::MultiFrameModalDataset,
+    Y::AbstractVector
+)
     vals_rule = []
     vals_cons = Union{Bool, Nothing}[nothing for _ in 1:length(Y)]
 
     # Vector ant where 0 not satisfiable, 1 satisfiable for each instances in X
-    vals_ant = evaluation_antecedent(antecedent(rule),X)
+    vals_ant = evaluation_antecedent(decs,X)
     vals_rule = hcat(vals_rule,vals_ant)
 
     # Compare the consequent of the rule with each satisfied instance
-    cons = consequent(rule)
     idxs = begin
         idx_sat = findall(ant .== true)
         idx_cons = findall(cons .== Y)
@@ -320,13 +332,17 @@ function extract_rules(
         end
     end
 
+    metrics_rule(rule::Rule{L,C}, X::MultiFrameModalDataset, Y::AbstractVector) =
+        metrics_rule(extract_decisions(antecedent(rule).tree,operators(L),[]),cons,X,Y)
+
     """
         metrics_rule(args...) -> AbstractVector
 
         Compute frequency, error and length of the rule
 
     # Arguments
-    - `rule::Rule{L,C}`: rule
+    - `decs::AbstractVector`: vector of decisions
+    - `cons::Consequent`: rule's consequent
     - `X::MultiFrameModalDataset`: dataset
     - `Y::AbstractVector`: target values of X
 
@@ -334,27 +350,28 @@ function extract_rules(
     - `AbstractVector`: metrics values vector of the rule
     """
     function metrics_rule(
-        rule::Rule{L,C},
+        decs::AbstractVector,
+        cons::Consequent,
         X::MultiFrameModalDataset,
         Y::AbstractVector
     ) where {L,C}
         metrics = (;)
-        vals_rule = evaluation_rule(rule, X, Y)
+        vals_rule = evaluation_rule(decs, cons, X, Y)
         n_instances = size(X, 1)
-        misclassified_instances = n_instances - length(findall(vals_rule[:,1] .== true))
-        n_instances_satisfy = sum(vals_rule[:,1])
+        misclassified_instances = n_instances - length(findall(vals_rule[:,2] .== true))
+        n_satisfy = sum(vals_rule[:,1])
 
         # Frequency of the rule
-        frequency_rule =  n_instances_satisfy / n_instances
+        frequency_rule =  n_satisfy / n_instances
         metrics = merge(metrics, (frequency_rule = frequency_rule))
 
         # Error of the rule
         error_rule = begin
-            if C <: CLabel
+            if typeof(cons) <: CLabel
                 # Number of incorrectly classified instances divided by number of instances
                 # satisfying the rule condition.
-                misclassified_instances / n_instances_satisfy
-            elseif C <: RLabel
+                misclassified_instances / n_satisfy
+            elseif typeof(cons) <: RLabel
                 # Mean Squared Error (mse)
                 mse(predictions, Y)   # To fix
             end
@@ -362,8 +379,8 @@ function extract_rules(
         metrics = merge(metrics, (error_rule = error_rule))
 
         # Length of the rule
-        n_pairs = length_rule(rule.tree, operators(L))
-        metrics = merge(metrics, (n_pairs = n_pairs))
+        length_rule = length(decs)
+        metrics = merge(metrics, (length_rule = length_rule))
 
         return metrics
     end
@@ -383,25 +400,30 @@ function extract_rules(
     - `RuleBasedModel`: rules after the prune
     """
     function prune_ruleset(
-        ruleset::RuleBasedModel{L,C}
-    ) where {L,C}
+        ruleset::AbstractVector,
+        logic::Logic
+    )
         isnothing(s) && (s = 1.0e-6)
         isnothing(decay_threshold) && (decay_threshold = 0.05)
 
-        for rule in ruleset.rules
-            E_zero::AbstractFloat = metrics_rule(rule, X, Y)[2]  #error in second position
+        for rule in ruleset
+            E_zero::AbstractFloat = metrics_rule(rule, X, Y)[:error_rule]
             # Extract decisions from rule
-            decs = []
-            extract_decisions(antecedent(rule).tree, operations(L), decs)
-            for conds in reverse(decs)
-                # temp_formula = SoleModelChecking.gen_formula(ceil(length(decs)/2),) TODO
-                E_minus_i = metrics_rule(rule, X, Y)[2]
+            decs = extract_decisions(antecedent(rule).tree, operators(logic), [])
+            cons = consequent(rule)
+
+            for idx in length(decs):1
+                # Indices to be considered to evaluate the rule
+                idxs = vcat(1:(idx-1), (idx+1):length(decs))
+                # Return error of the rule without idx-th pair
+                E_minus_i = metrics_rule(decs[idxs], cons, X, Y)[:error_rule]
                 decay_i = (E_minus_i - E_zero) / max(E_zero, s)
                 if decay_i < decay_threshold
-                    # TODO: delete i-th pair in rule    #TODO
-                    E_zero = metrics_rule(rule, X, Y)[2]
+                    deleteat!(decs, idx)
+                    E_zero = metrics_rule(decs, cons, X, Y)[2]
                 end
             end
+            # The formula must be generated from the set of decisions
         end
     end
 
@@ -426,7 +448,7 @@ function extract_rules(
     # Prune rules according to the confidence metric (with respect to a dataset)
     #  (and similar metrics: support, confidence, and length)
     if prune_rules
-        ruleset = prune_ruleset(ruleset)
+        ruleset = prune_ruleset(ruleset,logic)
     end
     ########################################################################################
 
