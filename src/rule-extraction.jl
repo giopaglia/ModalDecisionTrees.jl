@@ -250,6 +250,7 @@ function evaluation_rule(
 
     # Compare the consequent of the rule with each satisfied instance
     idxs_sat = findall(ant .== true)
+    merge!(vals_rule,Dict("idxs_sat" => idxs_sat))
 
     idxs_true = begin
         idx_cons = findall(cons .== Y)
