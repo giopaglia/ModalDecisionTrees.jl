@@ -208,23 +208,23 @@ end
 
 # Evaluation for single decision
 #TODO
-function evaluation_decision(dec::Decision,X::MultiFrameModalDataset) end
+function evaluation_decision(dec::Decision, X::MultiFrameModalDataset) end
 
 # Evaluation for an antecedent
-function evaluation_antecedent(decs::AbstractVector,X::MultiFrameModalDataset)
+function evaluation_antecedent(decs::AbstractVector, X::MultiFrameModalDataset)
     D = hcat([evaluation_decision(d, X) for d in decs]...)
     # If all values in a row is true, then true (and logical)
-    return [ all(x[row,:]) for row in 1:size(X,1)]
+    return [all(x[row,:]) for row in 1:size(X,1)]
 end
 
-evaluation_antecedent(antecedent::Formula{L},X::MultiFrameModalDataset) =
-    evaluation_antecedent(extract_decisions(antecedent.tree,operators(L),[]),X)
+evaluation_antecedent(antecedent::Formula{L}, X::MultiFrameModalDataset) =
+    evaluation_antecedent(extract_decisions(antecedent.tree, operators(L), []), X)
 
 # Evaluation for a rule
 
 # From rule to antecedent and consequent
-evaluation_rule(rule::Rule,X::MultiFrameModalDataset,Y::AbstractVector) =
-    evaluation_rule(antecedent(rule),consequent(rule),X,Y)
+evaluation_rule(rule::Rule, X::MultiFrameModalDataset, Y::AbstractVector) =
+    evaluation_rule(antecedent(rule), consequent(rule), X, Y)
 
 # From antecedent to decision
 evaluation_rule(
@@ -232,7 +232,7 @@ evaluation_rule(
     cons::Consequent,
     X::MultiFrameModalDataset,
     Y::AbstractVector
-) = evaluation_rule(extract_decisions(ant.tree,operators(L),[]),cons,X,Y)
+) = evaluation_rule(extract_decisions(ant.tree, operators(L), []),cons,X,Y)
 
 # Use decision and consequent
 function evaluation_rule(
@@ -371,7 +371,7 @@ function extract_rules(
         vals_rule = evaluation_rule(decs, cons, X, Y)
         n_instances = size(X, 1)
         misclassified_instances =
-            n_instances - length(findall(get(vals_rule, "vals_cons", nothing) .== true))
+            length(findall(get(vals_rule, "vals_cons", nothing) .== false))
         n_satisfy = sum(get(vals_rule, "vals_ant", nothing))
 
         # Frequency of the rule
