@@ -370,8 +370,9 @@ function extract_rules(
         metrics = (;)
         vals_rule = evaluation_rule(decs, cons, X, Y)
         n_instances = size(X, 1)
-        misclassified_instances = n_instances - length(findall(vals_rule[:,2] .== true))
-        n_satisfy = sum(vals_rule[:,1])
+        misclassified_instances =
+            n_instances - length(findall(get(vals_rule, "vals_cons", nothing) .== true))
+        n_satisfy = sum(get(vals_rule, "vals_ant", nothing))
 
         # Frequency of the rule
         frequency_rule =  n_satisfy / n_instances
@@ -385,7 +386,8 @@ function extract_rules(
                 misclassified_instances / n_satisfy
             elseif typeof(cons) <: RLabel
                 # Mean Squared Error (mse)
-                mse(predictions, Y)   # To fix
+                idxs_sat = get(vals_rule, "idxs_sat", nothing)
+                mse(get(vals_rule, "y_pred", nothing), Y[idxs_sat])
             end
         end
         metrics = merge(metrics, (error_rule = error_rule))
