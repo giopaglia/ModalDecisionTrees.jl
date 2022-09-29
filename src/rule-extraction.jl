@@ -489,10 +489,12 @@ function extract_rules(
     # Construct a rule-based model from the set of best rules
     isnothing(min_frequency) && (min_frequency = 0.01)
 
+    # D -> copy of the original dataset
+    D = copy(X)
     R = RuleBasedModel()  # Vector of ordered list
     S = RuleBasedModel()  # Vector of rules left
     append!(S.rules, best_rules)
-    append!(S.rules, majority_vote(Y))
+    push!(S.rules, Rule{L}(Formula{L}(), majority_vote(Y)))
 
     # Delete rules that have a frequency less than min_frequency
     S = begin
@@ -502,10 +504,8 @@ function extract_rules(
         S[idx_undeleted]
     end
 
-    # D -> copy of the original dataset
-    D = copy(X)
-
     while true
+        # Metrics update based on remaining instances
         metrics = reduce(hcat, metrics_rule.(S, D, Y))'
 
         # Best rule index
@@ -516,11 +516,11 @@ function extract_rules(
 
             # If not one, find the rule with maximum frequency
             idx_frequency = findall(metrics[:,1] .== max(metrics[idx,1]...))
-            (length(intersect!(idx,idx_frequency)) == 1) && (return idx)
+            (length(intersect!(idx, idx_frequency)) == 1) && (return idx)
 
             # If not one, find the rule with minimum length
             idx_length = findall(metrics[:,3] .== min(metrics[idx,3]...))
-            (length(intersect!(idx,idx_length)) == 1) && (return idx)
+            (length(intersect!(idx, idx_length)) == 1) && (return idx)
 
             # Final case: more than one rule with minimum length
             # Randomly choose a rule
@@ -528,26 +528,30 @@ function extract_rules(
         end
 
         # Add at the end the best rule
-        append!(R,S[idx_best])
+        append!(R.rules, S[idx_best])
+        # Delete the best rule from S
+        deleteat!(S,idx_best)
 
         # Delete the instances satisfying the best rule
         idx_remaining = begin
             # There remain instances that do not meet the best rule's condition
             # (S[idx_best]).
-            predictions = evaluation_rule(S[idx_best], D, Y)
+            vals_rule = evaluation_rule(S[idx_best], D, Y)
+            sat_unsat = get(vals_rule, "vals_ant", nothing)
             #remain in D the rule that not satisfying the best rule's condition
-            findall(predictions .== 0)
+            findall(sat_unsat .== false)
         end
 
         D = D[idx_remaining,:]
-        rule_default = majority_vote(Y[idx_remaining])
+        # Update of the default rule
+        S.rules[length(S.rules)] = Rule{L}(Formula{L}, majority_vote(Y[idx_remaining]))
 
-        if S[idx_best,:] == rule_default
+        if idx_best == length(S.rules)
             return R
         end
 
         if size(D, 1) == 0  #there are no instances in D
-            append!(R, majority_vote(Y))
+            append!(R, Rule{L}(Formula{L}(),majority_vote(Y)))
             return R
         end
     end
