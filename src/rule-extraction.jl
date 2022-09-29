@@ -241,21 +241,32 @@ function evaluation_rule(
     X::MultiFrameModalDataset,
     Y::AbstractVector
 )
-    vals_rule = []
+    vals_rule = Dict() # Empty Dictionary
     vals_cons = Union{Bool, Nothing}[nothing for _ in 1:length(Y)]
 
     # Vector ant where 0 not satisfiable, 1 satisfiable for each instances in X
     vals_ant = evaluation_antecedent(decs,X)
-    vals_rule = hcat(vals_rule,vals_ant)
+    merge!(vals_rule,Dict("vals_ant" => vals_ant))
 
     # Compare the consequent of the rule with each satisfied instance
-    idxs = begin
-        idx_sat = findall(ant .== true)
+    idxs_sat = findall(ant .== true)
+
+    idxs_true = begin
         idx_cons = findall(cons .== Y)
-        intersect(idx_sat,idx_cons)
+        intersect(idxs_sat,idx_cons)
     end
-    vals_cons[idxs] .= true
-    vals_rule = hcat(vals_rule,vals_cons)
+
+    idxs_false = begin
+        idx_cons = findall(cons .!= Y)
+        intersect(idxs_sat,idx_cons)
+    end
+
+    vals_cons[idxs_true] .= true
+    vals_cons[idxs_false] .= false
+    merge!(vals_rule,Dict("vals_cons" => vals_cons))
+
+    y_pred = Vector{Any}(undef,length(idxs_sat)) .= C
+    merge!(vals_rule,Dict("y_pred" => y_pred))
 
     return vals_rule
 end
@@ -508,7 +519,8 @@ function extract_rules(
             idx_length = findall(metrics[:,3] .== min(metrics[idx,3]...))
             (length(intersect!(idx,idx_length)) == 1) && (return idx)
 
-            # Final case, more than one rule with minimum length
+            # Final case: more than one rule with minimum length
+            # Randomly choose a rule
             rand(idx)
         end
 
