@@ -434,7 +434,7 @@ function extract_rules(
                 decay_i = (E_minus_i - E_zero) / max(E_zero, s)
                 if decay_i < decay_threshold
                     deleteat!(decs, idx)
-                    E_zero = metrics_rule(decs, cons, X, Y)[2]
+                    E_zero = metrics_rule(decs, cons, X, Y)[:error_rule]
                 end
             end
             # The formula must be generated from the set of decisions
@@ -499,27 +499,31 @@ function extract_rules(
     # Delete rules that have a frequency less than min_frequency
     S = begin
         # reduce(hcat,metrics_rule.(S,X,Y))' -> transpose of the matrix of rules metrics
-        freq_rules = reduce(hcat, metrics_rule.(S, X, Y))'[:,1]
+        metrics = metrics_rule.(S, X, Y)
+        freq_rules = [metrics[i][:frequency_rule] for i in collect(1:length(metrics))]
         idx_undeleted = findall(freq_rules .>= min_frequency) # Undeleted rule indexes
         S[idx_undeleted]
     end
 
     while true
         # Metrics update based on remaining instances
-        metrics = reduce(hcat, metrics_rule.(S, D, Y))'
+        metrics = metrics_rule.(S, D, Y)
+        frequency_rules = [metrics[i][:frequency_rule] for i in collect(1:length(metrics))]
+        error_rules = [metrics[i][:error_rule] for i in collect(1:length(metrics))]
+        length_rules = [metrics[i][:length_rule] for i in collect(1:length(metrics))]
 
         # Best rule index
         idx_best = begin
             # First: find the rule with minimum error
-            idx = findall(metrics[:,2] .== min(metrics[:,2]...))
+            idx = findall(error_rules .== min(error_rules...))
             (length(idx) == 1) && (return idx)
 
             # If not one, find the rule with maximum frequency
-            idx_frequency = findall(metrics[:,1] .== max(metrics[idx,1]...))
+            idx_frequency = findall(frequency_rules .== max(frequency_rules[idx]...))
             (length(intersect!(idx, idx_frequency)) == 1) && (return idx)
 
             # If not one, find the rule with minimum length
-            idx_length = findall(metrics[:,3] .== min(metrics[idx,3]...))
+            idx_length = findall(length_rules .== min(length_rules[idx]...))
             (length(intersect!(idx, idx_length)) == 1) && (return idx)
 
             # Final case: more than one rule with minimum length
@@ -528,7 +532,7 @@ function extract_rules(
         end
 
         # Add at the end the best rule
-        append!(R.rules, S[idx_best])
+        push!(R.rules, S[idx_best])
         # Delete the best rule from S
         deleteat!(S,idx_best)
 
@@ -551,7 +555,7 @@ function extract_rules(
         end
 
         if size(D, 1) == 0  #there are no instances in D
-            append!(R, Rule{L}(Formula{L}(),majority_vote(Y)))
+            push!(R, Rule{L}(Formula{L}(),majority_vote(Y)))
             return R
         end
     end
