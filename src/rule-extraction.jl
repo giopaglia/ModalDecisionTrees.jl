@@ -273,7 +273,7 @@ function evaluation_rule(
 end
 
 # Extract decisions from rule
-function extract_decisions(node::Node,operators_set::Operators,decs::AbstractVector)
+function extract_decisions(node::FNode,operators_set::Operators,decs::AbstractVector)
     if !isdefined(node, :leftchild) && !isdefined(node, :rightchild)
         # Leaf
         if token(node) in operators_set
@@ -310,18 +310,18 @@ function extract_rules(
         min_frequency = nothing,
 )
     """
-        length_rule(node::Node, operators::Operators) -> Int
+        length_rule(node::FNode, operators::Operators) -> Int
 
         Computer the number of pairs in a rule (length of the rule)
 
     # Arguments
-    - `node::Node`: node on which you refer
+    - `node::FNode`: node on which you refer
     - `operators::Operators`: set of operators of the considered logic
 
     # Returns
     - `Int`: number of pairs
     """
-    function length_rule(node::Node, operators::Operators)
+    function length_rule(node::FNode, operators::Operators)
         left_size = 0
         right_size = 0
 
@@ -414,8 +414,7 @@ function extract_rules(
     - `RuleBasedModel`: rules after the prune
     """
     function prune_ruleset(
-        ruleset::AbstractVector,
-        logic::Logic
+        ruleset::AbstractVector
     )
         isnothing(s) && (s = 1.0e-6)
         isnothing(decay_threshold) && (decay_threshold = 0.05)
@@ -423,7 +422,11 @@ function extract_rules(
         for rule in ruleset
             E_zero::AbstractFloat = metrics_rule(rule, X, Y)[:error_rule]
             # Extract decisions from rule
-            decs = extract_decisions(antecedent(rule).tree, operators(logic), [])
+            decs = extract_decisions(
+                antecedent(rule).tree,
+                operators(extract_logic(antecedent(rule))),
+                []
+            )
             cons = consequent(rule)
 
             for idx in length(decs):1
@@ -462,7 +465,7 @@ function extract_rules(
     # Prune rules according to the confidence metric (with respect to a dataset)
     #  (and similar metrics: support, confidence, and length)
     if prune_rules
-        ruleset = prune_ruleset(ruleset,logic)
+        ruleset = prune_ruleset(ruleset)
     end
     ########################################################################################
 
@@ -548,7 +551,7 @@ function extract_rules(
 
         D = D[idx_remaining,:]
         # Update of the default rule
-        S.rules[length(S.rules)] = Rule{L}(Formula{L}, majority_vote(Y[idx_remaining]))
+        S.rules[length(S.rules)] = Rule{L}(Formula{L}(), majority_vote(Y[idx_remaining]))
 
         if idx_best == length(S.rules)
             return R
