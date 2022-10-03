@@ -241,7 +241,7 @@ function evaluation_rule(
     X::MultiFrameModalDataset,
     Y::AbstractVector
 )
-    vals_rule = Dict() # Empty Dictionary
+    vals_rule = Dict() # Empty dictionary
     vals_cons = Union{Bool, Nothing}[nothing for _ in 1:length(Y)]
 
     # Vector ant where 0 not satisfiable, 1 satisfiable for each instances in X
@@ -367,7 +367,7 @@ function extract_rules(
         X::MultiFrameModalDataset,
         Y::AbstractVector
     ) where {L,C}
-        metrics = (;)
+        metrics = (;) #empty named tuple
         vals_rule = evaluation_rule(decs, cons, X, Y)
         n_instances = size(X, 1)
         misclassified_instances =
@@ -420,7 +420,7 @@ function extract_rules(
         isnothing(decay_threshold) && (decay_threshold = 0.05)
 
         for rule in ruleset
-            E_zero::AbstractFloat = metrics_rule(rule, X, Y)[:error_rule]
+            E_zero = metrics_rule(rule, X, Y)[:error_rule]
             # Extract decisions from rule
             decs = extract_decisions(
                 antecedent(rule).tree,
@@ -436,11 +436,12 @@ function extract_rules(
                 E_minus_i = metrics_rule(decs[idxs], cons, X, Y)[:error_rule]
                 decay_i = (E_minus_i - E_zero) / max(E_zero, s)
                 if decay_i < decay_threshold
+                    # Remove the idx-th pair in the vector of decisions
                     deleteat!(decs, idx)
                     E_zero = metrics_rule(decs, cons, X, Y)[:error_rule]
                 end
             end
-            # The formula must be generated from the set of decisions
+            # The formula must be generated from the vector of decisions
         end
     end
 
@@ -474,13 +475,12 @@ function extract_rules(
     best_rules = begin
         if method == :CBC
             # Extract antecedents
-            # TODO: implement antecedent(rule)
             antset = antecedent.(ruleset)
             # Build the binary satisfuction matrix (m × j, with m instances and j antecedents)
-            M = hcat([evaluate_antecedent(antecent(rule), X) for rule in antset]...)
+            M = hcat([evaluate_antecedent(antecedent(rule), X) for rule in antset]...)
             # correlation() -> function in SoleFeatures
-            best_idxs = correlation(M,cor)
-            M = M[:, best_idxs] # (or M[best_rules_idxs, :])
+            best_idxs = findcorrelation(M)
+            M = M[:, best_idxs]
             ruleset[best_idxs]
         else
             error("Unexpected method specified: $(method)")
@@ -501,7 +501,7 @@ function extract_rules(
 
     # Delete rules that have a frequency less than min_frequency
     S = begin
-        # reduce(hcat,metrics_rule.(S,X,Y))' -> transpose of the matrix of rules metrics
+        # "metrics" is a vector of dictionaries that contain the metrics of a specific rule
         metrics = metrics_rule.(S, X, Y)
         freq_rules = [metrics[i][:frequency_rule] for i in collect(1:length(metrics))]
         idx_undeleted = findall(freq_rules .>= min_frequency) # Undeleted rule indexes
