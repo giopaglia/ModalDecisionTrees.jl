@@ -119,179 +119,123 @@ function is_left(lambda::Formula{L}) where {L}
     # TODO
 end
 
-############################################################################################
-
-# frequency_rule(  dataset     starting dataset
-#                  rule        rule on which to determine the frequency
-#               ) =
-#     number of instances satisfying the rule condition divided by total number of instances
-
-# error_rule(    CLabel   classification problem
-#                dataset  starting dataset
-#                rule     rule on which to determine the error
-#           ) =
-#     number of incorrectly classified instances (y' obtained from the evaluation of the
-#     rule antecedent is different from y we had in the dataset) divided by number of
-#     instances satisfying the rule condition
-
-# error_rule(    RLabel   regression problem
-#                dataset  starting dataset
-#                rule     rule on which to determine the error
-#           ) =
-#     Mean Squared Error (MSE)
-#     MSE = (1/k) * sum(t_i - t')^2   # k = number of instances satisfying rule condition
-#                                     # t_i (i = 1,...,k) = target value of the i-th
-#                                     #                   instance satisfying the antecedent
-#                                     # t' = (1/k) * sum(t_i (i = 1,...,k))
-
-# length_rule(    rule    rule on which to determine the complexity of the rule
-#            ) =
-#     number of variable-value pairs in the condition
-
-############################################################################################
-
-############################################################################################
-# prune_ruleset(
-#         Label        CLabel or RLabel
-#         dataset      starting dataset
-#         ruleset      forest rules
-#         s = nothing->1.0e-6  parameter limiting the value of decay_i when x is 0
-#                                      or very small  (s in the paper)
-#         decay_threshold = nothing->0.05   threshold below which a variable-value pair is
-#                                           dropped from the rule condition
-#     )
-#     for every rule in ruleset
-#         E_zero = error_rule(Label,dataset,rule)   #error of original rule
-#         for every variable-value pair in rule in inverse order
-#             E_minus_i = error_rule(Label,dataset,rule\{i-th pair})   #rule's error without
-#                                                                      # i-th pair
-#             decay_i = (E_minus_i - E_zero) / max(E_zero,s)
-#             if decay_i < decay_threshold
-#                 i-th pair of the rule is eliminated from the antecedent
-#                 recalculation of E_zero
-#             end
-#         end
-#     end
-# end
-############################################################################################
-
-############################################################################################
-#
-# # STEL - Simplified Tree Ensemble Learner
-# simplified_tree_ensemble_learner(   CLabel       classification problem
-#                                     best_rules   better rules from feature selection
-#                                     min_frequency = 0.01  threshold below which a is
-#                                                       dropped from S to avoid overfitting
-#                                 ) =
-#     R = {}  #ordered rule list
-#     t* = average_label(Y)     #default rule
-#     S = {t*,best_rules}
-#     delete rules from S with frequency < min_frequency
-#     D = copy(dataSet)    #copy of original dataset
-#     while true
-#         use error, frequency and length to select the rule with the least error based on
-#         the instances in D or, if multiple instances have the same value, we select the
-#         rule with the highest frequency and the shortest condition; this rule will then
-#         be added to the end of R
-#         Instances that satisfy the best rule are removed from D
-#         t* = average_label(Y[ids delle istanze rimaste in D])
-#         if good_rule == t*
-#             return R
-#         else if length(best_rules) == 0
-#                 t* = classe più frequente su dataSet
-#                 R = {R,t*}
-#                 return R
-#         end
-#     end
-# end
-############################################################################################
-
 # Evaluation for single decision
-#TODO
-function evaluation_decision(dec::Decision, X::MultiFrameModalDataset) end
+# TODO
+function evaluate_decision(dec::Decision, X::MultiFrameModalDataset) end
 
-# Evaluation for an antecedent
-function evaluation_antecedent(decs::AbstractVector, X::MultiFrameModalDataset)
-    D = hcat([evaluation_decision(d, X) for d in decs]...)
-    # If all values in a row is true, then true (and logical)
-    return [all(x[row,:]) for row in 1:size(X,1)]
+# TODO remove
+logic = extract_logic
+
+############################################################################################
+############################################################################################
+############################################################################################
+
+# Extract decisions from rule
+function extract_decisions(formula::Formula{L}) where {L<:Logic}
+    # TODO remove in favor of operators_set = operators(L)
+    operators_set = operators(logic(antecedent(rule)))
+    function _extract_decisions(node::FNode, decs::AbstractVector{<:Decision})
+        # Leaf or internal node
+        if !isdefined(node, :leftchild) && !isdefined(node, :rightchild)
+            # 
+            if token(node) in operators_set
+                return decs
+            else
+                return push!(decs, token(node))
+            end
+        else
+            isdefined(node, :leftchild)  && _extract_decisions(leftchild(node),  decs)
+            isdefined(node, :rightchild) && _extract_decisions(rightchild(node), decs)
+
+            if !(token(node) in operators_set)
+                return push!(decs, token(node))
+            end
+            decs
+        end
+    end
+    _extract_decisions(formula.tree, [])
 end
 
-evaluation_antecedent(antecedent::Formula{L}, X::MultiFrameModalDataset) =
-    evaluation_antecedent(extract_decisions(antecedent.tree, operators(L), []), X)
+
+############################################################################################
+# Rule evaluation
+############################################################################################
+
+# Evaluation for an antecedent
+
+evaluate_antecedent(antecedent::Formula{L}, X::MultiFrameModalDataset) where {L<:Logic} =
+    evaluate_antecedent(extract_decisions(antecedent), X)
+
+function evaluate_antecedent(decs::AbstractVector{<:Decision}, X::MultiFrameModalDataset)
+    D = hcat([evaluate_decision(d, X) for d in decs]...)
+    # If all values in a row is true, then true (and logical)
+    return map(all, eachrow(D))
+end
 
 # Evaluation for a rule
 
 # From rule to antecedent and consequent
-evaluation_rule(rule::Rule, X::MultiFrameModalDataset, Y::AbstractVector) =
-    evaluation_rule(antecedent(rule), consequent(rule), X, Y)
+evaluate_rule(rule::Rule, X::MultiFrameModalDataset, Y::AbstractVector{<:Consequent}) =
+    evaluate_rule(antecedent(rule), consequent(rule), X, Y)
 
 # From antecedent to decision
-evaluation_rule(
+evaluate_rule(
     ant::Formula{L},
     cons::Consequent,
     X::MultiFrameModalDataset,
-    Y::AbstractVector
-) = evaluation_rule(extract_decisions(ant.tree, operators(L), []),cons,X,Y)
+    Y::AbstractVector{<:Consequent}
+) where {L<:Logic} = evaluate_rule(extract_decisions(ant),cons,X,Y)
 
 # Use decision and consequent
-function evaluation_rule(
-    decs::AbstractVector,
+function evaluate_rule(
+    decs::AbstractVector{<:Decision},
     cons::Consequent,
     X::MultiFrameModalDataset,
-    Y::AbstractVector
+    Y::AbstractVector{<:Consequent}
 )
-    vals_rule = Dict() # Empty dictionary
-    vals_cons = Union{Bool, Nothing}[nothing for _ in 1:length(Y)]
+    # Antecedent satisfaction. For each instances in X:
+    #  - `false` when not satisfiable,
+    #  - `true` when satisfiable.
+    ant_sat = evaluate_antecedent(decs,X)
 
-    # Vector ant where 0 not satisfiable, 1 satisfiable for each instances in X
-    vals_ant = evaluation_antecedent(decs,X)
-    merge!(vals_rule,Dict("vals_ant" => vals_ant))
+    # Indices of satisfiable instances
+    idxs_sat = findall(ant_sat .== true)
 
-    # Compare the consequent of the rule with each satisfied instance
-    idxs_sat = findall(ant .== true)
-    merge!(vals_rule,Dict("idxs_sat" => idxs_sat))
-
-    idxs_true = begin
-        idx_cons = findall(cons .== Y)
-        intersect(idxs_sat,idx_cons)
-    end
-
-    idxs_false = begin
-        idx_cons = findall(cons .!= Y)
-        intersect(idxs_sat,idx_cons)
-    end
-
-    vals_cons[idxs_true] .= true
-    vals_cons[idxs_false] .= false
-    merge!(vals_rule,Dict("vals_cons" => vals_cons))
-
-    y_pred = Vector{Any}(undef,length(idxs_sat)) .= C
-    merge!(vals_rule,Dict("y_pred" => y_pred))
-
-    return vals_rule
-end
-
-# Extract decisions from rule
-function extract_decisions(node::FNode,operators_set::Operators,decs::AbstractVector)
-    if !isdefined(node, :leftchild) && !isdefined(node, :rightchild)
-        # Leaf
-        if token(node) in operators_set
-            return nothing
-        else
-            return append!(decs, token(node))
+    # Consequent satisfaction. For each instances in X:
+    #  - `false` when not satisfiable,
+    #  - `true` when satisfiable,
+    #  - `nothing` when antecedent does not hold.
+    cons_sat = begin
+        cons_sat = Vector{Union{Bool, Nothing}}(fill(nothing, length(Y)))
+        idxs_true = begin
+            idx_cons = findall(cons .== Y)
+            intersect(idxs_sat,idx_cons)
         end
+        idxs_false = begin
+            idx_cons = findall(cons .!= Y)
+            intersect(idxs_sat,idx_cons)
+        end
+        cons_sat[idxs_true]  .= true
+        cons_sat[idxs_false] .= false
     end
 
-    isdefined(node, :leftchild) && extract_decisions(leftchild(node), operators_set, decs)
-    isdefined(node, :rightchild) && extract_decisions(rightchild(node), operators_set, decs)
-
-    if token(node) in operators_set
-        return nothing
-    else
-        return append!(decs,token(node))
+    y_pred = begin
+        y_pred = Vector{Union{Consequent, Nothing}}(fill(nothing, length(Y)))
+        y_pred[idxs_sat] .= C
+        y_pred
     end
+
+    return (;
+        ant_sat   = ant_sat,
+        idxs_sat  = idxs_sat,
+        cons_sat  = cons_sat,
+        y_pred    = y_pred,
+    )
 end
+
+############################################################################################
+# Rule extraction from random forest
+############################################################################################
 
 # Patch single-frame _-> multi-frame
 extract_rules(model::Any, X::ModalDataset, args...; kwargs...) =
@@ -301,7 +245,7 @@ extract_rules(model::Any, X::ModalDataset, args...; kwargs...) =
 function extract_rules(
         forest::DForest,
         X::MultiFrameModalDataset,
-        Y::AbstractVector;
+        Y::AbstractVector{<:Consequent};
         prune_rules = false,
         s = nothing,
         decay_threshold = nothing,
@@ -309,46 +253,46 @@ function extract_rules(
         method = :CBC,
         min_frequency = nothing,
 )
+    # """
+    #     length_rule(node::FNode, operators::Operators) -> Int
+
+    #     Computer the number of pairs in a rule (length of the rule)
+
+    # # Arguments
+    # - `node::FNode`: node on which you refer
+    # - `operators::Operators`: set of operators of the considered logic
+
+    # # Returns
+    # - `Int`: number of pairs
+    # """
+    # function length_rule(node::FNode, operators::Operators)
+    #     left_size = 0
+    #     right_size = 0
+
+    #     if !isdefined(node, :leftchild) && !isdefined(node, :rightchild)
+    #         # Leaf
+    #         if token(node) in operators
+    #             return 0
+    #         else
+    #             return 1
+    #         end
+    #     end
+
+    #     isdefined(node, :leftchild) && (left_size = length_rule(leftchild(node), operators))
+    #     isdefined(node, :rightchild) && (right_size = length_rule(rightchild(node), operators))
+
+    #     if token(node) in operators
+    #         return left_size + right_size
+    #     else
+    #         return 1 + left_size + right_size
+    #     end
+    # end
+
+    rule_metrics(rule::Rule{L,C}, X::MultiFrameModalDataset, Y::AbstractVector{<:Consequent}) =
+        rule_metrics(extract_decisions(antecedent(rule)),cons,X,Y)
+
     """
-        length_rule(node::FNode, operators::Operators) -> Int
-
-        Computer the number of pairs in a rule (length of the rule)
-
-    # Arguments
-    - `node::FNode`: node on which you refer
-    - `operators::Operators`: set of operators of the considered logic
-
-    # Returns
-    - `Int`: number of pairs
-    """
-    function length_rule(node::FNode, operators::Operators)
-        left_size = 0
-        right_size = 0
-
-        if !isdefined(node, :leftchild) && !isdefined(node, :rightchild)
-            # Leaf
-            if token(node) in operators
-                return 0
-            else
-                return 1
-            end
-        end
-
-        isdefined(node, :leftchild) && (left_size = length_rule(leftchild(node), operators))
-        isdefined(node, :rightchild) && (right_size = length_rule(rightchild(node), operators))
-
-        if token(node) in operators
-            return left_size + right_size
-        else
-            return 1 + left_size + right_size
-        end
-    end
-
-    metrics_rule(rule::Rule{L,C}, X::MultiFrameModalDataset, Y::AbstractVector) =
-        metrics_rule(extract_decisions(antecedent(rule).tree,operators(L),[]),cons,X,Y)
-
-    """
-        metrics_rule(args...) -> AbstractVector
+        rule_metrics(args...) -> AbstractVector
 
         Compute frequency, error and length of the rule
 
@@ -356,45 +300,44 @@ function extract_rules(
     - `decs::AbstractVector`: vector of decisions
     - `cons::Consequent`: rule's consequent
     - `X::MultiFrameModalDataset`: dataset
-    - `Y::AbstractVector`: target values of X
+    - `Y::AbstractVector{<:Consequent}`: target values of X
 
     # Returns
     - `AbstractVector`: metrics values vector of the rule
     """
-    function metrics_rule(
+    function rule_metrics(
         decs::AbstractVector,
         cons::Consequent,
         X::MultiFrameModalDataset,
-        Y::AbstractVector
+        Y::AbstractVector{<:Consequent}
     ) where {L,C}
         metrics = (;) #empty named tuple
-        vals_rule = evaluation_rule(decs, cons, X, Y)
+        eval_result = evaluate_rule(decs, cons, X, Y)
         n_instances = size(X, 1)
-        misclassified_instances =
-            length(findall(get(vals_rule, "vals_cons", nothing) .== false))
-        n_satisfy = sum(get(vals_rule, "vals_ant", nothing))
+        n_satisfy = sum(eval_result[:ant_sat])
 
         # Frequency of the rule
-        frequency_rule =  n_satisfy / n_instances
-        metrics = merge(metrics, (frequency_rule = frequency_rule))
+        rule_support =  n_satisfy / n_instances
+        metrics = merge(metrics, (support = rule_support,))
 
         # Error of the rule
-        error_rule = begin
+        rule_error = begin
             if typeof(cons) <: CLabel
                 # Number of incorrectly classified instances divided by number of instances
                 # satisfying the rule condition.
+                misclassified_instances = length(findall(eval_result[:y_pred] .== Y))
                 misclassified_instances / n_satisfy
             elseif typeof(cons) <: RLabel
                 # Mean Squared Error (mse)
-                idxs_sat = get(vals_rule, "idxs_sat", nothing)
-                mse(get(vals_rule, "y_pred", nothing), Y[idxs_sat])
+                idxs_sat = eval_result[:idxs_sat]
+                mse(eval_result[:y_pred][idxs_sat], Y[idxs_sat])
             end
         end
-        metrics = merge(metrics, (error_rule = error_rule))
+        metrics = merge(metrics, (error = rule_error))
 
         # Length of the rule
-        length_rule = length(decs)
-        metrics = merge(metrics, (length_rule = length_rule))
+        rule_length = length(decs)
+        metrics = merge(metrics, (length = rule_length))
 
         return metrics
     end
@@ -414,35 +357,36 @@ function extract_rules(
     - `RuleBasedModel`: rules after the prune
     """
     function prune_ruleset(
-        ruleset::AbstractVector
+        ruleset::AbstractVector{<:Rule}
     )
         isnothing(s) && (s = 1.0e-6)
         isnothing(decay_threshold) && (decay_threshold = 0.05)
 
-        for rule in ruleset
-            E_zero = metrics_rule(rule, X, Y)[:error_rule]
+        [begin
             # Extract decisions from rule
-            decs = extract_decisions(
-                antecedent(rule).tree,
-                operators(extract_logic(antecedent(rule))),
-                []
-            )
+            decs = extract_decisions(antecedent(rule))
             cons = consequent(rule)
+
+            E_zero = rule_metrics(decs, cons, X, Y)[:error]
 
             for idx in length(decs):1
                 # Indices to be considered to evaluate the rule
-                idxs = vcat(1:(idx-1), (idx+1):length(decs))
+                other_idxs = vcat(1:(idx-1), (idx+1):length(decs))
                 # Return error of the rule without idx-th pair
-                E_minus_i = metrics_rule(decs[idxs], cons, X, Y)[:error_rule]
+                E_minus_i = rule_metrics(decs[other_idxs], cons, X, Y)[:error]
                 decay_i = (E_minus_i - E_zero) / max(E_zero, s)
                 if decay_i < decay_threshold
                     # Remove the idx-th pair in the vector of decisions
                     deleteat!(decs, idx)
-                    E_zero = metrics_rule(decs, cons, X, Y)[:error_rule]
+                    E_zero = rule_metrics(decs, cons, X, Y)[:error]
                 end
             end
-            # The formula must be generated from the vector of decisions
-        end
+            # Assemble formula from vector of decisions (decs)
+            antecedent = TODO
+            #TODO check if this works:
+            Rule(antecedent, cons)
+            # Rule{typeof(antecedent),typeof(cons)}(antecedent, cons)
+        end for rule in ruleset]
     end
 
     # Update supporting labels
@@ -502,18 +446,18 @@ function extract_rules(
     # Delete rules that have a frequency less than min_frequency
     S = begin
         # "metrics" is a vector of dictionaries that contain the metrics of a specific rule
-        metrics = metrics_rule.(S, X, Y)
-        freq_rules = [metrics[i][:frequency_rule] for i in collect(1:length(metrics))]
+        metrics = rule_metrics.(S, X, Y)
+        freq_rules = [metrics[i][:support] for i in collect(1:length(metrics))]
         idx_undeleted = findall(freq_rules .>= min_frequency) # Undeleted rule indexes
         S[idx_undeleted]
     end
 
     while true
         # Metrics update based on remaining instances
-        metrics = metrics_rule.(S, D, Y)
-        frequency_rules = [metrics[i][:frequency_rule] for i in collect(1:length(metrics))]
-        error_rules = [metrics[i][:error_rule] for i in collect(1:length(metrics))]
-        length_rules = [metrics[i][:length_rule] for i in collect(1:length(metrics))]
+        metrics = rule_metrics.(S, D, Y)
+        frequency_rules = [metrics[i][:support] for i in collect(1:length(metrics))]
+        error_rules = [metrics[i][:error] for i in collect(1:length(metrics))]
+        length_rules = [metrics[i][:length] for i in collect(1:length(metrics))]
 
         # Best rule index
         idx_best = begin
@@ -543,8 +487,8 @@ function extract_rules(
         idx_remaining = begin
             # There remain instances that do not meet the best rule's condition
             # (S[idx_best]).
-            vals_rule = evaluation_rule(S[idx_best], D, Y)
-            sat_unsat = get(vals_rule, "vals_ant", nothing)
+            eval_result = evaluate_rule(S[idx_best], D, Y)
+            sat_unsat = eval_result[:ant_sat]
             #remain in D the rule that not satisfying the best rule's condition
             findall(sat_unsat .== false)
         end
