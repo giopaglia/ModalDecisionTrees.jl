@@ -1,6 +1,6 @@
 ############################################################################################
 using Metrics: mse
-using SoleFeatures: correlation
+using SoleFeatures: findcorrelation
 using SoleLogics: operators
 
 const Consequent = Any
@@ -137,7 +137,6 @@ function extract_decisions(formula::Formula{L}) where {L<:Logic}
     function _extract_decisions(node::FNode, decs::AbstractVector{<:Decision})
         # Leaf or internal node
         if !isdefined(node, :leftchild) && !isdefined(node, :rightchild)
-            # 
             if token(node) in operators_set
                 return decs
             else
@@ -297,7 +296,7 @@ function extract_rules(
         Compute frequency, error and length of the rule
 
     # Arguments
-    - `decs::AbstractVector`: vector of decisions
+    - `decs::AbstractVector{<:Decision}`: vector of decisions
     - `cons::Consequent`: rule's consequent
     - `X::MultiFrameModalDataset`: dataset
     - `Y::AbstractVector{<:Consequent}`: target values of X
@@ -306,7 +305,7 @@ function extract_rules(
     - `AbstractVector`: metrics values vector of the rule
     """
     function rule_metrics(
-        decs::AbstractVector,
+        decs::AbstractVector{<:Decision},
         cons::Consequent,
         X::MultiFrameModalDataset,
         Y::AbstractVector{<:Consequent}
@@ -316,9 +315,8 @@ function extract_rules(
         n_instances = size(X, 1)
         n_satisfy = sum(eval_result[:ant_sat])
 
-        # Frequency of the rule
+        # Support of the rule
         rule_support =  n_satisfy / n_instances
-        metrics = merge(metrics, (support = rule_support,))
 
         # Error of the rule
         rule_error = begin
@@ -333,17 +331,19 @@ function extract_rules(
                 mse(eval_result[:y_pred][idxs_sat], Y[idxs_sat])
             end
         end
-        metrics = merge(metrics, (error = rule_error))
 
         # Length of the rule
         rule_length = length(decs)
-        metrics = merge(metrics, (length = rule_length))
 
-        return metrics
+        return (;
+            support   = rule_support,
+            error     = rule_error,
+            length    = rule_length,
+        )
     end
 
     """
-        prune_ruleset(ruleset::RuleBasedModel{L,C}) -> RuleBasedModel
+        prune_ruleset(ruleset::AbstractVector{<:Rule}) -> RuleBasedModel
 
         Prune the rules in ruleset with error metric
 
@@ -351,7 +351,7 @@ function extract_rules(
     first two rows of the function set s and decay_threshold with their default values
 
     # Arguments
-    - `ruleset::RuleBasedModel{L,C}`: rules to prune
+    - `ruleset::AbstractVector{<:Rule}`: rules to prune
 
     # Returns
     - `RuleBasedModel`: rules after the prune
@@ -455,22 +455,22 @@ function extract_rules(
     while true
         # Metrics update based on remaining instances
         metrics = rule_metrics.(S, D, Y)
-        frequency_rules = [metrics[i][:support] for i in collect(1:length(metrics))]
-        error_rules = [metrics[i][:error] for i in collect(1:length(metrics))]
-        length_rules = [metrics[i][:length] for i in collect(1:length(metrics))]
+        rules_support = [metrics[i][:support] for i in eachindex(metrics)]
+        rules_error = [metrics[i][:error] for i in eachindex(metrics)]
+        rules_length = [metrics[i][:length] for i in eachindex(metrics)]
 
         # Best rule index
         idx_best = begin
             # First: find the rule with minimum error
-            idx = findall(error_rules .== min(error_rules...))
+            idx = findall(rules_error .== min(rules_error...))
             (length(idx) == 1) && (return idx)
 
             # If not one, find the rule with maximum frequency
-            idx_frequency = findall(frequency_rules .== max(frequency_rules[idx]...))
-            (length(intersect!(idx, idx_frequency)) == 1) && (return idx)
+            idx_support = findall(rules_support .== max(rules_support[idx]...))
+            (length(intersect!(idx, idx_support)) == 1) && (return idx)
 
             # If not one, find the rule with minimum length
-            idx_length = findall(length_rules .== min(length_rules[idx]...))
+            idx_length = findall(rules_length .== min(rules_length[idx]...))
             (length(intersect!(idx, idx_length)) == 1) && (return idx)
 
             # Final case: more than one rule with minimum length
