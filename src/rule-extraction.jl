@@ -309,8 +309,7 @@ function extract_rules(
         cons::Consequent,
         X::MultiFrameModalDataset,
         Y::AbstractVector{<:Consequent}
-    ) where {L,C}
-        metrics = (;) #empty named tuple
+    )
         eval_result = evaluate_rule(decs, cons, X, Y)
         n_instances = size(X, 1)
         n_satisfy = sum(eval_result[:ant_sat])
