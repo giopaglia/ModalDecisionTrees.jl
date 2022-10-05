@@ -439,8 +439,8 @@ function extract_rules(
     D = copy(X)
     R = RuleBasedModel()  # Vector of ordered list
     S = RuleBasedModel()  # Vector of rules left
-    append!(S.rules, best_rules)
-    push!(S.rules, Rule{L}(Formula{L}(), majority_vote(Y)))
+    append!(rules(S), best_rules)
+    push!(rules(S), Rule{L}(Formula{L}(), majority_vote(Y)))
 
     # Delete rules that have a frequency less than min_frequency
     S = begin
@@ -478,7 +478,7 @@ function extract_rules(
         end
 
         # Add at the end the best rule
-        push!(R.rules, S[idx_best])
+        push!(rules(R), S[idx_best])
         # Delete the best rule from S
         deleteat!(S,idx_best)
 
@@ -494,9 +494,9 @@ function extract_rules(
 
         D = D[idx_remaining,:]
         # Update of the default rule
-        S.rules[length(S.rules)] = Rule{L}(Formula{L}(), majority_vote(Y[idx_remaining]))
+        rules(S)[length(rules(S))] = Rule{L}(Formula{L}(), majority_vote(Y[idx_remaining]))
 
-        if idx_best == length(S.rules)
+        if idx_best == length(rules(S))
             return R
         end
 
