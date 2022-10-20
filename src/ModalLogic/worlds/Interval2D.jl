@@ -1,26 +1,6 @@
+Interval2D(w::EmptyWorld) = Interval2D(Interval(w),Interval(w))
+Interval2D(w::CenteredWorld, X::Integer, Y::Integer) = Interval2D(Interval(w,X),Interval(w,Y))
 
-# 2-dimensional Interval counterpart: combination of two orthogonal Intervals
-struct Interval2D <: World
-    x :: Interval
-    y :: Interval
-    # 
-    Interval2D(x::Interval,y::Interval) = new(x,y)
-    Interval2D(w::Interval2D) = Interval2D(w.x,w.y)
-    Interval2D(x::Tuple{Integer,Integer}, y::Tuple{Integer,Integer}) = Interval2D(Interval(x),Interval(y))
-    # 
-    Interval2D(w::EmptyWorld) = Interval2D(Interval(w),Interval(w))
-    Interval2D(w::CenteredWorld, X::Integer, Y::Integer) = Interval2D(Interval(w,X),Interval(w,Y))
-end
-
-Base.show(io::IO, w::Interval2D) = begin
-    print(io, "(")
-    print(io, w.x)
-    print(io, "×")
-    print(io, w.y)
-    print(io, ")")
-end
-
-dimensionality(::Type{Interval2D}) = 2
 # n_worlds(::Type{Interval2D}, X::Integer, Y::Integer) = n_worlds(Interval, X) * n_worlds(Interval, Y)
 
 # Dimensional world type: it can be interpreted on dimensional instances.
