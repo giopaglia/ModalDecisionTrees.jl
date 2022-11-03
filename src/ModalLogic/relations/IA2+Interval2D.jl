@@ -5,14 +5,15 @@
 # Relations from 2D interval algebra are obtained from the combination of orthogonal interval relations,
 #  and are thus also referred to as rectangle algebra.
 # In this implementation, we actually use the extended set as a base: IA relations + Global relation.
-const _IABase = Union{IntervalRelation,_RelationId,_RelationGlob}
-struct RectangleRelation{R1<:_IABase,R2<:_IABase} <: DirectionalRelation
+#= const _IABase = Union{IntervalRelation,_RelationId,_RelationGlob}        # NOTE: removed
+struct RectangleRelation{R1<:_IABase,R2<:_IABase} <: DirectionalRelation # NOTE: removed
     x :: R1
     y :: R2
-end
+end =#
 
 goes_with(::Type{Interval2D}, ::RectangleRelation) = true
-
+#=
+# NOTE: begin remove
 # (12+1+1)^2-1-1 = 194 Extended 2D Interval Algebra relations
                                                               const IA_IdU  = RectangleRelation(RelationId  , RelationGlob); const IA_IdA  = RectangleRelation(RelationId   , IA_A); const IA_IdL  = RectangleRelation(RelationId   , IA_L); const IA_IdB  = RectangleRelation(RelationId   , IA_B); const IA_IdE  = RectangleRelation(RelationId   , IA_E); const IA_IdD  = RectangleRelation(RelationId   , IA_D); const IA_IdO  = RectangleRelation(RelationId   , IA_O); const IA_IdAi  = RectangleRelation(RelationId   , IA_Ai); const IA_IdLi  = RectangleRelation(RelationId   , IA_Li); const IA_IdBi  = RectangleRelation(RelationId   , IA_Bi); const IA_IdEi  = RectangleRelation(RelationId   , IA_Ei); const IA_IdDi  = RectangleRelation(RelationId   , IA_Di); const IA_IdOi  = RectangleRelation(RelationId   , IA_Oi);
 const IA_UId  = RectangleRelation(RelationGlob , RelationId);                                                                const IA_UA   = RectangleRelation(RelationGlob , IA_A); const IA_UL   = RectangleRelation(RelationGlob , IA_L); const IA_UB   = RectangleRelation(RelationGlob , IA_B); const IA_UE   = RectangleRelation(RelationGlob , IA_E); const IA_UD   = RectangleRelation(RelationGlob , IA_D); const IA_UO   = RectangleRelation(RelationGlob , IA_O); const IA_UAi   = RectangleRelation(RelationGlob , IA_Ai); const IA_ULi   = RectangleRelation(RelationGlob , IA_Li); const IA_UBi   = RectangleRelation(RelationGlob , IA_Bi); const IA_UEi   = RectangleRelation(RelationGlob , IA_Ei); const IA_UDi   = RectangleRelation(RelationGlob , IA_Di); const IA_UOi   = RectangleRelation(RelationGlob , IA_Oi);
@@ -61,6 +62,7 @@ RelationGlob,
 IA2DRelations...,
 IA2D_URelations...
 ]
+# NOTE: end remove =#
 
 # Convenience function
 _accessibles__(w::Interval, r::IntervalRelation, X::Integer) = _accessibles(w,r,X)

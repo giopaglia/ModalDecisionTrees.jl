@@ -2,7 +2,7 @@
 # RCC topological relations + definitions for Interval
 ############################################################################################
 
-abstract type RCCRelation <: TopologicalRelation end
+abstract type RCCRelation <: TopologicalRelation end # NOTE: removed
 
 goes_with(::Type{Interval}, ::RCCRelation) = true
 
@@ -16,33 +16,34 @@ goes_with(::Type{Interval}, ::RCCRelation) = true
 # - Non-tangential proper part inverse
 ############################################################################################
 # Graphical representation of R((x,y),(z,t)) for R ∈ RCC8
-# 
-#                                                  x                   y                    
-#                                                  |-------------------|                    
-#                                                  .                   .                    
-#                                                  .                   .  z        t        
-# Disconnected                         (DC)        .                   . |--------|         
-#                                                  .                   .                    
-#                                                  .                   z         t          
-# Externally connected                 (EC)        .                   |---------|          
-#                                                  .                   .                    
-#                                                  .                z     t                 
-# Partially overlapping                (PO)        .                |-----|                 
-#                                                  .                   .                    
-#                                                  .             z     t                    
-# Tangential proper part               (TPP)       .             |-----|                    
-#                                                  .                   .                    
-#                                                  z                   .     t              
-# Tangential proper part inverse       (T̅P̅P̅)       |-------------------------|              
-#                                                  .                   .                    
-#                                                  .           z       .                    
-# Non-tangential proper part           (NTPP)      .           |-----| .                    
-#                                                  .                   .                    
-#                                                z .                   . t                  
-# Non-tangential proper part inverse   (N̅T̅P̅P̅)    |-----------------------|                  
-# 
-############################################################################################
 #
+#                                                  x                   y
+#                                                  |-------------------|
+#                                                  .                   .
+#                                                  .                   .  z        t
+# Disconnected                         (DC)        .                   . |--------|
+#                                                  .                   .
+#                                                  .                   z         t
+# Externally connected                 (EC)        .                   |---------|
+#                                                  .                   .
+#                                                  .                z     t
+# Partially overlapping                (PO)        .                |-----|
+#                                                  .                   .
+#                                                  .             z     t
+# Tangential proper part               (TPP)       .             |-----|
+#                                                  .                   .
+#                                                  z                   .     t
+# Tangential proper part inverse       (T̅P̅P̅)       |-------------------------|
+#                                                  .                   .
+#                                                  .           z       .
+# Non-tangential proper part           (NTPP)      .           |-----| .
+#                                                  .                   .
+#                                                z .                   . t
+# Non-tangential proper part inverse   (N̅T̅P̅P̅)    |-----------------------|
+#
+############################################################################################
+
+# NOTE: remove begin
 # Relations for RCC8
 abstract type _TopoRelRCC8 <: RCCRelation end
 struct _Topo_DC     <: _TopoRelRCC8 end; const Topo_DC     = _Topo_DC();     # Disconnected
@@ -80,9 +81,11 @@ const RCC8Relations = [Topo_DC, Topo_EC, Topo_PO, Topo_TPP, Topo_TPPi, Topo_NTPP
 
 # 4 RCC5 Relations
 const RCC5Relations = [Topo_DR, Topo_PO, Topo_PP, Topo_PPi]
+# NOTE: remove end
 
 ############################################################################################
 
+# NOTE: remove begin
 # It is conveniente to define RCC relations as unions of IA relations
 const _TopoRelRCC8FromIA = Union{_Topo_DC,_Topo_EC,_Topo_PO,_Topo_TPP,_Topo_TPPi}
 
@@ -102,6 +105,7 @@ RCC52RCC8Relations(::_Topo_PPi)  = [Topo_TPPi,  Topo_NTPPi]
 RCC52IARelations(::_Topo_DR)   = [IA_L,  IA_Li,  IA_A,  IA_Ai]
 RCC52IARelations(::_Topo_PP)   = [IA_B,  IA_E,   IA_D]
 RCC52IARelations(::_Topo_PPi)  = [IA_Bi, IA_Ei,  IA_Di]
+# NOTE: remove end
 
 # Enumerate accessible worlds from a single world
 _accessibles(w::Interval, r::_TopoRelRCC8FromIA,    X::Integer) = Iterators.flatten((_accessibles(w, IA_r,  X) for IA_r in topo2IARelations(r)))
@@ -156,4 +160,3 @@ compute_modal_gamma(test_operator::CanonicalFeatureLeq, w::Interval, r::_TopoRel
 end
 
 =#
-    

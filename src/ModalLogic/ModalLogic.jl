@@ -16,6 +16,8 @@ using IterTools
 using Logging: @logmsg
 using ResumableFunctions
 
+using SoleLogics.Relations # NOTE: new dependency
+
 import Base: size, show, getindex, iterate, length, push!
 
 export World, Relation,
@@ -68,7 +70,7 @@ WorldSet{W}(S::WorldSet{W}) where {W<:World} = S
 ############################################################################################
 
 # Abstract types for relations
-abstract type Relation end
+# abstract type Relation end # NOTE: removed
 
 # Relations must indicate their compatible world types via `goes_with`.
 #  For example, if world type W is compatible with relation R
@@ -123,9 +125,9 @@ accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::Relation, args..
 ############################################################################################
 
 # Identity relation: any world -> itself
-struct _RelationId    <: Relation end; const RelationId   = _RelationId();
+# struct _RelationId    <: Relation end; const RelationId   = _RelationId(); # NOTE: removed
 
-Base.show(io::IO, ::_RelationId) = print(io, "=")
+# Base.show(io::IO, ::_RelationId) = print(io, "=") # NOTE: removed
 
 accessibles(w::WorldType,           ::_RelationId, args...) where {WorldType<:World} = [w] # TODO try IterTools.imap(identity, [w])
 accessibles(S::AbstractWorldSet{W}, ::_RelationId, args...) where {W<:World} = S # TODO try IterTools.imap(identity, S)
@@ -135,9 +137,9 @@ accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::_RelationId,    
 ############################################################################################
 
 # Global relation:  any world -> all worlds
-struct _RelationGlob   <: Relation end; const RelationGlob  = _RelationGlob();
+# struct _RelationGlob   <: Relation end; const RelationGlob  = _RelationGlob(); # NOTE: removed
 
-Base.show(io::IO, ::_RelationGlob) = print(io, "G")
+# Base.show(io::IO, ::_RelationGlob) = print(io, "G") # NOTE: removed
 
 # Note: these methods must be defined for any newly defined world type WT:
 # `accessibles(w::WT,           ::_RelationGlob, args...)`
@@ -357,17 +359,17 @@ const PassiveModalDataset{T} = Union{DimensionalDataset{T}}
 # Active datasets comprehend structures for representing relation sets, features, enumerating worlds,
 #  etc. While learning a model can be done only with active modal datasets, testing a model
 #  can be done with both active and passive modal datasets.
-# 
+#
 abstract type ActiveModalDataset{T<:Number,WorldType<:World} end
-# 
+#
 # Active modal datasets hold the WorldType, and thus can initialize world sets with a lighter interface
 #
 init_world_sets_fun(imd::ActiveModalDataset{T, WorldType},  i_sample::Integer, ::Type{WorldType}) where {T, WorldType} =
     init_world_sets_fun(imd, i_sample)
-# 
+#
 # By default an active modal dataset cannot be miniaturized
 isminifiable(::ActiveModalDataset) = false
-# 
+#
 const ModalDataset{T} = Union{PassiveModalDataset{T},ActiveModalDataset{T}}
 #
 include("active-modal-datasets.jl")
@@ -390,10 +392,10 @@ const GenericModalDataset = Union{ModalDataset,MultiFrameModalDataset}
 ############################################################################################
 
 # Directional relations
-abstract type DirectionalRelation <: Relation end
+# abstract type DirectionalRelation <: Relation end # NOTE: removed
 
 # Topological relations
-abstract type TopologicalRelation <: Relation end
+# abstract type TopologicalRelation <: Relation end # NOTE: removed
 
 # Here are the definitions for world types and relations for known modal logics
 #
