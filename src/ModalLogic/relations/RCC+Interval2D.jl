@@ -1,3 +1,5 @@
+using SoleLogics.Relations
+
 ############################################################################################
 # RCC topological relations + definitions for Interval2D
 ############################################################################################
@@ -7,7 +9,7 @@ goes_with(::Type{Interval2D}, ::RCCRelation) = true
 ############################################################################################
 # Methods for RCC8 relations and Interval2D's can be obtained by combining their 1D versions.
 # Consider the following table:
-#  
+#
 #                      .-------------------------------------------------------.
 #                      |         DC   EC   PO   TPP   T̅P̅P̅   NTPP   N̅T̅P̅P̅    Id  |
 #                      |-------------------------------------------------------|
@@ -20,7 +22,7 @@ goes_with(::Type{Interval2D}, ::RCCRelation) = true
 #                      | N̅T̅P̅P̅ |  DC | EC | PO | PO  | T̅P̅P̅ |  PO  | N̅T̅P̅P̅ |  T̅P̅P̅ |
 #                      |  Id  |  DC | EC | PO | TPP | T̅P̅P̅ |  TPP |  T̅P̅P̅ |  Id  |
 #                      '-------------------------------------------------------'
-#  
+#
 ############################################################################################
 
 _accessibles(w::Interval2D, ::_Topo_DC,    X::Integer, Y::Integer) =

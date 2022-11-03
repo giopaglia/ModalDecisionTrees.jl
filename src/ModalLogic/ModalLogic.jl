@@ -18,6 +18,8 @@ using ResumableFunctions
 
 using SoleLogics.Relations # NOTE: new dependency
 
+# import .SoleLogics.Relations
+
 import Base: size, show, getindex, iterate, length, push!
 
 export World, Relation,
@@ -68,9 +70,6 @@ WorldSet{W}(S::WorldSet{W}) where {W<:World} = S
 ############################################################################################
 # Relations
 ############################################################################################
-
-# Abstract types for relations
-# abstract type Relation end # NOTE: removed
 
 # Relations must indicate their compatible world types via `goes_with`.
 #  For example, if world type W is compatible with relation R
@@ -124,22 +123,12 @@ accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::Relation, args..
 # Singletons representing natural relations
 ############################################################################################
 
-# Identity relation: any world -> itself
-# struct _RelationId    <: Relation end; const RelationId   = _RelationId(); # NOTE: removed
-
-# Base.show(io::IO, ::_RelationId) = print(io, "=") # NOTE: removed
-
 accessibles(w::WorldType,           ::_RelationId, args...) where {WorldType<:World} = [w] # TODO try IterTools.imap(identity, [w])
 accessibles(S::AbstractWorldSet{W}, ::_RelationId, args...) where {W<:World} = S # TODO try IterTools.imap(identity, S)
 
 accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::_RelationId,      args...) where {WorldType<:World} = accessibles(w, r, args...)
 
 ############################################################################################
-
-# Global relation:  any world -> all worlds
-# struct _RelationGlob   <: Relation end; const RelationGlob  = _RelationGlob(); # NOTE: removed
-
-# Base.show(io::IO, ::_RelationGlob) = print(io, "G") # NOTE: removed
 
 # Note: these methods must be defined for any newly defined world type WT:
 # `accessibles(w::WT,           ::_RelationGlob, args...)`
@@ -390,12 +379,6 @@ const GenericModalDataset = Union{ModalDataset,MultiFrameModalDataset}
 ############################################################################################
 # Ontologies
 ############################################################################################
-
-# Directional relations
-# abstract type DirectionalRelation <: Relation end # NOTE: removed
-
-# Topological relations
-# abstract type TopologicalRelation <: Relation end # NOTE: removed
 
 # Here are the definitions for world types and relations for known modal logics
 #
