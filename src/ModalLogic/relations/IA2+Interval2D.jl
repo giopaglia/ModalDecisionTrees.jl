@@ -1,4 +1,3 @@
-using SoleLogics.Relations
 
 ############################################################################################
 # Interval Algebra 2D relations + definitions for Interval2D

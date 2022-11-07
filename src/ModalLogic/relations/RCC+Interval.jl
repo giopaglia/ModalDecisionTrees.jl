@@ -1,4 +1,3 @@
-using SoleLogics.Relations
 
 ############################################################################################
 # RCC topological relations + definitions for Interval

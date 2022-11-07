@@ -86,6 +86,7 @@ include("test-operators.jl")
 include("ModalLogic/ModalLogic.jl")
 
 using .ModalLogic
+using SoleLogics.Worlds
 import .ModalLogic: n_samples, display_decision
 
 ############################################################################################

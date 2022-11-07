@@ -1,8 +1,7 @@
+
 ############################################################################################
 # Allen's Interval Algebra relations + definitions for Interval
 ############################################################################################
-
-using SoleLogics.Relations
 
 # Interval directional relations
 # abstract type IntervalRelation <: DirectionalRelation end # NOTE: removed

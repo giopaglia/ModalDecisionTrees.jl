@@ -17,33 +17,23 @@ using Logging: @logmsg
 using ResumableFunctions
 
 using SoleLogics.Relations # NOTE: new dependency
-
-# import .SoleLogics.Relations
+using SoleLogics.Worlds    # NOTE: new dependency
 
 import Base: size, show, getindex, iterate, length, push!
 
-export World, Relation,
-       Ontology,
-       AbstractWorldSet, WorldSet,
-       RelationGlob, RelationId,
-       world_type, world_types
+# This is a reexport from SoleLogics.Relations and SoleLogics.Worlds
+export World, Relation
+export AbstractWorldSet, WorldSet
+export RelationGlob, RelationId
+export AbstractWorldSet, WorldSet
+export RelationGlob, RelationId
+
+export Ontology, world_type, world_types
 
 # Fix (not needed from Julia 1.7, see https://github.com/JuliaLang/julia/issues/34674 )
 if length(methods(Base.keys, (Base.Generator,))) == 0
     Base.keys(g::Base.Generator) = g.iter
 end
-
-############################################################################################
-# Worlds
-############################################################################################
-
-# Abstract types for worlds
-abstract type World end
-
-# These constants is used for specifying different initial world conditions for each world type
-#  (e.g. Interval(::EmptyWorld) = Interval(-1,0))
-struct EmptyWorld end;
-struct CenteredWorld end;
 
 # More specifically, any world type W must provide constructors for:
 # `W(::EmptyWorld)` # A dummy world (= no world in particular)
@@ -58,14 +48,6 @@ struct CenteredWorld end;
 #  a `dimensionality` method indicating the number of dimensions of a modal channel size
 # dimensionality(::Type{W})
 # For example, dimensionality(Interval) = 1.
-
-# For convenience, each world type can be instantiated with a tuple of values, one for each field.
-(W::Type{<:World})(args::Tuple) = W(args...)
-
-# World enumerators generate array/set-like structures
-const AbstractWorldSet{W} = Union{AbstractVector{W},AbstractSet{W}} where {W<:World}
-const WorldSet{W} = Vector{W} where {W<:World}
-WorldSet{W}(S::WorldSet{W}) where {W<:World} = S
 
 ############################################################################################
 # Relations
