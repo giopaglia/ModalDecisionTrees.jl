@@ -1,8 +1,3 @@
-
-############################################################################################
-# Interval Algebra 2D relations + definitions for Interval2D
-############################################################################################
-
 goes_with(::Type{Interval2D}, ::RectangleRelation) = true
 
 # Convenience function

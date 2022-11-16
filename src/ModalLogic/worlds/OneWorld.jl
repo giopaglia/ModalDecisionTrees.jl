@@ -1,22 +1,3 @@
-# NOTE: removed
-#=
-export OneWorld
-
-# One unique world (propositional case)
-struct OneWorld    <: World
-    OneWorld() = new()
-    #
-    OneWorld(w::EmptyWorld) = new()
-    OneWorld(w::CenteredWorld, args...) = new()
-end;
-
-Base.show(io::IO, w::OneWorld) = begin
-    print(io, "−")
-end
-
-dimensionality(::Type{OneWorld}) = 0
-=#
-
 # Dimensional world type: it can be interpreted on dimensional instances.
 interpret_world(::OneWorld, instance::DimensionalInstance{T,1}) where {T} = instance
 

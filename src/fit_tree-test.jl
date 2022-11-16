@@ -23,7 +23,7 @@ end
 
 Xs = MultiFrameModalDataset{ExplicitModalDatasetS}([
     ExplicitModalDatasetS(
-        InterpretedModalDataset(randn(n_pts, n_attrs, _n_samples), ModalLogic.get_interval_ontology(1), features, featsnops),
+        InterpretedModalDataset(randn(n_pts, n_attrs, _n_samples), ModalDecisionTrees.get_interval_ontology(1), features, featsnops),
         compute_relation_glob = true,
     )
 ]);

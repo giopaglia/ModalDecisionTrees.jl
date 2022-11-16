@@ -35,6 +35,72 @@ if length(methods(Base.keys, (Base.Generator,))) == 0
     Base.keys(g::Base.Generator) = g.iter
 end
 
+############################################################################################
+
+# Concrete type for ontologies
+# An ontology is a pair `world type` + `set of relations`, and represents the kind of
+#  modal frame that underlies a certain logic
+struct Ontology{WorldType<:World}
+
+    relations :: AbstractVector{<:Relation}
+
+    function Ontology{WorldType}(_relations::AbstractVector) where {WorldType<:World}
+        _relations = collect(unique(_relations))
+        for relation in _relations
+            @assert goes_with(WorldType, relation) "Can't instantiate Ontology{$(WorldType)} with relation $(relation)!"
+        end
+        if WorldType == OneWorld && length(_relations) > 0
+          _relations = similar(_relations, 0)
+          @warn "Instantiating Ontology{$(WorldType)} with empty set of relations!"
+        end
+        new{WorldType}(_relations)
+    end
+
+    Ontology(worldType::Type{<:World}, relations) = Ontology{worldType}(relations)
+end
+
+world_type(::Ontology{WT}) where {WT<:World} = WT
+relations(o::Ontology) = o.relations
+
+Base.show(io::IO, o::Ontology{WT}) where {WT<:World} = begin
+    if o == OneWorldOntology
+        print(io, "OneWorldOntology")
+    else
+        print(io, "Ontology{")
+        show(io, WT)
+        print(io, "}(")
+        if issetequal(relations(o), IARelations)
+            print(io, "IA")
+        elseif issetequal(relations(o), IARelations_extended)
+            print(io, "IA_extended")
+        elseif issetequal(relations(o), IA2DRelations)
+            print(io, "IA²")
+        elseif issetequal(relations(o), IA2D_URelations)
+            print(io, "IA²_U")
+        elseif issetequal(relations(o), IA2DRelations_extended)
+            print(io, "IA²_extended")
+        elseif issetequal(relations(o), RCC8Relations)
+            print(io, "RCC8")
+        elseif issetequal(relations(o), RCC5Relations)
+            print(io, "RCC5")
+        else
+            show(io, relations(o))
+        end
+        print(io, ")")
+    end
+end
+
+############################################################################################
+
+############################################################################################
+# Worlds
+############################################################################################
+
+# These constants is used for specifying different initial world conditions for each world type
+#  (e.g. Interval(::EmptyWorld) = Interval(-1,0))
+struct EmptyWorld end;
+struct CenteredWorld end;
+
 # More specifically, any world type W must provide constructors for:
 # `W(::EmptyWorld)` # A dummy world (= no world in particular)
 # `W(::CenteredWorld, args...)` # A world that is *central* to the modal frame
@@ -44,20 +110,9 @@ end
 # interpret_world(::W, modal_instance)
 # Note: for dimensional world types: modal_instance::DimensionalInstance
 
-# Dimensional world types are interpreted on DimensionalInstances, and must also provide
-#  a `dimensionality` method indicating the number of dimensions of a modal channel size
-# dimensionality(::Type{W})
-# For example, dimensionality(Interval) = 1.
-
 ############################################################################################
 # Relations
 ############################################################################################
-
-# Relations must indicate their compatible world types via `goes_with`.
-#  For example, if world type W is compatible with relation R
-# goes_with(::Type{W}, ::R) = true
-# Here's the fallback:
-goes_with(::Type{W}, ::Relation) where {W<:World} = false
 
 # Relations are defined via methods that return iterators the accessible worlds.
 # Each relation R<:Relation must provide a method for `accessibles`, which returns an iterator
@@ -123,61 +178,6 @@ accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::_RelationId,    
 all_worlds(::Type{WorldType}, args...) where {WorldType<:World} = accessibles(WorldType[], RelationGlob, args...)
 all_worlds(::Type{WorldType}, enum_acc_fun::Function) where {WorldType<:World} = enum_acc_fun(WorldType[], RelationGlob)
 all_worlds_aggr(::Type{WorldType}, enum_repr_fun::Function, f::ModalFeature, a::Aggregator) where {WorldType<:World} = enum_repr_fun(f, a, WorldType[], RelationGlob)
-
-############################################################################################
-
-# Concrete type for ontologies
-# An ontology is a pair `world type` + `set of relations`, and represents the kind of
-#  modal frame that underlies a certain logic
-struct Ontology{WorldType<:World}
-
-    relations :: AbstractVector{<:Relation}
-
-    function Ontology{WorldType}(_relations::AbstractVector) where {WorldType<:World}
-        _relations = collect(unique(_relations))
-        for relation in _relations
-            @assert goes_with(WorldType, relation) "Can't instantiate Ontology{$(WorldType)} with relation $(relation)!"
-        end
-        if WorldType == OneWorld && length(_relations) > 0
-          _relations = similar(_relations, 0)
-          @warn "Instantiating Ontology{$(WorldType)} with empty set of relations!"
-        end
-        new{WorldType}(_relations)
-    end
-
-    Ontology(worldType::Type{<:World}, relations) = Ontology{worldType}(relations)
-end
-
-world_type(::Ontology{WT}) where {WT<:World} = WT
-relations(o::Ontology) = o.relations
-
-Base.show(io::IO, o::Ontology{WT}) where {WT<:World} = begin
-    if o == OneWorldOntology
-        print(io, "OneWorldOntology")
-    else
-        print(io, "Ontology{")
-        show(io, WT)
-        print(io, "}(")
-        if issetequal(relations(o), IARelations)
-            print(io, "IA")
-        elseif issetequal(relations(o), IARelations_extended)
-            print(io, "IA_extended")
-        elseif issetequal(relations(o), IA2DRelations)
-            print(io, "IA²")
-        elseif issetequal(relations(o), IA2D_URelations)
-            print(io, "IA²_U")
-        elseif issetequal(relations(o), IA2DRelations_extended)
-            print(io, "IA²_extended")
-        elseif issetequal(relations(o), RCC8Relations)
-            print(io, "RCC8")
-        elseif issetequal(relations(o), RCC5Relations)
-            print(io, "RCC5")
-        else
-            show(io, relations(o))
-        end
-        print(io, ")")
-    end
-end
 
 ############################################################################################
 # Decision
@@ -364,53 +364,9 @@ const GenericModalDataset = Union{ModalDataset,MultiFrameModalDataset}
 
 # Here are the definitions for world types and relations for known modal logics
 #
-
 export get_ontology,
        get_interval_ontology
 
-############################################################################################
-# Dimensionality: 0
-
-# World type definitions for the propositional case, where there exist only one world,
-#  and `Decision`s only allow the RelationId.
-include("worlds/OneWorld.jl")                 # <- OneWorld world type
-
-const OneWorldOntology   = Ontology{OneWorld}(Relation[])
-
-############################################################################################
-# Dimensionality: 1
-
-# World type definitions for punctual logics, where worlds are points
-# include("worlds/PointWorld.jl")
-
-# World type definitions for interval logics, where worlds are intervals
-include("worlds/Interval.jl")                 # <- Interval world type
-include("relations/IA+Interval.jl")       # <- Allen relations
-include("relations/RCC+Interval.jl")    # <- RCC relations
-
-const IntervalOntology       = Ontology{Interval}(IARelations)
-const Interval3Ontology      = Ontology{ModalLogic.Interval}(ModalLogic.IA7Relations)
-const Interval7Ontology      = Ontology{ModalLogic.Interval}(ModalLogic.IA3Relations)
-
-const IntervalRCC8Ontology   = Ontology{Interval}(RCC8Relations)
-const IntervalRCC5Ontology   = Ontology{Interval}(RCC5Relations)
-
-############################################################################################
-# Dimensionality: 2
-
-# World type definitions for 2D iterval logics, where worlds are rectangles
-#  parallel to a frame of reference.
-include("worlds/Interval2D.jl")               # <- Interval2D world type
-include("relations/IA2+Interval2D.jl")     # <- Allen relations
-include("relations/RCC+Interval2D.jl")  # <- RCC relations
-
-const Interval2DOntology     = Ontology{Interval2D}(IA2DRelations)
-const Interval2DRCC8Ontology = Ontology{Interval2D}(RCC8Relations)
-const Interval2DRCC5Ontology = Ontology{Interval2D}(RCC5Relations)
-
-############################################################################################
-
-get_ontology(::DimensionalDataset{T,D}, args...) where {T,D} = get_ontology(Val(D-2), args...)
 get_ontology(N::Integer, args...) = get_ontology(Val(N), args...)
 get_ontology(::Val{0}, args...) = OneWorldOntology
 function get_ontology(::Val{1}, world = :interval, relations::Union{Symbol,AbstractVector{<:Relation}} = :IA)
@@ -459,13 +415,62 @@ function get_ontology(::Val{2}, world = :interval, relations::Union{Symbol,Abstr
     end
 end
 
-get_interval_ontology(::DimensionalDataset{T,D}, args...) where {T,D} = get_interval_ontology(Val(D-2), args...)
+############################################################################################
+
 get_interval_ontology(N::Integer, args...) = get_interval_ontology(Val(N), args...)
 get_interval_ontology(N::Val, relations::Union{Symbol,AbstractVector{<:Relation}} = :IA) = get_ontology(N, :interval, relations)
 
+############################################################################################
+# Dimensionality: 0
+
+export OneWorld
+
+# World type definitions for the propositional case, where there exist only one world,
+#  and `Decision`s only allow the RelationId.
+include("worlds/OneWorld.jl")                 # <- OneWorld world type
+
+const OneWorldOntology   = Ontology{OneWorld}(Relation[])
+
+############################################################################################
+# Dimensionality: 1
+
+# World type definitions for punctual logics, where worlds are points
+# include("worlds/PointWorld.jl")
+
+# World type definitions for interval logics, where worlds are intervals
+include("worlds/Interval.jl")                 # <- Interval world type
+include("bindings/IA+Interval.jl")       # <- Allen relations
+include("bindings/RCC+Interval.jl")    # <- RCC relations
+
+const IntervalOntology       = Ontology{Interval}(IARelations)
+const Interval3Ontology      = Ontology{ModalLogic.Interval}(ModalLogic.IA7Relations)
+const Interval7Ontology      = Ontology{ModalLogic.Interval}(ModalLogic.IA3Relations)
+
+const IntervalRCC8Ontology   = Ontology{Interval}(RCC8Relations)
+const IntervalRCC5Ontology   = Ontology{Interval}(RCC5Relations)
+
+############################################################################################
+# Dimensionality: 2
+
+# World type definitions for 2D iterval logics, where worlds are rectangles
+#  parallel to a frame of reference.
+include("worlds/Interval2D.jl")               # <- Interval2D world type
+include("bindings/IA2+Interval2D.jl")     # <- Allen relations
+include("bindings/RCC+Interval2D.jl")  # <- RCC relations
+
+const Interval2DOntology     = Ontology{Interval2D}(IA2DRelations)
+const Interval2DRCC8Ontology = Ontology{Interval2D}(RCC8Relations)
+const Interval2DRCC5Ontology = Ontology{Interval2D}(RCC5Relations)
+
+############################################################################################
+
+# Default
 const WorldType0D = Union{OneWorld}
 const WorldType1D = Union{Interval}
 const WorldType2D = Union{Interval2D}
+
+get_ontology(::DimensionalDataset{T,D}, args...) where {T,D} = get_ontology(Val(D-2), args...)
+get_interval_ontology(::DimensionalDataset{T,D}, args...) where {T,D} = get_interval_ontology(Val(D-2), args...)
 
 ############################################################################################
 # World-specific featured world datasets and supports
