@@ -175,7 +175,7 @@ end
     ) where {T, N, D, WorldType<:World}
 
         @assert allow_no_instances || n_samples(domain) > 0 "Can't instantiate InterpretedModalDataset{$(T), $(N), $(WorldType)} with no instance. (domain's type $(typeof(domain)))"
-        @assert goes_with_dimensionality(WorldType, N) "ERROR! Dimensionality mismatch: can't interpret WorldType $(WorldType) on DimensionalDataset of dimensionality = $(N)"
+        @assert goes_with_goes_with_dimensionality(WorldType, N) "ERROR! Dimensionality mismatch: can't interpret WorldType $(WorldType) on DimensionalDataset of dimensionality = $(N)"
         @assert D == (N+1+1) "ERROR! Dimensionality mismatch: can't instantiate InterpretedModalDataset{$(T), $(N)} with DimensionalDataset{$(T),$(D)}"
         @assert length(features) == length(grouped_featsaggrsnops) "Can't instantiate InterpretedModalDataset{$(T), $(N), $(WorldType)} with mismatching length(features) == length(grouped_featsaggrsnops): $(length(features)) != $(length(grouped_featsaggrsnops))"
         # @assert length(grouped_featsaggrsnops) > 0 && sum(length.(grouped_featsaggrsnops)) > 0 && sum(vcat([[length(test_ops) for test_ops in aggrs] for aggrs in grouped_featsaggrsnops]...)) > 0 "Can't instantiate ExplicitModalDataset{$(T), $(WorldType)} with no test operator: $(grouped_featsaggrsnops)"

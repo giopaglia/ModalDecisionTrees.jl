@@ -111,7 +111,7 @@ _accessibles(w::Interval2D, ::_Topo_NTPPi, X::Integer, Y::Integer) =
 
 ############################################################################################
 
-_accessibles(w::Interval2D, r::_TopoRelRCC5,  XYZ::Vararg{Integer,2}) =
+_accessibles(w::Interval2D, r::RCC5Relation,  XYZ::Vararg{Integer,2}) =
     Iterators.flatten((_accessibles(w, IA_r,  XYZ...) for IA_r in RCC52IARelations(r)))
     # Iterators.flatten((_accessibles(w, RCC8_r,  XYZ...) for RCC8_r in RCC52RCC8Relations(r)))
     # Iterators.flatten((_accessibles(w, IA_r,  XYZ...) for RCC8_r in RCC52RCC8Relations(r) for IA_r in topo2IARelations(RCC8_r)))

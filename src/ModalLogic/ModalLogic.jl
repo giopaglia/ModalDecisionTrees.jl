@@ -16,15 +16,13 @@ using IterTools
 using Logging: @logmsg
 using ResumableFunctions
 
-using SoleLogics.Relations # NOTE: new dependency
-using SoleLogics.Worlds    # NOTE: new dependency
+using SoleLogics.Relations
+using SoleLogics.Worlds
 
 import Base: size, show, getindex, iterate, length, push!
 
 # This is a reexport from SoleLogics.Relations and SoleLogics.Worlds
 export World, Relation
-export AbstractWorldSet, WorldSet
-export RelationGlob, RelationId
 export AbstractWorldSet, WorldSet
 export RelationGlob, RelationId
 
@@ -96,16 +94,7 @@ end
 # Worlds
 ############################################################################################
 
-# These constants is used for specifying different initial world conditions for each world type
-#  (e.g. Interval(::EmptyWorld) = Interval(-1,0))
-struct EmptyWorld end;
-struct CenteredWorld end;
-
-# More specifically, any world type W must provide constructors for:
-# `W(::EmptyWorld)` # A dummy world (= no world in particular)
-# `W(::CenteredWorld, args...)` # A world that is *central* to the modal frame
-
-# Any world type W must also provide an `interpret_world` method for interpreting a world
+# Any world type W must provide an `interpret_world` method for interpreting a world
 #  onto a modal instance:
 # interpret_world(::W, modal_instance)
 # Note: for dimensional world types: modal_instance::DimensionalInstance
