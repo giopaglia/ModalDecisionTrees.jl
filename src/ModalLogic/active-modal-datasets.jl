@@ -866,7 +866,7 @@ struct ExplicitModalDatasetS{T<:Number, WorldType<:World} <: ExplicitModalDatase
     end
 
     function ExplicitModalDatasetS{T, WorldType}(
-        emd                 :: ExplicitModalDataset{T, WorldType};
+        emd                   :: ExplicitModalDataset{T, WorldType};
         compute_relation_glob :: Bool = true,
     ) where {T,WorldType<:World}
 
@@ -952,7 +952,7 @@ mutable struct ExplicitModalDatasetSMemo{T<:Number, WorldType<:World} <: Explici
     end
 
     function ExplicitModalDatasetSMemo{T, WorldType}(
-        emd                 :: ExplicitModalDataset{T, WorldType};
+        emd                   :: ExplicitModalDataset{T, WorldType};
         compute_relation_glob :: Bool = true,
     ) where {T,WorldType<:World}
 
@@ -1536,7 +1536,7 @@ function modal_step(
     # TODO space for optimization here: with some relations (e.g. IA_A, IA_L) can be made smaller
 
     if returns_survivors isa Val{true}
-        worlds_map = Dict{World,AbstractWorldSet{WorldType}}()
+        worlds_map = Dict{WorldType,AbstractWorldSet{WorldType}}()
     end
     if length(worlds) == 0
         # If there are no neighboring worlds, then the modal decision is not met
@@ -1550,8 +1550,12 @@ function modal_step(
         # List all accessible worlds
         acc_worlds =
             if returns_survivors isa Val{true}
+                l = Threads.Condition()
                 Threads.@threads for curr_w in worlds
-                    worlds_map[curr_w] = accessibles_fun(X, i_sample)(curr_w, decision.relation)
+                    acc = accessibles_fun(X, i_sample)(curr_w, decision.relation) |> collect
+                    lock(l)
+                    worlds_map[curr_w] = acc
+                    unlock(l)
                 end
                 unique(cat([ worlds_map[k] for k in keys(worlds_map) ]...; dims = 1))
             else
