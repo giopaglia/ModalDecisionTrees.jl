@@ -707,17 +707,17 @@ const _IA2DRelVal = Union{_IA_A,_IA_Ai,_IA_B,_IA_E}
 
 #=
 
-computeModalThresholdDual(test_operator::CanonicalFeatureGeq, w::Interval2D, r::_TopoRelRCC5, channel::DimensionalChannel{T,2}) where {T} = begin
+computeModalThresholdDual(test_operator::CanonicalFeatureGeq, w::Interval2D, r::RCC5Relation, channel::DimensionalChannel{T,2}) where {T} = begin
   maxExtrema(
     map((RCC8_r)->(computeModalThresholdDual(test_operator, w, RCC8_r, channel)), RCC52RCC8Relations(r))
   )
 end
-compute_modal_gamma(test_operator::CanonicalFeatureGeq, w::Interval2D, r::_TopoRelRCC5, channel::DimensionalChannel{T,2}) where {T} = begin
+compute_modal_gamma(test_operator::CanonicalFeatureGeq, w::Interval2D, r::RCC5Relation, channel::DimensionalChannel{T,2}) where {T} = begin
   maximum(
     map((RCC8_r)->(compute_modal_gamma(test_operator, w, RCC8_r, channel)), RCC52RCC8Relations(r))
   )
 end
-compute_modal_gamma(test_operator::CanonicalFeatureLeq, w::Interval2D, r::_TopoRelRCC5, channel::DimensionalChannel{T,2}) where {T} = begin
+compute_modal_gamma(test_operator::CanonicalFeatureLeq, w::Interval2D, r::RCC5Relation, channel::DimensionalChannel{T,2}) where {T} = begin
   mininimum(
     map((RCC8_r)->(compute_modal_gamma(test_operator, w, RCC8_r, channel)), RCC52RCC8Relations(r))
   )

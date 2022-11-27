@@ -47,7 +47,8 @@ display_feature(f::MultiAttributeFeature,         args...; kwargs...) = "$(f.f)"
 
 abstract type SingleAttributeFeature <: DimensionalFeature end
 
-attribute_name(f::SingleAttributeFeature; attribute_names_map::Union{Nothing,AbstractDict,AbstractVector} = nothing) = (isnothing(attribute_names_map) ? "A$(f.i_attribute)" : "$(attribute_names_map[f.i_attribute])")
+i_attribute(f::SingleAttributeFeature) = f.i_attribute
+attribute_name(f::SingleAttributeFeature; attribute_names_map::Union{Nothing,AbstractDict,AbstractVector} = nothing) = (isnothing(attribute_names_map) ? "A$(i_attribute(f))" : "$(attribute_names_map[i_attribute(f)])")
 
 
 # A feature can be just a name

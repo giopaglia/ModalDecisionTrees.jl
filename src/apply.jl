@@ -1,6 +1,8 @@
 using StatsBase
 export apply_tree, apply_forest, apply_model, print_apply, tree_walk_metrics
 
+import MLJ: predict
+
 ############################################################################################
 ############################################################################################
 ############################################################################################
@@ -334,7 +336,7 @@ function apply(
 end
 
 # function apply(tree::DTNode{T, L}, X::DimensionalDataset{T,D}, Y::AbstractVector{<:L}; reset_leaves = true, update_labels = false) where {L, T, D}
-#   return apply(DTree(tree, [world_type(ModalLogic.get_interval_ontology(Val(D-2)))], [start_without_world]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
+#   return apply(DTree(tree, [world_type(ModalDecisionTrees.get_interval_ontology(Val(D-2)))], [start_without_world]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
 # end
 
 ############################################################################################

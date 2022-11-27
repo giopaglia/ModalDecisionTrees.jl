@@ -63,7 +63,7 @@ include("metrics.jl")
 ############################################################################################
 
 export slice_dataset, concat_datasets,
-       n_samples, n_attributes, max_channel_size
+       nframes, n_samples, n_attributes, max_channel_size
 
 include("dimensional-dataset.jl")
 
@@ -86,6 +86,7 @@ include("test-operators.jl")
 include("ModalLogic/ModalLogic.jl")
 
 using .ModalLogic
+using SoleLogics.Worlds
 import .ModalLogic: n_samples, display_decision
 
 ############################################################################################

@@ -101,7 +101,7 @@ function slice_dataset(fwd::IntervalFWD{T}, inds::AbstractVector{<:Integer}; all
 end
 Base.@propagate_inbounds @inline fwd_get_channel(fwd::IntervalFWD{T}, i_sample::Integer, i_feature::Integer) where {T} =
     @views fwd.d[:,:,i_sample, i_feature]
-const IntervalFeaturedChannel{T} = AbstractArray{T, 2}
+const IntervalFeaturedChannel{T} = Array{T, 2}
 fwd_channel_interpret_world(fwc::IntervalFeaturedChannel{T}, w::Interval) where {T} =
     fwc[w.x, w.y]
 
@@ -154,7 +154,7 @@ function slice_dataset(fwd::Interval2DFWD{T}, inds::AbstractVector{<:Integer}; a
 end
 Base.@propagate_inbounds @inline fwd_get_channel(fwd::Interval2DFWD{T}, i_sample::Integer, i_feature::Integer) where {T} =
     @views fwd.d[:,:,:,:,i_sample, i_feature]
-const Interval2DFeaturedChannel{T} = AbstractArray{T, 4}
+const Interval2DFeaturedChannel{T} = Array{T, 4}
 fwd_channel_interpret_world(fwc::Interval2DFeaturedChannel{T}, w::Interval2D) where {T} =
     fwc[w.x.x, w.x.y, w.y.x, w.y.y]
 
@@ -205,7 +205,7 @@ end
 ############################################################################################
 
 struct OneWorldFWD_RS{T} <: AbstractRelationalSupport{T, OneWorld}
-    d :: AbstractArray{T, 3}
+    d :: Array{T, 3}
 end
 
 n_samples(emds::OneWorldFWD_RS{T}) where {T}     = size(emds, 1)
@@ -246,7 +246,7 @@ end
 
 
 struct IntervalFWD_RS{T} <: AbstractRelationalSupport{T, Interval}
-    d :: AbstractArray{T, 5}
+    d :: Array{T, 5}
 end
 
 n_samples(emds::IntervalFWD_RS{T}) where {T}     = size(emds, 3)
@@ -291,7 +291,7 @@ end
 ############################################################################################
 
 # struct Interval2DFWD_RS{T} <: AbstractRelationalSupport{T, Interval2D}
-#   d :: AbstractArray{T, 7}
+#   d :: Array{T, 7}
 # end
 
 # n_samples(emds::Interval2DFWD_RS{T}) where {T}     = size(emds, 5)
@@ -333,7 +333,7 @@ end
 ############################################################################################
 
 struct Interval2DFWD_RS{T} <: AbstractRelationalSupport{T, Interval2D}
-    d :: AbstractArray{T, 5}
+    d :: Array{T, 5}
 end
 
 n_samples(emds::Interval2DFWD_RS{T}) where {T}     = size(emds, 3)
