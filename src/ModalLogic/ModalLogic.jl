@@ -103,7 +103,7 @@ end
 # Relations
 ############################################################################################
 
-# Relations are defined via methods that return iterators the accessible worlds.
+# Relations are defined via methods that return iterators to the accessible worlds.
 # Each relation R<:Relation must provide a method for `accessibles`, which returns an iterator
 #  to the worlds that are accessible from a given world w:
 # `accessibles(w::W,           ::R, args...)`
@@ -443,8 +443,8 @@ const IntervalRCC5Ontology   = Ontology{Interval}(RCC5Relations)
 
 # World type definitions for 2D iterval logics, where worlds are rectangles
 #  parallel to a frame of reference.
-include("worlds/Interval2D.jl")               # <- Interval2D world type
-include("bindings/IA2+Interval2D.jl")     # <- Allen relations
+include("worlds/Interval2D.jl")        # <- Interval2D world type
+include("bindings/IA2+Interval2D.jl")  # <- Allen relations
 include("bindings/RCC+Interval2D.jl")  # <- RCC relations
 
 const Interval2DOntology     = Ontology{Interval2D}(IA2DRelations)
