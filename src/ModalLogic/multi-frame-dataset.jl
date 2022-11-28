@@ -8,11 +8,12 @@
 export get_world_types
 
 struct MultiFrameModalDataset{MD<:ModalDataset}
-    frames  :: AbstractVector{<:MD}
+    frames  :: Vector{<:MD}
     function MultiFrameModalDataset{MD}(X::MultiFrameModalDataset{MD}) where {MD<:ModalDataset}
         MultiFrameModalDataset{MD}(X.frames)
     end
     function MultiFrameModalDataset{MD}(Xs::AbstractVector) where {MD<:ModalDataset}
+        Xs = collect(Xs)
         @assert length(Xs) > 0 && length(unique(n_samples.(Xs))) == 1 "Can't create an empty MultiFrameModalDataset or with mismatching number of samples (n_frames: $(length(Xs)), frame_sizes: $(n_samples.(Xs)))."
         new{MD}(Xs)
     end
@@ -23,7 +24,6 @@ struct MultiFrameModalDataset{MD<:ModalDataset}
         MultiFrameModalDataset{MD}(MD[X])
     end
     function MultiFrameModalDataset(Xs::AbstractVector{<:MD}) where {MD<:ModalDataset}
-        println(MD)
         MultiFrameModalDataset{MD}(Xs)
     end
     function MultiFrameModalDataset(X::MD) where {MD<:ModalDataset}
