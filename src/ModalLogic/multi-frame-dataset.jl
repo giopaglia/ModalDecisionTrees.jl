@@ -14,7 +14,7 @@ struct MultiFrameModalDataset{MD<:ModalDataset}
     end
     function MultiFrameModalDataset{MD}(Xs::AbstractVector) where {MD<:ModalDataset}
         Xs = collect(Xs)
-        @assert length(Xs) > 0 && length(unique(n_samples.(Xs))) == 1 "Can't create an empty MultiFrameModalDataset or with mismatching number of samples (n_frames: $(length(Xs)), frame_sizes: $(n_samples.(Xs)))."
+        @assert length(Xs) > 0 && length(unique(nsamples.(Xs))) == 1 "Can't create an empty MultiFrameModalDataset or with mismatching number of samples (nframes: $(length(Xs)), frame_sizes: $(nsamples.(Xs)))."
         new{MD}(Xs)
     end
     function MultiFrameModalDataset{MD}() where {MD<:ModalDataset}
@@ -34,18 +34,18 @@ end
 frames(X::MultiFrameModalDataset) = X.frames
 
 Base.iterate(X::MultiFrameModalDataset, state=1)                    = state > length(X) ? nothing : (get_instance(X, state), state+1)
-Base.length(X::MultiFrameModalDataset)                              = n_samples(X)
+Base.length(X::MultiFrameModalDataset)                              = nsamples(X)
 Base.size(X::MultiFrameModalDataset)                                = map(size, frames(X))
-get_frame(X::MultiFrameModalDataset, i_frame::Integer)              = n_frames(X) > 0 ? frames(X)[i_frame] : error("MultiFrameModalDataset has no frame!")
-n_frames(X::MultiFrameModalDataset)                                 = length(frames(X))
-n_samples(X::MultiFrameModalDataset)                                = n_samples(get_frame(X, 1))::Int64
+get_frame(X::MultiFrameModalDataset, i_frame::Integer)              = nframes(X) > 0 ? frames(X)[i_frame] : error("MultiFrameModalDataset has no frame!")
+nframes(X::MultiFrameModalDataset)                                 = length(frames(X))
+nsamples(X::MultiFrameModalDataset)                                = nsamples(get_frame(X, 1))::Int64
 Base.push!(X::MultiFrameModalDataset, f::ModalDataset) = push!(frames(X), f)
 
 # max_channel_size(X::MultiFrameModalDataset) = map(max_channel_size, frames(X)) # TODO: figure if this is useless or not. Note: channel_size doesn't make sense at this point. Only the accessibles_funs[i] functions.
-n_features(X::MultiFrameModalDataset) = map(n_features, frames(X)) # Note: used for safety checks in fit_tree.jl
-# n_relations(X::MultiFrameModalDataset) = map(n_relations, frames(X)) # TODO: figure if this is useless or not
-n_features(X::MultiFrameModalDataset,  i_frame::Integer) = n_features(get_frame(X, i_frame))
-n_relations(X::MultiFrameModalDataset, i_frame::Integer) = n_relations(get_frame(X, i_frame))
+nfeatures(X::MultiFrameModalDataset) = map(nfeatures, frames(X)) # Note: used for safety checks in fit_tree.jl
+# nrelations(X::MultiFrameModalDataset) = map(nrelations, frames(X)) # TODO: figure if this is useless or not
+nfeatures(X::MultiFrameModalDataset,  i_frame::Integer) = nfeatures(get_frame(X, i_frame))
+nrelations(X::MultiFrameModalDataset, i_frame::Integer) = nrelations(get_frame(X, i_frame))
 world_type(X::MultiFrameModalDataset,  i_frame::Integer) = world_type(get_frame(X, i_frame))
 get_world_types(X::MultiFrameModalDataset) = Vector{Type{<:World}}(world_type.(frames(X)))
 
@@ -59,19 +59,17 @@ slice_dataset(X::MultiFrameModalDataset{MD}, inds::AbstractVector{<:Integer}, ar
 function display_structure(Xs::MultiFrameModalDataset; indent_str = "")
     out = "$(typeof(Xs))" # * "\t\t\t$(Base.summarysize(Xs) / 1024 / 1024 |> x->round(x, digits=2)) MBs"
     for (i_frame, X) in enumerate(frames(Xs))
-        if i_frame == n_frames(Xs)
+        if i_frame == nframes(Xs)
             out *= "\n$(indent_str)└ "
         else
             out *= "\n$(indent_str)├ "
         end
         out *= "[$(i_frame)] "
         # \t\t\t$(Base.summarysize(X) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t(world_type: $(world_type(X)))"
-        out *= display_structure(X; indent_str = indent_str * (i_frame == n_frames(Xs) ? "   " : "│  ")) * "\n"
+        out *= display_structure(X; indent_str = indent_str * (i_frame == nframes(Xs) ? "   " : "│  ")) * "\n"
     end
     out
 end
-
-nframes = n_frames # TODO remove
 
 hasnans(Xs::MultiFrameModalDataset) = any(hasnans.(frames(Xs)))
 

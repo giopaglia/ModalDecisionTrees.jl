@@ -1202,7 +1202,7 @@ end
 # getUniChannel(ud::DimensionalUniDataset{T,2},  idx::Integer) where T = @views ud[:, idx]        # N=1
 # getUniChannel(ud::DimensionalUniDataset{T,3},  idx::Integer) where T = @views ud[:, :, idx]     # N=2
 # Initialize DimensionalUniDataset by slicing across the attribute dimension
-# DimensionalUniDataset(::UndefInitializer, d::DimensionalDataset{T,2}) where T = Array{T, 1}(undef, n_samples(d))::DimensionalUniDataset{T, 1}
+# DimensionalUniDataset(::UndefInitializer, d::DimensionalDataset{T,2}) where T = Array{T, 1}(undef, nsamples(d))::DimensionalUniDataset{T, 1}
 # DimensionalUniDataset(::UndefInitializer, d::DimensionalDataset{T,3}) where T = Array{T, 2}(undef, size(d)[1:end-1])::DimensionalUniDataset{T, 2}
 # DimensionalUniDataset(::UndefInitializer, d::DimensionalDataset{T,4}) where T = Array{T, 3}(undef, size(d)[1:end-1])::DimensionalUniDataset{T, 3}
 

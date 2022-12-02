@@ -14,6 +14,16 @@ using Random
 using ReTest
 using StatsBase
 
+using SoleBase
+using SoleBase: LogOverview, LogDebug, LogDetail, throw_n_log
+using SoleBase: spawn_rng, nat_sort
+using SoleModels: CLabel, RLabel, Label, _CLabel, _Label, get_categorical_form
+using SoleModels: ConfusionMatrix, overall_accuracy, kappa, class_counts, macro_F1, macro_sensitivity, macro_specificity, macro_PPV, macro_NPV, macro_weighted_F1, macro_weighted_sensitivity, macro_weighted_specificity, macro_weighted_PPV, macro_weighted_NPV, safe_macro_F1, safe_macro_sensitivity, safe_macro_specificity, safe_macro_PPV, safe_macro_NPV
+using SoleData: AbstractDimensionalInstance, DimensionalDataset, AbstractDimensionalChannel, UniformDimensionalDataset, DimensionalChannel, DimensionalInstance, max_channel_size, nsamples, nattributes, get_instance, slice_dataset, concat_datasets, instance_channel_size, get_instance_attribute
+
+export slice_dataset, concat_datasets,
+       nframes, nsamples, nattributes, max_channel_size
+
 ############################################################################################
 
 export Decision,                # Decision (e.g., (e.g., ⟨L⟩ (minimum(A2) ≤ 10) )
@@ -25,47 +35,11 @@ export Decision,                # Decision (e.g., (e.g., ⟨L⟩ (minimum(A2) �
         #
         num_nodes, height, modal_height
 
-
-############################################################################################
-############################################################################################
-############################################################################################
-
-# Log overview info (e.g., splits performed in decision tree building)
-const DTOverview = LogLevel(-500)
-# Log debug info
-const DTDebug = LogLevel(-1000)
-# Log more detailed debug info
-const DTDetail = LogLevel(-1500)
-
-# Log string with @error and throw error
-function throw_n_log(str::AbstractString, err_type = ErrorException)
-    @error str
-    throw(err_type(str))
-end
-
 ############################################################################################
 # Basics
 ############################################################################################
 
-# Classification and regression labels
-const CLabel  = Union{String,Integer}
-const RLabel  = AbstractFloat
-const Label   = Union{CLabel,RLabel}
-# Raw labels
-const _CLabel = Integer # (classification labels are internally represented as integers)
-const _Label  = Union{_CLabel,RLabel}
-
 include("util.jl")
-include("metrics.jl")
-
-############################################################################################
-# Simple dataset structure (basically, an hypercube)
-############################################################################################
-
-export slice_dataset, concat_datasets,
-       nframes, n_samples, n_attributes, max_channel_size
-
-include("dimensional-dataset.jl")
 
 ############################################################################################
 # Modal features
@@ -86,8 +60,7 @@ include("test-operators.jl")
 include("ModalLogic/ModalLogic.jl")
 
 using .ModalLogic
-using SoleLogics.Worlds
-import .ModalLogic: n_samples, display_decision
+import .ModalLogic: nsamples, display_decision
 
 ############################################################################################
 # Initial world conditions
@@ -111,11 +84,11 @@ init_world_set(iC::StartAtWorld{WorldType}, ::Type{WorldType}, args...) where {W
     WorldSet{WorldType}([WorldType(iC.w)])
 
 init_world_sets(Xs::MultiFrameModalDataset, init_conditions::AbstractVector{<:InitCondition}) = begin
-    Ss = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, n_frames(Xs))
+    Ss = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, nframes(Xs))
     for (i_frame,X) in enumerate(frames(Xs))
         WT = world_type(X)
-        Ss[i_frame] = WorldSet{WT}[init_world_sets_fun(X, i_sample, world_type(Xs, i_frame))(init_conditions[i_frame]) for i_sample in 1:n_samples(Xs)]
-        # Ss[i_frame] = WorldSet{WT}[[ModalLogic.Interval(1,2)] for i_sample in 1:n_samples(Xs)]
+        Ss[i_frame] = WorldSet{WT}[init_world_sets_fun(X, i_sample, world_type(Xs, i_frame))(init_conditions[i_frame]) for i_sample in 1:nsamples(Xs)]
+        # Ss[i_frame] = WorldSet{WT}[[ModalLogic.Interval(1,2)] for i_sample in 1:nsamples(Xs)]
     end
     Ss
 end
@@ -124,8 +97,10 @@ end
 # Loss & purity functions
 ############################################################################################
 
-default_loss_function(::Type{<:CLabel}) = util.entropy
-default_loss_function(::Type{<:RLabel}) = util.variance
+include("entropy-measures.jl")
+
+default_loss_function(::Type{<:CLabel}) = entropy
+default_loss_function(::Type{<:RLabel}) = variance
 
 average_label(labels::AbstractVector{<:CLabel}) = majority_vote(labels; suppress_parity_warning = false) # argmax(countmap(labels))
 average_label(labels::AbstractVector{<:RLabel}) = majority_vote(labels; suppress_parity_warning = false) # StatsBase.mean(labels)
@@ -572,9 +547,9 @@ modal_height(node::DTInternal) = Int(is_modal_node(node)) + max(modal_height(nod
 modal_height(tree::DTree)      = modal_height(tree.root)
 
 # Number of supporting instances
-n_samples(leaf::AbstractDecisionLeaf; train_or_valid = true) = length(supp_labels(leaf; train_or_valid = train_or_valid))
-n_samples(node::DTInternal;           train_or_valid = true) = n_samples(node.left; train_or_valid = train_or_valid) + n_samples(node.right; train_or_valid = train_or_valid)
-n_samples(tree::DTree;                train_or_valid = true) = n_samples(tree.root; train_or_valid = train_or_valid)
+nsamples(leaf::AbstractDecisionLeaf; train_or_valid = true) = length(supp_labels(leaf; train_or_valid = train_or_valid))
+nsamples(node::DTInternal;           train_or_valid = true) = nsamples(node.left; train_or_valid = train_or_valid) + nsamples(node.right; train_or_valid = train_or_valid)
+nsamples(tree::DTree;                train_or_valid = true) = nsamples(tree.root; train_or_valid = train_or_valid)
 
 # TODO remove deprecated use num_leaves
 Base.length(leaf::AbstractDecisionLeaf)     = num_leaves(leaf)

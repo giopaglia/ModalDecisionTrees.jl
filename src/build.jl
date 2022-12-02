@@ -39,7 +39,7 @@ end
 function build_tree(
         X                   :: ActiveMultiFrameModalDataset,
         Y                   :: AbstractVector{L},
-        W                   :: Union{Nothing,AbstractVector{U},Symbol}   = default_weights(n_samples(X));
+        W                   :: Union{Nothing,AbstractVector{U},Symbol}   = default_weights(nsamples(X));
         ##############################################################################
         loss_function       :: Union{Nothing,Function}            = nothing,
         max_depth           :: Int64                              = default_max_depth,
@@ -62,7 +62,7 @@ function build_tree(
     @assert W isa AbstractVector || W in [nothing, :rebalance, :default]
 
     W = if isnothing(W) || W == :default
-        default_weights(n_samples(X))
+        default_weights(nsamples(X))
     elseif W == :rebalance
         default_weights_rebalance(Y)
     else
@@ -71,23 +71,23 @@ function build_tree(
 
     @assert all(W .>= 0) "Sample weights must be non-negative."
 
-    @assert n_samples(X) == length(Y) == length(W) "Mismatching number of samples in X, Y & W: $(n_samples(X)), $(length(Y)), $(length(W))"
+    @assert nsamples(X) == length(Y) == length(W) "Mismatching number of samples in X, Y & W: $(nsamples(X)), $(length(Y)), $(length(W))"
     
     if isnothing(loss_function)
         loss_function = default_loss_function(L)
     end
     
     if allow_global_splits isa Bool
-        allow_global_splits = fill(allow_global_splits, n_frames(X))
+        allow_global_splits = fill(allow_global_splits, nframes(X))
     end
     if n_subrelations isa Function
-        n_subrelations = fill(n_subrelations, n_frames(X))
+        n_subrelations = fill(n_subrelations, nframes(X))
     end
     if n_subfeatures isa Function
-        n_subfeatures  = fill(n_subfeatures, n_frames(X))
+        n_subfeatures  = fill(n_subfeatures, nframes(X))
     end
     if init_conditions isa InitCondition
-        init_conditions = fill(init_conditions, n_frames(X))
+        init_conditions = fill(init_conditions, nframes(X))
     end
 
     @assert max_depth > 0
@@ -106,7 +106,7 @@ function build_tree(
         max_purity_at_leaf  = max_purity_at_leaf,
         ############################################################################
         n_subrelations      = n_subrelations,
-        n_subfeatures       = [ n_subfeatures[i](n_features(frame)) for (i,frame) in enumerate(frames(X)) ],
+        n_subfeatures       = [ n_subfeatures[i](nfeatures(frame)) for (i,frame) in enumerate(frames(X)) ],
         allow_global_splits = allow_global_splits,
         ############################################################################
         perform_minification      = perform_minification,
@@ -122,7 +122,7 @@ function build_forest(
         X                   :: ActiveMultiFrameModalDataset,
         Y                   :: AbstractVector{L},
         # Use unary weights if no weight is supplied
-        W                   :: Union{Nothing,AbstractVector{U},Symbol} = default_weights(n_samples(X));
+        W                   :: Union{Nothing,AbstractVector{U},Symbol} = default_weights(nsamples(X));
         ##############################################################################
         # Forest logic-agnostic parameters
         n_trees             = 100,
@@ -152,7 +152,7 @@ function build_forest(
     @assert W isa AbstractVector || W in [nothing, :rebalance, :default]
 
     W = if isnothing(W) || W == :default
-        default_weights(n_samples(X))
+        default_weights(nsamples(X))
     elseif W == :rebalance
         default_weights_rebalance(Y)
     else
@@ -161,19 +161,19 @@ function build_forest(
 
     @assert all(W .>= 0) "Sample weights must be non-negative."
 
-    @assert n_samples(X) == length(Y) == length(W) "Mismatching number of samples in X, Y & W: $(n_samples(X)), $(length(Y)), $(length(W))"
+    @assert nsamples(X) == length(Y) == length(W) "Mismatching number of samples in X, Y & W: $(nsamples(X)), $(length(Y)), $(length(W))"
 
     if n_subrelations isa Function
-        n_subrelations = fill(n_subrelations, n_frames(X))
+        n_subrelations = fill(n_subrelations, nframes(X))
     end
     if n_subfeatures isa Function
-        n_subfeatures  = fill(n_subfeatures, n_frames(X))
+        n_subfeatures  = fill(n_subfeatures, nframes(X))
     end
     if init_conditions isa InitCondition
-        init_conditions = fill(init_conditions, n_frames(X))
+        init_conditions = fill(init_conditions, nframes(X))
     end
     if allow_global_splits isa Bool
-        allow_global_splits = fill(allow_global_splits, n_frames(X))
+        allow_global_splits = fill(allow_global_splits, nframes(X))
     end
 
     if n_trees < 1
@@ -188,14 +188,14 @@ function build_forest(
         @warn "Warning! ExplicitModalDatasetS is recommended for performance, instead of ExplicitModalDataset."
     end
 
-    tot_samples = n_samples(X)
+    tot_samples = nsamples(X)
     num_samples = floor(Int64, partial_sampling * tot_samples)
 
     trees = Vector{DTree{L}}(undef, n_trees)
     oob_samples = Vector{Vector{Integer}}(undef, n_trees)
     oob_metrics = Vector{NamedTuple}(undef, n_trees)
 
-    rngs = [util.spawn_rng(rng) for i_tree in 1:n_trees]
+    rngs = [spawn_rng(rng) for i_tree in 1:n_trees]
 
     if print_progress
         p = Progress(n_trees, 1, "Computing DForest...")

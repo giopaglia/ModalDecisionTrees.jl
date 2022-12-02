@@ -66,7 +66,7 @@ cm = compute_metrics(labels, preds)
 
 # test n_subfeatures
 n_subfeatures       = 0
-m_partial = build_forest(labels, features) # default sqrt(n_features)
+m_partial = build_forest(labels, features) # default sqrt(nfeatures)
 m_full    = build_forest(labels, features, n_subfeatures)
 @test all( length.(m_full.trees) .< length.(m_partial.trees) )
 

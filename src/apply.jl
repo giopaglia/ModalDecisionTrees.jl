@@ -8,7 +8,7 @@ import MLJ: predict
 ############################################################################################
 
 inst_init_world_sets(Xs::MultiFrameModalDataset, tree::DTree, i_sample::Integer) = begin
-    Ss = Vector{WorldSet}(undef, n_frames(Xs))
+    Ss = Vector{WorldSet}(undef, nframes(Xs))
     for (i_frame,X) in enumerate(frames(Xs))
         Ss[i_frame] = init_world_sets_fun(X, i_sample, tree.world_types[i_frame])(tree.init_conditions[i_frame])
     end
@@ -72,8 +72,8 @@ function apply(leaf::NSDTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector
 end
 
 function apply(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
-    @logmsg DTDetail "applying branch..."
-    @logmsg DTDetail " worlds" worlds
+    @logmsg LogDetail "applying branch..."
+    @logmsg LogDetail " worlds" worlds
     (satisfied,new_worlds) =
         ModalLogic.modal_step(
             get_frame(X, tree.i_frame),
@@ -83,18 +83,18 @@ function apply(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Integer, w
     )
 
     worlds[tree.i_frame] = new_worlds
-    @logmsg DTDetail " ->(satisfied,worlds')" satisfied worlds
+    @logmsg LogDetail " ->(satisfied,worlds')" satisfied worlds
     apply((satisfied ? tree.left : tree.right), X, i_sample, worlds)
 end
 
 # Obtain predictions of a tree on a dataset
 function apply(tree::DTree{L}, X::MultiFrameModalDataset) where {L}
-    @logmsg DTDetail "apply..."
-    _n_samples = n_samples(X)
+    @logmsg LogDetail "apply..."
+    _n_samples = nsamples(X)
     predictions = Vector{L}(undef, _n_samples)
     
     for i_sample in 1:_n_samples
-        @logmsg DTDetail " instance $i_sample/$_n_samples"
+        @logmsg LogDetail " instance $i_sample/$_n_samples"
         # TODO figure out: is it better to interpret the whole dataset at once, or instance-by-instance? The first one enables reusing training code
 
         worlds = inst_init_world_sets(X, tree, i_sample)
@@ -111,9 +111,9 @@ function apply(
         suppress_parity_warning = false,
         tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
     ) where {L<:Label, Z<:Real}
-    @logmsg DTDetail "apply..."
+    @logmsg LogDetail "apply..."
     n_trees = length(trees)
-    _n_samples = n_samples(X)
+    _n_samples = nsamples(X)
 
     if !isnothing(tree_weights)
         @assert length(trees) === length(tree_weights) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
@@ -271,7 +271,7 @@ function apply(
     root = tree.root
 
     # Propagate instances down the tree
-    for i_sample in 1:n_samples(X)
+    for i_sample in 1:nsamples(X)
         worlds = inst_init_world_sets(X, tree, i_sample)
         pred, root = apply(root, X, i_sample, worlds, Y[i_sample], update_labels = update_labels)
         push!(predictions, pred)
@@ -287,10 +287,10 @@ function apply(
         suppress_parity_warning = false,
         tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
     ) where {L<:Label, Z<:Real}
-    @logmsg DTDetail "apply..."
+    @logmsg LogDetail "apply..."
     trees = deepcopy(trees)
     n_trees = length(trees)
-    _n_samples = n_samples(X)
+    _n_samples = nsamples(X)
 
     if !isnothing(tree_weights)
         @assert length(trees) === length(tree_weights) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
@@ -350,8 +350,8 @@ function apply_proba(leaf::DTLeaf, X::Any, i_sample::Integer, worlds::AbstractVe
 end
 
 function apply_proba(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
-    @logmsg DTDetail "applying branch..."
-    @logmsg DTDetail " worlds" worlds
+    @logmsg LogDetail "applying branch..."
+    @logmsg LogDetail " worlds" worlds
     (satisfied,new_worlds) =
         ModalLogic.modal_step(
             get_frame(X, tree.i_frame),
@@ -361,18 +361,18 @@ function apply_proba(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Inte
     )
 
     worlds[tree.i_frame] = new_worlds
-    @logmsg DTDetail " ->(satisfied,worlds')" satisfied worlds
+    @logmsg LogDetail " ->(satisfied,worlds')" satisfied worlds
     apply_proba((satisfied ? tree.left : tree.right), X, i_sample, worlds)
 end
 
 # Obtain predictions of a tree on a dataset
 function apply_proba(tree::DTree{L}, X::MultiFrameModalDataset, classes) where {L<:CLabel}
-    @logmsg DTDetail "apply_proba..."
-    _n_samples = n_samples(X)
+    @logmsg LogDetail "apply_proba..."
+    _n_samples = nsamples(X)
     prediction_scores = Matrix{Float64}(undef, _n_samples, length(classes))
     
     for i_sample in 1:_n_samples
-        @logmsg DTDetail " instance $i_sample/$_n_samples"
+        @logmsg LogDetail " instance $i_sample/$_n_samples"
         # TODO figure out: is it better to interpret the whole dataset at once, or instance-by-instance? The first one enables reusing training code
 
         worlds = inst_init_world_sets(X, tree, i_sample)
@@ -397,9 +397,9 @@ function apply_proba(
         classes;
         tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
     ) where {L<:CLabel, Z<:Real}
-    @logmsg DTDetail "apply_proba..."
+    @logmsg LogDetail "apply_proba..."
     n_trees = length(trees)
-    _n_samples = n_samples(X)
+    _n_samples = nsamples(X)
 
     if !isnothing(tree_weights)
         @assert length(trees) === length(tree_weights) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
@@ -443,7 +443,7 @@ end
 
 # function tree_walk_metrics(leaf::DTLeaf; n_tot_inst = nothing, best_rule_params = [])
 #     if isnothing(n_tot_inst)
-#         n_tot_inst = n_samples(leaf)
+#         n_tot_inst = nsamples(leaf)
 #     end
     
 #     matches = findall(leaf.supp_labels .== predictions(leaf))
@@ -481,7 +481,7 @@ end
 
 # function tree_walk_metrics(tree::DTInternal; n_tot_inst = nothing, best_rule_params = [])
 #     if isnothing(n_tot_inst)
-#         n_tot_inst = n_samples(tree)
+#         n_tot_inst = nsamples(tree)
 #     end
 #     # TODO visit also tree.this
 #     metrics_l = tree_walk_metrics(tree.left;  n_tot_inst = n_tot_inst, best_rule_params = best_rule_params)

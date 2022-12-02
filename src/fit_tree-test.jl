@@ -32,7 +32,7 @@ W = default_weights(_n_samples)
 
 
 kwargs = (;
-loss_function              = ModalDecisionTrees.util.entropy,
+loss_function              = ModalDecisionTrees.entropy,
 max_depth                  = typemax(Int),
 min_samples_leaf           = 4,
 min_purity_increase        = -Inf,
@@ -43,7 +43,7 @@ allow_global_splits        = [true],
 )
 perform_consistency_check  = true
 
-# @code_warntype n_samples(Xs)
+# @code_warntype nsamples(Xs)
 
 init_conditions             = [ModalDecisionTrees.start_without_world]
 

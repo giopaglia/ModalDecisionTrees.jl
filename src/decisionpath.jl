@@ -43,7 +43,7 @@ function _get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_sample
     return new_survivors
 end
 function get_path_in_tree(tree::DTree{S}, X::GenericModalDataset)::Vector{DecisionPath} where {S}
-    _n_samples = n_samples(X)
+    _n_samples = nsamples(X)
     paths::Vector{DecisionPath} = [ DecisionPath() for i in 1:_n_samples ]
     for i_sample in 1:_n_samples
         worlds = ModalDecisionTrees.inst_init_world_sets(X, tree, i_sample)

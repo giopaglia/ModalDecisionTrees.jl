@@ -41,7 +41,7 @@ t = ModalDecisionTrees.build_tree(
 
 # test that all purity decisions are based on passed-in purity function;
 # if so, this should be same as previous test
-entropy1000(ns, n) = ModalDecisionTrees.util.entropy(ns, n) * 1000
+entropy1000(ns, n) = ModalDecisionTrees.entropy(ns, n) * 1000
 min_samples_leaf    = 3
 min_samples_split   = 5
 min_purity_increase = 0.05 * 1000

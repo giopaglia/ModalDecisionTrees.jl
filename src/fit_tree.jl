@@ -51,7 +51,7 @@ end
     region = node.region
     depth = node.depth+1
     mdepth = node.modal_depth+Int(!node.is_leaf && !is_propositional_decision(node.decision))
-    @logmsg DTDetail "fork!(...): " node ind region mdepth
+    @logmsg LogDetail "fork!(...): " node ind region mdepth
 
     # onlyallowRelationGlob changes:
     # on the left node, the frame where the decision was taken
@@ -324,7 +324,7 @@ Base.@propagate_inbounds @inline function split_node!(
     ############################################################################
     ############################################################################
 
-    @logmsg DTDebug "_split!(...) " _n_samples region nt
+    @logmsg LogDebug "_split!(...) " _n_samples region nt
 
     ############################################################################
     # Preemptive leaf conditions
@@ -351,7 +351,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # DEBUGprintln(node.depth)
             # readline()
             node.is_leaf = true
-            @logmsg DTDetail "leaf created: " (min_samples_leaf * 2 >  _n_samples) (nc[node.prediction] == nt) (node.purity  > max_purity_at_leaf) (max_depth <= node.depth)
+            @logmsg LogDetail "leaf created: " (min_samples_leaf * 2 >  _n_samples) (nc[node.prediction] == nt) (node.purity  > max_purity_at_leaf) (max_depth <= node.depth)
             return
         end
     else
@@ -365,7 +365,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # Honor maximum depth constraint
              || (max_depth            < node.depth))
             node.is_leaf = true
-            @logmsg DTDetail "leaf created: " (min_samples_leaf * 2 >  _n_samples) (tsum * node.prediction    > -1e-7 * nt + tssq) (tsum * node.prediction) (-1e-7 * nt + tssq) (max_depth <= node.depth)
+            @logmsg LogDetail "leaf created: " (min_samples_leaf * 2 >  _n_samples) (tsum * node.prediction    > -1e-7 * nt + tssq) (tsum * node.prediction) (-1e-7 * nt + tssq) (max_depth <= node.depth)
             return
         end
     end
@@ -381,7 +381,7 @@ Base.@propagate_inbounds @inline function split_node!(
     #   lsums[i] = zero(U)
     # end
 
-    Sfs = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, n_frames(Xs))
+    Sfs = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, nframes(Xs))
     for (i_frame,WT) in enumerate(get_world_types(Xs))
         Sfs[i_frame] = Vector{Vector{WT}}(undef, _n_samples)
         @simd for i in 1:_n_samples
@@ -411,13 +411,13 @@ Base.@propagate_inbounds @inline function split_node!(
                 frame_allow_global_splits,
                 frame_onlyallowRelationGlob)) in enumerate(zip(frames(Xs), Sfs, n_subrelations, n_subfeatures, allow_global_splits, node.onlyallowRelationGlob))
 
-        @logmsg DTDetail "  Frame $(best_i_frame)/$(length(frames(Xs)))"
+        @logmsg LogDetail "  Frame $(best_i_frame)/$(length(frames(Xs)))"
 
         allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds = begin
 
             # Derive subset of features to consider
             # Note: using "sample" function instead of "randperm" allows to insert weights for features which may be wanted in the future
-            features_inds = StatsBase.sample(rng, 1:n_features(X), frame_n_subfeatures, replace = false)
+            features_inds = StatsBase.sample(rng, 1:nfeatures(X), frame_n_subfeatures, replace = false)
             sort!(features_inds)
 
             # Derive all available relations
@@ -482,7 +482,7 @@ Base.@propagate_inbounds @inline function split_node!(
                     for i_sample in 1:_n_samples
                         gamma = aggr_thresholds[i_sample]
                         satisfied = evaluate_thresh_decision(test_operator, gamma, threshold)
-                        @logmsg DTDetail " instance $i_sample/$_n_samples: (f=$(gamma)) -> satisfied = $(satisfied)"
+                        @logmsg LogDetail " instance $i_sample/$_n_samples: (f=$(gamma)) -> satisfied = $(satisfied)"
 
                         # Note: in a fuzzy generalization, `satisfied` becomes a [0-1] value
                         if !satisfied
@@ -518,7 +518,7 @@ Base.@propagate_inbounds @inline function split_node!(
                     for i_sample in 1:_n_samples
                         gamma = aggr_thresholds[i_sample]
                         satisfied = evaluate_thresh_decision(test_operator, gamma, threshold)
-                        @logmsg DTDetail " instance $i_sample/$_n_samples: (f=$(gamma)) -> satisfied = $(satisfied)"
+                        @logmsg LogDetail " instance $i_sample/$_n_samples: (f=$(gamma)) -> satisfied = $(satisfied)"
 
                         # TODO make this satisfied a fuzzy value
                         if !satisfied
@@ -549,7 +549,7 @@ Base.@propagate_inbounds @inline function split_node!(
             ########################################################################
             ########################################################################
 
-            @logmsg DTDebug "  (n_left,n_right) = ($nl,$nr)"
+            @logmsg LogDebug "  (n_left,n_right) = ($nl,$nr)"
 
             # Honor min_samples_leaf
             if nl >= min_samples_leaf && (_n_samples - nl) >= min_samples_leaf
@@ -592,7 +592,7 @@ Base.@propagate_inbounds @inline function split_node!(
                     #################################
                     # print(decision)
                     # println(" NEW BEST $best_i_frame, $best_purity_times_nt/nt")
-                    @logmsg DTDetail "  Found new optimum in frame $(best_i_frame): " (best_purity_times_nt/nt) best_decision
+                    @logmsg LogDetail "  Found new optimum in frame $(best_i_frame): " (best_purity_times_nt/nt) best_decision
                     #################################
                     best_consistency = begin
                         if isa(_perform_consistency_check,Val{true})
@@ -625,7 +625,7 @@ Base.@propagate_inbounds @inline function split_node!(
     # println("corrected_best_purity_times_nt / nt - node.purity = $(corrected_best_purity_times_nt / nt - node.purity)")
     # println("min_purity_increase * nt =  $(min_purity_increase) * $(nt) = $(min_purity_increase * nt)")
 
-    # @logmsg DTOverview "purity_times_nt increase" corrected_best_purity_times_nt/nt node.purity (corrected_best_purity_times_nt/nt + node.purity) (best_purity_times_nt/nt - node.purity)
+    # @logmsg LogOverview "purity_times_nt increase" corrected_best_purity_times_nt/nt node.purity (corrected_best_purity_times_nt/nt + node.purity) (best_purity_times_nt/nt - node.purity)
     # If the best split is good, partition and split accordingly
     @inbounds if ((
             corrected_best_purity_times_nt == typemin(P)) ||
@@ -633,9 +633,9 @@ Base.@propagate_inbounds @inline function split_node!(
         )
 
         if _is_classification isa Val{true}
-            @logmsg DTDebug " Leaf" corrected_best_purity_times_nt min_purity_increase (corrected_best_purity_times_nt/nt) node.purity ((corrected_best_purity_times_nt/nt) - node.purity)
+            @logmsg LogDebug " Leaf" corrected_best_purity_times_nt min_purity_increase (corrected_best_purity_times_nt/nt) node.purity ((corrected_best_purity_times_nt/nt) - node.purity)
         else
-            @logmsg DTDebug " Leaf" corrected_best_purity_times_nt tsum node.prediction min_purity_increase nt (corrected_best_purity_times_nt / nt - tsum * node.prediction) (min_purity_increase * nt)
+            @logmsg LogDebug " Leaf" corrected_best_purity_times_nt tsum node.prediction min_purity_increase nt (corrected_best_purity_times_nt / nt - tsum * node.prediction) (min_purity_increase * nt)
         end
         ##########################################################################
         ##########################################################################
@@ -668,7 +668,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # println(Sf[i_sample])
             _sat, _ss = ModalLogic.modal_step(X, idxs[i_sample + r_start], Sf[i_sample], best_decision)
             (satisfied,Ss[best_i_frame][idxs[i_sample + r_start]]) = _sat, _ss
-            @logmsg DTDetail " [$satisfied] Instance $(i_sample)/$(_n_samples)" Sf[i_sample] (if satisfied Ss[best_i_frame][idxs[i_sample + r_start]] end)
+            @logmsg LogDetail " [$satisfied] Instance $(i_sample)/$(_n_samples)" Sf[i_sample] (if satisfied Ss[best_i_frame][idxs[i_sample + r_start]] end)
             # println(satisfied)
             # println(Ss[best_i_frame][idxs[i_sample + r_start]])
             # readline()
@@ -680,14 +680,14 @@ Base.@propagate_inbounds @inline function split_node!(
             end
         end
 
-        @logmsg DTDetail " unsatisfied_flags" unsatisfied_flags
+        @logmsg LogDetail " unsatisfied_flags" unsatisfied_flags
 
         if length(unique(unsatisfied_flags)) == 1
             @warn "An uninformative split was reached. Something's off\nPurity: $(node.purity)\nSplit: $(decision_str)\nUnsatisfied flags: $(unsatisfied_flags)"
             node.is_leaf = true
             return node
         end
-        @logmsg DTDetail " Branch ($(sum(unsatisfied_flags))+$(_n_samples-sum(unsatisfied_flags))=$(_n_samples) samples) on frame $(best_i_frame) with decision: $(decision_str), purity $(best_purity)"
+        @logmsg LogDetail " Branch ($(sum(unsatisfied_flags))+$(_n_samples-sum(unsatisfied_flags))=$(_n_samples) samples) on frame $(best_i_frame) with decision: $(decision_str), purity $(best_purity)"
 
         # if sum(unsatisfied_flags) >= min_samples_leaf && (_n_samples - sum(unsatisfied_flags)) >= min_samples_leaf
             # DEBUGprintln("LEAF!")
@@ -739,7 +739,7 @@ Base.@propagate_inbounds @inline function split_node!(
             println("ERROR! " * errStr) # TODO fix
         end
 
-        @logmsg DTDetail " unsatisfied_flags" unsatisfied_flags
+        @logmsg LogDetail " unsatisfied_flags" unsatisfied_flags
 
         # TODO this should be satisfied, since min_samples_leaf is always > 0 and nl,nr>min_samples_leaf
         if length(unique(unsatisfied_flags)) == 1
@@ -761,9 +761,9 @@ Base.@propagate_inbounds @inline function split_node!(
             # DEBUGprintln("unsatisfied_flags")
             # DEBUGprintln(unsatisfied_flags)
 
-            @logmsg DTDetail "pre-partition" region idxs[region] unsatisfied_flags
+            @logmsg LogDetail "pre-partition" region idxs[region] unsatisfied_flags
             node.split_at = util.partition!(idxs, unsatisfied_flags, 0, region)
-            @logmsg DTDetail "post-partition" idxs[region] node.split_at
+            @logmsg LogDetail "post-partition" idxs[region] node.split_at
 
             # For debug:
             # idxs = rand(1:10, 10)
@@ -800,7 +800,7 @@ end
         kwargs...,
     ) where{L<:_Label, U}
 
-    _n_samples = n_samples(Xs)
+    _n_samples = nsamples(Xs)
 
     # Initialize world sets for each instance
     Ss = init_world_sets(Xs, init_conditions)
@@ -821,8 +821,8 @@ end
     # Process nodes recursively, using multi-threading
     function process_node!(node, rng)
         # Note: better to spawn rng's beforehand, to preserve reproducibility independently from split_node!
-        rng_l = util.spawn_rng(rng)
-        rng_r = util.spawn_rng(rng)
+        rng_l = spawn_rng(rng)
+        rng_r = spawn_rng(rng)
         @inbounds split_node!(node, Xs, Ss, Y, init_conditions, W;
             _is_classification         = _is_classification,
             _perform_consistency_check = _perform_consistency_check,
@@ -867,40 +867,40 @@ end
         ##########################################################################
         kwargs...,
     ) where {S, U}
-    _n_samples = n_samples(Xs)
+    _n_samples = nsamples(Xs)
 
     if length(Y) != _n_samples
         throw_n_log("Dimension mismatch between dataset and label vector Y: ($(_n_samples)) vs $(size(Y))")
     elseif length(W) != _n_samples
         throw_n_log("Dimension mismatch between dataset and weights vector W: ($(_n_samples)) vs $(size(W))")
     ############################################################################
-    elseif length(n_subrelations) != n_frames(Xs)
-        throw_n_log("Mismatching number of n_subrelations with number of frames: $(length(n_subrelations)) vs $(n_frames(Xs))")
-    elseif length(n_subfeatures)  != n_frames(Xs)
-        throw_n_log("Mismatching number of n_subfeatures with number of frames: $(length(n_subfeatures)) vs $(n_frames(Xs))")
-    elseif length(init_conditions) != n_frames(Xs)
-        throw_n_log("Mismatching number of init_conditions with number of frames: $(length(init_conditions)) vs $(n_frames(Xs))")
-    elseif length(allow_global_splits) != n_frames(Xs)
-        throw_n_log("Mismatching number of allow_global_splits with number of frames: $(length(allow_global_splits)) vs $(n_frames(Xs))")
+    elseif length(n_subrelations) != nframes(Xs)
+        throw_n_log("Mismatching number of n_subrelations with number of frames: $(length(n_subrelations)) vs $(nframes(Xs))")
+    elseif length(n_subfeatures)  != nframes(Xs)
+        throw_n_log("Mismatching number of n_subfeatures with number of frames: $(length(n_subfeatures)) vs $(nframes(Xs))")
+    elseif length(init_conditions) != nframes(Xs)
+        throw_n_log("Mismatching number of init_conditions with number of frames: $(length(init_conditions)) vs $(nframes(Xs))")
+    elseif length(allow_global_splits) != nframes(Xs)
+        throw_n_log("Mismatching number of allow_global_splits with number of frames: $(length(allow_global_splits)) vs $(nframes(Xs))")
     ############################################################################
-    # elseif any(n_relations(Xs) .< n_subrelations)
+    # elseif any(nrelations(Xs) .< n_subrelations)
     #   throw_n_log("In at least one frame the total number of relations is less than the number "
     #       * "of relations required at each split\n"
-    #       * "# relations:    " * string(n_relations(Xs)) * "\n\tvs\n"
+    #       * "# relations:    " * string(nrelations(Xs)) * "\n\tvs\n"
     #       * "# subrelations: " * string(n_subrelations |> collect))
     # elseif length(findall(n_subrelations .< 0)) > 0
     #   throw_n_log("Total number of relations $(n_subrelations) must be >= zero ")
-    elseif any(n_features(Xs) .< n_subfeatures)
+    elseif any(nfeatures(Xs) .< n_subfeatures)
         throw_n_log("In at least one frame the total number of features is less than the number "
             * "of features required at each split\n"
-            * "# features:    " * string(n_features(Xs)) * "\n\tvs\n"
+            * "# features:    " * string(nfeatures(Xs)) * "\n\tvs\n"
             * "# subfeatures: " * string(n_subfeatures |> collect))
     elseif length(findall(n_subfeatures .< 0)) > 0
         throw_n_log("Total number of features $(n_subfeatures) must be >= zero ")
     elseif min_samples_leaf < 1
         throw_n_log("Min_samples_leaf must be a positive integer "
             * "(given $(min_samples_leaf))")
-    # if loss_function in [util.entropy]
+    # if loss_function in [entropy]
     #   max_purity_at_leaf_thresh = 0.75 # min_purity_increase 0.01
     #   min_purity_increase_thresh = 0.5
     #   if (max_purity_at_leaf >= max_purity_at_leaf_thresh)
@@ -910,7 +910,7 @@ end
     #       println("Warning! It is advised to use max_purity_at_leaf<$(min_purity_increase_thresh) with loss $(loss_function)"
     #           * "(given $(min_purity_increase))")
     # end
-    # elseif loss_function in [util.gini, util.zero_one] && (max_purity_at_leaf > 1.0 || max_purity_at_leaf <= 0.0)
+    # elseif loss_function in [gini, zero_one] && (max_purity_at_leaf > 1.0 || max_purity_at_leaf <= 0.0)
     #     throw_n_log("Max_purity_at_leaf for loss $(loss_function) must be in (0,1]"
     #         * "(given $(max_purity_at_leaf))")
     elseif max_depth < -1
@@ -954,8 +954,8 @@ function fit_tree(
         # world starting conditions
         init_conditions           :: Vector{<:InitCondition},
         # Weights (unary weigths are used if no weight is supplied)
-        W                         :: AbstractVector{U} = default_weights(n_samples(Xs))
-        # W                       :: AbstractVector{U} = Ones{Int}(n_samples(Xs)), # TODO check whether this is faster
+        W                         :: AbstractVector{U} = default_weights(nsamples(Xs))
+        # W                       :: AbstractVector{U} = Ones{Int}(nsamples(Xs)), # TODO check whether this is faster
         ;
         # Perform minification: transform dataset so that learning happens faster
         perform_minification      :: Bool,
@@ -969,7 +969,7 @@ function fit_tree(
     # Classification-only: transform labels to categorical form (indexed by integers)
     n_classes = begin
         if L<:CLabel
-            class_names, Y = util.get_categorical_form(Y)
+            class_names, Y = get_categorical_form(Y)
             length(class_names)
         else
             0 # dummy value for the case of regression
@@ -980,7 +980,7 @@ function fit_tree(
         if perform_minification
             minify(Xs)
         else
-            Xs, fill(identity, n_frames(Xs))
+            Xs, fill(identity, nframes(Xs))
         end
     end
     # println(threshold_backmaps)

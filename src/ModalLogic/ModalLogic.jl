@@ -5,7 +5,7 @@ using ..ModalDecisionTrees: util, interpret_feature, alpha, display_feature_test
 
 using ..ModalDecisionTrees: DimensionalDataset, AbstractDimensionalChannel, AbstractDimensionalInstance, UniformDimensionalDataset, DimensionalChannel, DimensionalInstance
 
-using ..ModalDecisionTrees: DTOverview, DTDebug, DTDetail
+using ..ModalDecisionTrees: LogOverview, LogDebug, LogDetail
 
 using ..ModalDecisionTrees: test_operator_inverse
 
@@ -279,12 +279,11 @@ end
 ############################################################################################
 # TODO sort these
 import ..ModalDecisionTrees: slice_dataset, concat_datasets,
-       n_samples, n_attributes, max_channel_size, get_instance,
+       nsamples, nattributes, max_channel_size, get_instance,
        instance_channel_size, get_instance_attribute
 
 
-export n_features, n_relations,
-       n_frames, # TODO remove
+export nfeatures, nrelations,
        nframes, frames, get_frame,
        display_structure,
        get_gamma, test_decision,
