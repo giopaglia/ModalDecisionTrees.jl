@@ -5,6 +5,8 @@ using ..ModalDecisionTrees: evaluate_thresh_decision, existential_aggregator, ag
 
 import SoleData: get_instance, instance, max_channel_size, nattributes, nsamples, slice_dataset
 
+using SoleLogics: goes_with_dimensionality
+
 const initWorldSetFunction = Function
 const accFunction = Function
 const accReprFunction = Function

@@ -101,7 +101,7 @@ function slice_dataset(fwd::IntervalFWD{T}, inds::AbstractVector{<:Integer}; all
 end
 Base.@propagate_inbounds @inline fwd_get_channel(fwd::IntervalFWD{T}, i_sample::Integer, i_feature::Integer) where {T} =
     @views fwd.d[:,:,i_sample, i_feature]
-const IntervalFeaturedChannel{T} = Array{T, 2}
+const IntervalFeaturedChannel{T} = AbstractArray{T, 2}
 fwd_channel_interpret_world(fwc::IntervalFeaturedChannel{T}, w::Interval) where {T} =
     fwc[w.x, w.y]
 
@@ -154,7 +154,7 @@ function slice_dataset(fwd::Interval2DFWD{T}, inds::AbstractVector{<:Integer}; a
 end
 Base.@propagate_inbounds @inline fwd_get_channel(fwd::Interval2DFWD{T}, i_sample::Integer, i_feature::Integer) where {T} =
     @views fwd.d[:,:,:,:,i_sample, i_feature]
-const Interval2DFeaturedChannel{T} = Array{T, 4}
+const Interval2DFeaturedChannel{T} = AbstractArray{T, 4}
 fwd_channel_interpret_world(fwc::Interval2DFeaturedChannel{T}, w::Interval2D) where {T} =
     fwc[w.x.x, w.x.y, w.y.x, w.y.y]
 

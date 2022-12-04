@@ -21,7 +21,7 @@ using SoleLogics.Worlds
 
 import Base: size, show, getindex, iterate, length, push!
 
-# This is a reexport from SoleLogics.Relations and SoleLogics.Worlds
+# Reexport from SoleLogics:
 export World, Relation
 export AbstractWorldSet, WorldSet
 export RelationGlob, RelationId
