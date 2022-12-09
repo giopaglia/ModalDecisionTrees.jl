@@ -92,7 +92,7 @@ function prune_forest(forest::DForest{L}, rng::Random.AbstractRNG = Random.GLOBA
 
     # Prune trees
     # if parametrization_is_going_to_prune(pruning_params)
-    v_trees = map((t)->prune_tree(t, pruning_params), v_trees)
+    v_trees = map((t)->prune_tree(t; pruning_params...), forest.trees)
     # Note: metrics are lost
     forest = DForest{L}(v_trees)
     # end
