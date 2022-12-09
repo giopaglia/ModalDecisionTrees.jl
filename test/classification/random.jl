@@ -19,7 +19,7 @@ print_tree(model, 3)
 
 model = build_tree(labels, features)
 preds = apply_tree(model, features)
-cm = confusion_matrix(labels, preds)
+cm = compute_metrics(labels, preds)
 @test cm.accuracy > 0.9
 @test typeof(preds) == Vector{Int}
 
@@ -39,7 +39,7 @@ t3 = build_tree(labels, features, n_subfeatures; rng=mt)
 
 model = build_forest(labels, features)
 preds = apply_forest(model, features)
-cm = confusion_matrix(labels, preds)
+cm = compute_metrics(labels, preds)
 @test cm.accuracy > 0.9
 @test typeof(preds) == Vector{Int}
 
@@ -60,7 +60,7 @@ model = build_forest(
         min_samples_split,
         min_purity_increase)
 preds = apply_forest(model, features)
-cm = confusion_matrix(labels, preds)
+cm = compute_metrics(labels, preds)
 @test cm.accuracy > 0.9
 @test length(model) == n_trees
 
@@ -112,7 +112,7 @@ m3 = build_forest(labels, features,
 n_iterations = 25
 model, coeffs = build_adaboost_stumps(labels, features, n_iterations);
 preds = apply_adaboost_stumps(model, coeffs, features);
-cm = confusion_matrix(labels, preds)
+cm = compute_metrics(labels, preds)
 @test cm.accuracy > 0.6
 @test typeof(preds) == Vector{Int}
 @test length(model) == n_iterations

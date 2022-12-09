@@ -71,7 +71,7 @@ model = DecisionTree.build_forest(
         min_samples_split,
         min_purity_increase)
 preds = apply_forest(model, X)
-cm = confusion_matrix(Y, preds)
+cm = compute_metrics(Y, preds)
 @test cm.accuracy > 0.95
 
 n_iterations        = 100
@@ -79,7 +79,7 @@ model, coeffs = DecisionTree.build_adaboost_stumps(
         Y, X,
         n_iterations);
 preds = apply_adaboost_stumps(model, coeffs, X);
-cm = confusion_matrix(Y, preds)
+cm = compute_metrics(Y, preds)
 @test cm.accuracy > 0.8
 
 end # @testset

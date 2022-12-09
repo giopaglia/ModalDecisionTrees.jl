@@ -2,14 +2,14 @@ export OneWorld
 
 # One unique world (propositional case)
 struct OneWorld    <: AbstractWorld
-	OneWorld() = new()
-	OneWorld(w::_emptyWorld) = new()
-	OneWorld(w::_firstWorld) = new()
-	OneWorld(w::_centeredWorld) = new()
+    OneWorld() = new()
+    OneWorld(w::_emptyWorld) = new()
+    OneWorld(w::_firstWorld) = new()
+    OneWorld(w::_centeredWorld) = new()
 end;
 
-show(io::IO, w::OneWorld) = begin
-	print(io, "−")
+Base.show(io::IO, w::OneWorld) = begin
+    print(io, "−")
 end
 
 worldTypeDimensionality(::Type{OneWorld}) = 0
@@ -23,7 +23,7 @@ enumAccessibles(::OneWorld, ::_RelationGlob, XYZ::Vararg{Integer}) = [OneWorld()
 
 enumAll(::Type{OneWorld}, args::Vararg) = [OneWorld()]
 enumAll(::Type{OneWorld}, enumAccFun::Function) = [OneWorld()]
-enumReprAll(::Type{OneWorld}, enumReprFun::Function, f::FeatureTypeFun, a::Aggregator) = [OneWorld()]
+enumReprAll(::Type{OneWorld}, enumReprFun::Function, f::ModalFeature, a::Aggregator) = [OneWorld()]
 
 
-enumAccReprAggr(f::FeatureTypeFun, a::Aggregator, ::Vector{OneWorld}, ::DecisionTree.ModalLogic._RelationGlob) = [OneWorld()]
+enumAccReprAggr(f::ModalFeature, a::Aggregator, ::Vector{OneWorld}, ::DecisionTree.ModalLogic._RelationGlob) = [OneWorld()]

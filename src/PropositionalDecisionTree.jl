@@ -27,7 +27,7 @@ export DecisionTreeClassifier, DecisionTreeRegressor, RandomForestClassifier,
 ########## Types ##########
 
 struct Leaf{T}
-    majority :: T
+    label :: T
     values   :: Vector{T}
 end
 
@@ -53,8 +53,8 @@ promote_rule(::Type{Node{S, T}}, ::Type{Leaf{T}}) where {S, T} = Node{S, T}
 promote_rule(::Type{Leaf{T}}, ::Type{Node{S, T}}) where {S, T} = Node{S, T}
 
 # make a Random Number Generator object
-mk_rng(rng::Random.AbstractRNG) = rng
-mk_rng(seed::T) where T <: Integer = Random.MersenneTwister(seed)
+mk_rngmmmciao(rng::Random.AbstractRNG) = rng
+mk_rngmmmciao(seed::T) where T <: Integer = Random.MersenneTwister(seed)
 
 ##############################
 ########## Includes ##########
@@ -78,9 +78,9 @@ depth(leaf::Leaf) = 0
 depth(tree::Node) = 1 + max(depth(tree.left), depth(tree.right))
 
 function print_tree(leaf::Leaf, depth=-1, indent=0)
-    matches = findall(leaf.values .== leaf.majority)
+    matches = findall(leaf.values .== leaf.label)
     ratio = string(length(matches)) * "/" * string(length(leaf.values))
-    println("$(leaf.majority) : $(ratio)")
+    println("$(leaf.label) : $(ratio)")
 end
 
 function print_tree(tree::Node, depth=-1, indent=0)
@@ -95,19 +95,19 @@ function print_tree(tree::Node, depth=-1, indent=0)
     print_tree(tree.right, depth, indent + 1)
 end
 
-function show(io::IO, leaf::Leaf)
+function Base.show(io::IO, leaf::Leaf)
     println(io, "Decision Leaf")
-    println(io, "Majority: $(leaf.majority)")
+    println(io, "Label: $(leaf.label)")
     print(io,   "Samples:  $(length(leaf.values))")
 end
 
-function show(io::IO, tree::Node)
+function Base.show(io::IO, tree::Node)
     println(io, "Decision Tree")
     println(io, "Leaves: $(length(tree))")
     print(io,   "Depth:  $(depth(tree))")
 end
 
-function show(io::IO, ensemble::Ensemble)
+function Base.show(io::IO, ensemble::Ensemble)
     println(io, "Ensemble of Decision Trees")
     println(io, "Trees:      $(length(ensemble))")
     println(io, "Avg Leaves: $(mean([length(tree) for tree in ensemble.trees]))")

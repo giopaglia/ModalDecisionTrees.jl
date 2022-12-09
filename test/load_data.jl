@@ -1,3 +1,5 @@
+using DelimitedFiles
+
 function load_data(name)
     datasets = ["iris", "adult", "digits"]
     data_path = joinpath(dirname(pathof(DecisionTree)), "..", "test/data/")

@@ -1,7 +1,7 @@
 
 # FeaturedWorldDataset(
 # 		X::OntologicalDataset{T, N, WorldType},
-# 		features::AbstractVector{<:FeatureTypeFun}
+# 		features::AbstractVector{<:ModalFeature}
 # 	) where {T, N, WorldType<:AbstractWorld} = FeaturedWorldDataset{T, WorldType}(X, features)
 
 Base.@propagate_inbounds function FeaturedWorldDataset(
@@ -15,9 +15,23 @@ Base.@propagate_inbounds function FeaturedWorldDataset(
 	n_instances = n_samples(X)
 	n_features = length(features)
 	
-	# Prepare FeaturedWorldDataset (the actual implementation depends on the OntologicalDataset)
+    # Prepare FeaturedWorldDataset (the actual implementation depends on the OntologicalDataset)
 	fwd = initFeaturedWorldDataset(X, n_features)
-	
+
+	# Load any (possible) external features
+	# TODO load also FWDFunctionFeatureType (abstract type FWDFeature)
+	if any(isa.(features, ExternalFWDFeatureType))
+		i_external_features = first.(filter(((i_feature,is_external_fwd),)->(is_external_fwd), collect(enumerate(isa.(features, ExternalFWDFeatureType)))))
+		for i_feature in i_external_features
+			feature = features[i_feature]
+			modalDatasetSetFeature(fwd, i_feature, feature.fwd)
+		end
+	end
+
+	# Load any internal features
+	i_features = first.(filter(((i_feature,is_external_fwd),)->!(is_external_fwd), collect(enumerate(isa.(features, ExternalFWDFeatureType)))))
+	enum_features = zip(i_features, features[i_features])
+
 	# Compute features
 	@inbounds Threads.@threads for i_instance in 1:n_instances
 		@logmsg DTDebug "Instance $(i_instance)/$(n_instances)"
@@ -26,7 +40,7 @@ Base.@propagate_inbounds function FeaturedWorldDataset(
 			@logmsg DTOverview "Instance $(i_instance)/$(n_instances)"
 		end
 
-		# instance = getInstance(X, i_instance)
+		# instance = get_instance(X, i_instance)
 		# @logmsg DTDebug "instance" instance
 
 		for w in accAll_function(X, i_instance)
@@ -35,7 +49,7 @@ Base.@propagate_inbounds function FeaturedWorldDataset(
 
 			@logmsg DTDebug "World" w
 
-			for (i_feature,feature) in enumerate(features)
+			for (i_feature,feature) in enum_features
 
 				# threshold = computePropositionalThreshold(feature, w, instance)
 				threshold = get_gamma(X, i_instance, w, feature)
@@ -60,7 +74,7 @@ end
 # n_features(fwd::GenericFeaturedWorldDataset{T, WorldType}) where {T, WorldType} = size(fwd.d, 2)
 
 # TODO
-# function checkModalDatasetConsistency(modalDataset, X::OntologicalDataset{T, N, WorldType}, features::AbstractVector{<:FeatureTypeFun}) where {T, N, WorldType<:AbstractWorld}
+# function checkModalDatasetConsistency(modalDataset, X::OntologicalDataset{T, N, WorldType}, features::AbstractVector{<:ModalFeature}) where {T, N, WorldType<:AbstractWorld}
 # 	if !(modalDatasetIsConsistent(modalDataset, X, length(features)))
 # 		throw_n_log("The provided modalDataset structure is not consistent with the expected dataset, test operators and/or relations!"
 # 			* "\n\tmodalDataset:"
@@ -89,8 +103,12 @@ initFeaturedWorldDatasetWorldSlice(fwd::OneWorldFeaturedWorldDataset{T}, w::OneW
 	nothing
 modalDatasetSet(fwd::OneWorldFeaturedWorldDataset{T}, w::OneWorld, i_instance::Integer, i_feature::Integer, threshold::T) where {T} =
 	fwd.d[i_instance, i_feature] = threshold
-slice_dataset(fwd::OneWorldFeaturedWorldDataset{T}, inds::AbstractVector{<:Integer}; return_view = false) where {T} =
+modalDatasetSetFeature(fwd::OneWorldFeaturedWorldDataset{T}, i_feature::Integer, feature_fwd::Array{T, 1}) where {T} =
+	fwd.d[:, i_feature] = feature_fwd
+function slice_dataset(fwd::OneWorldFeaturedWorldDataset{T}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T}
+    @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
 	OneWorldFeaturedWorldDataset{T}(if return_view @view fwd.d[inds,:] else fwd.d[inds,:] end)
+end
 modalDatasetChannelSlice(fwd::OneWorldFeaturedWorldDataset{T}, i_instance::Integer, i_feature::Integer) where {T} =
 	fwd.d[i_instance, i_feature]
 const OneWorldFeaturedChannel{T} = T
@@ -121,8 +139,12 @@ initFeaturedWorldDatasetWorldSlice(fwd::IntervalFeaturedWorldDataset{T}, w::Inte
 	nothing
 modalDatasetSet(fwd::IntervalFeaturedWorldDataset{T}, w::Interval, i_instance::Integer, i_feature::Integer, threshold::T) where {T} =
 	fwd.d[w.x, w.y, i_instance, i_feature] = threshold
-slice_dataset(fwd::IntervalFeaturedWorldDataset{T}, inds::AbstractVector{<:Integer}; return_view = false) where {T} =
+modalDatasetSetFeature(fwd::IntervalFeaturedWorldDataset{T}, i_feature::Integer, feature_fwd::Array{T, 3}) where {T} =
+	fwd.d[:, :, :, i_feature] = feature_fwd
+function slice_dataset(fwd::IntervalFeaturedWorldDataset{T}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T}
+    @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
 	IntervalFeaturedWorldDataset{T}(if return_view @view fwd.d[:,:,inds,:] else fwd.d[:,:,inds,:] end)
+end
 modalDatasetChannelSlice(fwd::IntervalFeaturedWorldDataset{T}, i_instance::Integer, i_feature::Integer) where {T} =
 	@views fwd.d[:,:,i_instance, i_feature]
 const IntervalFeaturedChannel{T} = AbstractArray{T, 2}
@@ -153,8 +175,12 @@ initFeaturedWorldDatasetWorldSlice(fwd::Interval2DFeaturedWorldDataset{T}, w::In
 	nothing
 modalDatasetSet(fwd::Interval2DFeaturedWorldDataset{T}, w::Interval2D, i_instance::Integer, i_feature::Integer, threshold::T) where {T} =
 	fwd.d[w.x.x, w.x.y, w.y.x, w.y.y, i_instance, i_feature] = threshold
-slice_dataset(fwd::Interval2DFeaturedWorldDataset{T}, inds::AbstractVector{<:Integer}; return_view = false) where {T} =
+modalDatasetSetFeature(fwd::Interval2DFeaturedWorldDataset{T}, i_feature::Integer, feature_fwd::Array{T, 5}) where {T} =
+	fwd.d[:, :, :, :, :, i_feature] = feature_fwd
+function slice_dataset(fwd::Interval2DFeaturedWorldDataset{T}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T}
+    @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
 	Interval2DFeaturedWorldDataset{T}(if return_view @view fwd.d[:,:,:,:,inds,:] else fwd.d[:,:,:,:,inds,:] end)
+end
 modalDatasetChannelSlice(fwd::Interval2DFeaturedWorldDataset{T}, i_instance::Integer, i_feature::Integer) where {T} =
 	@views fwd.d[:,:,:,:,i_instance, i_feature]
 const Interval2DFeaturedChannel{T} = AbstractArray{T, 4}
@@ -198,7 +224,7 @@ const FeaturedWorldDatasetSlice{T} = Union{
 # 	# grouped_featsnaggrs = [grouped_featsnaggrs[i_feature] for i_feature in 1:length(features)]
 
 # 	# # Flatten dictionary, and enhance aggregators in dictionary with their relative indices
-# 	# flattened_featsnaggrs = Tuple{<:FeatureTypeFun,<:Aggregator}[]
+# 	# flattened_featsnaggrs = Tuple{<:ModalFeature,<:Aggregator}[]
 # 	# i_featsnaggr = 1
 # 	# for (i_feature, aggregators) in enumerate(grouped_featsnaggrs)
 # 	# 	for aggregator in aggregators
@@ -244,8 +270,10 @@ initFMDStumpSupportWorldSlice(fmds::GenericFMDStumpSupport{T, WorldType}, i_inst
 	fmds.d[i_instance, i_featsnaggr, i_relation] = Dict{WorldType,T}()
 FMDStumpSupportSet(fmds::GenericFMDStumpSupport{T, WorldType}, w::AbstractWorld, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T, WorldType} =
 	fmds.d[i_instance, i_featsnaggr, i_relation][w] = threshold
-slice_dataset(fmds::GenericFMDStumpSupport{T, WorldType}, inds::AbstractVector{<:Integer}; return_view = false) where {T, WorldType} =
+function slice_dataset(fmds::GenericFMDStumpSupport{T, WorldType}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T, WorldType}
+    @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
 	GenericFMDStumpSupport{T, WorldType}(if return_view @view fmds.d[inds,:,:] else fmds.d[inds,:,:] end)
+end
 
 
 
@@ -280,8 +308,10 @@ initFMDStumpSupportWorldSlice(fmds::OneWorldFMDStumpSupport, i_instance::Integer
 	nothing
 FMDStumpSupportSet(fmds::OneWorldFMDStumpSupport{T}, w::OneWorld, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
 	fmds.d[i_instance, i_featsnaggr, i_relation] = threshold
-slice_dataset(fmds::OneWorldFMDStumpSupport{T}, inds::AbstractVector{<:Integer}; return_view = false) where {T} =
+function slice_dataset(fmds::OneWorldFMDStumpSupport{T}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T}
+    @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
 	OneWorldFMDStumpSupport{T}(if return_view @view fmds.d[inds,:,:] else fmds.d[inds,:,:] end)
+end
 
 
 
@@ -316,8 +346,10 @@ initFMDStumpSupportWorldSlice(fmds::IntervalFMDStumpSupport, i_instance::Integer
 	nothing
 FMDStumpSupportSet(fmds::IntervalFMDStumpSupport{T}, w::Interval, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
 	fmds.d[w.x, w.y, i_instance, i_featsnaggr, i_relation] = threshold
-slice_dataset(fmds::IntervalFMDStumpSupport{T}, inds::AbstractVector{<:Integer}; return_view = false) where {T} =
+function slice_dataset(fmds::IntervalFMDStumpSupport{T}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T}
+    @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
 	IntervalFMDStumpSupport{T}(if return_view @view fmds.d[:,:,inds,:,:] else fmds.d[:,:,inds,:,:] end)
+end
 
 
 # struct Interval2DFMDStumpSupport{T} <: AbstractFMDStumpSupport{T, Interval2D}
@@ -351,8 +383,10 @@ slice_dataset(fmds::IntervalFMDStumpSupport{T}, inds::AbstractVector{<:Integer};
 # 	nothing
 # FMDStumpSupportSet(fmds::Interval2DFMDStumpSupport{T}, w::Interval2D, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
 # 	fmds.d[w.x.x, w.x.y, w.y.x, w.y.y, i_instance, i_featsnaggr, i_relation] = threshold
-# slice_dataset(fmds::Interval2DFMDStumpSupport{T}, inds::AbstractVector{<:Integer}; return_view = false) where {T} =
+# function slice_dataset(fmds::Interval2DFMDStumpSupport{T}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T}
+# @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
 # 	Interval2DFMDStumpSupport{T}(if return_view @view fmds.d[:,:,:,:,inds,:,:] else fmds.d[:,:,:,:,inds,:,:] end)
+# end
 
 struct Interval2DFMDStumpSupport{T} <: AbstractFMDStumpSupport{T, Interval2D}
 	d :: AbstractArray{T, 5}
@@ -385,8 +419,10 @@ initFMDStumpSupportWorldSlice(fmds::Interval2DFMDStumpSupport, i_instance::Integ
 	nothing
 FMDStumpSupportSet(fmds::Interval2DFMDStumpSupport{T}, w::Interval2D, i_instance::Integer, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
 	fmds.d[w.x.x+div((w.x.y-2)*(w.x.y-1),2), w.y.x+div((w.y.y-2)*(w.y.y-1),2), i_instance, i_featsnaggr, i_relation] = threshold
-slice_dataset(fmds::Interval2DFMDStumpSupport{T}, inds::AbstractVector{<:Integer}; return_view = false) where {T} =
+function slice_dataset(fmds::Interval2DFMDStumpSupport{T}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T}
+    @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
 	Interval2DFMDStumpSupport{T}(if return_view @view fmds.d[:,:,inds,:,:] else fmds.d[:,:,inds,:,:] end)
+end
 
 
 # Note: global support is world-agnostic
@@ -408,8 +444,10 @@ initFMDStumpGlobalSupport(fmd::FeatModalDataset{T}, n_featsnaggrs::Integer) wher
 # 	(typeof(modalDataset)<:AbstractArray{T, 2} && size(modalDataset) == (n_samples(fmd), n_featsnaggrs))
 FMDStumpGlobalSupportSet(fmds::FMDStumpGlobalSupportArray{T}, i_instance::Integer, i_featsnaggr::Integer, threshold::T) where {T} =
 	fmds.d[i_instance, i_featsnaggr] = threshold
-slice_dataset(fmds::FMDStumpGlobalSupportArray{T}, inds::AbstractVector{<:Integer}; return_view = false) where {T} =
+function slice_dataset(fmds::FMDStumpGlobalSupportArray{T}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T}
+    @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
 	FMDStumpGlobalSupportArray{T}(if return_view @view fmds.d[inds,:] else fmds.d[inds,:] end)
+end
 
 
 Base.@propagate_inbounds function computeModalDatasetStumpSupport(
