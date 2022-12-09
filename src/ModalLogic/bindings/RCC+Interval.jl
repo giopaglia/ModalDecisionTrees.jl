@@ -1,4 +1,4 @@
-goes_with(::Type{Interval}, ::RCCRelation) = true
+goeswith(::Type{Interval}, ::RCCRelation) = true
 
 # Enumerate accessible worlds from a single world
 _accessibles(w::Interval, r::RCC8RelationFromIA,    X::Integer) = Iterators.flatten((_accessibles(w, IA_r,  X) for IA_r in topo2IARelations(r)))

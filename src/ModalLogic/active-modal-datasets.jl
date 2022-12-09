@@ -5,7 +5,7 @@ using ..ModalDecisionTrees: evaluate_thresh_decision, existential_aggregator, ag
 
 import SoleData: get_instance, instance, max_channel_size, nattributes, nsamples, slice_dataset
 
-using SoleLogics: goes_with_dimensionality
+using SoleLogics: goeswith_dim
 
 const initWorldSetFunction = Function
 const accFunction = Function
@@ -179,7 +179,7 @@ end
     ) where {T, N, D, WorldType<:World}
 
         @assert allow_no_instances || nsamples(domain) > 0 "Can't instantiate InterpretedModalDataset{$(T), $(N), $(WorldType)} with no instance. (domain's type $(typeof(domain)))"
-        @assert goes_with_dimensionality(WorldType, N) "ERROR! Dimensionality mismatch: can't interpret WorldType $(WorldType) on DimensionalDataset of dimensionality = $(N)"
+        @assert goeswith_dim(WorldType, N) "ERROR! Dimensionality mismatch: can't interpret WorldType $(WorldType) on DimensionalDataset of dimensionality = $(N)"
         @assert D == (N+1+1) "ERROR! Dimensionality mismatch: can't instantiate InterpretedModalDataset{$(T), $(N)} with DimensionalDataset{$(T),$(D)}"
         @assert length(features) == length(grouped_featsaggrsnops) "Can't instantiate InterpretedModalDataset{$(T), $(N), $(WorldType)} with mismatching length(features) == length(grouped_featsaggrsnops): $(length(features)) != $(length(grouped_featsaggrsnops))"
         # @assert length(grouped_featsaggrsnops) > 0 && sum(length.(grouped_featsaggrsnops)) > 0 && sum(vcat([[length(test_ops) for test_ops in aggrs] for aggrs in grouped_featsaggrsnops]...)) > 0 "Can't instantiate ExplicitModalDataset{$(T), $(WorldType)} with no test operator: $(grouped_featsaggrsnops)"
@@ -253,9 +253,9 @@ Base.@propagate_inbounds @inline get_gamma(imd::InterpretedModalDataset, args...
 
 abstract type AbstractFWD{T<:Number,WorldType<:World} end
 
-# Any implementation for a fwd must indicate their compatible world types via `goes_with`.
+# Any implementation for a fwd must indicate their compatible world types via `goeswith`.
 # Fallback:
-goes_with(::Type{<:AbstractFWD}, ::Type{<:World}) = false
+goeswith(::Type{<:AbstractFWD}, ::Type{<:World}) = false
 
 # Any world type must also specify their default fwd constructor, which must accept a type
 #  parameter for the data type {T}, via:
@@ -273,7 +273,7 @@ goes_with(::Type{<:AbstractFWD}, ::Type{<:World}) = false
 # end
 
 # # It goes for any world type
-# goes_with(::Type{<:GenericFWD}, ::Type{<:World}) = true
+# goeswith(::Type{<:GenericFWD}, ::Type{<:World}) = true
 
 # # And it is the default fwd structure for an world type
 # default_fwd_type(::Type{<:World}) = GenericFWD
@@ -433,7 +433,7 @@ struct ExplicitModalDataset{T<:Number, WorldType<:World} <: ActiveModalDataset{T
 
             _n_samples = nsamples(imd)
 
-            @assert goes_with(FWD, WorldType)
+            @assert goeswith(FWD, WorldType)
 
             # Initialize the fwd structure
             fwd = fwd_init(FWD, imd)
@@ -630,7 +630,7 @@ struct GenericRelationalSupport{T, WorldType} <: AbstractRelationalSupport{T, Wo
     d :: AbstractArray{Dict{WorldType,T}, 3}
 end
 
-goes_with(::Type{GenericRelationalSupport}, ::Type{<:World}) = true
+goeswith(::Type{GenericRelationalSupport}, ::Type{<:World}) = true
 # default_fwd_rs_type(::Type{<:World}) = GenericRelationalSupport # TODO implement similar pattern used for fwd
 
 hasnans(emds::GenericRelationalSupport) = begin
@@ -674,7 +674,7 @@ struct GenericGlobalSupport{T} <: AbstractGlobalSupport{T}
     d :: AbstractArray{T, 2}
 end
 
-goes_with(::Type{AbstractGlobalSupport}, ::Type{<:World}) = true
+goeswith(::Type{AbstractGlobalSupport}, ::Type{<:World}) = true
 # default_fwd_gs_type(::Type{<:World}) = GenericGlobalSupport # TODO implement similar pattern used for fwd
 
 hasnans(emds::GenericGlobalSupport) = begin

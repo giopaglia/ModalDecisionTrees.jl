@@ -1,4 +1,4 @@
-goes_with(::Type{Interval}, ::IntervalRelation) = true
+goeswith(::Type{Interval}, ::IntervalRelation) = true
 
 _accessibles(w::Interval, ::_IA_A,  X::Integer) = zip(Iterators.repeated(w.y), w.y+1:X+1)
 _accessibles(w::Interval, ::_IA_Ai, X::Integer) = zip(1:w.x-1, Iterators.repeated(w.x))

@@ -1,4 +1,4 @@
-goes_with(::Type{Interval2D}, ::RCCRelation) = true
+goeswith(::Type{Interval2D}, ::RCCRelation) = true
 
 ############################################################################################
 # Methods for RCC8 relations and Interval2D's can be obtained by combining their 1D versions.

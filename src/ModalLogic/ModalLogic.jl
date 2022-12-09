@@ -45,7 +45,7 @@ struct Ontology{WorldType<:World}
     function Ontology{WorldType}(_relations::AbstractVector) where {WorldType<:World}
         _relations = collect(unique(_relations))
         for relation in _relations
-            @assert goes_with(WorldType, relation) "Can't instantiate Ontology{$(WorldType)} with relation $(relation)!"
+            @assert goeswith(WorldType, relation) "Can't instantiate Ontology{$(WorldType)} with relation $(relation)!"
         end
         if WorldType == OneWorld && length(_relations) > 0
           _relations = similar(_relations, 0)

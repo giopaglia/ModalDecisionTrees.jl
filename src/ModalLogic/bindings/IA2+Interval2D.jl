@@ -1,4 +1,4 @@
-goes_with(::Type{Interval2D}, ::RectangleRelation) = true
+goeswith(::Type{Interval2D}, ::RectangleRelation) = true
 
 # Convenience function
 _accessibles__(w::Interval, r::IntervalRelation, X::Integer) = _accessibles(w,r,X)

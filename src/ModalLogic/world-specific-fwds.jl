@@ -12,7 +12,7 @@ struct OneWorldFWD{T} <: AbstractFWD{T, OneWorld}
     d :: Array{T, 2}
 end
 
-goes_with(::Type{OneWorldFWD}, ::Type{OneWorld}) = true
+goeswith(::Type{OneWorldFWD}, ::Type{OneWorld}) = true
 default_fwd_type(::Type{OneWorld}) = OneWorldFWD
 
 nsamples(fwd::OneWorldFWD{T}) where {T}  = size(fwd, 1)
@@ -61,7 +61,7 @@ struct IntervalFWD{T} <: AbstractFWD{T, Interval}
     d :: Array{T, 4}
 end
 
-goes_with(::Type{IntervalFWD}, ::Type{Interval}) = true
+goeswith(::Type{IntervalFWD}, ::Type{Interval}) = true
 default_fwd_type(::Type{Interval}) = IntervalFWD
 
 nsamples(fwd::IntervalFWD{T}) where {T}  = size(fwd, 3)
@@ -113,7 +113,7 @@ struct Interval2DFWD{T} <: AbstractFWD{T, Interval2D}
     d :: Array{T, 6}
 end
 
-goes_with(::Type{Interval2DFWD}, ::Type{Interval2D}) = true
+goeswith(::Type{Interval2DFWD}, ::Type{Interval2D}) = true
 default_fwd_type(::Type{Interval2D}) = Interval2DFWD
 
 nsamples(fwd::Interval2DFWD{T}) where {T}  = size(fwd, 5)
@@ -218,7 +218,7 @@ Base.@propagate_inbounds @inline Base.getindex(
     i_featsnaggr :: Integer,
     i_relation   :: Integer) where {T} = emds.d[i_sample, i_featsnaggr, i_relation]
 Base.size(emds::OneWorldFWD_RS{T}, args...) where {T} = size(emds.d, args...)
-goes_with(::Type{OneWorldFWD_RS}, ::Type{OneWorld}) = true
+goeswith(::Type{OneWorldFWD_RS}, ::Type{OneWorld}) = true
 
 hasnans(emds::OneWorldFWD_RS) = any(_isnan.(emds.d))
 
@@ -259,7 +259,7 @@ Base.@propagate_inbounds @inline Base.getindex(
     i_featsnaggr :: Integer,
     i_relation   :: Integer) where {T} = emds.d[w.x, w.y, i_sample, i_featsnaggr, i_relation]
 Base.size(emds::IntervalFWD_RS{T}, args...) where {T} = size(emds.d, args...)
-goes_with(::Type{IntervalFWD_RS}, ::Type{Interval}) = true
+goeswith(::Type{IntervalFWD_RS}, ::Type{Interval}) = true
 
 
 hasnans(emds::IntervalFWD_RS) = begin
@@ -304,7 +304,7 @@ end
 #   i_featsnaggr :: Integer,
 #   i_relation   :: Integer) where {T} = emds.d[w.x.x, w.x.y, w.y.x, w.y.y, i_sample, i_featsnaggr, i_relation]
 # size(emds::Interval2DFWD_RS{T}, args...) where {T} = size(emds.d, args...)
-# goes_with(::Type{Interval2DFWD_RS}, ::Type{Interval2D}) = true
+# goeswith(::Type{Interval2DFWD_RS}, ::Type{Interval2D}) = true
 
 # TODO... hasnans(emds::Interval2DFWD_RS) = any(_isnan.(emds.d))
 # TODO...? hasnans(emds::Interval2DFWD_RS) = any([hasnans(emds.d[xx,xy,yx,yy,:,:]) for xx in 1:size(emds.d, 1) for xy in (xx+1):size(emds.d, 2) for yx in 1:size(emds.d, 3) for yy in (yx+1):size(emds.d, 4)])
@@ -346,7 +346,7 @@ Base.@propagate_inbounds @inline Base.getindex(
     i_featsnaggr :: Integer,
     i_relation   :: Integer) where {T} = emds.d[w.x.x+div((w.x.y-2)*(w.x.y-1),2), w.y.x+div((w.y.y-2)*(w.y.y-1),2), i_sample, i_featsnaggr, i_relation]
 Base.size(emds::Interval2DFWD_RS{T}, args...) where {T} = size(emds.d, args...)
-goes_with(::Type{Interval2DFWD_RS}, ::Type{Interval2D}) = true
+goeswith(::Type{Interval2DFWD_RS}, ::Type{Interval2D}) = true
 
 hasnans(emds::Interval2DFWD_RS) = any(_isnan.(emds.d))
 
