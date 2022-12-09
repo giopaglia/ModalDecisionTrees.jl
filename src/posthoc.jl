@@ -34,7 +34,7 @@ function prune_tree(node::DTInternal{T, L}; depth = nothing, kwargs...) where {T
         min_purity_increase = default_min_purity_increase   ::AbstractFloat          ,
         max_purity_at_leaf  = default_max_purity_at_leaf    ::AbstractFloat          ,
     ), NamedTuple(kwargs))
-    
+
     @assert all(map((x)->(isa(x, DTInternal) || isa(x, DTLeaf)), [node.this, node.left, node.right]))
 
     # Honor constraints on the number of instances
@@ -48,7 +48,7 @@ function prune_tree(node::DTInternal{T, L}; depth = nothing, kwargs...) where {T
        # (pruning_params.min_samples_leaf > nl)  ||
         return node.this
     end
-    
+
     # Honor purity constraints
     # TODO fix missing weights!!
     purity   = ModalDecisionTrees.compute_purity(supp_labels(node.this);  loss_function = pruning_params.loss_function)
@@ -92,7 +92,7 @@ function prune_forest(forest::DForest{L}, rng::Random.AbstractRNG = Random.GLOBA
 
     # Prune trees
     # if parametrization_is_going_to_prune(pruning_params)
-    v_trees = map((t)->prune_tree(t, pruning_params), v_trees)
+    v_trees = map((t)->prune_tree(t, pruning_params), forest.trees)
     # Note: metrics are lost
     forest = DForest{L}(v_trees)
     # end
@@ -117,7 +117,7 @@ function nondominated_pruning_parametrizations(args::AbstractVector; do_it_or_no
     args = convert(Vector{NamedTuple}, args)
     nondominated_pars, perm =
         if do_it_or_not
-            
+
             # To be optimized
             to_opt = [
                 # tree & forest
@@ -128,7 +128,7 @@ function nondominated_pruning_parametrizations(args::AbstractVector; do_it_or_no
                 # forest
                 :n_trees,
             ]
-            
+
             # To be matched
             to_match = [
                 :min_samples_leaf,
@@ -191,7 +191,7 @@ function nondominated_pruning_parametrizations(args::AbstractVector; do_it_or_no
                     # if (rep_args.min_samples_leaf    == bottom(Val(:min_samples_leaf))   ) rep_args = Base.structdiff(rep_args, (; min_samples_leaf    = nothing)) end
                     if (rep_args.min_purity_increase == bottom(Val(:min_purity_increase))) rep_args = Base.structdiff(rep_args, (; min_purity_increase = nothing)) end
                     if (rep_args.max_purity_at_leaf  == bottom(Val(:max_purity_at_leaf)) ) rep_args = Base.structdiff(rep_args, (; max_purity_at_leaf  = nothing)) end
-                    
+
                     this_args = merge(base_args, rep_args)
                     (this_args, [begin
                         ks = intersect(to_leave, keys(post_pruning_args))
@@ -211,7 +211,7 @@ function nondominated_pruning_parametrizations(args::AbstractVector; do_it_or_no
 end
 
 
-# 
+#
 
 function train_functional_leaves(
         tree::DTree,
@@ -234,11 +234,11 @@ function train_functional_leaves(
         args...;
         kwargs...,
     ) where {T, L}
-    
+
     # Each dataset is sliced, and two subsets are derived (left and right)
     datasets_l = Tuple{GenericModalDataset,AbstractVector}[]
     datasets_r = Tuple{GenericModalDataset,AbstractVector}[]
-    
+
     worlds_l = AbstractVector{<:AbstractVector{<:AbstractWorldSet}}[]
     worlds_r = AbstractVector{<:AbstractVector{<:AbstractWorldSet}}[]
 
@@ -265,7 +265,7 @@ function train_functional_leaves(
         push!(worlds_l, [frame_worlds[satisfied_idxs]   for frame_worlds in worlds[i_dataset]])
         push!(worlds_r, [frame_worlds[unsatisfied_idxs] for frame_worlds in worlds[i_dataset]])
     end
-    
+
     DTInternal(
         node.i_frame,
         node.decision,
@@ -284,7 +284,7 @@ function train_functional_leaves(
         train_callback::Function,
     ) where {L<:Label}
     functional_model = train_callback(datasets)
-    
+
     @assert length(datasets) == 2 "TODO expand code: $(length(datasets))"
     (train_X, train_Y), (valid_X, valid_Y) = datasets[1], datasets[2]
 
