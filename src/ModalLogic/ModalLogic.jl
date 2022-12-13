@@ -16,6 +16,9 @@ using IterTools
 using Logging: @logmsg
 using ResumableFunctions
 
+using SoleLogics: AbstractRelation
+Relation = AbstractRelation # TODO remove this patch
+
 using SoleLogics.Relations
 using SoleLogics.Worlds
 
