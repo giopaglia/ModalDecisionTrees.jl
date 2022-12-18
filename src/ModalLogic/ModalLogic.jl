@@ -16,16 +16,13 @@ using IterTools
 using Logging: @logmsg
 using ResumableFunctions
 
-using SoleLogics: AbstractRelation
-Relation = AbstractRelation # TODO remove this patch
-
-using SoleLogics.Relations
-using SoleLogics.Worlds
+using SoleLogics
+using SoleLogics: AbstractRelation, AbstractWorld
 
 import Base: size, show, getindex, iterate, length, push!
 
 # Reexport from SoleLogics:
-export World, Relation
+export AbstractWorld, AbstractRelation
 export AbstractWorldSet, WorldSet
 export RelationGlob, RelationId
 
@@ -41,11 +38,11 @@ end
 # Concrete type for ontologies
 # An ontology is a pair `world type` + `set of relations`, and represents the kind of
 #  modal frame that underlies a certain logic
-struct Ontology{WorldType<:World}
+struct Ontology{WorldType<:AbstractWorld}
 
-    relations :: AbstractVector{<:Relation}
+    relations :: AbstractVector{<:AbstractRelation}
 
-    function Ontology{WorldType}(_relations::AbstractVector) where {WorldType<:World}
+    function Ontology{WorldType}(_relations::AbstractVector) where {WorldType<:AbstractWorld}
         _relations = collect(unique(_relations))
         for relation in _relations
             @assert goeswith(WorldType, relation) "Can't instantiate Ontology{$(WorldType)} with relation $(relation)!"
@@ -57,13 +54,13 @@ struct Ontology{WorldType<:World}
         new{WorldType}(_relations)
     end
 
-    Ontology(worldType::Type{<:World}, relations) = Ontology{worldType}(relations)
+    Ontology(worldType::Type{<:AbstractWorld}, relations) = Ontology{worldType}(relations)
 end
 
-world_type(::Ontology{WT}) where {WT<:World} = WT
+world_type(::Ontology{WT}) where {WT<:AbstractWorld} = WT
 relations(o::Ontology) = o.relations
 
-Base.show(io::IO, o::Ontology{WT}) where {WT<:World} = begin
+Base.show(io::IO, o::Ontology{WT}) where {WT<:AbstractWorld} = begin
     if o == OneWorldOntology
         print(io, "OneWorldOntology")
     else
@@ -107,7 +104,7 @@ end
 ############################################################################################
 
 # Relations are defined via methods that return iterators to the accessible worlds.
-# Each relation R<:Relation must provide a method for `accessibles`, which returns an iterator
+# Each relation R<:AbstractRelation must provide a method for `accessibles`, which returns an iterator
 #  to the worlds that are accessible from a given world w:
 # `accessibles(w::W,           ::R, args...)`
 
@@ -116,7 +113,7 @@ end
 # `_accessibles(w::W,           ::R, args...)`
 
 # The following fallback ensures that the two definitions are equivalent
-accessibles(w::WorldType, r::Relation, args...) where {T,WorldType<:World} = begin
+accessibles(w::WorldType, r::AbstractRelation, args...) where {T,WorldType<:AbstractWorld} = begin
     IterTools.imap(WorldType, _accessibles(w, r, args...))
 end
 
@@ -126,7 +123,7 @@ end
 #  single world. Generally, this falls back to calling `_accessibles` on each world in
 #  the set, and returning a constructor of wolds from the union; however, one may provide
 #  improved implementations for special cases (e.g. ⟨L⟩ of a world set in interval algebra).
-accessibles(S::AbstractWorldSet{WorldType}, r::Relation, args...) where {T,WorldType<:World} = begin
+accessibles(S::AbstractWorldSet{WorldType}, r::AbstractRelation, args...) where {T,WorldType<:AbstractWorld} = begin
     IterTools.imap(WorldType,
         IterTools.distinct(
             Iterators.flatten(
@@ -146,16 +143,16 @@ end
 #  worlds.
 # accessibles_aggr(f::ModalFeature, a::Aggregator, S::AbstractWorldSet{W}, ::R, args...)
 # Of course, the fallback is enumerating all accessible worlds via `accessibles`
-accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::Relation, args...) where {WorldType<:World} = accessibles(w, r, args...)
+accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::AbstractRelation, args...) where {WorldType<:AbstractWorld} = accessibles(w, r, args...)
 
 ############################################################################################
 # Singletons representing natural relations
 ############################################################################################
 
-accessibles(w::WorldType,           ::_RelationId, args...) where {WorldType<:World} = [w] # TODO try IterTools.imap(identity, [w])
-accessibles(S::AbstractWorldSet{W}, ::_RelationId, args...) where {W<:World} = S # TODO try IterTools.imap(identity, S)
+accessibles(w::WorldType,           ::_RelationId, args...) where {WorldType<:AbstractWorld} = [w] # TODO try IterTools.imap(identity, [w])
+accessibles(S::AbstractWorldSet{W}, ::_RelationId, args...) where {W<:AbstractWorld} = S # TODO try IterTools.imap(identity, S)
 
-accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::_RelationId,      args...) where {WorldType<:World} = accessibles(w, r, args...)
+accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::_RelationId,      args...) where {WorldType<:AbstractWorld} = accessibles(w, r, args...)
 
 ############################################################################################
 
@@ -167,9 +164,9 @@ accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::_RelationId,    
 ############################################################################################
 
 # Shortcuts using global relation for enumerating all worlds
-all_worlds(::Type{WorldType}, args...) where {WorldType<:World} = accessibles(WorldType[], RelationGlob, args...)
-all_worlds(::Type{WorldType}, enum_acc_fun::Function) where {WorldType<:World} = enum_acc_fun(WorldType[], RelationGlob)
-all_worlds_aggr(::Type{WorldType}, enum_repr_fun::Function, f::ModalFeature, a::Aggregator) where {WorldType<:World} = enum_repr_fun(f, a, WorldType[], RelationGlob)
+all_worlds(::Type{WorldType}, args...) where {WorldType<:AbstractWorld} = accessibles(WorldType[], RelationGlob, args...)
+all_worlds(::Type{WorldType}, enum_acc_fun::Function) where {WorldType<:AbstractWorld} = enum_acc_fun(WorldType[], RelationGlob)
+all_worlds_aggr(::Type{WorldType}, enum_repr_fun::Function, f::ModalFeature, a::Aggregator) where {WorldType<:AbstractWorld} = enum_repr_fun(f, a, WorldType[], RelationGlob)
 
 ############################################################################################
 # Decision
@@ -188,7 +185,7 @@ struct Decision{T}
 
     # Relation, interpreted as an existential modal operator
     #  Note: RelationId for propositional decisions
-    relation      :: Relation
+    relation      :: AbstractRelation
 
     # Modal feature (a scalar function that can be computed on a world)
     feature       :: ModalFeature
@@ -204,7 +201,7 @@ struct Decision{T}
     end
 
     function Decision{T}(
-        relation      :: Relation,
+        relation      :: AbstractRelation,
         feature       :: ModalFeature,
         test_operator :: TestOperatorFun,
         threshold     :: T
@@ -213,7 +210,7 @@ struct Decision{T}
     end
 
     function Decision(
-        relation      :: Relation,
+        relation      :: AbstractRelation,
         feature       :: ModalFeature,
         test_operator :: TestOperatorFun,
         threshold     :: T
@@ -258,8 +255,8 @@ function display_decision(
     end
 end
 
-display_existential(rel::Relation) = "⟨$(rel)⟩"
-display_universal(rel::Relation)   = "[$(rel)]"
+display_existential(rel::AbstractRelation) = "⟨$(rel)⟩"
+display_universal(rel::AbstractRelation)   = "[$(rel)]"
 
 ############################################################################################
 
@@ -322,7 +319,7 @@ const PassiveModalDataset{T} = Union{DimensionalDataset{T}}
 #  etc. While learning a model can be done only with active modal datasets, testing a model
 #  can be done with both active and passive modal datasets.
 #
-abstract type ActiveModalDataset{T<:Number,WorldType<:World} end
+abstract type ActiveModalDataset{T<:Number,WorldType<:AbstractWorld} end
 #
 # Active modal datasets hold the WorldType, and thus can initialize world sets with a lighter interface
 #
@@ -360,16 +357,16 @@ export get_ontology,
 
 get_ontology(N::Integer, args...) = get_ontology(Val(N), args...)
 get_ontology(::Val{0}, args...) = OneWorldOntology
-function get_ontology(::Val{1}, world = :interval, relations::Union{Symbol,AbstractVector{<:Relation}} = :IA)
+function get_ontology(::Val{1}, world = :interval, relations::Union{Symbol,AbstractVector{<:AbstractRelation}} = :IA)
     world_possible_values = [:point, :interval, :rectangle, :hyperrectangle]
     relations_possible_values = [:IA, :IA3, :IA7, :RCC5, :RCC8]
     @assert world in world_possible_values "Unexpected value encountered for `world`: $(world). Legal values are in $(world_possible_values)"
-    @assert (relations isa AbstractVector{<:Relation}) || relations in relations_possible_values "Unexpected value encountered for `relations`: $(relations). Legal values are in $(relations_possible_values)"
+    @assert (relations isa AbstractVector{<:AbstractRelation}) || relations in relations_possible_values "Unexpected value encountered for `relations`: $(relations). Legal values are in $(relations_possible_values)"
 
     if world in [:point]
         error("TODO point-based ontologies not implemented yet")
     elseif world in [:interval, :rectangle, :hyperrectangle]
-        if relations isa AbstractVector{<:Relation}
+        if relations isa AbstractVector{<:AbstractRelation}
             Ontology{Interval}(relations)
         elseif relations == :IA   IntervalOntology
         elseif relations == :IA3  Interval3Ontology
@@ -384,16 +381,16 @@ function get_ontology(::Val{1}, world = :interval, relations::Union{Symbol,Abstr
     end
 end
 
-function get_ontology(::Val{2}, world = :interval, relations::Union{Symbol,AbstractVector{<:Relation}} = :IA)
+function get_ontology(::Val{2}, world = :interval, relations::Union{Symbol,AbstractVector{<:AbstractRelation}} = :IA)
     world_possible_values = [:point, :interval, :rectangle, :hyperrectangle]
     relations_possible_values = [:IA, :RCC5, :RCC8]
     @assert world in world_possible_values "Unexpected value encountered for `world`: $(world). Legal values are in $(world_possible_values)"
-    @assert (relations isa AbstractVector{<:Relation}) || relations in relations_possible_values "Unexpected value encountered for `relations`: $(relations). Legal values are in $(relations_possible_values)"
+    @assert (relations isa AbstractVector{<:AbstractRelation}) || relations in relations_possible_values "Unexpected value encountered for `relations`: $(relations). Legal values are in $(relations_possible_values)"
 
     if world in [:point]
         error("TODO point-based ontologies not implemented yet")
     elseif world in [:interval, :rectangle, :hyperrectangle]
-        if relations isa AbstractVector{<:Relation}
+        if relations isa AbstractVector{<:AbstractRelation}
             Ontology{Interval2D}(relations)
         elseif relations == :IA   Interval2DOntology
         elseif relations == :RCC8 Interval2DRCC8Ontology
@@ -409,7 +406,7 @@ end
 ############################################################################################
 
 get_interval_ontology(N::Integer, args...) = get_interval_ontology(Val(N), args...)
-get_interval_ontology(N::Val, relations::Union{Symbol,AbstractVector{<:Relation}} = :IA) = get_ontology(N, :interval, relations)
+get_interval_ontology(N::Val, relations::Union{Symbol,AbstractVector{<:AbstractRelation}} = :IA) = get_ontology(N, :interval, relations)
 
 ############################################################################################
 # Dimensionality: 0
@@ -420,7 +417,7 @@ export OneWorld
 #  and `Decision`s only allow the RelationId.
 include("worlds/OneWorld.jl")                 # <- OneWorld world type
 
-const OneWorldOntology   = Ontology{OneWorld}(Relation[])
+const OneWorldOntology   = Ontology{OneWorld}(AbstractRelation[])
 
 ############################################################################################
 # Dimensionality: 1

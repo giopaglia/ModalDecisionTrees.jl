@@ -47,7 +47,7 @@ nfeatures(X::MultiFrameModalDataset) = map(nfeatures, frames(X)) # Note: used fo
 nfeatures(X::MultiFrameModalDataset,  i_frame::Integer) = nfeatures(get_frame(X, i_frame))
 nrelations(X::MultiFrameModalDataset, i_frame::Integer) = nrelations(get_frame(X, i_frame))
 world_type(X::MultiFrameModalDataset,  i_frame::Integer) = world_type(get_frame(X, i_frame))
-get_world_types(X::MultiFrameModalDataset) = Vector{Type{<:World}}(world_type.(frames(X)))
+get_world_types(X::MultiFrameModalDataset) = Vector{Type{<:AbstractWorld}}(world_type.(frames(X)))
 
 get_instance(X::MultiFrameModalDataset,  i_frame::Integer, idx_i::Integer, args...)  = get_instance(get_frame(X, i_frame), idx_i, args...)
 # slice_dataset(X::MultiFrameModalDataset, i_frame::Integer, inds::AbstractVector{<:Integer}, args...)  = slice_dataset(get_frame(X, i_frame), inds, args...; kwargs...)

@@ -69,18 +69,18 @@ import .ModalLogic: nsamples, display_decision
 abstract type InitCondition end
 struct StartWithoutWorld               <: InitCondition end; const start_without_world  = StartWithoutWorld();
 struct StartAtCenter                   <: InitCondition end; const start_at_center      = StartAtCenter();
-struct StartAtWorld{WT<:World} <: InitCondition w::WT end;
+struct StartAtWorld{WT<:AbstractWorld} <: InitCondition w::WT end;
 
-init_world_set(init_conditions::AbstractVector{<:InitCondition}, world_types::AbstractVector{<:Type#={<:World}=#}, args...) =
-    [init_world_set(iC, WT, args...) for (iC, WT) in zip(init_conditions, Vector{Type{<:World}}(world_types))]
+init_world_set(init_conditions::AbstractVector{<:InitCondition}, world_types::AbstractVector{<:Type#={<:AbstractWorld}=#}, args...) =
+    [init_world_set(iC, WT, args...) for (iC, WT) in zip(init_conditions, Vector{Type{<:AbstractWorld}}(world_types))]
 
-init_world_set(iC::StartWithoutWorld, ::Type{WorldType}, args...) where {WorldType<:World} =
+init_world_set(iC::StartWithoutWorld, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
     WorldSet{WorldType}([WorldType(ModalLogic.EmptyWorld())])
 
-init_world_set(iC::StartAtCenter, ::Type{WorldType}, args...) where {WorldType<:World} =
+init_world_set(iC::StartAtCenter, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
     WorldSet{WorldType}([WorldType(ModalLogic.CenteredWorld(), args...)])
 
-init_world_set(iC::StartAtWorld{WorldType}, ::Type{WorldType}, args...) where {WorldType<:World} =
+init_world_set(iC::StartAtWorld{WorldType}, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
     WorldSet{WorldType}([WorldType(iC.w)])
 
 init_world_sets(Xs::MultiFrameModalDataset, init_conditions::AbstractVector{<:InitCondition}) = begin
@@ -459,7 +459,7 @@ struct DTree{L<:Label} <: SymbolicModel{L}
     # root node
     root            :: DTNode{T, L} where T
     # world types (one per frame)
-    world_types     :: Vector{Type{<:World}}
+    world_types     :: Vector{Type{<:AbstractWorld}}
     # initial world conditions (one per frame)
     init_conditions :: Vector{<:InitCondition}
 

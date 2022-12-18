@@ -327,7 +327,7 @@ function _check_attributes(attributes)
     good
 end
 
-using ModalDecisionTrees: Relation
+using ModalDecisionTrees: AbstractRelation
 using ModalDecisionTrees: CanonicalFeature
 using ModalDecisionTrees: CanonicalFeatureGeq, canonical_geq
 using ModalDecisionTrees: CanonicalFeatureLeq, canonical_leq
@@ -354,7 +354,7 @@ MMI.@mlj_model mutable struct ModalDecisionTree <: MMI.Deterministic
     min_purity_increase    :: Float64                      = mlj_mdt_default_min_purity_increase
     max_purity_at_leaf     :: Float64                      = mlj_mdt_default_max_purity_at_leaf
     # Modal hyper-parameters
-    relations              :: Union{Nothing,Symbol,Vector{<:Relation}} = (nothing)::(isnothing(nothing) || _ in [:IA, :IA3, :IA7, :RCC5, :RCC8] || _ isa AbstractVector{<:Relation})
+    relations              :: Union{Nothing,Symbol,Vector{<:AbstractRelation}} = (nothing)::(isnothing(nothing) || _ in [:IA, :IA3, :IA7, :RCC5, :RCC8] || _ isa AbstractVector{<:AbstractRelation})
     # TODO expand to ModalFeature
     # attributes               :: Vector{<:Function}           = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
     # attributes               :: Vector{<:Union{CanonicalFeature,Function}}       TODO = Vector{<:Union{CanonicalFeature,Function}}([canonical_geq, canonical_leq]) # TODO: ::(_check_attributes(_))
@@ -493,7 +493,7 @@ MMI.@mlj_model mutable struct ModalRandomForest <: MMI.Probabilistic
     min_purity_increase    :: Float64                      = mlj_mdt_default_min_purity_increase
     max_purity_at_leaf     :: Float64                      = mlj_mdt_default_max_purity_at_leaf
     # Modal hyper-parameters
-    relations              :: Union{Nothing,Symbol,Vector{<:Relation}} = (nothing)::(isnothing(nothing) || _ in [:IA, :IA3, :IA7, :RCC5, :RCC8] || _ isa AbstractVector{<:Relation})
+    relations              :: Union{Nothing,Symbol,Vector{<:AbstractRelation}} = (nothing)::(isnothing(nothing) || _ in [:IA, :IA3, :IA7, :RCC5, :RCC8] || _ isa AbstractVector{<:AbstractRelation})
     # TODO expand to ModalFeature
     # attributes               :: Vector{<:Function}           = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
     # attributes               :: Vector{<:Union{CanonicalFeature,Function}}       TODO = Vector{<:Union{CanonicalFeature,Function}}([canonical_geq, canonical_leq]) # TODO: ::(_check_attributes(_))
