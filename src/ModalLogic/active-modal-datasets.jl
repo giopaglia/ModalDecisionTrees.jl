@@ -59,7 +59,7 @@ end
         domain::DimensionalDataset{T,D},
         ontology::Ontology{WorldType},
         mixed_features::AbstractVector{<:MixedFeature},
-    ) where {T, N, D, WorldType<:AbstractWorld}
+    ) where {T, D, WorldType<:AbstractWorld}
         InterpretedModalDataset{T}(domain, ontology, mixed_features)
     end
 
@@ -67,7 +67,7 @@ end
         domain::DimensionalDataset{T,D},
         ontology::Ontology{WorldType},
         mixed_features::AbstractVector{<:MixedFeature},
-    ) where {T, N, D, WorldType<:AbstractWorld}
+    ) where {T, D, WorldType<:AbstractWorld}
         InterpretedModalDataset{T, D-1-1}(domain, ontology, mixed_features)
     end
 
@@ -497,13 +497,13 @@ struct ExplicitModalDataset{T<:Number, WorldType<:AbstractWorld} <: ActiveModalD
 end
 
 Base.getindex(X::ExplicitModalDataset{T,WorldType}, args...) where {T,WorldType} = getindex(X.fwd, args...)
-Base.size(X::ExplicitModalDataset)                 where {T,N}          = size(X.fwd) # TODO fix not always defined?
+Base.size(X::ExplicitModalDataset)              = size(X.fwd) # TODO fix not always defined?
 features(X::ExplicitModalDataset)               = X.features
 grouped_featsaggrsnops(X::ExplicitModalDataset) = X.grouped_featsaggrsnops
-nfeatures(X::ExplicitModalDataset{T, WorldType})  where {T, WorldType} = length(X.features)
-nrelations(X::ExplicitModalDataset{T, WorldType}) where {T, WorldType} = length(X.relations)
-nsamples(X::ExplicitModalDataset{T, WorldType})   where {T, WorldType} = nsamples(X.fwd)::Int64
-relations(X::ExplicitModalDataset)                                 = X.relations
+nfeatures(X::ExplicitModalDataset)              = length(X.features)
+nrelations(X::ExplicitModalDataset)             = length(X.relations)
+nsamples(X::ExplicitModalDataset)               = nsamples(X.fwd)::Int64
+relations(X::ExplicitModalDataset)              = X.relations
 world_type(X::ExplicitModalDataset{T,WorldType}) where {T,WorldType<:AbstractWorld} = WorldType
 
 
@@ -705,7 +705,7 @@ Base.@propagate_inbounds function compute_fwd_supports(
         grouped_featsnaggrs :: AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}};
         compute_relation_glob = false,
         simply_init_modal = false,
-    ) where {T, N, WorldType<:AbstractWorld}
+    ) where {T, WorldType<:AbstractWorld}
 
     # @logmsg LogOverview "ExplicitModalDataset -> ExplicitModalDatasetS "
 
@@ -1000,14 +1000,14 @@ mutable struct ExplicitModalDatasetSMemo{T<:Number, WorldType<:AbstractWorld} <:
 end
 
 # getindex(X::ExplicitModalDatasetWithSupport{T,WorldType}, args...) where {T,WorldType} = getindex(X.emd, args...)
-Base.size(X::ExplicitModalDatasetWithSupport) where {T,N}                          =  (size(X.emd), size(X.fwd_rs), (isnothing(X.fwd_gs) ? nothing : size(X.fwd_gs)))
+Base.size(X::ExplicitModalDatasetWithSupport)                                      =  (size(X.emd), size(X.fwd_rs), (isnothing(X.fwd_gs) ? nothing : size(X.fwd_gs)))
 featsnaggrs(X::ExplicitModalDatasetWithSupport)                                    = X.featsnaggrs
 features(X::ExplicitModalDatasetWithSupport)                                       = features(X.emd)
 grouped_featsaggrsnops(X::ExplicitModalDatasetWithSupport)                         = grouped_featsaggrsnops(X.emd)
 grouped_featsnaggrs(X::ExplicitModalDatasetWithSupport)                            = X.grouped_featsnaggrs
-nfeatures(X::ExplicitModalDatasetWithSupport{T, WorldType}) where {T, WorldType}  = nfeatures(X.emd)
-nrelations(X::ExplicitModalDatasetWithSupport{T, WorldType}) where {T, WorldType} = nrelations(X.emd)
-nsamples(X::ExplicitModalDatasetWithSupport{T, WorldType}) where {T, WorldType}   = nsamples(X.emd)::Int64
+nfeatures(X::ExplicitModalDatasetWithSupport)                                      = nfeatures(X.emd)
+nrelations(X::ExplicitModalDatasetWithSupport)                                     = nrelations(X.emd)
+nsamples(X::ExplicitModalDatasetWithSupport)                                       = nsamples(X.emd)::Int64
 relations(X::ExplicitModalDatasetWithSupport)                                      = relations(X.emd)
 world_type(X::ExplicitModalDatasetWithSupport{T,WorldType}) where {T,WorldType}    = WorldType
 

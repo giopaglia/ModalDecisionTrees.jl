@@ -4,9 +4,8 @@ module ModalDecisionTrees
 
 import Base: show, length
 
-using FillArrays
+using FillArrays # TODO remove?
 using FunctionWrappers: FunctionWrapper
-using LinearAlgebra
 using Logging: LogLevel, @logmsg
 using Printf
 using ProgressMeter
@@ -19,6 +18,7 @@ using SoleBase: LogOverview, LogDebug, LogDetail, throw_n_log
 using SoleBase: spawn_rng, nat_sort
 using SoleModels: CLabel, RLabel, Label, _CLabel, _Label, get_categorical_form
 using SoleModels: ConfusionMatrix, overall_accuracy, kappa, class_counts, macro_F1, macro_sensitivity, macro_specificity, macro_PPV, macro_NPV, macro_weighted_F1, macro_weighted_sensitivity, macro_weighted_specificity, macro_weighted_PPV, macro_weighted_NPV, safe_macro_F1, safe_macro_sensitivity, safe_macro_specificity, safe_macro_PPV, safe_macro_NPV
+using SoleModels: average_label, majority_vote, default_weights, slice_weights
 using SoleData: AbstractDimensionalInstance, DimensionalDataset, AbstractDimensionalChannel, UniformDimensionalDataset, DimensionalChannel, DimensionalInstance, max_channel_size, nsamples, nattributes, get_instance, slice_dataset, concat_datasets, instance_channel_size, get_instance_attribute
 
 export slice_dataset, concat_datasets,
@@ -102,49 +102,6 @@ include("entropy-measures.jl")
 default_loss_function(::Type{<:CLabel}) = entropy
 default_loss_function(::Type{<:RLabel}) = variance
 
-average_label(labels::AbstractVector{<:CLabel}) = majority_vote(labels; suppress_parity_warning = false) # argmax(countmap(labels))
-average_label(labels::AbstractVector{<:RLabel}) = majority_vote(labels; suppress_parity_warning = false) # StatsBase.mean(labels)
-
-function majority_vote(
-        labels::AbstractVector{L},
-        weights::Union{Nothing,AbstractVector} = nothing;
-        suppress_parity_warning = false,
-    ) where {L<:CLabel}
-
-    if length(labels) == 0
-        return nothing
-    end
-
-    counts = begin
-        if isnothing(weights)
-            countmap(labels)
-        else
-            @assert length(labels) === length(weights) "Can't compute majority_vote with uneven number of votes $(length(labels)) and weights $(length(weights))."
-            countmap(labels, weights)
-        end
-    end
-
-    if !suppress_parity_warning && sum(counts[argmax(counts)] .== values(counts)) > 1
-        println("Warning: parity encountered in majority_vote.")
-        println("Counts ($(length(labels)) elements): $(counts)")
-        println("Argmax: $(argmax(counts))")
-        println("Max: $(counts[argmax(counts)]) (sum = $(sum(values(counts))))")
-    end
-    argmax(counts)
-end
-
-function majority_vote(
-        labels::AbstractVector{L},
-        weights::Union{Nothing,AbstractVector} = nothing;
-        suppress_parity_warning = false,
-    ) where {L<:RLabel}
-    if length(labels) == 0
-        return nothing
-    end
-
-    (isnothing(weights) ? mean(labels) : sum(labels .* weights)/sum(weights))
-end
-
 function dishonor_min_purity_increase(::Type{L}, min_purity_increase, purity, best_purity_times_nt, nt) where {L<:CLabel}
     (best_purity_times_nt/nt - purity < min_purity_increase)
 end
@@ -196,34 +153,6 @@ function compute_purity(
 ) where {L<:RLabel, U}
     _compute_purity = _compute_purity(labels, weights = weights; loss_function = loss_function)
 end
-
-
-############################################################################################
-############################################################################################
-############################################################################################
-
-# Default weights are optimized using FillArrays
-function default_weights(n::Integer)
-    Ones{Int64}(n)
-end
-function default_weights_rebalance(Y::AbstractVector{L}) where {L<:Label}
-    class_counts_dict = countmap(Y)
-    if length(unique(values(class_counts)_dict)) == 1 # balanced case
-        default_weights(length(Y))
-    else
-        # Assign weights in such a way that the dataset becomes balanced
-        tot = sum(values(class_counts_dict))
-        balanced_tot_per_class = tot/length(class_counts_dict)
-        weights_map = Dict{L,Float64}([class => (balanced_tot_per_class/n_instances) for (class,n_instances) in class_counts_dict])
-        W = [weights_map[y] for y in Y]
-        W ./ sum(W)
-    end
-end
-_slice_weights(W::Ones{Int64}, inds::AbstractVector) = default_weights(length(inds))
-_slice_weights(W::Any,         inds::AbstractVector) = @view W[inds]
-_slice_weights(W::Ones{Int64}, i::Integer) = 1
-_slice_weights(W::Any,         i::Integer) = W[i]
-
 
 ############################################################################################
 # Decision Leaf, Internal, Node, Tree & RF
