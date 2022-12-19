@@ -17,6 +17,7 @@ using Logging: @logmsg
 using ResumableFunctions
 
 using SoleLogics.Relations
+using SoleLogics.Relations: IA2DRelations_extended
 using SoleLogics.Worlds
 
 import Base: size, show, getindex, iterate, length, push!

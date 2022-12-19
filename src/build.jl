@@ -1,3 +1,5 @@
+using SoleModels
+
 export build_stump, build_tree, build_forest
 
 include("fit_tree.jl")
@@ -58,7 +60,7 @@ function build_tree(
         rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG,
         print_progress      :: Bool = true,
     ) where {L<:Label, U}
-    
+
     @assert W isa AbstractVector || W in [nothing, :rebalance, :default]
 
     W = if isnothing(W) || W == :default
@@ -72,11 +74,11 @@ function build_tree(
     @assert all(W .>= 0) "Sample weights must be non-negative."
 
     @assert nsamples(X) == length(Y) == length(W) "Mismatching number of samples in X, Y & W: $(nsamples(X)), $(length(Y)), $(length(W))"
-    
+
     if isnothing(loss_function)
         loss_function = default_loss_function(L)
     end
-    
+
     if allow_global_splits isa Bool
         allow_global_splits = fill(allow_global_splits, nframes(X))
     end
@@ -179,11 +181,11 @@ function build_forest(
     if n_trees < 1
         throw_n_log("the number of trees must be >= 1")
     end
-    
+
     if !(0.0 < partial_sampling <= 1.0)
         throw_n_log("partial_sampling must be in the range (0,1]")
     end
-    
+
     if any(map(f->f isa ExplicitModalDataset, frames(X)))
         @warn "Warning! ExplicitModalDatasetS is recommended for performance, instead of ExplicitModalDataset."
     end
@@ -237,10 +239,10 @@ function build_forest(
         oob_metrics[i_tree] = begin
             if length(oob_samples[i_tree]) == 0
                 # compute_metrics([Inf],[-Inf])
-                compute_metrics(["__FAKE__"],["__FAKE2__"]) # TODO
+                SoleModels.compute_metrics(["__FAKE__"],["__FAKE2__"]) # TODO
             else
                 tree_preds = apply_tree(trees[i_tree], slice_dataset(X, oob_samples[i_tree], return_view = true))
-                compute_metrics(Y[oob_samples[i_tree]], tree_preds, _slice_weights(W, oob_samples[i_tree]))
+                SoleModels.compute_metrics(Y[oob_samples[i_tree]], tree_preds, _slice_weights(W, oob_samples[i_tree]))
             end
         end
         !print_progress || next!(p)
@@ -257,25 +259,25 @@ function build_forest(
         oob_classified = Vector{Bool}()
         Threads.@threads for i in 1:tot_samples
             selected_trees = fill(false, n_trees)
-            
+
             # pick every tree trained without i-th sample
             for i_tree in 1:n_trees
                 if i in oob_samples[i_tree] # if i is present in the i_tree-th tree, selecte thi tree
                     selected_trees[i_tree] = true
                 end
             end
-            
+
             index_of_trees_to_test_with = findall(selected_trees)
-            
+
             if length(index_of_trees_to_test_with) == 0
                 continue
             end
-            
+
             X_slice = slice_dataset(X, [i]; return_view = true)
             Y_slice = [Y[i]]
-            
+
             preds = apply_model(trees[index_of_trees_to_test_with], X_slice; suppress_parity_warning = suppress_parity_warning)
-            
+
             push!(oob_classified, Y_slice[1] == preds[1])
         end
         oob_error = 1.0 - (sum(W[findall(oob_classified)]) / sum(W))
