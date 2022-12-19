@@ -61,7 +61,7 @@ and optionally add variable names (`frame_variable_names`, an arrays of arrays o
 In the first case `mdt` gets just wrapped, no information is added. No. 2 adds variable names.
 Note that the trailing comma is needed, in order to create a NamedTuple.
 """
-wrap(node::MDT.DTree,                info::NamedTuple = NamedTuple()) = wrap(node.root, info = info)
+wrap(node::MDT.DTree,                info::NamedTuple = NamedTuple()) = wrap(root(node), info = info)
 wrap(node::MDT.DTInternal,           info::NamedTuple = NamedTuple()) = InfoNode(node, info)
 wrap(leaf::MDT.AbstractDecisionLeaf, info::NamedTuple = NamedTuple()) = InfoLeaf(leaf, info)
 
@@ -74,16 +74,16 @@ the model produces binary trees where all nodes have exactly one left and
 one right child. `children` is used for tree traversal.
 The additional information `info` is carried over from `node` to its children.
 """
-AbstractTrees.children(dt::MDT.DTree) = AbstractTrees.children(dt.root)
+AbstractTrees.children(dt::MDT.DTree) = AbstractTrees.children(root(dt))
 AbstractTrees.children(dt_node::MDT.DTInternal) = (
-    dt_node.left,
-    dt_node.right,
+    left(dt_node),
+    right(dt_node),
 )
 AbstractTrees.children(dt_leaf::MDT.AbstractDecisionLeaf) = ()
 
 AbstractTrees.children(node::InfoNode) = (
-    wrap(node.node.left,  node.info),
-    wrap(node.node.right, node.info),
+    wrap(left(node.node),  node.info),
+    wrap(right(node.node), node.info),
 )
 AbstractTrees.children(leaf::InfoLeaf) = ()
 

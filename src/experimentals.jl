@@ -5,9 +5,11 @@ module experimentals
 
 using ..ModalDecisionTrees
 using ..ModalDecisionTrees.ModalLogic
+using SoleLogics
 
 MDT = ModalDecisionTrees
 ML  = ModalLogic
+SL  = SoleLogics
 
 # TODO extend so that we can accept those operators using these characters
 subscript_replace = Dict{String,String}(
@@ -31,8 +33,8 @@ subscript_replace = Dict{String,String}(
 # Parse Trees
 ################################################################################
 
-function parse_tree(tree_str::String; check_format = true, _depth = 0, offset = 0, world_types = Type{ML.World}[], init_conditions = MDT.InitCondition[])
-    world_types = Type{<:ML.World}[world_types...]
+function parse_tree(tree_str::String; check_format = true, _depth = 0, offset = 0, world_types = Type{SL.AbstractWorld}[], init_conditions = MDT.InitCondition[])
+    world_types = Type{<:SL.AbstractWorld}[world_types...]
     init_conditions = MDT.InitCondition[init_conditions...]
     root = _parse_tree(tree_str; check_format = check_format, _depth = _depth, offset = offset)
     DTree(root, world_types, init_conditions)
@@ -76,19 +78,19 @@ function _parse_tree(tree_str::String; check_format = true, _depth = 0, offset =
     function _parse_decision((i_this_line, decision_str)::Tuple{<:Integer,<:AbstractString},)
         function _parse_relation(relation_str)
             rel_d = Dict([
-                "G" => ML.RelationGlob,
-                "A" => ML.IA_A,
-                "L" => ML.IA_L,
-                "B" => ML.IA_B,
-                "E" => ML.IA_E,
-                "D" => ML.IA_D,
-                "O" => ML.IA_O,
-                "Ai" => ML.IA_Ai,        "A̅" => ML.IA_Ai,
-                "Li" => ML.IA_Li,        "L̅" => ML.IA_Li,
-                "Bi" => ML.IA_Bi,        "B̅" => ML.IA_Bi,
-                "Ei" => ML.IA_Ei,        "E̅" => ML.IA_Ei,
-                "Di" => ML.IA_Di,        "D̅" => ML.IA_Di,
-                "Oi" => ML.IA_Oi,        "O̅" => ML.IA_Oi,
+                "G" => SL.RelationGlob,
+                "A" => SL.IA_A,
+                "L" => SL.IA_L,
+                "B" => SL.IA_B,
+                "E" => SL.IA_E,
+                "D" => SL.IA_D,
+                "O" => SL.IA_O,
+                "Ai" => SL.IA_Ai,        "A̅" => SL.IA_Ai,
+                "Li" => SL.IA_Li,        "L̅" => SL.IA_Li,
+                "Bi" => SL.IA_Bi,        "B̅" => SL.IA_Bi,
+                "Ei" => SL.IA_Ei,        "E̅" => SL.IA_Ei,
+                "Di" => SL.IA_Di,        "D̅" => SL.IA_Di,
+                "Oi" => SL.IA_Oi,        "O̅" => SL.IA_Oi,
             ])
             if isnothing(relation_str)
                 RelationId

@@ -1,25 +1,43 @@
+using Revise
+
+module translation
+
 using SoleLogics
 using SoleModels
 
 ############################################################################################
 # MDTv1 translation
 ############################################################################################
-function translate_mdtv1(tree:DTree)
-    condition = LogicalTruthCondition(SyntaxTree(SoleLogics.TOP))
-    root_tree = root(tree)
-    pure_root =
-        is_leaf_node(root_tree) ?
-            # TODO: find supp_labels for leaf node
-            ConstantModel(prediction(root_tree), (; supp_labels = supp_labels(root_tree))) :
-            Branch(condition,
-                translate_mdtv1(condition,lefchild(root_tree)),
-                translate_mdtv1(condition,rightchild(root_tree)),
-                # TODO: in NamedTuple also `prediction`?
-                (; supp_labels = supp_labels(root_tree))
-            )
-
-    return DecisionTree(pure_root)
+function translate_mdtv1(tree::DTree)
+    pure_root = translate_mdtv1(root(tree))
+    info = info(pure_root)
+    # TODO
+    # info = merge(info(pure_root),
+    #     tree.metrics
+    # )
+    return DecisionTree(pure_root, info)
 end
+
+
+function translate_mdtv1(tree::DTLeaf)
+    SoleModels.ConstantModel(prediction(tree), info(tree))
+end
+
+function translate_mdtv1(tree::NSDTLeaf)
+    SoleModels.FunctionModel(predicting_function(tree), info(tree))
+end
+
+function translate_mdtv1(tree::DTInternal)
+    formula = Formula(TODO)
+    SoleModels.Branch(formula,
+        translate_mdtv1(left(tree_root)),
+        translate_mdtv1(right(tree_root)),
+        (; this = translate_mdtv1(this(tree_root)), supp_labels = supp_labels(tree_root))
+    )
+end
+
+
+
 
 function translate_mdtv1(prev_condition::AbstractBooleanCondition, node::DTInternal)
     # `node` comes from a non-pure DTree, while `prev_condition` is part of a pure DecisionTree
@@ -31,8 +49,8 @@ function translate_mdtv1(prev_condition::AbstractBooleanCondition, node::DTInter
 
     #define a branch with new condition
     return Branch(condition,
-            translate_mdtv1(condition,lefchild(node)),
-            translate_mdtv1(condition,rightchild(node)),
+            translate_mdtv1(condition,left(node)),
+            translate_mdtv1(condition,right(node)),
             # TODO: in NamedTuple also `prediction`?
             (; supp_labels = supp_labels(node))
         )
@@ -47,8 +65,8 @@ function translate_mdtv1(
 
     # if `node` is a DTLeaf or NSFTLeaf, stop the recursion
     return Branch(condition,
-            translate_mdtv1(condition,lefchild(node)),
-            translate_mdtv1(condition,rightchild(node)),
+            translate_mdtv1(condition,left(node)),
+            translate_mdtv1(condition,right(node)),
             # TODO: in NamedTuple also `prediction`?
             (; supp_labels = supp_labels(node))
         )
@@ -67,8 +85,8 @@ function compose_purecondition(node::DTInternal, λ::AbstractBooleanCondition)
     if height(node) == 1 || is_rchild(node)
         p = formula(λ) #extract formula from logical condition
         φ = SyntaxTree(Proposition(is_lchild(node) ?
-                                    parent(node).decision :            #TODO: fix
-                                    NEGATION(parent(node).decision)
+                                    decision(parent(node)) :            #TODO: fix
+                                    NEGATION(decision(parent(node)))
             ))
 
         return SyntaxTree(CONJUNCTION,(λ,φ))
@@ -80,7 +98,7 @@ end
 
 # first and second case
 function compose_purecondition(node::DTInternal, λ::DTInternal, ::Val{true})
-    p_decision = parent(node).decision
+    p_decision = decision(parent(node))
 
     p = formula(λ) #extract formula from logical condition
     φ = SyntaxTree(Proposition(is_lchild(node) ?
@@ -101,7 +119,7 @@ end
 
 # third and fourth case
 function compose_purecondition(node::DTInternal, lambda::DTInternal, ::Val{false})
-    p_decision = parent(node).decision
+    p_decision = decision(parent(node))
 
     p = formula(lambda) #extract formula from logical condition
     φ = SyntaxTree(Proposition(is_lchild(node) ?
@@ -132,15 +150,17 @@ end
 #=
 # utility to link one parent to exactly one children
 function link_nodes(p::FNode{L}, r::FNode{L}) where {L <: AbstractLogic}
-    rightchild!(p, r)
+    right!(p, r)
     parent!(r, p)
 end
 
 # utility to link one parent to its left and right childrens
 function link_nodes(p::FNode{L}, l::FNode{L}, r::FNode{L}) where {L <: AbstractLogic}
-    leftchild!(p, l)
-    rightchild!(p, r)
+    left!(p, l)
+    right!(p, r)
     parent!(l, p)
     parent!(r, p)
 end
 =#
+
+end
