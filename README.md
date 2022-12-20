@@ -38,9 +38,21 @@ using Pkg; Pkg.add(url="https://github.com/giopaglia/ModalDecisionTrees.jl")
 
 ## Installation & Usage
 
+At the moment, the package depends on unregistered packages, which installation is
+automated via the `install.jl` script.
+```shell
+# Clone package
+cd ~/Desktop
+git clone https://github.com/giopaglia/ModalDecisionTrees.jl
+# Install package and its dependencies
+cd ModalDecisionTrees
+julia -it8 install.jl
+julia -it8 -e 'Pkg.test()'
+```
+
 ```julia
 # Install packages
-using Pkg; Pkg.add(url="https://github.com/giopaglia/ModalDecisionTrees.jl")
+Pkg.add(path="~/Desktop/ModalDecisionTrees")
 Pkg.add("MLJ")
 
 # Import packages
