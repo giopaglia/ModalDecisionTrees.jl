@@ -1,7 +1,16 @@
-using ModalDecisionTrees
-using BenchmarkTools
-using Random
+using Test
 
+using ModalDecisionTrees
+using MLJ
+using SoleModels
+
+using Random
+using CategoricalArrays
+using StatsBase
+
+using BenchmarkTools
+
+include("load_data.jl")
 include("benchmark/classification_suite.jl")
 include("benchmark/regression_suite.jl")
 include("benchmark/utils.jl")

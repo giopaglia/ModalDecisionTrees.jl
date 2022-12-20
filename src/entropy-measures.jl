@@ -152,9 +152,9 @@ end
 
 # Double
 Base.@propagate_inbounds @inline function _variance(
-    ns_l :: AbstractVector{U}, sl :: L, tl :: U,
-    ns_r :: AbstractVector{U}, sr :: L, tr :: U,
-) where {L, U <: Real}
+    ns_l :: AbstractVector{LU}, sl :: L, tl :: U,
+    ns_r :: AbstractVector{LU}, sr :: L, tr :: U,
+) where {L, LU <: Real, U <: Real}
     ((tl*sum(ns_l.^2)-sl^2) / (1 - tl)) +
     ((tr*sum(ns_l.^2)-sr^2) / (1 - tr))
 end

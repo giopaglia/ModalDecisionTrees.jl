@@ -307,7 +307,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # purity = -((tssq - 2*tmean*tsum + (tmean^2*nt)) / (nt-1)) # TODO use loss function
             # TODO use _compute_purity
             purity = begin
-                if W isa UniformVector{Int}
+                if W isa Ones{Int}
                     loss_function(loss_function(sums, tsum, length(sums))::Float64)
                 else
                     loss_function(loss_function(sums, Wf, nt)::Float64)
@@ -558,10 +558,10 @@ Base.@propagate_inbounds @inline function split_node!(
                         loss_function(ncl, nl, ncr, nr)
                     else
                         purity = begin
-                            if W isa UniformVector{Int}
+                            if W isa Ones{Int}
                                 loss_function(lsums, lsum, nl, rsums, rsum, nr)
                             else
-                                error("TODO expand code to weigthed version!")
+                                error("TODO expand regression code to weigthed version!")
                                 loss_function(lsums, ws_l, nl, rsums, ws_r, nr)
                             end
                         end

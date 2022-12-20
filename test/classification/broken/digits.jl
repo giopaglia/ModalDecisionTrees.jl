@@ -1,22 +1,22 @@
 @testset "digits.jl" begin
 
-X, Y = ModalDecisionTrees.load_data("digits")
+X, y = load_data("digits")
 
-t = ModalDecisionTrees.build_tree(Y, X)
+t = ModalDecisionTrees.build_tree(y, X)
 @test length(t) == 148
-@test sum(apply_tree(t, X) .== Y) == length(Y)
+@test sum(apply_tree(t, X) .== y) == length(y)
 
 
 n_subfeatures       = 0
 max_depth           = 6
 min_samples_leaf    = 5
 t = ModalDecisionTrees.build_tree(
-        Y, X,
+        y, X,
         n_subfeatures, max_depth)
 @test length(t) == 57
 
 t = ModalDecisionTrees.build_tree(
-        Y, X,
+        y, X,
         n_subfeatures, max_depth,
         min_samples_leaf)
 @test length(t) == 50
@@ -25,14 +25,14 @@ min_samples_leaf    = 3
 min_samples_split   = 5
 min_purity_increase = 0.05
 t = ModalDecisionTrees.build_tree(
-        Y, X,
+        y, X,
         n_subfeatures, max_depth,
         min_samples_leaf,
         min_samples_split)
 @test length(t) == 55
 
 t = ModalDecisionTrees.build_tree(
-        Y, X,
+        y, X,
         n_subfeatures, max_depth,
         min_samples_leaf,
         min_samples_split,
@@ -46,7 +46,7 @@ min_samples_leaf    = 3
 min_samples_split   = 5
 min_purity_increase = 0.05 * 1000
 t = ModalDecisionTrees.build_tree(
-        Y, X,
+        y, X,
         n_subfeatures, max_depth,
         min_samples_leaf,
         min_samples_split,
@@ -62,7 +62,7 @@ min_samples_leaf    = 1
 min_samples_split   = 2
 min_purity_increase = 0.0
 model = ModalDecisionTrees.build_forest(
-        Y, X,
+        y, X,
         n_subfeatures,
         n_trees,
         partial_sampling,
@@ -71,15 +71,15 @@ model = ModalDecisionTrees.build_forest(
         min_samples_split,
         min_purity_increase)
 preds = apply_forest(model, X)
-cm = compute_metrics(Y, preds)
+cm = compute_metrics(y, preds)
 @test cm.accuracy > 0.95
 
 n_iterations        = 100
 model, coeffs = ModalDecisionTrees.build_adaboost_stumps(
-        Y, X,
+        y, X,
         n_iterations);
 preds = apply_adaboost_stumps(model, coeffs, X);
-cm = compute_metrics(Y, preds)
+cm = compute_metrics(y, preds)
 @test cm.accuracy > 0.8
 
 end # @testset
