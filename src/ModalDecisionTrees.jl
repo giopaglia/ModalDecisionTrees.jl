@@ -440,9 +440,15 @@ struct DTInternal{T, L<:Label}
     # end
 end
 
+i_frame(node::DTInternal) = node.i_frame
+decision(node::DTInternal) = node.decision
+this(node::DTInternal) = node.this
+left(node::DTInternal) = node.left
+right(node::DTInternal) = node.right
+
 function supp_labels(node::DTInternal; train_or_valid = true)
     @assert train_or_valid == true
-    supp_labels(node.this; train_or_valid = train_or_valid)
+    supp_labels(this(node); train_or_valid = train_or_valid)
 end
 
 ############################################################################################
@@ -479,6 +485,10 @@ struct DTree{L<:Label} <: SymbolicModel{L}
         DTree{L}(root, world_types, init_conditions)
     end
 end
+
+root(tree::DTree) = tree.root
+world_types(tree::DTree) = tree.world_types
+init_conditions(tree::DTree) = tree.init_conditions
 
 ############################################################################################
 
@@ -517,39 +527,42 @@ struct DForest{L<:Label} <: SymbolicModel{L}
 
 end
 
+trees(forest::DForest) = forest.trees
+metrics(forest::DForest) = forest.metrics
+
 ############################################################################################
 # Methods
 ############################################################################################
 
 # Number of leaves
 num_leaves(leaf::AbstractDecisionLeaf)     = 1
-num_leaves(node::DTInternal) = num_leaves(node.left) + num_leaves(node.right)
-num_leaves(tree::DTree)      = num_leaves(tree.root)
+num_leaves(node::DTInternal) = num_leaves(left(node)) + num_leaves(right(node))
+num_leaves(tree::DTree)      = num_leaves(root(tree))
 
 # Number of nodes
 num_nodes(leaf::AbstractDecisionLeaf)     = 1
-num_nodes(node::DTInternal) = 1 + num_nodes(node.left) + num_nodes(node.right)
-num_nodes(tree::DTree)   = num_nodes(tree.root)
-num_nodes(f::DForest) = sum(num_nodes.(f.trees))
+num_nodes(node::DTInternal) = 1 + num_nodes(left(node)) + num_nodes(right(node))
+num_nodes(tree::DTree)   = num_nodes(root(tree))
+num_nodes(f::DForest) = sum(num_nodes.(trees(f)))
 
 # Number of trees
-num_trees(f::DForest) = length(f.trees)
+num_trees(f::DForest) = length(trees(f))
 Base.length(f::DForest)    = num_trees(f)
 
 # Height
 height(leaf::AbstractDecisionLeaf)     = 0
-height(node::DTInternal) = 1 + max(height(node.left), height(node.right))
-height(tree::DTree)      = height(tree.root)
+height(node::DTInternal) = 1 + max(height(left(node)), height(right(node)))
+height(tree::DTree)      = height(root(tree))
 
 # Modal height
 modal_height(leaf::AbstractDecisionLeaf)     = 0
-modal_height(node::DTInternal) = Int(is_modal_node(node)) + max(modal_height(node.left), modal_height(node.right))
-modal_height(tree::DTree)      = modal_height(tree.root)
+modal_height(node::DTInternal) = Int(is_modal_node(node)) + max(modal_height(left(node)), modal_height(right(node)))
+modal_height(tree::DTree)      = modal_height(root(tree))
 
 # Number of supporting instances
 nsamples(leaf::AbstractDecisionLeaf; train_or_valid = true) = length(supp_labels(leaf; train_or_valid = train_or_valid))
-nsamples(node::DTInternal;           train_or_valid = true) = nsamples(node.left; train_or_valid = train_or_valid) + nsamples(node.right; train_or_valid = train_or_valid)
-nsamples(tree::DTree;                train_or_valid = true) = nsamples(tree.root; train_or_valid = train_or_valid)
+nsamples(node::DTInternal;           train_or_valid = true) = nsamples(left(node); train_or_valid = train_or_valid) + nsamples(right(node); train_or_valid = train_or_valid)
+nsamples(tree::DTree;                train_or_valid = true) = nsamples(root(tree); train_or_valid = train_or_valid)
 
 # TODO remove deprecated use num_leaves
 Base.length(leaf::AbstractDecisionLeaf)     = num_leaves(leaf)
@@ -561,18 +574,18 @@ Base.length(tree::DTree)      = num_leaves(tree)
 
 is_leaf_node(leaf::AbstractDecisionLeaf)     = true
 is_leaf_node(node::DTInternal) = false
-is_leaf_node(tree::DTree)      = is_leaf_node(tree.root)
+is_leaf_node(tree::DTree)      = is_leaf_node(root(tree))
 
-is_modal_node(node::DTInternal) = (!is_leaf_node(node) && !is_propositional_decision(node.decision))
-is_modal_node(tree::DTree)      = is_modal_node(tree.root)
+is_modal_node(node::DTInternal) = (!is_leaf_node(node) && !is_propositional_decision(decision(node)))
+is_modal_node(tree::DTree)      = is_modal_node(root(tree))
 
 ############################################################################################
 ############################################################################################
 
 display_decision(node::DTInternal, args...; kwargs...) =
-    ModalLogic.display_decision(node.i_frame, node.decision, args...; kwargs...)
+    ModalLogic.display_decision(i_frame(node), decision(node), args...; kwargs...)
 display_decision_inverse(node::DTInternal, args...; kwargs...) =
-    ModalLogic.display_decision_inverse(node.i_frame, node.decision, args...; kwargs...)
+    ModalLogic.display_decision_inverse(i_frame(node), decision(node), args...; kwargs...)
 
 ############################################################################################
 ############################################################################################
@@ -622,10 +635,10 @@ end
 
 function Base.show(io::IO, node::DTInternal{T,L}) where {T,L}
     println(io, "Decision Node{$(T),$(L)}(")
-    Base.show(io, node.this)
+    Base.show(io, this(node))
     println(io, "\t###########################################################")
-    println(io, "\ti_frame: $(node.i_frame)")
-    print(io, "\tdecision: $(node.decision)")
+    println(io, "\ti_frame: $(i_frame(node))")
+    print(io, "\tdecision: $(decision(node))")
     println(io, "\t###########################################################")
     println(io, "\tsub-tree leaves: $(num_leaves(node))")
     println(io, "\tsub-tree nodes: $(num_nodes(node))")
@@ -636,8 +649,8 @@ end
 
 function Base.show(io::IO, tree::DTree{L}) where {L}
     println(io, "Decision Tree{$(L)}(")
-    println(io, "\tworld_types:    $(tree.world_types)")
-    println(io, "\tinitConditions: $(tree.init_conditions)")
+    println(io, "\tworld_types:    $(world_types(tree))")
+    println(io, "\tinitConditions: $(init_conditions(tree))")
     println(io, "\t###########################################################")
     println(io, "\tsub-tree leaves: $(num_leaves(tree))")
     println(io, "\tsub-tree nodes: $(num_nodes(tree))")
@@ -652,7 +665,7 @@ end
 function Base.show(io::IO, forest::DForest{L}) where {L}
     println(io, "Decision Forest{$(L)}(")
     println(io, "\t# trees: $(length(forest))")
-    println(io, "\tmetrics: $(forest.metrics)")
+    println(io, "\tmetrics: $(metrics(forest))")
     println(io, "\ttrees:")
     print_model(io, forest)
     println(io, ")")

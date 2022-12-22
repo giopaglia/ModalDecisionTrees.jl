@@ -8,6 +8,9 @@ using SoleModels
 ############################################################################################
 # MDTv1 translation
 ############################################################################################
+
+############################ NOTE: function to try #########################################
+
 function translate_mdtv1(tree::DTree)
     pure_root = translate_mdtv1(root(tree))
     info = info(pure_root)
@@ -20,25 +23,59 @@ end
 
 
 function translate_mdtv1(tree::DTLeaf)
-    SoleModels.ConstantModel(prediction(tree), info(tree))
+    # TODO: info(tree)
+    SoleModels.ConstantModel(prediction(tree), (; supp_labels = supp_labels(tree)))
 end
 
 function translate_mdtv1(tree::NSDTLeaf)
-    SoleModels.FunctionModel(predicting_function(tree), info(tree))
+    # TODO: info(tree)
+    SoleModels.FunctionModel(predicting_function(tree), (; supp_labels = supp_labels(tree)))
 end
 
-function translate_mdtv1(tree::DTInternal)
-    formula = Formula(TODO)
-    SoleModels.Branch(formula,
-        translate_mdtv1(left(tree_root)),
-        translate_mdtv1(right(tree_root)),
-        (; this = translate_mdtv1(this(tree_root)), supp_labels = supp_labels(tree_root))
+function translate_mdtv1(node::DTInternal, parent::Union{DTInternal,Nothing} = nothing)
+    formula = Formula(compose_pureformula(node,parent))
+    SoleModels.Branch(LogicalTruthCondition(formula),
+        translate_mdtv1(left(node),node),
+        translate_mdtv1(right(node),node),
+        (; this = translate_mdtv1(this(node)), supp_labels = supp_labels(node))
     )
 end
 
+# Return a SyntaxTree
+function compose_pureformula(node::DTInternal, parent::Union{Nothing,DTInternal})
+    return isnothing(parent) ? compose_pureformula(node) : compose_pureformula(node,parent)
+end
 
+# Root case
+function compose_pureformula(node::DTInternal)
+    return SyntaxTree(Proposition(decision(node)))
+end
 
+# Other cases
+function compose_pureformula(node::DTInternal,parent::DTInternal)
+    λ = lambda(node,parent)
 
+    if is_lchild(node,parent)
+        # TODO: define relation
+        φ = Proposition(decision(node))
+        return SyntaxTree(CONJUNCTION,(λ,φ))
+    else
+        # Caso λ ∈ S⁻
+        φ = Proposition(decision(node))
+        return SyntaxTree(CONJUNCTION,(λ,φ))
+    end
+end
+
+function lambda(node::DTInternal,parent::DTInternal)
+    prop = Proposition(decision(parent))
+
+    return is_lchild(node,parent) ? SyntaxTree(prop) : SyntaxTree(NEGATION,(prop))
+end
+
+is_lchild(node::DTInternal,parent::DTInternal) = left(parent) == node ? true : false
+is_rchild(node::DTInternal,parent::DTInternal) = right(parent) == node ? true : false
+
+#=
 function translate_mdtv1(prev_condition::AbstractBooleanCondition, node::DTInternal)
     # `node` comes from a non-pure DTree, while `prev_condition` is part of a pure DecisionTree
 
@@ -74,10 +111,9 @@ function translate_mdtv1(
     # Where is the position of model?
     #ConstantModel(prediction(node), (; supp_labels = supp_labels(node)))
 end
+=#
 
-agreement(node::DTInternal,parent::DTInternal) =
-    is_lchild(parent) && is_lchild(node) ? true : false
-
+#=
 # From here to fix
 function compose_purecondition(node::DTInternal, λ::AbstractBooleanCondition)
     # ModalDecisionTree paper, pg.17
@@ -146,6 +182,7 @@ function compose_purecondition(node::DTInternal, lambda::DTInternal, ::Val{false
         return SyntaxTree(CONJUNCTION,(diamond,box))
     end
 end
+=#
 
 #=
 # utility to link one parent to exactly one children

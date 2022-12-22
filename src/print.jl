@@ -27,7 +27,7 @@ function print_forest(
     n_trees = length(forest)
     for i in 1:n_trees
         println(io, "Tree $(i) / $(n_trees)")
-        print_tree(io, forest.trees[i], args...; kwargs...)
+        print_tree(io, trees(forest)[i], args...; kwargs...)
     end
 end
 
@@ -105,17 +105,17 @@ function print_tree(
     metrics_kwargs...,
 )
     print(io, "$(display_decision(node; attribute_names_map = attribute_names_map))\t\t\t")
-    print_tree(io, node.this; indentation_str = "", metrics_kwargs...)
+    print_tree(io, this(node); indentation_str = "", metrics_kwargs...)
     if isnothing(max_depth) || length(indentation_str) < max_depth
         print(io, indentation_str * "✔ ") # "╭✔ "
-        print_tree(io, node.left;
+        print_tree(io, left(node);
             indentation_str = indentation_str*"│",
             attribute_names_map = attribute_names_map,
             max_depth = max_depth,
             metrics_kwargs...,
         )
         print(io, indentation_str * "✘ ") # "╰✘ "
-        print_tree(io, node.right;
+        print_tree(io, right(node);
             indentation_str = indentation_str*" ",
             attribute_names_map = attribute_names_map,
             max_depth = max_depth,
@@ -137,5 +137,5 @@ function print_tree(
     # else
     #     print_tree(io, tree)
     # end
-    print_tree(io, tree.root; metrics_kwargs...)
+    print_tree(io, root(tree); metrics_kwargs...)
 end

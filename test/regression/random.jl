@@ -134,7 +134,7 @@ m_full = build_forest(
         partial_sampling,
         max_depth,
         min_samples_leaf)
-@test mean(depth.(m_full.trees)) < mean(depth.(m_partial.trees))
+@test mean(depth.(trees(m_full))) < mean(depth.(trees(m_partial)))
 
 # test partial_sampling parameter, train on single sample
 partial_sampling    = 1 / n
@@ -153,7 +153,7 @@ partial = build_forest(
             min_samples_leaf,
             min_samples_split,
             min_purity_increase)
-@test typeof(partial.trees[1]) <: Leaf
+@test typeof(trees(partial)[1]) <: Leaf
 
 # test RNG parameter
 n_subfeatures       = 2
@@ -170,9 +170,9 @@ m3 = build_forest(labels, features,
         n_subfeatures,
         n_trees;
         rng=5)
-@test length.(m1.trees) == length.(m2.trees)
-@test depth.(m1.trees)  == depth.(m2.trees)
-@test length.(m1.trees) != length.(m3.trees)
+@test length.(trees(m1)) == length.(trees(m2))
+@test depth.(trees(m1))  == depth.(trees(m2))
+@test length.(trees(m1)) != length.(trees(m3))
 
 
 println("\n##### nfoldCV Classification Tree #####")

@@ -18,15 +18,15 @@ function _get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_sample
     satisfied = true
     (satisfied,new_worlds,worlds_map) =
         ModalLogic.modal_step(
-                        get_frame(X, tree.i_frame),
+                        get_frame(X, i_frame(tree)),
                         i_sample,
-                        worlds[tree.i_frame],
-                        tree.decision,
+                        worlds[i_frame(tree)],
+                        decision(tree),
                         Val(true)
                     )
 
-    worlds[tree.i_frame] = new_worlds
-    survivors = _get_path_in_tree((satisfied ? tree.left : tree.right), X, i_sample, worlds, tree.i_frame, paths)
+    worlds[i_frame(tree)] = new_worlds
+    survivors = _get_path_in_tree((satisfied ? left(tree) : right(tree)), X, i_sample, worlds, i_frame(tree), paths)
 
     # if survivors of next step are in the list of worlds viewed by one
     # of the just accumulated "new_worlds" then that world is a survivor
@@ -38,7 +38,7 @@ function _get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_sample
         end
     end
 
-    pushfirst!(paths[i_sample], DecisionPathNode(satisfied, tree.decision.feature, tree.decision.test_operator, tree.decision.threshold, deepcopy(new_survivors)))
+    pushfirst!(paths[i_sample], DecisionPathNode(satisfied, decision(tree).feature, decision(tree).test_operator, decision(tree).threshold, deepcopy(new_survivors)))
 
     return new_survivors
 end
@@ -47,7 +47,7 @@ function get_path_in_tree(tree::DTree{S}, X::GenericModalDataset)::Vector{Decisi
     paths::Vector{DecisionPath} = [ DecisionPath() for i in 1:_n_samples ]
     for i_sample in 1:_n_samples
         worlds = ModalDecisionTrees.inst_init_world_sets(X, tree, i_sample)
-        _get_path_in_tree(tree.root, X, i_sample, worlds, 1, paths)
+        _get_path_in_tree(root(tree), X, i_sample, worlds, 1, paths)
     end
     paths
 end
@@ -61,21 +61,21 @@ function mk_tree_path(node::DTInternal; path::String)
     dir_name = get_internalnode_dirname(node)
     mkpath(path * "/Y_" * dir_name)
     mkpath(path * "/N_" * dir_name)
-    mk_tree_path(node.left; path = path * "/Y_" * dir_name)
-    mk_tree_path(node.right; path = path * "/N_" * dir_name)
+    mk_tree_path(left(node); path = path * "/Y_" * dir_name)
+    mk_tree_path(right(node); path = path * "/N_" * dir_name)
 end
 function mk_tree_path(tree_hash::String, tree::DTree; path::String)
     mkpath(path * "/" * tree_hash)
-    mk_tree_path(tree.root; path = path * "/" * tree_hash)
+    mk_tree_path(root(tree); path = path * "/" * tree_hash)
 end
 
 function get_tree_path_as_dirpath(tree_hash::String, tree::DTree, decpath::DecisionPath; path::String)::String
-    current = tree.root
+    current = root(tree)
     result = path * "/" * tree_hash
     for node in decpath
         if current isa DTLeaf break end
         result *= "/" * (node.taken ? "Y" : "N") * "_" * get_internalnode_dirname(current)
-        current = node.taken ? current.left : current.right
+        current = node.taken ? left(current) : right(current)
     end
     result
 end

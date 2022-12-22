@@ -68,7 +68,7 @@ cm = compute_metrics(labels, preds)
 n_subfeatures       = 0
 m_partial = build_forest(labels, features) # default sqrt(nfeatures)
 m_full    = build_forest(labels, features, n_subfeatures)
-@test all( length.(m_full.trees) .< length.(m_partial.trees) )
+@test all( length.(trees(m_full)) .< length.(trees(m_partial)) )
 
 # test partial_sampling parameter, train on single sample
 partial_sampling    = 1 / n
@@ -87,7 +87,7 @@ partial = build_forest(
             min_samples_leaf,
             min_samples_split,
             min_purity_increase)
-@test typeof(partial.trees[1]) <: Leaf
+@test typeof(trees(partial)[1]) <: Leaf
 
 # test RNG parameter for forests
 n_subfeatures       = 2
@@ -104,9 +104,9 @@ m3 = build_forest(labels, features,
         n_subfeatures,
         n_trees;
         rng=5)
-@test length.(m1.trees) == length.(m2.trees)
-@test depth.(m1.trees)  == depth.(m2.trees)
-@test length.(m1.trees) != length.(m3.trees)
+@test length.(trees(m1)) == length.(trees(m2))
+@test depth.(trees(m1))  == depth.(trees(m2))
+@test length.(trees(m1)) != length.(trees(m3))
 
 
 n_iterations = 25

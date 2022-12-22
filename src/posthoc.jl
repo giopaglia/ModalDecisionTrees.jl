@@ -9,7 +9,7 @@ export prune_tree, prune_forest
 using DataStructures
 
 function prune_tree(tree::DTree; kwargs...)
-    DTree(prune_tree(tree.root; depth = 0, kwargs...), tree.world_types, tree.init_conditions)
+    DTree(prune_tree(root(tree); depth = 0, kwargs...), world_types(tree), init_conditions(tree))
 end
 
 function prune_tree(leaf::AbstractDecisionLeaf; kwargs...)
@@ -35,25 +35,25 @@ function prune_tree(node::DTInternal{T, L}; depth = nothing, kwargs...) where {T
         max_purity_at_leaf  = default_max_purity_at_leaf    ::AbstractFloat          ,
     ), NamedTuple(kwargs))
 
-    @assert all(map((x)->(isa(x, DTInternal) || isa(x, DTLeaf)), [node.this, node.left, node.right]))
+    @assert all(map((x)->(isa(x, DTInternal) || isa(x, DTLeaf)), [this(node), left(node), right(node)]))
 
     # Honor constraints on the number of instances
-    nt = length(supp_labels(node.this))
-    nl = length(supp_labels(node.left))
-    nr = length(supp_labels(node.right))
+    nt = length(supp_labels(this(node)))
+    nl = length(supp_labels(left(node)))
+    nr = length(supp_labels(right(node)))
 
     if (pruning_params.max_depth < depth)
         # ||
        # (pruning_params.min_samples_leaf > nr)  ||
        # (pruning_params.min_samples_leaf > nl)  ||
-        return node.this
+        return this(node)
     end
 
     # Honor purity constraints
     # TODO fix missing weights!!
-    purity   = ModalDecisionTrees.compute_purity(supp_labels(node.this);  loss_function = pruning_params.loss_function)
-    purity_r = ModalDecisionTrees.compute_purity(supp_labels(node.left);  loss_function = pruning_params.loss_function)
-    purity_l = ModalDecisionTrees.compute_purity(supp_labels(node.right); loss_function = pruning_params.loss_function)
+    purity   = ModalDecisionTrees.compute_purity(supp_labels(this(node));  loss_function = pruning_params.loss_function)
+    purity_r = ModalDecisionTrees.compute_purity(supp_labels(left(node));  loss_function = pruning_params.loss_function)
+    purity_l = ModalDecisionTrees.compute_purity(supp_labels(right(node)); loss_function = pruning_params.loss_function)
 
     split_purity_times_nt = (nl * purity_l + nr * purity_r)
 
@@ -64,15 +64,15 @@ function prune_tree(node::DTInternal{T, L}; depth = nothing, kwargs...) where {T
     if (purity_r > pruning_params.max_purity_at_leaf) ||
        (purity_l > pruning_params.max_purity_at_leaf) ||
        dishonor_min_purity_increase(L, pruning_params.min_purity_increase, purity, split_purity_times_nt, nt)
-        return node.this
+        return this(node)
     end
 
     DTInternal(
-        node.i_frame,
-        node.decision,
-        node.this,
-        prune_tree(node.left;  pruning_params..., depth = depth+1),
-        prune_tree(node.right; pruning_params..., depth = depth+1)
+        i_frame(node),
+        decision(node),
+        this(node),
+        prune_tree(left(node);  pruning_params..., depth = depth+1),
+        prune_tree(right(node); pruning_params..., depth = depth+1)
     )
 end
 
@@ -83,7 +83,7 @@ function prune_forest(forest::DForest{L}, rng::Random.AbstractRNG = Random.GLOBA
 
     # Remove trees
     if pruning_params.n_trees != default_n_trees
-        perm = Random.randperm(rng, length(forest.trees))[1:pruning_params.n_trees]
+        perm = Random.randperm(rng, length(trees(forest)))[1:pruning_params.n_trees]
         forest = slice_forest(forest, perm)
     end
     pruning_params = Base.structdiff(pruning_params, (;
@@ -92,7 +92,7 @@ function prune_forest(forest::DForest{L}, rng::Random.AbstractRNG = Random.GLOBA
 
     # Prune trees
     # if parametrization_is_going_to_prune(pruning_params)
-    v_trees = map((t)->prune_tree(t; pruning_params...), forest.trees)
+    v_trees = map((t)->prune_tree(t; pruning_params...), trees(forest))
     # Note: metrics are lost
     forest = DForest{L}(v_trees)
     # end
@@ -102,10 +102,10 @@ end
 
 function slice_forest(forest::DForest{L}, perm::AbstractVector{<:Integer}) where {L}
     # Note: can't compute oob_error
-    v_trees = @views forest.trees[perm]
+    v_trees = @views trees(forest)[perm]
     v_metrics = Dict()
-    if haskey(forest.metrics, :oob_metrics)
-        v_metrics[:oob_metrics] = @views forest.metrics.oob_metrics[perm]
+    if haskey(metrics(forest), :oob_metrics)
+        v_metrics[:oob_metrics] = @views metrics(forest).oob_metrics[perm]
     end
     v_metrics = NamedTuple(v_metrics)
     DForest{L}(v_trees, v_metrics)
@@ -221,9 +221,9 @@ function train_functional_leaves(
     )
     # World sets for (dataset, frame, instance)
     worlds = Vector{Vector{Vector{<:WST} where {WorldType<:World,WST<:WorldSet{WorldType}}}}([
-        init_world_sets(X, tree.init_conditions)
+        init_world_sets(X, init_conditions(tree))
     for (X,Y) in datasets])
-    DTree(train_functional_leaves(tree.root, worlds, datasets, args...; kwargs...), tree.world_types, tree.init_conditions)
+    DTree(train_functional_leaves(root(tree), worlds, datasets, args...; kwargs...), world_types(tree), init_conditions(tree))
 end
 
 # At internal nodes, a functional model is trained by calling a callback function, and the leaf is created
@@ -248,7 +248,7 @@ function train_functional_leaves(
         unsatisfied_idxs = Integer[]
 
         for i_sample in 1:nsamples(X)
-            (satisfied,new_worlds) = ModalLogic.modal_step(get_frame(X, node.i_frame), i_sample, worlds[i_dataset][node.i_frame][i_sample], node.decision)
+            (satisfied,new_worlds) = ModalLogic.modal_step(get_frame(X, i_frame(node)), i_sample, worlds[i_dataset][i_frame(node)][i_sample], decision(node))
 
             if satisfied
                 push!(satisfied_idxs, i_sample)
@@ -256,7 +256,7 @@ function train_functional_leaves(
                 push!(unsatisfied_idxs, i_sample)
             end
 
-            worlds[i_dataset][node.i_frame][i_sample] = new_worlds
+            worlds[i_dataset][i_frame(node)][i_sample] = new_worlds
         end
 
         push!(datasets_l, slice_dataset((X,Y), satisfied_idxs;   allow_no_instances = true))
@@ -267,12 +267,12 @@ function train_functional_leaves(
     end
 
     DTInternal(
-        node.i_frame,
-        node.decision,
+        i_frame(node),
+        decision(node),
         # train_functional_leaves(node.this,  worlds,   datasets,   args...; kwargs...), # TODO test whether this makes sense and works correctly
-        node.this,
-        train_functional_leaves(node.left,  worlds_l, datasets_l, args...; kwargs...),
-        train_functional_leaves(node.right, worlds_r, datasets_r, args...; kwargs...),
+        this(node),
+        train_functional_leaves(left(node),  worlds_l, datasets_l, args...; kwargs...),
+        train_functional_leaves(right(node), worlds_r, datasets_r, args...; kwargs...),
     )
 end
 
@@ -322,15 +322,15 @@ end
 
 function _variable_countmap(node::DTInternal{L}; weighted = false) where {L<:Label}
     th = begin
-        d = node.decision
+        d = decision(node)
         f = d.feature
-        (f isa SingleAttributeFeature) ? [((node.i_frame, f.i_attribute), (weighted ? length(supp_labels) : 1)),] : []
+        (f isa SingleAttributeFeature) ? [((i_frame(node), f.i_attribute), (weighted ? length(supp_labels) : 1)),] : []
     end
-    [th..., _variable_countmap(node.left; weighted = weighted)..., _variable_countmap(node.right; weighted = weighted)...]
+    [th..., _variable_countmap(left(node); weighted = weighted)..., _variable_countmap(right(node); weighted = weighted)...]
 end
 
 function variable_countmap(tree::DTree{L}; weighted = false) where {L<:Label}
-    vals = _variable_countmap(tree.root; weighted = weighted)
+    vals = _variable_countmap(root(tree); weighted = weighted)
     if !weighted
         countmap(first.(vals))
     else
@@ -343,7 +343,7 @@ function variable_countmap(tree::DTree{L}; weighted = false) where {L<:Label}
 end
 
 function variable_countmap(forest::DForest{L}; weighted = false) where {L<:Label}
-    vals = [_variable_countmap(t.root; weighted = weighted) for t in forest.trees] |> Iterators.flatten
+    vals = [_variable_countmap(root(t); weighted = weighted) for t in trees(forest)] |> Iterators.flatten
     if !weighted
         countmap(first.(vals))
     else
@@ -361,14 +361,14 @@ end
 ############################################################################################
 
 function merge_into_leaf(nodes::AbstractVector{<:DTNode})
-    merge_into_leaf(map((n)->(n isa AbstractDecisionLeaf ? n : n.this), nodes))
+    merge_into_leaf(map((n)->(n isa AbstractDecisionLeaf ? n : this(n)), nodes))
 end
 
 function merge_into_leaf(leaves::AbstractVector{<:DTLeaf{L}}) where {L}
     dtleaf_types = typeof.(leaves)
     @assert length(unique(dtleaf_types)) == 1 "Can't aggregate different leaf types: $(dtleaf_types)"
     dtleaf_type = dtleaf_types[1]
-    dtleaf_type(L.(collect(Iterators.flatten(map((leaf)->leaf.supp_labels, leaves)))))
+    dtleaf_type(L.(collect(Iterators.flatten(map((leaf)->supp_labels(leaf), leaves)))))
 end
 
 function merge_into_leaf(leaves::AbstractVector{<:NSDTLeaf{L}}) where {L}
