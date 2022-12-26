@@ -205,7 +205,7 @@ function build_forest(
 
         X_slice = slice_dataset(X, train_idxs; return_view = true)
         Y_slice = @view Y[train_idxs]
-        W_slice = _slice_weights(W, train_idxs)
+        W_slice = SoleModels.slice_weights(W, train_idxs)
 
         trees[i_tree] = build_tree(
             X_slice
@@ -240,7 +240,7 @@ function build_forest(
                 compute_metrics(["__FAKE__"],["__FAKE2__"]) # TODO
             else
                 tree_preds = apply_tree(trees[i_tree], slice_dataset(X, oob_samples[i_tree], return_view = true))
-                compute_metrics(Y[oob_samples[i_tree]], tree_preds, _slice_weights(W, oob_samples[i_tree]))
+                compute_metrics(Y[oob_samples[i_tree]], tree_preds, SoleModels.slice_weights(W, oob_samples[i_tree]))
             end
         end
         !print_progress || next!(p)

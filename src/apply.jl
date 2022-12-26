@@ -20,7 +20,7 @@ end
 ############################################################################################
 
 # Patch single-frame _-> multi-frame
-apply(model::Any, X::ModalDataset, args...; kwargs...) =
+apply(model::Union{DTree,DForest}, X::ModalDataset, args...; kwargs...) =
     apply(model, MultiFrameModalDataset(X), args...; kwargs...)
 
 apply_model = apply
@@ -39,7 +39,7 @@ function print_apply(tree::DTree, X::GenericModalDataset, Y::AbstractVector; kwa
 end
 
 
-apply_proba(model::Any, X::ModalDataset, args...; kwargs...) =
+apply_proba(model::Union{DTree,DForest}, X::ModalDataset, args...; kwargs...) =
     apply_proba(model, MultiFrameModalDataset(X), args...; kwargs...)
 
 # apply_tree_proba   = apply_model_proba
@@ -48,7 +48,7 @@ apply_proba(model::Any, X::ModalDataset, args...; kwargs...) =
 
 apply_model_proba = apply_proba
 
-predict(model::Any, X::ModalDataset, args...; kwargs...) =
+predict(model::Union{DTree,DForest}, X::ModalDataset, args...; kwargs...) =
     predict(model, MultiFrameModalDataset(X), args...; kwargs...)
 
 ################################################################################
@@ -390,6 +390,23 @@ function apply_proba(tree::DTree{L}, X::MultiFrameModalDataset, classes) where {
     prediction_scores
 end
 
+# Obtain predictions of a tree on a dataset
+function apply_proba(tree::DTree{L}, X::MultiFrameModalDataset) where {L<:RLabel}
+    @logmsg LogDetail "apply_proba..."
+    _n_samples = nsamples(X)
+    prediction_scores = Vector{Vector{Float64}}(undef, _n_samples)
+    
+    for i_sample in 1:_n_samples
+        @logmsg LogDetail " instance $i_sample/$_n_samples"
+        # TODO figure out: is it better to interpret the whole dataset at once, or instance-by-instance? The first one enables reusing training code
+
+        worlds = inst_init_world_sets(X, tree, i_sample)
+
+        prediction_scores[i_sample] = apply_proba(tree.root, X, i_sample, worlds)
+    end
+    prediction_scores
+end
+
 # use an array of trees to test features
 function apply_proba(
         trees::AbstractVector{<:DTree{<:L}},
@@ -424,15 +441,49 @@ function apply_proba(
     end
 end
 
+# use an array of trees to test features
+function apply_proba(
+        trees::AbstractVector{<:DTree{<:L}},
+        X::MultiFrameModalDataset;
+        tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
+    ) where {L<:RLabel, Z<:Real}
+    @logmsg LogDetail "apply_proba..."
+    n_trees = length(trees)
+    _n_samples = nsamples(X)
+
+    if !isnothing(tree_weights)
+        @assert length(trees) === length(tree_weights) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
+    end
+    
+    # apply each tree to the whole dataset
+    _predictions = Matrix{Vector{Float64}}(undef, _n_samples, n_trees)
+    Threads.@threads for i_tree in 1:n_trees
+        _predictions[:,i_tree] = apply_proba(trees[i_tree], X)
+    end
+
+    # Average the prediction scores
+    if isnothing(tree_weights)
+        Vector{Vector{Float64}}([vcat(_sample_predictions...)
+            for _sample_predictions in eachrow(_predictions)])
+    else
+        error("TODO expand code")
+    end
+end
+
 # use a proper forest to test features
-function apply_proba(forest::DForest{L}, X::MultiFrameModalDataset, classes; weight_trees_by::Union{Bool,Symbol,AbstractVector} = false) where {L<:CLabel}
+function apply_proba(
+    forest::DForest{L},
+    X::MultiFrameModalDataset,
+    args...;
+    weight_trees_by::Union{Bool,Symbol,AbstractVector} = false
+) where {L<:Label}
     if weight_trees_by == false
-        apply_proba(trees(forest), X, classes)
+        apply_proba(trees(forest), X, args...)
     elseif isa(weight_trees_by, AbstractVector)
-        apply_proba(trees(forest), X, classes; tree_weights = weight_trees_by)
+        apply_proba(trees(forest), X, args...; tree_weights = weight_trees_by)
     # elseif weight_trees_by == :accuracy
     #   # TODO: choose HOW to weight a tree... overall_accuracy is just an example (maybe can be parameterized)
-    #   apply_proba(forest.trees, X, classes; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
+    #   apply_proba(forest.trees, X, args...; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
     else
         @error "Unexpected value for weight_trees_by: $(weight_trees_by)"
     end

@@ -1,8 +1,16 @@
-using ModalDecisionTrees
-using DelimitedFiles
-using Random
-# using StatsBase
 using Test
+
+using ModalDecisionTrees
+using MLJ
+using SoleModels
+using DataFrames
+
+using Random
+using CategoricalArrays
+using StatsBase
+
+
+include("load_data.jl")
 
 println("Julia version: ", VERSION)
 
@@ -24,19 +32,17 @@ test_suites = [
         # "classification/low_precision.jl",
         # "classification/heterogeneous.jl",
         # "classification/digits.jl",
-        # "classification/iris.jl",
         # "classification/adult.jl",
         # "classification/scikitlearn.jl"
     ]),
     ("Regression", [
+        "regression/ames.jl",
+        "regression/digits-regression.jl",
         # "regression/random.jl",
         # "regression/low_precision.jl",
-        # "regression/digits.jl",
-        # "regression/scikitlearn.jl"
     ]),
     ("Miscellaneous", [
         # "miscellaneous/convert.jl"
-        #    "miscellaneous/parallel.jl"
     ]),
 ]
 

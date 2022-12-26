@@ -25,6 +25,7 @@ import Tables
 
 import Base: show
 
+# using Distributions: Normal
 using Random
 using DataFrames
 import Random.GLOBAL_RNG
@@ -41,7 +42,7 @@ struct ModelPrinter{T<:MDT.SymbolicModel}
     model::T
     frame_grouping::Union{Nothing,AbstractVector{<:AbstractVector},AbstractVector{<:AbstractDict}}
 end
-(c::ModelPrinter)(max_depth::Integer; args...) = c(c.model; max_depth, args...)
+(c::ModelPrinter)(max_depth::Union{Nothing, Integer} = nothing; args...) = c(c.model; max_depth, args...)
 (c::ModelPrinter)(model; max_depth = 5) = MDT.print_model(model; attribute_names_map = c.frame_grouping, max_depth = max_depth)
 
 Base.show(io::IO, c::ModelPrinter) =
@@ -54,6 +55,15 @@ Base.show(io::IO, c::ModelPrinter) =
 _size = ((x)->(hasmethod(size, (typeof(x),)) ? size(x) : missing))
 
 function separate_variables_into_frames(X)
+
+    types = eltype.(eachcol(X))
+
+    # Check that columns with same dimensionality have same eltype's.
+    for T in [Real, Vector, Matrix]
+        these_types = filter((t)->(t<:T), types)
+        @assert all([eltype(t) <: Real for t in these_types]) "$(these_types). Cannot apply this algorithm on dataset column types with non-Real eltype's: $(filter((t)->(!(eltype(t) <: Real)), these_types))."
+        @assert length(unique(these_types)) <= 1 "$(these_types). Cannot apply this algorithm on dataset with non-uniform types for columns with $(T) values. Please, convert all values to $(promote_type(these_types...))."
+    end
 
     columns = names(X)
     channel_sizes = [unique(_size.(X)[:,col]) for col in columns]
@@ -327,7 +337,12 @@ function _check_attributes(attributes)
     good
 end
 
-using ModalDecisionTrees: Relation
+function wrap_dataset(X)
+    X = X isa AbstractMatrix ? DataFrame(X, :auto) : DataFrame(X)
+    return X
+end
+
+using ModalDecisionTrees: AbstractRelation
 using ModalDecisionTrees: CanonicalFeature
 using ModalDecisionTrees: CanonicalFeatureGeq, canonical_geq
 using ModalDecisionTrees: CanonicalFeatureLeq, canonical_leq
@@ -354,7 +369,7 @@ MMI.@mlj_model mutable struct ModalDecisionTree <: MMI.Deterministic
     min_purity_increase    :: Float64                      = mlj_mdt_default_min_purity_increase
     max_purity_at_leaf     :: Float64                      = mlj_mdt_default_max_purity_at_leaf
     # Modal hyper-parameters
-    relations              :: Union{Nothing,Symbol,Vector{<:Relation}} = (nothing)::(isnothing(nothing) || _ in [:IA, :IA3, :IA7, :RCC5, :RCC8] || _ isa AbstractVector{<:Relation})
+    relations              :: Union{Nothing,Symbol,Vector{<:AbstractRelation}} = (nothing)::(isnothing(nothing) || _ in [:IA, :IA3, :IA7, :RCC5, :RCC8] || _ isa AbstractVector{<:AbstractRelation})
     # TODO expand to ModalFeature
     # attributes               :: Vector{<:Function}           = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
     # attributes               :: Vector{<:Union{CanonicalFeature,Function}}       TODO = Vector{<:Union{CanonicalFeature,Function}}([canonical_geq, canonical_leq]) # TODO: ::(_check_attributes(_))
@@ -370,9 +385,12 @@ end
 
 
 function MMI.fit(m::ModalDecisionTree, verbosity::Int, X, y, w=nothing)
-    X = DataFrame(X)
-    classes_seen  = y isa CategoricalArray ? filter(in(unique(y)), MMI.classes(y)) : unique(y)
-    y  = Vector{String}(y)
+    X = wrap_dataset(X)
+    is_classification = eltype(scitype(y)) != Continuous
+    if is_classification
+        classes_seen  = y isa CategoricalArray ? filter(in(unique(y)), MMI.classes(y)) : unique(y)
+    end
+    y  = Vector{(is_classification ? String : Float64)}(y) # TODO extend this limitation
 
     ########################################################################################
     
@@ -429,7 +447,6 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Int, X, y, w=nothing)
     fitresult = (
         model           = model,
         frame_grouping  = frame_grouping,
-        classes_seen    = classes_seen,
     )
 
     cache  = nothing
@@ -437,8 +454,16 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Int, X, y, w=nothing)
         print_model                  = ModelPrinter(model, frame_grouping),
         frame_grouping              = frame_grouping,
         feature_importance_by_count = feature_importance_by_count,
-        classes_seen = classes_seen,
     )
+
+    if is_classification
+        report = merge(report, (;
+            classes_seen    = classes_seen,
+        ))
+        fitresult = merge(fitresult, (;
+            classes_seen    = classes_seen,
+        ))
+    end
 
     return fitresult, cache, report
 end
@@ -450,7 +475,7 @@ MMI.fitted_params(::ModalDecisionTree, fitresult) =
     )
 
 function MMI.predict(m::ModalDecisionTree, fitresult, Xnew) #, ynew = nothing)
-    Xnew = DataFrame(Xnew)
+    Xnew = wrap_dataset(Xnew)
     # ynew = Vector{String}(ynew)
     ynew = nothing
     @assert isnothing(ynew)
@@ -493,7 +518,7 @@ MMI.@mlj_model mutable struct ModalRandomForest <: MMI.Probabilistic
     min_purity_increase    :: Float64                      = mlj_mdt_default_min_purity_increase
     max_purity_at_leaf     :: Float64                      = mlj_mdt_default_max_purity_at_leaf
     # Modal hyper-parameters
-    relations              :: Union{Nothing,Symbol,Vector{<:Relation}} = (nothing)::(isnothing(nothing) || _ in [:IA, :IA3, :IA7, :RCC5, :RCC8] || _ isa AbstractVector{<:Relation})
+    relations              :: Union{Nothing,Symbol,Vector{<:AbstractRelation}} = (nothing)::(isnothing(nothing) || _ in [:IA, :IA3, :IA7, :RCC5, :RCC8] || _ isa AbstractVector{<:AbstractRelation})
     # TODO expand to ModalFeature
     # attributes               :: Vector{<:Function}           = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
     # attributes               :: Vector{<:Union{CanonicalFeature,Function}}       TODO = Vector{<:Union{CanonicalFeature,Function}}([canonical_geq, canonical_leq]) # TODO: ::(_check_attributes(_))
@@ -514,9 +539,12 @@ end
 
 
 function MMI.fit(m::ModalRandomForest, verbosity::Int, X, y, w=nothing)
-    X = DataFrame(X)
-    classes_seen  = y isa CategoricalArray ? filter(in(unique(y)), MMI.classes(y)) : unique(y)
-    y  = Vector{String}(y)
+    X = wrap_dataset(X)
+    is_classification = eltype(scitype(y)) != Continuous
+    if is_classification
+        classes_seen  = y isa CategoricalArray ? filter(in(unique(y)), MMI.classes(y)) : unique(y)
+    end
+    y  = Vector{(is_classification ? String : Float64)}(y)
 
     ########################################################################################
     
@@ -582,7 +610,6 @@ function MMI.fit(m::ModalRandomForest, verbosity::Int, X, y, w=nothing)
     fitresult = (
         model           = model,
         frame_grouping  = frame_grouping,
-        classes_seen    = classes_seen,
     )
 
     cache  = nothing
@@ -590,8 +617,16 @@ function MMI.fit(m::ModalRandomForest, verbosity::Int, X, y, w=nothing)
         print_model                  = ModelPrinter(model, frame_grouping),
         frame_grouping              = frame_grouping,
         feature_importance_by_count = feature_importance_by_count,
-        classes_seen = classes_seen,
     )
+
+    if is_classification
+        report = merge(report, (;
+            classes_seen    = classes_seen,
+        ))
+        fitresult = merge(fitresult, (;
+            classes_seen    = classes_seen,
+        ))
+    end
 
     return fitresult, cache, report
 end
@@ -604,7 +639,7 @@ MMI.fitted_params(::ModalRandomForest, fitresult) =
     )
 
 function MMI.predict(m::ModalRandomForest, fitresult, Xnew) #, ynew = nothing)
-    Xnew = DataFrame(Xnew)
+    Xnew = wrap_dataset(Xnew)
     # ynew = Vector{String}(ynew)
     ynew = nothing
     @assert isnothing(ynew)
@@ -629,8 +664,15 @@ function MMI.predict(m::ModalRandomForest, fitresult, Xnew) #, ynew = nothing)
         downsizing_function = (automatic_downsizing ? (args...)->forest_downsizing_function(args...; n_trees = m.n_trees) : identity),
     )
 
-    scores = MDT.apply_model_proba(fitresult.model, Xs, fitresult.classes_seen)
-    return MMI.UnivariateFinite(fitresult.classes_seen, scores)
+    is_classification = hasproperty(fitresult, :classes_seen)
+    if is_classification
+        scores = MDT.apply_model_proba(fitresult.model, Xs, fitresult.classes_seen)
+        return MMI.UnivariateFinite(fitresult.classes_seen, scores)
+    else
+        scores = MDT.apply_model_proba(fitresult.model, Xs)
+        mean.(scores)
+        # fit(Normal, scores)
+    end
 end
 
 ############################################################################################
@@ -772,11 +814,11 @@ MMI.metadata_pkg.(
 MMI.metadata_model(
     ModalDecisionTree,
     input_scitype = Table(
-        Continuous,     AbstractVector{Continuous},    AbstractMatrix{Continuous},
-        Count,          AbstractVector{Count},         AbstractMatrix{Count},
-        OrderedFactor,  AbstractVector{OrderedFactor}, AbstractMatrix{OrderedFactor},
+        Continuous,     AbstractVector{<:Continuous},    AbstractMatrix{<:Continuous},
+        Count,          AbstractVector{<:Count},         AbstractMatrix{<:Count},
+        OrderedFactor,  AbstractVector{<:OrderedFactor}, AbstractMatrix{<:OrderedFactor},
     ),
-    target_scitype = Union{AbstractVector{<:Finite},AbstractVector{<:Textual}},
+    target_scitype = Union{AbstractVector{<:Continuous},AbstractVector{<:Finite},AbstractVector{<:Textual}},
     # human_name = "Modal Decision Tree (MDT)",
     descr   = "A Modal Decision Tree (MDT) offers a high level of interpretability for classification tasks with images and time-series.",
     supports_weights = true,

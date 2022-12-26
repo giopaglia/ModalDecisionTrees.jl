@@ -2,7 +2,8 @@
 
 # Import ModalDecisionTrees.jl & MLJ
 using ModalDecisionTrees
-using ModalDecisionTrees: ConfusionMatrix
+using SoleModels
+using SoleModels: ConfusionMatrix
 using MLJ
 
 include("demo-juliacon2022-utils.jl");
@@ -13,8 +14,8 @@ include("demo-juliacon2022-utils.jl");
 dataset_train, dataset_test = load_arff_dataset("NATOPS");
 
 # Unpack split
-X_train, Y_train = dataset_train;
-X_test,  Y_test  = dataset_test;
+X_train, y_train = dataset_train;
+X_test,  y_test  = dataset_test;
 
 # X_train[1,:"Elbow left, X coordinate"] = begin x = X_train[1,:"Elbow left, X coordinate"]; x[1] = NaN; x end
 
@@ -44,7 +45,7 @@ model = ModalDecisionTree()
 ################################################################################
 
 # Train model & ring a bell :D
-@time mach = machine(model, X_train, Y_train, w) |> fit!
+@time mach = machine(model, X_train, y_train, w) |> fit!
 # run(`paplay /usr/share/sounds/freedesktop/stereo/complete.oga`);
 
 # Print model
@@ -52,13 +53,13 @@ mach.report.print_model()
 
 # Test on the hold-out set &
 #  inspect the distribution of test instances across the leaves
-Y_test_preds = MLJ.predict(mach, X_test);
+y_test_preds = MLJ.predict(mach, X_test);
 
 # predict(args...) = MLJ.predict(ModalDecisionTree(), args...);
-# Y_test_preds, test_tree = MLJ.predict(mach, X_test, Y_test);
+# y_test_preds, test_tree = MLJ.predict(mach, X_test, y_test);
 
 # Inspect confusion matrix
-cm = ConfusionMatrix(Y_test, Y_test_preds; force_class_order=["I have command", "All clear", "Not clear", "Spread wings", "Fold wings", "Lock wings",]);
+cm = ConfusionMatrix(y_test, y_test_preds; force_class_order=["I have command", "All clear", "Not clear", "Spread wings", "Fold wings", "Lock wings",]);
 
 @test overall_accuracy(cm) > 0.6
 

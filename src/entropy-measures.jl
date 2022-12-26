@@ -133,7 +133,7 @@ RenyiEntropy(alpha::AbstractFloat) = (args...)->_renyi_entropy(alpha, args...)
 
 # Single
 # sum(ws .* ((ns .- (sum(ws .* ns)/t)).^2)) / (t)
-Base.@propagate_inbounds @inline function _variance(ns :: AbstractVector{L}, s :: L, t :: Integer) where {L, U <: Real}
+Base.@propagate_inbounds @inline function _variance(ns :: AbstractVector{L}, s :: L, t :: Integer) where {L}
     # @btime sum((ns .- mean(ns)).^2) / (1 - t)
     # @btime (sum(ns.^2)-s^2/t) / (1 - t)
     (sum(ns.^2)-s^2/t) / (1 - t)
@@ -152,9 +152,9 @@ end
 
 # Double
 Base.@propagate_inbounds @inline function _variance(
-    ns_l :: AbstractVector{U}, sl :: L, tl :: U,
-    ns_r :: AbstractVector{U}, sr :: L, tr :: U,
-) where {L, U <: Real}
+    ns_l :: AbstractVector{LU}, sl :: L, tl :: U,
+    ns_r :: AbstractVector{LU}, sr :: L, tr :: U,
+) where {L, LU <: Real, U <: Real}
     ((tl*sum(ns_l.^2)-sl^2) / (1 - tl)) +
     ((tr*sum(ns_l.^2)-sr^2) / (1 - tr))
 end

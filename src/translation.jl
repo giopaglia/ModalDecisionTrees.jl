@@ -1,7 +1,5 @@
 using Revise
 
-module translation
-
 using SoleLogics
 using SoleModels
 
@@ -199,5 +197,3 @@ function link_nodes(p::FNode{L}, l::FNode{L}, r::FNode{L}) where {L <: AbstractL
     parent!(r, p)
 end
 =#
-
-end
