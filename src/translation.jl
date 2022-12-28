@@ -2,6 +2,7 @@ using Revise
 
 using SoleLogics
 using SoleModels
+using SoleModels: info, LogicalTruthCondition
 
 ############################################################################################
 # MDTv1 translation
@@ -10,8 +11,8 @@ using SoleModels
 ############################ NOTE: function to try #########################################
 
 function translate_mdtv1(tree::DTree)
-    pure_root = translate_mdtv1(root(tree))
-    info = info(pure_root)
+    pure_root = translate_mdtv1(ModalDecisionTrees.root(tree))
+    info = SoleModels.info(pure_root)
     # TODO
     # info = merge(info(pure_root),
     #     tree.metrics
@@ -22,20 +23,24 @@ end
 
 function translate_mdtv1(tree::DTLeaf)
     # TODO: info(tree)
-    SoleModels.ConstantModel(prediction(tree), (; supp_labels = supp_labels(tree)))
+    SoleModels.ConstantModel(ModalDecisionTrees.prediction(tree), (; supp_labels = ModalDecisionTrees.supp_labels(tree)))
 end
 
 function translate_mdtv1(tree::NSDTLeaf)
     # TODO: info(tree)
-    SoleModels.FunctionModel(predicting_function(tree), (; supp_labels = supp_labels(tree)))
+    SoleModels.FunctionModel(ModalDecisionTrees.predicting_function(tree), (; supp_labels = ModalDecisionTrees.supp_labels(tree)))
 end
 
 function translate_mdtv1(node::DTInternal, parent::Union{DTInternal,Nothing} = nothing)
-    formula = Formula(compose_pureformula(node,parent))
-    SoleModels.Branch(LogicalTruthCondition(formula),
-        translate_mdtv1(left(node),node),
-        translate_mdtv1(right(node),node),
-        (; this = translate_mdtv1(this(node)), supp_labels = supp_labels(node))
+    formula = compose_pureformula(node,parent)
+    SoleModels.Branch(LogicalTruthCondition{SyntaxTree}(formula),
+        typeof(ModalDecisionTrees.left(node)) <: Union{DTLeaf,NSDTLeaf} ?
+            translate_mdtv1(ModalDecisionTrees.left(node)) :
+            translate_mdtv1(ModalDecisionTrees.left(node),node),
+        typeof(ModalDecisionTrees.right(node)) <: Union{DTLeaf,NSDTLeaf} ?
+            translate_mdtv1(ModalDecisionTrees.right(node)) :
+            translate_mdtv1(ModalDecisionTrees.right(node),node),
+        (; this = translate_mdtv1(ModalDecisionTrees.this(node)), supp_labels = ModalDecisionTrees.supp_labels(node))
     )
 end
 
@@ -46,7 +51,7 @@ end
 
 # Root case
 function compose_pureformula(node::DTInternal)
-    return SyntaxTree(Proposition(decision(node)))
+    return SyntaxTree(Proposition(ModalDecisionTrees.decision(node)))
 end
 
 # Other cases
@@ -55,23 +60,23 @@ function compose_pureformula(node::DTInternal,parent::DTInternal)
 
     if is_lchild(node,parent)
         # TODO: define relation
-        φ = Proposition(decision(node))
-        return SyntaxTree(CONJUNCTION,(λ,φ))
+        φ = Proposition(ModalDecisionTrees.decision(node))
+        return ∧(λ,φ)
     else
         # Caso λ ∈ S⁻
-        φ = Proposition(decision(node))
-        return SyntaxTree(CONJUNCTION,(λ,φ))
+        φ = Proposition(ModalDecisionTrees.decision(node))
+        return ∧(λ,φ)
     end
 end
 
 function lambda(node::DTInternal,parent::DTInternal)
-    prop = Proposition(decision(parent))
+    prop = Proposition(ModalDecisionTrees.decision(parent))
 
-    return is_lchild(node,parent) ? SyntaxTree(prop) : SyntaxTree(NEGATION,(prop))
+    return is_lchild(node,parent) ? SyntaxTree(prop) : ¬(prop)
 end
 
-is_lchild(node::DTInternal,parent::DTInternal) = left(parent) == node ? true : false
-is_rchild(node::DTInternal,parent::DTInternal) = right(parent) == node ? true : false
+is_lchild(node::DTInternal,parent::DTInternal) = ModalDecisionTrees.left(parent) == node ? true : false
+is_rchild(node::DTInternal,parent::DTInternal) = ModalDecisionTrees.right(parent) == node ? true : false
 
 #=
 function translate_mdtv1(prev_condition::AbstractBooleanCondition, node::DTInternal)
