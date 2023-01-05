@@ -10,6 +10,16 @@ using SoleModels: info, LogicalTruthCondition
 
 ############################ NOTE: function to try #########################################
 
+function translate_mdtv1(forest::DForest)
+    pure_trees = [translate_mdtv1(tree) for tree in trees(forest)]
+
+    info = (;
+        metrics = metrics(forest),
+    )
+
+    return DecisionForest(pure_trees,info)
+end
+
 function translate_mdtv1(tree::DTree)
     pure_root = translate_mdtv1(ModalDecisionTrees.root(tree))
     info = SoleModels.info(pure_root)
@@ -23,12 +33,18 @@ end
 
 function translate_mdtv1(tree::DTLeaf)
     # TODO: info(tree)
-    SoleModels.ConstantModel(ModalDecisionTrees.prediction(tree), (; supp_labels = ModalDecisionTrees.supp_labels(tree)))
+    return SoleModels.ConstantModel(
+        ModalDecisionTrees.prediction(tree),
+        (; supp_labels = ModalDecisionTrees.supp_labels(tree))
+    )
 end
 
 function translate_mdtv1(tree::NSDTLeaf)
     # TODO: info(tree)
-    SoleModels.FunctionModel(ModalDecisionTrees.predicting_function(tree), (; supp_labels = ModalDecisionTrees.supp_labels(tree)))
+    return SoleModels.FunctionModel(
+        ModalDecisionTrees.predicting_function(tree),
+        (; supp_labels = ModalDecisionTrees.supp_labels(tree))
+    )
 end
 
 function translate_mdtv1(node::DTInternal, parent::Union{DTInternal,Nothing} = nothing)
@@ -40,7 +56,10 @@ function translate_mdtv1(node::DTInternal, parent::Union{DTInternal,Nothing} = n
         typeof(ModalDecisionTrees.right(node)) <: Union{DTLeaf,NSDTLeaf} ?
             translate_mdtv1(ModalDecisionTrees.right(node)) :
             translate_mdtv1(ModalDecisionTrees.right(node),node),
-        (; this = translate_mdtv1(ModalDecisionTrees.this(node)), supp_labels = ModalDecisionTrees.supp_labels(node))
+        (;
+            this = translate_mdtv1(ModalDecisionTrees.this(node)),
+            supp_labels = ModalDecisionTrees.supp_labels(node)
+        )
     )
 end
 
