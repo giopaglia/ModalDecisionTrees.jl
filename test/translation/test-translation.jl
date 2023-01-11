@@ -1,5 +1,6 @@
 using Revise
 using SoleModels
+using SoleModels: print_model
 using SoleLogics
 
 using ModalDecisionTrees
@@ -18,3 +19,5 @@ tree_str1 = """
 tree1 = parse_tree(tree_str1)
 
 pure_tree1 = translate_mdtv1(tree1)
+
+print_model.(unroll_rules_cascade(pure_tree1));
