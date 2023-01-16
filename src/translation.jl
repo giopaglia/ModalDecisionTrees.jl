@@ -171,7 +171,7 @@ function compose_purecondition(node::DTInternal, λ::DTInternal, ::Val{true})
         return conj
     else
         # second case (⟨X⟩(p ∧ φπ))
-        return SyntaxTree(EXMODOP(relation(p_decision)),(conj))
+        return SyntaxTree(DiamondRelationalOperator{typeof(relation(p_decision))}(),(conj))
     end
 end
 
