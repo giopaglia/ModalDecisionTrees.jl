@@ -170,10 +170,10 @@ end
     partialsort!(_vals,ceil(Int, alpha*length(_vals)))
 end
 
-function all_broadcast_sc(test_operator, values, threshold)
-    # Note: this is faster than all(broadcast(test_operator, values, threshold))
+function all_broadcast_sc(_test_operator, values, threshold)
+    # Note: this is faster than all(broadcast(_test_operator, values, threshold))
     for x in values
-        test_operator(x,threshold) || return false
+        (_test_operator)(x,threshold) || return false
     end
     return true
 end

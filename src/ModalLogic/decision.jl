@@ -59,6 +59,11 @@ struct Decision{T} <: AbstractDecision{T}
     end
 end
 
+relation(d::Decision) = d.relation
+feature(d::Decision) = d.feature
+test_operator(d::Decision) = d.test_operator
+threshold(d::Decision) = d.threshold
+
 is_propositional_decision(d::Decision) = (d.relation isa ModalLogic._RelationId)
 is_global_decision(d::Decision) = (d.relation isa ModalLogic._RelationGlob)
 
