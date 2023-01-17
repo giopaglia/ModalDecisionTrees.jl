@@ -2,7 +2,7 @@ using Revise
 
 using SoleLogics
 using SoleModels
-using SoleModels: info, LogicalTruthCondition
+using SoleModels: info, LogicalTruthCondition, Condition
 
 ############################################################################################
 # MDTv1 translation
@@ -47,15 +47,15 @@ function translate_mdtv1(tree::NSDTLeaf)
     )
 end
 
-function translate_mdtv1(node::DTInternal, parent::Union{DTInternal,Nothing} = nothing)
-    formula = compose_pureformula(node,parent)
+function translate_mdtv1(node::DTInternal, ancestors::Vector{DTInternal} = [])
+    formula = compose_pureformula(node, ancestors)
     SoleModels.Branch(LogicalTruthCondition{SyntaxTree}(formula),
         typeof(ModalDecisionTrees.left(node)) <: Union{DTLeaf,NSDTLeaf} ?
             translate_mdtv1(ModalDecisionTrees.left(node)) :
-            translate_mdtv1(ModalDecisionTrees.left(node),node),
+            translate_mdtv1(ModalDecisionTrees.left(node),[ancestors...,node]),
         typeof(ModalDecisionTrees.right(node)) <: Union{DTLeaf,NSDTLeaf} ?
             translate_mdtv1(ModalDecisionTrees.right(node)) :
-            translate_mdtv1(ModalDecisionTrees.right(node),node),
+            translate_mdtv1(ModalDecisionTrees.right(node),[ancestors...,node]),
         (;
             this = translate_mdtv1(ModalDecisionTrees.this(node)),
             supp_labels = ModalDecisionTrees.supp_labels(node)
@@ -63,18 +63,122 @@ function translate_mdtv1(node::DTInternal, parent::Union{DTInternal,Nothing} = n
     )
 end
 
-# Return a SyntaxTree
-function compose_pureformula(node::DTInternal, parent::Union{Nothing,DTInternal})
-    return isnothing(parent) ? compose_pureformula(node) : compose_pureformula(node,parent)
+function diamond_proposition(node::DTInternal)
+    dec = ModalDecisionTrees.decision(node)
+    metacond = FeaturedMetaCondition(feature(dec),FunctionWrapper(test_operator(dec)))
+    cond = Condition(metacond,threshold(dec))
+    diamond = DiamondRelationalOperator{typeof(ModalDecisionTrees.relation(dec))}
+
+    return SyntaxTree(diamond,(cond))
 end
 
-# Root case
-function compose_pureformula(node::DTInternal)
-    return SyntaxTree(Proposition(ModalDecisionTrees.decision(node)))
+function box_proposition(node::DTInternal)
+    dec = ModalDecisionTrees.decision(node)
+    metacond = FeaturedMetaCondition(feature(dec),FunctionWrapper(test_operator(dec)))
+    cond = Condition(metacond,threshold(dec))
+    box = BoxRelationalOperator{typeof(ModalDecisionTrees.relation(dec))}
+
+    return SyntaxTree(box,(cond))
 end
 
+function compose_pureformula(node::DTInternal,ancestors::Vector{DTInternal})
+    # dispatch a seconda del numero di nodi degli ancestors
+    if length == 0
+        dec = ModalDecisionTrees.decision(node)
+        metacond = FeaturedMetaCondition(feature(dec),FunctionWrapper(test_operator(dec)))
+        cond = Condition(metacond,threshold(dec))
+        diamond = DiamondRelationalOperator{typeof(ModalDecisionTrees.relation(dec))}
+
+        return SyntaxTree(diamond,(cond))
+    else if length == 1
+        if is_lchild(node,ancestors[1])
+            φ = begin
+                dec = ModalDecisionTrees.decision(node)
+                metacond = FeaturedMetaCondition(feature(dec),FunctionWrapper(test_operator(dec)))
+                cond = Condition(metacond,threshold(dec))
+                diamond = DiamondRelationalOperator{typeof(ModalDecisionTrees.relation(dec))}
+
+                SyntaxTree(diamond,(cond))
+            end
+
+            λ = begin
+                dec = ModalDecisionTrees.decision(ancestors[1])
+                metacond = FeaturedMetaCondition(feature(dec),FunctionWrapper(test_operator(dec)))
+                cond = Condition(metacond,threshold(dec))
+
+                SyntaxTree(cond)
+            end
+
+            diamond = DiamondRelationalOperator{typeof(ModalDecisionTrees.relation(dec))}
+
+            return SyntaxTree(diamond,(∧(λ,φ)))
+        else
+            λ = begin
+                dec = ModalDecisionTrees.decision(node)
+                metacond = FeaturedMetaCondition(feature(dec),FunctionWrapper(test_operator(dec)))
+                cond = Condition(metacond,threshold(dec))
+                diamond = DiamondRelationalOperator{typeof(ModalDecisionTrees.relation(dec))}
+
+                SyntaxTree(diamond,(cond))
+            end
+
+            φ = begin
+                dec = ModalDecisionTrees.decision(ancestors[1])
+                metacond = FeaturedMetaCondition(feature(dec),FunctionWrapper(test_operator(dec)))
+                cond = Condition(metacond,threshold(dec))
+                diamond = DiamondRelationalOperator{typeof(ModalDecisionTrees.relation(dec))}
+
+                SyntaxTree(diamond,(cond))
+            end
+
+            return ∧(λ,φ)
+        end
+    else
+        return compose_pureformula([ancestors...,node])
+    end
+end
+
+function compose_pureformula(nodes::Vector{DTInternal})
+
+end
+
+#=
 # Other cases
-function compose_pureformula(node::DTInternal,parent::DTInternal)
+function compose_pureformula(nodes::Vector{DTInternal})
+    #Funzione ricorsiva che considera i primi due ancestors e poi lascia aperto così si possa calcolare la sottoformula
+
+    # Attraversato ramo destro (ultimo caso)
+    if is_rchild(nodes[2],nodes[1])
+        neg = begin
+            dec = decision(nodes[1])
+            box = BoxRelationalOperator{typeof(relation(dec))}
+            metacond = FeaturedMetaCondition(feature(dec),FunctionWrapper(test_operator(dec)))
+            cond = Condition(metacond,threshold(dec))
+
+            SyntaxTree(box,(cond))
+        end
+
+        pos = begin
+            if length(nodes) > 2
+                compose_formula(nodes[2:end])
+            else
+                dec = decision(nodes[2])
+                diamond = DiamondRelationalOperator{typeof(relation(dec))}
+                metacond = FeaturedMetaCondition(
+                    feature(dec),FunctionWrapper(test_operator(dec))
+                )
+                cond = Condition(metacond,threshold(dec))
+
+                SyntaxTree(diamond,(cond))
+            end
+        end
+
+        return ∧(neg,pos)
+    else
+        #Attraversato Ramo Sinistro
+
+    end
+
     λ = lambda(node,parent)
 
     if is_lchild(node,parent)
@@ -87,6 +191,7 @@ function compose_pureformula(node::DTInternal,parent::DTInternal)
         return ∧(λ,φ)
     end
 end
+=#
 
 function lambda(node::DTInternal,parent::DTInternal)
     prop = Proposition(ModalDecisionTrees.decision(parent))
@@ -94,8 +199,10 @@ function lambda(node::DTInternal,parent::DTInternal)
     return is_lchild(node,parent) ? SyntaxTree(prop) : ¬(prop)
 end
 
-is_lchild(node::DTInternal,parent::DTInternal) = ModalDecisionTrees.left(parent) == node ? true : false
-is_rchild(node::DTInternal,parent::DTInternal) = ModalDecisionTrees.right(parent) == node ? true : false
+is_lchild(node::DTInternal,parent::DTInternal) =
+    ModalDecisionTrees.left(parent) == node ? true : false
+is_rchild(node::DTInternal,parent::DTInternal) =
+    ModalDecisionTrees.right(parent) == node ? true : false
 
 #=
 function translate_mdtv1(prev_condition::AbstractBooleanCondition, node::DTInternal)
