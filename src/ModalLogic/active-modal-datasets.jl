@@ -1,7 +1,7 @@
 using ProgressMeter
 
-using ..ModalDecisionTrees: CanonicalFeatureGeq, CanonicalFeatureGeqSoft, CanonicalFeatureLeq, CanonicalFeatureLeqSoft
-using ..ModalDecisionTrees: evaluate_thresh_decision, existential_aggregator, aggregator_bottom, aggregator_to_binary
+using SoleModels: CanonicalFeatureGeq, CanonicalFeatureGeqSoft, CanonicalFeatureLeq, CanonicalFeatureLeqSoft
+using SoleModels: evaluate_thresh_decision, existential_aggregator, aggregator_bottom, aggregator_to_binary
 
 import SoleData: get_instance, instance, max_channel_size, nattributes, nsamples, slice_dataset
 

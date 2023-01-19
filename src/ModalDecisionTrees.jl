@@ -20,7 +20,7 @@ using SoleModels
 using SoleModels: CLabel, RLabel, Label, _CLabel, _Label, get_categorical_form
 using SoleModels: ConfusionMatrix, overall_accuracy, kappa, class_counts, macro_F1, macro_sensitivity, macro_specificity, macro_PPV, macro_NPV, macro_weighted_F1, macro_weighted_sensitivity, macro_weighted_specificity, macro_weighted_PPV, macro_weighted_NPV, safe_macro_F1, safe_macro_sensitivity, safe_macro_specificity, safe_macro_PPV, safe_macro_NPV
 using SoleModels: average_label, majority_vote, default_weights, slice_weights
-using SoleData: AbstractDimensionalInstance, DimensionalDataset, AbstractDimensionalChannel, UniformDimensionalDataset, DimensionalChannel, DimensionalInstance, max_channel_size, nsamples, nattributes, get_instance, slice_dataset, concat_datasets, instance_channel_size, get_instance_attribute
+using SoleData: AbstractDimensionalInstance, DimensionalDataset, AbstractDimensionalChannel, UniformDimensionalDataset, DimensionalChannel, DimensionalInstance, max_channel_size, nsamples, nattributes, get_instance, slice_dataset, concat_datasets, instance_channel_size
 
 export slice_dataset, concat_datasets,
        nframes, nsamples, nattributes, max_channel_size
@@ -41,18 +41,6 @@ export Decision,                # Decision (e.g., (e.g., ⟨L⟩ (minimum(A2) �
 ############################################################################################
 
 include("util.jl")
-
-############################################################################################
-# Modal features
-############################################################################################
-
-include("modal-features.jl")
-
-############################################################################################
-# Test operators
-############################################################################################
-
-include("test-operators.jl")
 
 ############################################################################################
 # Modal Logic structures

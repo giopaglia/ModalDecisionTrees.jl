@@ -1,13 +1,11 @@
 module ModalLogic
 
 using ..ModalDecisionTrees
-using ..ModalDecisionTrees: util, interpret_feature, alpha, display_feature_test_operator_pair
+using ..ModalDecisionTrees: util
 
 using ..ModalDecisionTrees: DimensionalDataset, AbstractDimensionalChannel, AbstractDimensionalInstance, UniformDimensionalDataset, DimensionalChannel, DimensionalInstance
 
 using ..ModalDecisionTrees: LogOverview, LogDebug, LogDetail
-
-using ..ModalDecisionTrees: test_operator_inverse
 
 using BenchmarkTools
 using ComputedFieldTypes
@@ -18,6 +16,9 @@ using ResumableFunctions
 
 using SoleLogics
 using SoleLogics: AbstractRelation, AbstractWorld
+
+using SoleModels
+using SoleModels: alpha, display_feature, display_feature_test_operator_pair
 
 import Base: size, show, getindex, iterate, length, push!
 
@@ -179,7 +180,7 @@ include("decision.jl")
 # TODO sort these
 import ..ModalDecisionTrees: slice_dataset, concat_datasets,
        nsamples, nattributes, max_channel_size, get_instance,
-       instance_channel_size, get_instance_attribute
+       instance_channel_size
 
 
 export nfeatures, nrelations,

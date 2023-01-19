@@ -30,6 +30,9 @@ using Random
 using DataFrames
 import Random.GLOBAL_RNG
 
+using SoleModels
+using SoleModels: CanonicalFeatureGeq, CanonicalFeatureGeqSoft, CanonicalFeatureLeq, CanonicalFeatureLeqSoft
+
 const MMI = MLJModelInterface
 const MDT = ModalDecisionTrees
 const PKG = "ModalDecisionTrees"
@@ -111,7 +114,7 @@ function __moving_window_without_overflow_fixed_num(
     relative_overlap::AbstractFloat,
 )::AbstractVector{UnitRange{Int}}
     # Code by Giovanni Pagliarini (@giopaglia) & Federico Manzella (@ferdiu)
-    # 
+    #
     # start = 1+half_context
     # stop = npoints-half_context
     # step = (stop-start+1)/nwindows
@@ -122,7 +125,7 @@ function __moving_window_without_overflow_fixed_num(
     start = 1+half_context
     stop = npoints-half_context
     step = (stop-start+1)/nwindows
-    
+
     # _w = floor(Int, step+2*half_context)
     # _w = floor(Int, ((stop-start+1)/nwindows)+2*half_context)
     # _w = floor(Int, ((npoints-half_context)-(1+half_context)+1)/nwindows+2*half_context)
@@ -195,14 +198,14 @@ function DataFrame2MultiFrameModalDataset(
 
     Xs_ic = [begin
         X_frame = X[:,frame]
-        
+
         channel_size = unique([unique(_size.(X_frame[:, col])) for col in names(X_frame)])
         @assert length(channel_size) == 1
         @assert length(channel_size[1]) == 1
         channel_size = channel_size[1][1]
-        
+
         channel_dim = length(channel_size)
-        
+
         # println("$(i_frame)\tchannel size: $(channel_size)\t => $(frame_grouping)")
 
         _X = begin
@@ -254,7 +257,7 @@ function DataFrame2MultiFrameModalDataset(
             __X
         else
             WorldType = MDT.world_type(ontology)
-            
+
             compute_relation_glob =
                 WorldType != MDT.OneWorld && (
                     (allow_global_splits || _init_conditions == MDT.start_without_world)
@@ -343,9 +346,6 @@ function wrap_dataset(X)
 end
 
 using ModalDecisionTrees: AbstractRelation
-using ModalDecisionTrees: CanonicalFeature
-using ModalDecisionTrees: CanonicalFeatureGeq, canonical_geq
-using ModalDecisionTrees: CanonicalFeatureLeq, canonical_leq
 using ModalDecisionTrees: start_without_world
 using ModalDecisionTrees: start_at_center
 
@@ -378,7 +378,7 @@ MMI.@mlj_model mutable struct ModalDecisionTree <: MMI.Deterministic
     init_conditions        :: Union{Nothing,Symbol}                       = nothing::(isnothing(_) || _ in [:start_with_global, :start_at_center])
     allow_global_splits    :: Bool                         = true
     automatic_downsizing   :: Bool                         = true
-    
+
     # ModalDecisionTree-specific
     display_depth          :: Union{Nothing,Int}           = 5::(isnothing(_) || _ ≥ 0)
 end
@@ -393,7 +393,7 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Int, X, y, w=nothing)
     y  = Vector{(is_classification ? String : Float64)}(y) # TODO extend this limitation
 
     ########################################################################################
-    
+
     max_depth            = m.max_depth
     max_depth            = isnothing(max_depth) ? typemax(Int64) : max_depth
     min_samples_leaf     = m.min_samples_leaf
@@ -404,11 +404,11 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Int, X, y, w=nothing)
     init_conditions      = m.init_conditions
     allow_global_splits  = m.allow_global_splits
     automatic_downsizing = m.automatic_downsizing
-    
+
     display_depth        = m.display_depth
 
     ########################################################################################
-    
+
     frame_grouping = separate_variables_into_frames(X)
     Xs, init_conditions = DataFrame2MultiFrameModalDataset(
         X,
@@ -485,10 +485,10 @@ function MMI.predict(m::ModalDecisionTree, fitresult, Xnew) #, ynew = nothing)
     init_conditions = m.init_conditions
     allow_global_splits = m.allow_global_splits
     automatic_downsizing = m.automatic_downsizing
-    
+
     missing_columns = setdiff(Iterators.flatten(fitresult.frame_grouping), names(Xnew))
     @assert length(missing_columns) == 0 "Can't perform prediction due to missing DataFrame columns: $(missing_columns)"
-    
+
     Xs, init_conditions = DataFrame2MultiFrameModalDataset(
         Xnew,
         fitresult.frame_grouping,
@@ -529,7 +529,7 @@ MMI.@mlj_model mutable struct ModalRandomForest <: MMI.Probabilistic
     automatic_downsizing   :: Bool                         = true
 
     # ModalDecisionTree-specific
-    
+
     n_subrelations         ::Union{Nothing,Int,Function}   = nothing::(isnothing(_) || _ isa Function || _ ≥ -1)
     n_subfeatures          ::Union{Nothing,Int,Function}   = nothing::(isnothing(_) || _ isa Function || _ ≥ -1)
     n_trees                ::Int                 = mlj_mrf_default_n_trees::(_ ≥ 2)
@@ -547,7 +547,7 @@ function MMI.fit(m::ModalRandomForest, verbosity::Int, X, y, w=nothing)
     y  = Vector{(is_classification ? String : Float64)}(y)
 
     ########################################################################################
-    
+
     max_depth            = m.max_depth
     max_depth            = isnothing(max_depth) || max_depth == -1 ? typemax(Int64) : max_depth
     min_samples_leaf     = m.min_samples_leaf
@@ -568,7 +568,7 @@ function MMI.fit(m::ModalRandomForest, verbosity::Int, X, y, w=nothing)
     rng                  = m.rng
 
     ########################################################################################
-    
+
     frame_grouping = separate_variables_into_frames(X)
     Xs, init_conditions = DataFrame2MultiFrameModalDataset(
         X,
@@ -580,7 +580,7 @@ function MMI.fit(m::ModalRandomForest, verbosity::Int, X, y, w=nothing)
         :explicit;
         downsizing_function = (automatic_downsizing ? (args...)->forest_downsizing_function(args...; n_trees = m.n_trees) : identity),
     )
-    
+
     model = MDT.build_forest(
         Xs,
         y,
@@ -649,10 +649,10 @@ function MMI.predict(m::ModalRandomForest, fitresult, Xnew) #, ynew = nothing)
     init_conditions = m.init_conditions
     allow_global_splits = m.allow_global_splits
     automatic_downsizing = m.automatic_downsizing
-    
+
     missing_columns = setdiff(Iterators.flatten(fitresult.frame_grouping), names(Xnew))
     @assert length(missing_columns) == 0 "Can't perform prediction due to missing DataFrame columns: $(missing_columns)"
-    
+
     Xs, init_conditions = DataFrame2MultiFrameModalDataset(
         Xnew,
         fitresult.frame_grouping,

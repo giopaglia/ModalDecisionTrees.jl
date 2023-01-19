@@ -8,6 +8,7 @@ using ModalDecisionTrees: left, right
 
 using ModalDecisionTrees: relation, feature, test_operator, threshold
 using ModalDecisionTrees: test_operator_inverse
+using ModalDecisionTrees: AbstractFeature
 
 using FunctionWrappers: FunctionWrapper
 
@@ -73,7 +74,7 @@ end
 ############################################################################################
 
 function _condition(feature::AbstractFeature{U}, test_op, threshold::T) where {U, T}
-    t = FunctionWrapper{Bool,Tuple{U,T}(test_op)
+    t = FunctionWrapper{Bool,Tuple{U,T}}(test_op)
     metacond = FeaturedMetaCondition(feature, t)
     cond = Condition(metacond, threshold)
     return cond
