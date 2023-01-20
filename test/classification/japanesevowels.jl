@@ -13,7 +13,7 @@ tree = ModalDecisionTree(min_samples_leaf=4)
 # Load an example dataset (a temporal one)
 X, y = ModalDecisionTrees.@load_japanesevowels
 
-p = randperm(Random.MersenneTwister(1), 100)
+p = randperm(Random.MersenneTwister(2), 100)
 X, y = X[p, :], y[p]
 
 
@@ -22,7 +22,7 @@ N = length(y)
 mach = machine(tree, X, y)
 
 # Split dataset
-p = randperm(Random.MersenneTwister(1), N)
+p = randperm(N)
 train_idxs, test_idxs = p[1:round(Int, N*.8)], p[round(Int, N*.8)+1:end]
 
 # Fit
