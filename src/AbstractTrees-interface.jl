@@ -62,7 +62,7 @@ In the first case `mdt` gets just wrapped, no information is added. No. 2 adds v
 Note that the trailing comma is needed, in order to create a NamedTuple.
 """
 wrap(node::MDT.DTree,                info::NamedTuple = NamedTuple()) = wrap(root(node), info = info)
-wrap(node::MDT.DTInternal,           info::NamedTuple = NamedTuple()) = InfoNode(node, info)
+wrap(node::MDT.DTInternal,         info::NamedTuple = NamedTuple()) = InfoNode(node, info)
 wrap(leaf::MDT.AbstractDecisionLeaf, info::NamedTuple = NamedTuple()) = InfoLeaf(leaf, info)
 
 """
