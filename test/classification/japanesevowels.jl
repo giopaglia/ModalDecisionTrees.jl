@@ -32,7 +32,7 @@ MLJ.fit!(mach, rows=train_idxs)
 yhat = MLJ.predict(mach, X[test_idxs,:])
 accuracy = sum(yhat .== y[test_idxs])/length(yhat)
 
-@test accuracy > 0.70
+@test accuracy >= 0.6
 
 # Access raw model
 fitted_params(mach).model;

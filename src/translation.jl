@@ -80,21 +80,21 @@ function _condition(feature::AbstractFeature{U}, test_op, threshold::T) where {U
     return cond
 end
 
-function get_proposition(dec::Decision)
+function get_proposition(dec::ExistentialDimensionalDecision)
     test_op = test_operator(dec)
     return Proposition(_condition(feature(dec), test_op, threshold(dec)))
 end
 
-function get_proposition_inv(dec::Decision)
+function get_proposition_inv(dec::ExistentialDimensionalDecision)
     test_op = test_operator_inverse(test_operator(dec))
     return Proposition(_condition(feature(dec), test_op, threshold(dec)))
 end
 
-function get_diamond_op(dec::Decision)
+function get_diamond_op(dec::ExistentialDimensionalDecision)
     return DiamondRelationalOperator{typeof(relation(dec))}
 end
 
-function get_box_op(dec::Decision)
+function get_box_op(dec::ExistentialDimensionalDecision)
     return BoxRelationalOperator{typeof(relation(dec))}
 end
 

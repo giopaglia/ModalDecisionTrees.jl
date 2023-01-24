@@ -161,7 +161,7 @@ function _parse_tree(tree_str::String; check_format = true, _depth = 0, offset =
         feature, test_operator = _parse_feature_test_operator(feature_test_operator)
         threshold = _parse_simple_real(threshold) 
 
-        Decision(relation, feature, test_operator, threshold)
+        ExistentialDimensionalDecision(relation, feature, test_operator, threshold)
     end
     function _parse_leaf((i_this_line, leaf_str)::Tuple{<:Integer,<:AbstractString},)
         m = match(Regex(leaf_ex__capturing), leaf_str)

@@ -11,6 +11,9 @@ const initWorldSetFunction = Function
 const accFunction = Function
 const accReprFunction = Function
 
+# decision.jl
+using ..ModalDecisionTrees: is_propositional_decision, display_decision
+
 ############################################################################################
 
 # Convenience function
@@ -108,13 +111,14 @@ end
                 push!(featsnops, test_ops)
             end
 
-            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic.CanonicalFeatureGeq) = ([≥],ModalDecisionTrees.SingleAttributeMin(i_attr))
-            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic.CanonicalFeatureLeq) = ([≤],ModalDecisionTrees.SingleAttributeMax(i_attr))
-            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic.CanonicalFeatureGeqSoft) = ([≥],ModalDecisionTrees.SingleAttributeSoftMin(i_attr, cf.alpha))
-            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic.CanonicalFeatureLeqSoft) = ([≤],ModalDecisionTrees.SingleAttributeSoftMax(i_attr, cf.alpha))
-            single_attr_feats_n_featsnops(i_attr,(test_ops,cf)::Tuple{<:AbstractVector{<:TestOperatorFun},Function})        = (test_ops,SingleAttributeGenericFeature(i_attr, cf))
-            single_attr_feats_n_featsnops(i_attr,(test_ops,cf)::Tuple{<:AbstractVector{<:TestOperatorFun},typeof(minimum)}) = (test_ops,SingleAttributeMin(i_attr))
-            single_attr_feats_n_featsnops(i_attr,(test_ops,cf)::Tuple{<:AbstractVector{<:TestOperatorFun},typeof(maximum)}) = (test_ops,SingleAttributeMax(i_attr))
+            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic.CanonicalFeatureGeq) = ([≥],ModalDecisionTrees.SingleAttributeMin{T}(i_attr))
+            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic.CanonicalFeatureLeq) = ([≤],ModalDecisionTrees.SingleAttributeMax{T}(i_attr))
+            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic.CanonicalFeatureGeqSoft) = ([≥],ModalDecisionTrees.SingleAttributeSoftMin{T}(i_attr, cf.alpha))
+            single_attr_feats_n_featsnops(i_attr,cf::ModalLogic.CanonicalFeatureLeqSoft) = ([≤],ModalDecisionTrees.SingleAttributeSoftMax{T}(i_attr, cf.alpha))
+            single_attr_feats_n_featsnops(i_attr,(test_ops,cf)::Tuple{<:AbstractVector{<:TestOperatorFun},typeof(minimum)}) = (test_ops,SingleAttributeMin{T}(i_attr))
+            single_attr_feats_n_featsnops(i_attr,(test_ops,cf)::Tuple{<:AbstractVector{<:TestOperatorFun},typeof(maximum)}) = (test_ops,SingleAttributeMax{T}(i_attr))
+            # TODO: assuming Float64 function. Also allow functionwrappers?
+            single_attr_feats_n_featsnops(i_attr,(test_ops,cf)::Tuple{<:AbstractVector{<:TestOperatorFun},Function})        = (test_ops,SingleAttributeGenericFeature{Float64}(i_attr, (x)->(Float64(cf(x)))))
             single_attr_feats_n_featsnops(i_attr,::Any) = throw_n_log("Unknown mixed_feature type: $(cf), $(typeof(cf))")
 
             for i_attr in 1:nattributes(domain)
@@ -1129,7 +1133,7 @@ test_decision(
         X::ExplicitModalDatasetWithSupport{T,WorldType},
         i_sample::Integer,
         w::WorldType,
-        decision::Decision) where {T, WorldType<:AbstractWorld} = begin
+        decision::ExistentialDimensionalDecision) where {T, WorldType<:AbstractWorld} = begin
     if is_propositional_decision(decision)
         test_decision(X, i_sample, w, decision.feature, decision.test_operator, decision.threshold)
     else
@@ -1215,7 +1219,7 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
                 @logmsg LogDetail " Test operator $(test_operator)"
                 # Look for the best threshold 'a', as in propositions like "feature >= a"
                 for threshold in aggr_domain
-                    decision = Decision(relation, feature, test_operator, threshold)
+                    decision = ExistentialDimensionalDecision(relation, feature, test_operator, threshold)
                     @logmsg LogDebug " Testing decision: $(display_decision(decision))"
                     @yield decision, aggr_thresholds
                 end # for threshold
@@ -1299,7 +1303,7 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
 
                 # Look for the best threshold 'a', as in propositions like "feature >= a"
                 for threshold in aggr_domain
-                    decision = Decision(relation, feature, test_operator, threshold)
+                    decision = ExistentialDimensionalDecision(relation, feature, test_operator, threshold)
                     @logmsg LogDebug " Testing decision: $(display_decision(decision))"
                     @yield decision, aggr_thresholds
                 end # for threshold
@@ -1372,7 +1376,7 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
 
                     # Look for the best threshold 'a', as in propositions like "feature >= a"
                     for threshold in aggr_domain
-                        decision = Decision(relation, feature, test_operator, threshold)
+                        decision = ExistentialDimensionalDecision(relation, feature, test_operator, threshold)
                         @logmsg LogDebug " Testing decision: $(display_decision(decision))"
                         @yield decision, aggr_thresholds
                     end # for threshold
@@ -1510,7 +1514,7 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
 
                     # Look for the best threshold 'a', as in propositions like "feature >= a"
                     for threshold in aggr_domain
-                        decision = Decision(relation, feature, test_operator, threshold)
+                        decision = ExistentialDimensionalDecision(relation, feature, test_operator, threshold)
                         @logmsg LogDebug " Testing decision: $(display_decision(decision))"
                         @yield decision, aggr_thresholds
                     end # for threshold
@@ -1530,7 +1534,7 @@ function modal_step(
         X::Union{ActiveModalDataset{T,WorldType},InterpretedModalDataset{T,N,WorldType}},
         i_sample::Integer,
         worlds::WorldSetType,
-        decision::Decision{T},
+        decision::ExistentialDimensionalDecision{T},
         returns_survivors::Union{Val{true},Val{false}} = Val(false)
     ) where {T, N, WorldType<:AbstractWorld, WorldSetType<:AbstractWorldSet{WorldType}}
     @logmsg LogDetail "modal_step" worlds display_decision(decision)
@@ -1608,7 +1612,7 @@ test_decision(
         X::ModalDataset{T},
         i_sample::Integer,
         w::AbstractWorld,
-        decision::Decision{T}) where {T} = begin
+        decision::ExistentialDimensionalDecision{T}) where {T} = begin
     instance = get_instance(X, i_sample)
 
     aggregator = existential_aggregator(decision.test_operator)

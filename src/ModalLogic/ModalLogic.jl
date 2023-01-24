@@ -18,7 +18,6 @@ using SoleLogics
 using SoleLogics: AbstractRelation, AbstractWorld
 
 using SoleModels
-using SoleModels: alpha, display_feature, display_feature_test_operator_pair
 
 import Base: size, show, getindex, iterate, length, push!
 
@@ -169,11 +168,6 @@ all_worlds(::Type{WorldType}, args...) where {WorldType<:AbstractWorld} = access
 all_worlds(::Type{WorldType}, enum_acc_fun::Function) where {WorldType<:AbstractWorld} = enum_acc_fun(WorldType[], RelationGlob)
 all_worlds_aggr(::Type{WorldType}, enum_repr_fun::Function, f::ModalFeature, a::Aggregator) where {WorldType<:AbstractWorld} = enum_repr_fun(f, a, WorldType[], RelationGlob)
 
-############################################################################################
-# Decision
-############################################################################################
-
-include("decision.jl")
 ############################################################################################
 # Dataset structures
 ############################################################################################

@@ -23,7 +23,7 @@ mutable struct NodeMeta{P,L}
     r                  :: NodeMeta{P,L}                    # right child
 
     i_frame            :: Integer                          # Id of frame
-    decision           :: Decision{T} where {T}
+    decision           :: AbstractDecision{T} where {T}
 
     onlyallowRelationGlob:: Vector{Bool}
 
@@ -77,7 +77,7 @@ function _convert(
     else
         left  = _convert(node.l, labels, class_names, threshold_backmap)
         right = _convert(node.r, labels, class_names, threshold_backmap)
-        DTInternal(node.i_frame, Decision(node.decision, threshold_backmap[node.i_frame]), this_leaf, left, right)
+        DTInternal(node.i_frame, ExistentialDimensionalDecision(node.decision, threshold_backmap[node.i_frame]), this_leaf, left, right)
     end
 end
 
@@ -93,7 +93,7 @@ function _convert(
     else
         left  = _convert(node.l, labels, threshold_backmap)
         right = _convert(node.r, labels, threshold_backmap)
-        DTInternal(node.i_frame, Decision(node.decision, threshold_backmap[node.i_frame]), this_leaf, left, right)
+        DTInternal(node.i_frame, ExistentialDimensionalDecision(node.decision, threshold_backmap[node.i_frame]), this_leaf, left, right)
     end
 end
 
@@ -392,7 +392,7 @@ Base.@propagate_inbounds @inline function split_node!(
     # Optimization-tracking variables
     best_i_frame = -1
     best_purity_times_nt = typemin(P)
-    best_decision = Decision{Float64}()
+    best_decision = ExistentialDimensionalDecision{Float64}()
     if isa(_perform_consistency_check,Val{true})
         consistency_sat_check = Vector{Bool}(undef, _n_samples)
     end

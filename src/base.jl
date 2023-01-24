@@ -121,65 +121,63 @@ predictions(leaf::NSDTLeaf; train_or_valid = true) = (train_or_valid ? leaf.supp
 struct DTInternal{T, L<:Label}
     # frame index + split-decision
     i_frame       :: Int64
-    decision      :: Decision{T}
+    decision      :: AbstractDecision{T}
     # representative leaf for the current node
     this          :: AbstractDecisionLeaf{<:L}
     # child nodes
     left          :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}}
     right         :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}}
 
+    # semantics-specific miscellanoeus info
+    miscellaneous :: NamedTuple
+
     # create node
     function DTInternal{T, L}(
         i_frame          :: Int64,
-        decision         :: Decision,
+        decision         :: AbstractDecision,
         this             :: AbstractDecisionLeaf,
         left             :: Union{AbstractDecisionLeaf, DTInternal},
-        right            :: Union{AbstractDecisionLeaf, DTInternal}) where {T, L<:Label}
-        new{T, L}(i_frame, decision, this, left, right)
+        right            :: Union{AbstractDecisionLeaf, DTInternal},
+        miscellaneous    :: NamedTuple = (;),
+        ) where {T, L<:Label}
+        new{T, L}(i_frame, decision, this, left, right, miscellaneous)
     end
     function DTInternal(
         i_frame          :: Int64,
-        decision         :: Decision{T},
+        decision         :: AbstractDecision{T},
         this             :: AbstractDecisionLeaf{<:L},
         left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}},
-        right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}}) where {T, L<:Label}
-        DTInternal{T, L}(i_frame, decision, this, left, right)
+        right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}},
+        miscellaneous    :: NamedTuple = (;),
+        ) where {T, L<:Label}
+        DTInternal{T, L}(i_frame, decision, this, left, right, miscellaneous)
     end
-
-    # function DTInternal( (need mutable)
-    #     i_frame          :: Int64,
-    #     decision         :: Decision{T},
-    #     left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}},
-    #     right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}}) where {T, L<:Label}
-    #     node = new{T, L}()
-    #     node.i_frame = i_frame
-    #     node.decision = decision
-    #     node.left = left
-    #     node.right = right
-    #     node
-    # end
 
     # create node without local decision
     function DTInternal{T, L}(
         i_frame          :: Int64,
-        decision         :: Decision,
+        decision         :: AbstractDecision,
         left             :: Union{AbstractDecisionLeaf, DTInternal},
-        right            :: Union{AbstractDecisionLeaf, DTInternal}) where {T, L<:Label}
+        right            :: Union{AbstractDecisionLeaf, DTInternal},
+        miscellaneous    :: NamedTuple = (;),
+        ) where {T, L<:Label}
         # this = merge_into_leaf(Vector{<:Union{AbstractDecisionLeaf,DTInternal}}([left, right]))
         this = merge_into_leaf(Union{<:AbstractDecisionLeaf,<:DTInternal}[left, right])
-        new{T, L}(i_frame, decision, this, left, right)
+        new{T, L}(i_frame, decision, this, left, right, miscellaneous)
     end
     function DTInternal(
         i_frame          :: Int64,
-        decision         :: Decision{T},
+        decision         :: AbstractDecision{T},
         left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}},
-        right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}}) where {T, L<:Label}
-        DTInternal{T, L}(i_frame, decision, left, right)
+        right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}},
+        miscellaneous    :: NamedTuple = (;),
+        ) where {T, L<:Label}
+        DTInternal{T, L}(i_frame, decision, left, right, miscellaneous)
     end
 
     # create node without frame
     # function DTInternal{T, L}(
-    #     decision         :: Decision,
+    #     decision         :: AbstractDecision,
     #     this             :: AbstractDecisionLeaf,
     #     left             :: Union{AbstractDecisionLeaf, DTInternal},
     #     right            :: Union{AbstractDecisionLeaf, DTInternal}) where {T, L<:Label}
@@ -187,7 +185,7 @@ struct DTInternal{T, L<:Label}
     #     DTInternal{T, L}(i_frame, decision, this, left, right)
     # end
     # function DTInternal(
-    #     decision         :: Decision{T},
+    #     decision         :: AbstractDecision{T},
     #     this             :: AbstractDecisionLeaf,
     #     left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}},
     #     right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}}) where {T, L<:Label}
@@ -196,14 +194,14 @@ struct DTInternal{T, L<:Label}
 
     # # create node without frame nor local decision
     # function DTInternal{T, L}(
-    #     decision         :: Decision,
+    #     decision         :: AbstractDecision,
     #     left             :: Union{AbstractDecisionLeaf, DTInternal},
     #     right            :: Union{AbstractDecisionLeaf, DTInternal}) where {T, L<:Label}
     #     i_frame = 1
     #     DTInternal{T, L}(i_frame, decision, left, right)
     # end
     # function DTInternal(
-    #     decision         :: Decision{T},
+    #     decision         :: AbstractDecision{T},
     #     left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}},
     #     right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{T, L}}) where {T, L<:Label}
     #     DTInternal{T, L}(decision, left, right)
@@ -215,6 +213,7 @@ decision(node::DTInternal) = node.decision
 this(node::DTInternal) = node.this
 left(node::DTInternal) = node.left
 right(node::DTInternal) = node.right
+miscellaneous(node::DTInternal) = node.miscellaneous
 
 function supp_labels(node::DTInternal; train_or_valid = true)
     @assert train_or_valid == true
@@ -409,6 +408,7 @@ function Base.show(io::IO, node::DTInternal{T,L}) where {T,L}
     println(io, "\t###########################################################")
     println(io, "\ti_frame: $(i_frame(node))")
     print(io, "\tdecision: $(decision(node))")
+    print(io, "\tmiscellaneous: $(miscellaneous(node))")
     println(io, "\t###########################################################")
     println(io, "\tsub-tree leaves: $(num_leaves(node))")
     println(io, "\tsub-tree nodes: $(num_nodes(node))")
@@ -507,7 +507,7 @@ end
 
     @testset "Decision internal node (DTInternal) + Decision Tree & Forest (DTree & DForest)" begin
 
-        decision = Decision(ModalLogic.RelationGlob, SingleAttributeMin(1), >=, 10)
+        decision = ExistentialDimensionalDecision(ModalLogic.RelationGlob, SingleAttributeMin(1), >=, 10)
 
         reg_leaf, cls_leaf = DTLeaf([1.0,2.0]), DTLeaf([1,2])
 
