@@ -1,3 +1,4 @@
+using SoleLogics: AbstractMultiModalFrame
 
 ############################################################################################
 # Initial world conditions
@@ -8,23 +9,23 @@ struct StartWithoutWorld               <: InitCondition end; const start_without
 struct StartAtCenter                   <: InitCondition end; const start_at_center      = StartAtCenter();
 struct StartAtWorld{WT<:AbstractWorld} <: InitCondition w::WT end;
 
-init_world_set(init_conditions::AbstractVector{<:InitCondition}, world_types::AbstractVector{<:Type#={<:AbstractWorld}=#}, args...) =
-    [init_world_set(iC, WT, args...) for (iC, WT) in zip(init_conditions, Vector{Type{<:AbstractWorld}}(world_types))]
+init_world_set(iCs::AbstractVector{<:InitCondition}, frs::AbstractVector{<:AbstractMultiModalFrame}) =
+    [init_world_set(iC, fr) for (iC, fr) in zip(iCs, frs)]
 
-init_world_set(iC::StartWithoutWorld, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
-    WorldSet{WorldType}([WorldType(ModalLogic.EmptyWorld())])
+init_world_set(iC::StartWithoutWorld, ::AbstractMultiModalFrame{W}) where {W<:AbstractWorld} =
+    WorldSet{W}([W(ModalLogic.EmptyWorld())])
 
-init_world_set(iC::StartAtCenter, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
-    WorldSet{WorldType}([WorldType(ModalLogic.CenteredWorld(), args...)])
+init_world_set(iC::StartAtCenter, ::AbstractMultiModalFrame{W}) where {W<:AbstractWorld} =
+    WorldSet{W}([W(ModalLogic.CenteredWorld(), args...)])
 
-init_world_set(iC::StartAtWorld{WorldType}, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
-    WorldSet{WorldType}([WorldType(iC.w)])
+init_world_set(iC::StartAtWorld{W}, ::AbstractMultiModalFrame{W}) where {W<:AbstractWorld} =
+    WorldSet{W}([W(iC.w)])
 
-init_world_sets(Xs::MultiFrameModalDataset, init_conditions::AbstractVector{<:InitCondition}) = begin
-    Ss = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, nframes(Xs))
+init_world_sets(Xs::MultiFrameModalDataset, iCs::AbstractVector{<:InitCondition}) = begin
+    Ss = Vector{Vector{WST} where {W,WST<:WorldSet{W}}}(undef, nframes(Xs))
     for (i_frame,X) in enumerate(frames(Xs))
         WT = world_type(X)
-        Ss[i_frame] = WorldSet{WT}[init_world_sets_fun(X, i_sample, world_type(Xs, i_frame))(init_conditions[i_frame]) for i_sample in 1:nsamples(Xs)]
+        Ss[i_frame] = WorldSet{WT}[init_world_sets_fun(X, i_sample, world_type(Xs, i_frame))(iCs[i_frame]) for i_sample in 1:nsamples(Xs)]
         # Ss[i_frame] = WorldSet{WT}[[ModalLogic.Interval(1,2)] for i_sample in 1:nsamples(Xs)]
     end
     Ss

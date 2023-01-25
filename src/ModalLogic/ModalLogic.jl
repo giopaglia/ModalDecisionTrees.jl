@@ -84,11 +84,11 @@ const PassiveModalDataset{T} = Union{DimensionalDataset{T}}
 #  etc. While learning a model can be done only with active modal datasets, testing a model
 #  can be done with both active and passive modal datasets.
 #
-abstract type ActiveModalDataset{T<:Number,WorldType<:AbstractWorld} end
+abstract type ActiveModalDataset{T<:Number,W<:AbstractWorld} end
 #
-# Active modal datasets hold the WorldType, and thus can initialize world sets with a lighter interface
+# Active modal datasets hold the world type W, and thus can initialize world sets with a lighter interface
 #
-init_world_sets_fun(imd::ActiveModalDataset{T, WorldType},  i_sample::Integer, ::Type{WorldType}) where {T, WorldType} =
+init_world_sets_fun(imd::ActiveModalDataset{T, W},  i_sample::Integer, ::Type{W}) where {T, W} =
     init_world_sets_fun(imd, i_sample)
 #
 # By default an active modal dataset cannot be miniaturized

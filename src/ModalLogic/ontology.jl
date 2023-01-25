@@ -1,19 +1,19 @@
 # An ontology is a pair `world type` + `set of relations`, and represents the kind of
 #  modal frame that underlies a certain logic
-struct Ontology{WorldType<:AbstractWorld}
+struct Ontology{W<:AbstractWorld}
 
     relations :: AbstractVector{<:AbstractRelation}
 
-    function Ontology{WorldType}(_relations::AbstractVector) where {WorldType<:AbstractWorld}
+    function Ontology{W}(_relations::AbstractVector) where {W<:AbstractWorld}
         _relations = collect(unique(_relations))
         for relation in _relations
-            @assert goeswith(WorldType, relation) "Can't instantiate Ontology{$(WorldType)} with relation $(relation)!"
+            @assert goeswith(W, relation) "Can't instantiate Ontology{$(W)} with relation $(relation)!"
         end
-        if WorldType == OneWorld && length(_relations) > 0
+        if W == OneWorld && length(_relations) > 0
           _relations = similar(_relations, 0)
-          @warn "Instantiating Ontology{$(WorldType)} with empty set of relations!"
+          @warn "Instantiating Ontology{$(W)} with empty set of relations!"
         end
-        new{WorldType}(_relations)
+        new{W}(_relations)
     end
 
     Ontology(worldType::Type{<:AbstractWorld}, relations) = Ontology{worldType}(relations)

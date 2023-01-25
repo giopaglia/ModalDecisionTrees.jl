@@ -8,13 +8,7 @@ Base.@propagate_inbounds @inline function get_gamma(d::DimensionalDataset{T,N}, 
     compute_feature(feature, w_values)::T
 end
 
-init_world_sets_fun(d::DimensionalDataset,  i_sample::Integer, WorldType::Type{<:AbstractWorld}) =
-    (iC)->ModalDecisionTrees.init_world_set(iC, WorldType, max_channel_size(d))
-
-############################################################################################
-
-# For convenience, `accessibles` & `accessibles_aggr` work with domains OR their dimensions
-accessibles(S::AbstractWorldSet, r::AbstractRelation, channel::DimensionalChannel) = accessibles(S, r, size(channel)...)
-accessibles_aggr(f::AbstractFeature, a::Aggregator, Sw::Any, r::AbstractRelation, channel::DimensionalChannel) = accessibles_aggr(f, a, Sw, r, size(channel)...)
+init_world_sets_fun(d::DimensionalDataset,  i_sample::Integer, W::Type{<:AbstractWorld}) =
+    (iC)->ModalDecisionTrees.init_world_set(iC, FullDimensionalFrame(max_channel_size(d)))
 
 ############################################################################################

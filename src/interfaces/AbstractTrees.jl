@@ -2,7 +2,7 @@
 Adapted from https://github.com/JuliaAI/DecisionTree.jl/blob/dev/src/abstract_trees.jl
 """
 
-using AbstractTrees
+import AbstractTrees: children, printnode
 
 MDT = ModalDecisionTrees
 
@@ -74,18 +74,18 @@ the model produces binary trees where all nodes have exactly one left and
 one right child. `children` is used for tree traversal.
 The additional information `info` is carried over from `node` to its children.
 """
-AbstractTrees.children(dt::MDT.DTree) = AbstractTrees.children(root(dt))
-AbstractTrees.children(dt_node::MDT.DTInternal) = (
+children(dt::MDT.DTree) = children(root(dt))
+children(dt_node::MDT.DTInternal) = (
     left(dt_node),
     right(dt_node),
 )
-AbstractTrees.children(dt_leaf::MDT.AbstractDecisionLeaf) = ()
+children(dt_leaf::MDT.AbstractDecisionLeaf) = ()
 
-AbstractTrees.children(node::InfoNode) = (
+children(node::InfoNode) = (
     wrap(left(node.node),  node.info),
     wrap(right(node.node), node.info),
 )
-AbstractTrees.children(leaf::InfoLeaf) = ()
+children(leaf::InfoLeaf) = ()
 
 """
     TODO use AbstractTrees.nodevalue when a version > 0.4 is available
@@ -107,14 +107,14 @@ If `node.info`/`leaf.info` have a field called
   because variables are grouped into `frames` (see MLJ's docs for ModalDecisionTree: @doc ModalDecisionTree)
   They will be used for printing instead of the ids.
 Note that the left subtree of any split node represents the 'yes-branch', while the right subtree
- the 'no-branch', respectively. `AbstractTrees.print_tree` outputs the left subtree first
+ the 'no-branch', respectively. `print_tree` outputs the left subtree first
 and then below the right subtree.
 """
-function AbstractTrees.printnode(io::IO, dt_node::MDT.DTInternal)
+function printnode(io::IO, dt_node::MDT.DTInternal)
     print(io, display_decision(dt_node))
 end
 
-function AbstractTrees.printnode(io::IO, dt_leaf::MDT.AbstractDecisionLeaf)
+function printnode(io::IO, dt_leaf::MDT.AbstractDecisionLeaf)
     metrics = MDT.get_metrics(dt_leaf)
     print(io, MDT.brief_prediction_str(dt_leaf), " ($(metrics.n_correct)/$(metrics.n_inst))")
 end
@@ -122,13 +122,13 @@ end
 # https://discourse.julialang.org/t/filtering-keys-out-of-named-tuples/73564
 filter_nt_fields(f, nt) = NamedTuple{filter(f, keys(nt))}(nt)
 
-function AbstractTrees.printnode(io::IO, node::InfoNode)
+function printnode(io::IO, node::InfoNode)
     kwargs = filter_nt_fields(x -> x in [:attribute_names_map, :threshold_display_method, :use_feature_abbreviations], node.info)
     dt_node = node.node
     print(io, display_decision(dt_node; kwargs...))
 end
 
-function AbstractTrees.printnode(io::IO, leaf::InfoLeaf)
+function printnode(io::IO, leaf::InfoLeaf)
     dt_leaf = leaf.leaf
     metrics = MDT.get_metrics(dt_leaf)
 

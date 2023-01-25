@@ -24,7 +24,7 @@ polarity(::TestOperatorNegative) = false
 @inline evaluate_thresh_decision(::TestOperatorNegative, t::T, gamma::T) where {T} = (t >= gamma)
 
 compute_modal_gamma(test_operator::Union{TestOperatorPositive,TestOperatorNegative}, w::WorldType, relation::AbstractRelation, channel::DimensionalChannel{T,N}) where {WorldType<:AbstractWorld,T,N} = begin
-    worlds = accessibles([w], relation, channel)
+    worlds = accessibles(channel, [w], relation)
     # TODO rewrite as reduce(opt(test_operator), (computePropositionalThreshold(test_operator, w, channel) for w in worlds); init=bottom(test_operator, T))
     v = bottom(test_operator, T)
     for w in worlds
@@ -34,7 +34,7 @@ compute_modal_gamma(test_operator::Union{TestOperatorPositive,TestOperatorNegati
     v
 end
 computeModalThresholdDual(test_operator::TestOperatorPositive, w::WorldType, relation::AbstractRelation, channel::DimensionalChannel{T,N}) where {WorldType<:AbstractWorld,T,N} = begin
-    worlds = accessibles([w], relation, channel)
+    worlds = accessibles(channel, [w], relation)
     extr = (typemin(T),typemax(T))
     for w in worlds
         e = computePropositionalThresholdDual(test_operator, w, channel)

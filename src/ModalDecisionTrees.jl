@@ -37,6 +37,8 @@ import SoleData: nsamples
 
 import SoleModels: feature, test_operator, threshold
 
+import AbstractTrees: print_tree
+
 ############################################################################################
 
 export slice_dataset, concat_datasets,
