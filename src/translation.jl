@@ -2,7 +2,7 @@ using Revise
 
 using SoleLogics
 using SoleModels
-using SoleModels: info, Condition, FeaturedMetaCondition
+using SoleModels: info, FeatCondition, FeatMetaCondition
 
 using ModalDecisionTrees: left, right
 
@@ -75,8 +75,8 @@ end
 
 function _condition(feature::AbstractFeature{U}, test_op, threshold::T) where {U, T}
     t = FunctionWrapper{Bool,Tuple{U,T}}(test_op)
-    metacond = FeaturedMetaCondition(feature, t)
-    cond = Condition(metacond, threshold)
+    metacond = FeatMetaCondition(feature, t)
+    cond = FeatCondition(metacond, threshold)
     return cond
 end
 

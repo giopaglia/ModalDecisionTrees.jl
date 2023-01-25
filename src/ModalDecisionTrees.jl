@@ -22,6 +22,8 @@ using SoleModels: ConfusionMatrix, overall_accuracy, kappa, class_counts, macro_
 using SoleModels: average_label, majority_vote, default_weights, slice_weights
 using SoleData: AbstractDimensionalInstance, DimensionalDataset, AbstractDimensionalChannel, UniformDimensionalDataset, DimensionalChannel, DimensionalInstance, max_channel_size, nsamples, nattributes, get_instance, slice_dataset, concat_datasets, instance_channel_size
 
+import SoleModels: feature, test_operator, threshold
+
 export slice_dataset, concat_datasets,
        nframes, nsamples, nattributes, max_channel_size
 

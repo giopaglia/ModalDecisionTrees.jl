@@ -22,7 +22,7 @@ in "Towards Data Science":
 
 
 """
-    InfoNode{S, T}
+    InfoNode{T,S}
     InfoLeaf{T}
 These types are introduced so that additional information currently not present in
 a `ModalDecisionTree`-structure -- for example, the names of the variables --
@@ -33,8 +33,8 @@ In analogy to the type definitions of `ModalDecisionTree`, the generic type `S` 
 the type of the variable values used within a node as a threshold for the splits
 between its children and `T` is the type of the output given (basically, a Number or a String).
 """
-struct InfoNode{S, T}
-    node    :: MDT.DTInternal{S, T}
+struct InfoNode{T,S}
+    node    :: MDT.DTInternal{T,S}
     info    :: NamedTuple
 end
 

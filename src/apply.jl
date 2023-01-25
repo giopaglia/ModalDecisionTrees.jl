@@ -165,7 +165,7 @@ function _empty_tree_leaves(leaf::NSDTLeaf{L}) where {L}
     NSDTLeaf{L}(leaf.predicting_function, L[], leaf.supp_valid_labels, L[], leaf.supp_valid_predictions)
 end
 
-function _empty_tree_leaves(node::DTInternal{T, L}) where {T, L}
+function _empty_tree_leaves(node::DTInternal)
     return DTInternal(
         i_frame(node),
         decision(node),
@@ -226,13 +226,13 @@ function apply(
 end
 
 function apply(
-    tree::DTInternal{T, L},
+    tree::DTInternal{L},
     X::MultiFrameModalDataset,
     i_sample::Integer,
     worlds::AbstractVector{<:AbstractWorldSet},
     class::L;
     update_labels = false,
-) where {T, L}
+) where {L}
 
     (satisfied,new_worlds) = ModalLogic.modal_step(get_frame(X, i_frame(tree)), i_sample, worlds[i_frame(tree)], decision(tree))
 
@@ -335,7 +335,7 @@ function apply(
     predictions, DForest{L}(trees, (;)) # TODO note that the original metrics are lost here
 end
 
-# function apply(tree::DTNode{T, L}, X::DimensionalDataset{T,D}, Y::AbstractVector{<:L}; reset_leaves = true, update_labels = false) where {L, T, D}
+# function apply(tree::DTNode{L}, X::DimensionalDataset{T,D}, Y::AbstractVector{<:L}; reset_leaves = true, update_labels = false) where {L, T, D}
 #   return apply(DTree(tree, [world_type(ModalDecisionTrees.get_interval_ontology(Val(D-2)))], [start_without_world]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
 # end
 

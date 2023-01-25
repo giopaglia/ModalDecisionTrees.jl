@@ -276,7 +276,7 @@ end
 
 
 function computePropositionalThreshold(feature::AbstractFeature, w::AbstractWorld, instance::DimensionalInstance{T,N}) where {T,N}
-    interpret_feature(feature, inst_readWorld(w, instance)::DimensionalChannel{T,N-1})::T
+    compute_feature(feature, inst_readWorld(w, instance)::DimensionalChannel{T,N-1})::T
 end
 
 computeModalThresholdDual(test_operator::TestOperatorFun, w::WorldType, relation::R where R<:_UnionOfRelations{relsTuple}, channel::DimensionalChannel{T,N}) where {WorldType<:AbstractWorld,T,N} =

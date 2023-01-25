@@ -1,4 +1,4 @@
-using SoleModels: AbstractRelation, AbstractFeature, TestOperatorFun
+using SoleModels: AbstractRelation, AbstractFeature, TestOperatorFun, FeatCondition
 using SoleModels: alpha, display_feature, display_feature_test_operator_pair
 
 export ExistentialDimensionalDecision,
@@ -47,13 +47,13 @@ display_decision(::UniversalBotDecision{R}) where {R<:AbstractRelation} = "$(dis
 abstract type DimensionalDecision{T} <: AbstractDecision end
 
 # p
-struct DimensionalDecision{T} <: DimensionalDecision{T}
-    p :: Condition{<:AbstractMetaCondition,T}
+struct PropositionalDimensionalDecision{T} <: DimensionalDecision{T}
+    p :: FeatCondition{T}
 end
 
-feature(d::DimensionalDecision) = feature(d)
-test_operator(d::DimensionalDecision) = test_operator(d)
-threshold(d::DimensionalDecision) = threshold(d)
+feature(d::PropositionalDimensionalDecision) = feature(d.p)
+test_operator(d::PropositionalDimensionalDecision) = test_operator(d.p)
+threshold(d::PropositionalDimensionalDecision) = threshold(d.p)
 
 # ⟨R⟩p
 struct ExistentialDimensionalDecision{T} <: DimensionalDecision{T}
@@ -61,7 +61,7 @@ struct ExistentialDimensionalDecision{T} <: DimensionalDecision{T}
     # Relation, interpreted as an existential modal operator
     relation  :: AbstractRelation
     
-    p         :: Condition{M,T} where {M<:AbstractMetaCondition}
+    p         :: FeatCondition{T}
 
     function ExistentialDimensionalDecision{T}() where {T}
         new{T}()
@@ -69,15 +69,15 @@ struct ExistentialDimensionalDecision{T} <: DimensionalDecision{T}
 
     function ExistentialDimensionalDecision{T}(
         relation      :: AbstractRelation,
-        p             :: Condition{M,T}
-    ) where {M<:AbstractMetaCondition,T}
+        p             :: FeatCondition{T}
+    ) where {T}
         new{T}(relation, p)
     end
 
     function ExistentialDimensionalDecision(
         relation      :: AbstractRelation,
-        p             :: Condition{M,T}
-    ) where {M<:AbstractMetaCondition,T}
+        p             :: FeatCondition{T}
+    ) where {T}
         ExistentialDimensionalDecision{T}(relation, p)
     end
 
@@ -87,7 +87,7 @@ struct ExistentialDimensionalDecision{T} <: DimensionalDecision{T}
         test_operator :: TestOperatorFun,
         threshold     :: T
     ) where {T}
-        p = Condition(feature, test_operator, threshold)
+        p = FeatCondition(feature, test_operator, threshold)
         ExistentialDimensionalDecision{T}(relation, p)
     end
 
@@ -104,7 +104,7 @@ struct ExistentialDimensionalDecision{T} <: DimensionalDecision{T}
         decision      :: ExistentialDimensionalDecision{T},
         threshold_f   :: Function
     ) where {T}
-        q = Condition(decision.p, threshold_f(threshold(decision.p)))
+        q = FeatCondition(decision.p, threshold_f(threshold(decision.p)))
         ExistentialDimensionalDecision{T}(relation(decision), q)
     end
 end

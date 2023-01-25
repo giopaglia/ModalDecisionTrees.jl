@@ -16,7 +16,7 @@ function prune_tree(leaf::AbstractDecisionLeaf; kwargs...)
     leaf
 end
 
-function prune_tree(node::DTInternal{T, L}; depth = nothing, kwargs...) where {T, L}
+function prune_tree(node::DTInternal{L}; depth = nothing, kwargs...) where {L}
 
     @assert ! (haskey(kwargs, :max_depth) && isnothing(depth)) "Please specify the node depth: prune_tree(node; depth = ...)"
 
@@ -228,12 +228,12 @@ end
 
 # At internal nodes, a functional model is trained by calling a callback function, and the leaf is created
 function train_functional_leaves(
-        node::DTInternal{T, L},
+        node::DTInternal{L},
         worlds::AbstractVector{<:AbstractVector{<:AbstractVector{<:AbstractWorldSet}}},
         datasets::AbstractVector{Tuple{GenericModalDataset,AbstractVector}},
         args...;
         kwargs...,
-    ) where {T, L}
+    ) where {L}
 
     # Each dataset is sliced, and two subsets are derived (left and right)
     datasets_l = Tuple{GenericModalDataset,AbstractVector}[]
