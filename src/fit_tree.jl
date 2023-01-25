@@ -9,7 +9,7 @@
 ##############################################################################
 ##############################################################################
 
-mutable struct NodeMeta{P,L}
+mutable struct NodeMeta{L<:Label,P} <: AbstractNode{L}
     region             :: UnitRange{Int}                   # a slice of the samples used to decide the split of the node
     depth              :: Int
     modal_depth        :: Int
@@ -19,21 +19,21 @@ mutable struct NodeMeta{P,L}
     is_leaf            :: Bool                             # whether this is a leaf node, or a split one
     # split node-only properties
     split_at           :: Int                              # index of samples
-    l                  :: NodeMeta{P,L}                    # left child
-    r                  :: NodeMeta{P,L}                    # right child
-
+    l                  :: NodeMeta{L,P}                    # left child
+    r                  :: NodeMeta{L,P}                    # right child
+    
     i_frame            :: Integer                          # Id of frame
     decision           :: AbstractDecision
 
     onlyallowRelationGlob:: Vector{Bool}
 
-    function NodeMeta{P,L}(
+    function NodeMeta{L,P}(
             region      :: UnitRange{Int},
             depth       :: Int,
             modal_depth :: Int,
             oura        :: Vector{Bool},
-            ) where {P,L}
-        node = new{P,L}()
+            ) where {L,P}
+        node = new{L,P}()
         node.region = region
         node.depth = depth
         node.modal_depth = modal_depth
@@ -46,7 +46,7 @@ end
 
 # Split node at a previously-set node.split_at value.
 # The children inherits some of the data
-@inline function fork!(node::NodeMeta{P, L}) where {P, L}
+@inline function fork!(node::NodeMeta)
     ind = node.split_at
     region = node.region
     depth = node.depth+1
@@ -60,8 +60,8 @@ end
     r_oura = node.onlyallowRelationGlob
 
     # no need to copy because we will copy at the end
-    node.l = NodeMeta{P,L}(region[    1:ind], depth, mdepth, l_oura)
-    node.r = NodeMeta{P,L}(region[ind+1:end], depth, mdepth, r_oura)
+    node.l = typeof(node)(region[    1:ind], depth, mdepth, l_oura)
+    node.r = typeof(node)(region[ind+1:end], depth, mdepth, r_oura)
 end
 
 # Conversion: NodeMeta (node + training info) -> DTNode (bare decision tree model)
@@ -214,7 +214,7 @@ end
 # Find an optimal local split satisfying the given constraints
 #  (e.g. max_depth, min_samples_leaf, etc.)
 Base.@propagate_inbounds @inline function split_node!(
-    node                      :: NodeMeta{P, L},                     # node to splitt
+    node                      :: NodeMeta{L,P},                     # node to split
     Xs                        :: ActiveMultiFrameModalDataset,       # modal dataset
     Ss                        :: AbstractVector{
         <:AbstractVector{WST} where {WorldType,WST<:WorldSet{WorldType}}
@@ -810,7 +810,7 @@ end
     idxs = collect(1:_n_samples)
 
     # Create root node
-    NodeMetaT = NodeMeta{Float64,(_is_classification isa Val{true} ? Int64 : Float64)}
+    NodeMetaT = NodeMeta{(_is_classification isa Val{true} ? Int64 : Float64),Float64}
     onlyallowRelationGlob = [(iC == ModalDecisionTrees.start_without_world) for iC in init_conditions]
     root = NodeMetaT(1:_n_samples, 0, 0, onlyallowRelationGlob)
     

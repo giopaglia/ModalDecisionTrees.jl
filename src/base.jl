@@ -31,10 +31,20 @@ init_world_sets(Xs::MultiFrameModalDataset, init_conditions::AbstractVector{<:In
 end
 
 ############################################################################################
-############################################################################################
-############################################################################################
 
-abstract type AbstractDecisionLeaf{L<:Label} end
+abstract type AbstractNode{L<:Label} end
+abstract type AbstractDecisionLeaf{L<:Label} <: AbstractNode{L} end
+abstract type AbstractDecisionInternal{L<:Label,D<:AbstractDecision} <: AbstractNode{L} end
+
+struct DoubleEdgedDecision <: AbstractDecision
+  back     :: AbstractNode # {L,DoubleEdgedDecision}
+  forward  :: AbstractNode # {L,DoubleEdgedDecision}
+  decision :: SimpleDecision
+end
+
+############################################################################################
+############################################################################################
+############################################################################################
 
 # Decision leaf node, holding an output (prediction)
 struct DTLeaf{L<:Label} <: AbstractDecisionLeaf{L}
@@ -153,7 +163,7 @@ predictions(leaf::NSDTLeaf; train_or_valid = true) = (train_or_valid ? leaf.supp
 ############################################################################################
 
 # Internal decision node, holding a split-decision and a frame index
-struct DTInternal{L<:Label,D<:AbstractDecision}
+struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
     # frame index + split-decision
     i_frame       :: Int64
     decision      :: D
@@ -277,7 +287,7 @@ end
 ############################################################################################
 
 # Decision Node (Leaf or Internal)
-const DTNode{L,D} = Union{<:AbstractDecisionLeaf{<:L},<:DTInternal{L,D}}
+const DTNode{L,D} = Union{<:AbstractDecisionLeaf{<:L},<:AbstractDecisionInternal{L,D}}
 
 ############################################################################################
 

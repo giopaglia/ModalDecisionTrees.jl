@@ -25,26 +25,28 @@ display_universal(rel::AbstractRelation)   = "[$(rel)]"
 
 ############################################################################################
 
+abstract type SimpleDecision <: AbstractDecision end
+
 # ⊤
-struct TopDecision <: AbstractDecision end
+struct TopDecision <: SimpleDecision end
 display_decision(::TopDecision) = "⊤"
 
 # ⊥
-struct BotDecision <: AbstractDecision end
+struct BotDecision <: SimpleDecision end
 display_decision(::BotDecision) = "⊥"
 
 # ⟨R⟩⊤
-struct ExistentialTopDecision{R<:AbstractRelation} <: AbstractDecision end
+struct ExistentialTopDecision{R<:AbstractRelation} <: SimpleDecision end
 display_decision(::ExistentialTopDecision{R}) where {R<:AbstractRelation} = "$(display_existential(R))⊤"
 
 # [R]⊥
-struct UniversalBotDecision{R<:AbstractRelation} <: AbstractDecision end
+struct UniversalBotDecision{R<:AbstractRelation} <: SimpleDecision end
 display_decision(::UniversalBotDecision{R}) where {R<:AbstractRelation} = "$(display_universal(R))⊥"
 
 ############################################################################################
 
 # Decisions based on dimensional conditions
-abstract type DimensionalDecision{T} <: AbstractDecision end
+abstract type DimensionalDecision{T} <: SimpleDecision end
 
 # p
 struct PropositionalDimensionalDecision{T} <: DimensionalDecision{T}
