@@ -141,9 +141,9 @@ end
 #  to decide the truth. A few cases arise depending on the relation, the feature and the aggregator induced by the test
 #  operator, thus one can provide optimized methods that return iterators to a few *representative*
 #  worlds.
-# accessibles_aggr(f::ModalFeature, a::Aggregator, S::AbstractWorldSet{W}, ::R, args...)
+# accessibles_aggr(f::AbstractFeature, a::Aggregator, S::AbstractWorldSet{W}, ::R, args...)
 # Of course, the fallback is enumerating all accessible worlds via `accessibles`
-accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::AbstractRelation, args...) where {WorldType<:AbstractWorld} = accessibles(w, r, args...)
+accessibles_aggr(::AbstractFeature, ::Aggregator, w::WorldType, r::AbstractRelation, args...) where {WorldType<:AbstractWorld} = accessibles(w, r, args...)
 
 ############################################################################################
 # Singletons representing natural relations
@@ -152,21 +152,21 @@ accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::AbstractRelation
 accessibles(w::WorldType,           ::_RelationId, args...) where {WorldType<:AbstractWorld} = [w] # TODO try IterTools.imap(identity, [w])
 accessibles(S::AbstractWorldSet{W}, ::_RelationId, args...) where {W<:AbstractWorld} = S # TODO try IterTools.imap(identity, S)
 
-accessibles_aggr(::ModalFeature, ::Aggregator, w::WorldType, r::_RelationId,      args...) where {WorldType<:AbstractWorld} = accessibles(w, r, args...)
+accessibles_aggr(::AbstractFeature, ::Aggregator, w::WorldType, r::_RelationId,      args...) where {WorldType<:AbstractWorld} = accessibles(w, r, args...)
 
 ############################################################################################
 
 # Note: these methods must be defined for any newly defined world type WT:
 # `accessibles(w::WT,           ::_RelationGlob, args...)`
 # `accessibles(S::AbstractWorldSet{WT}, ::_RelationGlob, args...)`
-# `accessibles_aggr(f::ModalFeature, a::Aggregator, S::AbstractWorldSet{WT}, ::_RelationGlob, args...)`
+# `accessibles_aggr(f::AbstractFeature, a::Aggregator, S::AbstractWorldSet{WT}, ::_RelationGlob, args...)`
 
 ############################################################################################
 
 # Shortcuts using global relation for enumerating all worlds
 all_worlds(::Type{WorldType}, args...) where {WorldType<:AbstractWorld} = accessibles(WorldType[], RelationGlob, args...)
 all_worlds(::Type{WorldType}, enum_acc_fun::Function) where {WorldType<:AbstractWorld} = enum_acc_fun(WorldType[], RelationGlob)
-all_worlds_aggr(::Type{WorldType}, enum_repr_fun::Function, f::ModalFeature, a::Aggregator) where {WorldType<:AbstractWorld} = enum_repr_fun(f, a, WorldType[], RelationGlob)
+all_worlds_aggr(::Type{WorldType}, enum_repr_fun::Function, f::AbstractFeature, a::Aggregator) where {WorldType<:AbstractWorld} = enum_repr_fun(f, a, WorldType[], RelationGlob)
 
 ############################################################################################
 # Dataset structures

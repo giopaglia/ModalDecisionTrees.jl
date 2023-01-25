@@ -55,7 +55,7 @@ accessibles(S::AbstractWorldSet{Interval}, ::_IA_Ai, X::Integer) =
     )
 
 ############################################################################################
-# When defining `accessibles_aggr` for minimum & maximum modal features, we find that we can
+# When defining `accessibles_aggr` for minimum & maximum features, we find that we can
 #  categorized  interval relations according to their behavior.
 # Consider the decision ⟨R⟩ (minimum(A1) ≥ 10) evaluated on a world w = (x,y):
 #  - With R = RelationId, it requires computing minimum(A1) on w;
@@ -180,13 +180,13 @@ accessibles_aggr(f::SingleAttributeMax, a::typeof(maximum), w::Interval, ::_IA_E
 #                               |IA_I          ?              |
 #                               '-----------------------------'
 # TODO write the correct `accessibles_aggr` methods, instead of these fallbacks:
-accessibles_aggr(f::ModalFeature, a::Aggregator, w::Interval, r::_IA_AorO,       X::Integer) =
+accessibles_aggr(f::AbstractFeature, a::Aggregator, w::Interval, r::_IA_AorO,       X::Integer) =
     Iterators.flatten([accessibles_aggr(f, a, w, r, X) for r in IA72IARelations(IA_AorO)])
-accessibles_aggr(f::ModalFeature, a::Aggregator, w::Interval, r::_IA_AiorOi,     X::Integer) =
+accessibles_aggr(f::AbstractFeature, a::Aggregator, w::Interval, r::_IA_AiorOi,     X::Integer) =
     Iterators.flatten([accessibles_aggr(f, a, w, r, X) for r in IA72IARelations(IA_AiorOi)])
-accessibles_aggr(f::ModalFeature, a::Aggregator, w::Interval, r::_IA_DorBorE,    X::Integer) =
+accessibles_aggr(f::AbstractFeature, a::Aggregator, w::Interval, r::_IA_DorBorE,    X::Integer) =
     Iterators.flatten([accessibles_aggr(f, a, w, r, X) for r in IA72IARelations(IA_DorBorE)])
-accessibles_aggr(f::ModalFeature, a::Aggregator, w::Interval, r::_IA_DiorBiorEi, X::Integer) =
+accessibles_aggr(f::AbstractFeature, a::Aggregator, w::Interval, r::_IA_DiorBiorEi, X::Integer) =
     Iterators.flatten([accessibles_aggr(f, a, w, r, X) for r in IA72IARelations(IA_DiorBiorEi)])
-accessibles_aggr(f::ModalFeature, a::Aggregator, w::Interval, r::_IA_I,          X::Integer) =
+accessibles_aggr(f::AbstractFeature, a::Aggregator, w::Interval, r::_IA_I,          X::Integer) =
     Iterators.flatten([accessibles_aggr(f, a, w, r, X) for r in IA72IARelations(IA_I)])

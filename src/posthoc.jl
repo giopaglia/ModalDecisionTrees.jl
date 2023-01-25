@@ -323,7 +323,7 @@ end
 function _variable_countmap(node::DTInternal{L}; weighted = false) where {L<:Label}
     th = begin
         d = decision(node)
-        f = d.feature
+        f = feature(d)
         (f isa SingleAttributeFeature) ? [((i_frame(node), f.i_attribute), (weighted ? length(supp_labels) : 1)),] : []
     end
     [th..., _variable_countmap(left(node); weighted = weighted)..., _variable_countmap(right(node); weighted = weighted)...]

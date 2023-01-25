@@ -5,11 +5,18 @@ export DecisionPath, DecisionPathNode,
 
 struct DecisionPathNode
     taken         :: Bool
-    feature       :: ModalFeature
+    feature       :: AbstractFeature
     test_operator :: TestOperatorFun
     threshold     :: T where T
     worlds        :: AbstractWorldSet
 end
+
+taken(n::DecisionPathNode) = n.taken
+feature(n::DecisionPathNode) = n.feature
+test_operator(n::DecisionPathNode) = n.test_operator
+threshold(n::DecisionPathNode) = n.threshold
+worlds(n::DecisionPathNode) = n.worlds
+
 
 const DecisionPath = Vector{DecisionPathNode}
 
@@ -38,7 +45,7 @@ function _get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_sample
         end
     end
 
-    pushfirst!(paths[i_sample], DecisionPathNode(satisfied, decision(tree).feature, decision(tree).test_operator, decision(tree).threshold, deepcopy(new_survivors)))
+    pushfirst!(paths[i_sample], DecisionPathNode(satisfied, featurea(decision(tree)), test_operatora(decision(tree)), thresholda(decision(tree)), deepcopy(new_survivors)))
 
     return new_survivors
 end

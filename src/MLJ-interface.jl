@@ -370,7 +370,7 @@ MMI.@mlj_model mutable struct ModalDecisionTree <: MMI.Deterministic
     max_purity_at_leaf     :: Float64                      = mlj_mdt_default_max_purity_at_leaf
     # Modal hyper-parameters
     relations              :: Union{Nothing,Symbol,Vector{<:AbstractRelation}} = (nothing)::(isnothing(nothing) || _ in [:IA, :IA3, :IA7, :RCC5, :RCC8] || _ isa AbstractVector{<:AbstractRelation})
-    # TODO expand to ModalFeature
+    # TODO expand to AbstractFeature
     # attributes               :: Vector{<:Function}           = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
     # attributes               :: Vector{<:Union{CanonicalFeature,Function}}       TODO = Vector{<:Union{CanonicalFeature,Function}}([canonical_geq, canonical_leq]) # TODO: ::(_check_attributes(_))
     # attributes               :: AbstractVector{<:CanonicalFeature}       = CanonicalFeature[canonical_geq, canonical_leq] # TODO: ::(_check_attributes(_))
@@ -519,7 +519,7 @@ MMI.@mlj_model mutable struct ModalRandomForest <: MMI.Probabilistic
     max_purity_at_leaf     :: Float64                      = mlj_mdt_default_max_purity_at_leaf
     # Modal hyper-parameters
     relations              :: Union{Nothing,Symbol,Vector{<:AbstractRelation}} = (nothing)::(isnothing(nothing) || _ in [:IA, :IA3, :IA7, :RCC5, :RCC8] || _ isa AbstractVector{<:AbstractRelation})
-    # TODO expand to ModalFeature
+    # TODO expand to AbstractFeature
     # attributes               :: Vector{<:Function}           = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
     # attributes               :: Vector{<:Union{CanonicalFeature,Function}}       TODO = Vector{<:Union{CanonicalFeature,Function}}([canonical_geq, canonical_leq]) # TODO: ::(_check_attributes(_))
     # attributes               :: AbstractVector{<:CanonicalFeature}       = CanonicalFeature[canonical_geq, canonical_leq] # TODO: ::(_check_attributes(_))

@@ -243,7 +243,7 @@ function test_decision(
         X::DimensionalDataset{T},
         i_sample::Integer,
         w::AbstractWorld,
-        feature::ModalFeature,
+        feature::AbstractFeature,
         test_operator::OrderingTestOperator,
         threshold::T) where {T}
     test_decision(X, i_sample, w, feature, existential_aggregator(test_operator), threshold)
@@ -253,7 +253,7 @@ function test_decision(
         X::DimensionalDataset{T},
         i_sample::Integer,
         w::AbstractWorld,
-        feature::ModalFeature... ,
+        feature::AbstractFeature... ,
         aggregator::typeof(maximum),
         threshold::T) where {T}
     values = get_values ... (X, i_sample, w, feature.i_attribute...) ch_readWorld(w,channel)
@@ -264,7 +264,7 @@ function test_decision(
         X::InterpretedModalDataset{T},
         i_sample::Integer,
         w::AbstractWorld,
-        feature::ModalFeature,
+        feature::AbstractFeature,
         test_operator::TestOperatorFun,
         threshold::T) where {T}
     test_decision(X.domain, i_sample, w, feature, test_operator, threshold)
@@ -275,7 +275,7 @@ end
 ############################################################################################
 
 
-function computePropositionalThreshold(feature::ModalFeature, w::AbstractWorld, instance::DimensionalInstance{T,N}) where {T,N}
+function computePropositionalThreshold(feature::AbstractFeature, w::AbstractWorld, instance::DimensionalInstance{T,N}) where {T,N}
     interpret_feature(feature, inst_readWorld(w, instance)::DimensionalChannel{T,N-1})::T
 end
 
@@ -1241,7 +1241,7 @@ end
 #   # grouped_featsnaggrs = [grouped_featsnaggrs[i_feature] for i_feature in 1:length(features)]
 
 #   # # Flatten dictionary, and enhance aggregators in dictionary with their relative indices
-#   # flattened_featsnaggrs = Tuple{<:ModalFeature,<:Aggregator}[]
+#   # flattened_featsnaggrs = Tuple{<:AbstractFeature,<:Aggregator}[]
 #   # i_featsnaggr = 1
 #   # for (i_feature, aggregators) in enumerate(grouped_featsnaggrs)
 #   #   for aggregator in aggregators

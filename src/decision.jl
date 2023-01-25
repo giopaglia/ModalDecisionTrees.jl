@@ -1,11 +1,5 @@
-using SoleModels: AbstractRelation, ModalFeature, TestOperatorFun
+using SoleModels: AbstractRelation, AbstractFeature, TestOperatorFun
 using SoleModels: alpha, display_feature, display_feature_test_operator_pair
-
-############################################################################################
-# Decision
-############################################################################################
-
-abstract type AbstractDecision{T} end
 
 export ExistentialDimensionalDecision,
        #
@@ -15,21 +9,59 @@ export ExistentialDimensionalDecision,
        #
        display_decision, display_decision_inverse
 
+############################################################################################
+# Decision
+############################################################################################
+
 # A decision inducing a branching/split (e.g., ⟨L⟩ (minimum(A2) ≥ 10) )
-struct ExistentialDimensionalDecision{T} <: AbstractDecision{T}
+abstract type AbstractDecision end
+
+function Base.show(io::IO, decision::AbstractDecision)
+    println(io, display_decision(decision))
+end
+
+display_existential(rel::AbstractRelation) = "⟨$(rel)⟩"
+display_universal(rel::AbstractRelation)   = "[$(rel)]"
+
+############################################################################################
+
+# ⊤
+struct TopDecision <: AbstractDecision end
+display_decision(::TopDecision) = "⊤"
+
+# ⊥
+struct BotDecision <: AbstractDecision end
+display_decision(::BotDecision) = "⊥"
+
+# ⟨R⟩⊤
+struct ExistentialTopDecision{R<:AbstractRelation} <: AbstractDecision end
+display_decision(::ExistentialTopDecision{R}) where {R<:AbstractRelation} = "$(display_existential(R))⊤"
+
+# [R]⊥
+struct UniversalBotDecision{R<:AbstractRelation} <: AbstractDecision end
+display_decision(::UniversalBotDecision{R}) where {R<:AbstractRelation} = "$(display_universal(R))⊥"
+
+############################################################################################
+
+# Decisions based on dimensional conditions
+abstract type DimensionalDecision{T} <: AbstractDecision end
+
+# p
+struct DimensionalDecision{T} <: DimensionalDecision{T}
+    p :: Condition{<:AbstractMetaCondition,T}
+end
+
+feature(d::DimensionalDecision) = feature(d)
+test_operator(d::DimensionalDecision) = test_operator(d)
+threshold(d::DimensionalDecision) = threshold(d)
+
+# ⟨R⟩p
+struct ExistentialDimensionalDecision{T} <: DimensionalDecision{T}
 
     # Relation, interpreted as an existential modal operator
-    #  Note: RelationId for propositional decisions
-    relation      :: AbstractRelation
-
-    # Modal feature (a scalar function that can be computed on a world)
-    feature       :: ModalFeature
-
-    # Test operator (e.g. ≥)
-    test_operator :: TestOperatorFun
-
-    # Threshold value
-    threshold     :: T
+    relation  :: AbstractRelation
+    
+    p         :: Condition{M,T} where {M<:AbstractMetaCondition}
 
     function ExistentialDimensionalDecision{T}() where {T}
         new{T}()
@@ -37,16 +69,31 @@ struct ExistentialDimensionalDecision{T} <: AbstractDecision{T}
 
     function ExistentialDimensionalDecision{T}(
         relation      :: AbstractRelation,
-        feature       :: ModalFeature,
-        test_operator :: TestOperatorFun,
-        threshold     :: T
-    ) where {T}
-        new{T}(relation, feature, test_operator, threshold)
+        p             :: Condition{M,T}
+    ) where {M<:AbstractMetaCondition,T}
+        new{T}(relation, p)
     end
 
     function ExistentialDimensionalDecision(
         relation      :: AbstractRelation,
-        feature       :: ModalFeature,
+        p             :: Condition{M,T}
+    ) where {M<:AbstractMetaCondition,T}
+        ExistentialDimensionalDecision{T}(relation, p)
+    end
+
+    function ExistentialDimensionalDecision{T}(
+        relation      :: AbstractRelation,
+        feature       :: AbstractFeature,
+        test_operator :: TestOperatorFun,
+        threshold     :: T
+    ) where {T}
+        p = Condition(feature, test_operator, threshold)
+        ExistentialDimensionalDecision{T}(relation, p)
+    end
+
+    function ExistentialDimensionalDecision(
+        relation      :: AbstractRelation,
+        feature       :: AbstractFeature,
         test_operator :: TestOperatorFun,
         threshold     :: T
     ) where {T}
@@ -57,21 +104,18 @@ struct ExistentialDimensionalDecision{T} <: AbstractDecision{T}
         decision      :: ExistentialDimensionalDecision{T},
         threshold_f   :: Function
     ) where {T}
-        ExistentialDimensionalDecision{T}(decision.relation, decision.feature, decision.test_operator, threshold_f(decision.threshold))
+        q = Condition(decision.p, threshold_f(threshold(decision.p)))
+        ExistentialDimensionalDecision{T}(relation(decision), q)
     end
 end
 
 relation(d::ExistentialDimensionalDecision) = d.relation
-feature(d::ExistentialDimensionalDecision) = d.feature
-test_operator(d::ExistentialDimensionalDecision) = d.test_operator
-threshold(d::ExistentialDimensionalDecision) = d.threshold
+feature(d::ExistentialDimensionalDecision) = feature(d.p)
+test_operator(d::ExistentialDimensionalDecision) = test_operator(d.p)
+threshold(d::ExistentialDimensionalDecision) = threshold(d.p)
 
-is_propositional_decision(d::ExistentialDimensionalDecision) = (d.relation isa ModalLogic._RelationId)
-is_global_decision(d::ExistentialDimensionalDecision) = (d.relation isa ModalLogic._RelationGlob)
-
-function Base.show(io::IO, decision::ExistentialDimensionalDecision)
-    println(io, display_decision(decision))
-end
+is_propositional_decision(d::ExistentialDimensionalDecision) = (relation(d) isa ModalLogic._RelationId)
+is_global_decision(d::ExistentialDimensionalDecision) = (relation(d) isa ModalLogic._RelationGlob)
 
 function display_decision(
         decision::ExistentialDimensionalDecision;
@@ -82,23 +126,19 @@ function display_decision(
     )
     prop_decision_str = "$(
         display_feature_test_operator_pair(
-            decision.feature,
-            decision.test_operator;
+            feature(decision),
+            test_operator(decision);
             attribute_names_map = attribute_names_map,
             use_feature_abbreviations = use_feature_abbreviations,
         )
-    ) $(threshold_display_method(decision.threshold))"
+    ) $(threshold_display_method(threshold(decision)))"
     if !is_propositional_decision(decision)
-        "$((universal ? display_universal : display_existential)(decision.relation)) ($prop_decision_str)"
+        "$((universal ? display_universal : display_existential)(relation(decision))) ($prop_decision_str)"
     else
         "$prop_decision_str"
     end
 end
 
-display_existential(rel::AbstractRelation) = "⟨$(rel)⟩"
-display_universal(rel::AbstractRelation)   = "[$(rel)]"
-
-############################################################################################
 
 function display_decision(
         i_frame::Integer,
@@ -110,6 +150,8 @@ function display_decision(
 end
 
 function display_decision_inverse(i_frame::Integer, decision::ExistentialDimensionalDecision{T}; args...) where {T}
-    inv_decision = ExistentialDimensionalDecision{T}(decision.relation, decision.feature, test_operator_inverse(decision.test_operator), decision.threshold)
+    inv_decision = ExistentialDimensionalDecision{T}(relation(decision), feature(decision), test_operator_inverse(test_operator(decision)), threshold(decision))
     display_decision(i_frame, inv_decision; universal = true, args...)
 end
+
+############################################################################################

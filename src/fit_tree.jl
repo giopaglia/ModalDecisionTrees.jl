@@ -23,7 +23,7 @@ mutable struct NodeMeta{P,L}
     r                  :: NodeMeta{P,L}                    # right child
 
     i_frame            :: Integer                          # Id of frame
-    decision           :: AbstractDecision{T} where {T}
+    decision           :: AbstractDecision
 
     onlyallowRelationGlob:: Vector{Bool}
 
@@ -106,7 +106,7 @@ end
 #       X               :: InterpretedModalDataset{T, N},
 #       iC   :: InitCondition,
 #       allow_global_splits :: Bool,
-#       test_operators  :: AbstractVector{<:TestOperator}
+#       test_operators  :: AbstractVector{<:TestOperatorFun}
 #   ) where {T, N}
 
 #   # A dimensional ontological datasets:
@@ -466,7 +466,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # println(display_decision(i_frame, decision))
 
             # TODO avoid ugly unpacking and figure out a different way of achieving this
-            (test_operator, threshold) = (decision.test_operator, decision.threshold)
+            (_test_operator, _threshold) = (test_operator(decision), threshold(decision))
             ########################################################################
             # Apply decision to all instances
             ########################################################################
@@ -481,7 +481,7 @@ Base.@propagate_inbounds @inline function split_node!(
                     end
                     for i_sample in 1:_n_samples
                         gamma = aggr_thresholds[i_sample]
-                        satisfied = evaluate_thresh_decision(test_operator, gamma, threshold)
+                        satisfied = evaluate_thresh_decision(_test_operator, gamma, _threshold)
                         @logmsg LogDetail " instance $i_sample/$_n_samples: (f=$(gamma)) -> satisfied = $(satisfied)"
 
                         # Note: in a fuzzy generalization, `satisfied` becomes a [0-1] value
@@ -517,7 +517,7 @@ Base.@propagate_inbounds @inline function split_node!(
                     end
                     for i_sample in 1:_n_samples
                         gamma = aggr_thresholds[i_sample]
-                        satisfied = evaluate_thresh_decision(test_operator, gamma, threshold)
+                        satisfied = evaluate_thresh_decision(_test_operator, gamma, _threshold)
                         @logmsg LogDetail " instance $i_sample/$_n_samples: (f=$(gamma)) -> satisfied = $(satisfied)"
 
                         # TODO make this satisfied a fuzzy value
@@ -708,7 +708,7 @@ Base.@propagate_inbounds @inline function split_node!(
             errStr *= "Decision $(best_decision).\n"
             errStr *= "Possible causes:\n"
             errStr *= "- feature returning NaNs\n"
-            errStr *= "- erroneous accessibles_aggr for relation $(best_decision.relation), aggregator $(existential_aggregator(best_decision.test_operator)) and feature $(best_decision.feature)\n"
+            errStr *= "- erroneous accessibles_aggr for relation $(relation(best_decision)), aggregator $(existential_aggregator(test_operator(best_decision))) and feature $(feature(best_decision))\n"
             errStr *= "\n"
             errStr *= "Branch ($(sum(unsatisfied_flags))+$(_n_samples-sum(unsatisfied_flags))=$(_n_samples) samples) on frame $(best_i_frame) with decision: $(decision_str), purity $(best_purity)\n"
             errStr *= "$(length(idxs[region])) Instances: $(idxs[region])\n"
@@ -732,7 +732,7 @@ Base.@propagate_inbounds @inline function split_node!(
             end
 
             # for i in 1:_n_samples
-                # errStr *= "$(ModalLogic.get_channel(Xs, idxs[i + r_start], best_decision.feature))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[best_i_frame][idxs[i + r_start]])\n";
+                # errStr *= "$(ModalLogic.get_channel(Xs, idxs[i + r_start], feature(best_decision)))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[best_i_frame][idxs[i + r_start]])\n";
             # end
 
             # throw_n_log("ERROR! " * errStr)

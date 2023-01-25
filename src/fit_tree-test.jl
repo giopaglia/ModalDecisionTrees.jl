@@ -12,7 +12,7 @@ n_attrs = 2
 n_feats = n_attrs*2
 n_pts = 5
 
-features  = ModalFeature[]
+features  = AbstractFeature[]
 featsnops = Vector{TestOperatorFun}[]
 for i_attr in 1:n_attrs
     push!(features, SingleAttributeMin(i_attr))

@@ -10,7 +10,7 @@ short_intervals_in(a::Integer, b::Integer) = IterTools.imap((x)->Interval(x,x+1)
 
 accessibles(::Union{Interval,AbstractWorldSet{Interval}}, r::_RelationGlob, X::Integer) = intervals_in(1, X+1)
 
-accessibles_aggr(f::ModalFeature, a::TestOperatorFun, ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = intervals_in(1, X+1)
+accessibles_aggr(f::AbstractFeature, a::TestOperatorFun, ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = intervals_in(1, X+1)
 
 accessibles_aggr(f::Union{SingleAttributeMin,SingleAttributeMax}, a::Union{typeof(minimum),typeof(maximum)}, ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = short_intervals_in(1, X+1)
 accessibles_aggr(f::Union{SingleAttributeMax}, a::typeof(maximum), ::AbstractWorldSet{Interval}, r::_RelationGlob,  X::Integer) = Interval[Interval(1, X+1)  ]
