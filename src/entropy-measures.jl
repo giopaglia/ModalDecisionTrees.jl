@@ -1,5 +1,8 @@
 export entropy
 
+default_loss_function(::Type{<:CLabel}) = entropy
+default_loss_function(::Type{<:RLabel}) = variance
+
 ################################################################################
 # Loss functions for regression and classification
 # These functions return the additive inverse of entropy measures

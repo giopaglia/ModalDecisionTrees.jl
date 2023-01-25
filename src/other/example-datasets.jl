@@ -3,7 +3,7 @@ using DataFrames
 
 macro load_japanesevowels()
     quote
-        X = DataFrame(OpenML.load(375)) # Load JapaneseVowels https://www.openml.org/search?type=data&status=active&id=375
+        X = DataFrame(MLJ.OpenML.load(375)) # Load JapaneseVowels https://www.openml.org/search?type=data&status=active&id=375
         names(X)
 
         take_col = []

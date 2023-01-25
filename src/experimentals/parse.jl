@@ -1,33 +1,3 @@
-################################################################################
-# Experimental features
-################################################################################
-module experimentals
-
-using ..ModalDecisionTrees
-using ..ModalDecisionTrees.ModalLogic
-using SoleLogics
-
-MDT = ModalDecisionTrees
-ML  = ModalLogic
-SL  = SoleLogics
-
-# TODO extend so that we can accept those operators using these characters
-subscript_replace = Dict{String,String}(
-    "₀" => "0",
-    "₁" => "1",
-    "₂" => "2",
-    "₃" => "3",
-    "₄" => "4",
-    "₅" => "5",
-    "₆" => "6",
-    "₇" => "7",
-    "₈" => "8",
-    "₉" => "9",
-    "ₑ" => "e",
-    "․" => ".",
-    "․" => ".",
-    "₋" => "-"
-)
 
 ################################################################################
 # Parse Trees
@@ -278,10 +248,3 @@ function _parse_tree(tree_str::String; check_format = true, _depth = 0, offset =
         end
     end
 end 
-
-################################################################################
-# Print Trees as latex (TikZ)
-################################################################################
-
-
-end

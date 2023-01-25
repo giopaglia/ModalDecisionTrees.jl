@@ -1,13 +1,30 @@
 export print_model, print_tree, print_forest
 
-print_model(tree::DTree;     kwargs...) = print_tree(tree;     kwargs...)
-print_model(forest::DForest; kwargs...) = print_forest(forest; kwargs...)
+# print model
+function print_model(model::Union{DTNode,DTree,DForest}; kwargs...)
+    print_model(stdout, model; kwargs...)
+end
+function print_model(io::IO, model::Union{DTNode,DTree}; kwargs...)
+    print_tree(io, model; kwargs...)
+end
+function print_model(io::IO, model::DForest; kwargs...)
+    print_forest(io, model; kwargs...)
+end
 
-print_model(io::IO, tree::DTree;     kwargs...) = print_tree(io, tree;     kwargs...)
-print_model(io::IO, forest::DForest; kwargs...) = print_forest(io, forest; kwargs...)
+# print tree and forest
+function print_tree(tree::Union{DTNode,DTree}, args...; kwargs...)
+    print_tree(stdout, tree, args...; kwargs...)
+end
+function print_forest(forest::DForest, args...; kwargs...)
+    print_forest(stdout, forest, args...; kwargs...)
+end
 
-print_forest(forest::DForest, args...; kwargs...) = print_forest(stdout, forest, args...; kwargs...)
-print_tree(tree::Union{DTree,DTNode}, args...; kwargs...) = print_tree(stdout, tree, args...; kwargs...)
+function print_tree(io::IO, tree::Union{DTNode,DTree}, args...; kwargs...)
+    print(io, display_model(tree; args..., kwargs...))
+end
+function print_forest(io::IO, forest::DForest, args...; kwargs...)
+    print(io, display_model(forest; args..., kwargs...))
+end
 
 function brief_prediction_str(leaf::DTLeaf)
     string(prediction(leaf))
@@ -15,22 +32,8 @@ end
 
 function brief_prediction_str(leaf::NSDTLeaf)
     # "{$(leaf.predicting_function), size = $(Base.summarysize(leaf.predicting_function))}"
-    "{$(leaf.predicting_function)}"
+    "<$(leaf.predicting_function)>"
 end
-
-function print_forest(
-    io::IO,
-    forest::DForest,
-    args...;
-    kwargs...,
-)
-    n_trees = length(forest)
-    for i in 1:n_trees
-        println(io, "Tree $(i) / $(n_trees)")
-        print_tree(io, trees(forest)[i], args...; kwargs...)
-    end
-end
-
 
 function get_metrics_str(metrics::NamedTuple)
     metrics_str_pieces = []
@@ -69,8 +72,22 @@ function get_metrics_str(metrics::NamedTuple)
     end
 end
 
-function print_tree(
-        io::IO,
+function display_model(
+    forest::DForest,
+    args...;
+    kwargs...,
+)
+    outstr = ""
+    n_trees = length(forest)
+    for i in 1:n_trees
+        outstr *= "Tree $(i) / $(n_trees)"
+        outstr *= display_model(trees(forest)[i], args...; kwargs...)
+    end
+    return outstr
+end
+
+
+function display_model(
         leaf::DTLeaf;
         indentation_str="",
         attribute_names_map = nothing,
@@ -79,11 +96,10 @@ function print_tree(
     )
     metrics = get_metrics(leaf; kwargs...)
     metrics_str = get_metrics_str(metrics)
-    println(io, "$(brief_prediction_str(leaf)) : $(metrics_str)")
+    return "$(brief_prediction_str(leaf)) : $(metrics_str)\n"
 end
 
-function print_tree(
-        io::IO,
+function display_model(
         leaf::NSDTLeaf;
         indentation_str="",
         attribute_names_map = nothing,
@@ -92,11 +108,10 @@ function print_tree(
     )
     train_metrics_str = metrics_str(get_metrics(leaf; train_or_valid = true, kwargs...))
     valid_metrics_str = metrics_str(get_metrics(leaf; train_or_valid = false, kwargs...))
-    println(io, "$(brief_prediction_str(leaf)) : {TRAIN: $(train_metrics_str); VALID: $(valid_metrics_str)}")
+    return "$(brief_prediction_str(leaf)) : {TRAIN: $(train_metrics_str); VALID: $(valid_metrics_str)}\n"
 end
 
-function print_tree(
-    io::IO,
+function display_model(
     node::DTInternal;
     indentation_str="",
     attribute_names_map = nothing,
@@ -104,38 +119,39 @@ function print_tree(
     # TODO print_rules = false,
     metrics_kwargs...,
 )
-    print(io, "$(display_decision(node; attribute_names_map = attribute_names_map))\t\t\t")
-    print_tree(io, this(node); indentation_str = "", metrics_kwargs...)
+    outstr = ""
+    outstr *= "$(display_decision(node; attribute_names_map = attribute_names_map))\t\t\t"
+    outstr *= display_model(this(node); indentation_str = "", metrics_kwargs...)
     if isnothing(max_depth) || length(indentation_str) < max_depth
-        print(io, indentation_str * "✔ ") # "╭✔ "
-        print_tree(io, left(node);
+        outstr *= indentation_str * "✔ " # "╭✔ 
+        outstr *= display_model(left(node);
             indentation_str = indentation_str*"│",
             attribute_names_map = attribute_names_map,
             max_depth = max_depth,
             metrics_kwargs...,
         )
-        print(io, indentation_str * "✘ ") # "╰✘ "
-        print_tree(io, right(node);
+        outstr *= indentation_str * "✘ " # "╰✘ 
+        outstr *= display_model(right(node);
             indentation_str = indentation_str*" ",
             attribute_names_map = attribute_names_map,
             max_depth = max_depth,
             metrics_kwargs...,
         )
     else
-        println(io, " [...]")
+        outstr *= " [...]\n"
     end
+    return outstr
 end
 
-function print_tree(
-    io::IO,
+function display_model(
     tree::DTree;
     metrics_kwargs...,
 )
     # print_relative_confidence = false,
     # if print_relative_confidence && L<:CLabel
-    #     print_tree(io, tree; rel_confidence_class_counts = countmap(Y))
+    #     outstr *= display_model(tree; rel_confidence_class_counts = countmap(Y))
     # else
-    #     print_tree(io, tree)
+    #     outstr *= display_model(tree)
     # end
-    print_tree(io, root(tree); metrics_kwargs...)
+    return display_model(root(tree); metrics_kwargs...)
 end

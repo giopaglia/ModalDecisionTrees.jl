@@ -1,4 +1,39 @@
 
+############################################################################################
+# Initial world conditions
+############################################################################################
+
+abstract type InitCondition end
+struct StartWithoutWorld               <: InitCondition end; const start_without_world  = StartWithoutWorld();
+struct StartAtCenter                   <: InitCondition end; const start_at_center      = StartAtCenter();
+struct StartAtWorld{WT<:AbstractWorld} <: InitCondition w::WT end;
+
+init_world_set(init_conditions::AbstractVector{<:InitCondition}, world_types::AbstractVector{<:Type#={<:AbstractWorld}=#}, args...) =
+    [init_world_set(iC, WT, args...) for (iC, WT) in zip(init_conditions, Vector{Type{<:AbstractWorld}}(world_types))]
+
+init_world_set(iC::StartWithoutWorld, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
+    WorldSet{WorldType}([WorldType(ModalLogic.EmptyWorld())])
+
+init_world_set(iC::StartAtCenter, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
+    WorldSet{WorldType}([WorldType(ModalLogic.CenteredWorld(), args...)])
+
+init_world_set(iC::StartAtWorld{WorldType}, ::Type{WorldType}, args...) where {WorldType<:AbstractWorld} =
+    WorldSet{WorldType}([WorldType(iC.w)])
+
+init_world_sets(Xs::MultiFrameModalDataset, init_conditions::AbstractVector{<:InitCondition}) = begin
+    Ss = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, nframes(Xs))
+    for (i_frame,X) in enumerate(frames(Xs))
+        WT = world_type(X)
+        Ss[i_frame] = WorldSet{WT}[init_world_sets_fun(X, i_sample, world_type(Xs, i_frame))(init_conditions[i_frame]) for i_sample in 1:nsamples(Xs)]
+        # Ss[i_frame] = WorldSet{WT}[[ModalLogic.Interval(1,2)] for i_sample in 1:nsamples(Xs)]
+    end
+    Ss
+end
+
+############################################################################################
+############################################################################################
+############################################################################################
+
 abstract type AbstractDecisionLeaf{L<:Label} end
 
 # Decision leaf node, holding an output (prediction)
@@ -352,11 +387,6 @@ nsamples(leaf::AbstractDecisionLeaf; train_or_valid = true) = length(supp_labels
 nsamples(node::DTInternal;           train_or_valid = true) = nsamples(left(node); train_or_valid = train_or_valid) + nsamples(right(node); train_or_valid = train_or_valid)
 nsamples(tree::DTree;                train_or_valid = true) = nsamples(root(tree); train_or_valid = train_or_valid)
 
-# TODO remove deprecated use num_leaves
-Base.length(leaf::AbstractDecisionLeaf)     = num_leaves(leaf)
-Base.length(node::DTInternal) = num_leaves(node)
-Base.length(tree::DTree)      = num_leaves(tree)
-
 ############################################################################################
 ############################################################################################
 
@@ -378,86 +408,102 @@ display_decision_inverse(node::DTInternal, args...; kwargs...) =
 ############################################################################################
 ############################################################################################
 
-function Base.show(io::IO, leaf::DTLeaf{L}) where {L<:CLabel}
-    println(io, "Classification Decision Leaf{$(L)}(")
-    println(io, "\tlabel: $(prediction(leaf))")
-    println(io, "\tsupporting labels:  $(supp_labels(leaf))")
-    println(io, "\tsupporting labels countmap:  $(StatsBase.countmap(supp_labels(leaf)))")
-    println(io, "\tmetrics: $(get_metrics(leaf))")
-    println(io, ")")
+Base.show(io::IO, a::Union{DTNode,DTree,DForest}) = println(io, display(a))
+
+function display(leaf::DTLeaf{L}) where {L<:CLabel}
+    return """
+Classification Decision Leaf{$(L)}(
+    label: $(prediction(leaf))
+    supporting labels:  $(supp_labels(leaf))
+    supporting labels countmap:  $(StatsBase.countmap(supp_labels(leaf)))
+    metrics: $(get_metrics(leaf))
+)
+"""
 end
-function Base.show(io::IO, leaf::DTLeaf{L}) where {L<:RLabel}
-    println(io, "Regression Decision Leaf{$(L)}(")
-    println(io, "\tlabel: $(prediction(leaf))")
-    println(io, "\tsupporting labels:  $(supp_labels(leaf))")
-    println(io, "\tmetrics: $(get_metrics(leaf))")
-    println(io, ")")
+function display(leaf::DTLeaf{L}) where {L<:RLabel}
+    return """
+Regression Decision Leaf{$(L)}(
+    label: $(prediction(leaf))
+    supporting labels:  $(supp_labels(leaf))
+    metrics: $(get_metrics(leaf))
+)
+"""
 end
 
-function Base.show(io::IO, leaf::NSDTLeaf{L}) where {L<:CLabel}
-    println(io, "Classification Functional Decision Leaf{$(L)}(")
-    println(io, "\tpredicting_function: $(leaf.predicting_function)")
-    println(io, "\tsupporting labels (train):  $(leaf.supp_train_labels)")
-    println(io, "\tsupporting labels (valid):  $(leaf.supp_valid_labels)")
-    println(io, "\tsupporting predictions (train):  $(leaf.supp_train_predictions)")
-    println(io, "\tsupporting predictions (valid):  $(leaf.supp_valid_predictions)")
-    println(io, "\tsupporting labels countmap (train):  $(StatsBase.countmap(leaf.supp_train_labels))")
-    println(io, "\tsupporting labels countmap (valid):  $(StatsBase.countmap(leaf.supp_valid_labels))")
-    println(io, "\tsupporting predictions countmap (train):  $(StatsBase.countmap(leaf.supp_train_predictions))")
-    println(io, "\tsupporting predictions countmap (valid):  $(StatsBase.countmap(leaf.supp_valid_predictions))")
-    println(io, "\tmetrics (train): $(get_metrics(leaf; train_or_valid = true))")
-    println(io, "\tmetrics (valid): $(get_metrics(leaf; train_or_valid = false))")
-    println(io, ")")
+function display(leaf::NSDTLeaf{L}) where {L<:CLabel}
+    return """
+Classification Functional Decision Leaf{$(L)}(
+    predicting_function: $(leaf.predicting_function)
+    supporting labels (train):  $(leaf.supp_train_labels)
+    supporting labels (valid):  $(leaf.supp_valid_labels)
+    supporting predictions (train):  $(leaf.supp_train_predictions)
+    supporting predictions (valid):  $(leaf.supp_valid_predictions)
+    supporting labels countmap (train):  $(StatsBase.countmap(leaf.supp_train_labels))
+    supporting labels countmap (valid):  $(StatsBase.countmap(leaf.supp_valid_labels))
+    supporting predictions countmap (train):  $(StatsBase.countmap(leaf.supp_train_predictions))
+    supporting predictions countmap (valid):  $(StatsBase.countmap(leaf.supp_valid_predictions))
+    metrics (train): $(get_metrics(leaf; train_or_valid = true))
+    metrics (valid): $(get_metrics(leaf; train_or_valid = false))
+)
+"""
 end
-function Base.show(io::IO, leaf::NSDTLeaf{L}) where {L<:RLabel}
-    println(io, "Regression Functional Decision Leaf{$(L)}(")
-    println(io, "\tpredicting_function: $(leaf.predicting_function)")
-    println(io, "\tsupporting labels (train):  $(leaf.supp_train_labels)")
-    println(io, "\tsupporting labels (valid):  $(leaf.supp_valid_labels)")
-    println(io, "\tsupporting predictions (train):  $(leaf.supp_train_predictions)")
-    println(io, "\tsupporting predictions (valid):  $(leaf.supp_valid_predictions)")
-    println(io, "\tmetrics (train): $(get_metrics(leaf; train_or_valid = true))")
-    println(io, "\tmetrics (valid): $(get_metrics(leaf; train_or_valid = false))")
-    println(io, ")")
-end
-
-function Base.show(io::IO, node::DTInternal{L,D}) where {L,D}
-    println(io, "Decision Node{$(L),$(D)}(")
-    Base.show(io, this(node))
-    println(io, "\t###########################################################")
-    println(io, "\ti_frame: $(i_frame(node))")
-    print(io, "\tdecision: $(decision(node))")
-    print(io, "\tmiscellaneous: $(miscellaneous(node))")
-    println(io, "\t###########################################################")
-    println(io, "\tsub-tree leaves: $(num_leaves(node))")
-    println(io, "\tsub-tree nodes: $(num_nodes(node))")
-    println(io, "\tsub-tree height: $(height(node))")
-    println(io, "\tsub-tree modal height:  $(modal_height(node))")
-    println(io, ")")
+function display(leaf::NSDTLeaf{L}) where {L<:RLabel}
+    return """
+Regression Functional Decision Leaf{$(L)}(
+    predicting_function: $(leaf.predicting_function)
+    supporting labels (train):  $(leaf.supp_train_labels)
+    supporting labels (valid):  $(leaf.supp_valid_labels)
+    supporting predictions (train):  $(leaf.supp_train_predictions)
+    supporting predictions (valid):  $(leaf.supp_valid_predictions)
+    metrics (train): $(get_metrics(leaf; train_or_valid = true))
+    metrics (valid): $(get_metrics(leaf; train_or_valid = false))
+)
+"""
 end
 
-function Base.show(io::IO, tree::DTree{L}) where {L}
-    println(io, "Decision Tree{$(L)}(")
-    println(io, "\tworld_types:    $(world_types(tree))")
-    println(io, "\tinitConditions: $(init_conditions(tree))")
-    println(io, "\t###########################################################")
-    println(io, "\tsub-tree leaves: $(num_leaves(tree))")
-    println(io, "\tsub-tree nodes: $(num_nodes(tree))")
-    println(io, "\tsub-tree height: $(height(tree))")
-    println(io, "\tsub-tree modal height:  $(modal_height(tree))")
-    println(io, "\t###########################################################")
-    println(io, "\ttree:")
-    print_model(io, tree)
-    println(io, ")")
+function display(node::DTInternal{L,D}) where {L,D}
+    return """
+Decision Node{$(L),$(D)}(
+$(display(this(node)))
+    ###########################################################
+    i_frame: $(i_frame(node))
+    decision: $(decision(node))
+    miscellaneous: $(miscellaneous(node))
+    ###########################################################
+    sub-tree leaves: $(num_leaves(node))
+    sub-tree nodes: $(num_nodes(node))
+    sub-tree height: $(height(node))
+    sub-tree modal height:  $(modal_height(node))
+)
+"""
 end
 
-function Base.show(io::IO, forest::DForest{L}) where {L}
-    println(io, "Decision Forest{$(L)}(")
-    println(io, "\t# trees: $(length(forest))")
-    println(io, "\tmetrics: $(metrics(forest))")
-    println(io, "\ttrees:")
-    print_model(io, forest)
-    println(io, ")")
+function display(tree::DTree{L}) where {L}
+    return """
+Decision Tree{$(L)}(
+    world_types:    $(world_types(tree))
+    initConditions: $(init_conditions(tree))
+    ###########################################################
+    sub-tree leaves: $(num_leaves(tree))
+    sub-tree nodes: $(num_nodes(tree))
+    sub-tree height: $(height(tree))
+    sub-tree modal height:  $(modal_height(tree))
+    ###########################################################
+    tree:
+$(display_model(tree))
+)
+"""
+end
+
+function display(forest::DForest{L}) where {L}
+    return """
+Decision Forest{$(L)}(
+    # trees: $(length(forest))
+    metrics: $(metrics(forest))
+    forest:
+$(display_model(forest))
+)
+"""
 end
 
 

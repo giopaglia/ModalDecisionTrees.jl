@@ -6,11 +6,6 @@
 # TODO remove redundance
 export ModalDecisionTree, ModalRandomForest
 
-
-include("example-datasets.jl")
-
-export @load_japanesevowels
-
 module MLJInterface
 
 export ModalDecisionTree, ModalRandomForest

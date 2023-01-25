@@ -1,3 +1,8 @@
+using ..ModalDecisionTrees
+using ..ModalDecisionTrees.ModalLogic
+using ..ModalDecisionTrees: AbstractFeature, TestOperatorFun
+
+using ..ModalDecisionTrees: DTLeaf, DTNode, DTInternal
 
 export DecisionPath, DecisionPathNode,
             get_path_in_tree, get_internalnode_dirname,
