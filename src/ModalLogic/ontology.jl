@@ -1,3 +1,9 @@
+world2frametype = Dict([
+    OneWorld => FullDimensionalFrame{0,OneWorld,Bool},
+    Interval => FullDimensionalFrame{1,Interval,Bool},
+    Interval2D => FullDimensionalFrame{2,Interval2D,Bool},
+])
+
 # An ontology is a pair `world type` + `set of relations`, and represents the kind of
 #  modal frame that underlies a certain logic
 struct Ontology{W<:AbstractWorld}
@@ -7,7 +13,7 @@ struct Ontology{W<:AbstractWorld}
     function Ontology{W}(_relations::AbstractVector) where {W<:AbstractWorld}
         _relations = collect(unique(_relations))
         for relation in _relations
-            @assert goeswith(W, relation) "Can't instantiate Ontology{$(W)} with relation $(relation)!"
+            @assert goeswith(world2frametype[W], relation) "Can't instantiate Ontology{$(W)} with relation $(relation)!"
         end
         if W == OneWorld && length(_relations) > 0
           _relations = similar(_relations, 0)

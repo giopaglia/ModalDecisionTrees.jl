@@ -61,26 +61,29 @@ get_interval_ontology(N::Integer, args...) = get_interval_ontology(Val(N), args.
 get_interval_ontology(N::Val, relations::Union{Symbol,AbstractVector{<:AbstractRelation}} = :IA) = get_ontology(N, :interval, relations)
 
 ############################################################################################
+# Worlds
+############################################################################################
+
+# Any world type W must provide an `interpret_world` method for interpreting a world
+#  onto a modal instance:
+# interpret_world(::W, modal_instance)
+# Note: for dimensional world types: modal_instance::DimensionalInstance
+
+############################################################################################
 # Dimensionality: 0
 
 export OneWorld
 
-# World type definitions for the propositional case, where there exist only one world,
-#  and `Decision`s only allow the RelationId.
-include("worlds/OneWorld.jl")                 # <- OneWorld world type
+# Dimensional world type: it can be interpreted on dimensional instances.
+interpret_world(::OneWorld, instance::DimensionalInstance{T,1}) where {T} = instance
 
 const OneWorldOntology   = Ontology{OneWorld}(AbstractRelation[])
 
 ############################################################################################
 # Dimensionality: 1
 
-# World type definitions for punctual logics, where worlds are points
-# include("worlds/PointWorld.jl")
-
-# World type definitions for interval logics, where worlds are intervals
-include("worlds/Interval.jl")                 # <- Interval world type
-include("bindings/IA+Interval.jl")       # <- Allen relations
-include("bindings/RCC+Interval.jl")    # <- RCC relations
+# Dimensional world type: it can be interpreted on dimensional instances.
+interpret_world(w::Interval2D, instance::DimensionalInstance{T,3}) where {T} = instance[w.x.x:w.x.y-1,w.y.x:w.y.y-1,:]
 
 const IntervalOntology       = Ontology{Interval}(IARelations)
 const Interval3Ontology      = Ontology{ModalLogic.Interval}(ModalLogic.IA7Relations)
@@ -92,11 +95,8 @@ const IntervalRCC5Ontology   = Ontology{Interval}(RCC5Relations)
 ############################################################################################
 # Dimensionality: 2
 
-# World type definitions for 2D iterval logics, where worlds are rectangles
-#  parallel to a frame of reference.
-include("worlds/Interval2D.jl")        # <- Interval2D world type
-include("bindings/IA2+Interval2D.jl")  # <- Allen relations
-include("bindings/RCC+Interval2D.jl")  # <- RCC relations
+# Dimensional world type: it can be interpreted on dimensional instances.
+interpret_world(w::Interval, instance::DimensionalInstance{T,2}) where {T} = instance[w.x:w.y-1,:]
 
 const Interval2DOntology     = Ontology{Interval2D}(IA2DRelations)
 const Interval2DRCC8Ontology = Ontology{Interval2D}(RCC8Relations)

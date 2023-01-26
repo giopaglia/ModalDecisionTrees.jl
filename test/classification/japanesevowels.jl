@@ -22,7 +22,7 @@ N = length(y)
 mach = machine(tree, X, y)
 
 # Split dataset
-p = randperm(N)
+p = randperm(Random.MersenneTwister(1), N)
 train_idxs, test_idxs = p[1:round(Int, N*.8)], p[round(Int, N*.8)+1:end]
 
 # Fit

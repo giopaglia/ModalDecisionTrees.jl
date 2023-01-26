@@ -212,7 +212,7 @@ domain_get_channel_size(domain::DimensionalDataset, i_sample) = instance_channel
 init_world_sets_fun(imd::InterpretedModalDataset{T, N, W},  i_sample::Integer) where {T, N, W} =
     (iC)->ModalDecisionTrees.init_world_set(iC, FullDimensionalFrame(domain_get_channel_size(imd.domain, i_sample)))
 accessibles_fun(imd::InterpretedModalDataset, i_sample) = (w,R)->accessibles(FullDimensionalFrame(domain_get_channel_size(imd.domain, i_sample)), w,R)
-all_worlds_fun(imd::InterpretedModalDataset{T, N, W}, i_sample) where {T, N, W} = all_worlds(FullDimensionalFrame(domain_get_channel_size(imd.domain, i_sample)))
+allworlds_fun(imd::InterpretedModalDataset{T, N, W}, i_sample) where {T, N, W} = allworlds(FullDimensionalFrame(domain_get_channel_size(imd.domain, i_sample)))
 accessibles_aggr_fun(imd::InterpretedModalDataset, i_sample)  = (f,a,w,R)->accessibles_aggr(FullDimensionalFrame(domain_get_channel_size(imd.domain, i_sample)),f,a,w,R)
 
 # Note: Can't define Base.length(::DimensionalDataset) & Base.iterate(::DimensionalDataset)
@@ -470,7 +470,7 @@ struct ExplicitModalDataset{T<:Number, W<:AbstractWorld} <: ActiveModalDataset{T
                 # instance = get_instance(imd, i_sample)
                 # @logmsg LogDebug "instance" instance
 
-                for w in all_worlds_fun(imd, i_sample)
+                for w in allworlds_fun(imd, i_sample)
                     
                     fwd_init_world_slice(fwd, i_sample, w)
 
@@ -516,7 +516,7 @@ world_type(X::ExplicitModalDataset{T,W}) where {T,W<:AbstractWorld} = W
 
 init_world_sets_fun(X::ExplicitModalDataset,          i_sample::Integer)  = X.init_world_sets_funs[i_sample]
 accessibles_fun(X::ExplicitModalDataset,              i_sample::Integer)  = X.accessibles_funs[i_sample]
-all_worlds_fun(X::ExplicitModalDataset{T, W}, i_sample::Integer) where {T, W} = all_worlds(W, accessibles_fun(X, i_sample))
+allworlds_fun(X::ExplicitModalDataset{T, W}, i_sample::Integer) where {T, W} = allworlds(W, accessibles_fun(X, i_sample))
 accessibles_aggr_fun(X::ExplicitModalDataset,         i_sample::Integer)  = X.accessibles_aggr_funs[i_sample]
 
 
@@ -777,9 +777,9 @@ Base.@propagate_inbounds function compute_fwd_supports(
                 for (i_featsnaggr,aggregator) in aggregators
                 # Threads.@threads for (i_featsnaggr,aggregator) in aggregators
                     
-                    # accessible_worlds = all_worlds_fun(emd, i_sample)
+                    # accessible_worlds = allworlds_fun(emd, i_sample)
                     # TODO reintroduce the improvements for some operators: e.g. later. Actually, these can be simplified by using a set of representatives, as in some enum_acc_repr!
-                    accessible_worlds = all_worlds_aggr(W, accessibles_aggr_fun(emd, i_sample), _features[i_feature], aggregator)
+                    accessible_worlds = allworlds_aggr(W, accessibles_aggr_fun(emd, i_sample), _features[i_feature], aggregator)
 
                     threshold = compute_modal_gamma(cur_fwd_slice, accessible_worlds, aggregator)
 
@@ -802,7 +802,7 @@ Base.@propagate_inbounds function compute_fwd_supports(
                         fwd_rs_init_world_slice(fwd_rs, i_sample, i_featsnaggr, i_relation)
                     end
 
-                    for w in all_worlds_fun(emd, i_sample)
+                    for w in allworlds_fun(emd, i_sample)
 
                         @logmsg LogDebug "World" w
 
@@ -1019,7 +1019,7 @@ world_type(X::ExplicitModalDatasetWithSupport{T,W}) where {T,W}    = W
 
 init_world_sets_fun(X::ExplicitModalDatasetWithSupport,  i_sample::Integer, ::Type{W}) where {W<:AbstractWorld} = init_world_sets_fun(X.emd, i_sample)
 accessibles_fun(X::ExplicitModalDatasetWithSupport,     args...) = accessibles_fun(X.emd, args...)
-all_worlds_fun(X::ExplicitModalDatasetWithSupport,  args...) = all_worlds_fun(X.emd, args...)
+allworlds_fun(X::ExplicitModalDatasetWithSupport,  args...) = allworlds_fun(X.emd, args...)
 accessibles_aggr_fun(X::ExplicitModalDatasetWithSupport, args...) = accessibles_aggr_fun(X.emd, args...)
 
 function slice_dataset(X::ExplicitModalDatasetWithSupport, inds::AbstractVector{<:Integer}, args...; kwargs...)
@@ -1402,7 +1402,7 @@ end
 #   #   i_feature = find_feature_id(X, feature)
 #   #   aggregator = existential_aggregator(test_operator)
 #   #   fwd_feature_slice = fwd_get_channel(X.emd.fwd, i_sample, i_feature)
-#   #   accessible_worlds = all_worlds_aggr(W, accessibles_aggr_fun(X.emd, i_sample), feature, aggregator)
+#   #   accessible_worlds = allworlds_aggr(W, accessibles_aggr_fun(X.emd, i_sample), feature, aggregator)
 #   #   gamma = compute_modal_gamma(fwd_feature_slice, accessible_worlds, aggregator)
 #   #   fwd_gs_set(X.fwd_gs, i_sample, i_featsnaggr, gamma)
 #   # end

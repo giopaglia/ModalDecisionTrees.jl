@@ -1,3 +1,5 @@
+using SoleLogics: _RelationId, _RelationGlob
+
 using SoleModels: AbstractRelation, AbstractFeature, TestOperatorFun, FeatCondition
 using SoleModels: alpha, display_feature, display_feature_test_operator_pair
 
@@ -116,8 +118,8 @@ feature(d::ExistentialDimensionalDecision) = feature(d.p)
 test_operator(d::ExistentialDimensionalDecision) = test_operator(d.p)
 threshold(d::ExistentialDimensionalDecision) = threshold(d.p)
 
-is_propositional_decision(d::ExistentialDimensionalDecision) = (relation(d) isa ModalLogic._RelationId)
-is_global_decision(d::ExistentialDimensionalDecision) = (relation(d) isa ModalLogic._RelationGlob)
+is_propositional_decision(d::ExistentialDimensionalDecision) = (relation(d) isa _RelationId)
+is_global_decision(d::ExistentialDimensionalDecision) = (relation(d) isa _RelationGlob)
 
 function display_decision(
         decision::ExistentialDimensionalDecision;

@@ -10,7 +10,6 @@ using ..ModalDecisionTrees: LogOverview, LogDebug, LogDetail
 using BenchmarkTools
 using ComputedFieldTypes
 using DataStructures
-using IterTools
 using Logging: @logmsg
 using ResumableFunctions
 
@@ -28,13 +27,24 @@ export RelationGlob, RelationId
 
 export Ontology, world_type, world_types
 
-# Fix (not needed from Julia 1.7, see https://github.com/JuliaLang/julia/issues/34674 )
-if length(methods(Base.keys, (Base.Generator,))) == 0
-    Base.keys(g::Base.Generator) = g.iter
-end
+using SoleLogics: accessibles
+using SoleModels: accessibles_aggr
 
-# Accessibles base
-include("base.jl")
+using SoleLogics: FullDimensionalFrame
+
+# TODO remove
+using SoleLogics: Full0DFrame
+
+import SoleLogics: allworlds
+import SoleLogics: goeswith
+
+# TODO remove these allworlds
+allworlds(fr::OneWorld, accessible_fun::Function) = [OneWorld()]
+allworlds(::Type{W}, accessible_fun::Function) where {W<:AbstractWorld} = accessible_fun(W[], RelationGlob)
+
+# Perhaps these help the compiler? TODO figure out if these are needed
+allworlds_aggr(fr::Full0DFrame, accessibles_aggr_fun::Function, f::AbstractFeature, a::Aggregator) = [OneWorld()]
+allworlds_aggr(::Type{W}, accessibles_aggr_fun::Function, f::AbstractFeature, a::Aggregator) where {W<:AbstractWorld} = accessibles_aggr_fun(f, a, W[], RelationGlob)
 
 # Concrete type for ontologies
 include("ontology.jl")
