@@ -9,6 +9,7 @@ using ModalDecisionTrees: left, right
 using ModalDecisionTrees: relation, feature, test_operator, threshold
 using ModalDecisionTrees: test_operator_inverse
 using ModalDecisionTrees: AbstractFeature
+using ModalDecisionTrees: DTInternal, DTNode, DTLeaf, NSDTLeaf
 
 using FunctionWrappers: FunctionWrapper
 
@@ -39,7 +40,7 @@ function translate_mdtv1(tree::DTree)
     return DecisionTree(pure_root, info)
 end
 
-function translate_mdtv1(node::DTInternal, ancestors::Vector{DTInternal} = DTInternal[])
+function translate_mdtv1(node::DTInternal, ancestors::Vector{<:DTInternal} = DTInternal[])
     new_ancestors = [ancestors..., node]
     formula = pathformula(DTNode[new_ancestors..., left(node)])
     SoleModels.Branch(
@@ -47,13 +48,13 @@ function translate_mdtv1(node::DTInternal, ancestors::Vector{DTInternal} = DTInt
         translate_mdtv1(left(node), new_ancestors),
         translate_mdtv1(right(node), new_ancestors),
         (;
-            this = translate_mdtv1(ModalDecisionTrees.this(node, new_ancestors)),
+            this = translate_mdtv1(ModalDecisionTrees.this(node), new_ancestors),
             supp_labels = ModalDecisionTrees.supp_labels(node),
         )
     )
 end
 
-function translate_mdtv1(tree::DTLeaf, ancestors::Vector{DTInternal} = DTInternal[])
+function translate_mdtv1(tree::DTLeaf, ancestors::Vector{<:DTInternal} = DTInternal[])
     # TODO: info(tree)
     return SoleModels.ConstantModel(
         ModalDecisionTrees.prediction(tree),
@@ -61,7 +62,7 @@ function translate_mdtv1(tree::DTLeaf, ancestors::Vector{DTInternal} = DTInterna
     )
 end
 
-function translate_mdtv1(tree::NSDTLeaf, ancestors::Vector{DTInternal} = DTInternal[])
+function translate_mdtv1(tree::NSDTLeaf, ancestors::Vector{<:DTInternal} = DTInternal[])
     # TODO: info(tree)
     return SoleModels.FunctionModel(
         ModalDecisionTrees.predicting_function(tree),
@@ -74,8 +75,8 @@ end
 ############################################################################################
 
 function _condition(feature::AbstractFeature{U}, test_op, threshold::T) where {U, T}
-    t = FunctionWrapper{Bool,Tuple{U,T}}(test_op)
-    metacond = FeatMetaCondition(feature, t)
+    #t = FunctionWrapper{Bool,Tuple{U,T}}(test_op)
+    metacond = FeatMetaCondition(feature, test_op)
     cond = FeatCondition(metacond, threshold)
     return cond
 end
@@ -91,11 +92,11 @@ function get_proposition_inv(dec::ExistentialDimensionalDecision)
 end
 
 function get_diamond_op(dec::ExistentialDimensionalDecision)
-    return DiamondRelationalOperator{typeof(relation(dec))}
+    return DiamondRelationalOperator{typeof(relation(dec))}()
 end
 
 function get_box_op(dec::ExistentialDimensionalDecision)
-    return BoxRelationalOperator{typeof(relation(dec))}
+    return BoxRelationalOperator{typeof(relation(dec))}()
 end
 
 
@@ -128,7 +129,7 @@ function pathformula(nodes::Vector{<:DTNode})
     else
         φ = pathformula(nodes[2:end])
 
-        if isleftchild(ancestors[2], ancestors[1])
+        if isleftchild(nodes[2], nodes[1])
             dec = ModalDecisionTrees.decision(nodes[1])
             p = get_proposition(dec)
             isprop = (relation(dec) == RelationId)
