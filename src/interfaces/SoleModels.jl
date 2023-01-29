@@ -73,7 +73,7 @@ end
 ############################################################################################
 ############################################################################################
 
-function _condition(feature::AbstractFeature{U}, test_op, threshold::T) where {U, T}
+function _condition(feature::AbstractFeature{U}, test_op, threshold::T) where {U,T}
     t = FunctionWrapper{Bool,Tuple{U,T}}(test_op)
     metacond = FeatMetaCondition(feature, t)
     cond = FeatCondition(metacond, threshold)

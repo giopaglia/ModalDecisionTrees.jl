@@ -48,7 +48,7 @@ macro load_japanesevowels()
         #     instances, n_attrs, minimum_n_points
         # end
 
-        # X_cube = Array{Float64, 3}(undef, minimum_n_points, n_attrs, length(instances))
+        # X_cube = Array{Float64,3}(undef, minimum_n_points, n_attrs, length(instances))
 
         # for (i_instance, instance) in enumerate(instances)
         #     X_cube[:,:,i_instance] = instance[1:minimum_n_points,:]

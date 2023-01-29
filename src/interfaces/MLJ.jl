@@ -40,7 +40,7 @@ struct ModelPrinter{T<:MDT.SymbolicModel}
     model::T
     frame_grouping::Union{Nothing,AbstractVector{<:AbstractVector},AbstractVector{<:AbstractDict}}
 end
-(c::ModelPrinter)(max_depth::Union{Nothing, Integer} = nothing; args...) = c(c.model; max_depth, args...)
+(c::ModelPrinter)(max_depth::Union{Nothing,Integer} = nothing; args...) = c(c.model; max_depth, args...)
 (c::ModelPrinter)(model; max_depth = 5) = MDT.print_model(model; attribute_names_map = c.frame_grouping, max_depth = max_depth)
 
 Base.show(io::IO, c::ModelPrinter) =

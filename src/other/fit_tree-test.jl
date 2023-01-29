@@ -99,7 +99,7 @@ ModalDecisionTrees._fit(Xs, Y, init_conditions, W;
 Y  = Int64[fill(1, _n_samples_h)..., fill(2, _n_samples_h)...]
 
 idxs = collect(1:_n_samples)
-Ss = ModalDecisionTrees.init_world_sets(Xs, init_conditions)
+Ss = ModalDecisionTrees.initialworldsets(Xs, init_conditions)
 
 onlyallowRelationGlob = [(iC == ModalDecisionTrees.start_without_world) for iC in init_conditions]
 node = ModalDecisionTrees.NodeMeta{Float64,Int64}(1:_n_samples, 0, 0, onlyallowRelationGlob)

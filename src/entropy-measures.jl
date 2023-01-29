@@ -145,7 +145,7 @@ end
 
 # Single weighted (non-frequency weigths interpretation)
 # sum(ws .* ((ns .- (sum(ws .* ns)/t)).^2)) / (t)
-Base.@propagate_inbounds @inline function _variance(ns :: AbstractVector{L}, ws :: AbstractVector{U}, wt :: U) where {L, U <: Real}
+Base.@propagate_inbounds @inline function _variance(ns :: AbstractVector{L}, ws :: AbstractVector{U}, wt :: U) where {L,U<:Real}
     # @btime (sum(ws .* ns)/wt)^2 - sum(ws .* (ns.^2))/wt
     # @btime (wns = ws .* ns; (sum(wns)/wt)^2 - sum(wns .* ns)/wt)
     # @btime (wns = ws .* ns; sum(wns)^2/wt^2 - sum(wns .* ns)/wt)
@@ -157,7 +157,7 @@ end
 Base.@propagate_inbounds @inline function _variance(
     ns_l :: AbstractVector{LU}, sl :: L, tl :: U,
     ns_r :: AbstractVector{LU}, sr :: L, tr :: U,
-) where {L, LU <: Real, U <: Real}
+) where {L,LU<:Real,U<:Real}
     ((tl*sum(ns_l.^2)-sl^2) / (1 - tl)) +
     ((tr*sum(ns_l.^2)-sr^2) / (1 - tr))
 end

@@ -27,24 +27,16 @@ export RelationGlob, RelationId
 
 export Ontology, world_type, world_types
 
-using SoleLogics: accessibles
-using SoleModels: accessibles_aggr
-
 using SoleLogics: FullDimensionalFrame
 
-# TODO remove
-using SoleLogics: Full0DFrame
+import SoleLogics: accessibles, allworlds
+import SoleModels: representatives, allworlds_aggr, FeatMetaCondition
 
-import SoleLogics: allworlds
+using SoleModels: AbstractMultiModalFrame
+
 import SoleLogics: goeswith
-
-# TODO remove these allworlds
-allworlds(fr::OneWorld, accessible_fun::Function) = [OneWorld()]
-allworlds(::Type{W}, accessible_fun::Function) where {W<:AbstractWorld} = accessible_fun(W[], RelationGlob)
-
-# Perhaps these help the compiler? TODO figure out if these are needed
-allworlds_aggr(fr::Full0DFrame, accessibles_aggr_fun::Function, f::AbstractFeature, a::Aggregator) = [OneWorld()]
-allworlds_aggr(::Type{W}, accessibles_aggr_fun::Function, f::AbstractFeature, a::Aggregator) where {W<:AbstractWorld} = accessibles_aggr_fun(f, a, W[], RelationGlob)
+import SoleLogics: initialworldset
+using SoleLogics: InitCondition
 
 # Concrete type for ontologies
 include("ontology.jl")
@@ -64,7 +56,6 @@ export nfeatures, nrelations,
        get_gamma, test_decision,
        #
        relations,
-       init_world_sets_fun,
        #
        ModalDataset,
        GenericModalDataset,
@@ -94,13 +85,11 @@ const PassiveModalDataset{T} = Union{DimensionalDataset{T}}
 #  etc. While learning a model can be done only with active modal datasets, testing a model
 #  can be done with both active and passive modal datasets.
 #
-abstract type ActiveModalDataset{T<:Number,W<:AbstractWorld} end
-#
-# Active modal datasets hold the world type W, and thus can initialize world sets with a lighter interface
-#
-init_world_sets_fun(imd::ActiveModalDataset{T, W},  i_sample::Integer, ::Type{W}) where {T, W} =
-    init_world_sets_fun(imd, i_sample)
-#
+abstract type ActiveModalDataset{T<:Number,W<:AbstractWorld} <: AbstractMultiModalFrame{W,Bool} end
+
+# TODO maybe remove
+allworlds_aggr(X::ActiveModalDataset, i_sample, args...) = representatives(X, i_sample, RelationGlob, args...)
+
 # By default an active modal dataset cannot be miniaturized
 isminifiable(::ActiveModalDataset) = false
 #

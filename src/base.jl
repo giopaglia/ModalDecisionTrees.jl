@@ -3,29 +3,30 @@ using SoleLogics: AbstractMultiModalFrame
 ############################################################################################
 # Initial world conditions
 ############################################################################################
+using SoleLogics: InitCondition
+import SoleLogics: initialworldset
 
-abstract type InitCondition end
 struct StartWithoutWorld               <: InitCondition end; const start_without_world  = StartWithoutWorld();
 struct StartAtCenter                   <: InitCondition end; const start_at_center      = StartAtCenter();
 struct StartAtWorld{WT<:AbstractWorld} <: InitCondition w::WT end;
 
-init_world_set(iCs::AbstractVector{<:InitCondition}, frs::AbstractVector{<:AbstractMultiModalFrame}) =
-    [init_world_set(iC, fr) for (iC, fr) in zip(iCs, frs)]
+initialworldset(frs::AbstractVector{<:AbstractMultiModalFrame}, iCs::AbstractVector{<:InitCondition}) =
+    [initialworldset(fr, iC) for (fr, iC) in zip(frs, iCs)]
 
-init_world_set(iC::StartWithoutWorld, ::AbstractMultiModalFrame{W}) where {W<:AbstractWorld} =
+initialworldset(::AbstractMultiModalFrame{W}, iC::StartWithoutWorld) where {W<:AbstractWorld} =
     WorldSet{W}([W(ModalLogic.EmptyWorld())])
 
-init_world_set(iC::StartAtCenter, ::AbstractMultiModalFrame{W}) where {W<:AbstractWorld} =
+initialworldset(::AbstractMultiModalFrame{W}, iC::StartAtCenter) where {W<:AbstractWorld} =
     WorldSet{W}([W(ModalLogic.CenteredWorld(), args...)])
 
-init_world_set(iC::StartAtWorld{W}, ::AbstractMultiModalFrame{W}) where {W<:AbstractWorld} =
+initialworldset(::AbstractMultiModalFrame{W}, iC::StartAtWorld{W}) where {W<:AbstractWorld} =
     WorldSet{W}([W(iC.w)])
 
-init_world_sets(Xs::MultiFrameModalDataset, iCs::AbstractVector{<:InitCondition}) = begin
+initialworldsets(Xs::MultiFrameModalDataset, iCs::AbstractVector{<:InitCondition}) = begin
     Ss = Vector{Vector{WST} where {W,WST<:WorldSet{W}}}(undef, nframes(Xs))
     for (i_frame,X) in enumerate(frames(Xs))
         WT = world_type(X)
-        Ss[i_frame] = WorldSet{WT}[init_world_sets_fun(X, i_sample, world_type(Xs, i_frame))(iCs[i_frame]) for i_sample in 1:nsamples(Xs)]
+        Ss[i_frame] = WorldSet{WT}[initialworldset(X, i_sample, iCs[i_frame]) for i_sample in 1:nsamples(Xs)]
         # Ss[i_frame] = WorldSet{WT}[[ModalLogic.Interval(1,2)] for i_sample in 1:nsamples(Xs)]
     end
     Ss
@@ -182,8 +183,8 @@ struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
         i_frame          :: Int64,
         decision         :: D,
         this             :: AbstractDecisionLeaf,
-        left             :: Union{AbstractDecisionLeaf, DTInternal},
-        right            :: Union{AbstractDecisionLeaf, DTInternal},
+        left             :: Union{AbstractDecisionLeaf,DTInternal},
+        right            :: Union{AbstractDecisionLeaf,DTInternal},
         miscellaneous    :: NamedTuple = (;),
     ) where {D<:AbstractDecision,L<:Label}
         new{L,D}(i_frame, decision, this, left, right, miscellaneous)
@@ -213,8 +214,8 @@ struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
     function DTInternal{L,D}(
         i_frame          :: Int64,
         decision         :: D,
-        left             :: Union{AbstractDecisionLeaf, DTInternal},
-        right            :: Union{AbstractDecisionLeaf, DTInternal},
+        left             :: Union{AbstractDecisionLeaf,DTInternal},
+        right            :: Union{AbstractDecisionLeaf,DTInternal},
         miscellaneous    :: NamedTuple = (;),
     ) where {D<:AbstractDecision,L<:Label}
         # this = merge_into_leaf(Vector{<:Union{AbstractDecisionLeaf,DTInternal}}([left, right]))
@@ -244,8 +245,8 @@ struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
     # function DTInternal{L,D}(
     #     decision         :: AbstractDecision,
     #     this             :: AbstractDecisionLeaf,
-    #     left             :: Union{AbstractDecisionLeaf, DTInternal},
-    #     right            :: Union{AbstractDecisionLeaf, DTInternal}) where {T,L<:Label}
+    #     left             :: Union{AbstractDecisionLeaf,DTInternal},
+    #     right            :: Union{AbstractDecisionLeaf,DTInternal}) where {T,L<:Label}
     #     i_frame = 1
     #     DTInternal{L,D}(i_frame, decision, this, left, right)
     # end
@@ -260,8 +261,8 @@ struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
     # # create node without frame nor local decision
     # function DTInternal{L,D}(
     #     decision         :: AbstractDecision,
-    #     left             :: Union{AbstractDecisionLeaf, DTInternal},
-    #     right            :: Union{AbstractDecisionLeaf, DTInternal}) where {T,L<:Label}
+    #     left             :: Union{AbstractDecisionLeaf,DTInternal},
+    #     right            :: Union{AbstractDecisionLeaf,DTInternal}) where {T,L<:Label}
     #     i_frame = 1
     #     DTInternal{L,D}(i_frame, decision, left, right)
     # end

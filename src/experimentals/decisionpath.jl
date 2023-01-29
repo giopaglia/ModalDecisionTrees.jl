@@ -58,7 +58,7 @@ function get_path_in_tree(tree::DTree{S}, X::GenericModalDataset)::Vector{Decisi
     _n_samples = nsamples(X)
     paths::Vector{DecisionPath} = [ DecisionPath() for i in 1:_n_samples ]
     for i_sample in 1:_n_samples
-        worlds = ModalDecisionTrees.inst_init_world_sets(X, tree, i_sample)
+        worlds = ModalDecisionTrees.mm_instance_initialworldset(X, tree, i_sample)
         _get_path_in_tree(root(tree), X, i_sample, worlds, 1, paths)
     end
     paths

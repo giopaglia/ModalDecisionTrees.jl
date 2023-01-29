@@ -103,11 +103,11 @@ end
 ##############################################################################
 
 # function optimize_tree_parameters!(
-#       X               :: InterpretedModalDataset{T, N},
+#       X               :: InterpretedModalDataset{T,N},
 #       iC   :: InitCondition,
 #       allow_global_splits :: Bool,
 #       test_operators  :: AbstractVector{<:TestOperatorFun}
-#   ) where {T, N}
+#   ) where {T,N}
 
 #   # A dimensional ontological datasets:
 #   #  flatten to adimensional case + strip of all relations from the ontology
@@ -115,7 +115,7 @@ end
 #       if (length(ontology(X).relations) > 0)
 #           warn("The InterpretedModalDataset provided has degenerate max_channel_size $(max_channel_size(X)), and more than 0 relations: $(ontology(X).relations).")
 #       end
-#       # X = InterpretedModalDataset{T, 0}(ModalLogic.strip_ontology(ontology(X)), @views ModalLogic.strip_domain(domain(X)))
+#       # X = InterpretedModalDataset{T,0}(ModalLogic.strip_ontology(ontology(X)), @views ModalLogic.strip_domain(domain(X)))
 #   end
 
 #   ontology_relations = deepcopy(ontology(X).relations)
@@ -242,7 +242,7 @@ Base.@propagate_inbounds @inline function split_node!(
     _is_classification        :: Union{Val{true},Val{false}},
     _perform_consistency_check:: Union{Val{true},Val{false}},
     rng                       :: Random.AbstractRNG,
-) where{P, L<:_Label, U, LossFunction<:Function, NSubRelationsFunction<:Function}
+) where{P,L<:_Label,U,LossFunction<:Function,NSubRelationsFunction<:Function}
 
     # Region of idxs to use to perform the split
     region = node.region
@@ -708,7 +708,7 @@ Base.@propagate_inbounds @inline function split_node!(
             errStr *= "Decision $(best_decision).\n"
             errStr *= "Possible causes:\n"
             errStr *= "- feature returning NaNs\n"
-            errStr *= "- erroneous accessibles_aggr for relation $(relation(best_decision)), aggregator $(existential_aggregator(test_operator(best_decision))) and feature $(feature(best_decision))\n"
+            errStr *= "- erroneous representatives for relation $(relation(best_decision)), aggregator $(existential_aggregator(test_operator(best_decision))) and feature $(feature(best_decision))\n"
             errStr *= "\n"
             errStr *= "Branch ($(sum(unsatisfied_flags))+$(_n_samples-sum(unsatisfied_flags))=$(_n_samples) samples) on frame $(best_i_frame) with decision: $(decision_str), purity $(best_purity)\n"
             errStr *= "$(length(idxs[region])) Instances: $(idxs[region])\n"
@@ -798,12 +798,12 @@ end
         rng = Random.GLOBAL_RNG   :: Random.AbstractRNG,
         print_progress            :: Bool = true,
         kwargs...,
-    ) where{L<:_Label, U}
+    ) where{L<:_Label,U}
 
     _n_samples = nsamples(Xs)
 
     # Initialize world sets for each instance
-    Ss = init_world_sets(Xs, init_conditions)
+    Ss = initialworldsets(Xs, init_conditions)
 
     # Distribution of the instances indices throughout the tree.
     #  It will be recursively permuted, and regions of it assigned to the tree nodes (idxs[node.region])
@@ -866,7 +866,7 @@ end
         allow_global_splits     :: Vector{Bool},
         ##########################################################################
         kwargs...,
-    ) where {S, U}
+    ) where {S,U}
     _n_samples = nsamples(Xs)
 
     if length(Y) != _n_samples

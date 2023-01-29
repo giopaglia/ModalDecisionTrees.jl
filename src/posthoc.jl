@@ -221,7 +221,7 @@ function train_functional_leaves(
     )
     # World sets for (dataset, frame, instance)
     worlds = Vector{Vector{Vector{<:WST} where {WorldType<:AbstractWorld,WST<:WorldSet{WorldType}}}}([
-        init_world_sets(X, init_conditions(tree))
+        initialworldsets(X, init_conditions(tree))
     for (X,Y) in datasets])
     DTree(train_functional_leaves(root(tree), worlds, datasets, args...; kwargs...), world_types(tree), init_conditions(tree))
 end

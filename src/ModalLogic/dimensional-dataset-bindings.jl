@@ -8,7 +8,7 @@ Base.@propagate_inbounds @inline function get_gamma(d::DimensionalDataset{T,N}, 
     compute_feature(feature, w_values)::T
 end
 
-init_world_sets_fun(d::DimensionalDataset,  i_sample::Integer, W::Type{<:AbstractWorld}) =
-    (iC)->ModalDecisionTrees.init_world_set(iC, FullDimensionalFrame(max_channel_size(d)))
+initialworldset(d::DimensionalDataset,  i_sample::Integer, iC) =
+    ModalDecisionTrees.initialworldset(FullDimensionalFrame(max_channel_size(d)), iC)
 
 ############################################################################################

@@ -7,10 +7,10 @@ import MLJ: predict
 ############################################################################################
 ############################################################################################
 
-inst_init_world_sets(Xs::MultiFrameModalDataset, tree::DTree, i_sample::Integer) = begin
+mm_instance_initialworldset(Xs::MultiFrameModalDataset, tree::DTree, i_sample::Integer) = begin
     Ss = Vector{WorldSet}(undef, nframes(Xs))
     for (i_frame,X) in enumerate(frames(Xs))
-        Ss[i_frame] = init_world_sets_fun(X, i_sample, world_types(tree)[i_frame])(init_conditions(tree)[i_frame])
+        Ss[i_frame] = initialworldset(X, i_sample, init_conditions(tree)[i_frame])
     end
     Ss
 end
@@ -97,7 +97,7 @@ function apply(tree::DTree{L}, X::MultiFrameModalDataset) where {L}
         @logmsg LogDetail " instance $i_sample/$_n_samples"
         # TODO figure out: is it better to interpret the whole dataset at once, or instance-by-instance? The first one enables reusing training code
 
-        worlds = inst_init_world_sets(X, tree, i_sample)
+        worlds = mm_instance_initialworldset(X, tree, i_sample)
 
         predictions[i_sample] = apply(root(tree), X, i_sample, worlds)
     end
@@ -110,7 +110,7 @@ function apply(
         X::MultiFrameModalDataset;
         suppress_parity_warning = false,
         tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
-    ) where {L<:Label, Z<:Real}
+    ) where {L<:Label,Z<:Real}
     @logmsg LogDetail "apply..."
     n_trees = length(trees)
     _n_samples = nsamples(X)
@@ -272,7 +272,7 @@ function apply(
 
     # Propagate instances down the tree
     for i_sample in 1:nsamples(X)
-        worlds = inst_init_world_sets(X, tree, i_sample)
+        worlds = mm_instance_initialworldset(X, tree, i_sample)
         pred, root = apply(root, X, i_sample, worlds, Y[i_sample], update_labels = update_labels)
         push!(predictions, pred)
     end
@@ -286,7 +286,7 @@ function apply(
         Y::AbstractVector{<:L};
         suppress_parity_warning = false,
         tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
-    ) where {L<:Label, Z<:Real}
+    ) where {L<:Label,Z<:Real}
     @logmsg LogDetail "apply..."
     trees = deepcopy(trees)
     n_trees = length(trees)
@@ -335,7 +335,7 @@ function apply(
     predictions, DForest{L}(trees, (;)) # TODO note that the original metrics are lost here
 end
 
-# function apply(tree::DTNode{L}, X::DimensionalDataset{T,D}, Y::AbstractVector{<:L}; reset_leaves = true, update_labels = false) where {L, T, D}
+# function apply(tree::DTNode{L}, X::DimensionalDataset{T,D}, Y::AbstractVector{<:L}; reset_leaves = true, update_labels = false) where {L,T,D}
 #   return apply(DTree(tree, [world_type(ModalDecisionTrees.get_interval_ontology(Val(D-2)))], [start_without_world]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
 # end
 
@@ -375,7 +375,7 @@ function apply_proba(tree::DTree{L}, X::MultiFrameModalDataset, classes) where {
         @logmsg LogDetail " instance $i_sample/$_n_samples"
         # TODO figure out: is it better to interpret the whole dataset at once, or instance-by-instance? The first one enables reusing training code
 
-        worlds = inst_init_world_sets(X, tree, i_sample)
+        worlds = mm_instance_initialworldset(X, tree, i_sample)
 
         this_prediction_scores = apply_proba(root(tree), X, i_sample, worlds)
         # d = Distributions.fit(UnivariateFinite, categorical(this_prediction_scores; levels = classes))
@@ -400,7 +400,7 @@ function apply_proba(tree::DTree{L}, X::MultiFrameModalDataset) where {L<:RLabel
         @logmsg LogDetail " instance $i_sample/$_n_samples"
         # TODO figure out: is it better to interpret the whole dataset at once, or instance-by-instance? The first one enables reusing training code
 
-        worlds = inst_init_world_sets(X, tree, i_sample)
+        worlds = mm_instance_initialworldset(X, tree, i_sample)
 
         prediction_scores[i_sample] = apply_proba(tree.root, X, i_sample, worlds)
     end
@@ -413,7 +413,7 @@ function apply_proba(
         X::MultiFrameModalDataset,
         classes;
         tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
-    ) where {L<:CLabel, Z<:Real}
+    ) where {L<:CLabel,Z<:Real}
     @logmsg LogDetail "apply_proba..."
     n_trees = length(trees)
     _n_samples = nsamples(X)
@@ -446,7 +446,7 @@ function apply_proba(
         trees::AbstractVector{<:DTree{<:L}},
         X::MultiFrameModalDataset;
         tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
-    ) where {L<:RLabel, Z<:Real}
+    ) where {L<:RLabel,Z<:Real}
     @logmsg LogDetail "apply_proba..."
     n_trees = length(trees)
     _n_samples = nsamples(X)
