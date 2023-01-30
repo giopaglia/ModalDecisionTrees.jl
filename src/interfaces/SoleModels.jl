@@ -18,56 +18,72 @@ using FunctionWrappers: FunctionWrapper
 # MDTv1 translation
 ############################################################################################
 
-############################ NOTE: function to try #########################################
+########################### NOTE: functions to test ########################################
 
-function translate_mdtv1(forest::DForest)
+function translate_mdtv1(
+    forest::DForest,
+    info = (;),
+)
     pure_trees = [translate_mdtv1(tree) for tree in trees(forest)]
 
-    info = (;
+    info = merge(info, (;
         metrics = metrics(forest),
-    )
+    ))
 
-    return DecisionForest(pure_trees,info)
+    return DecisionForest(pure_trees, info)
 end
 
-function translate_mdtv1(tree::DTree)
+function translate_mdtv1(
+    tree::DTree,
+    info = (;),
+)
     pure_root = translate_mdtv1(ModalDecisionTrees.root(tree))
-    info = SoleModels.info(pure_root)
-    # TODO
-    # info = merge(info(pure_root),
-    #     tree.metrics
-    # )
+
+    info = merge(info, SoleModels.info(pure_root))
+    info = merge(info, (;))
+    
     return DecisionTree(pure_root, info)
 end
 
-function translate_mdtv1(node::DTInternal, ancestors::Vector{<:DTInternal} = DTInternal[])
+function translate_mdtv1(
+    node::DTInternal, 
+    ancestors::Vector{<:DTInternal} = DTInternal[],
+    info = (;),
+)
     new_ancestors = [ancestors..., node]
     formula = pathformula(DTNode[new_ancestors..., left(node)])
+    info = merge(info, (;
+        this = translate_mdtv1(ModalDecisionTrees.this(node), new_ancestors),
+        supp_labels = ModalDecisionTrees.supp_labels(node),
+    ))
     SoleModels.Branch(
         formula,
         translate_mdtv1(left(node), new_ancestors),
         translate_mdtv1(right(node), new_ancestors),
-        (;
-            this = translate_mdtv1(ModalDecisionTrees.this(node), new_ancestors),
-            supp_labels = ModalDecisionTrees.supp_labels(node),
-        )
+        info
     )
 end
 
-function translate_mdtv1(tree::DTLeaf, ancestors::Vector{<:DTInternal} = DTInternal[])
-    # TODO: info(tree)
-    return SoleModels.ConstantModel(
-        ModalDecisionTrees.prediction(tree),
-        (; supp_labels = ModalDecisionTrees.supp_labels(tree))
-    )
+function translate_mdtv1(
+    tree::DTLeaf,
+    ancestors::Vector{<:DTInternal} = DTInternal[],
+    info = (;),
+)
+    info = merge(info, (;
+        supp_labels = ModalDecisionTrees.supp_labels(tree)
+    ))
+    return SoleModels.ConstantModel(ModalDecisionTrees.prediction(tree), info)
 end
 
-function translate_mdtv1(tree::NSDTLeaf, ancestors::Vector{<:DTInternal} = DTInternal[])
-    # TODO: info(tree)
-    return SoleModels.FunctionModel(
-        ModalDecisionTrees.predicting_function(tree),
-        (; supp_labels = ModalDecisionTrees.supp_labels(tree))
-    )
+function translate_mdtv1(
+    tree::NSDTLeaf,
+    ancestors::Vector{<:DTInternal} = DTInternal[],
+    info = (;),
+)
+    info = merge(info, (;
+        supp_labels = ModalDecisionTrees.supp_labels(tree)
+    ))
+    return SoleModels.FunctionModel(ModalDecisionTrees.predicting_function(tree), info)
 end
 
 ############################################################################################
