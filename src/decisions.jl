@@ -21,30 +21,55 @@ abstract type AbstractDecision end
 function Base.show(io::IO, decision::AbstractDecision)
     println(io, display_decision(decision))
 end
+function display_decision(
+    i_frame::Integer,
+    decision::AbstractDecision;
+    attribute_names_map::Union{Nothing,AbstractVector{<:AbstractVector},AbstractVector{<:AbstractDict}} = nothing,
+    kwargs...,
+)
+    _attribute_names_map = isnothing(attribute_names_map) ? nothing : attribute_names_map[i_frame]
+    "{$i_frame} $(display_decision(decision; attribute_names_map = _attribute_names_map, kwargs...))"
+end
+
+############################################################################################
+
+abstract type SimpleDecision <: AbstractDecision end
+
+function display_decision_inverse(decision::SimpleDecision, kwargs...; args...)
+    display_decision(inverse(decision), kwargs...; args...)
+end
+
+function display_decision_inverse(i_frame::Integer, decision::SimpleDecision, kwargs...; args...)
+    display_decision(i_frame, inverse(decision), kwargs...; args...)
+end
 
 display_existential(rel::AbstractRelation) = "⟨$(rel)⟩"
 display_universal(rel::AbstractRelation)   = "[$(rel)]"
 
 ############################################################################################
 
-abstract type SimpleDecision <: AbstractDecision end
-
 # ⊤
 struct TopDecision <: SimpleDecision end
 display_decision(::TopDecision) = "⊤"
+inverse(::TopDecision) = BotDecision()
 
 # ⊥
 struct BotDecision <: SimpleDecision end
 display_decision(::BotDecision) = "⊥"
+inverse(::BotDecision) = TopDecision()
 
 # ⟨R⟩⊤
 struct ExistentialTopDecision{R<:AbstractRelation} <: SimpleDecision end
 display_decision(::ExistentialTopDecision{R}) where {R<:AbstractRelation} = "$(display_existential(R))⊤"
+inverse(::ExistentialTopDecision{R}) where {R<:AbstractRelation} = UniversalBotDecision{R}()
 
 # [R]⊥
 struct UniversalBotDecision{R<:AbstractRelation} <: SimpleDecision end
 display_decision(::UniversalBotDecision{R}) where {R<:AbstractRelation} = "$(display_universal(R))⊥"
+inverse(::UniversalBotDecision{R}) where {R<:AbstractRelation} = ExistentialTopDecision{R}()
 
+############################################################################################
+############################################################################################
 ############################################################################################
 
 # Decisions based on dimensional conditions
@@ -55,12 +80,29 @@ struct PropositionalDimensionalDecision{T} <: DimensionalDecision{T}
     p :: FeatCondition{T}
 end
 
-feature(d::PropositionalDimensionalDecision) = feature(d.p)
-test_operator(d::PropositionalDimensionalDecision) = test_operator(d.p)
-threshold(d::PropositionalDimensionalDecision) = threshold(d.p)
+proposition(d::PropositionalDimensionalDecision) = d.p
+feature(d::PropositionalDimensionalDecision) = feature(proposition(d))
+test_operator(d::PropositionalDimensionalDecision) = test_operator(proposition(d))
+threshold(d::PropositionalDimensionalDecision) = threshold(proposition(d))
+
+inverse(p::PropositionalDimensionalDecision{T}) where {T} = 
+    PropositionalDimensionalDecision{T}(inverse(p))
+
+############################################################################################
+
+abstract type ModalDimensionalDecision{T} <: DimensionalDecision{T} end
+
+relation(d::ModalDimensionalDecision) = d.relation
+proposition(d::ModalDimensionalDecision) = d.p
+feature(d::ModalDimensionalDecision) = feature(proposition(d))
+test_operator(d::ModalDimensionalDecision) = test_operator(proposition(d))
+threshold(d::ModalDimensionalDecision) = threshold(proposition(d))
+
+is_propositional_decision(d::ModalDimensionalDecision) = (relation(d) isa _RelationId)
+is_global_decision(d::ModalDimensionalDecision) = (relation(d) isa _RelationGlob)
 
 # ⟨R⟩p
-struct ExistentialDimensionalDecision{T} <: DimensionalDecision{T}
+struct ExistentialDimensionalDecision{T} <: ModalDimensionalDecision{T}
 
     # Relation, interpreted as an existential modal operator
     relation  :: AbstractRelation
@@ -113,18 +155,28 @@ struct ExistentialDimensionalDecision{T} <: DimensionalDecision{T}
     end
 end
 
-relation(d::ExistentialDimensionalDecision) = d.relation
-feature(d::ExistentialDimensionalDecision) = feature(d.p)
-test_operator(d::ExistentialDimensionalDecision) = test_operator(d.p)
-threshold(d::ExistentialDimensionalDecision) = threshold(d.p)
+# [R]p
+struct UniversalDimensionalDecision{T} <: ModalDimensionalDecision{T}
+    relation  :: AbstractRelation
+    p         :: FeatCondition{T}
+end
 
-is_propositional_decision(d::ExistentialDimensionalDecision) = (relation(d) isa _RelationId)
-is_global_decision(d::ExistentialDimensionalDecision) = (relation(d) isa _RelationGlob)
+function inverse(decision::ExistentialDimensionalDecision{T}) where {T}
+    UniversalDimensionalDecision{T}(
+        relation(decision),
+        inverse(proposition(decision))
+    )
+end
+function inverse(decision::UniversalDimensionalDecision{T}) where {T}
+    ExistentialDimensionalDecision{T}(
+        relation(decision),
+        inverse(proposition(decision))
+    )
+end
 
 function display_decision(
-        decision::ExistentialDimensionalDecision;
+        decision::Union{ExistentialDimensionalDecision,UniversalDimensionalDecision};
         threshold_display_method::Function = x -> x,
-        universal = false,
         attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing,
         use_feature_abbreviations::Bool = false,
     )
@@ -137,25 +189,12 @@ function display_decision(
         )
     ) $(threshold_display_method(threshold(decision)))"
     if !is_propositional_decision(decision)
-        "$((universal ? display_universal : display_existential)(relation(decision))) ($prop_decision_str)"
+        rel_display_fun = (decision isa ExistentialDimensionalDecision ? display_existential : display_universal)
+        "$(rel_display_fun(relation(decision))) ($prop_decision_str)"
     else
         "$prop_decision_str"
     end
 end
 
-
-function display_decision(
-        i_frame::Integer,
-        decision::ExistentialDimensionalDecision;
-        attribute_names_map::Union{Nothing,AbstractVector{<:AbstractVector},AbstractVector{<:AbstractDict}} = nothing,
-        kwargs...)
-    _attribute_names_map = isnothing(attribute_names_map) ? nothing : attribute_names_map[i_frame]
-    "{$i_frame} $(display_decision(decision; attribute_names_map = _attribute_names_map, kwargs...))"
-end
-
-function display_decision_inverse(i_frame::Integer, decision::ExistentialDimensionalDecision{T}; args...) where {T}
-    inv_decision = ExistentialDimensionalDecision{T}(relation(decision), feature(decision), test_operator_inverse(test_operator(decision)), threshold(decision))
-    display_decision(i_frame, inv_decision; universal = true, args...)
-end
 
 ############################################################################################

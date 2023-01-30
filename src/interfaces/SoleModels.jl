@@ -134,7 +134,8 @@ end
 isleftchild(node::DTNode, parent::DTNode) = (left(parent) == node)
 isrightchild(node::DTNode, parent::DTNode) = (right(parent) == node)
 
-function pathformula(nodes::Vector{<:DTNode})
+# Compute path formula using semantics from TODO cite
+function pathformula(nodes::Vector{<:DTNode{L,<:ExistentialDimensionalDecision}}) where {L}
     # dispatch a seconda del numero di nodi degli ancestors
     if length(nodes) == 0
         error("Cannot compute pathformula on empty path.")
@@ -174,3 +175,72 @@ function pathformula(nodes::Vector{<:DTNode})
         end
     end
 end
+
+############################################################################################
+############################################################################################
+############################################################################################
+
+# lambda(node::DTInternal) = decision2formula(decision(node))
+# lambda_inv(node::DTInternal) = ¬decision2formula(decision(node))
+
+# isback(backnode::DTInternal, back::DTInternal) = (backnode == back(node))
+# isleft(leftnode::DTInternal, node::DTInternal) = (leftnode == left(node))
+# isright(rightnode::DTInternal, node::DTInternal) = (rightnode == right(node))
+
+# function lambda(node::DTInternal, parent::DTInternal)
+#     if isleft(node, parent)
+#         lambda(parent)
+#     elseif isright(node, parent)
+#         lambda_inv(parent)
+#     else
+#         error("Cannot compute lambda of two nodes that are not parent-child: $(node) and $(parent).")
+#     end
+# end
+
+
+# function isimplicative(f::FormulaOrTree)
+#     t = tree(f)
+#     return token(t) == → ||
+#         (any(isa.(token(t), [BoxRelationalOperator, □])) && first(children(t)) == →)
+# end
+
+# function pathformula(nodes::Vector{<:DTNode{L,<:DoubleEdgedDecision}}) where {L}
+#     depth = length(ancestors)
+
+#     if depth == 0
+#         SoleLogics.⊤
+#     elseif depth == 1
+#         lambda(node, first(ancestor))
+#     else
+#         _lambda = lambda(first(ancestors), second(ancestors))
+#         pi1, pi2, ctr, ctr_child = begin
+#         TODO
+#         for a in ancestors...
+#         isback
+#         ctr
+#         end
+#         agreement = !xor(isleft(second(ancestors), first(ancestors)), isleft(ctr_child, ctr))
+
+#         f1 = pureformula(pi1)
+#         f2 = pureformula(pi2)
+        
+#         if !(_lambda isa... ExistsTrueDecision)
+#             if !xor(agreement, !isimplicative(f2))
+#                 _lambda ∧ (f1 ∧ f2)
+#             else
+#                 _lambda → (f1 → f2)
+#             end
+#         else
+#             relation = relation(_lambda)
+#             if !xor(agreement, !isimplicative(f2))
+#                 DiamondRelationalOperator(relation)()(f1 ∧ f2)
+#             else
+#                 BoxRelationalOperator(relation)()(f1 → f2)
+#             end
+#         end
+#     end
+# end
+
+############################################################################################
+############################################################################################
+############################################################################################

@@ -1098,7 +1098,7 @@ test_decision(
         test_decision(X, i_sample, w, feature(decision), test_operator(decision), threshold(decision))
     else
         gamma = begin
-            if relation(decision) isa ModalLogic._RelationGlob
+            if relation(decision) isa _RelationGlob
                 get_global_gamma(X, i_sample, feature(decision), test_operator(decision))
             else
                 get_modal_gamma(X, i_sample, w, relation(decision), feature(decision), test_operator(decision))

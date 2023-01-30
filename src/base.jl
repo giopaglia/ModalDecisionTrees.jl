@@ -38,10 +38,51 @@ abstract type AbstractNode{L<:Label} end
 abstract type AbstractDecisionLeaf{L<:Label} <: AbstractNode{L} end
 abstract type AbstractDecisionInternal{L<:Label,D<:AbstractDecision} <: AbstractNode{L} end
 
-struct DoubleEdgedDecision <: AbstractDecision
-  back     :: AbstractNode # {L,DoubleEdgedDecision}
-  forward  :: AbstractNode # {L,DoubleEdgedDecision}
-  decision :: SimpleDecision
+mutable struct DoubleEdgedDecision{D<:SimpleDecision} <: AbstractDecision
+    decision :: D
+    _back     :: Base.RefValue{N} where N<:AbstractNode # {L,DoubleEdgedDecision}
+    _forth    :: Base.RefValue{N} where N<:AbstractNode # {L,DoubleEdgedDecision}
+
+    function DoubleEdgedDecision{D}(decision::D) where {D<:SimpleDecision}
+        ded = new{D}()
+        ded.decision = decision
+        ded
+    end
+
+    function DoubleEdgedDecision(decision::D) where {D<:SimpleDecision}
+        DoubleEdgedDecision{D}(decision)
+    end
+end
+
+decision(ded::DoubleEdgedDecision) = ded.decision
+back(ded::DoubleEdgedDecision) = isdefined(ded, :_back) ? ded._back[] : nothing
+forth(ded::DoubleEdgedDecision) = isdefined(ded, :_forth) ? ded._forth[] : nothing
+_back(ded::DoubleEdgedDecision) = isdefined(ded, :_back) ? ded._back : nothing
+_forth(ded::DoubleEdgedDecision) = isdefined(ded, :_forth) ? ded._forth : nothing
+
+decision!(ded::DoubleEdgedDecision, decision) = (ded.decision = decision)
+_back!(ded::DoubleEdgedDecision, _back) = (ded._back = _back)
+_forth!(ded::DoubleEdgedDecision, _forth) = (ded._forth = _forth)
+
+# TODO remove?
+is_propositional_decision(ded::DoubleEdgedDecision) = is_propositional_decision(decision(ded))
+is_global_decision(ded::DoubleEdgedDecision) = is_global_decision(decision(ded))
+
+function display_decision(ded::DoubleEdgedDecision, args...; kwargs...)
+    outstr = ""
+    outstr *= "DoubleEdgedDecision("
+    outstr *= display_decision(decision(ded))
+    outstr *= ", " * (isnothing(_back(ded)) ? "-" : "$(typeof(_back(ded)))")
+    outstr *= ", " * (isnothing(_forth(ded)) ? "-" : "$(typeof(_forth(ded)))")
+    outstr *= ")"
+    # outstr *= "DoubleEdgedDecision(\n\t"
+    # outstr *= display_decision(decision(ded))
+    # # outstr *= "\n\tback: " * (isnothing(back(ded)) ? "-" : display_model(back(ded), args...; kwargs...))
+    # # outstr *= "\n\tforth: " * (isnothing(forth(ded)) ? "-" : display_model(forth(ded), args...; kwargs...))
+    # outstr *= "\n\tback: " * (isnothing(_back(ded)) ? "-" : "$(typeof(_back(ded)))")
+    # outstr *= "\n\tforth: " * (isnothing(_forth(ded)) ? "-" : "$(typeof(_forth(ded)))")
+    # outstr *= "\n)"
+    outstr
 end
 
 ############################################################################################
@@ -584,7 +625,7 @@ end
 
     @testset "Decision internal node (DTInternal) + Decision Tree & Forest (DTree & DForest)" begin
 
-        decision = ExistentialDimensionalDecision(ModalLogic.RelationGlob, SingleAttributeMin(1), >=, 10)
+        decision = ExistentialDimensionalDecision(RelationGlob, SingleAttributeMin(1), >=, 10)
 
         reg_leaf, cls_leaf = DTLeaf([1.0,2.0]), DTLeaf([1,2])
 
