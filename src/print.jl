@@ -90,8 +90,8 @@ function print_tree(
         max_depth = nothing,
         kwargs...,
     )
-    train_metrics_str = metrics_str(get_metrics(leaf; train_or_valid = true, kwargs...))
-    valid_metrics_str = metrics_str(get_metrics(leaf; train_or_valid = false, kwargs...))
+    train_metrics_str = get_metrics_str(get_metrics(leaf; train_or_valid = true, kwargs...))
+    valid_metrics_str = get_metrics_str(get_metrics(leaf; train_or_valid = false, kwargs...))
     println(io, "$(brief_prediction_str(leaf)) : {TRAIN: $(train_metrics_str); VALID: $(valid_metrics_str)}")
 end
 
