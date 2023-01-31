@@ -47,7 +47,7 @@ export slice_dataset, concat_datasets,
 export DTree,                   # Decision tree
         DForest,                # Decision forest
         #
-        num_nodes, height, modal_height
+        nnodes, height, modal_height
 
 ############################################################################################
 

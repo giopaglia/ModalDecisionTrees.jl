@@ -268,15 +268,15 @@ function apply(
     tree = (reset_leaves ? _empty_tree_leaves(tree) : tree)
 
     predictions = L[]
-    root = root(tree)
+    _root = root(tree)
 
     # Propagate instances down the tree
     for i_sample in 1:nsamples(X)
         worlds = mm_instance_initialworldset(X, tree, i_sample)
-        pred, root = apply(root, X, i_sample, worlds, Y[i_sample], update_labels = update_labels)
+        pred, _root = apply(_root, X, i_sample, worlds, Y[i_sample], update_labels = update_labels)
         push!(predictions, pred)
     end
-    predictions, DTree(root, world_types(tree), init_conditions(tree))
+    predictions, DTree(_root, world_types(tree), init_conditions(tree))
 end
 
 # use an array of trees to test features

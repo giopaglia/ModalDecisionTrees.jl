@@ -411,19 +411,19 @@ metrics(forest::DForest) = forest.metrics
 ############################################################################################
 
 # Number of leaves
-num_leaves(leaf::AbstractDecisionLeaf)     = 1
-num_leaves(node::DTInternal) = num_leaves(left(node)) + num_leaves(right(node))
-num_leaves(tree::DTree)      = num_leaves(root(tree))
+nleaves(leaf::AbstractDecisionLeaf)     = 1
+nleaves(node::DTInternal) = nleaves(left(node)) + nleaves(right(node))
+nleaves(tree::DTree)      = nleaves(root(tree))
 
 # Number of nodes
-num_nodes(leaf::AbstractDecisionLeaf)     = 1
-num_nodes(node::DTInternal) = 1 + num_nodes(left(node)) + num_nodes(right(node))
-num_nodes(tree::DTree)   = num_nodes(root(tree))
-num_nodes(f::DForest) = sum(num_nodes.(trees(f)))
+nnodes(leaf::AbstractDecisionLeaf)     = 1
+nnodes(node::DTInternal) = 1 + nnodes(left(node)) + nnodes(right(node))
+nnodes(tree::DTree)   = nnodes(root(tree))
+nnodes(f::DForest) = sum(nnodes.(trees(f)))
 
 # Number of trees
-num_trees(f::DForest) = length(trees(f))
-Base.length(f::DForest)    = num_trees(f)
+ntrees(f::DForest) = length(trees(f))
+Base.length(f::DForest)    = ntrees(f)
 
 # Height
 height(leaf::AbstractDecisionLeaf)     = 0
@@ -432,7 +432,7 @@ height(tree::DTree)      = height(root(tree))
 
 # Modal height
 modal_height(leaf::AbstractDecisionLeaf)     = 0
-modal_height(node::DTInternal) = Int(is_modal_node(node)) + max(modal_height(left(node)), modal_height(right(node)))
+modal_height(node::DTInternal) = Int(ismodalnode(node)) + max(modal_height(left(node)), modal_height(right(node)))
 modal_height(tree::DTree)      = modal_height(root(tree))
 
 # Number of supporting instances
@@ -443,12 +443,12 @@ nsamples(tree::DTree;                train_or_valid = true) = nsamples(root(tree
 ############################################################################################
 ############################################################################################
 
-is_leaf_node(leaf::AbstractDecisionLeaf)     = true
-is_leaf_node(node::DTInternal) = false
-is_leaf_node(tree::DTree)      = is_leaf_node(root(tree))
+isleafnode(leaf::AbstractDecisionLeaf)     = true
+isleafnode(node::DTInternal) = false
+isleafnode(tree::DTree)      = isleafnode(root(tree))
 
-is_modal_node(node::DTInternal) = (!is_leaf_node(node) && !is_propositional_decision(decision(node)))
-is_modal_node(tree::DTree)      = is_modal_node(root(tree))
+ismodalnode(node::DTInternal) = (!isleafnode(node) && !is_propositional_decision(decision(node)))
+ismodalnode(tree::DTree)      = ismodalnode(root(tree))
 
 ############################################################################################
 ############################################################################################
@@ -523,8 +523,8 @@ $(display(this(node)))
     decision: $(decision(node))
     miscellaneous: $(miscellaneous(node))
     ###########################################################
-    sub-tree leaves: $(num_leaves(node))
-    sub-tree nodes: $(num_nodes(node))
+    sub-tree leaves: $(nleaves(node))
+    sub-tree nodes: $(nnodes(node))
     sub-tree height: $(height(node))
     sub-tree modal height:  $(modal_height(node))
 )
@@ -537,8 +537,8 @@ Decision Tree{$(L)}(
     world_types:    $(world_types(tree))
     initConditions: $(init_conditions(tree))
     ###########################################################
-    sub-tree leaves: $(num_leaves(tree))
-    sub-tree nodes: $(num_nodes(tree))
+    sub-tree leaves: $(nleaves(tree))
+    sub-tree nodes: $(nnodes(tree))
     sub-tree height: $(height(tree))
     sub-tree modal height:  $(modal_height(tree))
     ###########################################################
