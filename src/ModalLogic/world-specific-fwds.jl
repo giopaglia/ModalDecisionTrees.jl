@@ -4,7 +4,7 @@
 ############################################################################################
 ############################################################################################
 
-abstract type UniformFullDimensionalFWD{T,W<:AbstractWorld} <: AbstractFWD{T,W} end
+abstract type UniformFullDimensionalFWD{T,N,W<:AbstractWorld} <: AbstractFWD{T,W,FR where FR<:FullDimensionalFrame{N,W,Bool}} end
 
 channel_size(fwd::UniformFullDimensionalFWD) = error("TODO add message inviting to add channel_size")
 initialworldset(fwd::UniformFullDimensionalFWD, i_sample, args...) = initialworldset(FullDimensionalFrame(channel_size(fwd)), args...)
@@ -16,7 +16,7 @@ allworlds(fwd::UniformFullDimensionalFWD{T,W}, i_sample::Integer, args...) where
 # FWD, OneWorld: 2D array (nsamples × nfeatures)
 ############################################################################################
 
-struct OneWorldFWD{T} <: UniformFullDimensionalFWD{T,OneWorld}
+struct OneWorldFWD{T} <: UniformFullDimensionalFWD{T,0,OneWorld}
     d :: Array{T,2}
 end
 
@@ -66,7 +66,7 @@ fwd_channel_interpret_world(fwc::T #=Note: should be OneWorldFeaturedChannel{T},
 # FWD, Interval: 4D array (x × y × nsamples × nfeatures)
 ############################################################################################
 
-struct IntervalFWD{T} <: UniformFullDimensionalFWD{T,Interval}
+struct IntervalFWD{T} <: UniformFullDimensionalFWD{T,1,Interval}
     d :: Array{T,4}
 end
 
@@ -119,7 +119,7 @@ fwd_channel_interpret_world(fwc::IntervalFeaturedChannel{T}, w::Interval) where 
 # FWD, Interval: 6D array (x.x × x.y × y.x × y.y × nsamples × nfeatures)
 ############################################################################################
 
-struct Interval2DFWD{T} <: UniformFullDimensionalFWD{T,Interval2D}
+struct Interval2DFWD{T} <: UniformFullDimensionalFWD{T,2,Interval2D}
     d :: Array{T,6}
 end
 

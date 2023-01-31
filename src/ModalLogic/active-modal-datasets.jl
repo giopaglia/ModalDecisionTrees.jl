@@ -39,7 +39,7 @@ end
 # 
 ############################################################################################
 
-@computed struct InterpretedModalDataset{T<:Number,N,W<:AbstractWorld} <: ActiveModalDataset{T,W}
+@computed struct InterpretedModalDataset{T<:Number,N,W<:AbstractWorld} <: ActiveModalDataset{T,W,FullDimensionalFrame{N,W,Bool}}
 
     # Core data (a dimensional domain)
     domain                  :: DimensionalDataset{T,N+1+1}
@@ -251,7 +251,7 @@ Base.@propagate_inbounds @inline get_gamma(imd::InterpretedModalDataset, args...
 # 
 ############################################################################################
 
-abstract type AbstractFWD{T<:Number,W<:AbstractWorld} end
+abstract type AbstractFWD{T<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}} end
 
 # Any implementation for a fwd must indicate their compatible world types via `goeswith`.
 # Fallback:
@@ -343,11 +343,11 @@ Base.getindex(
 # 
 ############################################################################################
 
-struct ExplicitModalDataset{T<:Number,W<:AbstractWorld} <: ActiveModalDataset{T,W}
+struct ExplicitModalDataset{T<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},FWD<:AbstractFWD{T,W,FR}} <: ActiveModalDataset{T,W,FR}
     
     # Core data (fwd lookup table)
-    fwd                :: AbstractFWD{T,W} # TODO this goes in the type parameters
-    
+    fwd                :: FWD
+
     ## Modal frame:
     # Accessibility relations
     relations          :: AbstractVector{<:AbstractRelation}
@@ -358,6 +358,35 @@ struct ExplicitModalDataset{T<:Number,W<:AbstractWorld} <: ActiveModalDataset{T,
     # Test operators associated with each feature, grouped by their respective aggregator
     grouped_featsaggrsnops  :: AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}}
 
+    function ExplicitModalDataset{T,W,FR,FWD}(
+        fwd                     :: FWD,
+        relations               :: AbstractVector{<:AbstractRelation},
+        features                :: AbstractVector{<:AbstractFeature},
+        grouped_featsaggrsnops  :: AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}};
+        allow_no_instances = false,
+    ) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},FWD<:AbstractFWD{T,W,FR}}
+        @assert allow_no_instances || nsamples(fwd) > 0     "Can't instantiate ExplicitModalDataset{$(T), $(W)} with no instance. (fwd's type $(typeof(fwd)))"
+        @assert length(grouped_featsaggrsnops) > 0 && sum(length.(grouped_featsaggrsnops)) > 0 && sum(vcat([[length(test_ops) for test_ops in aggrs] for aggrs in grouped_featsaggrsnops]...)) > 0 "Can't instantiate ExplicitModalDataset{$(T), $(W)} with no test operator: grouped_featsaggrsnops"
+        @assert nfeatures(fwd) == length(features)          "Can't instantiate ExplicitModalDataset{$(T), $(W)} with different numbers of instances $(nsamples(fwd)) and of features $(length(features))."
+        new{T,W,FR,FWD}(fwd, relations, features, grouped_featsaggrsnops)
+    end
+
+    function ExplicitModalDataset{T,W,FR}(
+        fwd                     :: FWD,
+        args...;
+        kwargs...
+    ) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},FWD<:AbstractFWD{T,W,FR}}
+        ExplicitModalDataset{T,W,FR,FWD}(fwd, args...; kwargs...)
+    end
+
+    function ExplicitModalDataset{T,W}(
+        fwd                     :: AbstractFWD{T,W,FR},
+        args...;
+        kwargs...
+    ) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}}
+        ExplicitModalDataset{T,W,FR}(fwd, args...; kwargs...)
+    end
+
     ExplicitModalDataset(
         fwd                    :: AbstractFWD{T,W},
         relations              :: AbstractVector{<:AbstractRelation},
@@ -366,19 +395,6 @@ struct ExplicitModalDataset{T<:Number,W<:AbstractWorld} <: ActiveModalDataset{T,
         args...;
         kwargs...,
     ) where {T,W} = begin ExplicitModalDataset{T,W}(fwd, relations, features, grouped_featsaggrsnops_or_featsnops, args...; kwargs...) end
-
-    function ExplicitModalDataset{T,W}(
-        fwd                     :: AbstractFWD{T,W},
-        relations               :: AbstractVector{<:AbstractRelation},
-        features                :: AbstractVector{<:AbstractFeature},
-        grouped_featsaggrsnops  :: AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}};
-        allow_no_instances = false,
-    ) where {T,W<:AbstractWorld}
-        @assert allow_no_instances || nsamples(fwd) > 0     "Can't instantiate ExplicitModalDataset{$(T), $(W)} with no instance. (fwd's type $(typeof(fwd)))"
-        @assert length(grouped_featsaggrsnops) > 0 && sum(length.(grouped_featsaggrsnops)) > 0 && sum(vcat([[length(test_ops) for test_ops in aggrs] for aggrs in grouped_featsaggrsnops]...)) > 0 "Can't instantiate ExplicitModalDataset{$(T), $(W)} with no test operator: grouped_featsaggrsnops"
-        @assert nfeatures(fwd) == length(features)          "Can't instantiate ExplicitModalDataset{$(T), $(W)} with different numbers of instances $(nsamples(fwd)) and of features $(length(features))."
-        new{T,W}(fwd, relations, features, grouped_featsaggrsnops)
-    end
 
     function ExplicitModalDataset(
         fwd                    :: AbstractFWD{T,W},
@@ -549,7 +565,7 @@ end
 #  the fly and store it for later calls).
 # 
 # We define an abstract type for explicit modal dataset with support lookup tables
-abstract type ExplicitModalDatasetWithSupport{T,W} <: ActiveModalDataset{T,W} end
+abstract type ExplicitModalDatasetWithSupport{T,W,FR} <: ActiveModalDataset{T,W,FR} end
 # And an abstract type for support lookup tables
 abstract type AbstractSupport{T,W} end
 # 
@@ -791,10 +807,10 @@ end
 # TODO avoid code duplication
 ############################################################################################
 
-struct ExplicitModalDatasetS{T<:Number,W<:AbstractWorld} <: ExplicitModalDatasetWithSupport{T,W}
+struct ExplicitModalDatasetS{T<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}} <: ExplicitModalDatasetWithSupport{T,W,FR}
 
     # Core dataset
-    emd                 :: ExplicitModalDataset{T,W}
+    emd                 :: ExplicitModalDataset{T,W,FR}
 
     # Relational and global support
     fwd_rs              :: AbstractRelationalSupport{T,W}
@@ -804,39 +820,46 @@ struct ExplicitModalDatasetS{T<:Number,W<:AbstractWorld} <: ExplicitModalDataset
     featsnaggrs         :: AbstractVector{Tuple{<:AbstractFeature,<:Aggregator}}
     grouped_featsnaggrs :: AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}}
 
-    function ExplicitModalDatasetS{T,W}(
-        emd                 :: ExplicitModalDataset{T,W},
+    function ExplicitModalDatasetS{T,W,FR}(
+        emd                 :: ExplicitModalDataset{T,W,FR},
         fwd_rs              :: AbstractRelationalSupport{T,W},
         fwd_gs              :: Union{AbstractGlobalSupport{T},Nothing},
         featsnaggrs         :: AbstractVector{Tuple{<:AbstractFeature,<:Aggregator}},
         grouped_featsnaggrs :: AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}},
-    ) where {T,W<:AbstractWorld}
-        @assert nsamples(emd) == nsamples(fwd_rs)                               "Can't instantiate ExplicitModalDatasetS{$(T), $(W)} with unmatching nsamples for emd and fwd_rs support: $(nsamples(emd)) and $(nsamples(fwd_rs))"
-        @assert nrelations(emd) == nrelations(fwd_rs)                           "Can't instantiate ExplicitModalDatasetS{$(T), $(W)} with unmatching nrelations for emd and fwd_rs support: $(nrelations(emd)) and $(nrelations(fwd_rs))"
-        @assert sum(length.(grouped_featsnaggrs)) == length(featsnaggrs)          "Can't instantiate ExplicitModalDatasetS{$(T), $(W)} with unmatching nfeatsnaggrs (grouped vs flattened structure): $(sum(length.(emd.grouped_featsaggrsnops))) and $(length(featsnaggrs))"
-        @assert sum(length.(emd.grouped_featsaggrsnops)) == length(featsnaggrs)   "Can't instantiate ExplicitModalDatasetS{$(T), $(W)} with unmatching nfeatsnaggrs for emd and provided featsnaggrs: $(sum(length.(emd.grouped_featsaggrsnops))) and $(length(featsnaggrs))"
-        @assert sum(length.(emd.grouped_featsaggrsnops)) == nfeatsnaggrs(fwd_rs) "Can't instantiate ExplicitModalDatasetS{$(T), $(W)} with unmatching nfeatsnaggrs for emd and fwd_rs support: $(sum(length.(emd.grouped_featsaggrsnops))) and $(nfeatsnaggrs(fwd_rs))"
+    ) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}}
+        @assert nsamples(emd) == nsamples(fwd_rs)                               "Can't instantiate ExplicitModalDatasetS{$(T), $(W), $(FR)} with unmatching nsamples for emd and fwd_rs support: $(nsamples(emd)) and $(nsamples(fwd_rs))"
+        @assert nrelations(emd) == nrelations(fwd_rs)                           "Can't instantiate ExplicitModalDatasetS{$(T), $(W), $(FR)} with unmatching nrelations for emd and fwd_rs support: $(nrelations(emd)) and $(nrelations(fwd_rs))"
+        @assert sum(length.(grouped_featsnaggrs)) == length(featsnaggrs)          "Can't instantiate ExplicitModalDatasetS{$(T), $(W), $(FR)} with unmatching nfeatsnaggrs (grouped vs flattened structure): $(sum(length.(emd.grouped_featsaggrsnops))) and $(length(featsnaggrs))"
+        @assert sum(length.(emd.grouped_featsaggrsnops)) == length(featsnaggrs)   "Can't instantiate ExplicitModalDatasetS{$(T), $(W), $(FR)} with unmatching nfeatsnaggrs for emd and provided featsnaggrs: $(sum(length.(emd.grouped_featsaggrsnops))) and $(length(featsnaggrs))"
+        @assert sum(length.(emd.grouped_featsaggrsnops)) == nfeatsnaggrs(fwd_rs) "Can't instantiate ExplicitModalDatasetS{$(T), $(W), $(FR)} with unmatching nfeatsnaggrs for emd and fwd_rs support: $(sum(length.(emd.grouped_featsaggrsnops))) and $(nfeatsnaggrs(fwd_rs))"
 
         if fwd_gs != nothing
-            @assert nsamples(emd) == nsamples(fwd_gs) "Can't instantiate ExplicitModalDatasetS{$(T), $(W)} with unmatching nsamples for emd and fwd_gs support: $(nsamples(emd)) and $(nsamples(fwd_gs))"
-            # @assert somethinglike(emd) == nfeatsnaggrs(fwd_gs) "Can't instantiate ExplicitModalDatasetS{$(T), $(W)} with unmatching somethinglike for emd and fwd_gs support: $(somethinglike(emd)) and $(nfeatsnaggrs(fwd_gs))"
-            @assert sum(length.(emd.grouped_featsaggrsnops)) == nfeatsnaggrs(fwd_gs) "Can't instantiate ExplicitModalDatasetS{$(T), $(W)} with unmatching nfeatsnaggrs for emd and fwd_gs support: $(sum(length.(emd.grouped_featsaggrsnops))) and $(nfeatsnaggrs(fwd_gs))"
+            @assert nsamples(emd) == nsamples(fwd_gs) "Can't instantiate ExplicitModalDatasetS{$(T), $(W), $(FR)} with unmatching nsamples for emd and fwd_gs support: $(nsamples(emd)) and $(nsamples(fwd_gs))"
+            # @assert somethinglike(emd) == nfeatsnaggrs(fwd_gs) "Can't instantiate ExplicitModalDatasetS{$(T), $(W), $(FR)} with unmatching somethinglike for emd and fwd_gs support: $(somethinglike(emd)) and $(nfeatsnaggrs(fwd_gs))"
+            @assert sum(length.(emd.grouped_featsaggrsnops)) == nfeatsnaggrs(fwd_gs) "Can't instantiate ExplicitModalDatasetS{$(T), $(W), $(FR)} with unmatching nfeatsnaggrs for emd and fwd_gs support: $(sum(length.(emd.grouped_featsaggrsnops))) and $(nfeatsnaggrs(fwd_gs))"
         end
 
-        new{T,W}(emd, fwd_rs, fwd_gs, featsnaggrs, grouped_featsnaggrs)
+        new{T,W,FR}(emd, fwd_rs, fwd_gs, featsnaggrs, grouped_featsnaggrs)
+    end
+
+    function ExplicitModalDatasetS{T,W}(
+        emd                 :: ExplicitModalDataset{T,W,FR},
+        args...
+    ) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}}
+        ExplicitModalDatasetS{T,W,FR}(emd, args...)
     end
 
     function ExplicitModalDatasetS(
-        emd                 :: ExplicitModalDataset{T,W};
+        emd                 :: ExplicitModalDataset{T,W,FR};
         compute_relation_glob :: Bool = true,
-    ) where {T,W<:AbstractWorld}
+    ) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}}
         ExplicitModalDatasetS{T,W}(emd, compute_relation_glob = compute_relation_glob)
     end
 
     function ExplicitModalDatasetS{T,W}(
-        emd                   :: ExplicitModalDataset{T,W};
+        emd                   :: ExplicitModalDataset{T,W,FR};
         compute_relation_glob :: Bool = true,
-    ) where {T,W<:AbstractWorld}
+    ) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}}
         
         featsnaggrs = Tuple{<:AbstractFeature,<:Aggregator}[]
         grouped_featsnaggrs = AbstractVector{Tuple{<:Integer,<:Aggregator}}[]
@@ -855,7 +878,7 @@ struct ExplicitModalDatasetS{T<:Number,W<:AbstractWorld} <: ExplicitModalDataset
         # Compute modal dataset propositions and 1-modal decisions
         fwd_rs, fwd_gs = compute_fwd_supports(emd, grouped_featsnaggrs, compute_relation_glob = compute_relation_glob);
 
-        ExplicitModalDatasetS{T,W}(emd, fwd_rs, fwd_gs, featsnaggrs, grouped_featsnaggrs)
+        ExplicitModalDatasetS{T,W,FR}(emd, fwd_rs, fwd_gs, featsnaggrs, grouped_featsnaggrs)
     end
 
     function ExplicitModalDatasetS(
@@ -877,7 +900,7 @@ struct ExplicitModalDatasetS{T<:Number,W<:AbstractWorld} <: ExplicitModalDataset
     end
 end
 
-mutable struct ExplicitModalDatasetSMemo{T<:Number,W<:AbstractWorld} <: ExplicitModalDatasetWithSupport{T,W}
+mutable struct ExplicitModalDatasetSMemo{T<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}} <: ExplicitModalDatasetWithSupport{T,W,FR}
 
     # Core dataset
     emd                 :: ExplicitModalDataset{T,W}
@@ -890,13 +913,13 @@ mutable struct ExplicitModalDatasetSMemo{T<:Number,W<:AbstractWorld} <: Explicit
     featsnaggrs         :: AbstractVector{Tuple{<:AbstractFeature,<:Aggregator}}
     grouped_featsnaggrs :: AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}}
 
-    function ExplicitModalDatasetSMemo{T,W}(
+    function ExplicitModalDatasetSMemo{T,W,FR}(
         emd                 :: ExplicitModalDataset{T,W},
         fwd_rs              :: AbstractRelationalSupport{<:Union{T,Nothing}, W},
         fwd_gs              :: Union{AbstractGlobalSupport{T},Nothing},
         featsnaggrs         :: AbstractVector{Tuple{<:AbstractFeature,<:Aggregator}},
         grouped_featsnaggrs :: AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}},
-    ) where {T,W<:AbstractWorld}
+    ) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}}
         @assert nsamples(emd) == nsamples(fwd_rs) "Can't instantiate ExplicitModalDatasetSMemo{$(T), $(W)} with unmatching nsamples for emd and fwd_rs support: $(nsamples(emd)) and $(nsamples(fwd_rs))"
         @assert nrelations(emd) == nrelations(fwd_rs) "Can't instantiate ExplicitModalDatasetSMemo{$(T), $(W)} with unmatching nrelations for emd and fwd_rs support: $(nrelations(emd)) and $(nrelations(fwd_rs))"
         @assert sum(length.(grouped_featsnaggrs)) == length(featsnaggrs) "Can't instantiate ExplicitModalDatasetSMemo{$(T), $(W)} with unmatching nfeatsnaggrs (grouped vs flattened structure): $(sum(length.(emd.grouped_featsaggrsnops))) and $(length(featsnaggrs))"
@@ -909,7 +932,21 @@ mutable struct ExplicitModalDatasetSMemo{T<:Number,W<:AbstractWorld} <: Explicit
             @assert sum(length.(emd.grouped_featsaggrsnops)) == nfeatsnaggrs(fwd_gs) "Can't instantiate ExplicitModalDatasetSMemo{$(T), $(W)} with unmatching nfeatsnaggrs for emd and fwd_gs support: $(sum(length.(emd.grouped_featsaggrsnops))) and $(nfeatsnaggrs(fwd_gs))"
         end
 
-        new{T,W}(emd, fwd_rs, fwd_gs, featsnaggrs, grouped_featsnaggrs)
+        new{T,W,FR}(emd, fwd_rs, fwd_gs, featsnaggrs, grouped_featsnaggrs)
+    end
+
+    function ExplicitModalDatasetSMemo{T,W,FR}(
+        emd                 :: ExplicitModalDataset{T,W},
+        args...,
+    ) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}}
+        ExplicitModalDatasetSMemo{T,W,FR}(emd, args...)
+    end
+
+    function ExplicitModalDatasetSMemo{T,W}(
+        emd                 :: ExplicitModalDataset{T,W,FR},
+        args...,
+    ) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}}
+        ExplicitModalDatasetSMemo{T,W,FR}(emd, args...)
     end
 
     function ExplicitModalDatasetSMemo(
@@ -1492,12 +1529,12 @@ end
 # Perform the modal step, that is, evaluate a modal formula
 #  on a domain, and eventually compute the new world set.
 function modal_step(
-        X::Union{ActiveModalDataset{T,W},InterpretedModalDataset{T,N,W}},
+        X::ActiveModalDataset{T,W},
         i_sample::Integer,
         worlds::WorldSetType,
         decision::ExistentialDimensionalDecision{T},
         returns_survivors::Union{Val{true},Val{false}} = Val(false)
-    ) where {T, N, W<:AbstractWorld, WorldSetType<:AbstractWorldSet{W}}
+    ) where {T,W<:AbstractWorld,WorldSetType<:AbstractWorldSet{W}}
     @logmsg LogDetail "modal_step" worlds display_decision(decision)
 
     satisfied = false

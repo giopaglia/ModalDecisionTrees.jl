@@ -27,7 +27,8 @@ export RelationGlob, RelationId
 
 export Ontology, world_type, world_types
 
-using SoleLogics: FullDimensionalFrame
+using SoleLogics: AbstractFrame, FullDimensionalFrame
+using SoleModels: ActiveConditionalDataset, FeatCondition
 
 import SoleLogics: accessibles, allworlds
 import SoleModels: representatives, allworlds_aggr, FeatMetaCondition
@@ -73,19 +74,19 @@ hasnans(n::Number) = _isnan(n)
 hasnans(n::AbstractArray{<:Union{Nothing, Number}}) = any(_isnan.(n))
 
 # A modal dataset can be *active* or *passive*.
-#
+# 
 # A passive modal dataset is one that you can interpret decisions on, but cannot necessarily
 #  enumerate decisions for, as it doesn't have objects for storing the logic (relations, features, etc.).
 # Dimensional datasets are passive.
 include("dimensional-dataset-bindings.jl")
-#
+# 
 const PassiveModalDataset{T} = Union{DimensionalDataset{T}}
-#
+# 
 # Active datasets comprehend structures for representing relation sets, features, enumerating worlds,
 #  etc. While learning a model can be done only with active modal datasets, testing a model
 #  can be done with both active and passive modal datasets.
-#
-abstract type ActiveModalDataset{T<:Number,W<:AbstractWorld} <: AbstractMultiModalFrame{W,Bool} end
+# 
+abstract type ActiveModalDataset{T<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}} <: ActiveConditionalDataset{W,FeatCondition,Bool,FR} end
 
 # TODO maybe remove
 allworlds_aggr(X::ActiveModalDataset, i_sample, args...) = representatives(X, i_sample, RelationGlob, args...)
