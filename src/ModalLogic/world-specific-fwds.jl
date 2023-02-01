@@ -24,15 +24,15 @@ channel_size(fwd::OneWorldFWD) = ()
 goeswith(::Type{OneWorldFWD}, ::Type{OneWorld}) = true
 default_fwd_type(::Type{OneWorld}) = OneWorldFWD
 
-nsamples(fwd::OneWorldFWD{T}) where {T}  = size(fwd, 1)
-nfeatures(fwd::OneWorldFWD{T}) where {T} = size(fwd, 2)
-Base.size(fwd::OneWorldFWD{T}, args...) where {T} = size(fwd.d, args...)
+nsamples(fwd::OneWorldFWD)  = size(fwd.d, 1)
+nfeatures(fwd::OneWorldFWD) = size(fwd.d, 2)
+Base.size(fwd::OneWorldFWD, args...) = size(fwd.d, args...)
 
 function fwd_init(::Type{OneWorldFWD}, X::InterpretedModalDataset{T,0,OneWorld}) where {T}
     OneWorldFWD{T}(Array{T,2}(undef, nsamples(X), nfeatures(X)))
 end
 
-function fwd_init_world_slice(fwd::OneWorldFWD{T}, args...) where {T}
+function fwd_init_world_slice(fwd::OneWorldFWD, i_sample::Integer, w::AbstractWorld)
     nothing
 end
 
@@ -74,15 +74,15 @@ channel_size(fwd::IntervalFWD) = (size(fwd.d, 1),)
 goeswith(::Type{IntervalFWD}, ::Type{Interval}) = true
 default_fwd_type(::Type{Interval}) = IntervalFWD
 
-nsamples(fwd::IntervalFWD{T}) where {T}  = size(fwd, 3)
-nfeatures(fwd::IntervalFWD{T}) where {T} = size(fwd, 4)
-Base.size(fwd::IntervalFWD{T}, args...) where {T} = size(fwd.d, args...)
+nsamples(fwd::IntervalFWD)  = size(fwd.d, 3)
+nfeatures(fwd::IntervalFWD) = size(fwd.d, 4)
+Base.size(fwd::IntervalFWD, args...) = size(fwd.d, args...)
 
 function fwd_init(::Type{IntervalFWD}, X::InterpretedModalDataset{T,1,Interval}) where {T}
     IntervalFWD{T}(Array{T,4}(undef, max_channel_size(X)[1], max_channel_size(X)[1]+1, nsamples(X), nfeatures(X)))
 end
 
-function fwd_init_world_slice(fwd::IntervalFWD{T}, args...) where {T}
+function fwd_init_world_slice(fwd::IntervalFWD, i_sample::Integer, w::AbstractWorld)
     nothing
 end
 
@@ -127,16 +127,16 @@ channel_size(fwd::Interval2DFWD) = (size(fwd.d, 1),size(fwd.d, 3))
 goeswith(::Type{Interval2DFWD}, ::Type{Interval2D}) = true
 default_fwd_type(::Type{Interval2D}) = Interval2DFWD
 
-nsamples(fwd::Interval2DFWD{T}) where {T}  = size(fwd, 5)
-nfeatures(fwd::Interval2DFWD{T}) where {T} = size(fwd, 6)
-Base.size(fwd::Interval2DFWD{T}, args...) where {T} = size(fwd.d, args...)
+nsamples(fwd::Interval2DFWD)  = size(fwd.d, 5)
+nfeatures(fwd::Interval2DFWD) = size(fwd.d, 6)
+Base.size(fwd::Interval2DFWD, args...) = size(fwd.d, args...)
 
 
 function fwd_init(::Type{Interval2DFWD}, X::InterpretedModalDataset{T,2,Interval2D}) where {T}
     Interval2DFWD{T}(Array{T,6}(undef, max_channel_size(X)[1], max_channel_size(X)[1]+1, max_channel_size(X)[2], max_channel_size(X)[2]+1, nsamples(X), nfeatures(X)))
 end
 
-function fwd_init_world_slice(fwd::Interval2DFWD{T}, args...) where {T}
+function fwd_init_world_slice(fwd::Interval2DFWD, i_sample::Integer, w::AbstractWorld)
     nothing
 end
 
@@ -211,24 +211,33 @@ end
 ############################################################################################
 ############################################################################################
 
+abstract type UniformFullDimensionalRelationalSupport{T,W<:AbstractWorld} <: AbstractRelationalSupport{T,W} end
+
+nnothing(fwd_rs::UniformFullDimensionalRelationalSupport) = count(isnothing, fwd_rs.d)
+function nonnothingshare(fwd_rs::UniformFullDimensionalRelationalSupport)
+    isinf(capacity(fwd_rs)) ? (0/Inf) : (1-(nnothing(fwd_rs)  / capacity(fwd_rs)))
+end
+
 ############################################################################################
 # FWD support, OneWorld: 3D array (nsamples × nfeatsnaggrs × nrelations)
 ############################################################################################
 
-struct OneWorldFWD_RS{T} <: AbstractRelationalSupport{T,OneWorld}
+struct OneWorldFWD_RS{T} <: UniformFullDimensionalRelationalSupport{T,OneWorld}
     d :: Array{T,3}
 end
 
-nsamples(emds::OneWorldFWD_RS{T}) where {T}     = size(emds, 1)
-nfeatsnaggrs(emds::OneWorldFWD_RS{T}) where {T} = size(emds, 2)
-nrelations(emds::OneWorldFWD_RS{T}) where {T}   = size(emds, 3)
+nsamples(emds::OneWorldFWD_RS)     = size(emds, 1)
+nfeatsnaggrs(emds::OneWorldFWD_RS) = size(emds, 2)
+nrelations(emds::OneWorldFWD_RS)   = size(emds, 3)
+capacity(emds::OneWorldFWD_RS)     = prod(size(emds.d))
+
 Base.@propagate_inbounds @inline Base.getindex(
     emds         :: OneWorldFWD_RS{T},
     i_sample     :: Integer,
     w            :: OneWorld,
     i_featsnaggr :: Integer,
     i_relation   :: Integer) where {T} = emds.d[i_sample, i_featsnaggr, i_relation]
-Base.size(emds::OneWorldFWD_RS{T}, args...) where {T} = size(emds.d, args...)
+Base.size(emds::OneWorldFWD_RS, args...) = size(emds.d, args...)
 goeswith(::Type{OneWorldFWD_RS}, ::Type{OneWorld}) = true
 
 hasnans(emds::OneWorldFWD_RS) = any(_isnan.(emds.d))
@@ -256,20 +265,23 @@ end
 ############################################################################################
 
 
-struct IntervalFWD_RS{T} <: AbstractRelationalSupport{T,Interval}
+struct IntervalFWD_RS{T} <: UniformFullDimensionalRelationalSupport{T,Interval}
     d :: Array{T,5}
 end
 
-nsamples(emds::IntervalFWD_RS{T}) where {T}     = size(emds, 3)
-nfeatsnaggrs(emds::IntervalFWD_RS{T}) where {T} = size(emds, 4)
-nrelations(emds::IntervalFWD_RS{T}) where {T}   = size(emds, 5)
+nsamples(emds::IntervalFWD_RS)     = size(emds, 3)
+nfeatsnaggrs(emds::IntervalFWD_RS) = size(emds, 4)
+nrelations(emds::IntervalFWD_RS)   = size(emds, 5)
+capacity(emds::IntervalFWD_RS)     =
+    prod([nsamples(emds.d), nfeatsnaggrs(emds), nrelations(emds), nsamples(emds), div(size(emds.d, 1)*(size(emds.d, 1)+1),2)])
+
 Base.@propagate_inbounds @inline Base.getindex(
     emds         :: IntervalFWD_RS{T},
     i_sample     :: Integer,
     w            :: Interval,
     i_featsnaggr :: Integer,
     i_relation   :: Integer) where {T} = emds.d[w.x, w.y, i_sample, i_featsnaggr, i_relation]
-Base.size(emds::IntervalFWD_RS{T}, args...) where {T} = size(emds.d, args...)
+Base.size(emds::IntervalFWD_RS, args...) = size(emds.d, args...)
 goeswith(::Type{IntervalFWD_RS}, ::Type{Interval}) = true
 
 
@@ -301,20 +313,20 @@ end
 # FWD support, Interval2D: 7D array (x.x × x.y × y.x × y.y × nsamples × nfeatsnaggrs × nrelations)
 ############################################################################################
 
-# struct Interval2DFWD_RS{T} <: AbstractRelationalSupport{T,Interval2D}
+# struct Interval2DFWD_RS{T} <: UniformFullDimensionalRelationalSupport{T,Interval2D}
 #   d :: Array{T,7}
 # end
 
-# nsamples(emds::Interval2DFWD_RS{T}) where {T}     = size(emds, 5)
-# nfeatsnaggrs(emds::Interval2DFWD_RS{T}) where {T} = size(emds, 6)
-# nrelations(emds::Interval2DFWD_RS{T}) where {T}   = size(emds, 7)
+# nsamples(emds::Interval2DFWD_RS)     = size(emds, 5)
+# nfeatsnaggrs(emds::Interval2DFWD_RS) = size(emds, 6)
+# nrelations(emds::Interval2DFWD_RS)   = size(emds, 7)
 # Base.@propagate_inbounds @inline Base.getindex(
 #   emds         :: Interval2DFWD_RS{T},
 #   i_sample     :: Integer,
 #   w            :: Interval2D,
 #   i_featsnaggr :: Integer,
 #   i_relation   :: Integer) where {T} = emds.d[w.x.x, w.x.y, w.y.x, w.y.y, i_sample, i_featsnaggr, i_relation]
-# size(emds::Interval2DFWD_RS{T}, args...) where {T} = size(emds.d, args...)
+# size(emds::Interval2DFWD_RS) = size(emds.d, args...)
 # goeswith(::Type{Interval2DFWD_RS}, ::Type{Interval2D}) = true
 
 # TODO... hasnans(emds::Interval2DFWD_RS) = any(_isnan.(emds.d))
@@ -343,20 +355,22 @@ end
 # FWD support, Interval2D: 7D array (linearized(x) × linearized(y) × nsamples × nfeatsnaggrs × nrelations)
 ############################################################################################
 
-struct Interval2DFWD_RS{T} <: AbstractRelationalSupport{T,Interval2D}
+struct Interval2DFWD_RS{T} <: UniformFullDimensionalRelationalSupport{T,Interval2D}
     d :: Array{T,5}
 end
 
-nsamples(emds::Interval2DFWD_RS{T}) where {T}     = size(emds, 3)
-nfeatsnaggrs(emds::Interval2DFWD_RS{T}) where {T} = size(emds, 4)
-nrelations(emds::Interval2DFWD_RS{T}) where {T}   = size(emds, 5)
+nsamples(emds::Interval2DFWD_RS)     = size(emds, 3)
+nfeatsnaggrs(emds::Interval2DFWD_RS) = size(emds, 4)
+nrelations(emds::Interval2DFWD_RS)   = size(emds, 5)
+capacity(emds::Interval2DFWD_RS)     = prod(size(emds.d))
+
 Base.@propagate_inbounds @inline Base.getindex(
     emds         :: Interval2DFWD_RS{T},
     i_sample     :: Integer,
     w            :: Interval2D,
     i_featsnaggr :: Integer,
     i_relation   :: Integer) where {T} = emds.d[w.x.x+div((w.x.y-2)*(w.x.y-1),2), w.y.x+div((w.y.y-2)*(w.y.y-1),2), i_sample, i_featsnaggr, i_relation]
-Base.size(emds::Interval2DFWD_RS{T}, args...) where {T} = size(emds.d, args...)
+Base.size(emds::Interval2DFWD_RS, args...) = size(emds.d, args...)
 goeswith(::Type{Interval2DFWD_RS}, ::Type{Interval2D}) = true
 
 hasnans(emds::Interval2DFWD_RS) = any(_isnan.(emds.d))

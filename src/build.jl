@@ -185,7 +185,7 @@ function build_forest(
     end
     
     if any(map(f->f isa ExplicitModalDataset, frames(X)))
-        @warn "Warning! ExplicitModalDatasetS is recommended for performance, instead of ExplicitModalDataset."
+        @warn "Warning! Consider using the optimized structure ExplicitModalDatasetS, instead of ExplicitModalDataset."
     end
 
     tot_samples = nsamples(X)

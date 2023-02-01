@@ -24,35 +24,31 @@
     # Note: currently, cannot specify the full type (probably due to @computed)
     grouped_featsaggrsnops  :: AbstractVector # AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}}
 
-    function InterpretedModalDataset(
-        domain::DimensionalDataset{T,D},
-        ontology::Ontology{W},
-        mixed_features::AbstractVector{<:MixedFeature},
-    ) where {T,D,W<:AbstractWorld}
-        InterpretedModalDataset{T}(domain, ontology, mixed_features)
-    end
-
-    function InterpretedModalDataset{T}(
-        domain::DimensionalDataset{T,D},
-        ontology::Ontology{W},
-        mixed_features::AbstractVector{<:MixedFeature},
-    ) where {T,D,W<:AbstractWorld}
-        InterpretedModalDataset{T,D-1-1}(domain, ontology, mixed_features)
-    end
-
-    function InterpretedModalDataset{T,N}(
-        domain::DimensionalDataset{T,D},
-        ontology::Ontology{W},
-        mixed_features::AbstractVector{<:MixedFeature},
-    ) where {T,N,D,W<:AbstractWorld}
-        InterpretedModalDataset{T,N,W}(domain, ontology, mixed_features)
-    end
+    ########################################################################################
     
     function InterpretedModalDataset{T,N,W}(
         domain::DimensionalDataset{T,D},
-        ontology::Ontology{W}, # default to get_interval_ontology(Val(D-1-1)) ?
-        mixed_features::AbstractVector{<:MixedFeature},
+        ontology::Ontology{W},
+        features::AbstractVector,
+        grouped_featsaggrsnops::AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}};
+        allow_no_instances = false,
     ) where {T,N,D,W<:AbstractWorld}
+        @assert allow_no_instances || nsamples(domain) > 0 "Can't instantiate InterpretedModalDataset{$(T), $(N), $(W)} with no instance. (domain's type $(typeof(domain)))"
+        @assert goeswith_dim(W, N) "ERROR! Dimensionality mismatch: can't interpret W $(W) on DimensionalDataset of dimensionality = $(N)"
+        @assert D == (N+1+1) "ERROR! Dimensionality mismatch: can't instantiate InterpretedModalDataset{$(T), $(N)} with DimensionalDataset{$(T),$(D)}"
+        @assert length(features) == length(grouped_featsaggrsnops) "Can't instantiate InterpretedModalDataset{$(T), $(N), $(W)} with mismatching length(features) == length(grouped_featsaggrsnops): $(length(features)) != $(length(grouped_featsaggrsnops))"
+        @assert length(grouped_featsaggrsnops) > 0 && sum(length.(grouped_featsaggrsnops)) > 0 && sum(vcat([[length(test_ops) for test_ops in aggrs] for aggrs in grouped_featsaggrsnops]...)) > 0 "Can't instantiate ExplicitModalDataset{$(T), $(W)} with no test operator: $(grouped_featsaggrsnops)"
+        new{T,N,W}(domain, ontology, features, grouped_featsaggrsnops)
+    end
+
+    ########################################################################################
+    
+    function InterpretedModalDataset{T,N,W}(
+        domain::DimensionalDataset{T,D},
+        ontology::Ontology{W},
+        mixed_features::AbstractVector,
+    ) where {T,N,D,W<:AbstractWorld}
+        mixed_features = Vector{MixedFeature}(mixed_features)
         _features, featsnops = begin
             _features = AbstractFeature[]
             featsnops = Vector{<:TestOperatorFun}[]
@@ -98,77 +94,54 @@
         InterpretedModalDataset{T,N,world_type(ontology)}(domain, ontology, _features, featsnops)
     end
 
-    function InterpretedModalDataset(
+    function InterpretedModalDataset{T,N,W}(
         domain::DimensionalDataset{T,D},
         ontology::Ontology{W},
-        features::AbstractVector{<:AbstractFeature},
-        grouped_featsaggrsnops_or_featsnops; # AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}}
+        features::AbstractVector,
+        grouped_featsnops  :: AbstractVector;
         kwargs...,
-    ) where {T,D,W<:AbstractWorld}
-        InterpretedModalDataset{T}(domain, ontology, features, grouped_featsaggrsnops_or_featsnops; kwargs...)
-    end
-
-    function InterpretedModalDataset{T}(
-        domain::DimensionalDataset{T,D},
-        ontology::Ontology{W},
-        features::AbstractVector{<:AbstractFeature},
-        grouped_featsaggrsnops_or_featsnops; # AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}}
-        kwargs...,
-    ) where {T,D,W<:AbstractWorld}
-        InterpretedModalDataset{T,D-1-1}(domain, ontology, features, grouped_featsaggrsnops_or_featsnops; kwargs...)
+    ) where {T,N,D,W<:AbstractWorld}
+        grouped_featsnops = Vector{AbstractVector{TestOperatorFun}}(grouped_featsnops)
+        grouped_featsaggrsnops = grouped_featsnops2grouped_featsaggrsnops(grouped_featsnops)
+        InterpretedModalDataset{T,N,W}(domain, ontology, features, grouped_featsaggrsnops; kwargs...)
     end
 
     function InterpretedModalDataset{T,N}(
         domain::DimensionalDataset{T,D},
         ontology::Ontology{W},
-        features::AbstractVector{<:AbstractFeature},
-        grouped_featsaggrsnops_or_featsnops; # AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}}
+        args...;
         kwargs...,
     ) where {T,N,D,W<:AbstractWorld}
-        InterpretedModalDataset{T,N,W}(domain, ontology, features, grouped_featsaggrsnops_or_featsnops; kwargs...)
+        InterpretedModalDataset{T,N,W}(domain, ontology, args...; kwargs...)
     end
     
-    function InterpretedModalDataset{T,N,W}(
+    function InterpretedModalDataset{T}(
         domain::DimensionalDataset{T,D},
         ontology::Ontology{W},
-        features::AbstractVector{<:AbstractFeature},
-        grouped_featsnops  :: AbstractVector{<:AbstractVector{<:TestOperatorFun}};
+        args...;
         kwargs...,
-    ) where {T,N,D,W<:AbstractWorld}
-
-        grouped_featsaggrsnops = grouped_featsnops2grouped_featsaggrsnops(grouped_featsnops)
-        
-        InterpretedModalDataset{T,N,W}(domain, ontology, features, grouped_featsaggrsnops; kwargs...)
+    ) where {T,D,W<:AbstractWorld}
+        InterpretedModalDataset{T,D-1-1}(domain, ontology, args...; kwargs...)
     end
-    function InterpretedModalDataset{T,N,W}(
+
+    function InterpretedModalDataset(
         domain::DimensionalDataset{T,D},
         ontology::Ontology{W},
-        features::AbstractVector{<:AbstractFeature},
-        grouped_featsaggrsnops::AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}};
-        allow_no_instances = false,
-    ) where {T,N,D,W<:AbstractWorld}
-
-        @assert allow_no_instances || nsamples(domain) > 0 "Can't instantiate InterpretedModalDataset{$(T), $(N), $(W)} with no instance. (domain's type $(typeof(domain)))"
-        @assert goeswith_dim(W, N) "ERROR! Dimensionality mismatch: can't interpret W $(W) on DimensionalDataset of dimensionality = $(N)"
-        @assert D == (N+1+1) "ERROR! Dimensionality mismatch: can't instantiate InterpretedModalDataset{$(T), $(N)} with DimensionalDataset{$(T),$(D)}"
-        @assert length(features) == length(grouped_featsaggrsnops) "Can't instantiate InterpretedModalDataset{$(T), $(N), $(W)} with mismatching length(features) == length(grouped_featsaggrsnops): $(length(features)) != $(length(grouped_featsaggrsnops))"
-        # @assert length(grouped_featsaggrsnops) > 0 && sum(length.(grouped_featsaggrsnops)) > 0 && sum(vcat([[length(test_ops) for test_ops in aggrs] for aggrs in grouped_featsaggrsnops]...)) > 0 "Can't instantiate ExplicitModalDataset{$(T), $(W)} with no test operator: $(grouped_featsaggrsnops)"
-
-        # if prod(max_channel_size(domain)) == 1
-        #   TODO throw warning
-        # end
-        
-        new{T,N,W}(domain, ontology, features, grouped_featsaggrsnops)
+        args...;
+        kwargs...,
+    ) where {T,D,W<:AbstractWorld}
+        InterpretedModalDataset{T}(domain, ontology, args...; kwargs...)
     end
+
 end
 
 Base.size(imd::InterpretedModalDataset)              = size(imd.domain)
 features(imd::InterpretedModalDataset)               = imd.features
 grouped_featsaggrsnops(imd::InterpretedModalDataset) = imd.grouped_featsaggrsnops
-nattributes(imd::InterpretedModalDataset)           = nattributes(imd.domain)::Int64
-nfeatures(imd::InterpretedModalDataset)             = length(features(imd))::Int64
-nrelations(imd::InterpretedModalDataset)            = length(relations(imd))::Int64
-nsamples(imd::InterpretedModalDataset)              = nsamples(imd.domain)::Int64
+nattributes(imd::InterpretedModalDataset)           = nattributes(imd.domain)
+nfeatures(imd::InterpretedModalDataset)             = length(features(imd))
+nrelations(imd::InterpretedModalDataset)            = length(relations(imd))
+nsamples(imd::InterpretedModalDataset)              = nsamples(imd.domain)
 relations(imd::InterpretedModalDataset)              = relations(imd.ontology)
 world_type(imd::InterpretedModalDataset{T,N,WT}) where {T,N,WT} = WT
 

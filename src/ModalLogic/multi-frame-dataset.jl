@@ -38,7 +38,7 @@ Base.length(X::MultiFrameModalDataset)                              = nsamples(X
 Base.size(X::MultiFrameModalDataset)                                = map(size, frames(X))
 get_frame(X::MultiFrameModalDataset, i_frame::Integer)              = nframes(X) > 0 ? frames(X)[i_frame] : error("MultiFrameModalDataset has no frame!")
 nframes(X::MultiFrameModalDataset)                                 = length(frames(X))
-nsamples(X::MultiFrameModalDataset)                                = nsamples(get_frame(X, 1))::Int64
+nsamples(X::MultiFrameModalDataset)                                = nsamples(get_frame(X, 1))
 Base.push!(X::MultiFrameModalDataset, f::ModalDataset) = push!(frames(X), f)
 
 # max_channel_size(X::MultiFrameModalDataset) = map(max_channel_size, frames(X)) # TODO: figure if this is useless or not. Note: channel_size doesn't make sense at this point.

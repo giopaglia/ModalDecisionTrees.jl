@@ -65,8 +65,7 @@ export nfeatures, nrelations,
        ActiveModalDataset,
        InterpretedModalDataset,
        ExplicitModalDataset,
-       ExplicitModalDatasetS,
-       ExplicitModalDatasetSMemo
+       ExplicitModalDatasetS
 
 _isnan(n::Number) = isnan(n)
 _isnan(n::Nothing) = false

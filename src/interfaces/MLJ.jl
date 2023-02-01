@@ -257,7 +257,7 @@ function DataFrame2MultiFrameModalDataset(
                 WorldType != MDT.OneWorld && (
                     (allow_global_splits || _init_conditions == MDT.start_without_world)
                 )
-            MDT.ExplicitModalDatasetSMemo(__X, compute_relation_glob = compute_relation_glob)
+            MDT.ExplicitModalDatasetS(__X; use_memoization = true, compute_relation_glob = compute_relation_glob)
         end, _init_conditions)
     end for (i_frame, frame) in enumerate(frame_grouping)]
     Xs, init_conditions = zip(Xs_ic...)

@@ -922,8 +922,8 @@ end
         # println(Xs)
         # println(ModalLogic.display_structure(Xs))
         # println(ModalLogic.hasnans(Xs))
-        # println(ModalLogic.hasnans.([X.emd for X in frames(Xs)]))
-        # println(ModalLogic.hasnans.([X.emd.fwd for X in frames(Xs)]))
+        # println(ModalLogic.hasnans.([emd(X) for X in frames(Xs)]))
+        # println(ModalLogic.hasnans.([emd(X).fwd for X in frames(Xs)]))
         # println(frames(Xs)[1].emd.fwd)
         throw_n_log("This algorithm doesn't allow NaN values")
     end

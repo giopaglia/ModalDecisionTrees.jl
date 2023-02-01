@@ -14,6 +14,8 @@ end
 nsamples(emds::GenericRelationalSupport)     = size(emds, 1)
 nfeatsnaggrs(emds::GenericRelationalSupport) = size(emds, 2)
 nrelations(emds::GenericRelationalSupport)   = size(emds, 3)
+capacity(emds::GenericRelationalSupport)     = Inf
+
 Base.getindex(
     emds         :: GenericRelationalSupport{T,W},
     i_sample     :: Integer,
@@ -77,7 +79,7 @@ Base.@propagate_inbounds function compute_fwd_supports(
         emd                 :: ExplicitModalDataset{T,W},
         grouped_featsnaggrs :: AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}};
         compute_relation_glob = false,
-        simply_init_modal = false,
+        simply_init_rs = false,
     ) where {T,W<:AbstractWorld}
 
     # @logmsg LogOverview "ExplicitModalDataset -> ExplicitModalDatasetS "
@@ -108,7 +110,8 @@ Base.@propagate_inbounds function compute_fwd_supports(
     # println(grouped_featsnaggrs)
 
     # Prepare fwd_rs
-    fwd_rs = fwd_rs_init(emd, nfeatsnaggrs, nrelations; perform_initialization = simply_init_modal)
+    # println("perform_initialization = $(perform_initialization)")
+    fwd_rs = fwd_rs_init(emd, nfeatsnaggrs, nrelations; perform_initialization = simply_init_rs)
 
     # Prepare fwd_gs
     fwd_gs = begin
@@ -157,7 +160,7 @@ Base.@propagate_inbounds function compute_fwd_supports(
             end
             # readline()
 
-            if !simply_init_modal
+            if !simply_init_rs
                 # Other relations
                 for (i_relation,relation) in enumerate(_relations)
 

@@ -156,7 +156,7 @@ features(X::ExplicitModalDataset)               = X.features
 grouped_featsaggrsnops(X::ExplicitModalDataset) = X.grouped_featsaggrsnops
 nfeatures(X::ExplicitModalDataset)              = length(X.features)
 nrelations(X::ExplicitModalDataset)             = length(X.relations)
-nsamples(X::ExplicitModalDataset)               = nsamples(X.fwd)::Int64
+nsamples(X::ExplicitModalDataset)               = nsamples(X.fwd)
 relations(X::ExplicitModalDataset)              = X.relations
 world_type(X::ExplicitModalDataset{T,W}) where {T,W<:AbstractWorld} = W
 
@@ -167,14 +167,15 @@ representatives(X::ExplicitModalDataset, i_sample, args...) = representatives(X.
 allworlds(X::ExplicitModalDataset, i_sample, args...) = allworlds(X.fwd, i_sample, args...)
 
 
-slice_dataset(X::ExplicitModalDataset{T,W}, inds::AbstractVector{<:Integer}, args...; allow_no_instances = false, kwargs...) where {T,W} =
-    ExplicitModalDataset{T,W}(
+function slice_dataset(X::ExplicitModalDataset, inds::AbstractVector{<:Integer}, args...; allow_no_instances = false, kwargs...)
+    ExplicitModalDataset(
         slice_dataset(X.fwd, inds, args...; allow_no_instances = allow_no_instances, kwargs...),
         X.relations,
         X.features,
         X.grouped_featsaggrsnops;
         allow_no_instances = allow_no_instances
     )
+end
 
 
 function display_structure(emd::ExplicitModalDataset; indent_str = "")
