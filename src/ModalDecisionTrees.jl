@@ -51,8 +51,8 @@ export DTree,                   # Decision tree
 
 ############################################################################################
 
-# Util functions
-include("util.jl")
+# Utility functions
+include("utils.jl")
 
 # Decisions at the tree's internal nodes
 include("decisions.jl")

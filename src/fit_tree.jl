@@ -762,7 +762,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # DEBUGprintln(unsatisfied_flags)
 
             @logmsg LogDetail "pre-partition" region idxs[region] unsatisfied_flags
-            node.split_at = util.partition!(idxs, unsatisfied_flags, 0, region)
+            node.split_at = utils.partition!(idxs, unsatisfied_flags, 0, region)
             @logmsg LogDetail "post-partition" idxs[region] node.split_at
 
             # For debug:
@@ -771,7 +771,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # partition!(idxs, unsatisfied_flags, 0, 1:10)
 
             # Sort [Xf, Yf, Wf, Sf and idxs] by Xf
-            # util.q_bi_sort!(unsatisfied_flags, idxs, 1, _n_samples, r_start)
+            # utils.q_bi_sort!(unsatisfied_flags, idxs, 1, _n_samples, r_start)
             # node.split_at = searchsortedfirst(unsatisfied_flags, true)
         end
     end

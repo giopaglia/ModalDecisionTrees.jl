@@ -172,7 +172,7 @@ isminifiable(::ExplicitModalDatasetS) = true
 
 function minify(X::EMD) where {EMD<:ExplicitModalDatasetS}
     (new_emd, new_fwd_rs, new_fwd_gs), backmap =
-        util.minify([
+        minify([
             emd(X),
             X.fwd_rs,
             X.fwd_gs,

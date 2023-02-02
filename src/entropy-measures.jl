@@ -1,5 +1,3 @@
-export entropy
-
 default_loss_function(::Type{<:CLabel}) = entropy
 default_loss_function(::Type{<:RLabel}) = variance
 

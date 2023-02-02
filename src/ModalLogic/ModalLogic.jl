@@ -1,7 +1,6 @@
 module ModalLogic
 
 using ..ModalDecisionTrees
-using ..ModalDecisionTrees: util
 
 using ..ModalDecisionTrees: DimensionalDataset, AbstractDimensionalChannel, AbstractDimensionalInstance, UniformDimensionalDataset, DimensionalChannel, DimensionalInstance
 
@@ -32,6 +31,7 @@ using SoleModels: ActiveConditionalDataset, FeatCondition
 
 import SoleLogics: accessibles, allworlds
 import SoleModels: representatives, allworlds_aggr, FeatMetaCondition
+import SoleModels.utils: minify
 
 using SoleModels: AbstractMultiModalFrame
 

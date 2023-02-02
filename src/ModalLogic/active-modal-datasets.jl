@@ -103,7 +103,7 @@ abstract type AbstractGlobalSupport{T}       <: AbstractSupport{T,W where W<:Abs
 isminifiable(::Union{AbstractFWD,AbstractRelationalSupport,AbstractGlobalSupport}) = true
 
 function minify(fwd_or_support::Union{AbstractFWD,AbstractRelationalSupport,AbstractGlobalSupport})
-    util.minify(fwd_or_support.d)
+    minify(fwd_or_support.d)
 end
 
 ############################################################################################
