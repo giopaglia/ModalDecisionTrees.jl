@@ -114,7 +114,8 @@ const GenericModalDataset = Union{ModalDataset,MultiFrameModalDataset}
 include("dimensional-ontologies.jl")
 
 # World-specific featured world datasets and supports
-include("world-specific-fwds.jl")
+include("fwds.jl")
+include("fwd-supports.jl")
 
 ############################################################################################
 

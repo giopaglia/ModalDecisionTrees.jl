@@ -9,7 +9,14 @@
 # 
 ############################################################################################
 
-struct ExplicitModalDataset{T<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},FWD<:AbstractFWD{T,W,FR}} <: ActiveModalDataset{T,W,FR}
+struct ExplicitModalDataset{
+    T<:Number,
+    W<:AbstractWorld,
+    FR<:AbstractFrame{W,Bool},
+    FWD<:AbstractFWD{T,W,FR},
+    G1<:AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}},
+    G2<:AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}},
+} <: ActiveModalDataset{T,W,FR}
     
     # Core data (fwd lookup table)
     fwd                :: FWD
@@ -22,8 +29,10 @@ struct ExplicitModalDataset{T<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}
     features           :: AbstractVector{<:AbstractFeature}
 
     # Test operators associated with each feature, grouped by their respective aggregator
-    grouped_featsaggrsnops  :: AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}}
-
+    grouped_featsaggrsnops  :: G1
+    
+    grouped_featsnaggrs :: G2
+    
     function ExplicitModalDataset{T,W,FR,FWD}(
         fwd                     :: FWD,
         relations               :: AbstractVector{<:AbstractRelation},
@@ -34,7 +43,8 @@ struct ExplicitModalDataset{T<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}
         @assert allow_no_instances || nsamples(fwd) > 0     "Can't instantiate ExplicitModalDataset{$(T), $(W)} with no instance. (fwd's type $(typeof(fwd)))"
         @assert length(grouped_featsaggrsnops) > 0 && sum(length.(grouped_featsaggrsnops)) > 0 && sum(vcat([[length(test_ops) for test_ops in aggrs] for aggrs in grouped_featsaggrsnops]...)) > 0 "Can't instantiate ExplicitModalDataset{$(T), $(W)} with no test operator: grouped_featsaggrsnops"
         @assert nfeatures(fwd) == length(features)          "Can't instantiate ExplicitModalDataset{$(T), $(W)} with different numbers of instances $(nsamples(fwd)) and of features $(length(features))."
-        new{T,W,FR,FWD}(fwd, relations, features, grouped_featsaggrsnops)
+        grouped_featsnaggrs = features_grouped_featsaggrsnops2grouped_featsnaggrs(features, grouped_featsaggrsnops)
+        new{T,W,FR,FWD,typeof(grouped_featsaggrsnops),typeof(grouped_featsnaggrs)}(fwd, relations, features, grouped_featsaggrsnops, grouped_featsnaggrs)
     end
 
     function ExplicitModalDataset{T,W,FR}(
@@ -131,7 +141,6 @@ struct ExplicitModalDataset{T<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}
 
                     for (i_feature,feature) in enum_features
 
-                        # threshold = computePropositionalThreshold(feature, w, instance)
                         threshold = get_gamma(imd, i_sample, w, feature)
 
                         @logmsg LogDebug "Feature $(i_feature)" threshold
@@ -150,26 +159,28 @@ struct ExplicitModalDataset{T<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}
 
 end
 
-Base.getindex(X::ExplicitModalDataset{T,W}, args...) where {T,W} = getindex(X.fwd, args...)
-Base.size(X::ExplicitModalDataset)              = size(X.fwd) # TODO fix not always defined?
+Base.getindex(X::ExplicitModalDataset{T,W}, args...) where {T,W} = getindex(fwd(X), args...)
+Base.size(X::ExplicitModalDataset)              = size(fwd(X)) # TODO fix not always defined?
 features(X::ExplicitModalDataset)               = X.features
 grouped_featsaggrsnops(X::ExplicitModalDataset) = X.grouped_featsaggrsnops
+grouped_featsnaggrs(X::ExplicitModalDataset)    = X.grouped_featsnaggrs
 nfeatures(X::ExplicitModalDataset)              = length(X.features)
 nrelations(X::ExplicitModalDataset)             = length(X.relations)
-nsamples(X::ExplicitModalDataset)               = nsamples(X.fwd)
+nsamples(X::ExplicitModalDataset)               = nsamples(fwd(X))
 relations(X::ExplicitModalDataset)              = X.relations
+fwd(X::ExplicitModalDataset)                    = X.fwd
 world_type(X::ExplicitModalDataset{T,W}) where {T,W<:AbstractWorld} = W
 
 
-initialworldset(X::ExplicitModalDataset, i_sample, args...) = initialworldset(X.fwd, i_sample, args...)
-accessibles(X::ExplicitModalDataset, i_sample, args...) = accessibles(X.fwd, i_sample, args...)
-representatives(X::ExplicitModalDataset, i_sample, args...) = representatives(X.fwd, i_sample, args...)
-allworlds(X::ExplicitModalDataset, i_sample, args...) = allworlds(X.fwd, i_sample, args...)
+initialworldset(X::ExplicitModalDataset, i_sample, args...) = initialworldset(fwd(X), i_sample, args...)
+accessibles(X::ExplicitModalDataset, i_sample, args...) = accessibles(fwd(X), i_sample, args...)
+representatives(X::ExplicitModalDataset, i_sample, args...) = representatives(fwd(X), i_sample, args...)
+allworlds(X::ExplicitModalDataset, i_sample, args...) = allworlds(fwd(X), i_sample, args...)
 
 
 function slice_dataset(X::ExplicitModalDataset, inds::AbstractVector{<:Integer}, args...; allow_no_instances = false, kwargs...)
     ExplicitModalDataset(
-        slice_dataset(X.fwd, inds, args...; allow_no_instances = allow_no_instances, kwargs...),
+        slice_dataset(fwd(X), inds, args...; allow_no_instances = allow_no_instances, kwargs...),
         X.relations,
         X.features,
         X.grouped_featsaggrsnops;
@@ -181,7 +192,7 @@ end
 function display_structure(emd::ExplicitModalDataset; indent_str = "")
     out = "$(typeof(emd))\t$(Base.summarysize(emd) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
     out *= indent_str * "├ relations: \t$((length(relations(emd))))\t$(relations(emd))\n"
-    out *= indent_str * "└ fwd: \t$(typeof(emd.fwd))\t$(Base.summarysize(emd.fwd) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
+    out *= indent_str * "└ fwd: \t$(typeof(fwd(emd)))\t$(Base.summarysize(fwd(emd)) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
     out
 end
 
@@ -192,9 +203,41 @@ find_relation_id(X::ExplicitModalDataset{T,W}, relation::AbstractRelation) where
     findall(x->x==relation, relations(X))[1]
 
 hasnans(emd::ExplicitModalDataset) = begin
-    # @show hasnans(emd.fwd)
-    hasnans(emd.fwd)
+    # @show hasnans(fwd(emd))
+    hasnans(fwd(emd))
 end
+
+
+isminifiable(::ExplicitModalDataset) = true
+
+function minify(X::ExplicitModalDataset)
+    new_fwd, backmap = minify(fwd(X))
+    X = ExplicitModalDataset(
+        new_fwd,
+        X.relations,
+        X.features,
+        X.grouped_featsaggrsnops,
+    )
+    X, backmap
+end
+
+############################################################################################
+############################################################################################
+############################################################################################
+
+function _compute_global_gamma(emd::ExplicitModalDataset, i_sample, cur_fwd_slice, feature, aggr)
+    # accessible_worlds = allworlds(emd, i_sample)
+    accessible_worlds = allworlds_aggr(emd, i_sample, feature, aggr)
+    threshold = apply_aggregator(cur_fwd_slice, accessible_worlds, aggr)
+end
+
+function _compute_modal_gamma(emd::ExplicitModalDataset, i_sample, cur_fwd_slice, w, relation, feature, aggr)
+    # accessible_worlds = accessibles(emd, i_sample, w, relation)
+    accessible_worlds = representatives(emd, i_sample, w, relation, feature, aggr)
+    threshold = apply_aggregator(cur_fwd_slice, accessible_worlds, aggr)
+end
+
+
 
 Base.@propagate_inbounds @inline get_gamma(
         X::ExplicitModalDataset{T,W},
@@ -205,15 +248,26 @@ Base.@propagate_inbounds @inline get_gamma(
     X[i_sample, w, i_feature]
 end
 
-isminifiable(::ExplicitModalDataset) = true
+Base.@propagate_inbounds @inline function get_modal_gamma(d::ExplicitModalDataset{T,W}, i_sample::Integer, w::W, relation::AbstractRelation, feature::AbstractFeature, test_operator::TestOperatorFun) where {T,W<:AbstractWorld}
+    aggr = existential_aggregator(test_operator)
+    _get_modal_gamma(d, i_sample, w, relation, feature, aggr)
+end
 
-function minify(X::ExplicitModalDataset)
-    new_fwd, backmap = minify(X.fwd)
-    X = ExplicitModalDataset(
-        new_fwd,
-        X.relations,
-        X.features,
-        X.grouped_featsaggrsnops,
-    )
-    X, backmap
+Base.@propagate_inbounds @inline function get_global_gamma(d::ExplicitModalDataset{T,W}, i_sample::Integer, feature::AbstractFeature, test_operator::TestOperatorFun) where {T,W<:AbstractWorld}
+    aggr = existential_aggregator(test_operator)
+    _get_global_gamma(d, i_sample, feature, aggr)
+end
+
+Base.@propagate_inbounds @inline function _get_modal_gamma(d::ExplicitModalDataset{T,W}, i_sample::Integer, w::W, relation::AbstractRelation, feature::AbstractFeature, aggr::Aggregator) where {T,W<:AbstractWorld}
+    aggr([
+        aggregator_bottom(aggr, T),
+        [get_gamma(d, i_sample, w2) for w2 in representatives(FullDimensionalFrame(max_channel_size(d)), w, relation, feature, aggr)]...
+    ])
+end
+
+Base.@propagate_inbounds @inline function _get_global_gamma(d::ExplicitModalDataset{T,W}, i_sample::Integer, feature::AbstractFeature, aggr::Aggregator) where {T,W<:AbstractWorld}
+    aggr([
+        aggregator_bottom(aggr, T),
+        [get_gamma(d, i_sample, w2) for w2 in representatives(FullDimensionalFrame(max_channel_size(d)), RelationGlob, feature, aggr)]...
+    ])
 end

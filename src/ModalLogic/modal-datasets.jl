@@ -102,42 +102,6 @@ test_decision(
 end
 
 
-export generate_feasible_decisions
-                # ,
-                # generate_propositional_feasible_decisions,
-                # generate_global_feasible_decisions,
-                # generate_modal_feasible_decisions
-
-Base.@propagate_inbounds @resumable function generate_feasible_decisions(
-        X::ActiveModalDataset{T,W},
-        instances_inds::AbstractVector{<:Integer},
-        Sf::AbstractVector{<:AbstractWorldSet{W}},
-        allow_propositional_decisions::Bool,
-        allow_modal_decisions::Bool,
-        allow_global_decisions::Bool,
-        modal_relations_inds::AbstractVector{<:Integer},
-        features_inds::AbstractVector{<:Integer},
-        ) where {T,W<:AbstractWorld}
-    # Propositional splits
-    if allow_propositional_decisions
-        for decision in generate_propositional_feasible_decisions(X, instances_inds, Sf, features_inds)
-            @yield decision
-        end
-    end
-    # Global splits
-    if allow_global_decisions
-        for decision in generate_global_feasible_decisions(X, instances_inds, Sf, features_inds)
-            @yield decision
-        end
-    end
-    # Modal splits
-    if allow_modal_decisions
-        for decision in generate_modal_feasible_decisions(X, instances_inds, Sf, modal_relations_inds, features_inds)
-            @yield decision
-        end
-    end
-end
-
 
 # function slice_dataset(x::Any, dataset_slice::AbstractVector{<:Integer}; allow_no_instances = false, kwargs...)
 #     @assert (allow_no_instances || length(dataset_slice) > 0) "Can't apply empty slice to dataset."

@@ -9,7 +9,13 @@
 # 
 ############################################################################################
 
-@computed struct InterpretedModalDataset{T<:Number,N,W<:AbstractWorld} <: ActiveModalDataset{T,W,FullDimensionalFrame{N,W,Bool}}
+@computed struct InterpretedModalDataset{
+    T<:Number,
+    N,
+    W<:AbstractWorld,
+    G1<:AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}},
+    G2<:AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}},
+} <: ActiveModalDataset{T,W,FullDimensionalFrame{N,W,Bool}}
 
     # Core data (a dimensional domain)
     domain                  :: DimensionalDataset{T,N+1+1}
@@ -22,7 +28,11 @@
 
     # Test operators associated with each feature, grouped by their respective aggregator
     # Note: currently, cannot specify the full type (probably due to @computed)
-    grouped_featsaggrsnops  :: AbstractVector # AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}}
+    grouped_featsaggrsnops  :: G1
+
+    # Features and Aggregators
+    # featsnaggrs         :: AbstractVector{Tuple{<:AbstractFeature,<:Aggregator}}
+    grouped_featsnaggrs :: G2
 
     ########################################################################################
     
@@ -38,7 +48,8 @@
         @assert D == (N+1+1) "ERROR! Dimensionality mismatch: can't instantiate InterpretedModalDataset{$(T), $(N)} with DimensionalDataset{$(T),$(D)}"
         @assert length(features) == length(grouped_featsaggrsnops) "Can't instantiate InterpretedModalDataset{$(T), $(N), $(W)} with mismatching length(features) == length(grouped_featsaggrsnops): $(length(features)) != $(length(grouped_featsaggrsnops))"
         @assert length(grouped_featsaggrsnops) > 0 && sum(length.(grouped_featsaggrsnops)) > 0 && sum(vcat([[length(test_ops) for test_ops in aggrs] for aggrs in grouped_featsaggrsnops]...)) > 0 "Can't instantiate ExplicitModalDataset{$(T), $(W)} with no test operator: $(grouped_featsaggrsnops)"
-        new{T,N,W}(domain, ontology, features, grouped_featsaggrsnops)
+        grouped_featsnaggrs = features_grouped_featsaggrsnops2grouped_featsnaggrs(features, grouped_featsaggrsnops)
+        new{T,N,W,typeof(grouped_featsaggrsnops),typeof(grouped_featsnaggrs)}(domain, ontology, features, grouped_featsaggrsnops, grouped_featsnaggrs)
     end
 
     ########################################################################################
@@ -138,10 +149,11 @@ end
 Base.size(imd::InterpretedModalDataset)              = size(imd.domain)
 features(imd::InterpretedModalDataset)               = imd.features
 grouped_featsaggrsnops(imd::InterpretedModalDataset) = imd.grouped_featsaggrsnops
-nattributes(imd::InterpretedModalDataset)           = nattributes(imd.domain)
-nfeatures(imd::InterpretedModalDataset)             = length(features(imd))
-nrelations(imd::InterpretedModalDataset)            = length(relations(imd))
-nsamples(imd::InterpretedModalDataset)              = nsamples(imd.domain)
+grouped_featsnaggrs(imd::InterpretedModalDataset)    = imd.grouped_featsnaggrs
+nattributes(imd::InterpretedModalDataset)            = nattributes(imd.domain)
+nfeatures(imd::InterpretedModalDataset)              = length(features(imd))
+nrelations(imd::InterpretedModalDataset)             = length(relations(imd))
+nsamples(imd::InterpretedModalDataset)               = nsamples(imd.domain)
 relations(imd::InterpretedModalDataset)              = relations(imd.ontology)
 world_type(imd::InterpretedModalDataset{T,N,WT}) where {T,N,WT} = WT
 
@@ -176,3 +188,8 @@ hasnans(imd::InterpretedModalDataset) = begin
 end
 
 Base.@propagate_inbounds @inline get_gamma(imd::InterpretedModalDataset, args...) = get_gamma(imd.domain, args...)
+Base.@propagate_inbounds @inline get_modal_gamma(imd::InterpretedModalDataset, args...) = get_modal_gamma(imd.domain, args...)
+Base.@propagate_inbounds @inline get_global_gamma(imd::InterpretedModalDataset, args...) = get_global_gamma(imd.domain, args...)
+
+Base.@propagate_inbounds @inline _get_modal_gamma(imd::InterpretedModalDataset, args...) = _get_modal_gamma(imd.domain, args...)
+Base.@propagate_inbounds @inline _get_global_gamma(imd::InterpretedModalDataset, args...) = _get_global_gamma(imd.domain, args...)

@@ -3,7 +3,9 @@ struct ExplicitModalDatasetS{
     W<:AbstractWorld,
     FR<:AbstractFrame{W,Bool},
     MEMO<:Union{Val{true},Val{false}},
-    FWDRS<:AbstractRelationalSupport{<:Union{T,Nothing}, W}
+    FWDRS<:AbstractRelationalSupport{<:Union{T,Nothing}, W},
+    G1<:AbstractVector{Tuple{<:AbstractFeature,<:Aggregator}},
+    G2<:AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}},
 } <: ActiveModalDataset{T,W,FR}
 
     # Core dataset
@@ -14,8 +16,8 @@ struct ExplicitModalDatasetS{
     fwd_gs              :: Union{AbstractGlobalSupport{T},Nothing}
 
     # Features and Aggregators
-    featsnaggrs         :: AbstractVector{Tuple{<:AbstractFeature,<:Aggregator}}
-    grouped_featsnaggrs :: AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}}
+    featsnaggrs         :: G1
+    grouped_featsnaggrs :: G2
 
     ########################################################################################
     
@@ -29,14 +31,14 @@ struct ExplicitModalDatasetS{
         ty = "ExplicitModalDatasetS{$(T), $(W), $(FR), $(MEMO), $(FWDRS)}"
         @assert nsamples(emd) == nsamples(fwd_rs)                                    "Can't instantiate $(ty) with unmatching nsamples for emd and fwd_rs support: $(nsamples(emd)) and $(nsamples(fwd_rs))"
         @assert nrelations(emd) == nrelations(fwd_rs)                                "Can't instantiate $(ty) with unmatching nrelations for emd and fwd_rs support: $(nrelations(emd)) and $(nrelations(fwd_rs))"
-        @assert sum(length.(grouped_featsnaggrs)) == length(featsnaggrs)             "Can't instantiate $(ty) with unmatching nfeatsnaggrs (grouped vs flattened structure): $(sum(length.(emd.grouped_featsaggrsnops))) and $(length(featsnaggrs))"
-        @assert sum(length.(emd.grouped_featsaggrsnops)) == length(featsnaggrs)      "Can't instantiate $(ty) with unmatching nfeatsnaggrs for emd and provided featsnaggrs: $(sum(length.(emd.grouped_featsaggrsnops))) and $(length(featsnaggrs))"
-        @assert sum(length.(emd.grouped_featsaggrsnops)) == nfeatsnaggrs(fwd_rs)     "Can't instantiate $(ty) with unmatching nfeatsnaggrs for emd and fwd_rs support: $(sum(length.(emd.grouped_featsaggrsnops))) and $(nfeatsnaggrs(fwd_rs))"
+        @assert sum(length.(grouped_featsnaggrs)) == length(featsnaggrs)             "Can't instantiate $(ty) with unmatching nfeatsnaggrs (grouped vs flattened structure): $(sum(length.(grouped_featsaggrsnops(emd)))) and $(length(featsnaggrs))"
+        @assert sum(length.(grouped_featsaggrsnops(emd))) == length(featsnaggrs)      "Can't instantiate $(ty) with unmatching nfeatsnaggrs for emd and provided featsnaggrs: $(sum(length.(grouped_featsaggrsnops(emd)))) and $(length(featsnaggrs))"
+        @assert sum(length.(grouped_featsaggrsnops(emd))) == nfeatsnaggrs(fwd_rs)     "Can't instantiate $(ty) with unmatching nfeatsnaggrs for emd and fwd_rs support: $(sum(length.(grouped_featsaggrsnops(emd)))) and $(nfeatsnaggrs(fwd_rs))"
 
         if fwd_gs != nothing
             @assert nsamples(emd) == nsamples(fwd_gs)                                "Can't instantiate $(ty) with unmatching nsamples for emd and fwd_gs support: $(nsamples(emd)) and $(nsamples(fwd_gs))"
             # @assert somethinglike(emd) == nfeatsnaggrs(fwd_gs)                     "Can't instantiate $(ty) with unmatching somethinglike for emd and fwd_gs support: $(somethinglike(emd)) and $(nfeatsnaggrs(fwd_gs))"
-            @assert sum(length.(emd.grouped_featsaggrsnops)) == nfeatsnaggrs(fwd_gs) "Can't instantiate $(ty) with unmatching nfeatsnaggrs for emd and fwd_gs support: $(sum(length.(emd.grouped_featsaggrsnops))) and $(nfeatsnaggrs(fwd_gs))"
+            @assert sum(length.(grouped_featsaggrsnops(emd))) == nfeatsnaggrs(fwd_gs) "Can't instantiate $(ty) with unmatching nfeatsnaggrs for emd and fwd_gs support: $(sum(length.(grouped_featsaggrsnops(emd)))) and $(nfeatsnaggrs(fwd_gs))"
         end
 
         if MEMO == Val{false}
@@ -50,7 +52,7 @@ struct ExplicitModalDatasetS{
                 "AbstractRelationalSupport{$(T), $(W)}} should hold."
         end
 
-        new{T,W,FR,MEMO,FWDRS}(emd, fwd_rs, fwd_gs, featsnaggrs, grouped_featsnaggrs)
+        new{T,W,FR,MEMO,FWDRS,typeof(featsnaggrs),typeof(grouped_featsnaggrs)}(emd, fwd_rs, fwd_gs, featsnaggrs, grouped_featsnaggrs)
     end
 
     function ExplicitModalDatasetS{T,W,FR,MEMO}(
@@ -87,20 +89,123 @@ struct ExplicitModalDatasetS{
         use_memoization       :: Bool = true,
     ) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}}
         
-        featsnaggrs = Tuple{<:AbstractFeature,<:Aggregator}[]
-        grouped_featsnaggrs = AbstractVector{Tuple{<:Integer,<:Aggregator}}[]
+        # A function that computes fwd_rs and fwd_gs from an explicit modal dataset
+        Base.@propagate_inbounds function compute_fwd_supports(
+                emd                 :: ExplicitModalDataset{T,W},
+                grouped_featsnaggrs :: AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}};
+                compute_relation_glob = false,
+                simply_init_rs = false,
+            ) where {T,W<:AbstractWorld}
 
-        i_featsnaggr = 1
-        for (feat,aggrsnops) in zip(emd.features,emd.grouped_featsaggrsnops)
-            aggrs = []
-            for aggr in keys(aggrsnops)
-                push!(featsnaggrs, (feat,aggr))
-                push!(aggrs, (i_featsnaggr,aggr))
-                i_featsnaggr += 1
+            # @logmsg LogOverview "ExplicitModalDataset -> ExplicitModalDatasetS "
+
+            _fwd = fwd(emd)
+            _features = features(emd)
+            _relations = relations(emd)
+
+            compute_fwd_gs = begin
+                if RelationGlob in _relations
+                    throw_n_log("RelationGlob in relations: $(_relations)")
+                    _relations = filter!(l->l≠RelationGlob, _relations)
+                    true
+                elseif compute_relation_glob
+                    true
+                else
+                    false
+                end
             end
-            push!(grouped_featsnaggrs, aggrs)
-        end
 
+            _n_samples = nsamples(emd)
+            nrelations = length(_relations)
+            nfeatsnaggrs = sum(length.(grouped_featsnaggrs))
+
+            # println(_n_samples)
+            # println(nrelations)
+            # println(nfeatsnaggrs)
+            # println(grouped_featsnaggrs)
+
+            # Prepare fwd_rs
+            fwd_rs = fwd_rs_init(emd, nfeatsnaggrs, nrelations; perform_initialization = simply_init_rs)
+
+            # Prepare fwd_gs
+            fwd_gs = begin
+                if compute_fwd_gs
+                    fwd_gs_init(emd, nfeatsnaggrs)
+                else
+                    nothing
+                end
+            end
+
+            # p = Progress(_n_samples, 1, "Computing EMD supports...")
+            Threads.@threads for i_sample in 1:_n_samples
+                @logmsg LogDebug "Instance $(i_sample)/$(_n_samples)"
+
+                # if i_sample == 1 || ((i_sample+1) % (floor(Int, ((_n_samples)/4))+1)) == 0
+                #     @logmsg LogOverview "Instance $(i_sample)/$(_n_samples)"
+                # end
+
+                for (i_feature,aggregators) in enumerate(grouped_featsnaggrs)
+                    feature = _features[i_feature]
+                    @logmsg LogDebug "Feature $(i_feature)"
+
+                    cur_fwd_slice = fwd_get_channel(_fwd, i_sample, i_feature)
+
+                    @logmsg LogDebug cur_fwd_slice
+
+                    # Global relation (independent of the current world)
+                    if compute_fwd_gs
+                        @logmsg LogDebug "RelationGlob"
+
+                        # TODO optimize: all aggregators are likely reading the same raw values.
+                        for (i_featsnaggr,aggr) in aggregators
+                        # Threads.@threads for (i_featsnaggr,aggr) in aggregators
+                            
+                            threshold = _compute_global_gamma(emd, i_sample, cur_fwd_slice, feature, aggr)
+
+                            @logmsg LogDebug "Aggregator[$(i_featsnaggr)]=$(aggr)  -->  $(threshold)"
+
+                            # @logmsg LogDebug "Aggregator" aggr threshold
+
+                            fwd_gs_set(fwd_gs, i_sample, i_featsnaggr, threshold)
+                        end
+                    end
+                    # readline()
+
+                    if !simply_init_rs
+                        # Other relations
+                        for (i_relation,relation) in enumerate(_relations)
+
+                            @logmsg LogDebug "Relation $(i_relation)/$(nrelations)"
+
+                            for (i_featsnaggr,aggr) in aggregators
+                                fwd_rs_init_world_slice(fwd_rs, i_sample, i_featsnaggr, i_relation)
+                            end
+
+                            for w in allworlds(emd, i_sample)
+
+                                @logmsg LogDebug "World" w
+
+                                # TODO optimize: all aggregators are likely reading the same raw values.
+                                for (i_featsnaggr,aggr) in aggregators
+                                    
+                                    threshold = _compute_modal_gamma(emd, i_sample, cur_fwd_slice, w, relation, feature, aggr)
+
+                                    # @logmsg LogDebug "Aggregator" aggr threshold
+
+                                    fwd_rs_set(fwd_rs, i_sample, w, i_featsnaggr, i_relation, threshold)
+                                end
+                            end
+                        end
+                    end
+                end
+                # next!(p)
+            end
+            fwd_rs, fwd_gs
+        end
+        
+        # TODO use emd.grouped_featsnaggrs instead of recomputing it!!
+        featsnaggrs, grouped_featsnaggrs = features_grouped_featsaggrsnops2featsnaggrs_grouped_featsnaggrs(emd.features, grouped_featsaggrsnops(emd))
+        
         # Compute modal dataset propositions and 1-modal decisions
         fwd_rs, fwd_gs = compute_fwd_supports(emd, grouped_featsnaggrs, compute_relation_glob = compute_relation_glob, simply_init_rs = use_memoization);
 
@@ -123,6 +228,8 @@ emd(X::ExplicitModalDatasetS) = X.emd
 
 Base.size(X::ExplicitModalDatasetS)                                      =  (size(emd(X)), size(X.fwd_rs), (isnothing(X.fwd_gs) ? nothing : size(X.fwd_gs)))
 featsnaggrs(X::ExplicitModalDatasetS)                                    = X.featsnaggrs
+fwd_rs(X::ExplicitModalDatasetS)                                         = X.fwd_rs
+fwd_gs(X::ExplicitModalDatasetS)                                         = X.fwd_gs
 features(X::ExplicitModalDatasetS)                                       = features(emd(X))
 grouped_featsaggrsnops(X::ExplicitModalDatasetS)                         = grouped_featsaggrsnops(emd(X))
 grouped_featsnaggrs(X::ExplicitModalDatasetS)                            = X.grouped_featsnaggrs
@@ -131,6 +238,7 @@ nrelations(X::ExplicitModalDatasetS)                                     = nrela
 nsamples(X::ExplicitModalDatasetS)                                       = nsamples(emd(X))
 relations(X::ExplicitModalDatasetS)                                      = relations(emd(X))
 world_type(X::ExplicitModalDatasetS{T,W}) where {T,W}    = W
+fwd(X::ExplicitModalDatasetS)                                            = fwd(emd(X))
 
 usesmemo(X::ExplicitModalDatasetS{T,W,FR,MEMO}) where {T,W,FR,MEMO} = (MEMO == Val{true})
 
@@ -162,12 +270,6 @@ hasnans(X::ExplicitModalDatasetS) = begin
     hasnans(emd(X)) || hasnans(X.fwd_rs) || (!isnothing(X.fwd_gs) && hasnans(X.fwd_gs))
 end
 
-Base.@propagate_inbounds @inline get_gamma(
-        X::ExplicitModalDatasetS{T,W},
-        i_sample::Integer,
-        w::W,
-        feature::AbstractFeature) where {T,W<:AbstractWorld} = get_gamma(emd(X), i_sample, w, feature)
-
 isminifiable(::ExplicitModalDatasetS) = true
 
 function minify(X::EMD) where {EMD<:ExplicitModalDatasetS}
@@ -195,7 +297,7 @@ function display_structure(X::ExplicitModalDatasetS; indent_str = "")
         out *= "\t(shape $(Base.size(emd(X))))\n"
     out *= indent_str * "├ fwd_rs\t$(Base.summarysize(X.fwd_rs) / 1024 / 1024 |> x->round(x, digits=2)) MBs"
     if usesmemo(X)
-        out *= "\t(shape $(Base.size(X.fwd_rs)), $(nonnothingshare(X.fwd_rs)*100)% memoized)\n"
+        out *= "\t(shape $(Base.size(X.fwd_rs)), $(round(nonnothingshare(X.fwd_rs)*100, digits=2))% memoized)\n"
     else
         out *= "\t(shape $(Base.size(X.fwd_rs)))\n"
     end
@@ -211,6 +313,12 @@ end
 ############################################################################################
 ############################################################################################
 ############################################################################################
+
+Base.@propagate_inbounds @inline get_gamma(
+        X::ExplicitModalDatasetS{T,W},
+        i_sample::Integer,
+        w::W,
+        feature::AbstractFeature) where {T,W<:AbstractWorld} = get_gamma(emd(X), i_sample, w, feature)
 
 function get_global_gamma(
     X::ExplicitModalDatasetS{T,W},
@@ -236,7 +344,7 @@ function get_modal_gamma(
     i_featsnaggr = find_featsnaggr_id(X, feature, aggregator)
     _get_modal_gamma(X, i_sample, w, i_featsnaggr, i_relation, relation, feature, aggregator)
 end
-    
+
 function _get_modal_gamma(
     X::ExplicitModalDatasetS{T,W},
     i_sample::Integer,
@@ -250,8 +358,7 @@ function _get_modal_gamma(
     if usesmemo(X) && (false ||  isnothing(X.fwd_rs[i_sample, w, i_featsnaggr, i_relation]))
         i_feature = find_feature_id(X, feature)
         fwd_feature_slice = fwd_get_channel(emd(X).fwd, i_sample, i_feature)
-        accessible_worlds = representatives(emd(X), i_sample, w, relation, feature, aggregator)
-        gamma = compute_modal_gamma(fwd_feature_slice, accessible_worlds, aggregator)
+        gamma = _compute_modal_gamma(emd(X), i_sample, fwd_feature_slice, w, relation, feature, aggregator)
         fwd_rs_set(X.fwd_rs, i_sample, w, i_featsnaggr, i_relation, gamma)
     end
     X.fwd_rs[i_sample, w, i_featsnaggr, i_relation]
@@ -278,239 +385,3 @@ function test_decision(
     end
 end
 
-
-Base.@propagate_inbounds @resumable function generate_propositional_feasible_decisions(
-        emd::Union{ExplicitModalDataset{T,W},InterpretedModalDataset{T,W}},
-        instances_inds::AbstractVector{<:Integer},
-        Sf::AbstractVector{<:AbstractWorldSet{W}},
-        features_inds::AbstractVector{<:Integer},
-        ) where {T,W<:AbstractWorld}
-    relation = RelationId
-    _n_samples = length(instances_inds)
-
-    # For each feature
-    @inbounds for i_feature in features_inds
-        feature = features(emd)[i_feature]
-        @logmsg LogDebug "Feature $(i_feature): $(feature)"
-
-        # operators for each aggregator
-        aggrsnops = grouped_featsaggrsnops(emd)[i_feature]
-        # Vector of aggregators
-        aggregators = keys(aggrsnops) # Note: order-variant, but that's ok here
-        
-        # dict->vector
-        # aggrsnops = [aggrsnops[i_aggr] for i_aggr in aggregators]
-
-        # Initialize thresholds with the bottoms
-        thresholds = Array{T,2}(undef, length(aggregators), _n_samples)
-        for (i_aggr,aggr) in enumerate(aggregators)
-            thresholds[i_aggr,:] .= aggregator_bottom(aggr, T)
-        end
-
-        # For each instance, compute thresholds by applying each aggregator to the set of existing values (from the worldset)
-        for (instance_idx,i_sample) in enumerate(instances_inds)
-            @logmsg LogDetail " Instance $(instance_idx)/$(_n_samples)"
-            worlds = Sf[instance_idx]
-
-            # TODO also try this instead
-            # values = [emd(X)[i_sample, w, i_feature] for w in worlds]
-            # thresholds[:,instance_idx] = map(aggr->aggr(values), aggregators)
-            
-            for w in worlds
-                gamma = begin
-                    if emd isa ExplicitModalDataset{T,W}
-                        fwd_get(emd.fwd, i_sample, w, i_feature) # faster but equivalent to get_gamma(emd, i_sample, w, feature)
-                    elseif emd isa InterpretedModalDataset{T,W}
-                        get_gamma(emd, i_sample, w, feature)
-                    else
-                        error("generate_propositional_feasible_decisions is broken.")
-                    end
-                end
-                for (i_aggr,aggr) in enumerate(aggregators)
-                    thresholds[i_aggr,instance_idx] = aggregator_to_binary(aggr)(gamma, thresholds[i_aggr,instance_idx])
-                end
-            end
-        end
-        
-        # tested_test_operator = TestOperatorFun[]
-
-        # @logmsg LogDebug "thresholds: " thresholds
-        # For each aggregator
-        for (i_aggr,aggr) in enumerate(aggregators)
-            aggr_thresholds = thresholds[i_aggr,:]
-            aggr_domain = setdiff(Set(aggr_thresholds),Set([typemin(T), typemax(T)]))
-            for (i_test_operator,test_operator) in enumerate(aggrsnops[aggr])
-                # TODO figure out a solution to this issue: ≥ and ≤ in a propositional condition can find more or less the same optimum, so no need to check both; but which one of them should be the one on the left child, the one that makes the modal step?
-                # if dual_test_operator(test_operator) in tested_test_operator
-                #   throw_n_log("Double-check this part of the code: there's a foundational issue here to settle!")
-                #   println("Found $(test_operator)'s dual $(dual_test_operator(test_operator)) in tested_test_operator = $(tested_test_operator)")
-                #   continue
-                # end
-                @logmsg LogDetail " Test operator $(test_operator)"
-                # Look for the best threshold 'a', as in propositions like "feature >= a"
-                for threshold in aggr_domain
-                    decision = ExistentialDimensionalDecision(relation, feature, test_operator, threshold)
-                    @logmsg LogDebug " Testing decision: $(display_decision(decision))"
-                    @yield decision, aggr_thresholds
-                end # for threshold
-                # push!(tested_test_operator, test_operator)
-            end # for test_operator
-        end # for aggregator
-    end # for feature
-end
-
-Base.@propagate_inbounds @resumable function generate_propositional_feasible_decisions(
-        X::ExplicitModalDatasetS{T,W},
-        args...
-        ) where {T,W<:AbstractWorld}
-        for decision in generate_propositional_feasible_decisions(emd(X), args...)
-            @yield decision
-        end
-end
-
-Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
-        X::ExplicitModalDatasetS{T,W},
-        instances_inds::AbstractVector{<:Integer},
-        Sf::AbstractVector{<:AbstractWorldSet{W}},
-        features_inds::AbstractVector{<:Integer},
-        ) where {T,W<:AbstractWorld}
-    relation = RelationGlob
-    _n_samples = length(instances_inds)
-
-    
-    @assert !isnothing(X.fwd_gs) "Error. ExplicitModalDatasetS must be built with compute_relation_glob = true for it to be ready to generate global decisions."
-
-    # For each feature
-    for i_feature in features_inds
-        feature = features(X)[i_feature]
-        @logmsg LogDebug "Feature $(i_feature): $(feature)"
-
-        # operators for each aggregator
-        aggrsnops = grouped_featsaggrsnops(X)[i_feature]
-        # println(aggrsnops)
-        # Vector of aggregators
-        aggregators_with_ids = grouped_featsnaggrs(X)[i_feature]
-        # println(aggregators_with_ids)
-
-        # dict->vector
-        # aggrsnops = [aggrsnops[i_aggr] for i_aggr in aggregators]
-
-        # # TODO use this optimized version:
-        #   thresholds can in fact be directly given by slicing fwd_gs and permuting the two dimensions
-        # aggregators_ids = fst.(aggregators_with_ids)
-        # thresholds = transpose(X.fwd_gs[instances_inds, aggregators_ids])
-
-        # Initialize thresholds with the bottoms
-        thresholds = Array{T,2}(undef, length(aggregators_with_ids), _n_samples)
-        for (i_aggr,(_,aggr)) in enumerate(aggregators_with_ids)
-            thresholds[i_aggr,:] .= aggregator_bottom(aggr, T)
-        end
-        
-        # For each instance, compute thresholds by applying each aggregator to the set of existing values (from the worldset)
-        for (instance_id,i_sample) in enumerate(instances_inds)
-            @logmsg LogDetail " Instance $(instance_id)/$(_n_samples)"
-            for (i_aggr,(i_featsnaggr,aggr)) in enumerate(aggregators_with_ids)
-                gamma = X.fwd_gs[i_sample, i_featsnaggr]
-                thresholds[i_aggr,instance_id] = aggregator_to_binary(aggr)(gamma, thresholds[i_aggr,instance_id])
-                # println(gamma)
-                # println(thresholds[i_aggr,instance_id])
-            end
-        end
-
-        # println(thresholds)
-        @logmsg LogDebug "thresholds: " thresholds
-
-        # For each aggregator
-        for (i_aggr,(_,aggr)) in enumerate(aggregators_with_ids)
-
-            # println(aggr)
-
-            aggr_thresholds = thresholds[i_aggr,:]
-            aggr_domain = setdiff(Set(aggr_thresholds),Set([typemin(T), typemax(T)]))
-
-            for (i_test_operator,test_operator) in enumerate(aggrsnops[aggr])
-                @logmsg LogDetail " Test operator $(test_operator)"
-
-                # Look for the best threshold 'a', as in propositions like "feature >= a"
-                for threshold in aggr_domain
-                    decision = ExistentialDimensionalDecision(relation, feature, test_operator, threshold)
-                    @logmsg LogDebug " Testing decision: $(display_decision(decision))"
-                    @yield decision, aggr_thresholds
-                end # for threshold
-            end # for test_operator
-        end # for aggregator
-    end # for feature
-end
-
-Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
-        X::ExplicitModalDatasetS{T,W},
-        instances_inds::AbstractVector{<:Integer},
-        Sf::AbstractVector{<:AbstractWorldSet{W}},
-        modal_relations_inds::AbstractVector{<:Integer},
-        features_inds::AbstractVector{<:Integer},
-        ) where {T,W<:AbstractWorld}
-    _n_samples = length(instances_inds)
-
-    # For each relational operator
-    for i_relation in modal_relations_inds
-        relation = relations(X)[i_relation]
-        @logmsg LogDebug "Relation $(relation)..."
-
-        # For each feature
-        for i_feature in features_inds
-            feature = features(X)[i_feature]
-            @logmsg LogDebug "Feature $(i_feature): $(feature)"
-
-            # operators for each aggregator
-            aggrsnops = grouped_featsaggrsnops(X)[i_feature]
-            # Vector of aggregators
-            aggregators_with_ids = grouped_featsnaggrs(X)[i_feature]
-
-            # dict->vector
-            # aggrsnops = [aggrsnops[i_aggr] for i_aggr in aggregators]
-
-            # Initialize thresholds with the bottoms
-            thresholds = Array{T,2}(undef, length(aggregators_with_ids), _n_samples)
-            for (i_aggr,(_,aggr)) in enumerate(aggregators_with_ids)
-                thresholds[i_aggr,:] .= aggregator_bottom(aggr, T)
-            end
-
-            # For each instance, compute thresholds by applying each aggregator to the set of existing values (from the worldset)
-            for (i_sample,instance_ind) in enumerate(instances_inds)
-                @logmsg LogDetail " Instance $(i_sample)/$(_n_samples)"
-                worlds = Sf[i_sample] # TODO could also use representativess here?
-
-                # TODO also try this instead (TODO fix first)
-                # values = [X.fwd_rs[instance_ind, w, i_feature] for w in worlds]
-                # thresholds[:,i_sample] = map((_,aggr)->aggr(values), aggregators_with_ids)
-                    
-                for (i_aggr,(i_featsnaggr,aggr)) in enumerate(aggregators_with_ids)
-                    for w in worlds
-                        gamma = _get_modal_gamma(X, instance_ind, w, i_featsnaggr, i_relation, relation, feature, aggr)
-                        thresholds[i_aggr,i_sample] = aggregator_to_binary(aggr)(gamma, thresholds[i_aggr,i_sample])
-                    end
-                end
-            end
-
-            @logmsg LogDebug "thresholds: " thresholds
-
-            # For each aggregator
-            for (i_aggr,(_,aggr)) in enumerate(aggregators_with_ids)
-
-                aggr_thresholds = thresholds[i_aggr,:]
-                aggr_domain = setdiff(Set(aggr_thresholds),Set([typemin(T), typemax(T)]))
-
-                for (i_test_operator,test_operator) in enumerate(aggrsnops[aggr])
-                    @logmsg LogDetail " Test operator $(test_operator)"
-
-                    # Look for the best threshold 'a', as in propositions like "feature >= a"
-                    for threshold in aggr_domain
-                        decision = ExistentialDimensionalDecision(relation, feature, test_operator, threshold)
-                        @logmsg LogDebug " Testing decision: $(display_decision(decision))"
-                        @yield decision, aggr_thresholds
-                    end # for threshold
-                end # for test_operator
-            end # for aggregator
-        end # for feature
-    end # for relation
-end
