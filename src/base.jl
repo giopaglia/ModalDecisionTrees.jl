@@ -38,6 +38,18 @@ abstract type AbstractNode{L<:Label} end
 abstract type AbstractDecisionLeaf{L<:Label} <: AbstractNode{L} end
 abstract type AbstractDecisionInternal{L<:Label,D<:AbstractDecision} <: AbstractNode{L} end
 
+# Decision Node (Leaf or Internal)
+const DTNode{L<:Label,D<:AbstractDecision} = Union{<:AbstractDecisionLeaf{<:L},<:AbstractDecisionInternal{L,D}}
+
+# TODO maybe one day?
+# abstract type AbstractNode{L<:Label} end
+# abstract type DTNode{L<:Label,D<:AbstractDecision} <: AbstractNode{L} end
+# abstract type AbstractDecisionLeaf{L<:Label} <: DTNode{L,D} where D<:AbstractDecision end
+# abstract type AbstractDecisionInternal{L<:Label,D<:AbstractDecision} <: DTNode{L,D} end
+
+############################################################################################
+
+
 mutable struct DoubleEdgedDecision{D<:SimpleDecision} <: AbstractDecision
     decision :: D
     _back     :: Base.RefValue{N} where N<:AbstractNode # {L,DoubleEdgedDecision}
@@ -326,11 +338,6 @@ function supp_labels(node::DTInternal; train_or_valid = true)
     @assert train_or_valid == true
     supp_labels(this(node); train_or_valid = train_or_valid)
 end
-
-############################################################################################
-
-# Decision Node (Leaf or Internal)
-const DTNode{L,D} = Union{<:AbstractDecisionLeaf{<:L},<:AbstractDecisionInternal{L,D}}
 
 ############################################################################################
 

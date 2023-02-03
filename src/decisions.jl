@@ -43,8 +43,8 @@ function display_decision_inverse(i_frame::Integer, decision::SimpleDecision, kw
     display_decision(i_frame, inverse(decision), kwargs...; args...)
 end
 
-display_existential(rel::AbstractRelation) = "⟨$(rel)⟩"
-display_universal(rel::AbstractRelation)   = "[$(rel)]"
+display_existential(rel::AbstractRelation) = SoleLogics.display_operator(DiamondRelationalOperator{typeof(rel)}())
+display_universal(rel::AbstractRelation)   = SoleLogics.display_operator(BoxRelationalOperator{typeof(rel)}())
 
 ############################################################################################
 
