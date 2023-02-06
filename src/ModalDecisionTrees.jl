@@ -366,6 +366,8 @@ struct NSDTLeaf{L<:Label} <: AbstractDecisionLeaf{L}
     # end
 end
 
+predicting_function(leaf::NSDTLeaf) = leaf.predicting_function
+
 supp_labels(leaf::NSDTLeaf; train_or_valid = true) = (train_or_valid ? leaf.supp_train_labels      : leaf.supp_valid_labels)
 predictions(leaf::NSDTLeaf; train_or_valid = true) = (train_or_valid ? leaf.supp_train_predictions : leaf.supp_valid_predictions)
 
