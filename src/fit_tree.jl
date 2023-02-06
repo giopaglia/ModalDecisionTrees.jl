@@ -924,7 +924,7 @@ end
         # println(ModalLogic.hasnans(Xs))
         # println(ModalLogic.hasnans.([emd(X) for X in frames(Xs)]))
         # println(ModalLogic.hasnans.([emd(X).fwd for X in frames(Xs)]))
-        # println(frames(Xs)[1].emd.fwd)
+        # println(fwd(frames(Xs)[1].emd))
         throw_n_log("This algorithm doesn't allow NaN values")
     end
 
@@ -983,6 +983,7 @@ function fit_tree(
             Xs, fill(identity, nframes(Xs))
         end
     end
+
     # println(threshold_backmaps)
     # Call core learning function
     root, idxs = _fit_tree(Xs, Y, init_conditions, W;
@@ -991,7 +992,7 @@ function fit_tree(
         _perform_consistency_check = Val(perform_consistency_check),
         kwargs...
     )
-
+    
     # Finally create Tree
     root = begin
         if L<:CLabel

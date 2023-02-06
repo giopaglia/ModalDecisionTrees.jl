@@ -1,3 +1,5 @@
+import Base: size, ndims, getindex
+
 ############################################################################################
 ############################################################################################
 # world-specific FWD implementations
@@ -12,6 +14,9 @@ accessibles(fwd::UniformFullDimensionalFWD, i_sample, args...) = accessibles(Ful
 representatives(fwd::UniformFullDimensionalFWD, i_sample, args...) = representatives(FullDimensionalFrame(channel_size(fwd)), args...)
 allworlds(fwd::UniformFullDimensionalFWD{T,W}, i_sample::Integer, args...) where {T,W} = allworlds(FullDimensionalFrame(channel_size(fwd)), args...)
 
+Base.size(fwd::UniformFullDimensionalFWD, args...) = Base.size(fwd.d, args...)
+
+# TODO join these into a single structure
 ############################################################################################
 # FWD, OneWorld: 2D array (nsamples × nfeatures)
 ############################################################################################
@@ -26,7 +31,6 @@ default_fwd_type(::Type{OneWorld}) = OneWorldFWD
 
 nsamples(fwd::OneWorldFWD)  = size(fwd.d, 1)
 nfeatures(fwd::OneWorldFWD) = size(fwd.d, 2)
-Base.size(fwd::OneWorldFWD, args...) = size(fwd.d, args...)
 
 function fwd_init(::Type{OneWorldFWD}, X::InterpretedModalDataset{T,0,OneWorld}) where {T}
     OneWorldFWD{T}(Array{T,2}(undef, nsamples(X), nfeatures(X)))
@@ -76,7 +80,6 @@ default_fwd_type(::Type{Interval}) = IntervalFWD
 
 nsamples(fwd::IntervalFWD)  = size(fwd.d, 3)
 nfeatures(fwd::IntervalFWD) = size(fwd.d, 4)
-Base.size(fwd::IntervalFWD, args...) = size(fwd.d, args...)
 
 function fwd_init(::Type{IntervalFWD}, X::InterpretedModalDataset{T,1,Interval}) where {T}
     IntervalFWD{T}(Array{T,4}(undef, max_channel_size(X)[1], max_channel_size(X)[1]+1, nsamples(X), nfeatures(X)))
@@ -86,7 +89,7 @@ function fwd_init_world_slice(fwd::IntervalFWD, i_sample::Integer, w::AbstractWo
     nothing
 end
 
-hasnans(fwd::IntervalFWD) = begin
+function hasnans(fwd::IntervalFWD)
     # @show ([hasnans(fwd.d[x,y,:,:]) for x in 1:size(fwd.d, 1) for y in (x+1):size(fwd.d, 2)])
     any([hasnans(fwd.d[x,y,:,:]) for x in 1:size(fwd.d, 1) for y in (x+1):size(fwd.d, 2)])
 end
@@ -129,7 +132,6 @@ default_fwd_type(::Type{Interval2D}) = Interval2DFWD
 
 nsamples(fwd::Interval2DFWD)  = size(fwd.d, 5)
 nfeatures(fwd::Interval2DFWD) = size(fwd.d, 6)
-Base.size(fwd::Interval2DFWD, args...) = size(fwd.d, args...)
 
 
 function fwd_init(::Type{Interval2DFWD}, X::InterpretedModalDataset{T,2,Interval2D}) where {T}
@@ -140,7 +142,7 @@ function fwd_init_world_slice(fwd::Interval2DFWD, i_sample::Integer, w::Abstract
     nothing
 end
 
-hasnans(fwd::Interval2DFWD) = begin
+function hasnans(fwd::Interval2DFWD)
     # @show ([hasnans(fwd.d[xx,xy,yx,yy,:,:]) for xx in 1:size(fwd.d, 1) for xy in (xx+1):size(fwd.d, 2) for yx in 1:size(fwd.d, 3) for yy in (yx+1):size(fwd.d, 4)])
     any([hasnans(fwd.d[xx,xy,yx,yy,:,:]) for xx in 1:size(fwd.d, 1) for xy in (xx+1):size(fwd.d, 2) for yx in 1:size(fwd.d, 3) for yy in (yx+1):size(fwd.d, 4)])
 end
@@ -184,7 +186,7 @@ const FWDFeatureSlice{T} = Union{
 
 
 # TODO add AbstractWorldSet type
-apply_aggregator(fwd_feature_slice::FWDFeatureSlice{T}, worlds::Any, aggregator::Agg) where {T,Agg<:Aggregator} = begin
+function apply_aggregator(fwd_feature_slice::FWDFeatureSlice{T}, worlds::Any, aggregator::Agg) where {T,Agg<:Aggregator}
     
     # TODO try reduce(aggregator, worlds; init=ModalLogic.bottom(aggregator, T))
     # TODO remove this aggregator_to_binary...

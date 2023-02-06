@@ -35,6 +35,9 @@ import SoleModels.utils: minify
 
 using SoleModels: AbstractMultiModalFrame
 
+using SoleData: _isnan
+import SoleData: hasnans
+
 import SoleLogics: goeswith
 import SoleLogics: initialworldset
 using SoleLogics: InitCondition
@@ -45,7 +48,6 @@ include("ontology.jl")
 ############################################################################################
 # Dataset structures
 ############################################################################################
-# TODO sort these
 import ..ModalDecisionTrees: slice_dataset, concat_datasets,
        nsamples, nattributes, max_channel_size, get_instance,
        instance_channel_size
@@ -67,17 +69,12 @@ export nfeatures, nrelations,
        ExplicitModalDataset,
        ExplicitModalDatasetS
 
-_isnan(n::Number) = isnan(n)
-_isnan(n::Nothing) = false
-hasnans(n::Number) = _isnan(n)
-hasnans(n::AbstractArray{<:Union{Nothing, Number}}) = any(_isnan.(n))
-
 # A modal dataset can be *active* or *passive*.
 # 
 # A passive modal dataset is one that you can interpret decisions on, but cannot necessarily
 #  enumerate decisions for, as it doesn't have objects for storing the logic (relations, features, etc.).
 # Dimensional datasets are passive.
-include("dimensional-dataset-bindings.jl")
+# include("dimensional-dataset-bindings.jl")
 # 
 const PassiveModalDataset{T} = Union{DimensionalDataset{T}}
 # 
@@ -86,6 +83,18 @@ const PassiveModalDataset{T} = Union{DimensionalDataset{T}}
 #  can be done with both active and passive modal datasets.
 # 
 abstract type ActiveModalDataset{T<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}} <: ActiveConditionalDataset{W,FeatCondition,Bool,FR} end
+
+
+Base.@propagate_inbounds @inline function get_modal_gamma(emd::ActiveModalDataset{T,W}, i_sample::Integer, w::W, r::AbstractRelation, f::AbstractFeature, test_operator::TestOperatorFun) where {T,W<:AbstractWorld}
+    aggr = existential_aggregator(test_operator)
+    _get_modal_gamma(emd, i_sample, w, r, f, aggr)
+end
+
+Base.@propagate_inbounds @inline function get_global_gamma(emd::ActiveModalDataset{T,W}, i_sample::Integer, f::AbstractFeature, test_operator::TestOperatorFun) where {T,W<:AbstractWorld}
+    aggr = existential_aggregator(test_operator)
+    _get_global_gamma(emd, i_sample, f, aggr)
+end
+
 
 # TODO maybe remove
 allworlds_aggr(X::ActiveModalDataset, i_sample, args...) = representatives(X, i_sample, RelationGlob, args...)

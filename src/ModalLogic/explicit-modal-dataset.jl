@@ -159,8 +159,8 @@ struct ExplicitModalDataset{
 
 end
 
-Base.getindex(X::ExplicitModalDataset{T,W}, args...) where {T,W} = getindex(fwd(X), args...)
-Base.size(X::ExplicitModalDataset)              = size(fwd(X)) # TODO fix not always defined?
+Base.getindex(X::ExplicitModalDataset, args...) = Base.getindex(fwd(X), args...)
+Base.size(X::ExplicitModalDataset)              = Base.size(fwd(X))
 features(X::ExplicitModalDataset)               = X.features
 grouped_featsaggrsnops(X::ExplicitModalDataset) = X.grouped_featsaggrsnops
 grouped_featsnaggrs(X::ExplicitModalDataset)    = X.grouped_featsnaggrs
@@ -202,7 +202,7 @@ find_feature_id(X::ExplicitModalDataset{T,W}, feature::AbstractFeature) where {T
 find_relation_id(X::ExplicitModalDataset{T,W}, relation::AbstractRelation) where {T,W} =
     findall(x->x==relation, relations(X))[1]
 
-hasnans(emd::ExplicitModalDataset) = begin
+function hasnans(emd::ExplicitModalDataset)
     # @show hasnans(fwd(emd))
     hasnans(fwd(emd))
 end
@@ -248,26 +248,16 @@ Base.@propagate_inbounds @inline get_gamma(
     X[i_sample, w, i_feature]
 end
 
-Base.@propagate_inbounds @inline function get_modal_gamma(d::ExplicitModalDataset{T,W}, i_sample::Integer, w::W, relation::AbstractRelation, feature::AbstractFeature, test_operator::TestOperatorFun) where {T,W<:AbstractWorld}
-    aggr = existential_aggregator(test_operator)
-    _get_modal_gamma(d, i_sample, w, relation, feature, aggr)
-end
-
-Base.@propagate_inbounds @inline function get_global_gamma(d::ExplicitModalDataset{T,W}, i_sample::Integer, feature::AbstractFeature, test_operator::TestOperatorFun) where {T,W<:AbstractWorld}
-    aggr = existential_aggregator(test_operator)
-    _get_global_gamma(d, i_sample, feature, aggr)
-end
-
-Base.@propagate_inbounds @inline function _get_modal_gamma(d::ExplicitModalDataset{T,W}, i_sample::Integer, w::W, relation::AbstractRelation, feature::AbstractFeature, aggr::Aggregator) where {T,W<:AbstractWorld}
+Base.@propagate_inbounds @inline function _get_modal_gamma(emd::ExplicitModalDataset{T,W}, i_sample::Integer, w::W, r::AbstractRelation, f::AbstractFeature, aggr::Aggregator) where {T,W<:AbstractWorld}
     aggr([
         aggregator_bottom(aggr, T),
-        [get_gamma(d, i_sample, w2) for w2 in representatives(FullDimensionalFrame(max_channel_size(d)), w, relation, feature, aggr)]...
+        [get_gamma(emd, i_sample, w2, f) for w2 in representatives(emd, i_sample, w, r, f, aggr)]...
     ])
 end
 
-Base.@propagate_inbounds @inline function _get_global_gamma(d::ExplicitModalDataset{T,W}, i_sample::Integer, feature::AbstractFeature, aggr::Aggregator) where {T,W<:AbstractWorld}
+Base.@propagate_inbounds @inline function _get_global_gamma(emd::ExplicitModalDataset{T,W}, i_sample::Integer, f::AbstractFeature, aggr::Aggregator) where {T,W<:AbstractWorld}
     aggr([
         aggregator_bottom(aggr, T),
-        [get_gamma(d, i_sample, w2) for w2 in representatives(FullDimensionalFrame(max_channel_size(d)), RelationGlob, feature, aggr)]...
+        [get_gamma(emd, i_sample, w2, f) for w2 in representatives(emd, i_sample, RelationGlob, f, aggr)]...
     ])
 end

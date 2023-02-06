@@ -6,6 +6,8 @@ abstract type AbstractFWD{T<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}} 
 goeswith(::Type{<:AbstractFWD}, ::Type{<:AbstractWorld}) = false
 
 # # A function for getting a threshold value from the lookup table
+# Maybe TODO: but fails with ArgumentError: invalid index: − of type SoleLogics.OneWorld:
+# Base.getindex(fwd::AbstractFWD, args...) = fwd_get(fwd, args...)
 Base.getindex(
     fwd         :: AbstractFWD{T},
     i_sample    :: Integer,

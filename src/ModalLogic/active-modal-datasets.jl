@@ -45,6 +45,18 @@ function features_grouped_featsaggrsnops2featsnaggrs_grouped_featsnaggrs(feature
     featsnaggrs, grouped_featsnaggrs
 end
 
+function features_grouped_featsaggrsnops2featsnaggrs(features, grouped_featsaggrsnops)
+    featsnaggrs = Tuple{<:AbstractFeature,<:Aggregator}[]
+    i_featsnaggr = 1
+    for (feat,aggrsnops) in zip(features, grouped_featsaggrsnops)
+        for aggr in keys(aggrsnops)
+            push!(featsnaggrs, (feat,aggr))
+            i_featsnaggr += 1
+        end
+    end
+    featsnaggrs
+end
+
 function features_grouped_featsaggrsnops2grouped_featsnaggrs(features, grouped_featsaggrsnops)
     grouped_featsnaggrs = AbstractVector{Tuple{<:Integer,<:Aggregator}}[]
     i_featsnaggr = 1
@@ -108,7 +120,7 @@ abstract type AbstractSupport{T,W} end
 #  or ⟨G⟩ (maximum(A2) ≤ 50). Because the global operator G behaves differently from other
 #  relations, it is natural to differentiate between global and relational support tables:
 # 
-abstract type AbstractRelationalSupport{T,W} <: AbstractSupport{T,W}     end
+abstract type AbstractRelationalSupport{T,W,FR<:AbstractFrame} <: AbstractSupport{T,W}     end
 abstract type AbstractGlobalSupport{T}       <: AbstractSupport{T,W where W<:AbstractWorld} end
 #
 # Be an *fwd_rs* an fwd relational support, and a *fwd_gs* an fwd global support,
@@ -325,7 +337,7 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
                     for w in worlds
                         gamma = begin # TODO delegate this job to different flavors of `get_global_gamma`
                             if X isa ExplicitModalDatasetS
-                                _get_modal_gamma(X, i_sample, w, i_featsnaggr, i_relation, relation, feature, aggr)
+                                __get_modal_gamma(X, i_sample, w, i_featsnaggr, i_relation, relation, feature, aggr)
                             elseif X isa ExplicitModalDataset
                                _get_modal_gamma(X, i_sample, w, relation, feature, aggr)
                             elseif X isa InterpretedModalDataset
@@ -373,8 +385,6 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
     relation = RelationGlob
     _n_samples = length(instances_inds)
 
-    @assert !(X isa ExplicitModalDatasetS && isnothing(fwd_gs(X))) "Error. ExplicitModalDatasetS must be built with compute_relation_glob = true for it to be ready to generate global decisions."
-    
     _features = features(X)
     _grouped_featsaggrsnops = grouped_featsaggrsnops(X)
     _grouped_featsnaggrs = grouped_featsnaggrs(X)
@@ -415,7 +425,8 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
             for (i_aggr,(i_featsnaggr,aggr)) in enumerate(aggregators_with_ids)
                 gamma = begin # TODO delegate this job to different flavors of `get_global_gamma`. Test whether the cur_fwd_slice assignment outside is faster!
                     if X isa ExplicitModalDatasetS
-                        fwd_gs(X)[i_sample, i_featsnaggr]
+                        fwd_gs(support(X))[i_sample, i_featsnaggr]
+                        # TODO? _compute_global_gamma(X, emd, i_sample, feature, aggregator, cur_fwd_slice TODO, i_featsnaggr)
                     elseif X isa ExplicitModalDataset
                         # cur_fwd_slice = fwd_get_channel(fwd(X), i_sample, i_feature)
                         _compute_global_gamma(X, i_sample, cur_fwd_slice, feature, aggr)

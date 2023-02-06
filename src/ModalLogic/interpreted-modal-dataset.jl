@@ -31,7 +31,6 @@
     grouped_featsaggrsnops  :: G1
 
     # Features and Aggregators
-    # featsnaggrs         :: AbstractVector{Tuple{<:AbstractFeature,<:Aggregator}}
     grouped_featsnaggrs :: G2
 
     ########################################################################################
@@ -157,11 +156,10 @@ nsamples(imd::InterpretedModalDataset)               = nsamples(imd.domain)
 relations(imd::InterpretedModalDataset)              = relations(imd.ontology)
 world_type(imd::InterpretedModalDataset{T,N,WT}) where {T,N,WT} = WT
 
-initialworldset(imd::InterpretedModalDataset,  i_sample::Integer, args...) =
-    ModalDecisionTrees.initialworldset(FullDimensionalFrame(instance_channel_size(imd.domain, i_sample)), args...)
-accessibles(imd::InterpretedModalDataset, i_sample, args...) = accessibles(FullDimensionalFrame(instance_channel_size(imd.domain, i_sample)), args...)
-representatives(imd::InterpretedModalDataset, i_sample, args...) = representatives(FullDimensionalFrame(instance_channel_size(imd.domain, i_sample)), args...)
-allworlds(imd::InterpretedModalDataset, i_sample, args...) = allworlds(FullDimensionalFrame(instance_channel_size(imd.domain, i_sample)), args...)
+initialworldset(imd::InterpretedModalDataset, args...) = initialworldset(imd.domain, args...)
+accessibles(imd::InterpretedModalDataset, args...) = accessibles(imd.domain, args...)
+representatives(imd::InterpretedModalDataset, args...) = representatives(imd.domain, args...)
+allworlds(imd::InterpretedModalDataset, args...) = allworlds(imd.domain, args...)
 
 # Note: Can't define Base.length(::DimensionalDataset) & Base.iterate(::DimensionalDataset)
 Base.length(imd::InterpretedModalDataset)                = nsamples(imd)
@@ -182,14 +180,48 @@ function display_structure(imd::InterpretedModalDataset; indent_str = "")
     out
 end
 
-hasnans(imd::InterpretedModalDataset) = begin
+function hasnans(imd::InterpretedModalDataset)
     # @show hasnans(imd.domain)
     hasnans(imd.domain)
 end
 
 Base.@propagate_inbounds @inline get_gamma(imd::InterpretedModalDataset, args...) = get_gamma(imd.domain, args...)
-Base.@propagate_inbounds @inline get_modal_gamma(imd::InterpretedModalDataset, args...) = get_modal_gamma(imd.domain, args...)
-Base.@propagate_inbounds @inline get_global_gamma(imd::InterpretedModalDataset, args...) = get_global_gamma(imd.domain, args...)
-
 Base.@propagate_inbounds @inline _get_modal_gamma(imd::InterpretedModalDataset, args...) = _get_modal_gamma(imd.domain, args...)
 Base.@propagate_inbounds @inline _get_global_gamma(imd::InterpretedModalDataset, args...) = _get_global_gamma(imd.domain, args...)
+
+############################################################################################
+############################################################################################
+############################################################################################
+
+# DimensionalDataset bindings
+
+Base.@propagate_inbounds @inline function get_gamma(X::DimensionalDataset{T,N}, i_sample::Integer, w::AbstractWorld, f::AbstractFeature) where {T,N}
+    w_values = interpret_world(w, get_instance(X, i_sample))::AbstractDimensionalInstance{T,N-1}
+    compute_feature(f, w_values)::T
+end
+
+Base.@propagate_inbounds @inline function _get_modal_gamma(X::DimensionalDataset{T,N}, i_sample::Integer, w::AbstractWorld, r::AbstractRelation, f::AbstractFeature, aggr::Aggregator) where {T,N}
+    aggr([
+        aggregator_bottom(aggr, T),
+        [get_gamma(X, i_sample, w2, f) for w2 in representatives(X, i_sample, w, r, f, aggr)]...
+    ])
+end
+
+Base.@propagate_inbounds @inline function _get_global_gamma(X::DimensionalDataset{T,N}, i_sample::Integer, f::AbstractFeature, aggr::Aggregator) where {T,N}
+    aggr([
+        aggregator_bottom(aggr, T),
+        [get_gamma(X, i_sample, w2, f) for w2 in representatives(X, i_sample, RelationGlob, f, aggr)]...
+    ])
+end
+
+
+initialworldset(X::UniformDimensionalDataset, i_sample, args...) = initialworldset(FullDimensionalFrame(channel_size(X)), args...)
+accessibles(X::UniformDimensionalDataset, i_sample, args...) = accessibles(FullDimensionalFrame(channel_size(X)), args...)
+representatives(X::UniformDimensionalDataset, i_sample, args...) = representatives(FullDimensionalFrame(channel_size(X)), args...)
+allworlds(X::UniformDimensionalDataset, i_sample, args...) = allworlds(FullDimensionalFrame(channel_size(X)), args...)
+
+
+############################################################################################
+############################################################################################
+############################################################################################
+
