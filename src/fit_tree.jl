@@ -422,7 +422,7 @@ Base.@propagate_inbounds @inline function split_node!(
 
             # Derive all available relations
             allow_propositional_decisions, allow_modal_decisions, allow_global_decisions = begin
-                if world_type(X) == OneWorld
+                if worldtype(X) == OneWorld
                     true, false, false
                 elseif frame_onlyallowRelationGlob
                     false, false, true

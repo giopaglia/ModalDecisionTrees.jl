@@ -163,7 +163,7 @@ featsnaggrs(X::OneStepSupportingDataset) = X.featsnaggrs
 nsamples(X::OneStepSupportingDataset) = nsamples(fwd_rs(X))
 # nfeatsnaggrs(X::OneStepSupportingDataset) = nfeatsnaggrs(fwd_rs(X))
 
-# TODO delegate to the two components
+# TODO delegate to the two components...
 function checksupportconsistency(
     emd::ExplicitModalDataset{T,W},
     X::OneStepSupportingDataset{T,W},
@@ -180,16 +180,16 @@ usesmemo(X::OneStepSupportingDataset) = usesglobalmemo(X) || usesmodalmemo(X)
 usesglobalmemo(X::OneStepSupportingDataset) = false
 usesmodalmemo(X::OneStepSupportingDataset) = usesmemo(fwd_rs(X))
 
-world_type(X::OneStepSupportingDataset{T,W}) where {T,W}    = W
+worldtype(X::OneStepSupportingDataset{T,W}) where {T,W}    = W
 
 Base.size(X::OneStepSupportingDataset) = (size(fwd_rs(X)), (isnothing(fwd_gs(X)) ? () : size(fwd_gs(X))))
 
 find_featsnaggr_id(X::OneStepSupportingDataset, feature::AbstractFeature, aggregator::Aggregator) = findall(x->x==(feature, aggregator), featsnaggrs(X))[1]
 
-function slice_dataset(X::OneStepSupportingDataset, inds::AbstractVector{<:Integer}, args...; kwargs...)
+function _slice_dataset(X::OneStepSupportingDataset, inds::AbstractVector{<:Integer}, args...; kwargs...)
     OneStepSupportingDataset(
-        slice_dataset(fwd_rs(X), inds, args...; kwargs...),
-        (isnothing(fwd_gs(X)) ? nothing : slice_dataset(fwd_gs(X), inds, args...; kwargs...)),
+        _slice_dataset(fwd_rs(X), inds, args...; kwargs...),
+        (isnothing(fwd_gs(X)) ? nothing : _slice_dataset(fwd_gs(X), inds, args...; kwargs...)),
         featsnaggrs(X)
     )
 end
@@ -277,13 +277,13 @@ function compute_modal_gamma(
     emd::ExplicitModalDataset{T,W},
     i_sample::Integer,
     w::W,
-    i_relation::Integer,
     relation::AbstractRelation,
     feature::AbstractFeature,
     aggregator::Aggregator,
+    i_relation::Integer,
 ) where {T,W<:AbstractWorld}
     i_featsnaggr = find_featsnaggr_id(X, feature, aggregator)
-    _compute_modal_gamma(X, emd, i_sample, w, i_featsnaggr, i_relation, relation, feature, aggregator)
+    _compute_modal_gamma(X, emd, i_sample, w, relation, feature, aggregator, i_featsnaggr, i_relation)
 
 end
 
@@ -292,11 +292,11 @@ function _compute_modal_gamma(
     emd::ExplicitModalDataset{T,W},
     i_sample::Integer,
     w::W,
-    i_featsnaggr,
-    i_relation,
     relation::AbstractRelation,
     feature::AbstractFeature,
-    aggregator::Aggregator
+    aggregator::Aggregator,
+    i_featsnaggr,
+    i_relation,
 )::T where {T,W<:AbstractWorld}
     _fwd_rs = fwd_rs(X)
     if usesmodalmemo(X) && (false ||  isnothing(_fwd_rs[i_sample, w, i_featsnaggr, i_relation]))
@@ -307,3 +307,6 @@ function _compute_modal_gamma(
     end
     _fwd_rs[i_sample, w, i_featsnaggr, i_relation]
 end
+
+include("generic-supports.jl")
+include("dimensional-supports.jl")

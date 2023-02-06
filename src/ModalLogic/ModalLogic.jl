@@ -24,7 +24,7 @@ export AbstractWorld, AbstractRelation
 export AbstractWorldSet, WorldSet
 export RelationGlob, RelationId
 
-export Ontology, world_type, world_types
+export Ontology, worldtype, world_types
 
 using SoleLogics: AbstractFrame, FullDimensionalFrame
 using SoleModels: ActiveConditionalDataset, FeatCondition
@@ -41,6 +41,7 @@ import SoleData: hasnans
 import SoleLogics: goeswith
 import SoleLogics: initialworldset
 using SoleLogics: InitCondition
+import SoleLogics: worldtype
 
 # Concrete type for ontologies
 include("ontology.jl")
@@ -48,7 +49,7 @@ include("ontology.jl")
 ############################################################################################
 # Dataset structures
 ############################################################################################
-import ..ModalDecisionTrees: slice_dataset, concat_datasets,
+import ..ModalDecisionTrees: concat_datasets,
        nsamples, nattributes, max_channel_size, get_instance,
        instance_channel_size
 
@@ -74,7 +75,7 @@ export nfeatures, nrelations,
 # A passive modal dataset is one that you can interpret decisions on, but cannot necessarily
 #  enumerate decisions for, as it doesn't have objects for storing the logic (relations, features, etc.).
 # Dimensional datasets are passive.
-# include("dimensional-dataset-bindings.jl")
+include("datasets/dimensional-dataset.jl")
 # 
 const PassiveModalDataset{T} = Union{DimensionalDataset{T}}
 # 
@@ -104,7 +105,9 @@ isminifiable(::ActiveModalDataset) = false
 #
 const ModalDataset{T} = Union{PassiveModalDataset{T},ActiveModalDataset{T}}
 #
-include("active-modal-datasets.jl")
+include("decisions-for-modal-datasets.jl")
+#
+include("datasets/main.jl")
 #
 # Define the multi-modal version of modal datasets (basically, a vector of datasets with the
 #  same number of instances)
@@ -121,10 +124,6 @@ const GenericModalDataset = Union{ModalDataset,MultiFrameModalDataset}
 
 # Dimensional Ontologies
 include("dimensional-ontologies.jl")
-
-# World-specific featured world datasets and supports
-include("fwds.jl")
-include("fwd-supports.jl")
 
 ############################################################################################
 

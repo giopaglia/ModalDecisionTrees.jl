@@ -1,12 +1,4 @@
 
-abstract type SupportingModalDataset{T<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}} end
-
-isminifiable(X::SupportingModalDataset) = false
-
-############################################################################################
-
-include("one-step-support.jl")
-
 ############################################################################################
 ############################################################################################
 ############################################################################################
@@ -57,9 +49,8 @@ fwd_rs_init_world_slice(support::GenericRelationalSupport{T,W}, i_sample::Intege
     support.d[i_sample, i_featsnaggr, i_relation] = Dict{W,T}()
 fwd_rs_set(support::GenericRelationalSupport{T,W}, i_sample::Integer, w::AbstractWorld, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T,W} =
     support.d[i_sample, i_featsnaggr, i_relation][w] = threshold
-function slice_dataset(support::GenericRelationalSupport{T,W}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T,W}
-    @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
-    GenericRelationalSupport{T,W}(if return_view @view support.d[inds,:,:] else support.d[inds,:,:] end)
+function _slice_dataset(support::GenericRelationalSupport{T,W}, inds::AbstractVector{<:Integer}, return_view::Val = Val(false)) where {T,W}
+    GenericRelationalSupport{T,W}(if return_view == Val(true) @view support.d[inds,:,:] else support.d[inds,:,:] end)
 end
 
 ############################################################################################
@@ -86,13 +77,12 @@ Base.getindex(
 Base.size(support::GenericGlobalSupport{T}, args...) where {T} = size(support.d, args...)
 
 function fwd_gs_init(emd::ExplicitModalDataset{T}) where {T}
-    @assert world_type(emd) != OneWorld "TODO adjust this note: note that you should not use a global support when not using global decisions"
+    @assert worldtype(emd) != OneWorld "TODO adjust this note: note that you should not use a global support when not using global decisions"
     nfeatsnaggrs = sum(length.(grouped_featsnaggrs(emd)))
     GenericGlobalSupport{T}(Array{T,2}(undef, nsamples(emd), nfeatsnaggrs))
 end
 fwd_gs_set(support::GenericGlobalSupport{T}, i_sample::Integer, i_featsnaggr::Integer, threshold::T) where {T} =
     support.d[i_sample, i_featsnaggr] = threshold
-function slice_dataset(support::GenericGlobalSupport{T}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T}
-    @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
-    GenericGlobalSupport{T}(if return_view @view support.d[inds,:] else support.d[inds,:] end)
+function _slice_dataset(support::GenericGlobalSupport{T}, inds::AbstractVector{<:Integer}, return_view::Val = Val(false)) where {T}
+    GenericGlobalSupport{T}(if return_view == Val(true) @view support.d[inds,:] else support.d[inds,:] end)
 end

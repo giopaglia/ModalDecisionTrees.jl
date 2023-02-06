@@ -46,15 +46,15 @@ nfeatures(X::MultiFrameModalDataset) = map(nfeatures, frames(X)) # Note: used fo
 # nrelations(X::MultiFrameModalDataset) = map(nrelations, frames(X)) # TODO: figure if this is useless or not
 nfeatures(X::MultiFrameModalDataset,  i_frame::Integer) = nfeatures(get_frame(X, i_frame))
 nrelations(X::MultiFrameModalDataset, i_frame::Integer) = nrelations(get_frame(X, i_frame))
-world_type(X::MultiFrameModalDataset,  i_frame::Integer) = world_type(get_frame(X, i_frame))
-get_world_types(X::MultiFrameModalDataset) = Vector{Type{<:AbstractWorld}}(world_type.(frames(X)))
+worldtype(X::MultiFrameModalDataset,  i_frame::Integer) = worldtype(get_frame(X, i_frame))
+get_world_types(X::MultiFrameModalDataset) = Vector{Type{<:AbstractWorld}}(worldtype.(frames(X)))
 
 get_instance(X::MultiFrameModalDataset,  i_frame::Integer, idx_i::Integer, args...)  = get_instance(get_frame(X, i_frame), idx_i, args...)
 # slice_dataset(X::MultiFrameModalDataset, i_frame::Integer, inds::AbstractVector{<:Integer}, args...)  = slice_dataset(get_frame(X, i_frame), inds, args...; kwargs...)
 
 # get_instance(X::MultiFrameModalDataset, idx_i::Integer, args...)  = get_instance(get_frame(X, i), idx_i, args...) # TODO should slice across the frames!
-slice_dataset(X::MultiFrameModalDataset{MD}, inds::AbstractVector{<:Integer}, args...; kwargs...) where {MD<:ModalDataset} = 
-    MultiFrameModalDataset{MD}(Vector{MD}(map(frame->slice_dataset(frame, inds, args...; kwargs...), frames(X))))
+_slice_dataset(X::MultiFrameModalDataset{MD}, inds::AbstractVector{<:Integer}, args...; kwargs...) where {MD<:ModalDataset} = 
+    MultiFrameModalDataset{MD}(Vector{MD}(map(frame->_slice_dataset(frame, inds, args...; kwargs...), frames(X))))
 
 function display_structure(Xs::MultiFrameModalDataset; indent_str = "")
     out = "$(typeof(Xs))" # * "\t\t\t$(Base.summarysize(Xs) / 1024 / 1024 |> x->round(x, digits=2)) MBs"
@@ -65,7 +65,7 @@ function display_structure(Xs::MultiFrameModalDataset; indent_str = "")
             out *= "\n$(indent_str)├ "
         end
         out *= "[$(i_frame)] "
-        # \t\t\t$(Base.summarysize(X) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t(world_type: $(world_type(X)))"
+        # \t\t\t$(Base.summarysize(X) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t(worldtype: $(worldtype(X)))"
         out *= display_structure(X; indent_str = indent_str * (i_frame == nframes(Xs) ? "   " : "│  ")) * "\n"
     end
     out

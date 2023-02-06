@@ -1,5 +1,112 @@
 
 ############################################################################################
+# Featured world dataset
+############################################################################################
+# 
+# In the most general case, the representation of a modal dataset is based on a
+#  multi-dimensional lookup table, referred to as *propositional lookup table*,
+#  or *featured world dataset* (abbreviated into fwd).
+# 
+# This structure, is such that the value at fwd[i, w, f], referred to as *gamma*,
+#  is the value of feature f on world w on the i-th instance, and can be used to answer the
+#  question whether a proposition (e.g., minimum(A1) ≥ 10) holds onto a given world and instance;
+#  however, an fwd table can be implemented in many ways, mainly depending on the world type.
+# 
+# Note that this structure does not constitute a ActiveModalDataset (see ExplicitModalDataset a few lines below)
+# 
+############################################################################################
+
+abstract type AbstractFWD{T<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}} end
+
+# Any implementation for a fwd must indicate their compatible world types via `goeswith`.
+# Fallback:
+goeswith(::Type{<:AbstractFWD}, ::Type{<:AbstractWorld}) = false
+
+# # A function for getting a threshold value from the lookup table
+# Maybe TODO: but fails with ArgumentError: invalid index: − of type SoleLogics.OneWorld:
+# Base.getindex(fwd::AbstractFWD, args...) = fwd_get(fwd, args...)
+Base.getindex(
+    fwd         :: AbstractFWD{T},
+    i_sample    :: Integer,
+    w           :: AbstractWorld,
+    i_feature   :: Integer) where {T} = fwd_get(fwd, i_sample, w, i_feature)
+
+# Any world type must also specify their default fwd constructor, which must accept a type
+#  parameter for the data type {T}, via:
+# default_fwd_type(::Type{<:AbstractWorld})
+
+# 
+# Actually, the interface for AbstractFWD's is a bit tricky; the most straightforward
+#  way of learning it is by considering the fallback fwd structure defined as follows.
+# TODO oh, but the implementation is broken due to a strange error (see https://discourse.julialang.org/t/tricky-too-many-parameters-for-type-error/25182 )
+
+# # The most generic fwd structure is a matrix of dictionaries of size (nsamples × nfeatures)
+# struct GenericFWD{T,W} <: AbstractFWD{T,W}
+#   d :: AbstractVector{<:AbstractDict{W,AbstractVector{T,1}},1}
+#   nfeatures :: Integer
+# end
+
+# # It goes for any world type
+# goeswith(::Type{<:GenericFWD}, ::Type{<:AbstractWorld}) = true
+
+# # And it is the default fwd structure for an world type
+# default_fwd_type(::Type{<:AbstractWorld}) = GenericFWD
+
+# nsamples(fwd::GenericFWD{T}) where {T}  = size(fwd, 1)
+# nfeatures(fwd::GenericFWD{T}) where {T} = fwd.d
+# Base.size(fwd::GenericFWD{T}, args...) where {T} = size(fwd.d, args...)
+
+# # The matrix is initialized with #undef values
+# function fwd_init(::Type{GenericFWD}, imd::InterpretedModalDataset{T}) where {T}
+#     d = Array{Dict{W,T}, 2}(undef, nsamples(imd))
+#     for i in 1:nsamples
+#         d[i] = Dict{W,Array{T,1}}()
+#     end
+#     GenericFWD{T}(d, nfeatures(imd))
+# end
+
+# # A function for initializing individual world slices
+# function fwd_init_world_slice(fwd::GenericFWD{T}, i_sample::Integer, w::AbstractWorld) where {T}
+#     fwd.d[i_sample][w] = Array{T,1}(undef, fwd.nfeatures)
+# end
+
+# # A function for getting a threshold value from the lookup table
+# Base.@propagate_inbounds @inline fwd_get(
+#     fwd         :: GenericFWD{T},
+#     i_sample    :: Integer,
+#     w           :: AbstractWorld,
+#     i_feature   :: Integer) where {T} = fwd.d[i_sample][w][i_feature]
+
+# # A function for setting a threshold value in the lookup table
+# Base.@propagate_inbounds @inline function fwd_set(fwd::GenericFWD{T}, w::AbstractWorld, i_sample::Integer, i_feature::Integer, threshold::T) where {T}
+#     fwd.d[i_sample][w][i_feature] = threshold
+# end
+
+# # A function for setting threshold values for a single feature (from a feature slice, experimental)
+# Base.@propagate_inbounds @inline function fwd_set_feature(fwd::GenericFWD{T}, i_feature::Integer, fwd_feature_slice::Any) where {T}
+#     throw_n_log("Warning! fwd_set_feature with GenericFWD is not yet implemented!")
+#     for ((i_sample,w),threshold::T) in read_fwd_feature_slice(fwd_feature_slice)
+#         fwd.d[i_sample][w][i_feature] = threshold
+#     end
+# end
+
+# # A function for slicing the dataset
+# function _slice_dataset(fwd::GenericFWD{T}, inds::AbstractVector{<:Integer}, return_view::Val = Val(false)) where {T}
+#     GenericFWD{T}(if return_view == Val(true) @view fwd.d[inds] else fwd.d[inds] end, fwd.nfeatures)
+# end
+
+# Others...
+# Base.@propagate_inbounds @inline fwd_get_channel(fwd::GenericFWD{T}, i_sample::Integer, i_feature::Integer) where {T} = TODO
+# const GenericFeaturedChannel{T} = TODO
+# fwd_channel_interpret_world(fwc::GenericFeaturedChannel{T}, w::AbstractWorld) where {T} = TODO
+
+isminifiable(::AbstractFWD) = true
+
+function minify(fwd::AbstractFWD)
+    minify(fwd.d) #TODO improper
+end
+
+############################################################################################
 # Explicit modal dataset
 # 
 # An explicit modal dataset is the generic form of a modal dataset, and consists of
@@ -161,15 +268,17 @@ end
 
 Base.getindex(X::ExplicitModalDataset, args...) = Base.getindex(fwd(X), args...)
 Base.size(X::ExplicitModalDataset)              = Base.size(fwd(X))
+
+fwd(X::ExplicitModalDataset)                    = X.fwd
+relations(X::ExplicitModalDataset)              = X.relations
 features(X::ExplicitModalDataset)               = X.features
 grouped_featsaggrsnops(X::ExplicitModalDataset) = X.grouped_featsaggrsnops
 grouped_featsnaggrs(X::ExplicitModalDataset)    = X.grouped_featsnaggrs
-nfeatures(X::ExplicitModalDataset)              = length(X.features)
-nrelations(X::ExplicitModalDataset)             = length(X.relations)
+
+nfeatures(X::ExplicitModalDataset)              = length(features(X))
+nrelations(X::ExplicitModalDataset)             = length(relations(X))
 nsamples(X::ExplicitModalDataset)               = nsamples(fwd(X))
-relations(X::ExplicitModalDataset)              = X.relations
-fwd(X::ExplicitModalDataset)                    = X.fwd
-world_type(X::ExplicitModalDataset{T,W}) where {T,W<:AbstractWorld} = W
+worldtype(X::ExplicitModalDataset{T,W}) where {T,W<:AbstractWorld} = W
 
 
 initialworldset(X::ExplicitModalDataset, i_sample, args...) = initialworldset(fwd(X), i_sample, args...)
@@ -178,13 +287,12 @@ representatives(X::ExplicitModalDataset, i_sample, args...) = representatives(fw
 allworlds(X::ExplicitModalDataset, i_sample, args...) = allworlds(fwd(X), i_sample, args...)
 
 
-function slice_dataset(X::ExplicitModalDataset, inds::AbstractVector{<:Integer}, args...; allow_no_instances = false, kwargs...)
+function _slice_dataset(X::ExplicitModalDataset, inds::AbstractVector{<:Integer}, args...; kwargs...)
     ExplicitModalDataset(
-        slice_dataset(fwd(X), inds, args...; allow_no_instances = allow_no_instances, kwargs...),
-        X.relations,
-        X.features,
-        X.grouped_featsaggrsnops;
-        allow_no_instances = allow_no_instances
+        _slice_dataset(fwd(X), inds, args...; kwargs...),
+        relations(X),
+        features(X),
+        grouped_featsaggrsnops(X)
     )
 end
 
@@ -214,9 +322,9 @@ function minify(X::ExplicitModalDataset)
     new_fwd, backmap = minify(fwd(X))
     X = ExplicitModalDataset(
         new_fwd,
-        X.relations,
-        X.features,
-        X.grouped_featsaggrsnops,
+        relations(X),
+        features(X),
+        grouped_featsaggrsnops(X),
     )
     X, backmap
 end
@@ -245,10 +353,19 @@ Base.@propagate_inbounds @inline get_gamma(
         w::W,
         feature::AbstractFeature) where {T,W<:AbstractWorld} = begin
     i_feature = find_feature_id(X, feature)
+    _get_gamma(X, i_sample, w, feature, i_feature)
+end
+
+Base.@propagate_inbounds @inline _get_gamma(
+        X::ExplicitModalDataset{T,W},
+        i_sample::Integer,
+        w::W,
+        feature::AbstractFeature,
+        i_feature::Integer) where {T,W<:AbstractWorld} = begin
     X[i_sample, w, i_feature]
 end
 
-Base.@propagate_inbounds @inline function _get_modal_gamma(emd::ExplicitModalDataset{T,W}, i_sample::Integer, w::W, r::AbstractRelation, f::AbstractFeature, aggr::Aggregator) where {T,W<:AbstractWorld}
+Base.@propagate_inbounds @inline function _get_modal_gamma(emd::ExplicitModalDataset{T,W}, i_sample::Integer, w::W, r::AbstractRelation, f::AbstractFeature, aggr::Aggregator, args...) where {T,W<:AbstractWorld}
     aggr([
         aggregator_bottom(aggr, T),
         [get_gamma(emd, i_sample, w2, f) for w2 in representatives(emd, i_sample, w, r, f, aggr)]...
@@ -261,3 +378,6 @@ Base.@propagate_inbounds @inline function _get_global_gamma(emd::ExplicitModalDa
         [get_gamma(emd, i_sample, w2, f) for w2 in representatives(emd, i_sample, RelationGlob, f, aggr)]...
     ])
 end
+
+# World-specific featured world datasets and supports
+include("dimensional-fwds.jl")

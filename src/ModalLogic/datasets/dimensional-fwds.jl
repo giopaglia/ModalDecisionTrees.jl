@@ -56,9 +56,8 @@ Base.@propagate_inbounds @inline function fwd_set_feature_slice(fwd::OneWorldFWD
     fwd.d[:, i_feature] = feature_fwd
 end
 
-function slice_dataset(fwd::OneWorldFWD{T}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T}
-    @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
-    OneWorldFWD{T}(if return_view @view fwd.d[inds,:] else fwd.d[inds,:] end)
+function _slice_dataset(fwd::OneWorldFWD{T}, inds::AbstractVector{<:Integer}, return_view::Val = Val(false)) where {T}
+    OneWorldFWD{T}(if return_view == Val(true) @view fwd.d[inds,:] else fwd.d[inds,:] end)
 end
 
 Base.@propagate_inbounds @inline fwd_get_channel(fwd::OneWorldFWD{T}, i_sample::Integer, i_feature::Integer) where {T} =
@@ -108,9 +107,8 @@ Base.@propagate_inbounds @inline function fwd_set_feature_slice(fwd::IntervalFWD
     fwd.d[:, :, :, i_feature] = feature_fwd
 end
 
-function slice_dataset(fwd::IntervalFWD{T}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T}
-    @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
-    IntervalFWD{T}(if return_view @view fwd.d[:,:,inds,:] else fwd.d[:,:,inds,:] end)
+function _slice_dataset(fwd::IntervalFWD{T}, inds::AbstractVector{<:Integer}, return_view::Val = Val(false)) where {T}
+    IntervalFWD{T}(if return_view == Val(true) @view fwd.d[:,:,inds,:] else fwd.d[:,:,inds,:] end)
 end
 Base.@propagate_inbounds @inline fwd_get_channel(fwd::IntervalFWD{T}, i_sample::Integer, i_feature::Integer) where {T} =
     @views fwd.d[:,:,i_sample, i_feature]
@@ -161,9 +159,8 @@ Base.@propagate_inbounds @inline function fwd_set_feature_slice(fwd::Interval2DF
     fwd.d[:, :, :, :, :, i_feature] = feature_fwd
 end
 
-function slice_dataset(fwd::Interval2DFWD{T}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T}
-    @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
-    Interval2DFWD{T}(if return_view @view fwd.d[:,:,:,:,inds,:] else fwd.d[:,:,:,:,inds,:] end)
+function _slice_dataset(fwd::Interval2DFWD{T}, inds::AbstractVector{<:Integer}, return_view::Val = Val(false)) where {T}
+    Interval2DFWD{T}(if return_view == Val(true) @view fwd.d[:,:,:,:,inds,:] else fwd.d[:,:,:,:,inds,:] end)
 end
 Base.@propagate_inbounds @inline fwd_get_channel(fwd::Interval2DFWD{T}, i_sample::Integer, i_feature::Integer) where {T} =
     @views fwd.d[:,:,:,:,i_sample, i_feature]

@@ -1,5 +1,6 @@
 import Base: size, ndims, getindex
 
+
 ############################################################################################
 ############################################################################################
 # world-specific FWD supports implementations
@@ -213,32 +214,26 @@ end
 
 ############################################################################################
 
-function slice_dataset(
+function _slice_dataset(
     support::RS,
-    inds::AbstractVector{<:Integer};
-    allow_no_instances = false,
-    return_view = false
+    inds::AbstractVector{<:Integer},
+    return_view::Val = Val(false)
 ) where {T,RS<:UniformFullDimensionalRelationalSupport{T,OneWorld}}
-    @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
-    RS(if return_view @view support.d[inds,:,:] else support.d[inds,:,:] end)
+    RS(if return_view == Val(true) @view support.d[inds,:,:] else support.d[inds,:,:] end)
 end
-function slice_dataset(
+function _slice_dataset(
     support::RS,
-    inds::AbstractVector{<:Integer};
-    allow_no_instances = false,
-    return_view = false
+    inds::AbstractVector{<:Integer},
+    return_view::Val = Val(false)
 ) where {T,RS<:UniformFullDimensionalRelationalSupport{T,Interval}}
-    @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
-    RS(if return_view @view support.d[:,:,inds,:,:] else support.d[:,:,inds,:,:] end)
+    RS(if return_view == Val(true) @view support.d[:,:,inds,:,:] else support.d[:,:,inds,:,:] end)
 end
-function slice_dataset(
+function _slice_dataset(
     support::RS,
-    inds::AbstractVector{<:Integer};
-    allow_no_instances = false,
-    return_view = false
+    inds::AbstractVector{<:Integer},
+    return_view::Val = Val(false)
 ) where {T,RS<:UniformFullDimensionalRelationalSupport{T,Interval2D}}
-    @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
-    RS(if return_view @view support.d[:,:,:,:,inds,:,:] else support.d[:,:,:,:,inds,:,:] end)
+    RS(if return_view == Val(true) @view support.d[:,:,:,:,inds,:,:] else support.d[:,:,:,:,inds,:,:] end)
 end
 
 ############################################################################################
@@ -278,9 +273,8 @@ end
 #     nothing
 # Base.@propagate_inbounds @inline fwd_rs_set(support::OneWorldFWD_RS{T}, i_sample::Integer, w::OneWorld, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
 #     support.d[i_sample, i_featsnaggr, i_relation] = threshold
-# function slice_dataset(support::OneWorldFWD_RS{T}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T}
-#     @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
-#     OneWorldFWD_RS{T}(if return_view @view support.d[inds,:,:] else support.d[inds,:,:] end)
+# function _slice_dataset(support::OneWorldFWD_RS{T}, inds::AbstractVector{<:Integer}, return_view::Val = Val(false)) where {T}
+#     OneWorldFWD_RS{T}(if return_view == Val(true) @view support.d[inds,:,:] else support.d[inds,:,:] end)
 # end
 
 ############################################################################################
@@ -328,9 +322,8 @@ end
 #     nothing
 # Base.@propagate_inbounds @inline fwd_rs_set(support::IntervalFWD_RS{T}, i_sample::Integer, w::Interval, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
 #     support.d[w.x, w.y, i_sample, i_featsnaggr, i_relation] = threshold
-# function slice_dataset(support::IntervalFWD_RS{T}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T}
-#     @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
-#     IntervalFWD_RS{T}(if return_view @view support.d[:,:,inds,:,:] else support.d[:,:,inds,:,:] end)
+# function _slice_dataset(support::IntervalFWD_RS{T}, inds::AbstractVector{<:Integer}, return_view::Val = Val(false)) where {T}
+#     IntervalFWD_RS{T}(if return_view == Val(true) @view support.d[:,:,inds,:,:] else support.d[:,:,inds,:,:] end)
 # end
 
 ############################################################################################
@@ -370,9 +363,8 @@ end
 #   nothing
 # Base.@propagate_inbounds @inline fwd_rs_set(support::Interval2DFWD_RS{T}, i_sample::Integer, w::Interval2D, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
 #   support.d[w.x.x, w.x.y, w.y.x, w.y.y, i_sample, i_featsnaggr, i_relation] = threshold
-# function slice_dataset(support::Interval2DFWD_RS{T}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T}
-# @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
-#   Interval2DFWD_RS{T}(if return_view @view support.d[:,:,:,:,inds,:,:] else support.d[:,:,:,:,inds,:,:] end)
+# function _slice_dataset(support::Interval2DFWD_RS{T}, inds::AbstractVector{<:Integer}, return_view::Val = Val(false)) where {T}
+#   Interval2DFWD_RS{T}(if return_view == Val(true) @view support.d[:,:,:,:,inds,:,:] else support.d[:,:,:,:,inds,:,:] end)
 # end
 
 
@@ -416,7 +408,6 @@ end
 #     nothing
 # Base.@propagate_inbounds @inline fwd_rs_set(support::Interval2DFWD_RS{T}, i_sample::Integer, w::Interval2D, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
 #     support.d[w.x.x+div((w.x.y-2)*(w.x.y-1),2), w.y.x+div((w.y.y-2)*(w.y.y-1),2), i_sample, i_featsnaggr, i_relation] = threshold
-# function slice_dataset(support::Interval2DFWD_RS{T}, inds::AbstractVector{<:Integer}; allow_no_instances = false, return_view = false) where {T}
-#     @assert (allow_no_instances || length(inds) > 0) "Can't apply empty slice to dataset."
-#     Interval2DFWD_RS{T}(if return_view @view support.d[:,:,inds,:,:] else support.d[:,:,inds,:,:] end)
+# function _slice_dataset(support::Interval2DFWD_RS{T}, inds::AbstractVector{<:Integer}, return_view::Val = Val(false)) where {T}
+#     Interval2DFWD_RS{T}(if return_view == Val(true) @view support.d[:,:,inds,:,:] else support.d[:,:,inds,:,:] end)
 # end

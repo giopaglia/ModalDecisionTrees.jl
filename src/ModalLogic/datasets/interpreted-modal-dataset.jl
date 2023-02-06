@@ -101,7 +101,7 @@
             end
             _features, featsnops
         end
-        InterpretedModalDataset{T,N,world_type(ontology)}(domain, ontology, _features, featsnops)
+        InterpretedModalDataset{T,N,worldtype(ontology)}(domain, ontology, _features, featsnops)
     end
 
     function InterpretedModalDataset{T,N,W}(
@@ -145,81 +145,57 @@
 
 end
 
-Base.size(imd::InterpretedModalDataset)              = size(imd.domain)
+Base.size(imd::InterpretedModalDataset)              = size(domain(imd))
+
+domain(imd::InterpretedModalDataset)                 = imd.domain
+ontology(imd::InterpretedModalDataset)               = imd.ontology
 features(imd::InterpretedModalDataset)               = imd.features
 grouped_featsaggrsnops(imd::InterpretedModalDataset) = imd.grouped_featsaggrsnops
 grouped_featsnaggrs(imd::InterpretedModalDataset)    = imd.grouped_featsnaggrs
-nattributes(imd::InterpretedModalDataset)            = nattributes(imd.domain)
-nfeatures(imd::InterpretedModalDataset)              = length(features(imd))
-nrelations(imd::InterpretedModalDataset)             = length(relations(imd))
-nsamples(imd::InterpretedModalDataset)               = nsamples(imd.domain)
-relations(imd::InterpretedModalDataset)              = relations(imd.ontology)
-world_type(imd::InterpretedModalDataset{T,N,WT}) where {T,N,WT} = WT
 
-initialworldset(imd::InterpretedModalDataset, args...) = initialworldset(imd.domain, args...)
-accessibles(imd::InterpretedModalDataset, args...) = accessibles(imd.domain, args...)
-representatives(imd::InterpretedModalDataset, args...) = representatives(imd.domain, args...)
-allworlds(imd::InterpretedModalDataset, args...) = allworlds(imd.domain, args...)
+relations(imd::InterpretedModalDataset)              = relations(ontology(imd))
+nattributes(imd::InterpretedModalDataset)            = nattributes(domain(imd))
+nsamples(imd::InterpretedModalDataset)               = nsamples(domain(imd))
+
+nrelations(imd::InterpretedModalDataset)             = length(relations(imd))
+nfeatures(imd::InterpretedModalDataset)              = length(features(imd))
+
+worldtype(imd::InterpretedModalDataset{T,N,WT}) where {T,N,WT} = WT
+
+initialworldset(imd::InterpretedModalDataset, args...) = initialworldset(domain(imd), args...)
+accessibles(imd::InterpretedModalDataset, args...) = accessibles(domain(imd), args...)
+representatives(imd::InterpretedModalDataset, args...) = representatives(domain(imd), args...)
+allworlds(imd::InterpretedModalDataset, args...) = allworlds(domain(imd), args...)
 
 # Note: Can't define Base.length(::DimensionalDataset) & Base.iterate(::DimensionalDataset)
 Base.length(imd::InterpretedModalDataset)                = nsamples(imd)
-Base.iterate(imd::InterpretedModalDataset, state=1) = state > length(imd) ? nothing : (get_instance(imd, state), state+1) # Base.iterate(imd.domain, state=state)
-max_channel_size(imd::InterpretedModalDataset)          = max_channel_size(imd.domain)
+Base.iterate(imd::InterpretedModalDataset, state=1) = state > length(imd) ? nothing : (get_instance(imd, state), state+1) # Base.iterate(domain(imd), state=state)
+max_channel_size(imd::InterpretedModalDataset)          = max_channel_size(domain(imd))
 
-get_instance(imd::InterpretedModalDataset, args...)     = get_instance(imd.domain, args...)
+get_instance(imd::InterpretedModalDataset, args...)     = get_instance(domain(imd), args...)
 
-slice_dataset(imd::InterpretedModalDataset, inds::AbstractVector{<:Integer}, args...; allow_no_instances = false, kwargs...)    =
-    InterpretedModalDataset(slice_dataset(imd.domain, inds, args...; allow_no_instances = allow_no_instances, kwargs...), imd.ontology, features(imd), imd.grouped_featsaggrsnops; allow_no_instances = allow_no_instances)
+_slice_dataset(imd::InterpretedModalDataset, inds::AbstractVector{<:Integer}, args...; kwargs...)    =
+    InterpretedModalDataset(_slice_dataset(domain(imd), inds, args...; kwargs...), ontology(imd), features(imd), imd.grouped_featsaggrsnops)
 
 
 function display_structure(imd::InterpretedModalDataset; indent_str = "")
     out = "$(typeof(imd))\t$(Base.summarysize(imd) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
     out *= indent_str * "├ relations: \t$((length(relations(imd))))\t$(relations(imd))\n"
-    out *= indent_str * "├ domain shape\t$(Base.size(imd.domain))\n"
+    out *= indent_str * "├ domain shape\t$(Base.size(domain(imd)))\n"
     out *= indent_str * "└ max_channel_size\t$(max_channel_size(imd))"
     out
 end
 
 function hasnans(imd::InterpretedModalDataset)
-    # @show hasnans(imd.domain)
-    hasnans(imd.domain)
+    # @show hasnans(domain(imd))
+    hasnans(domain(imd))
 end
 
-Base.@propagate_inbounds @inline get_gamma(imd::InterpretedModalDataset, args...) = get_gamma(imd.domain, args...)
-Base.@propagate_inbounds @inline _get_modal_gamma(imd::InterpretedModalDataset, args...) = _get_modal_gamma(imd.domain, args...)
-Base.@propagate_inbounds @inline _get_global_gamma(imd::InterpretedModalDataset, args...) = _get_global_gamma(imd.domain, args...)
+Base.@propagate_inbounds @inline get_gamma(imd::InterpretedModalDataset, args...) = _get_gamma(imd, args...)
 
-############################################################################################
-############################################################################################
-############################################################################################
-
-# DimensionalDataset bindings
-
-Base.@propagate_inbounds @inline function get_gamma(X::DimensionalDataset{T,N}, i_sample::Integer, w::AbstractWorld, f::AbstractFeature) where {T,N}
-    w_values = interpret_world(w, get_instance(X, i_sample))::AbstractDimensionalInstance{T,N-1}
-    compute_feature(f, w_values)::T
-end
-
-Base.@propagate_inbounds @inline function _get_modal_gamma(X::DimensionalDataset{T,N}, i_sample::Integer, w::AbstractWorld, r::AbstractRelation, f::AbstractFeature, aggr::Aggregator) where {T,N}
-    aggr([
-        aggregator_bottom(aggr, T),
-        [get_gamma(X, i_sample, w2, f) for w2 in representatives(X, i_sample, w, r, f, aggr)]...
-    ])
-end
-
-Base.@propagate_inbounds @inline function _get_global_gamma(X::DimensionalDataset{T,N}, i_sample::Integer, f::AbstractFeature, aggr::Aggregator) where {T,N}
-    aggr([
-        aggregator_bottom(aggr, T),
-        [get_gamma(X, i_sample, w2, f) for w2 in representatives(X, i_sample, RelationGlob, f, aggr)]...
-    ])
-end
-
-
-initialworldset(X::UniformDimensionalDataset, i_sample, args...) = initialworldset(FullDimensionalFrame(channel_size(X)), args...)
-accessibles(X::UniformDimensionalDataset, i_sample, args...) = accessibles(FullDimensionalFrame(channel_size(X)), args...)
-representatives(X::UniformDimensionalDataset, i_sample, args...) = representatives(FullDimensionalFrame(channel_size(X)), args...)
-allworlds(X::UniformDimensionalDataset, i_sample, args...) = allworlds(FullDimensionalFrame(channel_size(X)), args...)
-
+Base.@propagate_inbounds @inline _get_gamma(imd::InterpretedModalDataset, args...) = _get_gamma(domain(imd), args...)
+Base.@propagate_inbounds @inline _get_modal_gamma(imd::InterpretedModalDataset, args...) = _get_modal_gamma(domain(imd), args...)
+Base.@propagate_inbounds @inline _get_global_gamma(imd::InterpretedModalDataset, args...) = _get_global_gamma(domain(imd), args...)
 
 ############################################################################################
 ############################################################################################

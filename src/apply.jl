@@ -336,7 +336,7 @@ function apply(
 end
 
 # function apply(tree::DTNode{L}, X::DimensionalDataset{T,D}, Y::AbstractVector{<:L}; reset_leaves = true, update_labels = false) where {L,T,D}
-#   return apply(DTree(tree, [world_type(ModalDecisionTrees.get_interval_ontology(Val(D-2)))], [start_without_world]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
+#   return apply(DTree(tree, [worldtype(ModalDecisionTrees.get_interval_ontology(Val(D-2)))], [start_without_world]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
 # end
 
 ############################################################################################

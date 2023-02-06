@@ -251,7 +251,7 @@ function DataFrame2MultiFrameModalDataset(
         (if mode == :implicit
             __X
         else
-            WorldType = MDT.world_type(ontology)
+            WorldType = MDT.worldtype(ontology)
 
             compute_relation_glob =
                 WorldType != MDT.OneWorld && (

@@ -25,7 +25,7 @@ initialworldset(::AbstractMultiModalFrame{W}, iC::StartAtWorld{W}) where {W<:Abs
 initialworldsets(Xs::MultiFrameModalDataset, iCs::AbstractVector{<:InitCondition}) = begin
     Ss = Vector{Vector{WST} where {W,WST<:WorldSet{W}}}(undef, nframes(Xs))
     for (i_frame,X) in enumerate(frames(Xs))
-        WT = world_type(X)
+        WT = worldtype(X)
         Ss[i_frame] = WorldSet{WT}[initialworldset(X, i_sample, iCs[i_frame]) for i_sample in 1:nsamples(Xs)]
         # Ss[i_frame] = WorldSet{WT}[[ModalLogic.Interval(1,2)] for i_sample in 1:nsamples(Xs)]
     end

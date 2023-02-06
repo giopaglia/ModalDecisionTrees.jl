@@ -203,7 +203,7 @@ function build_forest(
     Threads.@threads for i_tree in 1:n_trees
         train_idxs = rand(rngs[i_tree], 1:tot_samples, num_samples)
 
-        X_slice = slice_dataset(X, train_idxs; return_view = true)
+        X_slice = _slice_dataset(X, train_idxs, return_view = true)
         Y_slice = @view Y[train_idxs]
         W_slice = SoleModels.slice_weights(W, train_idxs)
 
@@ -239,7 +239,7 @@ function build_forest(
                 # compute_metrics([Inf],[-Inf])
                 compute_metrics(["__FAKE__"],["__FAKE2__"]) # TODO
             else
-                tree_preds = apply_tree(trees[i_tree], slice_dataset(X, oob_samples[i_tree], return_view = true))
+                tree_preds = apply_tree(trees[i_tree], _slice_dataset(X, oob_samples[i_tree], return_view = true))
                 compute_metrics(Y[oob_samples[i_tree]], tree_preds, SoleModels.slice_weights(W, oob_samples[i_tree]))
             end
         end
@@ -271,7 +271,7 @@ function build_forest(
                 continue
             end
             
-            X_slice = slice_dataset(X, [i]; return_view = true)
+            X_slice = _slice_dataset(X, [i], return_view = true)
             Y_slice = [Y[i]]
             
             preds = apply_model(trees[index_of_trees_to_test_with], X_slice; suppress_parity_warning = suppress_parity_warning)

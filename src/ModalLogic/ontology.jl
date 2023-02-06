@@ -25,7 +25,7 @@ struct Ontology{W<:AbstractWorld}
     Ontology(worldType::Type{<:AbstractWorld}, relations) = Ontology{worldType}(relations)
 end
 
-world_type(::Ontology{WT}) where {WT<:AbstractWorld} = WT
+worldtype(::Ontology{WT}) where {WT<:AbstractWorld} = WT
 relations(o::Ontology) = o.relations
 
 Base.show(io::IO, o::Ontology{WT}) where {WT<:AbstractWorld} = begin
