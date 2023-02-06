@@ -1,7 +1,7 @@
 using SoleLogics: _RelationId, _RelationGlob
 
 using SoleModels: AbstractRelation, AbstractFeature, TestOperatorFun, FeatCondition
-using SoleModels: alpha, display_feature, display_feature_test_operator_pair
+using SoleModels: alpha, syntaxstring
 
 export ExistentialDimensionalDecision,
        #
@@ -43,8 +43,8 @@ function display_decision_inverse(i_frame::Integer, decision::SimpleDecision, kw
     display_decision(i_frame, inverse(decision), kwargs...; args...)
 end
 
-display_existential(rel::AbstractRelation) = SoleLogics.display_operator(DiamondRelationalOperator{typeof(rel)}())
-display_universal(rel::AbstractRelation)   = SoleLogics.display_operator(BoxRelationalOperator{typeof(rel)}())
+display_existential(rel::AbstractRelation) = SoleLogics.syntaxstring(DiamondRelationalOperator{typeof(rel)}())
+display_universal(rel::AbstractRelation)   = SoleLogics.syntaxstring(BoxRelationalOperator{typeof(rel)}())
 
 ############################################################################################
 
@@ -85,7 +85,7 @@ feature(d::PropositionalDimensionalDecision) = feature(proposition(d))
 test_operator(d::PropositionalDimensionalDecision) = test_operator(proposition(d))
 threshold(d::PropositionalDimensionalDecision) = threshold(proposition(d))
 
-inverse(p::PropositionalDimensionalDecision{T}) where {T} = 
+inverse(p::PropositionalDimensionalDecision{T}) where {T} =
     PropositionalDimensionalDecision{T}(inverse(p))
 
 ############################################################################################
@@ -106,7 +106,7 @@ struct ExistentialDimensionalDecision{T} <: ModalDimensionalDecision{T}
 
     # Relation, interpreted as an existential modal operator
     relation  :: AbstractRelation
-    
+
     p         :: FeatCondition{T}
 
     function ExistentialDimensionalDecision{T}() where {T}
@@ -181,7 +181,7 @@ function display_decision(
         use_feature_abbreviations::Bool = false,
     )
     prop_decision_str = "$(
-        display_feature_test_operator_pair(
+        syntaxstring(
             feature(decision),
             test_operator(decision);
             attribute_names_map = attribute_names_map,

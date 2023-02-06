@@ -41,6 +41,9 @@ abstract type AbstractDecisionInternal{L<:Label,D<:AbstractDecision} <: Abstract
 # Decision Node (Leaf or Internal)
 const DTNode{L<:Label,D<:AbstractDecision} = Union{<:AbstractDecisionLeaf{<:L},<:AbstractDecisionInternal{L,D}}
 
+isleftchild(node::DTNode, parent::DTNode) = (left(parent) == node)
+isrightchild(node::DTNode, parent::DTNode) = (right(parent) == node)
+
 # TODO maybe one day?
 # abstract type AbstractNode{L<:Label} end
 # abstract type DTNode{L<:Label,D<:AbstractDecision} <: AbstractNode{L} end

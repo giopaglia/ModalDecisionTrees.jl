@@ -10,9 +10,9 @@ using ModalDecisionTrees: relation, feature, test_operator, threshold
 using ModalDecisionTrees: test_operator_inverse
 using ModalDecisionTrees: AbstractFeature
 using ModalDecisionTrees: DTInternal, DTNode, DTLeaf, NSDTLeaf
+using ModalDecisionTrees: isleftchild, isrightchild
 
 using FunctionWrappers: FunctionWrapper
-
 
 ############################################################################################
 # MDTv1 translation
@@ -41,12 +41,12 @@ function translate(
 
     info = merge(info, SoleModels.info(pure_root))
     info = merge(info, (;))
-    
+
     return DecisionTree(pure_root, info)
 end
 
 function translate(
-    node::DTInternal, 
+    node::DTInternal,
     ancestors::Vector{<:DTInternal} = DTInternal[],
     info = (;),
 )
@@ -130,9 +130,6 @@ function get_lambda(parent::DTNode, child::DTNode)
         error("Cannot compute pathformula on malformed path: $(nodes).")
     end
 end
-
-isleftchild(node::DTNode, parent::DTNode) = (left(parent) == node)
-isrightchild(node::DTNode, parent::DTNode) = (right(parent) == node)
 
 ############################################################################################
 ############################################################################################
@@ -225,7 +222,7 @@ end
 
 #         f1 = pureformula(pi1)
 #         f2 = pureformula(pi2)
-        
+
 #         if !(_lambda isa... ExistsTrueDecision)
 #             if !xor(agreement, !isimplicative(f2))
 #                 _lambda ∧ (f1 ∧ f2)
