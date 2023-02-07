@@ -43,8 +43,8 @@ function display_decision_inverse(i_frame::Integer, decision::SimpleDecision, kw
     display_decision(i_frame, inverse(decision), kwargs...; args...)
 end
 
-display_existential(rel::AbstractRelation) = SoleLogics.syntaxstring(DiamondRelationalOperator{typeof(rel)}())
-display_universal(rel::AbstractRelation)   = SoleLogics.syntaxstring(BoxRelationalOperator{typeof(rel)}())
+display_existential(rel::AbstractRelation; kwargs...) = SoleLogics.syntaxstring(DiamondRelationalOperator{typeof(rel)}(); kwargs...)
+display_universal(rel::AbstractRelation; kwargs...)   = SoleLogics.syntaxstring(BoxRelationalOperator{typeof(rel)}(); kwargs...)
 
 ############################################################################################
 
@@ -182,8 +182,7 @@ function display_decision(
     )
     prop_decision_str = "$(
         syntaxstring(
-            feature(decision),
-            test_operator(decision);
+            decision.p.metacond; # TODO use methods to access metacond
             attribute_names_map = attribute_names_map,
             use_feature_abbreviations = use_feature_abbreviations,
         )
