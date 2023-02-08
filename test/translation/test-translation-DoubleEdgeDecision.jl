@@ -42,4 +42,4 @@ _forth!(ded3, Ref(branch))
 tree = branch
 
 
-pure_tree = ModalDecisionTrees.translate_mdtv1(tree)
+pure_tree = ModalDecisionTrees.translate(tree)

@@ -43,6 +43,7 @@ test_suites = [
     ]),
     ("Miscellaneous", [
         # "miscellaneous/convert.jl"
+        "translation/parse-and-translate-existentialdecisions.jl"
     ]),
 ]
 
