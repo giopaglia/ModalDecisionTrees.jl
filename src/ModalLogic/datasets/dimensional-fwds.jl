@@ -6,13 +6,13 @@ import Base: size, ndims, getindex
 ############################################################################################
 ############################################################################################
 
-abstract type UniformFullDimensionalFWD{T,N,W<:AbstractWorld} <: AbstractFWD{T,W,FR where FR<:FullDimensionalFrame{N,W,Bool}} end
+abstract type UniformFullDimensionalFWD{T,N,W<:AbstractWorld} <: AbstractFWD{T,W,FullDimensionalFrame{N,W,Bool}} end
 
 channel_size(fwd::UniformFullDimensionalFWD) = error("TODO add message inviting to add channel_size")
 initialworldset(fwd::UniformFullDimensionalFWD, i_sample, args...) = initialworldset(FullDimensionalFrame(channel_size(fwd)), args...)
 accessibles(fwd::UniformFullDimensionalFWD, i_sample, args...) = accessibles(FullDimensionalFrame(channel_size(fwd)), args...)
 representatives(fwd::UniformFullDimensionalFWD, i_sample, args...) = representatives(FullDimensionalFrame(channel_size(fwd)), args...)
-allworlds(fwd::UniformFullDimensionalFWD{T,W}, i_sample::Integer, args...) where {T,W} = allworlds(FullDimensionalFrame(channel_size(fwd)), args...)
+allworlds(fwd::UniformFullDimensionalFWD, i_sample::Integer, args...) = allworlds(FullDimensionalFrame(channel_size(fwd)), args...)
 
 Base.size(fwd::UniformFullDimensionalFWD, args...) = Base.size(fwd.d, args...)
 
@@ -27,7 +27,6 @@ end
 
 channel_size(fwd::OneWorldFWD) = ()
 goeswith(::Type{OneWorldFWD}, ::Type{OneWorld}) = true
-default_fwd_type(::Type{OneWorld}) = OneWorldFWD
 
 nsamples(fwd::OneWorldFWD)  = size(fwd.d, 1)
 nfeatures(fwd::OneWorldFWD) = size(fwd.d, 2)
@@ -75,7 +74,6 @@ end
 
 channel_size(fwd::IntervalFWD) = (size(fwd.d, 1),)
 goeswith(::Type{IntervalFWD}, ::Type{Interval}) = true
-default_fwd_type(::Type{Interval}) = IntervalFWD
 
 nsamples(fwd::IntervalFWD)  = size(fwd.d, 3)
 nfeatures(fwd::IntervalFWD) = size(fwd.d, 4)
@@ -126,7 +124,6 @@ end
 
 channel_size(fwd::Interval2DFWD) = (size(fwd.d, 1),size(fwd.d, 3))
 goeswith(::Type{Interval2DFWD}, ::Type{Interval2D}) = true
-default_fwd_type(::Type{Interval2D}) = Interval2DFWD
 
 nsamples(fwd::Interval2DFWD)  = size(fwd.d, 5)
 nfeatures(fwd::Interval2DFWD) = size(fwd.d, 6)
@@ -202,4 +199,3 @@ function apply_aggregator(fwd_feature_slice::FWDFeatureSlice{T}, worlds::Any, ag
     # end
     # threshold
 end
-

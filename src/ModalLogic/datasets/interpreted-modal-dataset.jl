@@ -145,7 +145,8 @@
 
 end
 
-Base.size(imd::InterpretedModalDataset)              = size(domain(imd))
+Base.getindex(imd::InterpretedModalDataset, args...) = Base.getindex(domain(imd), args...)
+Base.size(imd::InterpretedModalDataset)              = Base.size(domain(imd))
 
 domain(imd::InterpretedModalDataset)                 = imd.domain
 ontology(imd::InterpretedModalDataset)               = imd.ontology
@@ -191,11 +192,7 @@ function hasnans(imd::InterpretedModalDataset)
     hasnans(domain(imd))
 end
 
-Base.@propagate_inbounds @inline get_gamma(imd::InterpretedModalDataset, args...) = _get_gamma(imd, args...)
-
-Base.@propagate_inbounds @inline _get_gamma(imd::InterpretedModalDataset, args...) = _get_gamma(domain(imd), args...)
-Base.@propagate_inbounds @inline _get_modal_gamma(imd::InterpretedModalDataset, args...) = _get_modal_gamma(domain(imd), args...)
-Base.@propagate_inbounds @inline _get_global_gamma(imd::InterpretedModalDataset, args...) = _get_global_gamma(domain(imd), args...)
+Base.@propagate_inbounds @inline get_gamma(imd::InterpretedModalDataset, args...) = get_gamma(domain(imd), args...)
 
 ############################################################################################
 ############################################################################################

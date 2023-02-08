@@ -3,35 +3,49 @@ using ..ModalDecisionTrees: is_propositional_decision, display_decision
 
 export generate_feasible_decisions
 
+# function test_decision(
+#     X::ModalDataset{T},
+#     i_sample::Integer,
+#     w::AbstractWorld,
+#     decision::ExistentialDimensionalDecision{T}
+# ) where {T}
+#     aggregator = existential_aggregator(test_operator(decision))
+#     worlds = representatives(X, i_sample, w, relation(decision), feature(decision), aggregator)
+#     gamma = if length(worlds |> collect) == 0
+#         aggregator_bottom(aggregator, T)
+#     else
+#         aggregator((w)->get_gamma(X, i_sample, w, feature(decision)), worlds)
+#     end
 
-test_decision(
-        X::ModalDataset{T},
-        i_sample::Integer,
-        w::AbstractWorld,
-        feature::AbstractFeature,
-        test_operator::TestOperatorFun,
-        threshold::T) where {T} = begin
+#     evaluate_thresh_decision(test_operator(decision), gamma, threshold(decision))
+# end
+
+# function test_decision(
+#     X::ExplicitModalDatasetS{T,W},
+#     i_sample::Integer,
+#     w::W,
+#     decision::ExistentialDimensionalDecision
+# ) where {T,W<:AbstractWorld}
+    
+#     if is_propositional_decision(decision)
+#         _test_decision(X, i_sample, w, feature(decision), test_operator(decision), threshold(decision))
+#     else
+#         gamma = get_modal_gamma(X, i_sample, w, relation(decision), feature(decision), test_operator(decision))
+#         evaluate_thresh_decision(test_operator(decision), gamma, threshold(decision))
+#     end
+# end
+
+
+function _test_decision(
+    X::ModalDataset{T},
+    i_sample::Integer,
+    w::AbstractWorld,
+    feature::AbstractFeature,
+    test_operator::TestOperatorFun,
+    threshold::T
+) where {T}
     gamma = get_gamma(X, i_sample, w, feature)
     evaluate_thresh_decision(test_operator, gamma, threshold)
-end
-
-test_decision(
-        X::ModalDataset{T},
-        i_sample::Integer,
-        w::AbstractWorld,
-        decision::ExistentialDimensionalDecision{T}) where {T} = begin
-    instance = get_instance(X, i_sample)
-
-    aggregator = existential_aggregator(test_operator(decision))
-    
-    worlds = representatives(FullDimensionalFrame(instance_channel_size(instance)), w, relation(decision), feature(decision), aggregator)
-    gamma = if length(worlds |> collect) == 0
-        aggregator_bottom(aggregator, T)
-    else
-        aggregator((w)->get_gamma(X, i_sample, w, feature(decision)), worlds)
-    end
-
-    evaluate_thresh_decision(test_operator(decision), gamma, threshold(decision))
 end
 
 
@@ -78,7 +92,7 @@ function modal_step(
             end
 
         for w in acc_worlds
-            if test_decision(X, i_sample, w, feature(decision), test_operator(decision), threshold(decision))
+            if _test_decision(X, i_sample, w, feature(decision), test_operator(decision), threshold(decision))
                 # @logmsg LogDetail " Found world " w ch_readWorld ... ch_readWorld(w, channel)
                 satisfied = true
                 push!(new_worlds, w)
@@ -182,7 +196,7 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
             # thresholds[:,instance_idx] = map(aggr->aggr(values), aggregators)
             
             for w in worlds
-                gamma = _get_gamma(X, i_sample, w, feature, i_feature)
+                gamma = X[i_sample, w, i_feature]
                 for (i_aggr,aggr) in enumerate(aggregators)
                     thresholds[i_aggr,instance_idx] = aggregator_to_binary(aggr)(gamma, thresholds[i_aggr,instance_idx])
                 end
@@ -340,18 +354,16 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
         # For each instance, compute thresholds by applying each aggregator to the set of existing values (from the worldset)
         for (instance_id,i_sample) in enumerate(instances_inds)
             @logmsg LogDetail " Instance $(instance_id)/$(_n_samples)"
-            if X isa ExplicitModalDataset
-                # Note: refer to ExplicitModalDatasetS
-                cur_fwd_slice = fwd_get_channel(fwd(X), i_sample, i_feature)
-            end
             for (i_aggr,(i_featsnaggr,aggr)) in enumerate(aggregators_with_ids)
                 gamma = begin # TODO delegate this job to different flavors of `get_global_gamma`. Test whether the cur_fwd_slice assignment outside is faster!
                     if X isa ExplicitModalDatasetS
+                        cur_fwd_slice = fwd_get_channel(fwd(X), i_sample, i_feature)
                         fwd_gs(support(X))[i_sample, i_featsnaggr]
-                        # TODO? _compute_global_gamma(X, emd, i_sample, feature, aggregator, cur_fwd_slice TODO, i_featsnaggr)
+                        # _compute_global_gamma(X, emd, i_sample, feature, aggregator, i_featsnaggr)
+                        # _compute_global_gamma(X, emd, i_sample, feature, aggregator, cur_fwd_slice, i_featsnaggr)
                     elseif X isa ExplicitModalDataset
-                        # cur_fwd_slice = fwd_get_channel(fwd(X), i_sample, i_feature)
-                        _compute_global_gamma(X, i_sample, cur_fwd_slice, feature, aggr)
+                        cur_fwd_slice = fwd_get_channel(fwd(X), i_sample, i_feature)
+                        fwd_slice_compute_global_gamma(X, i_sample, cur_fwd_slice, feature, aggr)
                     elseif X isa InterpretedModalDataset
                         _get_global_gamma(X, i_sample, feature, aggr)
                     else

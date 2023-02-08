@@ -26,10 +26,10 @@ goeswith(::Type{<:AbstractFWD}, ::Type{<:AbstractWorld}) = false
 # Maybe TODO: but fails with ArgumentError: invalid index: − of type SoleLogics.OneWorld:
 # Base.getindex(fwd::AbstractFWD, args...) = fwd_get(fwd, args...)
 Base.getindex(
-    fwd         :: AbstractFWD{T},
+    fwd         :: AbstractFWD,
     i_sample    :: Integer,
     w           :: AbstractWorld,
-    i_feature   :: Integer) where {T} = fwd_get(fwd, i_sample, w, i_feature)
+    i_feature   :: Integer) = fwd_get(fwd, i_sample, w, i_feature)
 
 # Any world type must also specify their default fwd constructor, which must accept a type
 #  parameter for the data type {T}, via:
@@ -96,7 +96,7 @@ Base.getindex(
 # end
 
 # Others...
-# Base.@propagate_inbounds @inline fwd_get_channel(fwd::GenericFWD{T}, i_sample::Integer, i_feature::Integer) where {T} = TODO
+# Base.@propagate_inbounds @inline fwd_get_channeaoeu(fwd::GenericFWD{T}, i_sample::Integer, i_feature::Integer) where {T} = TODO
 # const GenericFeaturedChannel{T} = TODO
 # fwd_channel_interpret_world(fwc::GenericFeaturedChannel{T}, w::AbstractWorld) where {T} = TODO
 
@@ -333,19 +333,6 @@ end
 ############################################################################################
 ############################################################################################
 
-function _compute_global_gamma(emd::ExplicitModalDataset, i_sample, cur_fwd_slice, feature, aggr)
-    # accessible_worlds = allworlds(emd, i_sample)
-    accessible_worlds = allworlds_aggr(emd, i_sample, feature, aggr)
-    threshold = apply_aggregator(cur_fwd_slice, accessible_worlds, aggr)
-end
-
-function _compute_modal_gamma(emd::ExplicitModalDataset, i_sample, cur_fwd_slice, w, relation, feature, aggr)
-    # accessible_worlds = accessibles(emd, i_sample, w, relation)
-    accessible_worlds = representatives(emd, i_sample, w, relation, feature, aggr)
-    threshold = apply_aggregator(cur_fwd_slice, accessible_worlds, aggr)
-end
-
-
 
 Base.@propagate_inbounds @inline get_gamma(
         X::ExplicitModalDataset{T,W},
@@ -353,31 +340,13 @@ Base.@propagate_inbounds @inline get_gamma(
         w::W,
         feature::AbstractFeature) where {T,W<:AbstractWorld} = begin
     i_feature = find_feature_id(X, feature)
-    _get_gamma(X, i_sample, w, feature, i_feature)
-end
-
-Base.@propagate_inbounds @inline _get_gamma(
-        X::ExplicitModalDataset{T,W},
-        i_sample::Integer,
-        w::W,
-        feature::AbstractFeature,
-        i_feature::Integer) where {T,W<:AbstractWorld} = begin
     X[i_sample, w, i_feature]
-end
-
-Base.@propagate_inbounds @inline function _get_modal_gamma(emd::ExplicitModalDataset{T,W}, i_sample::Integer, w::W, r::AbstractRelation, f::AbstractFeature, aggr::Aggregator, args...) where {T,W<:AbstractWorld}
-    aggr([
-        aggregator_bottom(aggr, T),
-        [get_gamma(emd, i_sample, w2, f) for w2 in representatives(emd, i_sample, w, r, f, aggr)]...
-    ])
-end
-
-Base.@propagate_inbounds @inline function _get_global_gamma(emd::ExplicitModalDataset{T,W}, i_sample::Integer, f::AbstractFeature, aggr::Aggregator) where {T,W<:AbstractWorld}
-    aggr([
-        aggregator_bottom(aggr, T),
-        [get_gamma(emd, i_sample, w2, f) for w2 in representatives(emd, i_sample, RelationGlob, f, aggr)]...
-    ])
 end
 
 # World-specific featured world datasets and supports
 include("dimensional-fwds.jl")
+
+# TODO remove
+default_fwd_type(::Type{OneWorld}) = OneWorldFWD
+default_fwd_type(::Type{Interval}) = IntervalFWD
+default_fwd_type(::Type{Interval2D}) = Interval2DFWD

@@ -138,19 +138,20 @@ struct ExplicitModalDatasetS{
 
 end
 
-emd(X::ExplicitModalDatasetS)                                            = X.emd
-support(X::ExplicitModalDatasetS)                                        = X.support
+emd(X::ExplicitModalDatasetS)                        = X.emd
+support(X::ExplicitModalDatasetS)                    = X.support
 
-Base.size(X::ExplicitModalDatasetS)                                      = (size(emd(X)), size(support(X)))
-features(X::ExplicitModalDatasetS)                                       = features(emd(X))
-grouped_featsaggrsnops(X::ExplicitModalDatasetS)                         = grouped_featsaggrsnops(emd(X))
-grouped_featsnaggrs(X::ExplicitModalDatasetS)                            = grouped_featsnaggrs(emd(X))
-nfeatures(X::ExplicitModalDatasetS)                                      = nfeatures(emd(X))
-nrelations(X::ExplicitModalDatasetS)                                     = nrelations(emd(X))
-nsamples(X::ExplicitModalDatasetS)                                       = nsamples(emd(X))
-relations(X::ExplicitModalDatasetS)                                      = relations(emd(X))
-fwd(X::ExplicitModalDatasetS)                                            = fwd(emd(X))
-worldtype(X::ExplicitModalDatasetS{T,W}) where {T,W}    = W
+Base.getindex(X::ExplicitModalDatasetS, args...)     = Base.getindex(emd(X), args...)
+Base.size(X::ExplicitModalDatasetS)                  = (size(emd(X)), size(support(X)))
+features(X::ExplicitModalDatasetS)                   = features(emd(X))
+grouped_featsaggrsnops(X::ExplicitModalDatasetS)     = grouped_featsaggrsnops(emd(X))
+grouped_featsnaggrs(X::ExplicitModalDatasetS)        = grouped_featsnaggrs(emd(X))
+nfeatures(X::ExplicitModalDatasetS)                  = nfeatures(emd(X))
+nrelations(X::ExplicitModalDatasetS)                 = nrelations(emd(X))
+nsamples(X::ExplicitModalDatasetS)                   = nsamples(emd(X))
+relations(X::ExplicitModalDatasetS)                  = relations(emd(X))
+fwd(X::ExplicitModalDatasetS)                        = fwd(emd(X))
+worldtype(X::ExplicitModalDatasetS{T,W}) where {T,W} = W
 
 usesmemo(X::ExplicitModalDatasetS) = usesmemo(support(X))
 
@@ -201,54 +202,3 @@ end
 ############################################################################################
 
 get_gamma(X::ExplicitModalDatasetS, args...) = get_gamma(emd(X), args...)
-_get_gamma(X::ExplicitModalDatasetS, args...) = _get_gamma(emd(X), args...)
-
-function _get_global_gamma(
-    X::ExplicitModalDatasetS{T,W},
-    i_sample::Integer,
-    feature::AbstractFeature,
-    aggregator::Aggregator
-) where {T,W<:AbstractWorld}
-    compute_global_gamma(support(X), emd(X), i_sample, feature, aggregator)
-end
-
-function _get_modal_gamma(
-    X::ExplicitModalDatasetS{T,W},
-    i_sample::Integer,
-    w::W,
-    relation::AbstractRelation,
-    feature::AbstractFeature,
-    aggregator::Aggregator,
-    i_featsnaggr::Union{Nothing,Integer} = nothing,
-    i_relation::Integer = find_relation_id(X, relation),
-) where {T,W<:AbstractWorld}
-    if isnothing(i_featsnaggr)
-        compute_modal_gamma(support(X), emd(X), i_sample, w, relation, feature, aggregator, i_relation)
-    else
-        _compute_modal_gamma(support(X), emd(X), i_sample, w, relation, feature, aggregator, i_featsnaggr, i_relation)
-    end
-end
-
-############################################################################################
-
-function test_decision(
-    X::ExplicitModalDatasetS{T,W},
-    i_sample::Integer,
-    w::W,
-    decision::ExistentialDimensionalDecision
-) where {T,W<:AbstractWorld}
-    
-    if is_propositional_decision(decision)
-        test_decision(X, i_sample, w, feature(decision), test_operator(decision), threshold(decision))
-    else
-        gamma = begin
-            if relation(decision) isa _RelationGlob
-                get_global_gamma(X, i_sample, feature(decision), test_operator(decision))
-            else
-                get_modal_gamma(X, i_sample, w, relation(decision), feature(decision), test_operator(decision))
-            end
-        end
-        evaluate_thresh_decision(test_operator(decision), gamma, threshold(decision))
-    end
-end
-

@@ -102,7 +102,7 @@ struct OneStepSupportingDataset{
 
                 cur_fwd_slice = fwd_get_channel(_fwd, i_sample, i_feature)
 
-                @logmsg LogDebug cur_fwd_slice
+                # @logmsg LogDebug cur_fwd_slice
 
                 # Global relation (independent of the current world)
                 if compute_fwd_gs
@@ -112,7 +112,7 @@ struct OneStepSupportingDataset{
                     for (i_featsnaggr,aggr) in aggregators
                     # Threads.@threads for (i_featsnaggr,aggr) in aggregators
                         
-                        threshold = _compute_global_gamma(emd, i_sample, cur_fwd_slice, feature, aggr)
+                        threshold = fwd_slice_compute_global_gamma(emd, i_sample, cur_fwd_slice, feature, aggr)
 
                         @logmsg LogDebug "Aggregator[$(i_featsnaggr)]=$(aggr)  -->  $(threshold)"
 
@@ -140,7 +140,7 @@ struct OneStepSupportingDataset{
                             # TODO optimize: all aggregators are likely reading the same raw values.
                             for (i_featsnaggr,aggr) in aggregators
                                 
-                                threshold = _compute_modal_gamma(emd, i_sample, cur_fwd_slice, w, relation, feature, aggr)
+                                threshold = fwd_slice_compute_modal_gamma(emd, i_sample, cur_fwd_slice, w, relation, feature, aggr)
 
                                 # @logmsg LogDebug "Aggregator" aggr threshold
 
@@ -249,7 +249,7 @@ function compute_global_gamma(
     aggregator::Aggregator,
 ) where {T,W<:AbstractWorld}
     i_featsnaggr = find_featsnaggr_id(X, feature, aggregator)
-    _compute_global_gamma(X, emd, i_sample, feature, aggregator, i_featsnaggr, cur_fwd_slice)
+    _compute_global_gamma(X, emd, i_sample, feature, aggregator, i_featsnaggr)
 end
 
 function _compute_global_gamma(
@@ -302,7 +302,7 @@ function _compute_modal_gamma(
     if usesmodalmemo(X) && (false ||  isnothing(_fwd_rs[i_sample, w, i_featsnaggr, i_relation]))
         i_feature = find_feature_id(emd, feature)
         fwd_feature_slice = fwd_get_channel(fwd(emd), i_sample, i_feature)
-        gamma = _compute_modal_gamma(emd, i_sample, fwd_feature_slice, w, relation, feature, aggregator)
+        gamma = fwd_slice_compute_modal_gamma(emd, i_sample, fwd_feature_slice, w, relation, feature, aggregator)
         fwd_rs_set(_fwd_rs, i_sample, w, i_featsnaggr, i_relation, gamma)
     end
     _fwd_rs[i_sample, w, i_featsnaggr, i_relation]

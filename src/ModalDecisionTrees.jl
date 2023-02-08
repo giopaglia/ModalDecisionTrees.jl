@@ -30,6 +30,7 @@ using SoleData: AbstractDimensionalInstance,
                 nattributes,
                 get_instance,
                 slice_dataset,
+                _slice_dataset,
                 concat_datasets,
                 instance_channel_size
 

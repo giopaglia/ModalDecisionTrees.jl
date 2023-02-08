@@ -30,7 +30,7 @@ using SoleLogics: AbstractFrame, FullDimensionalFrame
 using SoleModels: ActiveConditionalDataset, FeatCondition
 
 import SoleLogics: accessibles, allworlds
-import SoleModels: representatives, allworlds_aggr, FeatMetaCondition
+import SoleModels: representatives, FeatMetaCondition
 import SoleModels.utils: minify
 
 using SoleModels: AbstractMultiModalFrame
@@ -57,7 +57,7 @@ import ..ModalDecisionTrees: concat_datasets,
 export nfeatures, nrelations,
        nframes, frames, get_frame,
        display_structure,
-       get_gamma, test_decision,
+       get_gamma,
        #
        relations,
        #
@@ -85,29 +85,16 @@ const PassiveModalDataset{T} = Union{DimensionalDataset{T}}
 # 
 abstract type ActiveModalDataset{T<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}} <: ActiveConditionalDataset{W,FeatCondition,Bool,FR} end
 
-
-Base.@propagate_inbounds @inline function get_modal_gamma(emd::ActiveModalDataset{T,W}, i_sample::Integer, w::W, r::AbstractRelation, f::AbstractFeature, test_operator::TestOperatorFun) where {T,W<:AbstractWorld}
-    aggr = existential_aggregator(test_operator)
-    _get_modal_gamma(emd, i_sample, w, r, f, aggr)
-end
-
-Base.@propagate_inbounds @inline function get_global_gamma(emd::ActiveModalDataset{T,W}, i_sample::Integer, f::AbstractFeature, test_operator::TestOperatorFun) where {T,W<:AbstractWorld}
-    aggr = existential_aggregator(test_operator)
-    _get_global_gamma(emd, i_sample, f, aggr)
-end
-
-
-# TODO maybe remove
-allworlds_aggr(X::ActiveModalDataset, i_sample, args...) = representatives(X, i_sample, RelationGlob, args...)
-
 # By default an active modal dataset cannot be miniaturized
 isminifiable(::ActiveModalDataset) = false
 #
 const ModalDataset{T} = Union{PassiveModalDataset{T},ActiveModalDataset{T}}
 #
-include("decisions-for-modal-datasets.jl")
+include("interpret-one-step-decisions.jl")
 #
 include("datasets/main.jl")
+#
+include("gamma-access.jl")
 #
 # Define the multi-modal version of modal datasets (basically, a vector of datasets with the
 #  same number of instances)
