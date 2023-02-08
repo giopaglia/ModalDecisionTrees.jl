@@ -10,9 +10,9 @@ using ModalDecisionTrees: relation, feature, test_operator, threshold
 using ModalDecisionTrees: test_operator_inverse
 using ModalDecisionTrees: AbstractFeature
 using ModalDecisionTrees: DTInternal, DTNode, DTLeaf, NSDTLeaf
+using ModalDecisionTrees: isleftchild, isrightchild
 
 using FunctionWrappers: FunctionWrapper
-
 
 ############################################################################################
 # MDTv1 translation
@@ -20,11 +20,11 @@ using FunctionWrappers: FunctionWrapper
 
 ########################### NOTE: functions to test ########################################
 
-function translate_mdtv1(
+function translate(
     forest::DForest,
     info = (;),
 )
-    pure_trees = [translate_mdtv1(tree) for tree in trees(forest)]
+    pure_trees = [translate(tree) for tree in trees(forest)]
 
     info = merge(info, (;
         metrics = metrics(forest),
@@ -33,38 +33,38 @@ function translate_mdtv1(
     return DecisionForest(pure_trees, info)
 end
 
-function translate_mdtv1(
+function translate(
     tree::DTree,
     info = (;),
 )
-    pure_root = translate_mdtv1(ModalDecisionTrees.root(tree))
+    pure_root = translate(ModalDecisionTrees.root(tree))
 
     info = merge(info, SoleModels.info(pure_root))
     info = merge(info, (;))
-    
+
     return DecisionTree(pure_root, info)
 end
 
-function translate_mdtv1(
-    node::DTInternal, 
+function translate(
+    node::DTInternal,
     ancestors::Vector{<:DTInternal} = DTInternal[],
     info = (;),
 )
     new_ancestors = [ancestors..., node]
-    formula = pathformula(DTNode[new_ancestors..., left(node)])
+    formula = pathformula(new_ancestors, left(node))
     info = merge(info, (;
-        this = translate_mdtv1(ModalDecisionTrees.this(node), new_ancestors),
+        this = translate(ModalDecisionTrees.this(node), new_ancestors),
         supp_labels = ModalDecisionTrees.supp_labels(node),
     ))
     SoleModels.Branch(
         formula,
-        translate_mdtv1(left(node), new_ancestors),
-        translate_mdtv1(right(node), new_ancestors),
+        translate(left(node), new_ancestors),
+        translate(right(node), new_ancestors),
         info
     )
 end
 
-function translate_mdtv1(
+function translate(
     tree::DTLeaf,
     ancestors::Vector{<:DTInternal} = DTInternal[],
     info = (;),
@@ -75,7 +75,7 @@ function translate_mdtv1(
     return SoleModels.ConstantModel(ModalDecisionTrees.prediction(tree), info)
 end
 
-function translate_mdtv1(
+function translate(
     tree::NSDTLeaf,
     ancestors::Vector{<:DTInternal} = DTInternal[],
     info = (;),
@@ -131,11 +131,13 @@ function get_lambda(parent::DTNode, child::DTNode)
     end
 end
 
-isleftchild(node::DTNode, parent::DTNode) = (left(parent) == node)
-isrightchild(node::DTNode, parent::DTNode) = (right(parent) == node)
+############################################################################################
+############################################################################################
+############################################################################################
 
 # Compute path formula using semantics from TODO cite
-function pathformula(nodes::Vector{<:DTNode{L,<:ExistentialDimensionalDecision}}) where {L}
+function pathformula(internal::Vector{<:DTInternal{L,<:ExistentialDimensionalDecision}}, leaf::DTNode{LL}) where {L,LL}
+    nodes = [internal..., leaf]
     # dispatch a seconda del numero di nodi degli ancestors
     if length(nodes) == 0
         error("Cannot compute pathformula on empty path.")
@@ -144,7 +146,7 @@ function pathformula(nodes::Vector{<:DTNode{L,<:ExistentialDimensionalDecision}}
     elseif length(nodes) == 2
         return get_lambda(nodes[1], nodes[2])
     else
-        φ = pathformula(nodes[2:end])
+        φ = pathformula(Vector{DTInternal{Union{L,LL},<:ExistentialDimensionalDecision}}(nodes[2:end-1]), nodes[end])
 
         if isleftchild(nodes[2], nodes[1])
             dec = ModalDecisionTrees.decision(nodes[1])
@@ -176,10 +178,6 @@ function pathformula(nodes::Vector{<:DTNode{L,<:ExistentialDimensionalDecision}}
     end
 end
 
-############################################################################################
-############################################################################################
-############################################################################################
-
 # lambda(node::DTInternal) = decision2formula(decision(node))
 # lambda_inv(node::DTInternal) = ¬decision2formula(decision(node))
 
@@ -204,7 +202,8 @@ end
 #         (any(isa.(token(t), [BoxRelationalOperator, □])) && first(children(t)) == →)
 # end
 
-# function pathformula(nodes::Vector{<:DTNode{L,<:DoubleEdgedDecision}}) where {L}
+# function pathformula(internal::Vector{<:DTInternal{L,<:DoubleEdgedDecision}}, leaf::DTNode{L}) where {L}
+#     nodes = [internal..., leaf]
 #     depth = length(ancestors)
 
 #     if depth == 0
@@ -223,7 +222,7 @@ end
 
 #         f1 = pureformula(pi1)
 #         f2 = pureformula(pi2)
-        
+
 #         if !(_lambda isa... ExistsTrueDecision)
 #             if !xor(agreement, !isimplicative(f2))
 #                 _lambda ∧ (f1 ∧ f2)

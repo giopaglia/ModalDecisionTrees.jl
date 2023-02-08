@@ -1,12 +1,12 @@
-using Revise
+@testset "parse-and-translate" begin
+
 using SoleModels
 using SoleModels: print_model
 using SoleLogics
 
 using ModalDecisionTrees
+using ModalDecisionTrees: translate
 using ModalDecisionTrees.experimentals: parse_tree
-
-include("../../src/interfaces/SoleModels.jl")
 
 tree_str1 = """
 {1} ⟨G⟩ (min(A4) >= 0.04200671690893693)                        NO_CLEAN_HISTORY_AND_LOW_PROBABILITY : 37/74 (conf = 0.5000)
@@ -50,8 +50,12 @@ tree1 = parse_tree(tree_str1)
 
 tree2 = parse_tree(tree_str2)
 
-pure_tree1 = translate_mdtv1(tree1)
+pure_tree1 = translate(tree1)
 
-pure_tree2 = translate_mdtv1(tree2)
+pure_tree2 = translate(tree2)
 
-print_model.(unroll_rules_cascade(pure_tree1));
+
+end
+# rcs = unroll_rules_cascade(pure_tree1)
+# print_model.(rcs);
+
