@@ -57,7 +57,6 @@ import ..ModalDecisionTrees: concat_datasets,
 export nfeatures, nrelations,
        nframes, frames, get_frame,
        display_structure,
-       get_gamma,
        #
        relations,
        #

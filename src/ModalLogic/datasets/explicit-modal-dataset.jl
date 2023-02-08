@@ -18,18 +18,17 @@
 
 abstract type AbstractFWD{T<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}} end
 
-# Any implementation for a fwd must indicate their compatible world types via `goeswith`.
-# Fallback:
-goeswith(::Type{<:AbstractFWD}, ::Type{<:AbstractWorld}) = false
-
 # # A function for getting a threshold value from the lookup table
 # Maybe TODO: but fails with ArgumentError: invalid index: − of type SoleLogics.OneWorld:
-# Base.getindex(fwd::AbstractFWD, args...) = fwd_get(fwd, args...)
-Base.getindex(
-    fwd         :: AbstractFWD,
+# Base.getindex(fwd::AbstractFWD, args...) = fwdread(fwd, args...)
+Base.@propagate_inbounds @inline function Base.getindex(
+    fwd         :: AbstractFWD{T,W},
     i_sample    :: Integer,
-    w           :: AbstractWorld,
-    i_feature   :: Integer) = fwd_get(fwd, i_sample, w, i_feature)
+    w           :: W,
+    i_feature   :: Integer
+) where {T,W<:AbstractWorld}
+    fwdread(fwd, i_sample, w, i_feature)
+end
 
 # Any world type must also specify their default fwd constructor, which must accept a type
 #  parameter for the data type {T}, via:
@@ -45,9 +44,6 @@ Base.getindex(
 #   d :: AbstractVector{<:AbstractDict{W,AbstractVector{T,1}},1}
 #   nfeatures :: Integer
 # end
-
-# # It goes for any world type
-# goeswith(::Type{<:GenericFWD}, ::Type{<:AbstractWorld}) = true
 
 # # And it is the default fwd structure for an world type
 # default_fwd_type(::Type{<:AbstractWorld}) = GenericFWD
@@ -71,7 +67,7 @@ Base.getindex(
 # end
 
 # # A function for getting a threshold value from the lookup table
-# Base.@propagate_inbounds @inline fwd_get(
+# Base.@propagate_inbounds @inline fwdread(
 #     fwd         :: GenericFWD{T},
 #     i_sample    :: Integer,
 #     w           :: AbstractWorld,
@@ -96,7 +92,7 @@ Base.getindex(
 # end
 
 # Others...
-# Base.@propagate_inbounds @inline fwd_get_channeaoeu(fwd::GenericFWD{T}, i_sample::Integer, i_feature::Integer) where {T} = TODO
+# Base.@propagate_inbounds @inline fwdread_channeaoeu(fwd::GenericFWD{T}, i_sample::Integer, i_feature::Integer) where {T} = TODO
 # const GenericFeaturedChannel{T} = TODO
 # fwd_channel_interpret_world(fwc::GenericFeaturedChannel{T}, w::AbstractWorld) where {T} = TODO
 
@@ -195,9 +191,9 @@ struct ExplicitModalDataset{
 
     # Quite importantly, an fwd can be computed from a dataset in implicit form (domain + ontology + features)
     Base.@propagate_inbounds function ExplicitModalDataset(
-        imd                  :: InterpretedModalDataset{T,N,W},
+        X                  :: InterpretedModalDataset{T,N,W},
         # FWD                  ::Type{<:AbstractFWD{T,W}} = default_fwd_type(W),
-        FWD                  ::Type = default_fwd_type(W),
+        FWD                  ::Type = default_fwd_type(W), #TODO make sure that it is of world W
         args...;
         kwargs...,
     ) where {T,N,W<:AbstractWorld}
@@ -206,14 +202,12 @@ struct ExplicitModalDataset{
 
             # @logmsg LogOverview "InterpretedModalDataset -> ExplicitModalDataset"
 
-            _features = features(imd)
+            _features = features(X)
 
-            _n_samples = nsamples(imd)
-
-            @assert goeswith(FWD, W)
+            _n_samples = nsamples(X)
 
             # Initialize the fwd structure
-            fwd = fwd_init(FWD, imd)
+            fwd = fwd_init(FWD, X)
 
             # Load any (possible) external features
             if any(isa.(_features, ExternalFWDFeature))
@@ -237,10 +231,10 @@ struct ExplicitModalDataset{
                 #     @logmsg LogOverview "Instance $(i_sample)/$(_n_samples)"
                 # end
 
-                # instance = get_instance(imd, i_sample)
+                # instance = get_instance(X, i_sample)
                 # @logmsg LogDebug "instance" instance
 
-                for w in allworlds(imd, i_sample)
+                for w in allworlds(X, i_sample)
                     
                     fwd_init_world_slice(fwd, i_sample, w)
 
@@ -248,7 +242,7 @@ struct ExplicitModalDataset{
 
                     for (i_feature,feature) in enum_features
 
-                        threshold = get_gamma(imd, i_sample, w, feature)
+                        threshold = X[i_sample, w, i_feature]
 
                         @logmsg LogDebug "Feature $(i_feature)" threshold
 
@@ -261,12 +255,23 @@ struct ExplicitModalDataset{
             fwd
         end
 
-        ExplicitModalDataset(fwd, relations(imd), _features, grouped_featsaggrsnops(imd), args...; kwargs...)
+        ExplicitModalDataset(fwd, relations(X), _features, grouped_featsaggrsnops(X), args...; kwargs...)
     end
 
 end
 
-Base.getindex(X::ExplicitModalDataset, args...) = Base.getindex(fwd(X), args...)
+
+Base.@propagate_inbounds @inline function Base.getindex(
+    X::ExplicitModalDataset{T,W},
+    i_sample::Integer,
+    w::W,
+    feature::AbstractFeature,
+    args...
+) where {T,W<:AbstractWorld}
+    i_feature = find_feature_id(X, feature)
+    Base.getindex(fwd(X), i_sample, w, i_feature, args...)
+end
+
 Base.size(X::ExplicitModalDataset)              = Base.size(fwd(X))
 
 fwd(X::ExplicitModalDataset)                    = X.fwd
@@ -332,16 +337,6 @@ end
 ############################################################################################
 ############################################################################################
 ############################################################################################
-
-
-Base.@propagate_inbounds @inline get_gamma(
-        X::ExplicitModalDataset{T,W},
-        i_sample::Integer,
-        w::W,
-        feature::AbstractFeature) where {T,W<:AbstractWorld} = begin
-    i_feature = find_feature_id(X, feature)
-    X[i_sample, w, i_feature]
-end
 
 # World-specific featured world datasets and supports
 include("dimensional-fwds.jl")

@@ -14,7 +14,7 @@ export generate_feasible_decisions
 #     gamma = if length(worlds |> collect) == 0
 #         aggregator_bottom(aggregator, T)
 #     else
-#         aggregator((w)->get_gamma(X, i_sample, w, feature(decision)), worlds)
+#         aggregator((w)->X[i_sample, w, feature(decision)], worlds)
 #     end
 
 #     evaluate_thresh_decision(test_operator(decision), gamma, threshold(decision))
@@ -44,7 +44,7 @@ function _test_decision(
     test_operator::TestOperatorFun,
     threshold::T
 ) where {T}
-    gamma = get_gamma(X, i_sample, w, feature)
+    gamma = X[i_sample, w, feature]
     evaluate_thresh_decision(test_operator, gamma, threshold)
 end
 
@@ -325,6 +325,8 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
     _grouped_featsaggrsnops = grouped_featsaggrsnops(X)
     _grouped_featsnaggrs = grouped_featsnaggrs(X)
 
+    @assert !(X isa ExplicitModalDatasetS && isnothing(fwd_gs(support(X)))) "Error. ExplicitModalDatasetS must be built with compute_relation_glob = true for it to be ready to generate global decisions."
+
     # For each feature
     for i_feature in features_inds
         feature = _features[i_feature]
@@ -357,12 +359,12 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
             for (i_aggr,(i_featsnaggr,aggr)) in enumerate(aggregators_with_ids)
                 gamma = begin # TODO delegate this job to different flavors of `get_global_gamma`. Test whether the cur_fwd_slice assignment outside is faster!
                     if X isa ExplicitModalDatasetS
-                        cur_fwd_slice = fwd_get_channel(fwd(X), i_sample, i_feature)
+                        cur_fwd_slice = fwdread_channel(fwd(X), i_sample, i_feature)
                         fwd_gs(support(X))[i_sample, i_featsnaggr]
                         # _compute_global_gamma(X, emd, i_sample, feature, aggregator, i_featsnaggr)
                         # _compute_global_gamma(X, emd, i_sample, feature, aggregator, cur_fwd_slice, i_featsnaggr)
                     elseif X isa ExplicitModalDataset
-                        cur_fwd_slice = fwd_get_channel(fwd(X), i_sample, i_feature)
+                        cur_fwd_slice = fwdread_channel(fwd(X), i_sample, i_feature)
                         fwd_slice_compute_global_gamma(X, i_sample, cur_fwd_slice, feature, aggr)
                     elseif X isa InterpretedModalDataset
                         _get_global_gamma(X, i_sample, feature, aggr)

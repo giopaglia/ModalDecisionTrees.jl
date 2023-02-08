@@ -100,7 +100,7 @@ struct OneStepSupportingDataset{
                 feature = _features[i_feature]
                 @logmsg LogDebug "Feature $(i_feature)"
 
-                cur_fwd_slice = fwd_get_channel(_fwd, i_sample, i_feature)
+                cur_fwd_slice = fwdread_channel(_fwd, i_sample, i_feature)
 
                 # @logmsg LogDebug cur_fwd_slice
 
@@ -266,7 +266,7 @@ function _compute_global_gamma(
         error("TODO finish this: memoization on the global table")
         # gamma = TODO...
         # i_feature = find_feature_id(emd, feature)
-        # fwd_feature_slice = fwd_get_channel(fwd(emd), i_sample, i_feature)
+        # fwd_feature_slice = fwdread_channel(fwd(emd), i_sample, i_feature)
         # fwd_gs_set(_fwd_gs, i_sample, i_featsnaggr, gamma)
     end
     _fwd_gs[i_sample, i_featsnaggr]
@@ -301,7 +301,7 @@ function _compute_modal_gamma(
     _fwd_rs = fwd_rs(X)
     if usesmodalmemo(X) && (false ||  isnothing(_fwd_rs[i_sample, w, i_featsnaggr, i_relation]))
         i_feature = find_feature_id(emd, feature)
-        fwd_feature_slice = fwd_get_channel(fwd(emd), i_sample, i_feature)
+        fwd_feature_slice = fwdread_channel(fwd(emd), i_sample, i_feature)
         gamma = fwd_slice_compute_modal_gamma(emd, i_sample, fwd_feature_slice, w, relation, feature, aggregator)
         fwd_rs_set(_fwd_rs, i_sample, w, i_featsnaggr, i_relation, gamma)
     end

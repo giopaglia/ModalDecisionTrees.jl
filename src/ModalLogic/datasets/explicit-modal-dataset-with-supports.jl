@@ -196,9 +196,3 @@ function display_structure(X::ExplicitModalDatasetS; indent_str = "")
     out *= indent_str * "└ support: $(display_structure(support(X); indent_str = "  "))"
     out
 end
-
-############################################################################################
-############################################################################################
-############################################################################################
-
-get_gamma(X::ExplicitModalDatasetS, args...) = get_gamma(emd(X), args...)

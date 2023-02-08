@@ -26,7 +26,6 @@ struct OneWorldFWD{T} <: UniformFullDimensionalFWD{T,0,OneWorld}
 end
 
 channel_size(fwd::OneWorldFWD) = ()
-goeswith(::Type{OneWorldFWD}, ::Type{OneWorld}) = true
 
 nsamples(fwd::OneWorldFWD)  = size(fwd.d, 1)
 nfeatures(fwd::OneWorldFWD) = size(fwd.d, 2)
@@ -41,7 +40,7 @@ end
 
 hasnans(fwd::OneWorldFWD) = any(_isnan.(fwd.d))
 
-Base.@propagate_inbounds @inline fwd_get(
+Base.@propagate_inbounds @inline fwdread(
     fwd         :: OneWorldFWD{T},
     i_sample    :: Integer,
     w           :: OneWorld,
@@ -59,7 +58,7 @@ function _slice_dataset(fwd::OneWorldFWD{T}, inds::AbstractVector{<:Integer}, re
     OneWorldFWD{T}(if return_view == Val(true) @view fwd.d[inds,:] else fwd.d[inds,:] end)
 end
 
-Base.@propagate_inbounds @inline fwd_get_channel(fwd::OneWorldFWD{T}, i_sample::Integer, i_feature::Integer) where {T} =
+Base.@propagate_inbounds @inline fwdread_channel(fwd::OneWorldFWD{T}, i_sample::Integer, i_feature::Integer) where {T} =
     fwd.d[i_sample, i_feature]
 const OneWorldFeaturedChannel{T} = T
 fwd_channel_interpret_world(fwc::T #=Note: should be OneWorldFeaturedChannel{T}, but it throws error =#, w::OneWorld) where {T} = fwc
@@ -73,7 +72,6 @@ struct IntervalFWD{T} <: UniformFullDimensionalFWD{T,1,Interval}
 end
 
 channel_size(fwd::IntervalFWD) = (size(fwd.d, 1),)
-goeswith(::Type{IntervalFWD}, ::Type{Interval}) = true
 
 nsamples(fwd::IntervalFWD)  = size(fwd.d, 3)
 nfeatures(fwd::IntervalFWD) = size(fwd.d, 4)
@@ -91,7 +89,7 @@ function hasnans(fwd::IntervalFWD)
     any([hasnans(fwd.d[x,y,:,:]) for x in 1:size(fwd.d, 1) for y in (x+1):size(fwd.d, 2)])
 end
 
-Base.@propagate_inbounds @inline fwd_get(
+Base.@propagate_inbounds @inline fwdread(
     fwd         :: IntervalFWD{T},
     i_sample    :: Integer,
     w           :: Interval,
@@ -108,7 +106,7 @@ end
 function _slice_dataset(fwd::IntervalFWD{T}, inds::AbstractVector{<:Integer}, return_view::Val = Val(false)) where {T}
     IntervalFWD{T}(if return_view == Val(true) @view fwd.d[:,:,inds,:] else fwd.d[:,:,inds,:] end)
 end
-Base.@propagate_inbounds @inline fwd_get_channel(fwd::IntervalFWD{T}, i_sample::Integer, i_feature::Integer) where {T} =
+Base.@propagate_inbounds @inline fwdread_channel(fwd::IntervalFWD{T}, i_sample::Integer, i_feature::Integer) where {T} =
     @views fwd.d[:,:,i_sample, i_feature]
 const IntervalFeaturedChannel{T} = AbstractArray{T,2}
 fwd_channel_interpret_world(fwc::IntervalFeaturedChannel{T}, w::Interval) where {T} =
@@ -123,7 +121,6 @@ struct Interval2DFWD{T} <: UniformFullDimensionalFWD{T,2,Interval2D}
 end
 
 channel_size(fwd::Interval2DFWD) = (size(fwd.d, 1),size(fwd.d, 3))
-goeswith(::Type{Interval2DFWD}, ::Type{Interval2D}) = true
 
 nsamples(fwd::Interval2DFWD)  = size(fwd.d, 5)
 nfeatures(fwd::Interval2DFWD) = size(fwd.d, 6)
@@ -142,7 +139,7 @@ function hasnans(fwd::Interval2DFWD)
     any([hasnans(fwd.d[xx,xy,yx,yy,:,:]) for xx in 1:size(fwd.d, 1) for xy in (xx+1):size(fwd.d, 2) for yx in 1:size(fwd.d, 3) for yy in (yx+1):size(fwd.d, 4)])
 end
 
-Base.@propagate_inbounds @inline fwd_get(
+Base.@propagate_inbounds @inline fwdread(
     fwd         :: Interval2DFWD{T},
     i_sample    :: Integer,
     w           :: Interval2D,
@@ -159,7 +156,7 @@ end
 function _slice_dataset(fwd::Interval2DFWD{T}, inds::AbstractVector{<:Integer}, return_view::Val = Val(false)) where {T}
     Interval2DFWD{T}(if return_view == Val(true) @view fwd.d[:,:,:,:,inds,:] else fwd.d[:,:,:,:,inds,:] end)
 end
-Base.@propagate_inbounds @inline fwd_get_channel(fwd::Interval2DFWD{T}, i_sample::Integer, i_feature::Integer) where {T} =
+Base.@propagate_inbounds @inline fwdread_channel(fwd::Interval2DFWD{T}, i_sample::Integer, i_feature::Integer) where {T} =
     @views fwd.d[:,:,:,:,i_sample, i_feature]
 const Interval2DFeaturedChannel{T} = AbstractArray{T,4}
 fwd_channel_interpret_world(fwc::Interval2DFeaturedChannel{T}, w::Interval2D) where {T} =

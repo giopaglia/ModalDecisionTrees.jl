@@ -145,8 +145,27 @@
 
 end
 
-Base.getindex(imd::InterpretedModalDataset, args...) = Base.getindex(domain(imd), args...)
+# function Base.getindex(
+#     X::InterpretedModalDataset{T,W},
+#     i_sample::Integer,
+#     w::W,
+#     feature::AbstractFeature,
+#     args...
+# ) where {T,W<:AbstractWorld}
+#     domainread(domain(X), i_sample, w, feature, args...)
+# end
+
+function Base.getindex(
+    X::InterpretedModalDataset{T,W},
+    args...
+)
+    domainread(domain(X), args...)
+end
+
 Base.size(imd::InterpretedModalDataset)              = Base.size(domain(imd))
+
+# find_feature_id(X::InterpretedModalDataset{T,W}, feature::AbstractFeature) where {T,W} =
+#     findall(x->x==feature, features(X))[1]
 
 domain(imd::InterpretedModalDataset)                 = imd.domain
 ontology(imd::InterpretedModalDataset)               = imd.ontology
@@ -178,7 +197,6 @@ get_instance(imd::InterpretedModalDataset, args...)     = get_instance(domain(im
 _slice_dataset(imd::InterpretedModalDataset, inds::AbstractVector{<:Integer}, args...; kwargs...)    =
     InterpretedModalDataset(_slice_dataset(domain(imd), inds, args...; kwargs...), ontology(imd), features(imd), imd.grouped_featsaggrsnops)
 
-
 function display_structure(imd::InterpretedModalDataset; indent_str = "")
     out = "$(typeof(imd))\t$(Base.summarysize(imd) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
     out *= indent_str * "├ relations: \t$((length(relations(imd))))\t$(relations(imd))\n"
@@ -191,10 +209,3 @@ function hasnans(imd::InterpretedModalDataset)
     # @show hasnans(domain(imd))
     hasnans(domain(imd))
 end
-
-Base.@propagate_inbounds @inline get_gamma(imd::InterpretedModalDataset, args...) = get_gamma(domain(imd), args...)
-
-############################################################################################
-############################################################################################
-############################################################################################
-

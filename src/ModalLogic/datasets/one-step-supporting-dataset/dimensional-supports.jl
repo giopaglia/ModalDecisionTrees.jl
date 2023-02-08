@@ -256,7 +256,6 @@ end
 #     i_featsnaggr :: Integer,
 #     i_relation   :: Integer) where {T} = support.d[i_sample, i_featsnaggr, i_relation]
 # Base.size(support::OneWorldFWD_RS, args...) = size(support.d, args...)
-# goeswith(::Type{OneWorldFWD_RS}, ::Type{OneWorld}) = true
 
 # hasnans(support::OneWorldFWD_RS) = any(_isnan.(support.d))
 
@@ -299,7 +298,6 @@ end
 #     i_featsnaggr :: Integer,
 #     i_relation   :: Integer) where {T} = support.d[w.x, w.y, i_sample, i_featsnaggr, i_relation]
 # Base.size(support::IntervalFWD_RS, args...) = size(support.d, args...)
-# goeswith(::Type{IntervalFWD_RS}, ::Type{Interval}) = true
 
 
 # function hasnans(support::IntervalFWD_RS)
@@ -344,7 +342,6 @@ end
 #   i_featsnaggr :: Integer,
 #   i_relation   :: Integer) where {T} = support.d[w.x.x, w.x.y, w.y.x, w.y.y, i_sample, i_featsnaggr, i_relation]
 # size(support::Interval2DFWD_RS) = size(support.d, args...)
-# goeswith(::Type{Interval2DFWD_RS}, ::Type{Interval2D}) = true
 
 # TODO... hasnans(support::Interval2DFWD_RS) = any(_isnan.(support.d))
 # TODO...? hasnans(support::Interval2DFWD_RS) = any([hasnans(support.d[xx,xy,yx,yy,:,:,:]) for xx in 1:size(support.d, 1) for xy in (xx+1):size(support.d, 2) for yx in 1:size(support.d, 3) for yy in (yx+1):size(support.d, 4)])
@@ -390,7 +387,6 @@ end
 #     i_featsnaggr :: Integer,
 #     i_relation   :: Integer) where {T} = support.d[w.x.x+div((w.x.y-2)*(w.x.y-1),2), w.y.x+div((w.y.y-2)*(w.y.y-1),2), i_sample, i_featsnaggr, i_relation]
 # Base.size(support::Interval2DFWD_RS, args...) = size(support.d, args...)
-# goeswith(::Type{Interval2DFWD_RS}, ::Type{Interval2D}) = true
 
 # hasnans(support::Interval2DFWD_RS) = any(_isnan.(support.d))
 

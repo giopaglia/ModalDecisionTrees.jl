@@ -12,7 +12,6 @@ struct GenericRelationalSupport{
     d :: D
 end
 
-goeswith(::Type{GenericRelationalSupport}, ::Type{<:AbstractWorld}) = true
 # default_fwd_rs_type(::Type{<:AbstractWorld}) = GenericRelationalSupport # TODO implement similar pattern used for fwd
 
 function hasnans(support::GenericRelationalSupport)
@@ -60,7 +59,6 @@ struct GenericGlobalSupport{T} <: AbstractGlobalSupport{T}
     d :: AbstractArray{T,2}
 end
 
-goeswith(::Type{AbstractGlobalSupport}, ::Type{<:AbstractWorld}) = true
 # default_fwd_gs_type(::Type{<:AbstractWorld}) = GenericGlobalSupport # TODO implement similar pattern used for fwd
 
 function hasnans(support::GenericGlobalSupport)
