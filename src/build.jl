@@ -92,9 +92,9 @@ function build_tree(
 
     @assert max_depth > 0
 
-    if any(map(f->f isa DimensionalDataset, frames(X)))
-        @error "Cannot learn from DimensionalDataset! Please use InterpretedModalDataset, ExplicitModalDataset or ExplicitModalDatasetS."
-    end
+    # if any(map(f->f isa AbstractDimensionalDataset, frames(X)))
+    #     @error "Cannot learn from AbstractDimensionalDataset! Please use InterpretedModalDataset, ExplicitModalDataset or ExplicitModalDatasetS."
+    # end
 
     # TODO figure out what to do here. Maybe it can be helpful to make rng either an rng or a seed, and then mk_rng transforms it into an rng
     fit_tree(X, Y, init_conditions, W

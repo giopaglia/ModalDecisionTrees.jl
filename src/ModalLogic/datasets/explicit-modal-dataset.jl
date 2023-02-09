@@ -116,46 +116,56 @@ struct ExplicitModalDataset{
     T<:Number,
     W<:AbstractWorld,
     FR<:AbstractFrame{W,Bool},
+    U,
+    FT<:AbstractFeature{U},
     FWD<:AbstractFWD{T,W,FR},
     G1<:AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}},
     G2<:AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}},
-} <: ActiveModalDataset{T,W,FR}
+} <: ActiveModalDataset{T,W,FR,U,FT}
     
     # Core data (fwd lookup table)
-    fwd                :: FWD
+    fwd                     :: FWD
 
     ## Modal frame:
     # Accessibility relations
-    relations          :: AbstractVector{<:AbstractRelation}
+    relations               :: AbstractVector{<:AbstractRelation}
     
     # Features
-    features           :: AbstractVector{<:AbstractFeature}
+    features                :: Vector{FT}
 
     # Test operators associated with each feature, grouped by their respective aggregator
     grouped_featsaggrsnops  :: G1
     
-    grouped_featsnaggrs :: G2
+    grouped_featsnaggrs     :: G2
     
-    function ExplicitModalDataset{T,W,FR,FWD}(
+    function ExplicitModalDataset{T,W,FR,U,FT,FWD}(
         fwd                     :: FWD,
         relations               :: AbstractVector{<:AbstractRelation},
-        features                :: AbstractVector{<:AbstractFeature},
+        features                :: AbstractVector{FT},
         grouped_featsaggrsnops  :: AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperatorFun}}};
         allow_no_instances = false,
-    ) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},FWD<:AbstractFWD{T,W,FR}}
-        @assert allow_no_instances || nsamples(fwd) > 0     "Can't instantiate ExplicitModalDataset{$(T), $(W)} with no instance. (fwd's type $(typeof(fwd)))"
-        @assert length(grouped_featsaggrsnops) > 0 && sum(length.(grouped_featsaggrsnops)) > 0 && sum(vcat([[length(test_ops) for test_ops in aggrs] for aggrs in grouped_featsaggrsnops]...)) > 0 "Can't instantiate ExplicitModalDataset{$(T), $(W)} with no test operator: grouped_featsaggrsnops"
-        @assert nfeatures(fwd) == length(features)          "Can't instantiate ExplicitModalDataset{$(T), $(W)} with different numbers of instances $(nsamples(fwd)) and of features $(length(features))."
+    ) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},FWD<:AbstractFWD{T,W,FR},U,FT<:AbstractFeature{U}}
+        features = collect(features)
+        ty = "ExplicitModalDataset{$(T),$(W),$(FR),$(FT)}"
+        @assert allow_no_instances || nsamples(fwd) > 0     "Can't instantiate $(ty) with no instance. (fwd's type $(typeof(fwd)))"
+        @assert length(grouped_featsaggrsnops) > 0 && sum(length.(grouped_featsaggrsnops)) > 0 && sum(vcat([[length(test_ops) for test_ops in aggrs] for aggrs in grouped_featsaggrsnops]...)) > 0 "Can't instantiate $(ty) with no test operator: grouped_featsaggrsnops"
+        @assert nfeatures(fwd) == length(features)          "Can't instantiate $(ty) with different numbers of instances $(nsamples(fwd)) and of features $(length(features))."
         grouped_featsnaggrs = features_grouped_featsaggrsnops2grouped_featsnaggrs(features, grouped_featsaggrsnops)
-        new{T,W,FR,FWD,typeof(grouped_featsaggrsnops),typeof(grouped_featsnaggrs)}(fwd, relations, features, grouped_featsaggrsnops, grouped_featsnaggrs)
+        new{T,W,FR,U,FT,FWD,typeof(grouped_featsaggrsnops),typeof(grouped_featsnaggrs)}(fwd, relations, features, grouped_featsaggrsnops, grouped_featsnaggrs)
     end
 
     function ExplicitModalDataset{T,W,FR}(
         fwd                     :: FWD,
+        relations               :: AbstractVector{<:AbstractRelation},
+        features                :: AbstractVector{<:AbstractFeature},
         args...;
         kwargs...
     ) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},FWD<:AbstractFWD{T,W,FR}}
-        ExplicitModalDataset{T,W,FR,FWD}(fwd, args...; kwargs...)
+        features = collect(features)
+        U = Union{featvaltype.(features)...}
+        FT = Union{typeof.(features)...}
+        features = Vector{FT}(features)
+        ExplicitModalDataset{T,W,FR,U,FT,FWD}(fwd, relations, features, args...; kwargs...)
     end
 
     function ExplicitModalDataset{T,W}(
@@ -183,9 +193,7 @@ struct ExplicitModalDataset{
         args...;
         kwargs...,
     ) where {T,W<:AbstractWorld}
-
         grouped_featsaggrsnops = grouped_featsnops2grouped_featsaggrsnops(grouped_featsnops)
- 
         ExplicitModalDataset(fwd, relations, features, grouped_featsaggrsnops, args...; kwargs...)
     end
 
@@ -242,7 +250,7 @@ struct ExplicitModalDataset{
 
                     for (i_feature,feature) in enum_features
 
-                        threshold = X[i_sample, w, i_feature]
+                        threshold = X[i_sample, w, feature, i_feature]
 
                         @logmsg LogDebug "Feature $(i_feature)" threshold
 
@@ -269,7 +277,18 @@ Base.@propagate_inbounds @inline function Base.getindex(
     args...
 ) where {T,W<:AbstractWorld}
     i_feature = find_feature_id(X, feature)
-    Base.getindex(fwd(X), i_sample, w, i_feature, args...)
+    X[i_sample, w, feature, i_feature, args...]::featvaltype(X)
+end
+
+Base.@propagate_inbounds @inline function Base.getindex(
+    X::ExplicitModalDataset{T,W},
+    i_sample::Integer,
+    w::W,
+    feature::AbstractFeature,
+    i_feature::Integer,
+    args...
+) where {T,W<:AbstractWorld}
+    fwd(X)[i_sample, w, i_feature, args...]::featvaltype(X)
 end
 
 Base.size(X::ExplicitModalDataset)              = Base.size(fwd(X))

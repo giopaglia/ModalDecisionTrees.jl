@@ -48,7 +48,7 @@ model = ModalDecisionTree()
 # run(`paplay /usr/share/sounds/freedesktop/stereo/complete.oga`);
 
 # Print model
-mach.report.print_model()
+mach.report.printmodel()
 
 # Test on the hold-out set &
 #  inspect the distribution of test instances across the leaves

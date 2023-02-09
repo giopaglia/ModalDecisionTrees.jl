@@ -73,11 +73,11 @@ inverse(::UniversalBotDecision{R}) where {R<:AbstractRelation} = ExistentialTopD
 ############################################################################################
 
 # Decisions based on dimensional conditions
-abstract type DimensionalDecision{T} <: SimpleDecision end
+abstract type DimensionalDecision{U} <: SimpleDecision end
 
 # p
-struct PropositionalDimensionalDecision{T} <: DimensionalDecision{T}
-    p :: FeatCondition{T}
+struct PropositionalDimensionalDecision{U} <: DimensionalDecision{U}
+    p :: FeatCondition{U}
 end
 
 proposition(d::PropositionalDimensionalDecision) = d.p
@@ -85,12 +85,12 @@ feature(d::PropositionalDimensionalDecision) = feature(proposition(d))
 test_operator(d::PropositionalDimensionalDecision) = test_operator(proposition(d))
 threshold(d::PropositionalDimensionalDecision) = threshold(proposition(d))
 
-inverse(p::PropositionalDimensionalDecision{T}) where {T} =
-    PropositionalDimensionalDecision{T}(inverse(p))
+inverse(p::PropositionalDimensionalDecision{U}) where {U} =
+    PropositionalDimensionalDecision{U}(inverse(p))
 
 ############################################################################################
 
-abstract type ModalDimensionalDecision{T} <: DimensionalDecision{T} end
+abstract type ModalDimensionalDecision{U} <: DimensionalDecision{U} end
 
 relation(d::ModalDimensionalDecision) = d.relation
 proposition(d::ModalDimensionalDecision) = d.p
@@ -102,73 +102,73 @@ is_propositional_decision(d::ModalDimensionalDecision) = (relation(d) isa _Relat
 is_global_decision(d::ModalDimensionalDecision) = (relation(d) isa _RelationGlob)
 
 # ⟨R⟩p
-struct ExistentialDimensionalDecision{T} <: ModalDimensionalDecision{T}
+struct ExistentialDimensionalDecision{U} <: ModalDimensionalDecision{U}
 
     # Relation, interpreted as an existential modal operator
     relation  :: AbstractRelation
 
-    p         :: FeatCondition{T}
+    p         :: FeatCondition{U}
 
-    function ExistentialDimensionalDecision{T}() where {T}
-        new{T}()
+    function ExistentialDimensionalDecision{U}() where {U}
+        new{U}()
     end
 
-    function ExistentialDimensionalDecision{T}(
+    function ExistentialDimensionalDecision{U}(
         relation      :: AbstractRelation,
-        p             :: FeatCondition{T}
-    ) where {T}
-        new{T}(relation, p)
+        p             :: FeatCondition{U}
+    ) where {U}
+        new{U}(relation, p)
     end
 
     function ExistentialDimensionalDecision(
         relation      :: AbstractRelation,
-        p             :: FeatCondition{T}
-    ) where {T}
-        ExistentialDimensionalDecision{T}(relation, p)
+        p             :: FeatCondition{U}
+    ) where {U}
+        ExistentialDimensionalDecision{U}(relation, p)
     end
 
-    function ExistentialDimensionalDecision{T}(
+    function ExistentialDimensionalDecision{U}(
         relation      :: AbstractRelation,
         feature       :: AbstractFeature,
         test_operator :: TestOperatorFun,
-        threshold     :: T
-    ) where {T}
+        threshold     :: U
+    ) where {U}
         p = FeatCondition(feature, test_operator, threshold)
-        ExistentialDimensionalDecision{T}(relation, p)
+        ExistentialDimensionalDecision{U}(relation, p)
     end
 
     function ExistentialDimensionalDecision(
         relation      :: AbstractRelation,
         feature       :: AbstractFeature,
         test_operator :: TestOperatorFun,
-        threshold     :: T
-    ) where {T}
-        ExistentialDimensionalDecision{T}(relation, feature, test_operator, threshold)
+        threshold     :: U
+    ) where {U}
+        ExistentialDimensionalDecision{U}(relation, feature, test_operator, threshold)
     end
 
     function ExistentialDimensionalDecision(
-        decision      :: ExistentialDimensionalDecision{T},
+        decision      :: ExistentialDimensionalDecision{U},
         threshold_f   :: Function
-    ) where {T}
+    ) where {U}
         q = FeatCondition(decision.p, threshold_f(threshold(decision.p)))
-        ExistentialDimensionalDecision{T}(relation(decision), q)
+        ExistentialDimensionalDecision{U}(relation(decision), q)
     end
 end
 
 # [R]p
-struct UniversalDimensionalDecision{T} <: ModalDimensionalDecision{T}
+struct UniversalDimensionalDecision{U} <: ModalDimensionalDecision{U}
     relation  :: AbstractRelation
-    p         :: FeatCondition{T}
+    p         :: FeatCondition{U}
 end
 
-function inverse(decision::ExistentialDimensionalDecision{T}) where {T}
-    UniversalDimensionalDecision{T}(
+function inverse(decision::ExistentialDimensionalDecision{U}) where {U}
+    UniversalDimensionalDecision{U}(
         relation(decision),
         inverse(proposition(decision))
     )
 end
-function inverse(decision::UniversalDimensionalDecision{T}) where {T}
-    ExistentialDimensionalDecision{T}(
+function inverse(decision::UniversalDimensionalDecision{U}) where {U}
+    ExistentialDimensionalDecision{U}(
         relation(decision),
         inverse(proposition(decision))
     )

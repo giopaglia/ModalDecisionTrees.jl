@@ -20,7 +20,7 @@ end
 ############################################################################################
 
 # Patch single-frame _-> multi-frame
-apply(model::Union{DTree,DForest}, X::ModalDataset, args...; kwargs...) =
+apply(model::Union{DTree,DForest}, X::AbstractConditionalDataset, args...; kwargs...) =
     apply(model, MultiFrameModalDataset(X), args...; kwargs...)
 
 apply_model = apply
@@ -39,7 +39,7 @@ function print_apply(tree::DTree, X::GenericModalDataset, Y::AbstractVector; kwa
 end
 
 
-apply_proba(model::Union{DTree,DForest}, X::ModalDataset, args...; kwargs...) =
+apply_proba(model::Union{DTree,DForest}, X::AbstractConditionalDataset, args...; kwargs...) =
     apply_proba(model, MultiFrameModalDataset(X), args...; kwargs...)
 
 # apply_tree_proba   = apply_model_proba
@@ -48,7 +48,7 @@ apply_proba(model::Union{DTree,DForest}, X::ModalDataset, args...; kwargs...) =
 
 apply_model_proba = apply_proba
 
-predict(model::Union{DTree,DForest}, X::ModalDataset, args...; kwargs...) =
+predict(model::Union{DTree,DForest}, X::AbstractConditionalDataset, args...; kwargs...) =
     predict(model, MultiFrameModalDataset(X), args...; kwargs...)
 
 ################################################################################
@@ -335,7 +335,7 @@ function apply(
     predictions, DForest{L}(trees, (;)) # TODO note that the original metrics are lost here
 end
 
-# function apply(tree::DTNode{L}, X::DimensionalDataset{T,D}, Y::AbstractVector{<:L}; reset_leaves = true, update_labels = false) where {L,T,D}
+# function apply(tree::DTNode{L}, X::AbstractDimensionalDataset{T,D}, Y::AbstractVector{<:L}; reset_leaves = true, update_labels = false) where {L,T,D}
 #   return apply(DTree(tree, [worldtype(ModalDecisionTrees.get_interval_ontology(Val(D-2)))], [start_without_world]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
 # end
 

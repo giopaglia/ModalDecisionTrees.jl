@@ -4,15 +4,15 @@ using ..ModalDecisionTrees: is_propositional_decision, display_decision
 export generate_feasible_decisions
 
 # function test_decision(
-#     X::ModalDataset{T},
+#     X::AbstractConditionalDataset,
 #     i_sample::Integer,
 #     w::AbstractWorld,
-#     decision::ExistentialDimensionalDecision{T}
-# ) where {T}
+#     decision::ExistentialDimensionalDecision{U}
+# ) where {U}
 #     aggregator = existential_aggregator(test_operator(decision))
 #     worlds = representatives(X, i_sample, w, relation(decision), feature(decision), aggregator)
 #     gamma = if length(worlds |> collect) == 0
-#         aggregator_bottom(aggregator, T)
+#         aggregator_bottom(aggregator, U)
 #     else
 #         aggregator((w)->X[i_sample, w, feature(decision)], worlds)
 #     end
@@ -29,7 +29,7 @@ export generate_feasible_decisions
     
 #     if is_propositional_decision(decision)
 #         _test_decision(X, i_sample, w, feature(decision), test_operator(decision), threshold(decision))
-#     else
+#     else SimpleDecision
 #         gamma = get_modal_gamma(X, i_sample, w, relation(decision), feature(decision), test_operator(decision))
 #         evaluate_thresh_decision(test_operator(decision), gamma, threshold(decision))
 #     end
@@ -37,14 +37,14 @@ export generate_feasible_decisions
 
 
 function _test_decision(
-    X::ModalDataset{T},
+    X::AbstractConditionalDataset,
     i_sample::Integer,
     w::AbstractWorld,
-    feature::AbstractFeature,
+    feature::AbstractFeature{U},
     test_operator::TestOperatorFun,
-    threshold::T
-) where {T}
-    gamma = X[i_sample, w, feature]
+    threshold::U
+) where {U}
+    gamma = X[i_sample, w, feature]::U
     evaluate_thresh_decision(test_operator, gamma, threshold)
 end
 
@@ -55,9 +55,9 @@ function modal_step(
         X::ActiveModalDataset{T,W},
         i_sample::Integer,
         worlds::WorldSetType,
-        decision::ExistentialDimensionalDecision{T},
+        decision::ExistentialDimensionalDecision{U},
         returns_survivors::Union{Val{true},Val{false}} = Val(false)
-    ) where {T,W<:AbstractWorld,WorldSetType<:AbstractWorldSet{W}}
+    ) where {T,W<:AbstractWorld,WorldSetType<:AbstractWorldSet{W},U}
     @logmsg LogDetail "modal_step" worlds display_decision(decision)
 
     satisfied = false
@@ -156,11 +156,11 @@ end
 ############################################################################################
 
 Base.@propagate_inbounds @resumable function generate_propositional_feasible_decisions(
-    X::ActiveModalDataset{T,W,FR},
+    X::ActiveModalDataset{T,W,FR,U},
     instances_inds::AbstractVector{<:Integer},
     Sf::AbstractVector{<:AbstractWorldSet{W}},
     features_inds::AbstractVector{<:Integer},
-) where {T,W<:AbstractWorld,N,FR<:FullDimensionalFrame{N,W,Bool}}
+) where {T,W<:AbstractWorld,N,FR<:FullDimensionalFrame{N,W,Bool},U}
     relation = RelationId
     _n_samples = length(instances_inds)
 
@@ -181,9 +181,9 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
         # aggrsnops = [aggrsnops[i_aggr] for i_aggr in aggregators]
 
         # Initialize thresholds with the bottoms
-        thresholds = Array{T,2}(undef, length(aggregators), _n_samples)
+        thresholds = Array{U,2}(undef, length(aggregators), _n_samples)
         for (i_aggr,aggr) in enumerate(aggregators)
-            thresholds[i_aggr,:] .= aggregator_bottom(aggr, T)
+            thresholds[i_aggr,:] .= aggregator_bottom(aggr, U)
         end
 
         # For each instance, compute thresholds by applying each aggregator to the set of existing values (from the worldset)
@@ -196,7 +196,7 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
             # thresholds[:,instance_idx] = map(aggr->aggr(values), aggregators)
             
             for w in worlds
-                gamma = X[i_sample, w, i_feature]
+                gamma = X[i_sample, w, feature, i_feature]
                 for (i_aggr,aggr) in enumerate(aggregators)
                     thresholds[i_aggr,instance_idx] = aggregator_to_binary(aggr)(gamma, thresholds[i_aggr,instance_idx])
                 end
@@ -209,7 +209,7 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
         # For each aggregator
         for (i_aggr,aggr) in enumerate(aggregators)
             aggr_thresholds = thresholds[i_aggr,:]
-            aggr_domain = setdiff(Set(aggr_thresholds),Set([typemin(T), typemax(T)]))
+            aggr_domain = setdiff(Set(aggr_thresholds),Set([typemin(U), typemax(U)]))
             for (i_test_operator,test_operator) in enumerate(aggrsnops[aggr])
                 # TODO figure out a solution to this issue: ≥ and ≤ in a propositional condition can find more or less the same optimum, so no need to check both; but which one of them should be the one on the left child, the one that makes the modal step?
                 # if dual_test_operator(test_operator) in tested_test_operator
@@ -233,12 +233,12 @@ end
 ############################################################################################
 
 Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
-    X::ActiveModalDataset{T,W,FR},
+    X::ActiveModalDataset{T,W,FR,U},
     instances_inds::AbstractVector{<:Integer},
     Sf::AbstractVector{<:AbstractWorldSet{W}},
     modal_relations_inds::AbstractVector{<:Integer},
     features_inds::AbstractVector{<:Integer},
-) where {T,W<:AbstractWorld,N,FR<:FullDimensionalFrame{N,W,Bool}}
+) where {T,W<:AbstractWorld,N,FR<:FullDimensionalFrame{N,W,Bool},U}
     _n_samples = length(instances_inds)
 
     _relations = relations(X)
@@ -265,9 +265,9 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
             # aggrsnops = [aggrsnops[i_aggr] for i_aggr in aggregators]
 
             # Initialize thresholds with the bottoms
-            thresholds = Array{T,2}(undef, length(aggregators_with_ids), _n_samples)
+            thresholds = Array{U,2}(undef, length(aggregators_with_ids), _n_samples)
             for (i_aggr,(_,aggr)) in enumerate(aggregators_with_ids)
-                thresholds[i_aggr,:] .= aggregator_bottom(aggr, T)
+                thresholds[i_aggr,:] .= aggregator_bottom(aggr, U)
             end
 
             # For each instance, compute thresholds by applying each aggregator to the set of existing values (from the worldset)
@@ -293,7 +293,7 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
             for (i_aggr,(_,aggr)) in enumerate(aggregators_with_ids)
 
                 aggr_thresholds = thresholds[i_aggr,:]
-                aggr_domain = setdiff(Set(aggr_thresholds),Set([typemin(T), typemax(T)]))
+                aggr_domain = setdiff(Set(aggr_thresholds),Set([typemin(U), typemax(U)]))
 
                 for (i_test_operator,test_operator) in enumerate(aggrsnops[aggr])
                     @logmsg LogDetail " Test operator $(test_operator)"
@@ -313,11 +313,11 @@ end
 ############################################################################################
 
 Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
-    X::ActiveModalDataset{T,W,FR},
+    X::ActiveModalDataset{T,W,FR,U},
     instances_inds::AbstractVector{<:Integer},
     Sf::AbstractVector{<:AbstractWorldSet{W}},
     features_inds::AbstractVector{<:Integer},
-) where {T,W<:AbstractWorld,N,FR<:FullDimensionalFrame{N,W,Bool}}
+) where {T,W<:AbstractWorld,N,FR<:FullDimensionalFrame{N,W,Bool},U}
     relation = RelationGlob
     _n_samples = length(instances_inds)
 
@@ -348,9 +348,9 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
         # thresholds = transpose(fwd_gs(X)[instances_inds, aggregators_ids])
 
         # Initialize thresholds with the bottoms
-        thresholds = Array{T,2}(undef, length(aggregators_with_ids), _n_samples)
+        thresholds = Array{U,2}(undef, length(aggregators_with_ids), _n_samples)
         for (i_aggr,(_,aggr)) in enumerate(aggregators_with_ids)
-            thresholds[i_aggr,:] .= aggregator_bottom(aggr, T)
+            thresholds[i_aggr,:] .= aggregator_bottom(aggr, U)
         end
         
         # For each instance, compute thresholds by applying each aggregator to the set of existing values (from the worldset)
@@ -388,7 +388,7 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
             # println(aggr)
 
             aggr_thresholds = thresholds[i_aggr,:]
-            aggr_domain = setdiff(Set(aggr_thresholds),Set([typemin(T), typemax(T)]))
+            aggr_domain = setdiff(Set(aggr_thresholds),Set([typemin(U), typemax(U)]))
 
             for (i_test_operator,test_operator) in enumerate(aggrsnops[aggr])
                 @logmsg LogDetail " Test operator $(test_operator)"

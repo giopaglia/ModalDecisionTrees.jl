@@ -79,7 +79,7 @@ yhat = predict(mach, X[test_idxs,:])
 accuracy = sum(yhat .== y[test_idxs])/length(yhat)
 
 # Print model
-report(mach).print_model(3)
+report(mach).printmodel(3)
 
 # Access raw model
 model = fitted_params(mach).model

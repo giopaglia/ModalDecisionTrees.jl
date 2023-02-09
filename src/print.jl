@@ -1,13 +1,13 @@
-export print_model, print_tree, print_forest
+export printmodel, print_tree, print_forest
 
 # print model
-function print_model(model::Union{DTNode,DTree,DForest}; kwargs...)
-    print_model(stdout, model; kwargs...)
+function printmodel(model::Union{DTNode,DTree,DForest}; kwargs...)
+    printmodel(stdout, model; kwargs...)
 end
-function print_model(io::IO, model::Union{DTNode,DTree}; kwargs...)
+function printmodel(io::IO, model::Union{DTNode,DTree}; kwargs...)
     print_tree(io, model; kwargs...)
 end
-function print_model(io::IO, model::DForest; kwargs...)
+function printmodel(io::IO, model::DForest; kwargs...)
     print_forest(io, model; kwargs...)
 end
 

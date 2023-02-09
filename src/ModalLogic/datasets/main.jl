@@ -3,9 +3,11 @@ using ProgressMeter
 using SoleModels: CanonicalFeatureGeq, CanonicalFeatureGeqSoft, CanonicalFeatureLeq, CanonicalFeatureLeqSoft
 using SoleModels: evaluate_thresh_decision, existential_aggregator, aggregator_bottom, aggregator_to_binary
 
+using SoleLogics: TruthValue
+
 import SoleData: get_instance, instance, max_channel_size, channel_size, nattributes, nsamples, slice_dataset, _slice_dataset
 
-using SoleLogics: goeswith_dim
+import SoleModels: featvaltype
 
 ############################################################################################
 
@@ -69,7 +71,26 @@ function features_grouped_featsaggrsnops2grouped_featsnaggrs(features, grouped_f
 end
 
 ############################################################################################
+# Active datasets comprehend structures for representing relation sets, features, enumerating worlds,
+#  etc. While learning a model can be done only with active modal datasets, testing a model
+#  can be done with both active and passive modal datasets.
+# 
+abstract type ActiveModalDataset{T<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},U,FT<:AbstractFeature{U}} <: AbstractConditionalDataset{W,FeatCondition{U},Bool,FR} end
 
+featvaltype(::Type{<:ActiveModalDataset{T,W,FR,U,FT}}) where {T,W,FR,U,FT} = U
+featvaltype(d::ActiveModalDataset) = featvaltype(typeof(d))
+
+featuretype(::Type{<:ActiveModalDataset{T,W,FR,U,FT}}) where {T,W,FR,U,FT} = FT
+featuretype(d::ActiveModalDataset) = featuretype(typeof(d))
+
+nsamples(X::ActiveModalDataset) = error("Please, provide method nsamples(::$(typeof(X))).")
+Base.length(X::ActiveModalDataset) = nsamples(X)
+Base.iterate(X::ActiveModalDataset, state=1) = state > nsamples(X) ? nothing : (get_instance(X, state), state+1)
+
+# By default an active modal dataset cannot be miniaturized
+isminifiable(::ActiveModalDataset) = false
+
+include("passive-dimensional-dataset.jl")
 include("interpreted-modal-dataset.jl")
 include("explicit-modal-dataset.jl")
 include("explicit-modal-dataset-with-supports.jl")

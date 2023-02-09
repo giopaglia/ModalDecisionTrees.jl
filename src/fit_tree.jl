@@ -803,7 +803,7 @@ end
     _n_samples = nsamples(Xs)
 
     # Initialize world sets for each instance
-    Ss = initialworldsets(Xs, init_conditions)
+    Ss = ModalDecisionTrees.initialworldsets(Xs, init_conditions)
 
     # Distribution of the instances indices throughout the tree.
     #  It will be recursively permuted, and regions of it assigned to the tree nodes (idxs[node.region])

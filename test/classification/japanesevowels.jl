@@ -36,6 +36,6 @@ accuracy = sum(yhat .== y[test_idxs])/length(yhat)
 
 # Access raw model
 fitted_params(mach).model;
-report(mach).print_model(3);
+report(mach).printmodel(3);
 
 end

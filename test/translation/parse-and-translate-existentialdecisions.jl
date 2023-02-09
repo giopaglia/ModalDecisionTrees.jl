@@ -1,7 +1,7 @@
 @testset "parse-and-translate" begin
 
 using SoleModels
-using SoleModels: print_model
+using SoleModels: printmodel
 using SoleLogics
 
 using ModalDecisionTrees
@@ -57,5 +57,5 @@ pure_tree2 = translate(tree2)
 
 end
 # rcs = unroll_rules_cascade(pure_tree1)
-# print_model.(rcs);
+# printmodel.(rcs);
 

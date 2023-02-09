@@ -41,7 +41,7 @@ struct ModelPrinter{T<:MDT.SymbolicModel}
     frame_grouping::Union{Nothing,AbstractVector{<:AbstractVector},AbstractVector{<:AbstractDict}}
 end
 (c::ModelPrinter)(max_depth::Union{Nothing,Integer} = nothing; args...) = c(c.model; max_depth, args...)
-(c::ModelPrinter)(model; max_depth = 5) = MDT.print_model(model; attribute_names_map = c.frame_grouping, max_depth = max_depth)
+(c::ModelPrinter)(model; max_depth = 5) = MDT.printmodel(model; attribute_names_map = c.frame_grouping, max_depth = max_depth)
 
 Base.show(io::IO, c::ModelPrinter) =
     print(io, "ModelPrinter object (call with display depth)")
@@ -435,7 +435,7 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Int, X, y, w=nothing)
         perform_consistency_check = false,
     )
 
-    verbosity < 2 || MDT.print_model(model; max_depth = display_depth, attribute_names_map = frame_grouping)
+    verbosity < 2 || MDT.printmodel(model; max_depth = display_depth, attribute_names_map = frame_grouping)
 
     feature_importance_by_count = Dict([i_attr => frame_grouping[i_frame][i_attr] for ((i_frame, i_attr), count) in MDT.variable_countmap(model)])
 
@@ -446,7 +446,7 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Int, X, y, w=nothing)
 
     cache  = nothing
     report = (
-        print_model                  = ModelPrinter(model, frame_grouping),
+        printmodel                  = ModelPrinter(model, frame_grouping),
         frame_grouping              = frame_grouping,
         feature_importance_by_count = feature_importance_by_count,
     )
@@ -609,7 +609,7 @@ function MMI.fit(m::ModalRandomForest, verbosity::Int, X, y, w=nothing)
 
     cache  = nothing
     report = (
-        print_model                  = ModelPrinter(model, frame_grouping),
+        printmodel                  = ModelPrinter(model, frame_grouping),
         frame_grouping              = frame_grouping,
         feature_importance_by_count = feature_importance_by_count,
     )
@@ -916,7 +916,7 @@ $(docstring_piece_1(mlj_mdt_default_min_samples_leaf, mlj_mdt_default_min_purity
 # Fitted parameters
 The fields of `fitted_params(mach)` are:
 - `model`: the tree object, as returned by the core algorithm
-- `frame_grouping`: the adopted grouping of the variables encountered in training, in an order consistent with the output of `print_model`.
+- `frame_grouping`: the adopted grouping of the variables encountered in training, in an order consistent with the output of `printmodel`.
     The MLJ interface can currently deal with scalar, temporal and spatial variables, but
     has one limitation, and one tricky procedure for handling them at the same time.
     The limitation is for temporal and spatial variables to be uniform in size across the instances (the algorithm will automatically throw away variables that do not satisfy this constraint).
@@ -933,11 +933,11 @@ The fields of `fitted_params(mach)` are:
 
 # Report
 The fields of `report(mach)` are:
-- `print_model`: method to print a pretty representation of the fitted
+- `printmodel`: method to print a pretty representation of the fitted
   model, with single argument the tree depth. The interpretation of the tree requires you
   to understand how the current MLJ interface of ModalDecisionTrees.jl handles variables of different modals.
   See `frame_grouping` above. Note that the split conditions (or decisions) in the tree are relativized to a specific frame, of which the number is shown.
-- `frame_grouping`: the adopted grouping of the variables encountered in training, in an order consistent with the output of `print_model`.
+- `frame_grouping`: the adopted grouping of the variables encountered in training, in an order consistent with the output of `printmodel`.
     See `frame_grouping` above.
 - `feature_importance_by_count`: a simple count of each of the occurrences of the variables across the model, in an order consistent with `frame_grouping`.
 - `classes_seen`: list of target classes actually observed in training.
@@ -968,7 +968,7 @@ accuracy = sum(yhat .== y[test_idxs])/length(yhat)
 
 # Access raw model
 fitted_params(mach).model
-report(mach).print_model(3)
+report(mach).printmodel(3)
 
 "{1} ⟨G⟩ (max(coefficient1) <= 0.883491)                 3 : 91/512 (conf = 0.1777)
 ✔ {1} ⟨G⟩ (max(coefficient9) <= -0.157292)                      3 : 89/287 (conf = 0.3101)
@@ -1017,7 +1017,7 @@ $(docstring_piece_1(mlj_mrf_default_min_samples_leaf, mlj_mrf_default_min_purity
 # Fitted parameters
 The fields of `fitted_params(mach)` are:
 - `model`: the forest object, as returned by the core algorithm
-- `frame_grouping`: the adopted grouping of the variables encountered in training, in an order consistent with the output of `print_model`.
+- `frame_grouping`: the adopted grouping of the variables encountered in training, in an order consistent with the output of `printmodel`.
     The MLJ interface can currently deal with scalar, temporal and spatial variables, but
     has one limitation, and one tricky procedure for handling them at the same time.
     The limitation is for temporal and spatial variables to be uniform in size across the instances (the algorithm will automatically throw away variables that do not satisfy this constraint).
@@ -1033,11 +1033,11 @@ The fields of `fitted_params(mach)` are:
 
 # Report
 The fields of `report(mach)` are:
-- `print_model`: method to print a pretty representation of the fitted
+- `printmodel`: method to print a pretty representation of the fitted
   model, with single argument the depth of the trees. The interpretation of the tree requires you
   to understand how the current MLJ interface of ModalDecisionTrees.jl handles variables of different modals.
   See `frame_grouping` above. Note that the split conditions (or decisions) in the tree are relativized to a specific frame, of which the number is shown.
-- `frame_grouping`: the adopted grouping of the variables encountered in training, in an order consistent with the output of `print_model`.
+- `frame_grouping`: the adopted grouping of the variables encountered in training, in an order consistent with the output of `printmodel`.
     See `frame_grouping` above.
 - `feature_importance_by_count`: a simple count of each of the occurrences of the variables across the model, in an order consistent with `frame_grouping`.
 - `classes_seen`: list of target classes actually observed in training.
@@ -1071,7 +1071,7 @@ pdf.(yhat, "1")    # probabilities for one of the classes ("1")
 
 # Access raw model
 fitted_params(mach).model
-report(mach).print_model(3)] # Note that the output here can be quite large.
+report(mach).printmodel(3)] # Note that the output here can be quite large.
 ```
 """
 ModalRandomForest

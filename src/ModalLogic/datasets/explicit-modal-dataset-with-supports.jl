@@ -13,7 +13,7 @@
 #  the fly and store it for later calls).
 # 
 # We define an abstract type for explicit modal dataset with support lookup tables
-# remove: abstract type ExplicitModalDatasetWithSupport{T,W,FR} <: ActiveModalDataset{T,W,FR} end
+# remove: abstract type ExplicitModalDatasetWithSupport{T,W,FR} <: ActiveModalDataset{T,W,FR,U,FT} end
 # And an abstract type for support lookup tables
 abstract type AbstractSupport{T,W} end
 # 
@@ -71,30 +71,36 @@ struct ExplicitModalDatasetS{
     T<:Number,
     W<:AbstractWorld,
     FR<:AbstractFrame{W,Bool},
+    U,
+    FT<:AbstractFeature{U},
     S<:SupportingModalDataset{T,W,FR},
-} <: ActiveModalDataset{T,W,FR}
+} <: ActiveModalDataset{T,W,FR,U,FT}
 
     # Core dataset
-    emd                 :: ExplicitModalDataset{T,W,FR}
+    emd                 :: ExplicitModalDataset{T,W,FR,U,FT}
 
     # Support structure
     support             :: S
     
     ########################################################################################
     
-    function ExplicitModalDatasetS{T,W,FR,S}(
-        emd                 :: ExplicitModalDataset{T,W,FR},
+    function ExplicitModalDatasetS{T,W,FR,U,FT,S}(
+        emd                 :: ExplicitModalDataset{T,W,FR,U,FT},
         support             :: S;
         allow_no_instances = false,
-    ) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},S<:SupportingModalDataset{T,W,FR}}
-        ty = "ExplicitModalDatasetS{$(T), $(W), $(FR), $(S)}"
+    ) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},U,FT<:AbstractFeature{U},S<:SupportingModalDataset{T,W,FR}}
+        ty = "ExplicitModalDatasetS{$(T),$(W),$(FR),$(U),$(FT),$(S)}"
         @assert allow_no_instances || nsamples(emd) > 0  "Can't instantiate $(ty) with no instance."
         @assert checksupportconsistency(emd, support)    "Can't instantiate $(ty) with an inconsistent support:\n\nemd:\n$(display_structure(emd))\n\nsupport:\n$(display_structure(support))"
-        new{T,W,FR,S}(emd, support)
+        new{T,W,FR,U,FT,S}(emd, support)
     end
 
-    function ExplicitModalDatasetS{T,W,FR}(emd::ExplicitModalDataset{T,W}, support::S, args...; kwargs...) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},S<:SupportingModalDataset{T,W,FR}}
-        ExplicitModalDatasetS{T,W,FR,S}(emd, support, args...; kwargs...)
+    function ExplicitModalDatasetS{T,W,FR,U,FT}(emd::ExplicitModalDataset{T,W}, support::S, args...; kwargs...) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},U,FT<:AbstractFeature{U},S<:SupportingModalDataset{T,W,FR}}
+        ExplicitModalDatasetS{T,W,FR,U,FT,S}(emd, support, args...; kwargs...)
+    end
+
+    function ExplicitModalDatasetS{T,W,FR}(emd::ExplicitModalDataset{T,W,FR,U,FT}, args...; kwargs...) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},U,FT<:AbstractFeature{U}}
+        ExplicitModalDatasetS{T,W,FR,U,FT}(emd, args...; kwargs...)
     end
 
     function ExplicitModalDatasetS{T,W}(emd::ExplicitModalDataset{T,W,FR}, args...; kwargs...) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}}
@@ -141,7 +147,7 @@ end
 emd(X::ExplicitModalDatasetS)                        = X.emd
 support(X::ExplicitModalDatasetS)                    = X.support
 
-Base.getindex(X::ExplicitModalDatasetS, args...)     = Base.getindex(emd(X), args...)
+Base.getindex(X::ExplicitModalDatasetS, args...)     = Base.getindex(emd(X), args...)::featvaltype(X)
 Base.size(X::ExplicitModalDatasetS)                  = (size(emd(X)), size(support(X)))
 features(X::ExplicitModalDatasetS)                   = features(emd(X))
 grouped_featsaggrsnops(X::ExplicitModalDatasetS)     = grouped_featsaggrsnops(emd(X))

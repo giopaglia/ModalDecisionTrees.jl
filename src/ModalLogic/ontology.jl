@@ -25,15 +25,15 @@ struct Ontology{W<:AbstractWorld}
     Ontology(worldType::Type{<:AbstractWorld}, relations) = Ontology{worldType}(relations)
 end
 
-worldtype(::Ontology{WT}) where {WT<:AbstractWorld} = WT
+worldtype(::Ontology{W}) where {W<:AbstractWorld} = W
 relations(o::Ontology) = o.relations
 
-Base.show(io::IO, o::Ontology{WT}) where {WT<:AbstractWorld} = begin
+Base.show(io::IO, o::Ontology{W}) where {W<:AbstractWorld} = begin
     if o == OneWorldOntology
         print(io, "OneWorldOntology")
     else
         print(io, "Ontology{")
-        show(io, WT)
+        show(io, W)
         print(io, "}(")
         if issetequal(relations(o), SoleLogics.IARelations)
             print(io, "IA")

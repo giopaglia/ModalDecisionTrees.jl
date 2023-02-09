@@ -109,5 +109,5 @@ const WorldType0D = Union{OneWorld}
 const WorldType1D = Union{Interval}
 const WorldType2D = Union{Interval2D}
 
-get_ontology(::DimensionalDataset{T,D}, args...) where {T,D} = get_ontology(Val(D-2), args...)
-get_interval_ontology(::DimensionalDataset{T,D}, args...) where {T,D} = get_interval_ontology(Val(D-2), args...)
+# get_ontology(::AbstractDimensionalDataset{T,D}, args...) where {T,D} = get_ontology(Val(D-2), args...)
+# get_interval_ontology(::AbstractDimensionalDataset{T,D}, args...) where {T,D} = get_interval_ontology(Val(D-2), args...)

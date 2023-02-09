@@ -7,26 +7,26 @@
 ############################################################################################
 export get_world_types
 
-struct MultiFrameModalDataset{MD<:ModalDataset}
+struct MultiFrameModalDataset{MD<:AbstractConditionalDataset}
     frames  :: Vector{<:MD}
-    function MultiFrameModalDataset{MD}(X::MultiFrameModalDataset{MD}) where {MD<:ModalDataset}
+    function MultiFrameModalDataset{MD}(X::MultiFrameModalDataset{MD}) where {MD<:AbstractConditionalDataset}
         MultiFrameModalDataset{MD}(X.frames)
     end
-    function MultiFrameModalDataset{MD}(Xs::AbstractVector) where {MD<:ModalDataset}
+    function MultiFrameModalDataset{MD}(Xs::AbstractVector) where {MD<:AbstractConditionalDataset}
         Xs = collect(Xs)
         @assert length(Xs) > 0 && length(unique(nsamples.(Xs))) == 1 "Can't create an empty MultiFrameModalDataset or with mismatching number of samples (nframes: $(length(Xs)), frame_sizes: $(nsamples.(Xs)))."
         new{MD}(Xs)
     end
-    function MultiFrameModalDataset{MD}() where {MD<:ModalDataset}
+    function MultiFrameModalDataset{MD}() where {MD<:AbstractConditionalDataset}
         new{MD}(MD[])
     end
-    function MultiFrameModalDataset{MD}(X::MD) where {MD<:ModalDataset}
+    function MultiFrameModalDataset{MD}(X::MD) where {MD<:AbstractConditionalDataset}
         MultiFrameModalDataset{MD}(MD[X])
     end
-    function MultiFrameModalDataset(Xs::AbstractVector{<:MD}) where {MD<:ModalDataset}
+    function MultiFrameModalDataset(Xs::AbstractVector{<:MD}) where {MD<:AbstractConditionalDataset}
         MultiFrameModalDataset{MD}(Xs)
     end
-    function MultiFrameModalDataset(X::MD) where {MD<:ModalDataset}
+    function MultiFrameModalDataset(X::MD) where {MD<:AbstractConditionalDataset}
         MultiFrameModalDataset{MD}(X)
     end
 end
@@ -39,7 +39,7 @@ Base.size(X::MultiFrameModalDataset)                                = map(size, 
 get_frame(X::MultiFrameModalDataset, i_frame::Integer)              = nframes(X) > 0 ? frames(X)[i_frame] : error("MultiFrameModalDataset has no frame!")
 nframes(X::MultiFrameModalDataset)                                 = length(frames(X))
 nsamples(X::MultiFrameModalDataset)                                = nsamples(get_frame(X, 1))
-Base.push!(X::MultiFrameModalDataset, f::ModalDataset) = push!(frames(X), f)
+Base.push!(X::MultiFrameModalDataset, f::AbstractConditionalDataset) = push!(frames(X), f)
 
 # max_channel_size(X::MultiFrameModalDataset) = map(max_channel_size, frames(X)) # TODO: figure if this is useless or not. Note: channel_size doesn't make sense at this point.
 nfeatures(X::MultiFrameModalDataset) = map(nfeatures, frames(X)) # Note: used for safety checks in fit_tree.jl
@@ -53,7 +53,7 @@ get_instance(X::MultiFrameModalDataset,  i_frame::Integer, idx_i::Integer, args.
 # slice_dataset(X::MultiFrameModalDataset, i_frame::Integer, inds::AbstractVector{<:Integer}, args...)  = slice_dataset(get_frame(X, i_frame), inds, args...; kwargs...)
 
 # get_instance(X::MultiFrameModalDataset, idx_i::Integer, args...)  = get_instance(get_frame(X, i), idx_i, args...) # TODO should slice across the frames!
-_slice_dataset(X::MultiFrameModalDataset{MD}, inds::AbstractVector{<:Integer}, args...; kwargs...) where {MD<:ModalDataset} = 
+_slice_dataset(X::MultiFrameModalDataset{MD}, inds::AbstractVector{<:Integer}, args...; kwargs...) where {MD<:AbstractConditionalDataset} = 
     MultiFrameModalDataset{MD}(Vector{MD}(map(frame->_slice_dataset(frame, inds, args...; kwargs...), frames(X))))
 
 function display_structure(Xs::MultiFrameModalDataset; indent_str = "")

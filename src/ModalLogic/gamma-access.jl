@@ -7,24 +7,24 @@ end
 ############################################################################################
 
 
-Base.@propagate_inbounds @inline function _get_modal_gamma(X::DimensionalDataset{T,N}, i_sample::Integer, w::AbstractWorld, r::AbstractRelation, f::AbstractFeature, aggr::Aggregator, args...) where {T,N}
+Base.@propagate_inbounds @inline function _get_modal_gamma(X::PassiveDimensionalDataset{T,N}, i_sample::Integer, w::AbstractWorld, r::AbstractRelation, f::AbstractFeature, aggr::Aggregator, args...) where {T,N}
     aggr([
         aggregator_bottom(aggr, T),
-        [domainread(X, i_sample, w2, f) for w2 in representatives(X, i_sample, w, r, f, aggr)]...
+        [X[i_sample, w2, f] for w2 in representatives(X, i_sample, w, r, f, aggr)]...
     ])
 end
 
-Base.@propagate_inbounds @inline function _get_modal_gamma(X::DimensionalDataset{T,N}, i_sample::Integer, w::AbstractWorld, r::_RelationGlob, f::AbstractFeature, aggr::Aggregator, args...) where {T,N}
+Base.@propagate_inbounds @inline function _get_modal_gamma(X::PassiveDimensionalDataset{T,N}, i_sample::Integer, w::AbstractWorld, r::_RelationGlob, f::AbstractFeature, aggr::Aggregator, args...) where {T,N}
     aggr([
         aggregator_bottom(aggr, T),
-        [domainread(X, i_sample, w2, f) for w2 in representatives(X, i_sample, w, r, f, aggr)]...
+        [X[i_sample, w2, f] for w2 in representatives(X, i_sample, w, r, f, aggr)]...
     ])
 end
 
-Base.@propagate_inbounds @inline function _get_global_gamma(X::DimensionalDataset{T,N}, i_sample::Integer, f::AbstractFeature, aggr::Aggregator) where {T,N}
+Base.@propagate_inbounds @inline function _get_global_gamma(X::PassiveDimensionalDataset{T,N}, i_sample::Integer, f::AbstractFeature, aggr::Aggregator) where {T,N}
     aggr([
         aggregator_bottom(aggr, T),
-        [domainread(X, i_sample, w2, f) for w2 in representatives(X, i_sample, RelationGlob, f, aggr)]...
+        [X[i_sample, w2, f] for w2 in representatives(X, i_sample, RelationGlob, f, aggr)]...
     ])
 end
 
