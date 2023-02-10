@@ -25,7 +25,6 @@ using SoleData: max_channel_size,
                 get_instance,
                 slice_dataset,
                 _slice_dataset,
-                concat_datasets,
                 instance_channel_size
 
 using SoleModels: AbstractConditionalDataset
@@ -38,7 +37,7 @@ import AbstractTrees: print_tree
 
 ############################################################################################
 
-export slice_dataset, concat_datasets,
+export slice_dataset, 
        nframes, nsamples, nattributes, max_channel_size
 
 export DTree,                   # Decision tree

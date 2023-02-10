@@ -54,15 +54,6 @@ function minify(support::Union{AbstractRelationalSupport,AbstractGlobalSupport})
 end
 
 ############################################################################################
-############################################################################################
-############################################################################################
-############################################################################################
-
-abstract type SupportingModalDataset{V<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}} end
-
-isminifiable(X::SupportingModalDataset) = false
-
-############################################################################################
 # Finally, let us define the implementation for explicit modal dataset with support
 ############################################################################################
 
@@ -72,7 +63,7 @@ struct SupportedFeaturedDataset{
     W<:AbstractWorld,
     FR<:AbstractFrame{W,Bool},
     FT<:AbstractFeature{V},
-    S<:SupportingModalDataset{V,W,FR},
+    S<:FeaturedSupportingDataset{V,W,FR},
 } <: ActiveFeaturedDataset{V,W,FR,FT}
 
     # Core dataset
@@ -87,14 +78,14 @@ struct SupportedFeaturedDataset{
         emd                 :: FeaturedDataset{V,W,FR,FT},
         support             :: S;
         allow_no_instances = false,
-    ) where {V,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},FT<:AbstractFeature{V},S<:SupportingModalDataset{V,W,FR}}
+    ) where {V,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},FT<:AbstractFeature{V},S<:FeaturedSupportingDataset{V,W,FR}}
         ty = "SupportedFeaturedDataset{$(V),$(W),$(FR),$(FT),$(S)}"
         @assert allow_no_instances || nsamples(emd) > 0  "Can't instantiate $(ty) with no instance."
         @assert checksupportconsistency(emd, support)    "Can't instantiate $(ty) with an inconsistent support:\n\nemd:\n$(display_structure(emd))\n\nsupport:\n$(display_structure(support))"
         new{V,W,FR,FT,S}(emd, support)
     end
 
-    function SupportedFeaturedDataset{V,W,FR,FT}(emd::FeaturedDataset{V,W}, support::S, args...; kwargs...) where {V,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},FT<:AbstractFeature{V},S<:SupportingModalDataset{V,W,FR}}
+    function SupportedFeaturedDataset{V,W,FR,FT}(emd::FeaturedDataset{V,W}, support::S, args...; kwargs...) where {V,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},FT<:AbstractFeature{V},S<:FeaturedSupportingDataset{V,W,FR}}
         SupportedFeaturedDataset{V,W,FR,FT,S}(emd, support, args...; kwargs...)
     end
 
@@ -122,7 +113,7 @@ struct SupportedFeaturedDataset{
         use_memoization       :: Bool = true,
     ) where {V,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}}
         
-        support = OneStepSupportingDataset(
+        support = OneStepFeaturedSupportingDataset(
             emd,
             compute_relation_glob = compute_relation_glob,
             use_memoization = use_memoization
@@ -160,10 +151,7 @@ worldtype(X::SupportedFeaturedDataset{V,W}) where {V,W} = W
 
 usesmemo(X::SupportedFeaturedDataset) = usesmemo(support(X))
 
-initialworldset(X::SupportedFeaturedDataset,  args...) = initialworldset(emd(X), args...)
-accessibles(X::SupportedFeaturedDataset,     args...) = accessibles(emd(X), args...)
-representatives(X::SupportedFeaturedDataset, args...) = representatives(emd(X), args...)
-allworlds(X::SupportedFeaturedDataset,  args...) = allworlds(emd(X), args...)
+frame(X::SupportedFeaturedDataset, i_sample) = frame(emd(X), i_sample)
 
 function _slice_dataset(X::SupportedFeaturedDataset, inds::AbstractVector{<:Integer}, args...; kwargs...)
     SupportedFeaturedDataset(
@@ -172,8 +160,8 @@ function _slice_dataset(X::SupportedFeaturedDataset, inds::AbstractVector{<:Inte
     )
 end
 
-find_feature_id(X::SupportedFeaturedDataset, feature::AbstractFeature) = findall(x->x==feature, features(X))[1]
-find_relation_id(X::SupportedFeaturedDataset, relation::AbstractRelation) = findall(x->x==relation, relations(X))[1]
+find_feature_id(X::SupportedFeaturedDataset, feature::AbstractFeature) = findfirst(x->x==feature, features(X))
+find_relation_id(X::SupportedFeaturedDataset, relation::AbstractRelation) = findfirst(x->x==relation, relations(X))
 
 hasnans(X::SupportedFeaturedDataset) = hasnans(emd(X)) || hasnans(support(X))
 

@@ -46,12 +46,12 @@ end
 # Base.size(fwd::GenericFWD{V}, args...) where {V} = size(fwd.d, args...)
 
 # # The matrix is initialized with #undef values
-# function fwd_init(::Type{GenericFWD}, imd::DimensionalFeaturedDataset{V}) where {V}
-#     d = Array{Dict{W,V}, 2}(undef, nsamples(imd))
+# function fwd_init(::Type{GenericFWD}, X::DimensionalFeaturedDataset{V}) where {V}
+#     d = Array{Dict{W,V}, 2}(undef, nsamples(X))
 #     for i in 1:nsamples
 #         d[i] = Dict{W,Array{V,1}}()
 #     end
-#     GenericFWD{V}(d, nfeatures(imd))
+#     GenericFWD{V}(d, nfeatures(X))
 # end
 
 # # A function for initializing individual world slices
@@ -72,9 +72,9 @@ end
 # end
 
 # # A function for setting threshold values for a single feature (from a feature slice, experimental)
-# Base.@propagate_inbounds @inline function fwd_set_feature(fwd::GenericFWD{V}, i_feature::Integer, fwd_feature_slice::Any) where {V}
+# Base.@propagate_inbounds @inline function fwd_set_feature(fwd::GenericFWD{V}, i_feature::Integer, fwdslice::Any) where {V}
 #     throw_n_log("Warning! fwd_set_feature with GenericFWD is not yet implemented!")
-#     for ((i_sample,w),threshold::V) in read_fwd_feature_slice(fwd_feature_slice)
+#     for ((i_sample,w),threshold::V) in read_fwdslice(fwdslice)
 #         fwd.d[i_sample][w][i_feature] = threshold
 #     end
 # end
@@ -218,7 +218,7 @@ struct FeaturedDataset{
                 i_external_features = first.(filter(((i_feature,is_external_fwd),)->(is_external_fwd), collect(enumerate(isa.(_features, ExternalFWDFeature)))))
                 for i_feature in i_external_features
                     feature = _features[i_feature]
-                    fwd_set_feature_slice(fwd, i_feature, feature.fwd)
+                    fwdslice_set(fwd, i_feature, feature.fwd)
                 end
             end
 
@@ -229,7 +229,7 @@ struct FeaturedDataset{
             # Compute features
             # p = Progress(_n_samples, 1, "Computing EMD...")
             @inbounds Threads.@threads for i_sample in 1:_n_samples
-                @logmsg LogDebug "Instance $(i_sample)/$(_n_samples)"
+                # @logmsg LogDebug "Instance $(i_sample)/$(_n_samples)"
 
                 # if i_sample == 1 || ((i_sample+1) % (floor(Int, ((_n_samples)/4))+1)) == 0
                 #     @logmsg LogOverview "Instance $(i_sample)/$(_n_samples)"
@@ -239,15 +239,15 @@ struct FeaturedDataset{
                     
                     fwd_init_world_slice(fwd, i_sample, w)
 
-                    @logmsg LogDebug "World" w
+                    # @logmsg LogDebug "World" w
 
                     for (i_feature,feature) in enum_features
 
-                        threshold = X[i_sample, w, feature, i_feature]
+                        gamma = X[i_sample, w, feature, i_feature]
 
-                        @logmsg LogDebug "Feature $(i_feature)" threshold
+                        # @logmsg LogDebug "Feature $(i_feature)" gamma
 
-                        fwd_set(fwd, w, i_sample, i_feature, threshold)
+                        fwd[w, i_sample, i_feature] = gamma
 
                     end
                 end
@@ -299,11 +299,7 @@ worldtype(X::FeaturedDataset{V,W}) where {V,W<:AbstractWorld} = W
 
 nfeatsnaggrs(X::FeaturedDataset)            = sum(length.(grouped_featsnaggrs(X)))
 
-initialworldset(X::FeaturedDataset, i_sample, args...) = initialworldset(fwd(X), i_sample, args...)
-accessibles(X::FeaturedDataset, i_sample, args...) = accessibles(fwd(X), i_sample, args...)
-representatives(X::FeaturedDataset, i_sample, args...) = representatives(fwd(X), i_sample, args...)
-allworlds(X::FeaturedDataset, i_sample, args...) = allworlds(fwd(X), i_sample, args...)
-
+frame(X::FeaturedDataset, i_sample) = frame(fwd(X), i_sample)
 
 function _slice_dataset(X::FeaturedDataset, inds::AbstractVector{<:Integer}, args...; kwargs...)
     FeaturedDataset(
@@ -315,22 +311,22 @@ function _slice_dataset(X::FeaturedDataset, inds::AbstractVector{<:Integer}, arg
 end
 
 
-function display_structure(emd::FeaturedDataset; indent_str = "")
-    out = "$(typeof(emd))\t$(Base.summarysize(emd) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
-    out *= indent_str * "├ relations: \t$((length(relations(emd))))\t$(relations(emd))\n"
-    out *= indent_str * "└ fwd: \t$(typeof(fwd(emd)))\t$(Base.summarysize(fwd(emd)) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
+function display_structure(X::FeaturedDataset; indent_str = "")
+    out = "$(typeof(X))\t$(Base.summarysize(X) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
+    out *= indent_str * "├ relations: \t$((length(relations(X))))\t$(relations(X))\n"
+    out *= indent_str * "└ fwd: \t$(typeof(fwd(X)))\t$(Base.summarysize(fwd(X)) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
     out
 end
 
 
 find_feature_id(X::FeaturedDataset{V,W}, feature::AbstractFeature) where {V,W} =
-    findall(x->x==feature, features(X))[1]
+    findfirst(x->x==feature, features(X))
 find_relation_id(X::FeaturedDataset{V,W}, relation::AbstractRelation) where {V,W} =
-    findall(x->x==relation, relations(X))[1]
+    findfirst(x->x==relation, relations(X))
 
-function hasnans(emd::FeaturedDataset)
-    # @show hasnans(fwd(emd))
-    hasnans(fwd(emd))
+function hasnans(X::FeaturedDataset)
+    # @show hasnans(fwd(X))
+    hasnans(fwd(X))
 end
 
 

@@ -1,6 +1,6 @@
 
 # Compute modal dataset propositions and 1-modal decisions
-struct OneStepSupportingDataset{
+struct OneStepFeaturedSupportingDataset{
     V<:Number,
     W<:AbstractWorld,
     FR<:AbstractFrame{W,Bool},
@@ -8,7 +8,7 @@ struct OneStepSupportingDataset{
     FWDRS<:AbstractRelationalSupport{VV,W,FR},
     FWDGS<:Union{AbstractGlobalSupport{V},Nothing},
     G<:AbstractVector{Tuple{<:AbstractFeature,<:Aggregator}},
-} <: SupportingModalDataset{V,W,FR}
+} <: FeaturedSupportingDataset{V,W,FR}
 
     # Relational support
     fwd_rs              :: FWDRS
@@ -19,7 +19,7 @@ struct OneStepSupportingDataset{
     # Features and Aggregators
     featsnaggrs         :: G
 
-    function OneStepSupportingDataset(
+    function OneStepFeaturedSupportingDataset(
         fwd_rs::FWDRS,
         fwd_gs::FWDGS,
         featsnaggrs::G,
@@ -44,8 +44,8 @@ struct OneStepSupportingDataset{
     _default_rs_type(::Type{<:Union{OneWorld,Interval,Interval2D}}) = UniformFullDimensionalRelationalSupport
 
     # A function that computes the support from an explicit modal dataset
-    Base.@propagate_inbounds function OneStepSupportingDataset(
-        emd                 :: FeaturedDataset{V,W},
+    Base.@propagate_inbounds function OneStepFeaturedSupportingDataset(
+        emd                     :: FeaturedDataset{V,W},
         relational_support_type :: Type{<:AbstractRelationalSupport} = _default_rs_type(W);
         compute_relation_glob = false,
         use_memoization = false,
@@ -89,7 +89,7 @@ struct OneStepSupportingDataset{
 
         # p = Progress(_n_samples, 1, "Computing EMD supports...")
         Threads.@threads for i_sample in 1:_n_samples
-            @logmsg LogDebug "Instance $(i_sample)/$(_n_samples)"
+            # @logmsg LogDebug "Instance $(i_sample)/$(_n_samples)"
 
             # if i_sample == 1 || ((i_sample+1) % (floor(Int, ((_n_samples)/4))+1)) == 0
             #     @logmsg LogOverview "Instance $(i_sample)/$(_n_samples)"
@@ -97,27 +97,25 @@ struct OneStepSupportingDataset{
 
             for (i_feature,aggregators) in enumerate(_grouped_featsnaggrs)
                 feature = _features[i_feature]
-                @logmsg LogDebug "Feature $(i_feature)"
+                # @logmsg LogDebug "Feature $(i_feature)"
 
-                cur_fwd_slice = fwdread_channel(_fwd, i_sample, i_feature)
+                fwdslice = fwdread_channel(_fwd, i_sample, i_feature)
 
-                # @logmsg LogDebug cur_fwd_slice
+                # @logmsg LogDebug fwdslice
 
                 # Global relation (independent of the current world)
                 if compute_fwd_gs
-                    @logmsg LogDebug "RelationGlob"
+                    # @logmsg LogDebug "RelationGlob"
 
                     # TODO optimize: all aggregators are likely reading the same raw values.
                     for (i_featsnaggr,aggr) in aggregators
                     # Threads.@threads for (i_featsnaggr,aggr) in aggregators
                         
-                        threshold = fwd_slice_compute_global_gamma(emd, i_sample, cur_fwd_slice, feature, aggr)
+                        gamma = fwdslice_onestep_accessible_aggregation(emd, fwdslice, i_sample, RelationGlob, feature, aggr)
 
-                        @logmsg LogDebug "Aggregator[$(i_featsnaggr)]=$(aggr)  -->  $(threshold)"
+                        # @logmsg LogDebug "Aggregator[$(i_featsnaggr)]=$(aggr)  -->  $(gamma)"
 
-                        # @logmsg LogDebug "Aggregator" aggr threshold
-
-                        fwd_gs_set(fwd_gs, i_sample, i_featsnaggr, threshold)
+                        fwd_gs[i_sample, i_featsnaggr] = gamma
                     end
                 end
 
@@ -125,7 +123,7 @@ struct OneStepSupportingDataset{
                     # Other relations
                     for (i_relation,relation) in enumerate(_relations)
 
-                        @logmsg LogDebug "Relation $(i_relation)/$(nrelations)"
+                        # @logmsg LogDebug "Relation $(i_relation)/$(nrelations)"
 
                         for (i_featsnaggr,aggr) in aggregators
                             fwd_rs_init_world_slice(fwd_rs, i_sample, i_featsnaggr, i_relation)
@@ -133,16 +131,16 @@ struct OneStepSupportingDataset{
 
                         for w in allworlds(emd, i_sample)
 
-                            @logmsg LogDebug "World" w
+                            # @logmsg LogDebug "World" w
 
                             # TODO optimize: all aggregators are likely reading the same raw values.
                             for (i_featsnaggr,aggr) in aggregators
                                 
-                                threshold = fwd_slice_compute_modal_gamma(emd, i_sample, cur_fwd_slice, w, relation, feature, aggr)
+                                gamma = fwdslice_onestep_accessible_aggregation(emd, fwdslice, i_sample, w, relation, feature, aggr)
 
-                                # @logmsg LogDebug "Aggregator" aggr threshold
+                                # @logmsg LogDebug "Aggregator" aggr gamma
 
-                                fwd_rs_set(fwd_rs, i_sample, w, i_featsnaggr, i_relation, threshold)
+                                fwd_rs[i_sample, w, i_featsnaggr, i_relation] = gamma
                             end
                         end
                     end
@@ -150,21 +148,21 @@ struct OneStepSupportingDataset{
             end
             # next!(p)
         end
-        OneStepSupportingDataset(fwd_rs, fwd_gs, featsnaggrs)
+        OneStepFeaturedSupportingDataset(fwd_rs, fwd_gs, featsnaggrs)
     end
 end
 
-fwd_rs(X::OneStepSupportingDataset) = X.fwd_rs
-fwd_gs(X::OneStepSupportingDataset) = X.fwd_gs
-featsnaggrs(X::OneStepSupportingDataset) = X.featsnaggrs
+fwd_rs(X::OneStepFeaturedSupportingDataset) = X.fwd_rs
+fwd_gs(X::OneStepFeaturedSupportingDataset) = X.fwd_gs
+featsnaggrs(X::OneStepFeaturedSupportingDataset) = X.featsnaggrs
 
-nsamples(X::OneStepSupportingDataset) = nsamples(fwd_rs(X))
-# nfeatsnaggrs(X::OneStepSupportingDataset) = nfeatsnaggrs(fwd_rs(X))
+nsamples(X::OneStepFeaturedSupportingDataset) = nsamples(fwd_rs(X))
+# nfeatsnaggrs(X::OneStepFeaturedSupportingDataset) = nfeatsnaggrs(fwd_rs(X))
 
 # TODO delegate to the two components...
 function checksupportconsistency(
     emd::FeaturedDataset{V,W},
-    X::OneStepSupportingDataset{V,W},
+    X::OneStepFeaturedSupportingDataset{V,W},
 ) where {V,W<:AbstractWorld}
     @assert nsamples(emd) == nsamples(X)                "Consistency check failed! Unmatching nsamples for emd and support: $(nsamples(emd)) and $(nsamples(X))"
     # @assert nrelations(emd) == (nrelations(fwd_rs(X)) + (isnothing(fwd_gs(X)) ? 0 : 1))            "Consistency check failed! Unmatching nrelations for emd and support: $(nrelations(emd)) and $(nrelations(fwd_rs(X)))+$((isnothing(fwd_gs(X)) ? 0 : 1))"
@@ -174,18 +172,16 @@ function checksupportconsistency(
     return true
 end
 
-usesmemo(X::OneStepSupportingDataset) = usesglobalmemo(X) || usesmodalmemo(X)
-usesglobalmemo(X::OneStepSupportingDataset) = false
-usesmodalmemo(X::OneStepSupportingDataset) = usesmemo(fwd_rs(X))
+usesmemo(X::OneStepFeaturedSupportingDataset) = usesglobalmemo(X) || usesmodalmemo(X)
+usesglobalmemo(X::OneStepFeaturedSupportingDataset) = false
+usesmodalmemo(X::OneStepFeaturedSupportingDataset) = usesmemo(fwd_rs(X))
 
-worldtype(X::OneStepSupportingDataset{V,W}) where {V,W}    = W
+Base.size(X::OneStepFeaturedSupportingDataset) = (size(fwd_rs(X)), (isnothing(fwd_gs(X)) ? () : size(fwd_gs(X))))
 
-Base.size(X::OneStepSupportingDataset) = (size(fwd_rs(X)), (isnothing(fwd_gs(X)) ? () : size(fwd_gs(X))))
+find_featsnaggr_id(X::OneStepFeaturedSupportingDataset, feature::AbstractFeature, aggregator::Aggregator) = findfirst(x->x==(feature, aggregator), featsnaggrs(X))
 
-find_featsnaggr_id(X::OneStepSupportingDataset, feature::AbstractFeature, aggregator::Aggregator) = findall(x->x==(feature, aggregator), featsnaggrs(X))[1]
-
-function _slice_dataset(X::OneStepSupportingDataset, inds::AbstractVector{<:Integer}, args...; kwargs...)
-    OneStepSupportingDataset(
+function _slice_dataset(X::OneStepFeaturedSupportingDataset, inds::AbstractVector{<:Integer}, args...; kwargs...)
+    OneStepFeaturedSupportingDataset(
         _slice_dataset(fwd_rs(X), inds, args...; kwargs...),
         (isnothing(fwd_gs(X)) ? nothing : _slice_dataset(fwd_gs(X), inds, args...; kwargs...)),
         featsnaggrs(X)
@@ -193,13 +189,13 @@ function _slice_dataset(X::OneStepSupportingDataset, inds::AbstractVector{<:Inte
 end
 
 
-function hasnans(X::OneStepSupportingDataset)
+function hasnans(X::OneStepFeaturedSupportingDataset)
     hasnans(fwd_rs(X)) || (!isnothing(fwd_gs(X)) && hasnans(fwd_gs(X)))
 end
 
-isminifiable(X::OneStepSupportingDataset) = isminifiable(fwd_rs(X)) && (isnothing(fwd_gs(X)) || isminifiable(fwd_gs(X)))
+isminifiable(X::OneStepFeaturedSupportingDataset) = isminifiable(fwd_rs(X)) && (isnothing(fwd_gs(X)) || isminifiable(fwd_gs(X)))
 
-function minify(X::OSSD) where {OSSD<:OneStepSupportingDataset}
+function minify(X::OSSD) where {OSSD<:OneStepFeaturedSupportingDataset}
     (new_fwd_rs, new_fwd_gs), backmap =
         minify([
             fwd_rs(X),
@@ -214,11 +210,11 @@ function minify(X::OSSD) where {OSSD<:OneStepSupportingDataset}
     X, backmap
 end
 
-function display_structure(X::OneStepSupportingDataset; indent_str = "")
-    out = "$(typeof(X))\t$((Base.summarysize(fwd_rs(X)) + Base.summarysize(fwd_gs(X))) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
+function display_structure(X::OneStepFeaturedSupportingDataset; indent_str = "")
+    out = "$(typeof(X))\t$((Base.summarysize(X)) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
     out *= indent_str * "├ fwd_rs\t$(Base.summarysize(fwd_rs(X)) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t"
     if usesmodalmemo(X)
-        out *= "(shape $(Base.size(fwd_rs(X))), $(round(nonnothingshare(fwd_rs(X))*100, digits=2))% memoized)\n"
+        out *= "(shape $(Base.size(fwd_rs(X))), $(round(nmemoizedvalues(fwd_rs(X)))) values, $(round(nonnothingshare(fwd_rs(X))*100, digits=2))% memoized)\n"
     else
         out *= "(shape $(Base.size(fwd_rs(X))))\n"
     end
@@ -226,7 +222,7 @@ function display_structure(X::OneStepSupportingDataset; indent_str = "")
     if !isnothing(fwd_gs(X))
         out *= "$(Base.summarysize(fwd_gs(X)) / 1024 / 1024 |> x->round(x, digits=2)) MBs\t"
         if usesglobalmemo(X)
-            out *= "(shape $(Base.size(fwd_gs(X))), $(round(nonnothingshare(fwd_gs(X))*100, digits=2))% memoized)\n"
+            out *= "(shape $(Base.size(fwd_gs(X))), $(round(nmemoizedvalues(fwd_gs(X)))) values, $(round(nonnothingshare(fwd_gs(X))*100, digits=2))% memoized)\n"
         else
             out *= "(shape $(Base.size(fwd_gs(X))))\n"
         end
@@ -240,7 +236,7 @@ end
 ############################################################################################
 
 function compute_global_gamma(
-    X::OneStepSupportingDataset{V,W},
+    X::OneStepFeaturedSupportingDataset{V,W},
     emd::FeaturedDataset{V,W},
     i_sample::Integer,
     feature::AbstractFeature,
@@ -249,48 +245,33 @@ function compute_global_gamma(
 ) where {V,W<:AbstractWorld}
     _fwd_gs = fwd_gs(X)
     # @assert !isnothing(_fwd_gs) "Error. SupportedFeaturedDataset must be built with compute_relation_glob = true for it to be ready to test global decisions."
-    if usesglobalmemo(X) && (false || isnothing(_fwd_gs[i_sample, i_featsnaggr]))
+    if usesglobalmemo(X) && isnothing(_fwd_gs[i_sample, i_featsnaggr])
         error("TODO finish this: memoization on the global table")
         # gamma = TODO...
         # i_feature = find_feature_id(emd, feature)
-        # fwd_feature_slice = fwdread_channel(fwd(emd), i_sample, i_feature)
-        # fwd_gs_set(_fwd_gs, i_sample, i_featsnaggr, gamma)
+        # fwdslice = fwdread_channel(fwd(emd), i_sample, i_feature)
+        _fwd_gs[i_sample, i_featsnaggr] = gamma
     end
     _fwd_gs[i_sample, i_featsnaggr]
 end
 
 function compute_modal_gamma(
-    X::OneStepSupportingDataset{V,W},
+    X::OneStepFeaturedSupportingDataset{V,W},
     emd::FeaturedDataset{V,W},
     i_sample::Integer,
     w::W,
-    relation::AbstractRelation,
+    r::AbstractRelation,
     feature::AbstractFeature,
     aggregator::Aggregator,
-    i_relation::Integer,
-) where {V,W<:AbstractWorld}
-    i_featsnaggr = find_featsnaggr_id(X, feature, aggregator)
-    _compute_modal_gamma(X, emd, i_sample, w, relation, feature, aggregator, i_featsnaggr, i_relation)
-
-end
-
-function _compute_modal_gamma(
-    X::OneStepSupportingDataset{V,W},
-    emd::FeaturedDataset{V,W},
-    i_sample::Integer,
-    w::W,
-    relation::AbstractRelation,
-    feature::AbstractFeature,
-    aggregator::Aggregator,
-    i_featsnaggr,
-    i_relation,
+    i_featsnaggr = find_featsnaggr_id(X, feature, aggregator),
+    i_relation = nothing,
 )::V where {V,W<:AbstractWorld}
     _fwd_rs = fwd_rs(X)
-    if usesmodalmemo(X) && (false ||  isnothing(_fwd_rs[i_sample, w, i_featsnaggr, i_relation]))
+    if usesmodalmemo(X) && isnothing(_fwd_rs[i_sample, w, i_featsnaggr, i_relation])
         i_feature = find_feature_id(emd, feature)
-        fwd_feature_slice = fwdread_channel(fwd(emd), i_sample, i_feature)
-        gamma = fwd_slice_compute_modal_gamma(emd, i_sample, fwd_feature_slice, w, relation, feature, aggregator)
-        fwd_rs_set(_fwd_rs, i_sample, w, i_featsnaggr, i_relation, gamma)
+        fwdslice = fwdread_channel(fwd(emd), i_sample, i_feature)
+        gamma = fwdslice_onestep_accessible_aggregation(emd, fwdslice, i_sample, w, r, feature, aggregator)
+        fwd_rs[i_sample, w, i_featsnaggr, i_relation, gamma]
     end
     _fwd_rs[i_sample, w, i_featsnaggr, i_relation]
 end

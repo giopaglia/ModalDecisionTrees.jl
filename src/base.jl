@@ -36,6 +36,8 @@ function initialworldsets(Xs::MultiFrameModalDataset, iCs::AbstractVector{<:Init
     Ss
 end
 
+initialworldset(X::AbstractConditionalDataset, i_sample, args...) = initialworldset(SoleModels.frame(X, i_sample), args...)
+
 ############################################################################################
 
 abstract type AbstractNode{L<:Label} end

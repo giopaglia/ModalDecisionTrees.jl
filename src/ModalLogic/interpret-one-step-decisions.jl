@@ -170,7 +170,7 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
 
         # For each instance, compute thresholds by applying each aggregator to the set of existing values (from the worldset)
         for (instance_idx,i_sample) in enumerate(i_samples)
-            @logmsg LogDetail " Instance $(instance_idx)/$(_n_samples)"
+            # @logmsg LogDetail " Instance $(instance_idx)/$(_n_samples)"
             worlds = Sf[instance_idx]
 
             # TODO also try this instead
@@ -199,11 +199,11 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
                 #   println("Found $(test_operator)'s dual $(dual_test_operator(test_operator)) in tested_test_operator = $(tested_test_operator)")
                 #   continue
                 # end
-                @logmsg LogDetail " Test operator $(test_operator)"
+                # @logmsg LogDetail " Test operator $(test_operator)"
                 # Look for the best threshold 'a', as in propositions like "feature >= a"
                 for threshold in aggr_domain
                     decision = ExistentialDimensionalDecision(relation, feature, test_operator, threshold)
-                    @logmsg LogDebug " Testing decision: $(display_decision(decision))"
+                    # @logmsg LogDebug " Testing decision: $(display_decision(decision))"
                     @yield decision, aggr_thresholds
                 end # for threshold
                 # push!(tested_test_operator, test_operator)
@@ -236,7 +236,7 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
         # For each feature
         for i_feature in features_inds
             feature = _features[i_feature]
-            @logmsg LogDebug "Feature $(i_feature): $(feature)"
+            # @logmsg LogDebug "Feature $(i_feature): $(feature)"
 
             # operators for each aggregator
             aggrsnops = _grouped_featsaggrsnops[i_feature]
@@ -254,12 +254,24 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
 
             # For each instance, compute thresholds by applying each aggregator to the set of existing values (from the worldset)
             for (instance_id,i_sample) in enumerate(i_samples)
-                @logmsg LogDetail " Instance $(instance_id)/$(_n_samples)"
+                # @logmsg LogDetail " Instance $(instance_id)/$(_n_samples)"
                 worlds = Sf[instance_id]
-
+                if X isa Union{FeaturedDataset,SupportedFeaturedDataset}
+                    fwdslice = fwdread_channel(fwd(X), i_sample, i_feature)
+                end
                 for (i_aggr,(i_featsnaggr,aggr)) in enumerate(aggregators_with_ids)
                     for w in worlds
-                        gamma = onestep_accessible_aggregation(X, i_sample, w, relation, feature, aggr, i_featsnaggr, i_relation)
+                        gamma = begin
+                            if X isa Union{FeaturedDataset,SupportedFeaturedDataset}
+                                # fwdslice = fwdread_channel(fwd(X), i_sample, i_feature)
+                                fwdslice_onestep_accessible_aggregation(X, fwdslice, i_sample, w, relation, feature, aggr, i_featsnaggr, i_relation)
+                                # onestep_accessible_aggregation(X, i_sample, w, relation, feature, aggr, i_featsnaggr, i_relation)
+                            elseif X isa DimensionalFeaturedDataset
+                                 onestep_accessible_aggregation(X, i_sample, w, relation, feature, aggr, i_featsnaggr, i_relation)
+                            else
+                                error("generate_global_feasible_decisions is broken.")
+                            end
+                        end
                         thresholds[i_aggr,instance_id] = aggregator_to_binary(aggr)(gamma, thresholds[i_aggr,instance_id])
                     end
                 end
@@ -270,7 +282,7 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
                 # end
             end
 
-            @logmsg LogDebug "thresholds: " thresholds
+            # @logmsg LogDebug "thresholds: " thresholds
 
             # For each aggregator
             for (i_aggr,(_,aggr)) in enumerate(aggregators_with_ids)
@@ -279,12 +291,12 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
                 aggr_domain = setdiff(Set(aggr_thresholds),Set([typemin(V), typemax(V)]))
 
                 for (i_test_operator,test_operator) in enumerate(aggrsnops[aggr])
-                    @logmsg LogDetail " Test operator $(test_operator)"
+                    # @logmsg LogDetail " Test operator $(test_operator)"
 
                     # Look for the best threshold 'a', as in propositions like "feature >= a"
                     for threshold in aggr_domain
                         decision = ExistentialDimensionalDecision(relation, feature, test_operator, threshold)
-                        @logmsg LogDebug " Testing decision: $(display_decision(decision))"
+                        # @logmsg LogDebug " Testing decision: $(display_decision(decision))"
                         @yield decision, aggr_thresholds
                     end # for threshold
                 end # for test_operator
@@ -338,22 +350,19 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
         
         # For each instance, compute thresholds by applying each aggregator to the set of existing values (from the worldset)
         for (instance_id,i_sample) in enumerate(i_samples)
-            @logmsg LogDetail " Instance $(instance_id)/$(_n_samples)"
-            if X isa Union{SupportedFeaturedDataset,FeaturedDataset}
-                cur_fwd_slice = fwdread_channel(fwd(X), i_sample, i_feature)
+            # @logmsg LogDetail " Instance $(instance_id)/$(_n_samples)"
+            if X isa Union{FeaturedDataset,SupportedFeaturedDataset}
+                fwdslice = fwdread_channel(fwd(X), i_sample, i_feature)
             end
             for (i_aggr,(i_featsnaggr,aggr)) in enumerate(aggregators_with_ids)
-                gamma = begin # TODO delegate this job to different flavors of `get_global_gamma`. Test whether the cur_fwd_slice assignment outside is faster!
-                    if X isa SupportedFeaturedDataset
-                        onestep_accessible_aggregation(X, i_sample, RelationGlob, feature, aggr, i_featsnaggr)
-                        # compute_modal_gamma(X, emd, i_sample, feature, aggr, cur_fwd_slice, i_featsnaggr)
-                        # TODO
-                    elseif X isa FeaturedDataset
-                        # cur_fwd_slice = fwdread_channel(fwd(X), i_sample, i_feature)
-                        fwd_slice_compute_global_gamma(X, i_sample, cur_fwd_slice, feature, aggr)
+                # TODO delegate this job to different flavors of `get_global_gamma`. Test whether the fwdslice assignment outside is faster!
+                gamma = begin
+                    if X isa Union{FeaturedDataset,SupportedFeaturedDataset}
+                        # fwdslice = fwdread_channel(fwd(X), i_sample, i_feature)
+                        fwdslice_onestep_accessible_aggregation(X, fwdslice, i_sample, RelationGlob, feature, aggr, i_featsnaggr)
                         # onestep_accessible_aggregation(X, i_sample, RelationGlob, feature, aggr, i_featsnaggr)
                     elseif X isa DimensionalFeaturedDataset
-                        onestep_accessible_aggregation(X, i_sample, RelationGlob, feature, aggr)
+                        onestep_accessible_aggregation(X, i_sample, RelationGlob, feature, aggr, i_featsnaggr)
                     else
                         error("generate_global_feasible_decisions is broken.")
                     end
@@ -378,12 +387,12 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
             aggr_domain = setdiff(Set(aggr_thresholds),Set([typemin(V), typemax(V)]))
 
             for (i_test_operator,test_operator) in enumerate(aggrsnops[aggr])
-                @logmsg LogDetail " Test operator $(test_operator)"
+                # @logmsg LogDetail " Test operator $(test_operator)"
 
                 # Look for the best threshold 'a', as in propositions like "feature >= a"
                 for threshold in aggr_domain
                     decision = ExistentialDimensionalDecision(relation, feature, test_operator, threshold)
-                    @logmsg LogDebug " Testing decision: $(display_decision(decision))"
+                    # @logmsg LogDebug " Testing decision: $(display_decision(decision))"
                     @yield decision, aggr_thresholds
                 end # for threshold
             end # for test_operator

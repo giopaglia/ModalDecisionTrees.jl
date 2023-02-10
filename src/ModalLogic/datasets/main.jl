@@ -3,8 +3,6 @@ using ProgressMeter
 using SoleModels: CanonicalFeatureGeq, CanonicalFeatureGeqSoft, CanonicalFeatureLeq, CanonicalFeatureLeqSoft
 using SoleModels: evaluate_thresh_decision, existential_aggregator, aggregator_bottom, aggregator_to_binary
 
-using SoleLogics: TruthValue
-
 import SoleData: get_instance, instance, max_channel_size, channel_size, nattributes, nsamples, slice_dataset, _slice_dataset
 import SoleData: dimensionality
 
@@ -79,6 +77,7 @@ end
 abstract type ActiveFeaturedDataset{V<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},FT<:AbstractFeature{V}} <: AbstractConditionalDataset{W,AbstractCondition,Bool,FR} end
 
 import SoleModels: featvaltype
+import SoleModels: frame
 
 featvaltype(::Type{<:ActiveFeaturedDataset{V}}) where {V} = V
 featvaltype(d::ActiveFeaturedDataset) = featvaltype(typeof(d))
@@ -97,8 +96,26 @@ include("passive-dimensional-dataset.jl")
 
 include("dimensional-featured-dataset.jl")
 include("featured-dataset.jl")
+
+
+abstract type SupportingDataset{W<:AbstractWorld,FR<:AbstractFrame{W,Bool}} end
+
+isminifiable(X::SupportingDataset) = false
+
+worldtype(X::SupportingDataset{W}) where {W} = W
+
+function display_structure(X::SupportingDataset; indent_str = "")
+    out = "$(typeof(X))\t$((Base.summarysize(X)) / 1024 / 1024 |> x->round(x, digits=2)) MBs"
+    out *= " ($(round(nmemoizedvalues(X))) values)\n"
+    out
+end
+
+abstract type FeaturedSupportingDataset{V<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}} <: SupportingDataset{W,FR} end
+
+
 include("supported-featured-dataset.jl")
 
-include("one-step-supporting-dataset/main.jl")
+include("one-step-featured-supporting-dataset/main.jl")
+include("generic-supporting-datasets.jl")
 
 ############################################################################################

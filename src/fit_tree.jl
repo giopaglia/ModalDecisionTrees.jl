@@ -351,7 +351,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # DEBUGprintln(node.depth)
             # readline()
             node.is_leaf = true
-            @logmsg LogDetail "leaf created: " (min_samples_leaf * 2 >  _n_samples) (nc[node.prediction] == nt) (node.purity  > max_purity_at_leaf) (max_depth <= node.depth)
+            # @logmsg LogDetail "leaf created: " (min_samples_leaf * 2 >  _n_samples) (nc[node.prediction] == nt) (node.purity  > max_purity_at_leaf) (max_depth <= node.depth)
             return
         end
     else
@@ -365,7 +365,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # Honor maximum depth constraint
              || (max_depth            < node.depth))
             node.is_leaf = true
-            @logmsg LogDetail "leaf created: " (min_samples_leaf * 2 >  _n_samples) (tsum * node.prediction    > -1e-7 * nt + tssq) (tsum * node.prediction) (-1e-7 * nt + tssq) (max_depth <= node.depth)
+            # @logmsg LogDetail "leaf created: " (min_samples_leaf * 2 >  _n_samples) (tsum * node.prediction    > -1e-7 * nt + tssq) (tsum * node.prediction) (-1e-7 * nt + tssq) (max_depth <= node.depth)
             return
         end
     end
@@ -482,7 +482,7 @@ Base.@propagate_inbounds @inline function split_node!(
                     for i_sample in 1:_n_samples
                         gamma = aggr_thresholds[i_sample]
                         satisfied = evaluate_thresh_decision(_test_operator, gamma, _threshold)
-                        @logmsg LogDetail " instance $i_sample/$_n_samples: (f=$(gamma)) -> satisfied = $(satisfied)"
+                        # @logmsg LogDetail " instance $i_sample/$_n_samples: (f=$(gamma)) -> satisfied = $(satisfied)"
 
                         # Note: in a fuzzy generalization, `satisfied` becomes a [0-1] value
                         if !satisfied
@@ -518,7 +518,7 @@ Base.@propagate_inbounds @inline function split_node!(
                     for i_sample in 1:_n_samples
                         gamma = aggr_thresholds[i_sample]
                         satisfied = evaluate_thresh_decision(_test_operator, gamma, _threshold)
-                        @logmsg LogDetail " instance $i_sample/$_n_samples: (f=$(gamma)) -> satisfied = $(satisfied)"
+                        # @logmsg LogDetail " instance $i_sample/$_n_samples: (f=$(gamma)) -> satisfied = $(satisfied)"
 
                         # TODO make this satisfied a fuzzy value
                         if !satisfied
@@ -549,7 +549,7 @@ Base.@propagate_inbounds @inline function split_node!(
             ########################################################################
             ########################################################################
 
-            @logmsg LogDebug "  (n_left,n_right) = ($nl,$nr)"
+            # @logmsg LogDebug "  (n_left,n_right) = ($nl,$nr)"
 
             # Honor min_samples_leaf
             if nl >= min_samples_leaf && (_n_samples - nl) >= min_samples_leaf
@@ -592,7 +592,7 @@ Base.@propagate_inbounds @inline function split_node!(
                     #################################
                     # print(decision)
                     # println(" NEW BEST $best_i_frame, $best_purity_times_nt/nt")
-                    @logmsg LogDetail "  Found new optimum in frame $(best_i_frame): " (best_purity_times_nt/nt) best_decision
+                    # @logmsg LogDetail "  Found new optimum in frame $(best_i_frame): " (best_purity_times_nt/nt) best_decision
                     #################################
                     best_consistency = begin
                         if isa(_perform_consistency_check,Val{true})
@@ -633,9 +633,9 @@ Base.@propagate_inbounds @inline function split_node!(
         )
 
         if _is_classification isa Val{true}
-            @logmsg LogDebug " Leaf" corrected_best_purity_times_nt min_purity_increase (corrected_best_purity_times_nt/nt) node.purity ((corrected_best_purity_times_nt/nt) - node.purity)
+            # @logmsg LogDebug " Leaf" corrected_best_purity_times_nt min_purity_increase (corrected_best_purity_times_nt/nt) node.purity ((corrected_best_purity_times_nt/nt) - node.purity)
         else
-            @logmsg LogDebug " Leaf" corrected_best_purity_times_nt tsum node.prediction min_purity_increase nt (corrected_best_purity_times_nt / nt - tsum * node.prediction) (min_purity_increase * nt)
+            # @logmsg LogDebug " Leaf" corrected_best_purity_times_nt tsum node.prediction min_purity_increase nt (corrected_best_purity_times_nt / nt - tsum * node.prediction) (min_purity_increase * nt)
         end
         ##########################################################################
         ##########################################################################
@@ -668,7 +668,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # println(Sf[i_sample])
             _sat, _ss = ModalLogic.modal_step(X, idxs[i_sample + r_start], Sf[i_sample], best_decision)
             (satisfied,Ss[best_i_frame][idxs[i_sample + r_start]]) = _sat, _ss
-            @logmsg LogDetail " [$satisfied] Instance $(i_sample)/$(_n_samples)" Sf[i_sample] (if satisfied Ss[best_i_frame][idxs[i_sample + r_start]] end)
+            # @logmsg LogDetail " [$satisfied] Instance $(i_sample)/$(_n_samples)" Sf[i_sample] (if satisfied Ss[best_i_frame][idxs[i_sample + r_start]] end)
             # println(satisfied)
             # println(Ss[best_i_frame][idxs[i_sample + r_start]])
             # readline()
@@ -761,9 +761,9 @@ Base.@propagate_inbounds @inline function split_node!(
             # DEBUGprintln("unsatisfied_flags")
             # DEBUGprintln(unsatisfied_flags)
 
-            @logmsg LogDetail "pre-partition" region idxs[region] unsatisfied_flags
+            # @logmsg LogDetail "pre-partition" region idxs[region] unsatisfied_flags
             node.split_at = utils.partition!(idxs, unsatisfied_flags, 0, region)
-            @logmsg LogDetail "post-partition" idxs[region] node.split_at
+            # @logmsg LogDetail "post-partition" idxs[region] node.split_at
 
             # For debug:
             # idxs = rand(1:10, 10)

@@ -165,50 +165,47 @@ struct DimensionalFeaturedDataset{
 
 end
 
-domain(imd::DimensionalFeaturedDataset)                 = imd.domain
-ontology(imd::DimensionalFeaturedDataset)               = imd.ontology
-features(imd::DimensionalFeaturedDataset)               = imd.features
-grouped_featsaggrsnops(imd::DimensionalFeaturedDataset) = imd.grouped_featsaggrsnops
-grouped_featsnaggrs(imd::DimensionalFeaturedDataset)    = imd.grouped_featsnaggrs
+domain(X::DimensionalFeaturedDataset)                 = X.domain
+ontology(X::DimensionalFeaturedDataset)               = X.ontology
+features(X::DimensionalFeaturedDataset)               = X.features
+grouped_featsaggrsnops(X::DimensionalFeaturedDataset) = X.grouped_featsaggrsnops
+grouped_featsnaggrs(X::DimensionalFeaturedDataset)    = X.grouped_featsnaggrs
 
 function Base.getindex(X::DimensionalFeaturedDataset, args...)
     domain(X)[args...]::featvaltype(X)
 end
 
-Base.size(imd::DimensionalFeaturedDataset)              = Base.size(domain(imd))
+Base.size(X::DimensionalFeaturedDataset)              = Base.size(domain(X))
 
 # find_feature_id(X::DimensionalFeaturedDataset{V,W}, feature::AbstractFeature) where {V,W} =
-#     findall(x->x==feature, features(X))[1]
+#     findfirst(x->x==feature, features(X))
 
-dimensionality(imd::DimensionalFeaturedDataset{V,N,W}) where {V,N,W} = N
-worldtype(imd::DimensionalFeaturedDataset{V,N,W}) where {V,N,W} = W
+dimensionality(X::DimensionalFeaturedDataset{V,N,W}) where {V,N,W} = N
+worldtype(X::DimensionalFeaturedDataset{V,N,W}) where {V,N,W} = W
 
-nsamples(imd::DimensionalFeaturedDataset)               = nsamples(domain(imd))
-nattributes(imd::DimensionalFeaturedDataset)            = nattributes(domain(imd))
+nsamples(X::DimensionalFeaturedDataset)               = nsamples(domain(X))
+nattributes(X::DimensionalFeaturedDataset)            = nattributes(domain(X))
 
-relations(imd::DimensionalFeaturedDataset)              = relations(ontology(imd))
-nrelations(imd::DimensionalFeaturedDataset)             = length(relations(imd))
-nfeatures(imd::DimensionalFeaturedDataset)              = length(features(imd))
+relations(X::DimensionalFeaturedDataset)              = relations(ontology(X))
+nrelations(X::DimensionalFeaturedDataset)             = length(relations(X))
+nfeatures(X::DimensionalFeaturedDataset)              = length(features(X))
 
-channel_size(imd::DimensionalFeaturedDataset, args...)     = channel_size(domain(imd), args...)
-max_channel_size(imd::DimensionalFeaturedDataset)          = max_channel_size(domain(imd))
+channel_size(X::DimensionalFeaturedDataset, args...)     = channel_size(domain(X), args...)
+max_channel_size(X::DimensionalFeaturedDataset)          = max_channel_size(domain(X))
 
-get_instance(imd::DimensionalFeaturedDataset, args...)     = get_instance(domain(imd), args...)
+get_instance(X::DimensionalFeaturedDataset, args...)     = get_instance(domain(X), args...)
 
-_slice_dataset(imd::DimensionalFeaturedDataset, inds::AbstractVector{<:Integer}, args...; kwargs...)    =
-    DimensionalFeaturedDataset(_slice_dataset(domain(imd), inds, args...; kwargs...), ontology(imd), features(imd), imd.grouped_featsaggrsnops)
+_slice_dataset(X::DimensionalFeaturedDataset, inds::AbstractVector{<:Integer}, args...; kwargs...)    =
+    DimensionalFeaturedDataset(_slice_dataset(domain(X), inds, args...; kwargs...), ontology(X), features(X), X.grouped_featsaggrsnops)
 
-initialworldset(imd::DimensionalFeaturedDataset, args...) = initialworldset(domain(imd), args...)
-accessibles(imd::DimensionalFeaturedDataset, args...) = accessibles(domain(imd), args...)
-representatives(imd::DimensionalFeaturedDataset, args...) = representatives(domain(imd), args...)
-allworlds(imd::DimensionalFeaturedDataset, args...) = allworlds(domain(imd), args...)
+frame(X::DimensionalFeaturedDataset, i_sample) = frame(domain(X), i_sample)
 
-function display_structure(imd::DimensionalFeaturedDataset; indent_str = "")
-    out = "$(typeof(imd))\t$(Base.summarysize(imd) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
-    out *= indent_str * "├ relations: \t$((length(relations(imd))))\t$(relations(imd))\n"
-    out *= indent_str * "├ domain shape\t$(Base.size(domain(imd)))\n"
-    out *= indent_str * "└ max_channel_size\t$(max_channel_size(imd))"
+function display_structure(X::DimensionalFeaturedDataset; indent_str = "")
+    out = "$(typeof(X))\t$(Base.summarysize(X) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
+    out *= indent_str * "├ relations: \t$((length(relations(X))))\t$(relations(X))\n"
+    out *= indent_str * "├ domain shape\t$(Base.size(domain(X)))\n"
+    out *= indent_str * "└ max_channel_size\t$(max_channel_size(X))"
     out
 end
 
-hasnans(imd::DimensionalFeaturedDataset) = hasnans(domain(imd))
+hasnans(X::DimensionalFeaturedDataset) = hasnans(domain(X))

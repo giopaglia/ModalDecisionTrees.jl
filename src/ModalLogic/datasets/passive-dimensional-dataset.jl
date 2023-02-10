@@ -1,4 +1,5 @@
-using SoleData
+using SoleData: slice_dataset
+import SoleData: get_instance, nsamples, nattributes, channel_size, max_channel_size, dimensionality, eltype
 using SoleData: AbstractDimensionalDataset,
                 AbstractDimensionalInstance,
                 AbstractDimensionalChannel,
@@ -6,6 +7,7 @@ using SoleData: AbstractDimensionalDataset,
                 DimensionalInstance,
                 DimensionalChannel
 
+using SoleLogics: TruthValue
 
 # A modal dataset can be *active* or *passive*.
 # 
@@ -77,12 +79,12 @@ end
 
 Base.size(X::PassiveDimensionalDataset)                 = Base.size(X.d)
 
-nattributes(X::PassiveDimensionalDataset)               = SoleData.nattributes(X.d)
-nsamples(X::PassiveDimensionalDataset)                  = SoleData.nsamples(X.d)
-channel_size(X::PassiveDimensionalDataset)              = SoleData.channel_size(X.d)
-max_channel_size(X::PassiveDimensionalDataset)          = SoleData.max_channel_size(X.d)
-dimensionality(X::PassiveDimensionalDataset)            = SoleData.dimensionality(X.d)
-eltype(X::PassiveDimensionalDataset)                    = SoleData.eltype(X.d)
+nattributes(X::PassiveDimensionalDataset)               = nattributes(X.d)
+nsamples(X::PassiveDimensionalDataset)                  = nsamples(X.d)
+channel_size(X::PassiveDimensionalDataset)              = channel_size(X.d)
+max_channel_size(X::PassiveDimensionalDataset)          = max_channel_size(X.d)
+dimensionality(X::PassiveDimensionalDataset)            = dimensionality(X.d)
+eltype(X::PassiveDimensionalDataset)                    = eltype(X.d)
 
 get_instance(X::PassiveDimensionalDataset, args...)     = get_instance(X.d, args...)
 
@@ -93,14 +95,8 @@ hasnans(X::PassiveDimensionalDataset) = hasnans(X.d)
 
 worldtype(X::PassiveDimensionalDataset{N,W}) where {N,W} = W
 
-initialworldset(X::PassiveDimensionalDataset, args...) = _initialworldset(X.d, args...)
-accessibles(X::PassiveDimensionalDataset, args...) = _accessibles(X.d, args...)
-representatives(X::PassiveDimensionalDataset, args...) = _representatives(X.d, args...)
-allworlds(X::PassiveDimensionalDataset, args...) = _allworlds(X.d, args...)
+frame(X::PassiveDimensionalDataset, i_sample) = _frame(X.d, i_sample)
 
 ############################################################################################
 
-_initialworldset(X::UniformDimensionalDataset, i_sample, args...) = initialworldset(FullDimensionalFrame(channel_size(X)), args...)
-_accessibles(X::UniformDimensionalDataset, i_sample, args...) = accessibles(FullDimensionalFrame(channel_size(X)), args...)
-_representatives(X::UniformDimensionalDataset, i_sample, args...) = representatives(FullDimensionalFrame(channel_size(X)), args...)
-_allworlds(X::UniformDimensionalDataset, i_sample, args...) = allworlds(FullDimensionalFrame(channel_size(X)), args...)
+_frame(X::UniformDimensionalDataset, i_sample) = FullDimensionalFrame(channel_size(X))

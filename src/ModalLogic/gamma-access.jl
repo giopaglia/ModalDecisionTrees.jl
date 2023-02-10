@@ -38,15 +38,11 @@ function onestep_accessible_aggregation(
     w::W,
     relation::AbstractRelation,
     feature::AbstractFeature{V},
-    aggregator::Aggregator,
+    aggr::Aggregator,
     i_featsnaggr::Union{Nothing,Integer} = nothing,
     i_relation::Integer = find_relation_id(X, relation),
 ) where {VV,V<:VV,W<:AbstractWorld}
-    if isnothing(i_featsnaggr)
-        compute_modal_gamma(support(X), emd(X), i_sample, w, relation, feature, aggregator, i_relation)
-    else
-        _compute_modal_gamma(support(X), emd(X), i_sample, w, relation, feature, aggregator, i_featsnaggr, i_relation)
-    end
+    compute_modal_gamma(support(X), emd(X), i_sample, w, relation, feature, aggregator, i_featsnaggr, i_relation)
 end
 
 @inline function onestep_accessible_aggregation(
@@ -62,17 +58,70 @@ end
 
 ############################################################################################
 
-function fwd_slice_compute_global_gamma(emd::FeaturedDataset, i_sample, cur_fwd_slice::FWDFeatureSlice, feature, aggr)
+function fwdslice_onestep_accessible_aggregation(emd::FeaturedDataset, fwdslice::FWDFeatureSlice, i_sample, r::_RelationGlob, f, aggr, args...)
     # accessible_worlds = allworlds(emd, i_sample)
-    accessible_worlds = representatives(emd, i_sample, RelationGlob, feature, aggr)
-    threshold = apply_aggregator(cur_fwd_slice, accessible_worlds, aggr)
+    accessible_worlds = representatives(emd, i_sample, r, f, aggr)
+    gamma = apply_aggregator(fwdslice, accessible_worlds, aggr)
 end
 
-function fwd_slice_compute_modal_gamma(emd::FeaturedDataset, i_sample, cur_fwd_slice::FWDFeatureSlice, w, relation, feature, aggr)
-    # accessible_worlds = accessibles(emd, i_sample, w, relation)
-    accessible_worlds = representatives(emd, i_sample, w, relation, feature, aggr)
-    threshold = apply_aggregator(cur_fwd_slice, accessible_worlds, aggr)
+function fwdslice_onestep_accessible_aggregation(emd::FeaturedDataset, fwdslice::FWDFeatureSlice, i_sample, w, r::AbstractRelation, f, aggr, args...)
+    # accessible_worlds = accessibles(emd, i_sample, w, r)
+    accessible_worlds = representatives(emd, i_sample, w, r, f, aggr)
+    gamma = apply_aggregator(fwdslice, accessible_worlds, aggr)
+end
+
+# TODO remove
+# function fwdslice_onestep_accessible_aggregation(emd::SupportedFeaturedDataset, fwdslice::FWDFeatureSlice, i_sample, args...)
+#     fwdslice_onestep_accessible_aggregation(support(X), emd(X), fwdslice, i_sample, args...)
+# end
+
+
+function fwdslice_onestep_accessible_aggregation(X::SupportedFeaturedDataset, fwdslice::FWDFeatureSlice, i_sample, r::_RelationGlob, f, aggr, args...)
+    fwdslice_onestep_accessible_aggregation(support(X), emd(X), fwdslice, i_sample, r, f, aggr, args...)
+end
+
+function fwdslice_onestep_accessible_aggregation(X::SupportedFeaturedDataset, fwdslice::FWDFeatureSlice, i_sample, w, r::AbstractRelation, f, aggr, args...)
+    fwdslice_onestep_accessible_aggregation(support(X), emd(X), fwdslice, i_sample, w, r, f, aggr, args...)
 end
 
 ############################################################################################
 
+function fwdslice_onestep_accessible_aggregation(
+    X::OneStepFeaturedSupportingDataset{V,W},
+    emd::FeaturedDataset{V,W},
+    fwdslice::FWDFeatureSlice,
+    i_sample::Integer,
+    r::_RelationGlob,
+    feature::AbstractFeature,
+    aggr::Aggregator,
+    i_featsnaggr::Integer = find_featsnaggr_id(X, feature, aggr),
+) where {V,W<:AbstractWorld}
+    _fwd_gs = fwd_gs(X)
+    if isnothing(_fwd_gs[i_sample, i_featsnaggr])
+        gamma = fwdslice_onestep_accessible_aggregation(emd, fwdslice, i_sample, RelationGlob, feature, aggr)
+        _fwd_gs[i_sample, i_featsnaggr] = gamma
+    end
+    _fwd_gs[i_sample, i_featsnaggr]
+end
+
+function fwdslice_onestep_accessible_aggregation(
+    X::OneStepFeaturedSupportingDataset{V,W},
+    emd::FeaturedDataset{V,W},
+    fwdslice::FWDFeatureSlice,
+    i_sample::Integer,
+    w::W,
+    r::AbstractRelation,
+    feature::AbstractFeature,
+    aggr::Aggregator,
+    i_featsnaggr = find_featsnaggr_id(X, feature, aggr),
+    i_relation = nothing, # TODO fix
+)::V where {V,W<:AbstractWorld}
+    _fwd_rs = fwd_rs(X)
+    if isnothing(_fwd_rs[i_sample, w, i_featsnaggr, i_relation])
+        gamma = fwdslice_onestep_accessible_aggregation(emd, fwdslice, i_sample, w, r, feature, aggr)
+        _fwd_rs[i_sample, w, i_featsnaggr, i_relation] = gamma
+    end
+    _fwd_rs[i_sample, w, i_featsnaggr, i_relation]
+end
+
+############################################################################################

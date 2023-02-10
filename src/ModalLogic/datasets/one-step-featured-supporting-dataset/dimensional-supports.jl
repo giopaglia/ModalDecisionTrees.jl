@@ -1,4 +1,4 @@
-import Base: size, ndims, getindex
+import Base: size, ndims, getindex, setindex!
 
 ############################################################################################
 ############################################################################################
@@ -10,9 +10,11 @@ abstract type AbstractUniformFullDimensionalRelationalSupport{T,W<:AbstractWorld
 
 # TODO switch from nothing to missing?
 usesmemo(fwd_rs::AbstractUniformFullDimensionalRelationalSupport) = Nothing <: Base.eltype(fwd_rs.d)
-nnothing(fwd_rs::AbstractUniformFullDimensionalRelationalSupport) = count(isnothing, fwd_rs.d)
+capacity(fwd_rs::AbstractUniformFullDimensionalRelationalSupport) =
+    error("Please, provide method capacity(...).")
+nmemoizedvalues(support::AbstractUniformFullDimensionalRelationalSupport) = (capacity(support) - count(isnothing, support.d))
 function nonnothingshare(fwd_rs::AbstractUniformFullDimensionalRelationalSupport)
-    isinf(capacity(fwd_rs)) ? (0/Inf) : (1-(nnothing(fwd_rs)  / capacity(fwd_rs)))
+    (isinf(capacity(fwd_rs)) ? (0/Inf) : nmemoizedvalues(fwd_rs)/capacity(fwd_rs))
 end
 
 ############################################################################################
@@ -187,35 +189,35 @@ end
 
 ############################################################################################
 
-Base.@propagate_inbounds @inline function fwd_rs_set(
+Base.@propagate_inbounds @inline function Base.setindex!(
     support::UniformFullDimensionalRelationalSupport{T,OneWorld},
+    threshold::T,
     i_sample::Integer,
     w::OneWorld,
     i_featsnaggr::Integer,
     i_relation::Integer,
-    threshold::T
 ) where {T}
     support.d[i_sample, i_featsnaggr, i_relation] = threshold
 end
 
-Base.@propagate_inbounds @inline function fwd_rs_set(
+Base.@propagate_inbounds @inline function Base.setindex!(
     support::UniformFullDimensionalRelationalSupport{T,Interval},
+    threshold::T,
     i_sample::Integer,
     w::Interval,
     i_featsnaggr::Integer,
     i_relation::Integer,
-    threshold::T
 ) where {T}
     support.d[w.x, w.y, i_sample, i_featsnaggr, i_relation] = threshold
 end
 
-Base.@propagate_inbounds @inline function fwd_rs_set(
+Base.@propagate_inbounds @inline function Base.setindex!(
     support::UniformFullDimensionalRelationalSupport{T,Interval2D},
+    threshold::T,
     i_sample::Integer,
     w::Interval2D,
     i_featsnaggr::Integer,
     i_relation::Integer,
-    threshold::T
 ) where {T}
     support.d[w.x.x, w.x.y, w.y.x, w.y.y, i_sample, i_featsnaggr, i_relation] = threshold
 end
@@ -278,7 +280,7 @@ end
 # end
 # fwd_rs_init_world_slice(support::OneWorldFWD_RS, i_sample::Integer, i_featsnaggr::Integer, i_relation::Integer) =
 #     nothing
-# Base.@propagate_inbounds @inline fwd_rs_set(support::OneWorldFWD_RS{T}, i_sample::Integer, w::OneWorld, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
+# Base.@propagate_inbounds @inline Base.setindex!(support::OneWorldFWD_RS{T}, threshold::T, i_sample::Integer, w::OneWorld, i_featsnaggr::Integer, i_relation::Integer) where {T} =
 #     support.d[i_sample, i_featsnaggr, i_relation] = threshold
 # function _slice_dataset(support::OneWorldFWD_RS{T}, inds::AbstractVector{<:Integer}, return_view::Val = Val(false)) where {T}
 #     OneWorldFWD_RS{T}(if return_view == Val(true) @view support.d[inds,:,:] else support.d[inds,:,:] end)
@@ -325,7 +327,7 @@ end
 # end
 # fwd_rs_init_world_slice(support::IntervalFWD_RS, i_sample::Integer, i_featsnaggr::Integer, i_relation::Integer) =
 #     nothing
-# Base.@propagate_inbounds @inline fwd_rs_set(support::IntervalFWD_RS{T}, i_sample::Integer, w::Interval, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
+# Base.@propagate_inbounds @inline Base.setindex!(support::IntervalFWD_RS{T}, threshold::T, i_sample::Integer, w::Interval, i_featsnaggr::Integer, i_relation::Integer) where {T} =
 #     support.d[w.x, w.y, i_sample, i_featsnaggr, i_relation] = threshold
 # function _slice_dataset(support::IntervalFWD_RS{T}, inds::AbstractVector{<:Integer}, return_view::Val = Val(false)) where {T}
 #     IntervalFWD_RS{T}(if return_view == Val(true) @view support.d[:,:,inds,:,:] else support.d[:,:,inds,:,:] end)
@@ -365,7 +367,7 @@ end
 # end
 # fwd_rs_init_world_slice(support::Interval2DFWD_RS, i_sample::Integer, i_featsnaggr::Integer, i_relation::Integer) =
 #   nothing
-# Base.@propagate_inbounds @inline fwd_rs_set(support::Interval2DFWD_RS{T}, i_sample::Integer, w::Interval2D, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
+# Base.@propagate_inbounds @inline Base.setindex!(support::Interval2DFWD_RS{T}, threshold::T, i_sample::Integer, w::Interval2D, i_featsnaggr::Integer, i_relation::Integer) where {T} =
 #   support.d[w.x.x, w.x.y, w.y.x, w.y.y, i_sample, i_featsnaggr, i_relation] = threshold
 # function _slice_dataset(support::Interval2DFWD_RS{T}, inds::AbstractVector{<:Integer}, return_view::Val = Val(false)) where {T}
 #   Interval2DFWD_RS{T}(if return_view == Val(true) @view support.d[:,:,:,:,inds,:,:] else support.d[:,:,:,:,inds,:,:] end)
@@ -409,7 +411,7 @@ end
 # end
 # fwd_rs_init_world_slice(support::Interval2DFWD_RS, i_sample::Integer, i_featsnaggr::Integer, i_relation::Integer) =
 #     nothing
-# Base.@propagate_inbounds @inline fwd_rs_set(support::Interval2DFWD_RS{T}, i_sample::Integer, w::Interval2D, i_featsnaggr::Integer, i_relation::Integer, threshold::T) where {T} =
+# Base.@propagate_inbounds @inline Base.setindex!(support::Interval2DFWD_RS{T}, threshold::T, i_sample::Integer, w::Interval2D, i_featsnaggr::Integer, i_relation::Integer) where {T} =
 #     support.d[w.x.x+div((w.x.y-2)*(w.x.y-1),2), w.y.x+div((w.y.y-2)*(w.y.y-1),2), i_sample, i_featsnaggr, i_relation] = threshold
 # function _slice_dataset(support::Interval2DFWD_RS{T}, inds::AbstractVector{<:Integer}, return_view::Val = Val(false)) where {T}
 #     Interval2DFWD_RS{T}(if return_view == Val(true) @view support.d[:,:,inds,:,:] else support.d[:,:,inds,:,:] end)
