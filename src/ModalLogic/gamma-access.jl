@@ -1,103 +1,74 @@
 
-Base.@propagate_inbounds @inline function get_modal_gamma(emd::ActiveModalDataset{T,W}, i_sample::Integer, w::W, r::AbstractRelation, f::AbstractFeature, test_operator::TestOperatorFun) where {T,W<:AbstractWorld}
-    aggr = existential_aggregator(test_operator)
-    _get_modal_gamma(emd, i_sample, w, r, f, aggr)
+@inline function onestep_accessible_aggregation(X::PassiveDimensionalDataset{N,W}, i_sample::Integer, w::W, r::AbstractRelation, f::AbstractFeature{V}, aggr::Aggregator, args...) where {N,V,W<:AbstractWorld}
+    vs = [X[i_sample, w2, f] for w2 in representatives(X, i_sample, w, r, f, aggr)]
+    return (length(vs) == 0 ? aggregator_bottom(aggr, V) : aggr(vs))
+end
+
+@inline function onestep_accessible_aggregation(X::PassiveDimensionalDataset{N,W}, i_sample::Integer, r::_RelationGlob, f::AbstractFeature{V}, aggr::Aggregator, args...) where {N,V,W<:AbstractWorld}
+    vs = [X[i_sample, w2, f] for w2 in representatives(X, i_sample, r, f, aggr)]
+    return (length(vs) == 0 ? aggregator_bottom(aggr, V) : aggr(vs))
 end
 
 ############################################################################################
 
-
-Base.@propagate_inbounds @inline function _get_modal_gamma(X::PassiveDimensionalDataset{T,N}, i_sample::Integer, w::AbstractWorld, r::AbstractRelation, f::AbstractFeature, aggr::Aggregator, args...) where {T,N}
-    aggr([
-        aggregator_bottom(aggr, T),
-        [X[i_sample, w2, f] for w2 in representatives(X, i_sample, w, r, f, aggr)]...
-    ])
+@inline function onestep_accessible_aggregation(X::DimensionalFeaturedDataset{VV,N,W}, i_sample::Integer, w::W, r::AbstractRelation, f::AbstractFeature{V}, aggr::Aggregator, args...) where {VV,N,V<:VV,W<:AbstractWorld}
+    onestep_accessible_aggregation(domain(X), i_sample, w, r, f, aggr, args...)
 end
-
-Base.@propagate_inbounds @inline function _get_modal_gamma(X::PassiveDimensionalDataset{T,N}, i_sample::Integer, w::AbstractWorld, r::_RelationGlob, f::AbstractFeature, aggr::Aggregator, args...) where {T,N}
-    aggr([
-        aggregator_bottom(aggr, T),
-        [X[i_sample, w2, f] for w2 in representatives(X, i_sample, w, r, f, aggr)]...
-    ])
-end
-
-Base.@propagate_inbounds @inline function _get_global_gamma(X::PassiveDimensionalDataset{T,N}, i_sample::Integer, f::AbstractFeature, aggr::Aggregator) where {T,N}
-    aggr([
-        aggregator_bottom(aggr, T),
-        [X[i_sample, w2, f] for w2 in representatives(X, i_sample, RelationGlob, f, aggr)]...
-    ])
+@inline function onestep_accessible_aggregation(X::DimensionalFeaturedDataset{VV,N,W}, i_sample::Integer, r::_RelationGlob, f::AbstractFeature{V}, aggr::Aggregator, args...) where {VV,N,V<:VV,W<:AbstractWorld}
+    onestep_accessible_aggregation(domain(X), i_sample, r, f, aggr, args...)
 end
 
 ############################################################################################
 
-Base.@propagate_inbounds @inline _get_modal_gamma(imd::InterpretedModalDataset, args...) = _get_modal_gamma(domain(imd), args...)
-Base.@propagate_inbounds @inline _get_global_gamma(imd::InterpretedModalDataset, args...) = _get_global_gamma(domain(imd), args...)
-
-############################################################################################
-
-Base.@propagate_inbounds @inline function _get_modal_gamma(X::ExplicitModalDataset{T,W}, i_sample::Integer, w::W, r::AbstractRelation, f::AbstractFeature, aggr::Aggregator, args...) where {T,W<:AbstractWorld}
-    aggr([
-        aggregator_bottom(aggr, T),
-        [X[i_sample, w2, f] for w2 in representatives(X, i_sample, w, r, f, aggr)]...
-    ])
+@inline function onestep_accessible_aggregation(X::FeaturedDataset{VV,W}, i_sample::Integer, w::W, r::AbstractRelation, f::AbstractFeature{V}, aggr::Aggregator, args...) where {VV,V<:VV,W<:AbstractWorld}
+    vs = [X[i_sample, w2, f] for w2 in representatives(X, i_sample, w, r, f, aggr)]
+    return (length(vs) == 0 ? aggregator_bottom(aggr, V) : aggr(vs))
 end
 
-# TODO simply remove?
-Base.@propagate_inbounds @inline function _get_modal_gamma(X::ExplicitModalDataset{T,W}, i_sample::Integer, w::W, r::_RelationGlob, f::AbstractFeature, aggr::Aggregator, args...) where {T,W<:AbstractWorld}
-    aggr([
-        aggregator_bottom(aggr, T),
-        [X[i_sample, w2, f] for w2 in representatives(X, i_sample, RelationGlob, f, aggr)]...
-    ])
-end
-
-Base.@propagate_inbounds @inline function _get_global_gamma(X::ExplicitModalDataset{T,W}, i_sample::Integer, f::AbstractFeature, aggr::Aggregator) where {T,W<:AbstractWorld}
-    aggr([
-        aggregator_bottom(aggr, T),
-        [X[i_sample, w2, f] for w2 in representatives(X, i_sample, RelationGlob, f, aggr)]...
-    ])
+@inline function onestep_accessible_aggregation(X::FeaturedDataset{VV,W}, i_sample::Integer, r::_RelationGlob, f::AbstractFeature{V}, aggr::Aggregator, args...) where {VV,V<:VV,W<:AbstractWorld}
+    vs = [X[i_sample, w2, f] for w2 in representatives(X, i_sample, r, f, aggr)]
+    return (length(vs) == 0 ? aggregator_bottom(aggr, V) : aggr(vs))
 end
 
 ############################################################################################
 
-function _get_global_gamma(
-    X::ExplicitModalDatasetS{T,W},
-    i_sample::Integer,
-    feature::AbstractFeature,
-    aggregator::Aggregator
-) where {T,W<:AbstractWorld}
-    compute_global_gamma(support(X), emd(X), i_sample, feature, aggregator)
-end
-
-function _get_modal_gamma(
-    X::ExplicitModalDatasetS{T,W},
+function onestep_accessible_aggregation(
+    X::SupportedFeaturedDataset{VV,W},
     i_sample::Integer,
     w::W,
     relation::AbstractRelation,
-    feature::AbstractFeature,
+    feature::AbstractFeature{V},
     aggregator::Aggregator,
     i_featsnaggr::Union{Nothing,Integer} = nothing,
     i_relation::Integer = find_relation_id(X, relation),
-) where {T,W<:AbstractWorld}
-    if relation isa _RelationGlob
-        _get_global_gamma(X, i_sample, feature, aggregator)
+) where {VV,V<:VV,W<:AbstractWorld}
+    if isnothing(i_featsnaggr)
+        compute_modal_gamma(support(X), emd(X), i_sample, w, relation, feature, aggregator, i_relation)
     else
-        if isnothing(i_featsnaggr)
-            compute_modal_gamma(support(X), emd(X), i_sample, w, relation, feature, aggregator, i_relation)
-        else
-            _compute_modal_gamma(support(X), emd(X), i_sample, w, relation, feature, aggregator, i_featsnaggr, i_relation)
-        end
+        _compute_modal_gamma(support(X), emd(X), i_sample, w, relation, feature, aggregator, i_featsnaggr, i_relation)
     end
+end
+
+@inline function onestep_accessible_aggregation(
+    X::SupportedFeaturedDataset{VV,W},
+    i_sample::Integer,
+    r::_RelationGlob,
+    f::AbstractFeature{V},
+    aggr::Aggregator,
+    args...
+) where {VV,V<:VV,W<:AbstractWorld}
+    compute_global_gamma(support(X), emd(X), i_sample, f, aggr, args...)
 end
 
 ############################################################################################
 
-function fwd_slice_compute_global_gamma(emd::ExplicitModalDataset, i_sample, cur_fwd_slice::FWDFeatureSlice, feature, aggr)
+function fwd_slice_compute_global_gamma(emd::FeaturedDataset, i_sample, cur_fwd_slice::FWDFeatureSlice, feature, aggr)
     # accessible_worlds = allworlds(emd, i_sample)
     accessible_worlds = representatives(emd, i_sample, RelationGlob, feature, aggr)
     threshold = apply_aggregator(cur_fwd_slice, accessible_worlds, aggr)
 end
 
-function fwd_slice_compute_modal_gamma(emd::ExplicitModalDataset, i_sample, cur_fwd_slice::FWDFeatureSlice, w, relation, feature, aggr)
+function fwd_slice_compute_modal_gamma(emd::FeaturedDataset, i_sample, cur_fwd_slice::FWDFeatureSlice, w, relation, feature, aggr)
     # accessible_worlds = accessibles(emd, i_sample, w, relation)
     accessible_worlds = representatives(emd, i_sample, w, relation, feature, aggr)
     threshold = apply_aggregator(cur_fwd_slice, accessible_worlds, aggr)

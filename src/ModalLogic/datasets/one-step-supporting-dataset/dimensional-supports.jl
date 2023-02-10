@@ -1,6 +1,5 @@
 import Base: size, ndims, getindex
 
-
 ############################################################################################
 ############################################################################################
 # world-specific FWD supports implementations
@@ -10,7 +9,7 @@ import Base: size, ndims, getindex
 abstract type AbstractUniformFullDimensionalRelationalSupport{T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}} <: AbstractRelationalSupport{T,W,FR} end
 
 # TODO switch from nothing to missing?
-usesmemo(fwd_rs::AbstractUniformFullDimensionalRelationalSupport) = Nothing <: eltype(fwd_rs.d)
+usesmemo(fwd_rs::AbstractUniformFullDimensionalRelationalSupport) = Nothing <: Base.eltype(fwd_rs.d)
 nnothing(fwd_rs::AbstractUniformFullDimensionalRelationalSupport) = count(isnothing, fwd_rs.d)
 function nonnothingshare(fwd_rs::AbstractUniformFullDimensionalRelationalSupport)
     isinf(capacity(fwd_rs)) ? (0/Inf) : (1-(nnothing(fwd_rs)  / capacity(fwd_rs)))
@@ -26,9 +25,76 @@ struct UniformFullDimensionalRelationalSupport{
     T,
     W<:AbstractWorld,
     N,
-    D<:Array{TT} where TT<:Union{T,Nothing},
+    D<:AbstractArray{TT} where TT<:Union{T,Nothing},
 } <: AbstractUniformFullDimensionalRelationalSupport{T,W,FullDimensionalFrame{N,W,Bool}}
+    
     d :: D
+
+    function UniformFullDimensionalRelationalSupport{T,W,N,D}(d::D) where {T,W<:AbstractWorld,N,D<:AbstractArray{TT} where TT<:Union{T,Nothing}}
+        new{T,W,N,D}(d)
+    end
+
+    function UniformFullDimensionalRelationalSupport{T,W,N}(d::D) where {T,W<:AbstractWorld,N,D<:AbstractArray{TT} where TT<:Union{T,Nothing}}
+        UniformFullDimensionalRelationalSupport{T,W,N,D}(d)
+    end
+
+    function UniformFullDimensionalRelationalSupport(
+        fwd::UniformFullDimensionalFWD{T,W,0},
+        nfeatsnaggrs::Integer,
+        nrelations::Integer,
+        perform_initialization::Bool = false,
+    ) where {T,W<:OneWorld}
+        # error("TODO actually, using a relational or a global support with a OneWorld frame makes no sense. Figure out what to do here!")
+        _fwd_rs = begin
+            if perform_initialization
+                _fwd_rs = Array{Union{T,Nothing}, 3}(undef, nsamples(fwd), nfeatsnaggrs, nrelations)
+                fill!(_fwd_rs, nothing)
+            else
+                Array{T,3}(undef, nsamples(fwd), nfeatsnaggrs, nrelations)
+            end
+        end
+        UniformFullDimensionalRelationalSupport{T,W,0,typeof(_fwd_rs)}(_fwd_rs)
+    end
+    function UniformFullDimensionalRelationalSupport(
+        fwd::UniformFullDimensionalFWD{T,W,1},
+        nfeatsnaggrs::Integer,
+        nrelations::Integer,
+        perform_initialization::Bool = false,
+    ) where {T,W<:Interval}
+        _fwd_rs = begin
+            if perform_initialization
+                _fwd_rs = Array{Union{T,Nothing}, 5}(undef, size(fwd, 1), size(fwd, 2), nsamples(fwd), nfeatsnaggrs, nrelations)
+                fill!(_fwd_rs, nothing)
+            else
+                Array{T,5}(undef, size(fwd, 1), size(fwd, 2), nsamples(fwd), nfeatsnaggrs, nrelations)
+            end
+        end
+        UniformFullDimensionalRelationalSupport{T,W,1,typeof(_fwd_rs)}(_fwd_rs)
+    end
+    function UniformFullDimensionalRelationalSupport(
+        fwd::UniformFullDimensionalFWD{T,W,2},
+        nfeatsnaggrs::Integer,
+        nrelations::Integer,
+        perform_initialization::Bool = false,
+    ) where {T,W<:Interval2D}
+        _fwd_rs = begin
+            if perform_initialization
+                _fwd_rs = Array{Union{T,Nothing}, 5}(undef, size(fwd, 1), size(fwd, 2), size(fwd, 3), size(fwd, 4), nsamples(fwd), nfeatsnaggrs, nrelations)
+                fill!(_fwd_rs, nothing)
+            else
+                Array{T,5}(undef, size(fwd, 1), size(fwd, 2), size(fwd, 3), size(fwd, 4), nsamples(fwd), nfeatsnaggrs, nrelations)
+            end
+        end
+        UniformFullDimensionalRelationalSupport{T,W,2,typeof(_fwd_rs)}(_fwd_rs)
+    end
+
+    function UniformFullDimensionalRelationalSupport(
+        emd::FeaturedDataset,
+        perform_initialization::Bool = false,
+    )
+        UniformFullDimensionalRelationalSupport(fwd(emd), nfeatsnaggrs(emd), nrelations(emd), perform_initialization)
+    end
+
 end
 
 Base.size(support::UniformFullDimensionalRelationalSupport, args...) = size(support.d, args...)
@@ -48,7 +114,7 @@ function capacity(support::UniformFullDimensionalRelationalSupport{T,Interval}) 
         nsamples(support),
         nfeatsnaggrs(support),
         nrelations(support),
-        div(size(support.d, 1)*(size(support.d, 1)+1),2),
+        div(size(support, 1)*(size(support, 2)),2),
     ])
 end
 function capacity(support::UniformFullDimensionalRelationalSupport{T,Interval2D}) where {T}
@@ -56,8 +122,8 @@ function capacity(support::UniformFullDimensionalRelationalSupport{T,Interval2D}
         nsamples(support),
         nfeatsnaggrs(support),
         nrelations(support),
-        div(size(support.d, 1)*(size(support.d, 1)+1),2),
-        div(size(support.d, 3)*(size(support.d, 3)+1),2),
+        div(size(support, 1)*(size(support, 2)),2),
+        div(size(support, 3)*(size(support, 4)),2),
     ])
 end
 
@@ -68,12 +134,12 @@ function hasnans(support::UniformFullDimensionalRelationalSupport{T,OneWorld}) w
 end
 function hasnans(support::UniformFullDimensionalRelationalSupport{T,Interval}) where {T}
     any([hasnans(support.d[x,y,:,:,:])
-        for x in 1:size(support.d, 1) for y in (x+1):size(support.d, 2)])
+        for x in 1:size(support, 1) for y in (x+1):size(support, 2)])
 end
 function hasnans(support::UniformFullDimensionalRelationalSupport{T,Interval2D}) where {T}
     any([hasnans(support.d[xx,xy,yx,yy,:,:,:])
-        for xx in 1:size(support.d, 1) for xy in (xx+1):size(support.d, 2)
-        for yx in 1:size(support.d, 3) for yy in (yx+1):size(support.d, 4)])
+        for xx in 1:size(support, 1) for xy in (xx+1):size(support, 2)
+        for yx in 1:size(support, 3) for yy in (yx+1):size(support, 4)])
 end
 
 ############################################################################################
@@ -88,68 +154,10 @@ function fwd_rs_init_world_slice(
 end
 
 ############################################################################################
-
-function fwd_rs_init(
-    emd::ExplicitModalDataset,
-    perform_initialization::Bool
-)
-    nfeatsnaggrs = sum(length.(grouped_featsnaggrs(emd)))
-    fwd_rs_init(fwd(emd), nfeatsnaggrs, nrelations(emd), perform_initialization)
-end
-
-function fwd_rs_init(
-    fwd::UniformFullDimensionalFWD{T,0,W},
-    nfeatsnaggrs::Integer,
-    nrelations::Integer,
-    perform_initialization::Bool
-) where {T,W<:OneWorld}
-    # error("TODO actually, using a relational or a global support with a OneWorld frame makes no sense. Figure out what to do here!")
-    _fwd_rs = begin
-        if perform_initialization
-            _fwd_rs = Array{Union{T,Nothing}, 3}(undef, nsamples(fwd), nfeatsnaggrs, nrelations)
-            fill!(_fwd_rs, nothing)
-        else
-            Array{T,3}(undef, nsamples(fwd), nfeatsnaggrs, nrelations)
-        end
-    end
-    UniformFullDimensionalRelationalSupport{T,W,0,typeof(_fwd_rs)}(_fwd_rs)
-end
-function fwd_rs_init(
-    fwd::UniformFullDimensionalFWD{T,1,W},
-    nfeatsnaggrs::Integer,
-    nrelations::Integer,
-    perform_initialization::Bool
-) where {T,W<:Interval}
-    _fwd_rs = begin
-        if perform_initialization
-            _fwd_rs = Array{Union{T,Nothing}, 5}(undef, size(fwd, 1), size(fwd, 2), nsamples(fwd), nfeatsnaggrs, nrelations)
-            fill!(_fwd_rs, nothing)
-        else
-            Array{T,5}(undef, size(fwd, 1), size(fwd, 2), nsamples(fwd), nfeatsnaggrs, nrelations)
-        end
-    end
-    UniformFullDimensionalRelationalSupport{T,W,1,typeof(_fwd_rs)}(_fwd_rs)
-end
-function fwd_rs_init(
-    fwd::UniformFullDimensionalFWD{T,2,W},
-    nfeatsnaggrs::Integer,
-    nrelations::Integer,
-    perform_initialization::Bool
-) where {T,W<:Interval2D}
-    _fwd_rs = begin
-        if perform_initialization
-            _fwd_rs = Array{Union{T,Nothing}, 5}(undef, size(fwd, 1), size(fwd, 2), size(fwd, 3), size(fwd, 4), nsamples(fwd), nfeatsnaggrs, nrelations)
-            fill!(_fwd_rs, nothing)
-        else
-            Array{T,5}(undef, size(fwd, 1), size(fwd, 2), size(fwd, 3), size(fwd, 4), nsamples(fwd), nfeatsnaggrs, nrelations)
-        end
-    end
-    UniformFullDimensionalRelationalSupport{T,W,2,typeof(_fwd_rs)}(_fwd_rs)
-end
-
+############################################################################################
 ############################################################################################
 
-Base.@propagate_inbounds @inline function Base.getindex(
+@inline function Base.getindex(
     support      :: UniformFullDimensionalRelationalSupport{T,W},
     i_sample     :: Integer,
     w            :: W,
@@ -158,7 +166,7 @@ Base.@propagate_inbounds @inline function Base.getindex(
 ) where {T,W<:OneWorld}
     support.d[i_sample, i_featsnaggr, i_relation]
 end
-Base.@propagate_inbounds @inline function Base.getindex(
+@inline function Base.getindex(
     support      :: UniformFullDimensionalRelationalSupport{T,W},
     i_sample     :: Integer,
     w            :: W,
@@ -167,7 +175,7 @@ Base.@propagate_inbounds @inline function Base.getindex(
 ) where {T,W<:Interval}
     support.d[w.x, w.y, i_sample, i_featsnaggr, i_relation]
 end
-Base.@propagate_inbounds @inline function Base.getindex(
+@inline function Base.getindex(
     support      :: UniformFullDimensionalRelationalSupport{T,W},
     i_sample     :: Integer,
     w            :: W,
@@ -215,25 +223,25 @@ end
 ############################################################################################
 
 function _slice_dataset(
-    support::RS,
+    support::UniformFullDimensionalRelationalSupport{T,W,N},
     inds::AbstractVector{<:Integer},
     return_view::Val = Val(false)
-) where {T,RS<:UniformFullDimensionalRelationalSupport{T,OneWorld}}
-    RS(if return_view == Val(true) @view support.d[inds,:,:] else support.d[inds,:,:] end)
+) where {T,W<:OneWorld,N}
+    UniformFullDimensionalRelationalSupport{T,W,N}(if return_view == Val(true) @view support.d[inds,:,:] else support.d[inds,:,:] end)
 end
 function _slice_dataset(
-    support::RS,
+    support::UniformFullDimensionalRelationalSupport{T,W,N},
     inds::AbstractVector{<:Integer},
     return_view::Val = Val(false)
-) where {T,RS<:UniformFullDimensionalRelationalSupport{T,Interval}}
-    RS(if return_view == Val(true) @view support.d[:,:,inds,:,:] else support.d[:,:,inds,:,:] end)
+) where {T,W<:Interval,N}
+    UniformFullDimensionalRelationalSupport{T,W,N}(if return_view == Val(true) @view support.d[:,:,inds,:,:] else support.d[:,:,inds,:,:] end)
 end
 function _slice_dataset(
-    support::RS,
+    support::UniformFullDimensionalRelationalSupport{T,W,N},
     inds::AbstractVector{<:Integer},
     return_view::Val = Val(false)
-) where {T,RS<:UniformFullDimensionalRelationalSupport{T,Interval2D}}
-    RS(if return_view == Val(true) @view support.d[:,:,:,:,inds,:,:] else support.d[:,:,:,:,inds,:,:] end)
+) where {T,W<:Interval2D,N}
+    UniformFullDimensionalRelationalSupport{T,W,N}(if return_view == Val(true) @view support.d[:,:,:,:,inds,:,:] else support.d[:,:,:,:,inds,:,:] end)
 end
 
 ############################################################################################
@@ -249,7 +257,7 @@ end
 # nrelations(support::OneWorldFWD_RS)   = size(support, 3)
 # capacity(support::OneWorldFWD_RS)     = prod(size(support.d))
 
-# Base.@propagate_inbounds @inline Base.getindex(
+# @inline Base.getindex(
 #     support      :: OneWorldFWD_RS{T},
 #     i_sample     :: Integer,
 #     w            :: OneWorld,
@@ -259,7 +267,7 @@ end
 
 # hasnans(support::OneWorldFWD_RS) = any(_isnan.(support.d))
 
-# function fwd_rs_init(emd::ExplicitModalDataset{T,OneWorld}, nfeatsnaggrs::Integer, nrelations::Integer, perform_initialization::Bool) where {T}
+# function fwd_rs_init(emd::FeaturedDataset{T,OneWorld}, nfeatsnaggrs::Integer, nrelations::Integer, perform_initialization::Bool) where {T}
 #     if perform_initialization
 #         _fwd_rs = fill!(Array{Union{T,Nothing}, 3}(undef, nsamples(emd), nfeatsnaggrs, nrelations), nothing)
 #         OneWorldFWD_RS{Union{T,Nothing}}(_fwd_rs)
@@ -291,7 +299,7 @@ end
 # capacity(support::IntervalFWD_RS)     =
 #     prod([nsamples(support), nfeatsnaggrs(support), nrelations(support), div(size(support.d, 1)*(size(support.d, 1)+1),2)])
 
-# Base.@propagate_inbounds @inline Base.getindex(
+# @inline Base.getindex(
 #     support      :: IntervalFWD_RS{T},
 #     i_sample     :: Integer,
 #     w            :: Interval,
@@ -305,8 +313,7 @@ end
 #     any([hasnans(support.d[x,y,:,:,:]) for x in 1:size(support.d, 1) for y in (x+1):size(support.d, 2)])
 # end
 
-# # Note: assuming default_fwd_type(::Type{Interval}) = IntervalFWD
-# function fwd_rs_init(emd::ExplicitModalDataset{T,Interval}, nfeatsnaggrs::Integer, nrelations::Integer, perform_initialization::Bool) where {T}
+# function fwd_rs_init(emd::FeaturedDataset{T,Interval}, nfeatsnaggrs::Integer, nrelations::Integer, perform_initialization::Bool) where {T}
 #     _fwd = emd.fwd
 #     if perform_initialization
 #         _fwd_rs = fill!(Array{Union{T,Nothing}, 5}(undef, size(_fwd, 1), size(_fwd, 2), nsamples(emd), nfeatsnaggrs, nrelations), nothing)
@@ -335,7 +342,7 @@ end
 # nsamples(support::Interval2DFWD_RS)     = size(support, 5)
 # nfeatsnaggrs(support::Interval2DFWD_RS) = size(support, 6)
 # nrelations(support::Interval2DFWD_RS)   = size(support, 7)
-# Base.@propagate_inbounds @inline Base.getindex(
+# @inline Base.getindex(
 #   support      :: Interval2DFWD_RS{T},
 #   i_sample     :: Integer,
 #   w            :: Interval2D,
@@ -346,7 +353,7 @@ end
 # TODO... hasnans(support::Interval2DFWD_RS) = any(_isnan.(support.d))
 # TODO...? hasnans(support::Interval2DFWD_RS) = any([hasnans(support.d[xx,xy,yx,yy,:,:,:]) for xx in 1:size(support.d, 1) for xy in (xx+1):size(support.d, 2) for yx in 1:size(support.d, 3) for yy in (yx+1):size(support.d, 4)])
 
-# fwd_rs_init(emd::ExplicitModalDataset{T,Interval2D}, nfeatsnaggrs::Integer, nrelations::Integer, perform_initialization::Bool) where {T} = begin
+# fwd_rs_init(emd::FeaturedDataset{T,Interval2D}, nfeatsnaggrs::Integer, nrelations::Integer, perform_initialization::Bool) where {T} = begin
 #   _fwd = emd.fwd
 #   if perform_initialization
 #       _fwd_rs = fill!(Array{Union{T,Nothing}, 7}(undef, size(_fwd, 1), size(_fwd, 2), size(_fwd, 3), size(_fwd, 4), nsamples(emd), nfeatsnaggrs, nrelations), nothing)
@@ -380,7 +387,7 @@ end
 # nrelations(support::Interval2DFWD_RS)   = size(support, 5)
 # capacity(support::Interval2DFWD_RS)     = prod(size(support.d))
 
-# Base.@propagate_inbounds @inline Base.getindex(
+# @inline Base.getindex(
 #     support      :: Interval2DFWD_RS{T},
 #     i_sample     :: Integer,
 #     w            :: Interval2D,
@@ -390,7 +397,7 @@ end
 
 # hasnans(support::Interval2DFWD_RS) = any(_isnan.(support.d))
 
-# function fwd_rs_init(emd::ExplicitModalDataset{T,Interval2D}, nfeatsnaggrs::Integer, nrelations::Integer, perform_initialization::Bool) where {T}
+# function fwd_rs_init(emd::FeaturedDataset{T,Interval2D}, nfeatsnaggrs::Integer, nrelations::Integer, perform_initialization::Bool) where {T}
 #     _fwd = emd.fwd
 #     if perform_initialization
 #         _fwd_rs = fill!(Array{Union{T,Nothing}, 5}(undef, div(size(_fwd, 1)*size(_fwd, 2),2), div(size(_fwd, 3)*size(_fwd, 4),2), nsamples(emd), nfeatsnaggrs, nrelations), nothing)

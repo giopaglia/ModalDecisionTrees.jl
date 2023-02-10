@@ -78,9 +78,9 @@ isminifiable(::MultiFrameModalDataset) = true
 function minify(Xs::MultiFrameModalDataset)
     if !any(map(isminifiable, frames(Xs)))
         if !all(map(isminifiable, frames(Xs)))
-            @error "Cannot perform minification with frames of types $(typeof.(frames(Xs))). Please use a minifiable format (e.g., ExplicitModalDatasetS)."
+            @error "Cannot perform minification with frames of types $(typeof.(frames(Xs))). Please use a minifiable format (e.g., SupportedFeaturedDataset)."
         else
-            @warn "Cannot perform minification on some of the frames provided. Please use a minifiable format (e.g., ExplicitModalDatasetS) ($(typeof.(frames(Xs))) were used instead)."
+            @warn "Cannot perform minification on some of the frames provided. Please use a minifiable format (e.g., SupportedFeaturedDataset) ($(typeof.(frames(Xs))) were used instead)."
         end
     end
     Xs, backmap = zip([!isminifiable(X) ? minify(X) : (X, identity) for X in frames(Xs)]...)

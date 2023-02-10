@@ -55,10 +55,10 @@ export nfeatures, nrelations,
        GenericModalDataset,
        ActiveMultiFrameModalDataset,
        MultiFrameModalDataset,
-       ActiveModalDataset,
-       InterpretedModalDataset,
-       ExplicitModalDataset,
-       ExplicitModalDatasetS
+       ActiveFeaturedDataset,
+       DimensionalFeaturedDataset,
+       FeaturedDataset,
+       SupportedFeaturedDataset
 
 # Concrete type for ontologies
 include("ontology.jl")
@@ -79,7 +79,7 @@ include("multi-frame-dataset.jl")
 # TODO figure out which convert function works best: convert(::Type{<:MultiFrameModalDataset{T}}, X::MD) where {T,MD<:AbstractConditionalDataset{T}} = MultiFrameModalDataset{MD}([X])
 # convert(::Type{<:MultiFrameModalDataset}, X::AbstractConditionalDataset) = MultiFrameModalDataset([X])
 # 
-const ActiveMultiFrameModalDataset{T} = MultiFrameModalDataset{<:ActiveModalDataset{<:T}}
+const ActiveMultiFrameModalDataset{T} = MultiFrameModalDataset{<:ActiveFeaturedDataset{<:T}}
 #
 const GenericModalDataset = Union{AbstractDimensionalDataset,AbstractConditionalDataset,MultiFrameModalDataset}
 # 

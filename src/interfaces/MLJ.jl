@@ -245,7 +245,7 @@ function DataFrame2MultiFrameModalDataset(
 
         ontology = MDT.get_interval_ontology(channel_dim, _relations)
         # println(eltype(_X))
-        __X = MDT.InterpretedModalDataset(_X, ontology, mixed_attributes)
+        __X = MDT.DimensionalFeaturedDataset{eltype(_X)}(_X, ontology, mixed_attributes)
         # println(MDT.display_structure(__X))
 
         (if mode == :implicit
@@ -257,12 +257,12 @@ function DataFrame2MultiFrameModalDataset(
                 WorldType != MDT.OneWorld && (
                     (allow_global_splits || _init_conditions == MDT.start_without_world)
                 )
-            MDT.ExplicitModalDatasetS(__X; use_memoization = true, compute_relation_glob = compute_relation_glob)
+            MDT.SupportedFeaturedDataset(__X; use_memoization = true, compute_relation_glob = compute_relation_glob)
         end, _init_conditions)
     end for (i_frame, frame) in enumerate(frame_grouping)]
     Xs, init_conditions = zip(Xs_ic...)
     Xs, init_conditions = collect(Xs), collect(init_conditions)
-    Xs = MDT.MultiFrameModalDataset{MDT.ModalLogic.ActiveModalDataset}(Xs)
+    Xs = MDT.MultiFrameModalDataset{MDT.ModalLogic.ActiveFeaturedDataset}(Xs)
     # println(MDT.display_structure(Xs))
     Xs, init_conditions
 end

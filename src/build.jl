@@ -7,15 +7,15 @@ include("fit_tree.jl")
 ################################################################################
 
 # # Build models on (multi-dimensional) arrays
-function build_stump(X :: ActiveModalDataset, args...; kwargs...)
+function build_stump(X :: ActiveFeaturedDataset, args...; kwargs...)
     build_stump(ActiveMultiFrameModalDataset(X), args...; kwargs...)
 end
 
-function build_tree(X :: ActiveModalDataset, args...; kwargs...)
+function build_tree(X :: ActiveFeaturedDataset, args...; kwargs...)
     build_tree(ActiveMultiFrameModalDataset(X), args...; kwargs...)
 end
 
-function build_forest(X :: ActiveModalDataset, args...; kwargs...)
+function build_forest(X :: ActiveFeaturedDataset, args...; kwargs...)
     build_forest(ActiveMultiFrameModalDataset(X), args...; kwargs...)
 end
 
@@ -93,7 +93,7 @@ function build_tree(
     @assert max_depth > 0
 
     # if any(map(f->f isa AbstractDimensionalDataset, frames(X)))
-    #     @error "Cannot learn from AbstractDimensionalDataset! Please use InterpretedModalDataset, ExplicitModalDataset or ExplicitModalDatasetS."
+    #     @error "Cannot learn from AbstractDimensionalDataset! Please use DimensionalFeaturedDataset, FeaturedDataset or SupportedFeaturedDataset."
     # end
 
     # TODO figure out what to do here. Maybe it can be helpful to make rng either an rng or a seed, and then mk_rng transforms it into an rng
@@ -184,8 +184,8 @@ function build_forest(
         throw_n_log("partial_sampling must be in the range (0,1]")
     end
     
-    if any(map(f->f isa ExplicitModalDataset, frames(X)))
-        @warn "Warning! Consider using the optimized structure ExplicitModalDatasetS, instead of ExplicitModalDataset."
+    if any(map(f->f isa FeaturedDataset, frames(X)))
+        @warn "Warning! Consider using the optimized structure SupportedFeaturedDataset, instead of FeaturedDataset."
     end
 
     tot_samples = nsamples(X)

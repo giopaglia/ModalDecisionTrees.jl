@@ -6,8 +6,9 @@ using SoleModels: evaluate_thresh_decision, existential_aggregator, aggregator_b
 using SoleLogics: TruthValue
 
 import SoleData: get_instance, instance, max_channel_size, channel_size, nattributes, nsamples, slice_dataset, _slice_dataset
+import SoleData: dimensionality
 
-import SoleModels: featvaltype
+import Base: eltype
 
 ############################################################################################
 
@@ -75,25 +76,28 @@ end
 #  etc. While learning a model can be done only with active modal datasets, testing a model
 #  can be done with both active and passive modal datasets.
 # 
-abstract type ActiveModalDataset{T<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},U,FT<:AbstractFeature{U}} <: AbstractConditionalDataset{W,FeatCondition{U},Bool,FR} end
+abstract type ActiveFeaturedDataset{V<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},FT<:AbstractFeature{V}} <: AbstractConditionalDataset{W,AbstractCondition,Bool,FR} end
 
-featvaltype(::Type{<:ActiveModalDataset{T,W,FR,U,FT}}) where {T,W,FR,U,FT} = U
-featvaltype(d::ActiveModalDataset) = featvaltype(typeof(d))
+import SoleModels: featvaltype
 
-featuretype(::Type{<:ActiveModalDataset{T,W,FR,U,FT}}) where {T,W,FR,U,FT} = FT
-featuretype(d::ActiveModalDataset) = featuretype(typeof(d))
+featvaltype(::Type{<:ActiveFeaturedDataset{V}}) where {V} = V
+featvaltype(d::ActiveFeaturedDataset) = featvaltype(typeof(d))
 
-nsamples(X::ActiveModalDataset) = error("Please, provide method nsamples(::$(typeof(X))).")
-Base.length(X::ActiveModalDataset) = nsamples(X)
-Base.iterate(X::ActiveModalDataset, state=1) = state > nsamples(X) ? nothing : (get_instance(X, state), state+1)
+featuretype(::Type{<:ActiveFeaturedDataset{V,W,FR,FT}}) where {V,W,FR,FT} = FT
+featuretype(d::ActiveFeaturedDataset) = featuretype(typeof(d))
 
-# By default an active modal dataset cannot be miniaturized
-isminifiable(::ActiveModalDataset) = false
+nsamples(X::ActiveFeaturedDataset) = error("Please, provide method nsamples(::$(typeof(X))).")
+Base.length(X::ActiveFeaturedDataset) = nsamples(X)
+Base.iterate(X::ActiveFeaturedDataset, state=1) = state > nsamples(X) ? nothing : (get_instance(X, state), state+1)
+
+# By default an active modal dataset cannot be minified
+isminifiable(::ActiveFeaturedDataset) = false
 
 include("passive-dimensional-dataset.jl")
-include("interpreted-modal-dataset.jl")
-include("explicit-modal-dataset.jl")
-include("explicit-modal-dataset-with-supports.jl")
+
+include("dimensional-featured-dataset.jl")
+include("featured-dataset.jl")
+include("supported-featured-dataset.jl")
 
 include("one-step-supporting-dataset/main.jl")
 

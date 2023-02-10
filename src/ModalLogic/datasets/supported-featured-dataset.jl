@@ -13,9 +13,9 @@
 #  the fly and store it for later calls).
 # 
 # We define an abstract type for explicit modal dataset with support lookup tables
-# remove: abstract type ExplicitModalDatasetWithSupport{T,W,FR} <: ActiveModalDataset{T,W,FR,U,FT} end
+# remove: abstract type ExplicitModalDatasetWithSupport{V,W,FR} <: ActiveFeaturedDataset{V,W,FR,FT} end
 # And an abstract type for support lookup tables
-abstract type AbstractSupport{T,W} end
+abstract type AbstractSupport{V,W} end
 # 
 # In general, one can use lookup (with or without memoization) for any decision, even the
 #  more complex ones, for example:
@@ -25,8 +25,8 @@ abstract type AbstractSupport{T,W} end
 #  or ⟨G⟩ (maximum(A2) ≤ 50). Because the global operator G behaves differently from other
 #  relations, it is natural to differentiate between global and relational support tables:
 # 
-abstract type AbstractRelationalSupport{T,W,FR<:AbstractFrame} <: AbstractSupport{T,W}     end
-abstract type AbstractGlobalSupport{T}       <: AbstractSupport{T,W where W<:AbstractWorld} end
+abstract type AbstractRelationalSupport{V,W,FR<:AbstractFrame} <: AbstractSupport{V,W}     end
+abstract type AbstractGlobalSupport{V}       <: AbstractSupport{V,W where W<:AbstractWorld} end
 #
 # Be an *fwd_rs* an fwd relational support, and a *fwd_gs* an fwd global support,
 #  for simple support tables like these, it is convenient to store, again, modal *gamma* values.
@@ -58,7 +58,7 @@ end
 ############################################################################################
 ############################################################################################
 
-abstract type SupportingModalDataset{T<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}} end
+abstract type SupportingModalDataset{V<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}} end
 
 isminifiable(X::SupportingModalDataset) = false
 
@@ -67,61 +67,60 @@ isminifiable(X::SupportingModalDataset) = false
 ############################################################################################
 
 
-struct ExplicitModalDatasetS{
-    T<:Number,
+struct SupportedFeaturedDataset{
+    V<:Number,
     W<:AbstractWorld,
     FR<:AbstractFrame{W,Bool},
-    U,
-    FT<:AbstractFeature{U},
-    S<:SupportingModalDataset{T,W,FR},
-} <: ActiveModalDataset{T,W,FR,U,FT}
+    FT<:AbstractFeature{V},
+    S<:SupportingModalDataset{V,W,FR},
+} <: ActiveFeaturedDataset{V,W,FR,FT}
 
     # Core dataset
-    emd                 :: ExplicitModalDataset{T,W,FR,U,FT}
+    emd                 :: FeaturedDataset{V,W,FR,FT}
 
     # Support structure
     support             :: S
     
     ########################################################################################
     
-    function ExplicitModalDatasetS{T,W,FR,U,FT,S}(
-        emd                 :: ExplicitModalDataset{T,W,FR,U,FT},
+    function SupportedFeaturedDataset{V,W,FR,FT,S}(
+        emd                 :: FeaturedDataset{V,W,FR,FT},
         support             :: S;
         allow_no_instances = false,
-    ) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},U,FT<:AbstractFeature{U},S<:SupportingModalDataset{T,W,FR}}
-        ty = "ExplicitModalDatasetS{$(T),$(W),$(FR),$(U),$(FT),$(S)}"
+    ) where {V,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},FT<:AbstractFeature{V},S<:SupportingModalDataset{V,W,FR}}
+        ty = "SupportedFeaturedDataset{$(V),$(W),$(FR),$(FT),$(S)}"
         @assert allow_no_instances || nsamples(emd) > 0  "Can't instantiate $(ty) with no instance."
         @assert checksupportconsistency(emd, support)    "Can't instantiate $(ty) with an inconsistent support:\n\nemd:\n$(display_structure(emd))\n\nsupport:\n$(display_structure(support))"
-        new{T,W,FR,U,FT,S}(emd, support)
+        new{V,W,FR,FT,S}(emd, support)
     end
 
-    function ExplicitModalDatasetS{T,W,FR,U,FT}(emd::ExplicitModalDataset{T,W}, support::S, args...; kwargs...) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},U,FT<:AbstractFeature{U},S<:SupportingModalDataset{T,W,FR}}
-        ExplicitModalDatasetS{T,W,FR,U,FT,S}(emd, support, args...; kwargs...)
+    function SupportedFeaturedDataset{V,W,FR,FT}(emd::FeaturedDataset{V,W}, support::S, args...; kwargs...) where {V,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},FT<:AbstractFeature{V},S<:SupportingModalDataset{V,W,FR}}
+        SupportedFeaturedDataset{V,W,FR,FT,S}(emd, support, args...; kwargs...)
     end
 
-    function ExplicitModalDatasetS{T,W,FR}(emd::ExplicitModalDataset{T,W,FR,U,FT}, args...; kwargs...) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},U,FT<:AbstractFeature{U}}
-        ExplicitModalDatasetS{T,W,FR,U,FT}(emd, args...; kwargs...)
+    function SupportedFeaturedDataset{V,W,FR}(emd::FeaturedDataset{V,W,FR,FT}, args...; kwargs...) where {V,W<:AbstractWorld,FR<:AbstractFrame{W,Bool},FT<:AbstractFeature{V}}
+        SupportedFeaturedDataset{V,W,FR,FT}(emd, args...; kwargs...)
     end
 
-    function ExplicitModalDatasetS{T,W}(emd::ExplicitModalDataset{T,W,FR}, args...; kwargs...) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}}
-        ExplicitModalDatasetS{T,W,FR}(emd, args...; kwargs...)
+    function SupportedFeaturedDataset{V,W}(emd::FeaturedDataset{V,W,FR}, args...; kwargs...) where {V,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}}
+        SupportedFeaturedDataset{V,W,FR}(emd, args...; kwargs...)
     end
 
-    function ExplicitModalDatasetS{T}(emd::ExplicitModalDataset{T,W,FR}, args...; kwargs...) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}}
-        ExplicitModalDatasetS{T,W}(emd, args...; kwargs...)
+    function SupportedFeaturedDataset{V}(emd::FeaturedDataset{V,W,FR}, args...; kwargs...) where {V,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}}
+        SupportedFeaturedDataset{V,W}(emd, args...; kwargs...)
     end
 
-    function ExplicitModalDatasetS(emd::ExplicitModalDataset{T,W,FR}, args...; kwargs...) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}}
-        ExplicitModalDatasetS{T}(emd, args...; kwargs...)
+    function SupportedFeaturedDataset(emd::FeaturedDataset{V,W,FR}, args...; kwargs...) where {V,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}}
+        SupportedFeaturedDataset{V}(emd, args...; kwargs...)
     end
     
     ########################################################################################
     
-    function ExplicitModalDatasetS(
-        emd                   :: ExplicitModalDataset{T,W,FR};
+    function SupportedFeaturedDataset(
+        emd                   :: FeaturedDataset{V,W,FR};
         compute_relation_glob :: Bool = true,
         use_memoization       :: Bool = true,
-    ) where {T,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}}
+    ) where {V,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}}
         
         support = OneStepSupportingDataset(
             emd,
@@ -129,58 +128,58 @@ struct ExplicitModalDatasetS{
             use_memoization = use_memoization
         );
 
-        ExplicitModalDatasetS(emd, support)
+        SupportedFeaturedDataset(emd, support)
     end
 
     ########################################################################################
     
-    function ExplicitModalDatasetS(
-        X                   :: InterpretedModalDataset{T,N,W};
+    function SupportedFeaturedDataset(
+        X                   :: DimensionalFeaturedDataset{V,N,W};
         kwargs...,
-    ) where {T,N,W<:AbstractWorld}
-        emd = ExplicitModalDataset(X);
-        ExplicitModalDatasetS(emd; kwargs...)
+    ) where {V,N,W<:AbstractWorld}
+        emd = FeaturedDataset(X);
+        SupportedFeaturedDataset(emd; kwargs...)
     end
 
 end
 
-emd(X::ExplicitModalDatasetS)                        = X.emd
-support(X::ExplicitModalDatasetS)                    = X.support
+emd(X::SupportedFeaturedDataset)                        = X.emd
+support(X::SupportedFeaturedDataset)                    = X.support
 
-Base.getindex(X::ExplicitModalDatasetS, args...)     = Base.getindex(emd(X), args...)::featvaltype(X)
-Base.size(X::ExplicitModalDatasetS)                  = (size(emd(X)), size(support(X)))
-features(X::ExplicitModalDatasetS)                   = features(emd(X))
-grouped_featsaggrsnops(X::ExplicitModalDatasetS)     = grouped_featsaggrsnops(emd(X))
-grouped_featsnaggrs(X::ExplicitModalDatasetS)        = grouped_featsnaggrs(emd(X))
-nfeatures(X::ExplicitModalDatasetS)                  = nfeatures(emd(X))
-nrelations(X::ExplicitModalDatasetS)                 = nrelations(emd(X))
-nsamples(X::ExplicitModalDatasetS)                   = nsamples(emd(X))
-relations(X::ExplicitModalDatasetS)                  = relations(emd(X))
-fwd(X::ExplicitModalDatasetS)                        = fwd(emd(X))
-worldtype(X::ExplicitModalDatasetS{T,W}) where {T,W} = W
+Base.getindex(X::SupportedFeaturedDataset, args...)     = Base.getindex(emd(X), args...)::featvaltype(X)
+Base.size(X::SupportedFeaturedDataset)                  = (size(emd(X)), size(support(X)))
+features(X::SupportedFeaturedDataset)                   = features(emd(X))
+grouped_featsaggrsnops(X::SupportedFeaturedDataset)     = grouped_featsaggrsnops(emd(X))
+grouped_featsnaggrs(X::SupportedFeaturedDataset)        = grouped_featsnaggrs(emd(X))
+nfeatures(X::SupportedFeaturedDataset)                  = nfeatures(emd(X))
+nrelations(X::SupportedFeaturedDataset)                 = nrelations(emd(X))
+nsamples(X::SupportedFeaturedDataset)                   = nsamples(emd(X))
+relations(X::SupportedFeaturedDataset)                  = relations(emd(X))
+fwd(X::SupportedFeaturedDataset)                        = fwd(emd(X))
+worldtype(X::SupportedFeaturedDataset{V,W}) where {V,W} = W
 
-usesmemo(X::ExplicitModalDatasetS) = usesmemo(support(X))
+usesmemo(X::SupportedFeaturedDataset) = usesmemo(support(X))
 
-initialworldset(X::ExplicitModalDatasetS,  args...) = initialworldset(emd(X), args...)
-accessibles(X::ExplicitModalDatasetS,     args...) = accessibles(emd(X), args...)
-representatives(X::ExplicitModalDatasetS, args...) = representatives(emd(X), args...)
-allworlds(X::ExplicitModalDatasetS,  args...) = allworlds(emd(X), args...)
+initialworldset(X::SupportedFeaturedDataset,  args...) = initialworldset(emd(X), args...)
+accessibles(X::SupportedFeaturedDataset,     args...) = accessibles(emd(X), args...)
+representatives(X::SupportedFeaturedDataset, args...) = representatives(emd(X), args...)
+allworlds(X::SupportedFeaturedDataset,  args...) = allworlds(emd(X), args...)
 
-function _slice_dataset(X::ExplicitModalDatasetS, inds::AbstractVector{<:Integer}, args...; kwargs...)
-    ExplicitModalDatasetS(
+function _slice_dataset(X::SupportedFeaturedDataset, inds::AbstractVector{<:Integer}, args...; kwargs...)
+    SupportedFeaturedDataset(
         _slice_dataset(emd(X), inds, args...; kwargs...),
         _slice_dataset(support(X), inds, args...; kwargs...),
     )
 end
 
-find_feature_id(X::ExplicitModalDatasetS, feature::AbstractFeature) = findall(x->x==feature, features(X))[1]
-find_relation_id(X::ExplicitModalDatasetS, relation::AbstractRelation) = findall(x->x==relation, relations(X))[1]
+find_feature_id(X::SupportedFeaturedDataset, feature::AbstractFeature) = findall(x->x==feature, features(X))[1]
+find_relation_id(X::SupportedFeaturedDataset, relation::AbstractRelation) = findall(x->x==relation, relations(X))[1]
 
-hasnans(X::ExplicitModalDatasetS) = hasnans(emd(X)) || hasnans(support(X))
+hasnans(X::SupportedFeaturedDataset) = hasnans(emd(X)) || hasnans(support(X))
 
-isminifiable(X::ExplicitModalDatasetS) = isminifiable(emd(X)) && isminifiable(emd(X))
+isminifiable(X::SupportedFeaturedDataset) = isminifiable(emd(X)) && isminifiable(emd(X))
 
-function minify(X::EMD) where {EMD<:ExplicitModalDatasetS}
+function minify(X::EMD) where {EMD<:SupportedFeaturedDataset}
     (new_emd, new_support), backmap =
         minify([
             emd(X),
@@ -194,7 +193,7 @@ function minify(X::EMD) where {EMD<:ExplicitModalDatasetS}
     X, backmap
 end
 
-function display_structure(X::ExplicitModalDatasetS; indent_str = "")
+function display_structure(X::SupportedFeaturedDataset; indent_str = "")
     out = "$(typeof(X))\t$((Base.summarysize(emd(X)) + Base.summarysize(support(X))) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
     out *= indent_str * "├ relations: \t$((length(relations(emd(X)))))\t$(relations(emd(X)))\n"
     out *= indent_str * "├ emd\t$(Base.summarysize(emd(X)) / 1024 / 1024 |> x->round(x, digits=2)) MBs"

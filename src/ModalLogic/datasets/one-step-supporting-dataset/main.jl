@@ -1,14 +1,14 @@
 
 # Compute modal dataset propositions and 1-modal decisions
 struct OneStepSupportingDataset{
-        T<:Number,
-        W<:AbstractWorld,
-        FR<:AbstractFrame{W,Bool},
-        TT<:Union{T,Nothing},
-        FWDRS<:AbstractRelationalSupport{TT,W,FR},
-        FWDGS<:Union{AbstractGlobalSupport{T},Nothing},
-        G<:AbstractVector{Tuple{<:AbstractFeature,<:Aggregator}},
-    } <: SupportingModalDataset{T,W,FR}
+    V<:Number,
+    W<:AbstractWorld,
+    FR<:AbstractFrame{W,Bool},
+    VV<:Union{V,Nothing},
+    FWDRS<:AbstractRelationalSupport{VV,W,FR},
+    FWDGS<:Union{AbstractGlobalSupport{V},Nothing},
+    G<:AbstractVector{Tuple{<:AbstractFeature,<:Aggregator}},
+} <: SupportingModalDataset{V,W,FR}
 
     # Relational support
     fwd_rs              :: FWDRS
@@ -24,30 +24,34 @@ struct OneStepSupportingDataset{
         fwd_gs::FWDGS,
         featsnaggrs::G,
     ) where {
-        T<:Number,
+        V<:Number,
         W<:AbstractWorld,
         FR<:AbstractFrame{W,Bool},
-        TT<:Union{T,Nothing},
-        FWDRS<:AbstractRelationalSupport{TT,W,FR},
-        FWDGS<:Union{AbstractGlobalSupport{T},Nothing},
+        VV<:Union{V,Nothing},
+        FWDRS<:AbstractRelationalSupport{VV,W,FR},
+        FWDGS<:Union{AbstractGlobalSupport{V},Nothing},
         G<:AbstractVector{Tuple{<:AbstractFeature,<:Aggregator}},
     }
         @assert nfeatsnaggrs(fwd_rs) == length(featsnaggrs)       "Can't instantiate $(ty) with unmatching nfeatsnaggrs for fwd_rs and provided featsnaggrs: $(nfeatsnaggrs(fwd_rs)) and $(length(featsnaggrs))"
         if fwd_gs != nothing
             @assert nfeatsnaggrs(fwd_gs) == length(featsnaggrs)   "Can't instantiate $(ty) with unmatching nfeatsnaggrs for fwd_gs and provided featsnaggrs: $(nfeatsnaggrs(fwd_gs)) and $(length(featsnaggrs))"
-            @assert nsamples(fwd_gs) == nsamples(fwd_rs)              "Can't instantiate $(ty) with unmatching nsamples for fwd_gs and fwd_rs support: $(nsamples(fwd_gs)) and $(nsamples(fwd_rs))"
+            @assert nsamples(fwd_gs) == nsamples(fwd_rs)          "Can't instantiate $(ty) with unmatching nsamples for fwd_gs and fwd_rs support: $(nsamples(fwd_gs)) and $(nsamples(fwd_rs))"
         end
-        new{T,W,FR,TT,FWDRS,FWDGS,G}(fwd_rs, fwd_gs, featsnaggrs)
+        new{V,W,FR,VV,FWDRS,FWDGS,G}(fwd_rs, fwd_gs, featsnaggrs)
     end
-    
+
+    _default_rs_type(::Type{<:AbstractWorld}) = GenericRelationalSupport
+    _default_rs_type(::Type{<:Union{OneWorld,Interval,Interval2D}}) = UniformFullDimensionalRelationalSupport
+
     # A function that computes the support from an explicit modal dataset
     Base.@propagate_inbounds function OneStepSupportingDataset(
-            emd                 :: ExplicitModalDataset{T,W};
-            compute_relation_glob = false,
-            use_memoization = false,
-        ) where {T,W<:AbstractWorld}
+        emd                 :: FeaturedDataset{V,W},
+        relational_support_type :: Type{<:AbstractRelationalSupport} = _default_rs_type(W);
+        compute_relation_glob = false,
+        use_memoization = false,
+    ) where {V,W<:AbstractWorld}
 
-        # @logmsg LogOverview "ExplicitModalDataset -> ExplicitModalDatasetS "
+        # @logmsg LogOverview "FeaturedDataset -> SupportedFeaturedDataset "
 
         _fwd = fwd(emd)
         _features = features(emd)
@@ -71,18 +75,13 @@ struct OneStepSupportingDataset{
         nrelations = length(_relations)
         nfeatsnaggrs = sum(length.(_grouped_featsnaggrs))
 
-        # println(_n_samples)
-        # println(nrelations)
-        # println(nfeatsnaggrs)
-        # println(_grouped_featsnaggrs)
-
         # Prepare fwd_rs
-        fwd_rs = fwd_rs_init(emd, use_memoization)
+        fwd_rs = relational_support_type(emd, use_memoization)
 
         # Prepare fwd_gs
         fwd_gs = begin
             if compute_fwd_gs
-                fwd_gs_init(emd)
+                GenericGlobalSupport(emd)
             else
                 nothing
             end
@@ -121,7 +120,6 @@ struct OneStepSupportingDataset{
                         fwd_gs_set(fwd_gs, i_sample, i_featsnaggr, threshold)
                     end
                 end
-                # readline()
 
                 if !use_memoization
                     # Other relations
@@ -165,14 +163,14 @@ nsamples(X::OneStepSupportingDataset) = nsamples(fwd_rs(X))
 
 # TODO delegate to the two components...
 function checksupportconsistency(
-    emd::ExplicitModalDataset{T,W},
-    X::OneStepSupportingDataset{T,W},
-) where {T,W<:AbstractWorld}
+    emd::FeaturedDataset{V,W},
+    X::OneStepSupportingDataset{V,W},
+) where {V,W<:AbstractWorld}
     @assert nsamples(emd) == nsamples(X)                "Consistency check failed! Unmatching nsamples for emd and support: $(nsamples(emd)) and $(nsamples(X))"
     # @assert nrelations(emd) == (nrelations(fwd_rs(X)) + (isnothing(fwd_gs(X)) ? 0 : 1))            "Consistency check failed! Unmatching nrelations for emd and support: $(nrelations(emd)) and $(nrelations(fwd_rs(X)))+$((isnothing(fwd_gs(X)) ? 0 : 1))"
     @assert nrelations(emd) >= nrelations(fwd_rs(X))            "Consistency check failed! Inconsistent nrelations for emd and support: $(nrelations(emd)) < $(nrelations(fwd_rs(X)))"
-    emd_nfeatsnaggrs = sum(length.(grouped_featsnaggrs(emd)))
-    @assert emd_nfeatsnaggrs == length(featsnaggrs(X))  "Consistency check failed! Unmatching featsnaggrs for emd and support: $(featsnaggrs(emd)) and $(featsnaggrs(X))"
+    _nfeatsnaggrs = nfeatsnaggrs(emd)
+    @assert _nfeatsnaggrs == length(featsnaggrs(X))  "Consistency check failed! Unmatching featsnaggrs for emd and support: $(featsnaggrs(emd)) and $(featsnaggrs(X))"
     return true
 end
 
@@ -180,7 +178,7 @@ usesmemo(X::OneStepSupportingDataset) = usesglobalmemo(X) || usesmodalmemo(X)
 usesglobalmemo(X::OneStepSupportingDataset) = false
 usesmodalmemo(X::OneStepSupportingDataset) = usesmemo(fwd_rs(X))
 
-worldtype(X::OneStepSupportingDataset{T,W}) where {T,W}    = W
+worldtype(X::OneStepSupportingDataset{V,W}) where {V,W}    = W
 
 Base.size(X::OneStepSupportingDataset) = (size(fwd_rs(X)), (isnothing(fwd_gs(X)) ? () : size(fwd_gs(X))))
 
@@ -242,26 +240,15 @@ end
 ############################################################################################
 
 function compute_global_gamma(
-    X::OneStepSupportingDataset{T,W},
-    emd::ExplicitModalDataset{T,W},
+    X::OneStepSupportingDataset{V,W},
+    emd::FeaturedDataset{V,W},
     i_sample::Integer,
     feature::AbstractFeature,
     aggregator::Aggregator,
-) where {T,W<:AbstractWorld}
-    i_featsnaggr = find_featsnaggr_id(X, feature, aggregator)
-    _compute_global_gamma(X, emd, i_sample, feature, aggregator, i_featsnaggr)
-end
-
-function _compute_global_gamma(
-    X::OneStepSupportingDataset{T,W},
-    emd::ExplicitModalDataset{T,W},
-    i_sample::Integer,
-    feature::AbstractFeature,
-    aggregator::Aggregator,
-    i_featsnaggr::Integer,
-) where {T,W<:AbstractWorld}
+    i_featsnaggr::Integer = find_featsnaggr_id(X, feature, aggregator),
+) where {V,W<:AbstractWorld}
     _fwd_gs = fwd_gs(X)
-    # @assert !isnothing(_fwd_gs) "Error. ExplicitModalDatasetS must be built with compute_relation_glob = true for it to be ready to test global decisions."
+    # @assert !isnothing(_fwd_gs) "Error. SupportedFeaturedDataset must be built with compute_relation_glob = true for it to be ready to test global decisions."
     if usesglobalmemo(X) && (false || isnothing(_fwd_gs[i_sample, i_featsnaggr]))
         error("TODO finish this: memoization on the global table")
         # gamma = TODO...
@@ -273,23 +260,23 @@ function _compute_global_gamma(
 end
 
 function compute_modal_gamma(
-    X::OneStepSupportingDataset{T,W},
-    emd::ExplicitModalDataset{T,W},
+    X::OneStepSupportingDataset{V,W},
+    emd::FeaturedDataset{V,W},
     i_sample::Integer,
     w::W,
     relation::AbstractRelation,
     feature::AbstractFeature,
     aggregator::Aggregator,
     i_relation::Integer,
-) where {T,W<:AbstractWorld}
+) where {V,W<:AbstractWorld}
     i_featsnaggr = find_featsnaggr_id(X, feature, aggregator)
     _compute_modal_gamma(X, emd, i_sample, w, relation, feature, aggregator, i_featsnaggr, i_relation)
 
 end
 
 function _compute_modal_gamma(
-    X::OneStepSupportingDataset{T,W},
-    emd::ExplicitModalDataset{T,W},
+    X::OneStepSupportingDataset{V,W},
+    emd::FeaturedDataset{V,W},
     i_sample::Integer,
     w::W,
     relation::AbstractRelation,
@@ -297,7 +284,7 @@ function _compute_modal_gamma(
     aggregator::Aggregator,
     i_featsnaggr,
     i_relation,
-)::T where {T,W<:AbstractWorld}
+)::V where {V,W<:AbstractWorld}
     _fwd_rs = fwd_rs(X)
     if usesmodalmemo(X) && (false ||  isnothing(_fwd_rs[i_sample, w, i_featsnaggr, i_relation]))
         i_feature = find_feature_id(emd, feature)

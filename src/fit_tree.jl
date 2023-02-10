@@ -103,7 +103,7 @@ end
 ##############################################################################
 
 # function optimize_tree_parameters!(
-#       X               :: InterpretedModalDataset{T,N},
+#       X               :: DimensionalFeaturedDataset{T,N},
 #       iC   :: InitCondition,
 #       allow_global_splits :: Bool,
 #       test_operators  :: AbstractVector{<:TestOperatorFun}
@@ -113,9 +113,9 @@ end
 #   #  flatten to adimensional case + strip of all relations from the ontology
 #   if prod(max_channel_size(X)) == 1
 #       if (length(ontology(X).relations) > 0)
-#           warn("The InterpretedModalDataset provided has degenerate max_channel_size $(max_channel_size(X)), and more than 0 relations: $(ontology(X).relations).")
+#           warn("The DimensionalFeaturedDataset provided has degenerate max_channel_size $(max_channel_size(X)), and more than 0 relations: $(ontology(X).relations).")
 #       end
-#       # X = InterpretedModalDataset{T,0}(ModalLogic.strip_ontology(ontology(X)), @views ModalLogic.strip_domain(domain(X)))
+#       # X = DimensionalFeaturedDataset{T,0}(ModalLogic.strip_ontology(ontology(X)), @views ModalLogic.strip_domain(domain(X)))
 #   end
 
 #   ontology_relations = deepcopy(ontology(X).relations)

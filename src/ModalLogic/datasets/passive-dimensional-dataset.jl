@@ -25,48 +25,54 @@ using SoleData: AbstractDimensionalDataset,
 #     end
 # end
 
-struct PassiveDimensionalDataset{T,N,W<:AbstractWorld,D,DOM<:AbstractDimensionalDataset{T,D},FR<:AbstractDimensionalFrame{N,W,TruthValue}} <: AbstractConditionalDataset{W,AbstractCondition,TruthValue,FR}
+struct PassiveDimensionalDataset{
+    N,
+    W<:AbstractWorld,
+    DOM<:AbstractDimensionalDataset,
+    FR<:AbstractDimensionalFrame{N,W,TruthValue}
+} <: AbstractConditionalDataset{W,AbstractCondition,TruthValue,FR}
     
     d::DOM
 
-    function PassiveDimensionalDataset{T,N,W,D,DOM,FR}(
+    function PassiveDimensionalDataset{N,W,DOM,FR}(
         d::DOM,
-    ) where {T,N,W<:AbstractWorld,D,DOM<:AbstractDimensionalDataset{T,D},FR<:AbstractDimensionalFrame{N,W,TruthValue}}
-        @assert D == (N+1+1) "ERROR! Dimensionality mismatch: can't instantiate PassiveDimensionalDataset{$(T),$(N),$(W),$(DOM)} with underlying structure $(DOM). $(D) == ($(N)+1+1) should hold."
+    ) where {N,W<:AbstractWorld,DOM<:AbstractDimensionalDataset,FR<:AbstractDimensionalFrame{N,W,TruthValue}}
+        ty = "PassiveDimensionalDataset{$(N),$(W),$(DOM),$(FR)}"
+        @assert N == dimensionality(d) "ERROR! Dimensionality mismatch: can't instantiate $(ty) with underlying structure $(DOM). $(N) == $(dimensionality(d)) should hold."
         @assert SoleLogics.goeswith_dim(W, N) "ERROR! Dimensionality mismatch: can't interpret worldtype $(W) on PassiveDimensionalDataset of dimensionality = $(N)"
-        new{T,N,W,D,DOM,FR}(d)
+        new{N,W,DOM,FR}(d)
     end
     
-    function PassiveDimensionalDataset{T,N,W,D,DOM}(
+    function PassiveDimensionalDataset{N,W,DOM}(
         d::DOM,
-    ) where {T,N,W<:AbstractWorld,D,DOM<:AbstractDimensionalDataset{T,D}}
-        PassiveDimensionalDataset{T,N,W,D,DOM,AbstractDimensionalFrame{N,W,TruthValue}}(d)
+    ) where {N,W<:AbstractWorld,DOM<:AbstractDimensionalDataset}
+        PassiveDimensionalDataset{N,W,DOM,AbstractDimensionalFrame{N,W,TruthValue}}(d)
     end
 
-    function PassiveDimensionalDataset{T,N,W}(
+    function PassiveDimensionalDataset{N,W}(
         d::DOM,
-    ) where {T,N,W<:AbstractWorld,D,DOM<:AbstractDimensionalDataset{T,D}}
-        PassiveDimensionalDataset{T,N,W,D,DOM}(d)
+    ) where {N,W<:AbstractWorld,DOM<:AbstractDimensionalDataset}
+        PassiveDimensionalDataset{N,W,DOM}(d)
     end
 
     function PassiveDimensionalDataset(
-        d::DOM,
+        d::AbstractDimensionalDataset,
         worldtype::Type{<:AbstractWorld},
         # worldtype = get_interval_worldtype(D-1-1) TODO default?
-    ) where {T,D,DOM<:AbstractDimensionalDataset{T,D}}
-        PassiveDimensionalDataset{T,N,worldtype}(d)
+    )
+        PassiveDimensionalDataset{dimensionality(d),worldtype}(d)
     end
 end
 
-Base.@propagate_inbounds @inline function Base.getindex(
-    X::PassiveDimensionalDataset{T,N,W},
+@inline function Base.getindex(
+    X::PassiveDimensionalDataset{N,W},
     i_sample::Integer,
     w::W,
-    f::AbstractFeature,
+    f::AbstractFeature{U},
     args...,
-) where {T,N,W<:AbstractWorld}
-    w_values = interpret_world(w, get_instance(X.d, i_sample))::AbstractDimensionalInstance{T,N+1}
-    compute_feature(f, w_values)::T
+) where {N,W<:AbstractWorld,U}
+    w_values = interpret_world(w, get_instance(X.d, i_sample))
+    compute_feature(f, w_values)::U
 end
 
 Base.size(X::PassiveDimensionalDataset)                 = Base.size(X.d)
@@ -76,15 +82,16 @@ nsamples(X::PassiveDimensionalDataset)                  = SoleData.nsamples(X.d)
 channel_size(X::PassiveDimensionalDataset)              = SoleData.channel_size(X.d)
 max_channel_size(X::PassiveDimensionalDataset)          = SoleData.max_channel_size(X.d)
 dimensionality(X::PassiveDimensionalDataset)            = SoleData.dimensionality(X.d)
+eltype(X::PassiveDimensionalDataset)                    = SoleData.eltype(X.d)
 
 get_instance(X::PassiveDimensionalDataset, args...)     = get_instance(X.d, args...)
 
-_slice_dataset(X::PassiveDimensionalDataset{T,N,W}, inds::AbstractVector{<:Integer}, args...; kwargs...) where {T,N,W} =
-    PassiveDimensionalDataset{T,N,W}(_slice_dataset(X.d, inds, args...; kwargs...))
+_slice_dataset(X::PassiveDimensionalDataset{N,W}, inds::AbstractVector{<:Integer}, args...; kwargs...) where {N,W} =
+    PassiveDimensionalDataset{N,W}(_slice_dataset(X.d, inds, args...; kwargs...))
 
 hasnans(X::PassiveDimensionalDataset) = hasnans(X.d)
 
-worldtype(X::PassiveDimensionalDataset{T,N,W}) where {T,N,W} = W
+worldtype(X::PassiveDimensionalDataset{N,W}) where {N,W} = W
 
 initialworldset(X::PassiveDimensionalDataset, args...) = _initialworldset(X.d, args...)
 accessibles(X::PassiveDimensionalDataset, args...) = _accessibles(X.d, args...)
