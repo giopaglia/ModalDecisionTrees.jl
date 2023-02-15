@@ -1,4 +1,5 @@
 using SoleLogics: AbstractMultiModalFrame
+import SoleModels: printmodel, displaymodel
 
 ############################################################################################
 # Initial world conditions
@@ -98,8 +99,8 @@ function display_decision(ded::DoubleEdgedDecision, args...; kwargs...)
     outstr *= ")"
     # outstr *= "DoubleEdgedDecision(\n\t"
     # outstr *= display_decision(decision(ded))
-    # # outstr *= "\n\tback: " * (isnothing(back(ded)) ? "-" : display_model(back(ded), args...; kwargs...))
-    # # outstr *= "\n\tforth: " * (isnothing(forth(ded)) ? "-" : display_model(forth(ded), args...; kwargs...))
+    # # outstr *= "\n\tback: " * (isnothing(back(ded)) ? "-" : displaymodel(back(ded), args...; kwargs...))
+    # # outstr *= "\n\tforth: " * (isnothing(forth(ded)) ? "-" : displaymodel(forth(ded), args...; kwargs...))
     # outstr *= "\n\tback: " * (isnothing(_back(ded)) ? "-" : "$(typeof(_back(ded)))")
     # outstr *= "\n\tforth: " * (isnothing(_forth(ded)) ? "-" : "$(typeof(_forth(ded)))")
     # outstr *= "\n)"
@@ -560,7 +561,7 @@ Decision Tree{$(L)}(
     sub-tree modal height:  $(modal_height(tree))
     ###########################################################
     tree:
-$(display_model(tree))
+$(displaymodel(tree))
 )
 """
 end
@@ -571,7 +572,7 @@ Decision Forest{$(L)}(
     # trees: $(length(forest))
     metrics: $(metrics(forest))
     forest:
-$(display_model(forest))
+$(displaymodel(forest))
 )
 """
 end

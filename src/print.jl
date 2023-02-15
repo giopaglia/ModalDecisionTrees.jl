@@ -20,10 +20,10 @@ function print_forest(forest::DForest, args...; kwargs...)
 end
 
 function print_tree(io::IO, tree::Union{DTNode,DTree}, args...; kwargs...)
-    print(io, display_model(tree; args..., kwargs...))
+    print(io, displaymodel(tree; args..., kwargs...))
 end
 function print_forest(io::IO, forest::DForest, args...; kwargs...)
-    print(io, display_model(forest; args..., kwargs...))
+    print(io, displaymodel(forest; args..., kwargs...))
 end
 
 function brief_prediction_str(leaf::DTLeaf)
@@ -72,7 +72,7 @@ function get_metrics_str(metrics::NamedTuple)
     end
 end
 
-function display_model(
+function displaymodel(
     forest::DForest,
     args...;
     kwargs...,
@@ -81,13 +81,13 @@ function display_model(
     n_trees = length(forest)
     for i in 1:n_trees
         outstr *= "Tree $(i) / $(n_trees)"
-        outstr *= display_model(trees(forest)[i], args...; kwargs...)
+        outstr *= displaymodel(trees(forest)[i], args...; kwargs...)
     end
     return outstr
 end
 
 
-function display_model(
+function displaymodel(
         leaf::DTLeaf;
         indentation_str="",
         attribute_names_map = nothing,
@@ -99,7 +99,7 @@ function display_model(
     return "$(brief_prediction_str(leaf)) : $(metrics_str)\n"
 end
 
-function display_model(
+function displaymodel(
         leaf::NSDTLeaf;
         indentation_str="",
         attribute_names_map = nothing,
@@ -111,7 +111,7 @@ function display_model(
     return "$(brief_prediction_str(leaf)) : {TRAIN: $(train_metrics_str); VALID: $(valid_metrics_str)}\n"
 end
 
-function display_model(
+function displaymodel(
     node::DTInternal;
     indentation_str="",
     attribute_names_map = nothing,
@@ -121,17 +121,17 @@ function display_model(
 )
     outstr = ""
     outstr *= "$(display_decision(node; attribute_names_map = attribute_names_map))\t\t\t"
-    outstr *= display_model(this(node); indentation_str = "", metrics_kwargs...)
+    outstr *= displaymodel(this(node); indentation_str = "", metrics_kwargs...)
     if isnothing(max_depth) || length(indentation_str) < max_depth
         outstr *= indentation_str * "✔ " # "╭✔ 
-        outstr *= display_model(left(node);
+        outstr *= displaymodel(left(node);
             indentation_str = indentation_str*"│",
             attribute_names_map = attribute_names_map,
             max_depth = max_depth,
             metrics_kwargs...,
         )
         outstr *= indentation_str * "✘ " # "╰✘ 
-        outstr *= display_model(right(node);
+        outstr *= displaymodel(right(node);
             indentation_str = indentation_str*" ",
             attribute_names_map = attribute_names_map,
             max_depth = max_depth,
@@ -143,15 +143,15 @@ function display_model(
     return outstr
 end
 
-function display_model(
+function displaymodel(
     tree::DTree;
     metrics_kwargs...,
 )
     # print_relative_confidence = false,
     # if print_relative_confidence && L<:CLabel
-    #     outstr *= display_model(tree; rel_confidence_class_counts = countmap(Y))
+    #     outstr *= displaymodel(tree; rel_confidence_class_counts = countmap(Y))
     # else
-    #     outstr *= display_model(tree)
+    #     outstr *= displaymodel(tree)
     # end
-    return display_model(root(tree); metrics_kwargs...)
+    return displaymodel(root(tree); metrics_kwargs...)
 end
