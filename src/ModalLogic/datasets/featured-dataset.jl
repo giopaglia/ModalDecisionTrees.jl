@@ -270,7 +270,8 @@ end
     args...
 ) where {V,W<:AbstractWorld}
     i_feature = find_feature_id(X, feature)
-    X[i_sample, w, feature, i_feature, args...]::V
+    # X[i_sample, w, feature, i_feature, args...]::V
+    fwd(X)[i_sample, w, i_feature, args...]::V
 end
 
 @inline function Base.getindex(
@@ -317,12 +318,6 @@ function display_structure(X::FeaturedDataset; indent_str = "")
     out *= indent_str * "└ fwd: \t$(typeof(fwd(X)))\t$(Base.summarysize(fwd(X)) / 1024 / 1024 |> x->round(x, digits=2)) MBs\n"
     out
 end
-
-
-find_feature_id(X::FeaturedDataset{V,W}, feature::AbstractFeature) where {V,W} =
-    findfirst(x->x==feature, features(X))
-find_relation_id(X::FeaturedDataset{V,W}, relation::AbstractRelation) where {V,W} =
-    findfirst(x->x==relation, relations(X))
 
 function hasnans(X::FeaturedDataset)
     # @show hasnans(fwd(X))

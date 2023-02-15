@@ -163,6 +163,18 @@ struct DimensionalFeaturedDataset{
         DimensionalFeaturedDataset{V}(domain, ontology, features, args...; kwargs...)
     end
 
+    function DimensionalFeaturedDataset(
+        domain           :: Union{PassiveDimensionalDataset{N,W},AbstractDimensionalDataset},
+        ontology         :: Ontology{W},
+        mixed_features   :: AbstractVector;
+        kwargs...,
+    ) where {N,W<:AbstractWorld}
+        domain = (domain isa AbstractDimensionalDataset ? PassiveDimensionalDataset{N,W}(domain) : domain)
+        @assert all((f)->(f isa CanonicalFeature && SoleModels.preserves_type(f)), mixed_features) "Please, specify the feature output type V upon construction, as in: DimensionalFeaturedDataset{V}(...)." # TODO highlight and improve
+        V = eltype(domain)
+        DimensionalFeaturedDataset{V}(domain, ontology, mixed_features; kwargs...)
+    end
+
 end
 
 domain(X::DimensionalFeaturedDataset)                 = X.domain
@@ -176,9 +188,6 @@ function Base.getindex(X::DimensionalFeaturedDataset, args...)
 end
 
 Base.size(X::DimensionalFeaturedDataset)              = Base.size(domain(X))
-
-# find_feature_id(X::DimensionalFeaturedDataset{V,W}, feature::AbstractFeature) where {V,W} =
-#     findfirst(x->x==feature, features(X))
 
 dimensionality(X::DimensionalFeaturedDataset{V,N,W}) where {V,N,W} = N
 worldtype(X::DimensionalFeaturedDataset{V,N,W}) where {V,N,W} = W
@@ -209,3 +218,4 @@ function display_structure(X::DimensionalFeaturedDataset; indent_str = "")
 end
 
 hasnans(X::DimensionalFeaturedDataset) = hasnans(domain(X))
+

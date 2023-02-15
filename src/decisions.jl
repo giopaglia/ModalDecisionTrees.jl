@@ -98,8 +98,8 @@ feature(d::ModalDimensionalDecision) = feature(proposition(d))
 test_operator(d::ModalDimensionalDecision) = test_operator(proposition(d))
 threshold(d::ModalDimensionalDecision) = threshold(proposition(d))
 
-is_propositional_decision(d::ModalDimensionalDecision) = (relation(d) isa _RelationId)
-is_global_decision(d::ModalDimensionalDecision) = (relation(d) isa _RelationGlob)
+is_propositional_decision(d::ModalDimensionalDecision) = (relation(d) == RelationId)
+is_global_decision(d::ModalDimensionalDecision) = (relation(d) == RelationGlob)
 
 # ⟨R⟩p
 struct ExistentialDimensionalDecision{U} <: ModalDimensionalDecision{U}

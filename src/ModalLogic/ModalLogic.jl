@@ -41,7 +41,8 @@ import SoleLogics: initialworldset
 using SoleLogics: InitCondition
 import SoleLogics: worldtype
 
-import ..ModalDecisionTrees: nsamples, nattributes, max_channel_size, get_instance,
+import SoleData: nsamples
+import ..ModalDecisionTrees: nattributes, max_channel_size, get_instance,
        instance_channel_size
 
 

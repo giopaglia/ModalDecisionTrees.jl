@@ -128,8 +128,7 @@ struct SupportedFeaturedDataset{
         X                   :: DimensionalFeaturedDataset{V,N,W};
         kwargs...,
     ) where {V,N,W<:AbstractWorld}
-        emd = FeaturedDataset(X);
-        SupportedFeaturedDataset(emd; kwargs...)
+        SupportedFeaturedDataset(FeaturedDataset(X); kwargs...)
     end
 
 end
@@ -159,9 +158,6 @@ function _slice_dataset(X::SupportedFeaturedDataset, inds::AbstractVector{<:Inte
         _slice_dataset(support(X), inds, args...; kwargs...),
     )
 end
-
-find_feature_id(X::SupportedFeaturedDataset, feature::AbstractFeature) = findfirst(x->x==feature, features(X))
-find_relation_id(X::SupportedFeaturedDataset, relation::AbstractRelation) = findfirst(x->x==relation, relations(X))
 
 hasnans(X::SupportedFeaturedDataset) = hasnans(emd(X)) || hasnans(support(X))
 

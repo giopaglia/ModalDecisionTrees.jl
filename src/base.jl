@@ -582,8 +582,8 @@ end
 ############################################################################################
 
 # https://stackoverflow.com/questions/66801702/deriving-equality-for-julia-structs-with-mutable-members
-import Base.==
-function ==(a::S, b::S) where {S<:AbstractDecisionLeaf}
+import Base: == # TODO isequal...?
+function (Base).==(a::S, b::S) where {S<:AbstractDecisionLeaf}
     for name in fieldnames(S)
         if getfield(a, name) != getfield(b, name)
             return false

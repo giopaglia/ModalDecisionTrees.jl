@@ -2,6 +2,7 @@ using ProgressMeter
 
 using SoleModels: CanonicalFeatureGeq, CanonicalFeatureGeqSoft, CanonicalFeatureLeq, CanonicalFeatureLeqSoft
 using SoleModels: evaluate_thresh_decision, existential_aggregator, aggregator_bottom, aggregator_to_binary
+import SoleModels: check
 
 import SoleData: get_instance, instance, max_channel_size, channel_size, nattributes, nsamples, slice_dataset, _slice_dataset
 import SoleData: dimensionality
@@ -89,6 +90,22 @@ nsamples(X::ActiveFeaturedDataset) = error("Please, provide method nsamples(::$(
 Base.length(X::ActiveFeaturedDataset) = nsamples(X)
 Base.iterate(X::ActiveFeaturedDataset, state=1) = state > nsamples(X) ? nothing : (get_instance(X, state), state+1)
 
+function find_feature_id(X::ActiveFeaturedDataset, feature::AbstractFeature)
+    id = findfirst(x->(Base.isequal(x, feature)), features(X))
+    if isnothing(id)
+        error("Could not find feature $(feature) in ActiveFeaturedDataset of type $(typeof(X)).")
+    end
+    id
+end
+function find_relation_id(X::ActiveFeaturedDataset, relation::AbstractRelation)
+    id = findfirst(x->x==relation, relations(X))
+    if isnothing(id)
+        error("Could not find relation $(relation) in ActiveFeaturedDataset of type $(typeof(X)).")
+    end
+    id
+end
+
+
 # By default an active modal dataset cannot be minified
 isminifiable(::ActiveFeaturedDataset) = false
 
@@ -96,6 +113,97 @@ include("passive-dimensional-dataset.jl")
 
 include("dimensional-featured-dataset.jl")
 include("featured-dataset.jl")
+
+@inline function check(p::Proposition{C}, X::Union{PassiveDimensionalDataset{N,W} where N,ActiveFeaturedDataset{<:Number,W}}, i_sample::Integer, w::W) where {C<:FeatCondition,W<:AbstractWorld}
+    c = atom(p)
+    evaluate_thresh_decision(SoleModels.test_operator(c), X[i_sample, w, SoleModels.feature(c)], SoleModels.threshold(c))
+end
+
+
+# TODO fix: SyntaxTree{A} and SyntaxTree{B} are different, but they should not be.
+# getindex(::AbstractDictionary{I, T}, ::I) --> T
+# keys(::AbstractDictionary{I, T}) --> AbstractIndices{I}
+# isassigned(::AbstractDictionary{I, T}, ::I) --> Bool
+hasformula(memo_structure::AbstractDict{F}, φ::SyntaxTree) where {F<:Union{SyntaxTree,Formula}} = haskey(memo_structure, φ)
+hasformula(memo_structure::AbstractDict{SyntaxTree}, φ::Formula) = haskey(memo_structure, φ)
+
+
+function check(
+    φ::Union{SyntaxTree,Formula}, # TODO use SoleLogics.AbstractFormula ?
+    X::Union{PassiveDimensionalDataset{N,W} where N,ActiveFeaturedDataset{<:Number,W,FR}}, # AbstractConditionalDataset{W,C,T,FR},
+    i_sample;
+    use_memo::Union{Nothing,AbstractDict{F,T}} = nothing,
+    # memo_max_height = Inf,
+) where {W<:AbstractWorld,T<:Bool,FR<:AbstractMultiModalFrame{W,T},F<:Union{SyntaxTree,Formula}}
+    
+    @assert SoleLogics.isglobal(φ) "TODO expand code to specifying a world, defaulted to an initialworld. Cannot check non-global formula: $(syntaxstring(φ))."
+    
+    φ = φ isa Formula ? tree(φ) : φ
+
+    memo_structure = begin
+        if isnothing(use_memo)
+            Dict{SyntaxTree,WorldSet{W}}()
+        else
+            use_memo[i_sample]
+        end
+    end
+    
+    # forget_list = Vector{SoleLogics.FNode}()
+    # hasmemo(::ActiveFeaturedDataset) = false
+    # hasmemo(X)TODO
+
+    # φ = normalize(φ) # TODO normalize formula and/or use a dedicate memoization structure that normalizes functions
+
+    if !hasformula(memo_structure, φ)
+        for ψ in unique(SoleLogics.subformulas(φ))
+            # @show ψ
+            # @show syntaxstring(ψ)
+            # if height(ψ) > memo_max_height
+            #     push!(forget_list, ψ)
+            # end
+            if !hasformula(memo_structure, ψ)
+                _check(ψ, X, i_sample, memo_structure)
+            end
+            # @show syntaxstring(ψ), memo_structure[ψ]
+        end
+    end
+
+    # # All the worlds where a given formula is valid are returned.
+    # # Then, internally, memoization-regulation is applied
+    # # to forget some formula thus freeing space.
+    # fcollection = deepcopy(memo(X))
+    # for h in forget_list
+    #     k = fhash(h)
+    #     if hasformula(memo_structure, k)
+    #         empty!(memo(X, k)) # Collection at memo(X)[k] is erased
+    #         pop!(memo(X), k)    # Key k is deallocated too
+    #     end
+    # end
+
+    return length(memo_structure[φ]) > 0
+end
+
+function _check(
+    φ::SyntaxTree,
+    X::Union{PassiveDimensionalDataset{N,W} where N,ActiveFeaturedDataset{<:Number,W,FR}}, # AbstractConditionalDataset{W,C,T,FR},
+    i_sample,
+    use_memo::AbstractDict{F,WS},
+) where {W<:AbstractWorld,T<:Bool,FR<:AbstractMultiModalFrame{W,T},F<:Union{SyntaxTree,Formula},WS<:AbstractWorldSet{W}}
+    tok = token(φ)
+    fr = frame(X, i_sample)
+    use_memo[φ] = begin
+        if tok isa AbstractOperator
+            # @show syntaxstring.(children(φ))
+            # @show collect(SoleLogics.collate_worlds(fr, tok, map(ψ->use_memo[ψ], children(φ))))
+            collect(SoleLogics.collate_worlds(fr, tok, map(ψ->use_memo[ψ], children(φ))))
+        elseif tok isa Proposition
+            # @show filter(w->check(tok, X, i_sample, w), collect(allworlds(fr)))
+            filter(w->check(tok, X, i_sample, w), collect(allworlds(fr)))
+        else
+            error("Unexpected token encountered in _check: $(typeof(tok))")
+        end
+    end
+end
 
 
 abstract type SupportingDataset{W<:AbstractWorld,FR<:AbstractFrame{W,Bool}} end
