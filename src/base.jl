@@ -472,9 +472,9 @@ ismodalnode(tree::DTree)      = ismodalnode(root(tree))
 ############################################################################################
 
 display_decision(node::DTInternal, args...; kwargs...) =
-    ModalLogic.display_decision(i_frame(node), decision(node), args...; kwargs...)
+    display_decision(i_frame(node), decision(node), args...; kwargs...)
 display_decision_inverse(node::DTInternal, args...; kwargs...) =
-    ModalLogic.display_decision_inverse(i_frame(node), decision(node), args...; kwargs...)
+    display_decision_inverse(i_frame(node), decision(node), args...; kwargs...)
 
 ############################################################################################
 ############################################################################################

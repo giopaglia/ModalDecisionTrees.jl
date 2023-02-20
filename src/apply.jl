@@ -75,7 +75,7 @@ function apply(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Integer, w
     @logmsg LogDetail "applying branch..."
     @logmsg LogDetail " worlds" worlds
     (satisfied,new_worlds) =
-        ModalLogic.modal_step(
+        modalstep(
             get_frame(X, i_frame(tree)),
             i_sample,
             worlds[i_frame(tree)],
@@ -234,7 +234,7 @@ function apply(
     update_labels = false,
 ) where {L}
 
-    (satisfied,new_worlds) = ModalLogic.modal_step(get_frame(X, i_frame(tree)), i_sample, worlds[i_frame(tree)], decision(tree))
+    (satisfied,new_worlds) = modalstep(get_frame(X, i_frame(tree)), i_sample, worlds[i_frame(tree)], decision(tree))
 
     # if satisfied
     #   println("new_worlds: $(new_worlds)")
@@ -353,7 +353,7 @@ function apply_proba(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Inte
     @logmsg LogDetail "applying branch..."
     @logmsg LogDetail " worlds" worlds
     (satisfied,new_worlds) =
-        ModalLogic.modal_step(
+        modalstep(
             get_frame(X, i_frame(tree)),
             i_sample,
             worlds[i_frame(tree)],

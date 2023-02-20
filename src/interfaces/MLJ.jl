@@ -189,7 +189,7 @@ function DataFrame2MultiFrameModalDataset(
     @assert mode in [:explicit, :implicit]
 
     @assert all((<:).(eltype.(eachcol(X)), Union{Real,AbstractVector{<:Real},AbstractMatrix{<:Real}})) "ModalDecisionTrees.jl only allows variables that are `Real`, `AbstractVector{<:Real}` or `AbstractMatrix{<:Real}`"
-    @assert ! any(map((x)->(any(MDT.ModalLogic.hasnans.(x))), eachcol(X))) "ModalDecisionTrees.jl doesn't allow NaN values"
+    @assert ! any(map((x)->(any(SoleModels.ModalLogic.hasnans.(x))), eachcol(X))) "ModalDecisionTrees.jl doesn't allow NaN values"
 
     Xs_ic = [begin
         X_frame = X[:,frame]

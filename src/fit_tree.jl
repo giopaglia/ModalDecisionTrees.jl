@@ -666,7 +666,7 @@ Base.@propagate_inbounds @inline function split_node!(
 
             # println(instance)
             # println(Sf[i_sample])
-            _sat, _ss = ModalLogic.modal_step(X, idxs[i_sample + r_start], Sf[i_sample], best_decision)
+            _sat, _ss = modalstep(X, idxs[i_sample + r_start], Sf[i_sample], best_decision)
             (satisfied,Ss[best_i_frame][idxs[i_sample + r_start]]) = _sat, _ss
             # @logmsg LogDetail " [$satisfied] Instance $(i_sample)/$(_n_samples)" Sf[i_sample] (if satisfied Ss[best_i_frame][idxs[i_sample + r_start]] end)
             # println(satisfied)

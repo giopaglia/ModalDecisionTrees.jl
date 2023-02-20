@@ -1,6 +1,6 @@
 using Revise
 using ModalDecisionTrees
-using ModalDecisionTrees.ModalLogic
+using SoleModels.ModalLogic
 using ReTest
 
 using Random

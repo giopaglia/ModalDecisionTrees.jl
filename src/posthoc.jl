@@ -248,7 +248,7 @@ function train_functional_leaves(
         unsatisfied_idxs = Integer[]
 
         for i_sample in 1:nsamples(X)
-            (satisfied,new_worlds) = ModalLogic.modal_step(get_frame(X, i_frame(node)), i_sample, worlds[i_dataset][i_frame(node)][i_sample], decision(node))
+            (satisfied,new_worlds) = modalstep(get_frame(X, i_frame(node)), i_sample, worlds[i_dataset][i_frame(node)][i_sample], decision(node))
 
             if satisfied
                 push!(satisfied_idxs, i_sample)

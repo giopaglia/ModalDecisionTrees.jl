@@ -1,5 +1,6 @@
 using ..ModalDecisionTrees
-using ..ModalDecisionTrees.ModalLogic
+using SoleModels
+using SoleModels.ModalLogic
 using ..ModalDecisionTrees: AbstractFeature, TestOperatorFun
 
 using ..ModalDecisionTrees: DTLeaf, DTNode, DTInternal
@@ -29,7 +30,7 @@ _get_path_in_tree(leaf::DTLeaf, X::Any, i_sample::Integer, worlds::AbstractVecto
 function _get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet}, i_frame::Integer, paths::Vector{DecisionPath})::AbstractWorldSet
     satisfied = true
     (satisfied,new_worlds,worlds_map) =
-        ModalLogic.modal_step(
+        modalstep(
                         get_frame(X, i_frame(tree)),
                         i_sample,
                         worlds[i_frame(tree)],

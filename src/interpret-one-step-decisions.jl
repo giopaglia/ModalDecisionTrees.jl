@@ -1,5 +1,21 @@
 
-using ..ModalDecisionTrees: is_propositional_decision, display_decision
+using ResumableFunctions
+using SoleLogics: FullDimensionalFrame
+using Logging: @logmsg
+using SoleModels.ModalLogic: AbstractConditionalDataset, features
+using SoleModels.ModalLogic: FeaturedDataset, SupportedFeaturedDataset, DimensionalFeaturedDataset
+
+using SoleModels.ModalLogic: relations,
+                    grouped_featsaggrsnops,
+                    grouped_featsnaggrs,
+                    fwd,
+                    fwd_gs,
+                    support
+
+using SoleModels.ModalLogic: fwdread_channel,
+                    fwdslice_onestep_accessible_aggregation,
+                    onestep_accessible_aggregation
+
 
 export generate_feasible_decisions
 
@@ -20,14 +36,14 @@ end
 
 # Perform the modal step, that is, evaluate a modal formula
 #  on a domain, and eventually compute the new world set.
-function modal_step(
+function modalstep(
     X::ActiveFeaturedDataset{V,W},
     i_sample::Integer,
     worlds::WorldSetType,
     decision::ExistentialDimensionalDecision{U},
     returns_survivors::Union{Val{true},Val{false}} = Val(false)
 ) where {V,W<:AbstractWorld,WorldSetType<:AbstractWorldSet,U}
-    @logmsg LogDetail "modal_step" worlds display_decision(decision)
+    @logmsg LogDetail "modalstep" worlds display_decision(decision)
 
     satisfied = false
     

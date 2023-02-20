@@ -4,7 +4,8 @@
 module experimentals
 
 using ..ModalDecisionTrees
-using ..ModalDecisionTrees.ModalLogic
+using SoleModels
+using SoleModels.ModalLogic
 using SoleLogics
 
 MDT = ModalDecisionTrees

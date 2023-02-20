@@ -35,6 +35,9 @@ import SoleModels: feature, test_operator, threshold
 
 import AbstractTrees: print_tree
 
+# Data structures
+using SoleModels.ModalLogic
+
 ############################################################################################
 
 export slice_dataset, 
@@ -53,9 +56,8 @@ include("utils.jl")
 # Decisions at the tree's internal nodes
 include("decisions.jl")
 
-# Data structures
-include("ModalLogic/ModalLogic.jl")
-using .ModalLogic
+# TODO fix
+include("interpret-one-step-decisions.jl")
 
 # Loss functions
 include("entropy-measures.jl")
