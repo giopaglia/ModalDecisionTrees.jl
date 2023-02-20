@@ -1,3 +1,5 @@
+using SoleLogics: AbstractRelation
+
 ############################################################################################
 # Ontologies
 ############################################################################################
@@ -86,8 +88,8 @@ const OneWorldOntology   = Ontology{OneWorld}(AbstractRelation[])
 interpret_world(w::Interval2D, instance::DimensionalInstance{T,3}) where {T} = instance[w.x.x:w.x.y-1,w.y.x:w.y.y-1,:]
 
 const IntervalOntology       = Ontology{Interval}(IARelations)
-const Interval3Ontology      = Ontology{ModalLogic.Interval}(ModalLogic.IA7Relations)
-const Interval7Ontology      = Ontology{ModalLogic.Interval}(ModalLogic.IA3Relations)
+const Interval3Ontology      = Ontology{ModalLogic.Interval}(SoleLogics.IA3Relations)
+const Interval7Ontology      = Ontology{ModalLogic.Interval}(SoleLogics.IA7Relations)
 
 const IntervalRCC8Ontology   = Ontology{Interval}(RCC8Relations)
 const IntervalRCC5Ontology   = Ontology{Interval}(RCC5Relations)

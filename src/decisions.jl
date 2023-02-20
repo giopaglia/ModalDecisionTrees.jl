@@ -1,6 +1,7 @@
-using SoleLogics: _RelationId, _RelationGlob
+using SoleLogics: identityrel, globalrel
 
-using SoleModels: AbstractRelation, AbstractFeature, TestOperatorFun, FeatCondition
+using SoleLogics: AbstractRelation
+using SoleModels: AbstractFeature, TestOperatorFun, FeatCondition
 using SoleModels: alpha, syntaxstring
 
 export ExistentialDimensionalDecision,
@@ -98,8 +99,8 @@ feature(d::ModalDimensionalDecision) = feature(proposition(d))
 test_operator(d::ModalDimensionalDecision) = test_operator(proposition(d))
 threshold(d::ModalDimensionalDecision) = threshold(proposition(d))
 
-is_propositional_decision(d::ModalDimensionalDecision) = (relation(d) == RelationId)
-is_global_decision(d::ModalDimensionalDecision) = (relation(d) == RelationGlob)
+is_propositional_decision(d::ModalDimensionalDecision) = (relation(d) == identityrel)
+is_global_decision(d::ModalDimensionalDecision) = (relation(d) == globalrel)
 
 # ⟨R⟩p
 struct ExistentialDimensionalDecision{U} <: ModalDimensionalDecision{U}

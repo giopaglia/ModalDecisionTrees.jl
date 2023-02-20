@@ -25,7 +25,7 @@ mutable struct NodeMeta{L<:Label,P} <: AbstractNode{L}
     i_frame            :: Integer                          # Id of frame
     decision           :: AbstractDecision
 
-    onlyallowRelationGlob:: Vector{Bool}
+    onlyallowglobal:: Vector{Bool}
 
     function NodeMeta{L,P}(
             region      :: UnitRange{Int},
@@ -39,7 +39,7 @@ mutable struct NodeMeta{L<:Label,P} <: AbstractNode{L}
         node.modal_depth = modal_depth
         node.purity = P(NaN)
         node.is_leaf = false
-        node.onlyallowRelationGlob = oura
+        node.onlyallowglobal = oura
         node
     end
 end
@@ -53,11 +53,11 @@ end
     mdepth = node.modal_depth+Int(!node.is_leaf && !is_propositional_decision(node.decision))
     @logmsg LogDetail "fork!(...): " node ind region mdepth
 
-    # onlyallowRelationGlob changes:
+    # onlyallowglobal changes:
     # on the left node, the frame where the decision was taken
-    l_oura = copy(node.onlyallowRelationGlob)
+    l_oura = copy(node.onlyallowglobal)
     l_oura[node.i_frame] = false
-    r_oura = node.onlyallowRelationGlob
+    r_oura = node.onlyallowglobal
 
     # no need to copy because we will copy at the end
     node.l = typeof(node)(region[    1:ind], depth, mdepth, l_oura)
@@ -155,18 +155,18 @@ end
 #   # Note: the identity relation is the first, and it is the one representing
 #   #  propositional splits.
 
-#   if RelationId in ontology_relations
-#       throw_n_log("Found RelationId in ontology provided. No need.")
-#       # ontology_relations = filter(e->e ≠ RelationId, ontology_relations)
+#   if identityrel in ontology_relations
+#       throw_n_log("Found identityrel in ontology provided. No need.")
+#       # ontology_relations = filter(e->e ≠ identityrel, ontology_relations)
 #   end
 
-#   if RelationGlob in ontology_relations
-#       throw_n_log("Found RelationGlob in ontology provided. Use allow_global_splits = true instead.")
-#       # ontology_relations = filter(e->e ≠ RelationGlob, ontology_relations)
+#   if globalrel in ontology_relations
+#       throw_n_log("Found globalrel in ontology provided. Use allow_global_splits = true instead.")
+#       # ontology_relations = filter(e->e ≠ globalrel, ontology_relations)
 #       # allow_global_splits = true
 #   end
 
-#   relations = [RelationId, RelationGlob, ontology_relations...]
+#   relations = [identityrel, globalrel, ontology_relations...]
 #   relationId_id = 1
 #   relationGlob_id = 2
 #   ontology_relation_ids = map((x)->x+2, 1:length(ontology_relations))
@@ -234,7 +234,7 @@ Base.@propagate_inbounds @inline function split_node!(
     # Modal parameters
     n_subrelations            :: AbstractVector{NSubRelationsFunction}, # relations used for the decisions
     n_subfeatures             :: AbstractVector{Int},        # number of features for the decisions
-    allow_global_splits       :: AbstractVector{Bool},       # allow/disallow using RelationGlob at any decisional node
+    allow_global_splits       :: AbstractVector{Bool},       # allow/disallow using globalrel at any decisional node
     ##########################################################################
     # Other
     idxs                      :: AbstractVector{Int},
@@ -409,7 +409,7 @@ Base.@propagate_inbounds @inline function split_node!(
                 frame_n_subrelations::Function,
                 frame_n_subfeatures,
                 frame_allow_global_splits,
-                frame_onlyallowRelationGlob)) in enumerate(zip(frames(Xs), Sfs, n_subrelations, n_subfeatures, allow_global_splits, node.onlyallowRelationGlob))
+                frame_onlyallowglobal)) in enumerate(zip(frames(Xs), Sfs, n_subrelations, n_subfeatures, allow_global_splits, node.onlyallowglobal))
 
         @logmsg LogDetail "  Frame $(best_i_frame)/$(length(frames(Xs)))"
 
@@ -424,7 +424,7 @@ Base.@propagate_inbounds @inline function split_node!(
             allow_propositional_decisions, allow_modal_decisions, allow_global_decisions = begin
                 if worldtype(X) == OneWorld
                     true, false, false
-                elseif frame_onlyallowRelationGlob
+                elseif frame_onlyallowglobal
                     false, false, true
                 else
                     true, true, frame_allow_global_splits
@@ -811,8 +811,8 @@ end
 
     # Create root node
     NodeMetaT = NodeMeta{(_is_classification isa Val{true} ? Int64 : Float64),Float64}
-    onlyallowRelationGlob = [(iC == ModalDecisionTrees.start_without_world) for iC in init_conditions]
-    root = NodeMetaT(1:_n_samples, 0, 0, onlyallowRelationGlob)
+    onlyallowglobal = [(iC == ModalDecisionTrees.start_without_world) for iC in init_conditions]
+    root = NodeMetaT(1:_n_samples, 0, 0, onlyallowglobal)
     
     # if print_progress TODO
     #     p = ProgressThresh(Inf, 1, "Computing DTree...")

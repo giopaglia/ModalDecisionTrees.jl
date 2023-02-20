@@ -1,5 +1,7 @@
 using ProgressMeter
 
+using SoleLogics: AbstractRelation
+
 using SoleModels: CanonicalFeatureGeq, CanonicalFeatureGeqSoft, CanonicalFeatureLeq, CanonicalFeatureLeqSoft
 using SoleModels: evaluate_thresh_decision, existential_aggregator, aggregator_bottom, aggregator_to_binary
 import SoleModels: check
@@ -86,9 +88,8 @@ featvaltype(d::ActiveFeaturedDataset) = featvaltype(typeof(d))
 featuretype(::Type{<:ActiveFeaturedDataset{V,W,FR,FT}}) where {V,W,FR,FT} = FT
 featuretype(d::ActiveFeaturedDataset) = featuretype(typeof(d))
 
-nsamples(X::ActiveFeaturedDataset) = error("Please, provide method nsamples(::$(typeof(X))).")
-Base.length(X::ActiveFeaturedDataset) = nsamples(X)
-Base.iterate(X::ActiveFeaturedDataset, state=1) = state > nsamples(X) ? nothing : (get_instance(X, state), state+1)
+# Base.length(X::ActiveFeaturedDataset) = nsamples(X)
+# Base.iterate(X::ActiveFeaturedDataset, state=1) = state > nsamples(X) ? nothing : (get_instance(X, state), state+1)
 
 function find_feature_id(X::ActiveFeaturedDataset, feature::AbstractFeature)
     id = findfirst(x->(Base.isequal(x, feature)), features(X))
@@ -114,6 +115,29 @@ include("passive-dimensional-dataset.jl")
 include("dimensional-featured-dataset.jl")
 include("featured-dataset.jl")
 
+abstract type SupportingDataset{W<:AbstractWorld,FR<:AbstractFrame{W,Bool}} end
+
+isminifiable(X::SupportingDataset) = false
+
+worldtype(X::SupportingDataset{W}) where {W} = W
+
+function display_structure(X::SupportingDataset; indent_str = "")
+    out = "$(typeof(X))\t$((Base.summarysize(X)) / 1024 / 1024 |> x->round(x, digits=2)) MBs"
+    out *= " ($(round(nmemoizedvalues(X))) values)\n"
+    out
+end
+
+abstract type FeaturedSupportingDataset{V<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}} <: SupportingDataset{W,FR} end
+
+
+include("supported-featured-dataset.jl")
+
+include("one-step-featured-supporting-dataset/main.jl")
+include("generic-supporting-datasets.jl")
+
+############################################################################################
+
+
 @inline function check(p::Proposition{C}, X::Union{PassiveDimensionalDataset{N,W} where N,ActiveFeaturedDataset{<:Number,W}}, i_sample::Integer, w::W) where {C<:FeatCondition,W<:AbstractWorld}
     c = atom(p)
     evaluate_thresh_decision(SoleModels.test_operator(c), X[i_sample, w, SoleModels.feature(c)], SoleModels.threshold(c))
@@ -127,18 +151,17 @@ end
 hasformula(memo_structure::AbstractDict{F}, φ::SyntaxTree) where {F<:Union{SyntaxTree,Formula}} = haskey(memo_structure, φ)
 hasformula(memo_structure::AbstractDict{SyntaxTree}, φ::Formula) = haskey(memo_structure, φ)
 
-
 function check(
-    φ::Union{SyntaxTree,Formula}, # TODO use SoleLogics.AbstractFormula ?
+    φ::Union{SyntaxTree,SoleLogics.AbstractFormula},
     X::Union{PassiveDimensionalDataset{N,W} where N,ActiveFeaturedDataset{<:Number,W,FR}}, # AbstractConditionalDataset{W,C,T,FR},
     i_sample;
-    use_memo::Union{Nothing,AbstractDict{F,T}} = nothing,
+    use_memo::Union{Nothing,AbstractVector{<:AbstractDict{F,T}}} = nothing,
     # memo_max_height = Inf,
-) where {W<:AbstractWorld,T<:Bool,FR<:AbstractMultiModalFrame{W,T},F<:Union{SyntaxTree,Formula}}
+) where {W<:AbstractWorld,T<:Bool,FR<:AbstractMultiModalFrame{W,T},F<:Union{SyntaxTree,SoleLogics.AbstractFormula}}
     
     @assert SoleLogics.isglobal(φ) "TODO expand code to specifying a world, defaulted to an initialworld. Cannot check non-global formula: $(syntaxstring(φ))."
     
-    φ = φ isa Formula ? tree(φ) : φ
+    # φ = φ isa SoleLogics.AbstractFormula ? tree(φ) : φ
 
     memo_structure = begin
         if isnothing(use_memo)
@@ -154,6 +177,8 @@ function check(
 
     # φ = normalize(φ) # TODO normalize formula and/or use a dedicate memoization structure that normalizes functions
 
+    fr = frame(X, i_sample)
+    
     if !hasformula(memo_structure, φ)
         for ψ in unique(SoleLogics.subformulas(φ))
             # @show ψ
@@ -162,7 +187,16 @@ function check(
             #     push!(forget_list, ψ)
             # end
             if !hasformula(memo_structure, ψ)
-                _check(ψ, X, i_sample, memo_structure)
+                tok = token(ψ)
+                memo_structure[ψ] = begin
+                    if tok isa SoleLogics.AbstractOperator
+                        collect(SoleLogics.collateworlds(fr, tok, map(f->memo_structure[f], children(ψ))))
+                    elseif tok isa Proposition
+                        filter(w->check(tok, X, i_sample, w), collect(allworlds(fr)))
+                    else
+                        error("Unexpected token encountered in _check: $(typeof(tok))")
+                    end
+                end
             end
             # @show syntaxstring(ψ), memo_structure[ψ]
         end
@@ -183,47 +217,68 @@ function check(
     return length(memo_structure[φ]) > 0
 end
 
-function _check(
-    φ::SyntaxTree,
-    X::Union{PassiveDimensionalDataset{N,W} where N,ActiveFeaturedDataset{<:Number,W,FR}}, # AbstractConditionalDataset{W,C,T,FR},
-    i_sample,
-    use_memo::AbstractDict{F,WS},
-) where {W<:AbstractWorld,T<:Bool,FR<:AbstractMultiModalFrame{W,T},F<:Union{SyntaxTree,Formula},WS<:AbstractWorldSet{W}}
-    tok = token(φ)
-    fr = frame(X, i_sample)
-    use_memo[φ] = begin
-        if tok isa AbstractOperator
-            # @show syntaxstring.(children(φ))
-            # @show collect(SoleLogics.collate_worlds(fr, tok, map(ψ->use_memo[ψ], children(φ))))
-            collect(SoleLogics.collate_worlds(fr, tok, map(ψ->use_memo[ψ], children(φ))))
-        elseif tok isa Proposition
-            # @show filter(w->check(tok, X, i_sample, w), collect(allworlds(fr)))
-            filter(w->check(tok, X, i_sample, w), collect(allworlds(fr)))
+############################################################################################
+
+function compute_chained_threshold(
+    φ::Union{SyntaxTree,SoleLogics.AbstractFormula},
+    X::SupportedFeaturedDataset{V,W,FR},
+    i_sample;
+    use_memo::Union{Nothing,AbstractVector{<:AbstractDict{F,T}}} = nothing,
+) where {V<:Number,W<:AbstractWorld,T<:Bool,FR<:AbstractMultiModalFrame{W,T},F<:Union{SyntaxTree,SoleLogics.AbstractFormula}}
+    
+    @assert SoleLogics.isglobal(φ) "TODO expand code to specifying a world, defaulted to an initialworld. Cannot check non-global formula: $(syntaxstring(φ))."
+
+    memo_structure = begin
+        if isnothing(use_memo)
+            Dict{SyntaxTree,V}()
         else
-            error("Unexpected token encountered in _check: $(typeof(tok))")
+            use_memo[i_sample]
         end
     end
+
+    # φ = normalize(φ) # TODO normalize formula and/or use a dedicate memoization structure that normalizes functions
+
+    fr = frame(X, i_sample)
+    
+    if !hasformula(memo_structure, φ)
+        for ψ in unique(SoleLogics.subformulas(φ))
+            if !hasformula(memo_structure, ψ)
+                tok = token(ψ)
+                memo_structure[ψ] = begin
+                    if tok isa AbstractRelationalOperator && length(children(φ)) == 1 && height(φ) == 1
+                        featcond = atom(token(children(φ)[1]))
+                        if tok isa DiamondRelationalOperator
+                            # (L) f > a <-> max(acc) > a
+                            onestep_accessible_aggregation(X, i_sample, w, relation(tok), feature(featcond), existential_aggregator(test_operator(featcond)))
+                        elseif tok isa BoxRelationalOperator
+                            # [L] f > a  <-> min(acc) > a <-> ! (min(acc) <= a) <-> ¬ <L> (f <= a)
+                            onestep_accessible_aggregation(X, i_sample, w, relation(tok), feature(featcond), universal_aggregator(test_operator(featcond)))
+                        else
+                            error("Unexpected operator encountered in onestep_collateworlds: $(typeof(tok))")
+                        end
+                    else
+                        TODO
+                    end
+                end
+            end
+            # @show syntaxstring(ψ), memo_structure[ψ]
+        end
+    end
+
+    # # All the worlds where a given formula is valid are returned.
+    # # Then, internally, memoization-regulation is applied
+    # # to forget some formula thus freeing space.
+    # fcollection = deepcopy(memo(X))
+    # for h in forget_list
+    #     k = fhash(h)
+    #     if hasformula(memo_structure, k)
+    #         empty!(memo(X, k)) # Collection at memo(X)[k] is erased
+    #         pop!(memo(X), k)    # Key k is deallocated too
+    #     end
+    # end
+
+    return memo_structure[φ]
 end
 
-
-abstract type SupportingDataset{W<:AbstractWorld,FR<:AbstractFrame{W,Bool}} end
-
-isminifiable(X::SupportingDataset) = false
-
-worldtype(X::SupportingDataset{W}) where {W} = W
-
-function display_structure(X::SupportingDataset; indent_str = "")
-    out = "$(typeof(X))\t$((Base.summarysize(X)) / 1024 / 1024 |> x->round(x, digits=2)) MBs"
-    out *= " ($(round(nmemoizedvalues(X))) values)\n"
-    out
-end
-
-abstract type FeaturedSupportingDataset{V<:Number,W<:AbstractWorld,FR<:AbstractFrame{W,Bool}} <: SupportingDataset{W,FR} end
-
-
-include("supported-featured-dataset.jl")
-
-include("one-step-featured-supporting-dataset/main.jl")
-include("generic-supporting-datasets.jl")
 
 ############################################################################################

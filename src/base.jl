@@ -15,16 +15,16 @@ function initialworldset(frs::AbstractVector{<:AbstractMultiModalFrame}, iCs::Ab
     [initialworldset(fr, iC) for (fr, iC) in zip(frs, iCs)]
 end
 
-function initialworldset(::AbstractMultiModalFrame{W}, iC::StartWithoutWorld) where {W<:AbstractWorld}
-    WorldSet{W}([W(ModalLogic.EmptyWorld())])
+function initialworldset(fr::AbstractMultiModalFrame{W}, iC::StartWithoutWorld) where {W<:AbstractWorld}
+    WorldSet{W}([SoleLogics.emptyworld(fr)])
 end
 
-function initialworldset(::AbstractMultiModalFrame{W}, iC::StartAtCenter) where {W<:AbstractWorld}
-    WorldSet{W}([W(ModalLogic.CenteredWorld(), args...)])
+function initialworldset(fr::AbstractMultiModalFrame{W}, iC::StartAtCenter) where {W<:AbstractWorld}
+    WorldSet{W}([SoleLogics.centeredworld(fr)])
 end
 
 function initialworldset(::AbstractMultiModalFrame{W}, iC::StartAtWorld{W}) where {W<:AbstractWorld}
-    WorldSet{W}([W(iC.w)])
+    WorldSet{W}([iC.w])
 end
 
 function initialworldsets(Xs::MultiFrameModalDataset, iCs::AbstractVector{<:InitCondition})
@@ -643,7 +643,7 @@ end
 
     @testset "Decision internal node (DTInternal) + Decision Tree & Forest (DTree & DForest)" begin
 
-        decision = ExistentialDimensionalDecision(RelationGlob, SingleAttributeMin(1), >=, 10)
+        decision = ExistentialDimensionalDecision(globalrel, SingleAttributeMin(1), >=, 10)
 
         reg_leaf, cls_leaf = DTLeaf([1.0,2.0]), DTLeaf([1,2])
 

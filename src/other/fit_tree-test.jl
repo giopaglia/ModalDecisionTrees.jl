@@ -107,8 +107,8 @@ Y  = Int64[fill(1, _n_samples_h)..., fill(2, _n_samples_h)...]
 idxs = collect(1:_n_samples)
 Ss = ModalDecisionTrees.initialworldsets(Xs, init_conditions)
 
-onlyallowRelationGlob = [(iC == ModalDecisionTrees.start_without_world) for iC in init_conditions]
-node = ModalDecisionTrees.NodeMeta{Float64,Int64}(1:_n_samples, 0, 0, onlyallowRelationGlob)
+onlyallowglobal = [(iC == ModalDecisionTrees.start_without_world) for iC in init_conditions]
+node = ModalDecisionTrees.NodeMeta{Float64,Int64}(1:_n_samples, 0, 0, onlyallowglobal)
 
 
 @code_warntype ModalDecisionTrees.split_node!(node, Xs, Ss, Y, init_conditions, W;

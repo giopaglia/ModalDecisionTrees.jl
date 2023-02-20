@@ -1,3 +1,5 @@
+using SoleLogics: AbstractRelation
+
 world2frametype = Dict([
     OneWorld => FullDimensionalFrame{0,OneWorld,Bool},
     Interval => FullDimensionalFrame{1,Interval,Bool},
@@ -12,9 +14,9 @@ struct Ontology{W<:AbstractWorld}
 
     function Ontology{W}(_relations::AbstractVector) where {W<:AbstractWorld}
         _relations = collect(unique(_relations))
-        for relation in _relations
-            @assert goeswith(world2frametype[W], relation) "Can't instantiate Ontology{$(W)} with relation $(relation)!"
-        end
+        # for relation in _relations
+        #     @assert goeswith(world2frametype[W], relation) "Can't instantiate Ontology{$(W)} with relation $(relation)!"
+        # end
         if W == OneWorld && length(_relations) > 0
           _relations = similar(_relations, 0)
           @warn "Instantiating Ontology{$(W)} with empty set of relations!"

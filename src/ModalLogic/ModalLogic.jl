@@ -20,7 +20,7 @@ import Base: size, show, getindex, iterate, length, push!
 # Reexport from SoleLogics:
 export AbstractWorld, AbstractRelation
 export AbstractWorldSet, WorldSet
-export RelationGlob, RelationId
+export globalrel, identityrel
 
 export Ontology, worldtype, world_types
 
@@ -36,7 +36,7 @@ using SoleModels: AbstractMultiModalFrame
 using SoleData: _isnan
 import SoleData: hasnans
 
-import SoleLogics: goeswith
+# import SoleLogics: goeswith
 import SoleLogics: initialworldset
 using SoleLogics: InitCondition
 import SoleLogics: worldtype

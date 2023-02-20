@@ -41,7 +41,7 @@ struct PassiveDimensionalDataset{
     ) where {N,W<:AbstractWorld,DOM<:AbstractDimensionalDataset,FR<:AbstractDimensionalFrame{N,W,TruthValue}}
         ty = "PassiveDimensionalDataset{$(N),$(W),$(DOM),$(FR)}"
         @assert N == dimensionality(d) "ERROR! Dimensionality mismatch: can't instantiate $(ty) with underlying structure $(DOM). $(N) == $(dimensionality(d)) should hold."
-        @assert SoleLogics.goeswith_dim(W, N) "ERROR! Dimensionality mismatch: can't interpret worldtype $(W) on PassiveDimensionalDataset of dimensionality = $(N)"
+        @assert SoleLogics.goeswithdim(W, N) "ERROR! Dimensionality mismatch: can't interpret worldtype $(W) on PassiveDimensionalDataset of dimensionality = $(N)"
         new{N,W,DOM,FR}(d)
     end
     

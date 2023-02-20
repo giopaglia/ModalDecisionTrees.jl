@@ -48,7 +48,7 @@ function _parse_tree(tree_str::String; check_format = true, _depth = 0, offset =
     function _parse_decision((i_this_line, decision_str)::Tuple{<:Integer,<:AbstractString},)
         function _parse_relation(relation_str)
             rel_d = Dict([
-                "G" => SL.RelationGlob,
+                "G" => SL.globalrel,
                 "A" => SL.IA_A,
                 "L" => SL.IA_L,
                 "B" => SL.IA_B,
@@ -63,7 +63,7 @@ function _parse_tree(tree_str::String; check_format = true, _depth = 0, offset =
                 "Oi" => SL.IA_Oi,        "O̅" => SL.IA_Oi,
             ])
             if isnothing(relation_str)
-                RelationId
+                identityrel
             else
                 rel_d[relation_str]
             end

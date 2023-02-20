@@ -60,9 +60,9 @@ struct OneStepFeaturedSupportingDataset{
         featsnaggrs = features_grouped_featsaggrsnops2featsnaggrs(features(emd), grouped_featsaggrsnops(emd))
     
         compute_fwd_gs = begin
-            if RelationGlob in _relations
-                throw_n_log("RelationGlob in relations: $(_relations)")
-                _relations = filter!(l->l≠RelationGlob, _relations)
+            if globalrel in _relations
+                throw_n_log("globalrel in relations: $(_relations)")
+                _relations = filter!(l->l≠globalrel, _relations)
                 true
             elseif compute_relation_glob
                 true
@@ -105,13 +105,13 @@ struct OneStepFeaturedSupportingDataset{
 
                 # Global relation (independent of the current world)
                 if compute_fwd_gs
-                    # @logmsg LogDebug "RelationGlob"
+                    # @logmsg LogDebug "globalrel"
 
                     # TODO optimize: all aggregators are likely reading the same raw values.
                     for (i_featsnaggr,aggr) in aggregators
                     # Threads.@threads for (i_featsnaggr,aggr) in aggregators
                         
-                        gamma = fwdslice_onestep_accessible_aggregation(emd, fwdslice, i_sample, RelationGlob, feature, aggr)
+                        gamma = fwdslice_onestep_accessible_aggregation(emd, fwdslice, i_sample, globalrel, feature, aggr)
 
                         # @logmsg LogDebug "Aggregator[$(i_featsnaggr)]=$(aggr)  -->  $(gamma)"
 

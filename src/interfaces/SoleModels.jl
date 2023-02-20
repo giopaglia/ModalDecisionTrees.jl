@@ -151,7 +151,7 @@ function pathformula(internal::Vector{<:DTInternal{L,<:ExistentialDimensionalDec
         if isleftchild(nodes[2], nodes[1])
             dec = ModalDecisionTrees.decision(nodes[1])
             p = get_proposition(dec)
-            isprop = (relation(dec) == RelationId)
+            isprop = (relation(dec) == identityrel)
 
             if isleftchild(nodes[3], nodes[2])
                 if isprop

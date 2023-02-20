@@ -854,13 +854,13 @@ MMI.metadata_model(
 
 # # DOCUMENT STRINGS
 
-const DOC_CART = "[CART algorithm](https://en.wikipedia.org/wiki/Decision_tree_learning)"*
+const DOC_CART = "[CART algorithm](https://en.m.wikipedia.org/wiki/Decision_tree_learning)"*
 ", originally published in Breiman, Leo; Friedman, J. H.; Olshen, R. A.; "*
 "Stone, C. J. (1984): \"Classification and regression trees\". *Monterey, "*
 "CA: Wadsworth & Brooks/Cole Advanced Books & Software.*"
 
 const DOC_RANDOM_FOREST = "[Random Forest algorithm]"*
-    "(https://en.wikipedia.org/wiki/Random_forest), originally published in "*
+    "(https://en.m.wikipedia.org/wiki/Random_forest), originally published in "*
     "Breiman, L. (2001): \"Random Forests.\", *Machine Learning*, vol. 45, pp. 5–32"
 
 function docstring_piece_1(
