@@ -176,18 +176,17 @@ function inverse(decision::UniversalDimensionalDecision{U}) where {U}
 end
 
 function display_decision(
-        decision::Union{ExistentialDimensionalDecision,UniversalDimensionalDecision};
-        threshold_display_method::Function = x -> x,
-        attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing,
-        use_feature_abbreviations::Bool = false,
+    decision::Union{ExistentialDimensionalDecision,UniversalDimensionalDecision};
+    threshold_display_method::Function = x -> x,
+    attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing,
+    use_feature_abbreviations::Bool = false,
+)
+    prop_decision_str = syntaxstring(
+        decision.p;
+        threshold_display_method = threshold_display_method,
+        attribute_names_map = attribute_names_map,
+        use_feature_abbreviations = use_feature_abbreviations,
     )
-    prop_decision_str = "$(
-        syntaxstring(
-            decision.p.metacond; # TODO use methods to access metacond
-            attribute_names_map = attribute_names_map,
-            use_feature_abbreviations = use_feature_abbreviations,
-        )
-    ) $(threshold_display_method(threshold(decision)))"
     if !is_propositional_decision(decision)
         rel_display_fun = (decision isa ExistentialDimensionalDecision ? display_existential : display_universal)
         "$(rel_display_fun(relation(decision))) ($prop_decision_str)"
