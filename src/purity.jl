@@ -11,7 +11,7 @@ end
 # function _compute_purity( # faster_version assuming L<:Integer and labels going from 1:n_classes
 #     labels           ::AbstractVector{L},
 #     n_classes        ::Int,
-#     weights          ::AbstractVector{U} = default_weights(length(labels));
+#     weights          ::AbstractVector{U} = default_weights(labels);
 #     loss_function    ::Union{Nothing,Function} = default_loss_function(L),
 # ) where {L<:CLabel,L<:Integer,U}
 #     nc = fill(zero(U), n_classes)
@@ -23,7 +23,7 @@ end
 # end
 function compute_purity(
     labels           ::AbstractVector{L},
-    weights          ::AbstractVector{U} = default_weights(length(labels));
+    weights          ::AbstractVector{U} = default_weights(labels);
     loss_function    ::Union{Nothing,Function} = default_loss_function(L),
 ) where {L<:CLabel,U}
     nc = Dict{L,U}()
@@ -36,7 +36,7 @@ function compute_purity(
 end
 # function _compute_purity(
 #     labels           ::AbstractVector{L},
-#     weights          ::AbstractVector{U} = default_weights(length(labels));
+#     weights          ::AbstractVector{U} = default_weights(labels);
 #     loss_function    ::Union{Nothing,Function} = default_loss_function(L),
 # ) where {L<:RLabel,U}
 #     sums = labels .* weights
@@ -45,7 +45,7 @@ end
 # end
 function compute_purity(
     labels           ::AbstractVector{L},
-    weights          ::AbstractVector{U} = default_weights(length(labels));
+    weights          ::AbstractVector{U} = default_weights(labels);
     loss_function    ::Union{Nothing,Function} = default_loss_function(L),
 ) where {L<:RLabel,U}
     _compute_purity = _compute_purity(labels, weights = weights; loss_function = loss_function)

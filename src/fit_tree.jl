@@ -279,7 +279,7 @@ Base.@propagate_inbounds @inline function split_node!(
             purity = loss_function(loss_function(nc, nt)::Float64)::Float64
             # Assign the most likely label before the split
             prediction = argmax(nc)
-            # prediction = average_label(Yf)
+            # prediction = best_guess(Yf)
             (nc, nt), (purity, prediction)
         end
     else
@@ -315,7 +315,7 @@ Base.@propagate_inbounds @inline function split_node!(
             end
             # Assign the most likely label before the split
             prediction =  tsum / nt
-            # prediction = average_label(Yf)
+            # prediction = best_guess(Yf)
             sums, (tsum, nt), (purity, prediction)
         end
     end
@@ -954,7 +954,7 @@ function fit_tree(
         # world starting conditions
         init_conditions           :: Vector{<:InitCondition},
         # Weights (unary weigths are used if no weight is supplied)
-        W                         :: AbstractVector{U} = default_weights(nsamples(Xs))
+        W                         :: AbstractVector{U} = default_weights(Y)
         # W                       :: AbstractVector{U} = Ones{Int}(nsamples(Xs)), # TODO check whether this is faster
         ;
         # Perform minification: transform dataset so that learning happens faster

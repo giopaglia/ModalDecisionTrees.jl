@@ -381,7 +381,7 @@ function merge_into_leaf(leaves::AbstractVector{<:NSDTLeaf{L}}) where {L}
     supp_train_predictions = L.(collect(Iterators.flatten(map((leaf)->leaf.supp_train_predictions, leaves))))
     supp_valid_predictions = L.(collect(Iterators.flatten(map((leaf)->leaf.supp_valid_predictions, leaves))))
     supp_labels = [supp_train_labels..., supp_valid_labels..., supp_train_predictions..., supp_valid_predictions...]
-    predicting_function = (args...; kwargs...)->(average_label(supp_labels))
+    predicting_function = (args...; kwargs...)->(best_guess(supp_labels))
     dtleaf_type(
         predicting_function,
         supp_train_labels,

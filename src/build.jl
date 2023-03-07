@@ -39,7 +39,7 @@ end
 function build_tree(
         X                   :: ActiveMultiFrameModalDataset,
         Y                   :: AbstractVector{L},
-        W                   :: Union{Nothing,AbstractVector{U},Symbol}   = default_weights(nsamples(X));
+        W                   :: Union{Nothing,AbstractVector{U},Symbol}   = default_weights(Y);
         ##############################################################################
         loss_function       :: Union{Nothing,Function}            = nothing,
         max_depth           :: Int64                              = default_max_depth,
@@ -62,9 +62,9 @@ function build_tree(
     @assert W isa AbstractVector || W in [nothing, :rebalance, :default]
 
     W = if isnothing(W) || W == :default
-        default_weights(nsamples(X))
+        default_weights(Y)
     elseif W == :rebalance
-        default_weights_rebalance(Y)
+        balanced_weights(Y)
     else
         W
     end
@@ -122,7 +122,7 @@ function build_forest(
         X                   :: ActiveMultiFrameModalDataset,
         Y                   :: AbstractVector{L},
         # Use unary weights if no weight is supplied
-        W                   :: Union{Nothing,AbstractVector{U},Symbol} = default_weights(nsamples(X));
+        W                   :: Union{Nothing,AbstractVector{U},Symbol} = default_weights(Y);
         ##############################################################################
         # Forest logic-agnostic parameters
         n_trees             = 100,
@@ -152,9 +152,9 @@ function build_forest(
     @assert W isa AbstractVector || W in [nothing, :rebalance, :default]
 
     W = if isnothing(W) || W == :default
-        default_weights(nsamples(X))
+        default_weights(Y)
     elseif W == :rebalance
-        default_weights_rebalance(Y)
+        balanced_weights(Y)
     else
         W
     end

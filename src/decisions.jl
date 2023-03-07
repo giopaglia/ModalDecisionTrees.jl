@@ -37,11 +37,11 @@ end
 abstract type SimpleDecision <: AbstractDecision end
 
 function display_decision_inverse(decision::SimpleDecision, kwargs...; args...)
-    display_decision(inverse(decision), kwargs...; args...)
+    display_decision(negation(decision), kwargs...; args...)
 end
 
 function display_decision_inverse(i_frame::Integer, decision::SimpleDecision, kwargs...; args...)
-    display_decision(i_frame, inverse(decision), kwargs...; args...)
+    display_decision(i_frame, negation(decision), kwargs...; args...)
 end
 
 display_existential(rel::AbstractRelation; kwargs...) = SoleLogics.syntaxstring(DiamondRelationalOperator{typeof(rel)}(); kwargs...)
@@ -52,22 +52,22 @@ display_universal(rel::AbstractRelation; kwargs...)   = SoleLogics.syntaxstring(
 # ⊤
 struct TopDecision <: SimpleDecision end
 display_decision(::TopDecision) = "⊤"
-inverse(::TopDecision) = BotDecision()
+negation(::TopDecision) = BotDecision()
 
 # ⊥
 struct BotDecision <: SimpleDecision end
 display_decision(::BotDecision) = "⊥"
-inverse(::BotDecision) = TopDecision()
+negation(::BotDecision) = TopDecision()
 
 # ⟨R⟩⊤
 struct ExistentialTopDecision{R<:AbstractRelation} <: SimpleDecision end
 display_decision(::ExistentialTopDecision{R}) where {R<:AbstractRelation} = "$(display_existential(R))⊤"
-inverse(::ExistentialTopDecision{R}) where {R<:AbstractRelation} = UniversalBotDecision{R}()
+negation(::ExistentialTopDecision{R}) where {R<:AbstractRelation} = UniversalBotDecision{R}()
 
 # [R]⊥
 struct UniversalBotDecision{R<:AbstractRelation} <: SimpleDecision end
 display_decision(::UniversalBotDecision{R}) where {R<:AbstractRelation} = "$(display_universal(R))⊥"
-inverse(::UniversalBotDecision{R}) where {R<:AbstractRelation} = ExistentialTopDecision{R}()
+negation(::UniversalBotDecision{R}) where {R<:AbstractRelation} = ExistentialTopDecision{R}()
 
 ############################################################################################
 ############################################################################################
@@ -86,8 +86,8 @@ feature(d::PropositionalDimensionalDecision) = feature(proposition(d))
 test_operator(d::PropositionalDimensionalDecision) = test_operator(proposition(d))
 threshold(d::PropositionalDimensionalDecision) = threshold(proposition(d))
 
-inverse(p::PropositionalDimensionalDecision{U}) where {U} =
-    PropositionalDimensionalDecision{U}(inverse(p))
+negation(p::PropositionalDimensionalDecision{U}) where {U} =
+    PropositionalDimensionalDecision{U}(negation(p))
 
 ############################################################################################
 
@@ -162,16 +162,16 @@ struct UniversalDimensionalDecision{U} <: ModalDimensionalDecision{U}
     p         :: FeatCondition{U}
 end
 
-function inverse(decision::ExistentialDimensionalDecision{U}) where {U}
+function negation(decision::ExistentialDimensionalDecision{U}) where {U}
     UniversalDimensionalDecision{U}(
         relation(decision),
-        inverse(proposition(decision))
+        negation(proposition(decision))
     )
 end
-function inverse(decision::UniversalDimensionalDecision{U}) where {U}
+function negation(decision::UniversalDimensionalDecision{U}) where {U}
     ExistentialDimensionalDecision{U}(
         relation(decision),
-        inverse(proposition(decision))
+        negation(proposition(decision))
     )
 end
 
