@@ -21,7 +21,7 @@ preds = apply_forest(model, features)
 n_iterations = 15
 model, coeffs = build_adaboost_stumps(labels, features, n_iterations);
 preds = apply_adaboost_stumps(model, coeffs, features);
-@test MLJBase.accuracy(labels, preds); > 0.8
+@test MLJBase.accuracy(labels, preds) > 0.8
 
 println("\n##### 3 foldCV Classification Tree #####")
 pruning_purity = 0.9

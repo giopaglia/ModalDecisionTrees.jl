@@ -4,7 +4,6 @@
 using MLJ
 using ModalDecisionTrees
 using SoleModels
-using SoleModels: ConfusionMatrix
 using Random
 
 # A Modal Decision Tree with ≥ 4 samples at leaf

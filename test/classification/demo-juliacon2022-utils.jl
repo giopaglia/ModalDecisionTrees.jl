@@ -225,3 +225,174 @@ function show_latex(tree; file_suffix = "", attribute_names = nothing, silent = 
     run(`evince $pdf_name`);
     cd("..")
 end
+
+############################################################################################
+############################################################################################
+############################################################################################
+
+using LinearAlgebra
+using StatsBase
+using SoleModels: Label, RLabel, CLabel
+
+struct ConfusionMatrix{T<:Number}
+    ########################################################################################
+    class_names::Vector
+    matrix::Matrix{T}
+    ########################################################################################
+    overall_accuracy::Float64
+    kappa::Float64
+    mean_accuracy::Float64
+    accuracies::Vector{Float64}
+    F1s::Vector{Float64}
+    sensitivities::Vector{Float64}
+    specificities::Vector{Float64}
+    PPVs::Vector{Float64}
+    NPVs::Vector{Float64}
+    ########################################################################################
+
+    function ConfusionMatrix(matrix::AbstractMatrix)
+        ConfusionMatrix(Symbol.(1:size(matrix, 1)), matrix)
+    end
+    function ConfusionMatrix(
+        class_names::Vector,
+        matrix::AbstractMatrix{T},
+    ) where {T<:Number}
+
+        @assert size(matrix,1) == size(matrix,2) "Can't instantiate ConfusionMatrix with matrix of size ($(size(matrix))"
+        n_classes = size(matrix,1)
+        @assert length(class_names) == n_classes "Can't instantiate ConfusionMatrix with mismatching n_classes ($(n_classes)) and class_names $(class_names)"
+
+        ALL = sum(matrix)
+        TR = LinearAlgebra.tr(matrix)
+        F = ALL-TR
+
+        overall_accuracy = TR / ALL
+        prob_chance = (sum(matrix,dims=1) * sum(matrix,dims=2))[1] / ALL^2
+        kappa = (overall_accuracy - prob_chance) / (1.0 - prob_chance)
+
+        ####################################################################################
+        TPs = Vector{Float64}(undef, n_classes)
+        TNs = Vector{Float64}(undef, n_classes)
+        FPs = Vector{Float64}(undef, n_classes)
+        FNs = Vector{Float64}(undef, n_classes)
+
+        for i in 1:n_classes
+            class = i
+            other_classes = [(1:i-1)..., (i+1:n_classes)...]
+            TPs[i] = sum(matrix[class,class])
+            TNs[i] = sum(matrix[other_classes,other_classes])
+            FNs[i] = sum(matrix[class,other_classes])
+            FPs[i] = sum(matrix[other_classes,class])
+        end
+        ####################################################################################
+
+        # https://en.m.wikipedia.org/wiki/Accuracy_and_precision#In_binary_classification
+        accuracies = (TPs .+ TNs)./ALL
+        mean_accuracy = StatsBase.mean(accuracies)
+
+        # https://en.m.wikipedia.org/wiki/F-score
+        F1s           = TPs./(TPs.+.5*(FPs.+FNs))
+
+        # https://en.m.wikipedia.org/wiki/Sensitivity_and_specificity
+        sensitivities = TPs./(TPs.+FNs)
+        specificities = TNs./(TNs.+FPs)
+        PPVs          = TPs./(TPs.+FPs)
+        NPVs          = TNs./(TNs.+FNs)
+
+        new{T}(class_names,
+            matrix,
+            overall_accuracy,
+            kappa,
+            mean_accuracy,
+            accuracies,
+            F1s,
+            sensitivities,
+            specificities,
+            PPVs,
+            NPVs,
+        )
+    end
+
+    function ConfusionMatrix(
+        actual::AbstractVector{L},
+        predicted::AbstractVector{L},
+        weights::Union{Nothing,AbstractVector{Z}} = nothing;
+        force_class_order = nothing,
+    ) where {L<:CLabel,Z}
+        @assert length(actual) == length(predicted) "Can't compute ConfusionMatrix with uneven number of actual $(length(actual)) and predicted $(length(predicted)) labels."
+
+        if isnothing(weights)
+            weights = default_weights(actual)
+        end
+        @assert length(actual) == length(weights)   "Can't compute ConfusionMatrix with uneven number of actual $(length(actual)) and weights $(length(weights)) labels."
+
+        class_labels = begin
+            class_labels = unique([actual; predicted])
+            if isnothing(force_class_order)
+                class_labels = sort(class_labels, lt=SoleBase.nat_sort)
+            else
+                @assert length(setdiff(force_class_order, class_labels)) == 0
+                class_labels = force_class_order
+            end
+            # Binary case: retain order of classes YES/NO
+            if length(class_labels) == 2 &&
+                    startswith(class_labels[1], "YES") &&
+                    startswith(class_labels[2], "NO")
+                class_labels = reverse(class_labels)
+            end
+            class_labels
+        end
+
+        _n_samples = length(actual)
+        _actual    = zeros(Int, _n_samples)
+        _predicted = zeros(Int, _n_samples)
+
+        n_classes = length(class_labels)
+        for i in 1:n_classes
+            _actual[actual .== class_labels[i]] .= i
+            _predicted[predicted .== class_labels[i]] .= i
+        end
+
+        matrix = zeros(eltype(weights),n_classes,n_classes)
+        for (act,pred,w) in zip(_actual, _predicted, weights)
+            matrix[act,pred] += w
+        end
+        ConfusionMatrix(class_labels, matrix)
+    end
+end
+
+overall_accuracy(cm::ConfusionMatrix) = cm.overall_accuracy
+kappa(cm::ConfusionMatrix)            = cm.kappa
+
+class_counts(cm::ConfusionMatrix) = sum(cm.matrix,dims=2)
+
+function Base.show(io::IO, cm::ConfusionMatrix)
+
+    max_num_digits = maximum(length(string(val)) for val in cm.matrix)
+
+    println(io, "Confusion Matrix ($(length(cm.class_names)) classes):")
+    for (i,(row,class_name,sensitivity)) in enumerate(zip(eachrow(cm.matrix),cm.class_names,cm.sensitivities))
+        for val in row
+            print(io, lpad(val,max_num_digits+1," "))
+        end
+        println(io, "\t\t\t$(round(100*sensitivity, digits=2))%\t\t$(class_name)")
+    end
+
+    ############################################################################
+    println(io, "accuracy =\t\t$(round(overall_accuracy(cm), digits=4))")
+    println(io, "κ =\t\t\t$(round(cm.kappa, digits=4))")
+    ############################################################################
+    println(io, "sensitivities:\t\t$(round.(cm.sensitivities, digits=4))")
+    println(io, "specificities:\t\t$(round.(cm.specificities, digits=4))")
+    println(io, "PPVs:\t\t\t$(round.(cm.PPVs, digits=4))")
+    println(io, "NPVs:\t\t\t$(round.(cm.NPVs, digits=4))")
+    print(io,   "F1s:\t\t\t$(round.(cm.F1s, digits=4))")
+    println(io, "\tmean_F1:\t$(round(cm.mean_accuracy, digits=4))")
+    print(io,   "accuracies:\t\t$(round.(cm.accuracies, digits=4))")
+    println(io, "\tmean_accuracy:\t$(round(cm.mean_accuracy, digits=4))")
+end
+
+
+############################################################################################
+############################################################################################
+############################################################################################

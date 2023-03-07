@@ -2,8 +2,6 @@
 
 # Import ModalDecisionTrees.jl & MLJ
 using ModalDecisionTrees
-using SoleModels
-using SoleModels: ConfusionMatrix
 using MLJ
 
 ################################################################################
@@ -26,7 +24,6 @@ yhat = MLJ.predict(mach, Xnew) # probabilistic predictions
 
 yhat = MLJ.predict(mach, X)
 
-cm = ConfusionMatrix(Vector{String}(y), yhat);
-@test overall_accuracy(cm) > 0.8
+@test MLJBase.accuracy(y, yhat) > 0.8
 
 end
