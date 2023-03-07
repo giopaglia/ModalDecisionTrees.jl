@@ -7,8 +7,7 @@ features, labels = load_data("adult")
 
 model = build_tree(labels, features)
 preds = apply_tree(model, features)
-cm = compute_metrics(labels, preds)
-@test cm.accuracy > 0.99
+@test MLJBase.accuracy(labels, preds) > 0.99
 
 features = string.(features)
 labels   = string.(labels)
@@ -17,14 +16,12 @@ n_subfeatures = 3
 n_trees = 5
 model = build_forest(labels, features, n_subfeatures, n_trees)
 preds = apply_forest(model, features)
-cm = compute_metrics(labels, preds)
-@test cm.accuracy > 0.9
+@test MLJBase.accuracy(labels, preds) > 0.9
 
 n_iterations = 15
 model, coeffs = build_adaboost_stumps(labels, features, n_iterations);
 preds = apply_adaboost_stumps(model, coeffs, features);
-cm = compute_metrics(labels, preds);
-@test cm.accuracy > 0.8
+@test MLJBase.accuracy(labels, preds); > 0.8
 
 println("\n##### 3 foldCV Classification Tree #####")
 pruning_purity = 0.9

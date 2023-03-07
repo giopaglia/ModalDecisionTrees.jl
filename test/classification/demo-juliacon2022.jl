@@ -2,7 +2,7 @@
 
 # Import ModalDecisionTrees.jl & MLJ
 using ModalDecisionTrees
-using ModalDecisionTrees: ConfusionMatrix
+using SoleModels: ConfusionMatrix
 using MLJ
 
 include("demo-juliacon2022-utils.jl");

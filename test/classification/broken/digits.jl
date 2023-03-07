@@ -71,15 +71,13 @@ model = ModalDecisionTrees.build_forest(
         min_samples_split,
         min_purity_increase)
 preds = apply_forest(model, X)
-cm = compute_metrics(y, preds)
-@test cm.accuracy > 0.95
+@test MLJBase.accuracy(y, preds) > 0.95
 
 n_iterations        = 100
 model, coeffs = ModalDecisionTrees.build_adaboost_stumps(
         y, X,
         n_iterations);
 preds = apply_adaboost_stumps(model, coeffs, X);
-cm = compute_metrics(y, preds)
-@test cm.accuracy > 0.8
+@test MLJBase.accuracy(y, preds) > 0.8
 
 end # @testset

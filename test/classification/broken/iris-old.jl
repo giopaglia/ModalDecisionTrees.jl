@@ -11,8 +11,7 @@ n = length(labels)
 # train a decision stump (depth=1)
 model = build_stump(labels, features)
 preds = apply_tree(model, features)
-cm = compute_metrics(labels, preds)
-@test cm.accuracy > 0.6
+@test MLJBase.accuracy(labels, preds) > 0.6
 @test depth(model) == 1
 probs = apply_tree_proba(model, features, classes)
 @test reshape(sum(probs, dims=2), n) ≈ ones(n)
@@ -20,8 +19,7 @@ probs = apply_tree_proba(model, features, classes)
 # train full-tree classifier (over-fit)
 model = build_tree(labels, features)
 preds = apply_tree(model, features)
-cm = compute_metrics(labels, preds)
-@test cm.accuracy == 1.0
+@test MLJBase.accuracy(labels, preds) == 1.0
 @test length(model) == 9
 @test depth(model) == 5
 @test typeof(preds) == Vector{String}
@@ -34,16 +32,14 @@ pruning_purity = 0.9
 pt = prune_tree(model, pruning_purity)
 @test length(pt) == 8
 preds = apply_tree(pt, features)
-cm = compute_metrics(labels, preds)
-@test 0.99 < cm.accuracy < 1.0
+@test 0.99 < MLJBase.accuracy(labels, preds) < 1.0
 
 # prune tree to 3 leaves
 pruning_purity = 0.6
 pt = prune_tree(model, pruning_purity)
 @test length(pt) == 3
 preds = apply_tree(pt, features)
-cm = compute_metrics(labels, preds)
-@test 0.95 < cm.accuracy < 1.0
+@test 0.95 < MLJBase.accuracy(labels, preds) < 1.0
 probs = apply_tree_proba(model, features, classes)
 @test reshape(sum(probs, dims=2), n) ≈ ones(n)
 
@@ -52,8 +48,7 @@ pruning_purity = 0.5
 pt = prune_tree(model, pruning_purity)
 @test length(pt) == 2
 preds = apply_tree(pt, features)
-cm = compute_metrics(labels, preds)
-@test 0.66 < cm.accuracy < 1.0
+@test 0.66 < MLJBase.accuracy(labels, preds) < 1.0
 
 
 # run n-fold cross validation for pruned tree
@@ -68,8 +63,7 @@ n_subfeatures = 2
 partial_sampling = 0.5
 model = build_forest(labels, features, n_subfeatures, n_trees, partial_sampling)
 preds = apply_forest(model, features)
-cm = compute_metrics(labels, preds)
-@test cm.accuracy > 0.95
+@test MLJBase.accuracy(labels, preds) > 0.95
 @test typeof(preds) == Vector{String}
 probs = apply_forest_proba(model, features, classes)
 @test reshape(sum(probs, dims=2), n) ≈ ones(n)
@@ -87,8 +81,7 @@ accuracy = nfoldCV_forest(labels, features, nfolds, n_subfeatures, n_trees, part
 n_iterations = 15
 model, coeffs = build_adaboost_stumps(labels, features, n_iterations)
 preds = apply_adaboost_stumps(model, coeffs, features)
-cm = compute_metrics(labels, preds)
-@test cm.accuracy > 0.9
+@test MLJBase.accuracy(labels, preds) > 0.9
 @test typeof(preds) == Vector{String}
 probs = apply_adaboost_stumps_proba(model, coeffs, features, classes)
 @test reshape(sum(probs, dims=2), n) ≈ ones(n)

@@ -2,6 +2,7 @@ using Test
 
 using ModalDecisionTrees
 using MLJ
+using MLJBase
 using SoleModels
 using DataFrames
 

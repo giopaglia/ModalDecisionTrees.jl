@@ -22,9 +22,7 @@ mach = machine(model, X_train, y_train) |> fit!
 
 yhat = MLJ.predict(mach, X_test)
 
-m = SoleModels.compute_metrics(yhat, y_test)
-
-@test m.cor > 0.45
+@test StatsBase.cor(yhat, y_test) > 0.45
 
 
 model = ModalRandomForest()
@@ -33,9 +31,7 @@ mach = machine(model, X_train, y_train) |> fit!
 
 yhat = MLJ.predict(mach, X_test)
 
-m = SoleModels.compute_metrics(yhat, y_test)
-
-@test m.cor > 0.5
+@test StatsBase.cor(yhat, y_test) > 0.5
 
 # using Plots
 # p = sortperm(y_test)

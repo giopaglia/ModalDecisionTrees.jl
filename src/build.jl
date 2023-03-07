@@ -234,15 +234,14 @@ function build_forest(
         # grab out-of-bag indices
         oob_samples[i_tree] = setdiff(1:tot_samples, train_idxs)
 
-        oob_metrics[i_tree] = begin
-            if length(oob_samples[i_tree]) == 0
-                # compute_metrics([Inf],[-Inf])
-                compute_metrics(["__FAKE__"],["__FAKE2__"]) # TODO
-            else
-                tree_preds = apply_tree(trees[i_tree], _slice_dataset(X, oob_samples[i_tree], Val(true)))
-                compute_metrics(Y[oob_samples[i_tree]], tree_preds, SoleModels.slice_weights(W, oob_samples[i_tree]))
-            end
-        end
+        tree_preds = apply_tree(trees[i_tree], _slice_dataset(X, oob_samples[i_tree], Val(true)))
+
+        oob_metrics[i_tree] = (;
+            actual = Y[oob_samples[i_tree]],
+            predicted = tree_preds,
+            weights = collect(SoleModels.slice_weights(W, oob_samples[i_tree]))
+        )
+
         !print_progress || next!(p)
     end
 
