@@ -94,8 +94,11 @@ end
 
             mixed_features = cnv_feat.(mixed_features)
 
-            readymade_cfs          = filter(x->isa(x, Tuple{<:AbstractVector{<:TestOperatorFun},ModalFeature}), mixed_features)
-            attribute_specific_cfs = filter(x->isa(x, CanonicalFeature) || isa(x, Tuple{<:AbstractVector{<:TestOperatorFun},Function}), mixed_features)
+            # readymade_cfs          = filter(x->isa(x, Tuple{<:AbstractVector{<:TestOperatorFun},ModalFeature}), mixed_features)
+            # attribute_specific_cfs = filter(x->isa(x, CanonicalFeature) || isa(x, Tuple{<:AbstractVector{<:TestOperatorFun},Function}), mixed_features)
+            
+            readymade_cfs          = filter(x->isa(x, Tuple{AbstractVector,ModalFeature}), mixed_features)
+            attribute_specific_cfs = filter(x->isa(x, CanonicalFeature) || isa(x, Tuple{AbstractVector,Function}), mixed_features)
 
             @assert length(readymade_cfs) + length(attribute_specific_cfs) == length(mixed_features) "Unexpected" *
                 " mixed_features: $(filter(x->(! (x in readymade_cfs) && ! (x in attribute_specific_cfs)), mixed_features))." *
