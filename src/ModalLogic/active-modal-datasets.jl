@@ -95,24 +95,22 @@ end
 
             mixed_features = cnv_feat.(mixed_features)
 
-            @show typeof(mixed_features)
-
             readymade_cfs          = filter(x->
-                isa(x, Tuple{AbstractVector,<:ModalFeature}),
+                isa(x, Tuple{AbstractVector,ModalFeature}),
                 mixed_features,
             )
             attribute_specific_cfs = filter(x->
                 isa(x, CanonicalFeature) ||
-                isa(x, Tuple{AbstractVector,Function}),
+                (isa(x, Tuple{AbstractVector,Function}) && !isa(x, Tuple{AbstractVector,ModalFeature})),
                 mixed_features,
             )
-            if !(length(readymade_cfs) + length(attribute_specific_cfs) == length(mixed_features))
-                @warn "Unexpected" *
-                    " mixed_features. $(mixed_features)." *
-                    " $(filter(x->(! (x in readymade_cfs) && ! (x in attribute_specific_cfs)), mixed_features))." *
-                    " $(length(readymade_cfs)) + $(length(attribute_specific_cfs)) == $(length(mixed_features))."
-            end
             
+            @assert length(readymade_cfs) + length(attribute_specific_cfs) == length(mixed_features) "" *
+                "Unexpected" *
+                " mixed_features. $(mixed_features)." *
+                " $(filter(x->(! (x in readymade_cfs) && ! (x in attribute_specific_cfs)), mixed_features))." *
+                " $(length(readymade_cfs)) + $(length(attribute_specific_cfs)) == $(length(mixed_features))."
+
             for (test_ops,cf) in readymade_cfs
                 push!(_features, cf)
                 push!(featsnops, test_ops)
