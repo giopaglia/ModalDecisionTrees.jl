@@ -54,7 +54,7 @@ end
     function InterpretedModalDataset(
         domain::DimensionalDataset{T,D},
         ontology::Ontology{WorldType},
-        mixed_features::AbstractVector{<:MixedFeature},
+        mixed_features::AbstractVector,
     ) where {T, N, D, WorldType<:World}
         InterpretedModalDataset{T}(domain, ontology, mixed_features)
     end
@@ -62,7 +62,7 @@ end
     function InterpretedModalDataset{T}(
         domain::DimensionalDataset{T,D},
         ontology::Ontology{WorldType},
-        mixed_features::AbstractVector{<:MixedFeature},
+        mixed_features::AbstractVector,
     ) where {T, N, D, WorldType<:World}
         InterpretedModalDataset{T, D-1-1}(domain, ontology, mixed_features)
     end
@@ -70,7 +70,7 @@ end
     function InterpretedModalDataset{T, N}(
         domain::DimensionalDataset{T,D},
         ontology::Ontology{WorldType},
-        mixed_features::AbstractVector{<:MixedFeature},
+        mixed_features::AbstractVector,
     ) where {T, N, D, WorldType<:World}
         InterpretedModalDataset{T, N, WorldType}(domain, ontology, mixed_features)
     end
@@ -78,8 +78,13 @@ end
     function InterpretedModalDataset{T, N, WorldType}(
         domain::DimensionalDataset{T,D},
         ontology::Ontology{WorldType}, # default to get_interval_ontology(Val(D-1-1)) ?
-        mixed_features::AbstractVector{<:MixedFeature},
+        mixed_features::AbstractVector,
     ) where {T, N, D, WorldType<:World}
+
+        @assert all(isa.(mixed_features, MixedFeature)) "Unknown feature encountered!" *
+            " $(filter(f->!isa(f, MixedFeature), mixed_features)), " *
+            " $(typeof.(filter(f->!isa(f, MixedFeature), mixed_features)))"
+
         _features, featsnops = begin
             _features = ModalFeature[]
             featsnops = Vector{<:TestOperatorFun}[]
@@ -104,7 +109,7 @@ end
                 (isa(x, Tuple{AbstractVector,Function}) && !isa(x, Tuple{AbstractVector,ModalFeature})),
                 mixed_features,
             )
-            
+
             @assert length(readymade_cfs) + length(attribute_specific_cfs) == length(mixed_features) "" *
                 "Unexpected" *
                 " mixed_features. $(mixed_features)." *
