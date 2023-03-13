@@ -286,14 +286,14 @@ struct ConfusionMatrix{T<:Number}
         end
         ####################################################################################
 
-        # https://en.m.wikipedia.org/wiki/Accuracy_and_precision#In_binary_classification
+        # https://en.wikipedia.org/wiki/Accuracy_and_precision#In_binary_classification
         accuracies = (TPs .+ TNs)./ALL
         mean_accuracy = StatsBase.mean(accuracies)
 
-        # https://en.m.wikipedia.org/wiki/F-score
+        # https://en.wikipedia.org/wiki/F-score
         F1s           = TPs./(TPs.+.5*(FPs.+FNs))
 
-        # https://en.m.wikipedia.org/wiki/Sensitivity_and_specificity
+        # https://en.wikipedia.org/wiki/Sensitivity_and_specificity
         sensitivities = TPs./(TPs.+FNs)
         specificities = TNs./(TNs.+FPs)
         PPVs          = TPs./(TPs.+FPs)

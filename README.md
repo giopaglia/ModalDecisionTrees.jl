@@ -5,7 +5,7 @@
 ### Interpretable models for native time-series & image classification!
 
 This package provides algorithms for learning *decision trees* and *decision forests* with enhanced abilities.
-Leveraging the express power of Modal Logic, these models can extract *temporal/spatial patterns*, and can natively handle *time series* and *images* (without any data preprocessing). Currently available via [MLJ.jl](https://github.com/alan-turing-institute/MLJ.jl).
+Leveraging the express power of Modal Logic, these models can extract *temporal/spatial patterns*, and can natively handle *time series* and *images* (without any data preprocessing). Currently available via [MLJ.jl](https://github.com/alan-turing-institute/MLJ.jl) and [Sole.jl](https://github.com/aclai-lab/Sole.jl).
 
 #### Features & differences with [DecisionTree.jl](https://github.com/JuliaAI/DecisionTree.jl):
 - Ability to handle attributes that are `AbstractVector{<:Real}` or `AbstractMatrix{<:Real}`;
@@ -143,7 +143,7 @@ A DecisionTree model can be visualized using the print_tree-function of its nati
 
 ## Theoretical foundations
 
-Most of the works in *symbolic learning* are based either on Propositional Logics (PLs) or First-order Logics (FOLs); PLs are the simplest kind of logic and can only handle *tabular data*, while FOLs can express complex entity-relation concepts. Machine Learning with FOLs enables handling data with complex topologies, such as time series, images, or videos; however, these logics are computationally challenging. Instead, Modal Logics (e.g. [Interval Logic](https://en.m.wikipedia.org/wiki/Interval_temporal_logic)) represent a perfect trade-off in terms of computational tractability and expressive power, and naturally lend themselves for expressing some forms of *temporal/spatial reasoning*.
+Most of the works in *symbolic learning* are based either on Propositional Logics (PLs) or First-order Logics (FOLs); PLs are the simplest kind of logic and can only handle *tabular data*, while FOLs can express complex entity-relation concepts. Machine Learning with FOLs enables handling data with complex topologies, such as time series, images, or videos; however, these logics are computationally challenging. Instead, Modal Logics (e.g. [Interval Logic](https://en.wikipedia.org/wiki/Interval_temporal_logic)) represent a perfect trade-off in terms of computational tractability and expressive power, and naturally lend themselves for expressing some forms of *temporal/spatial reasoning*.
 
 Recently, symbolic learning techniques such as Decision Trees, Random Forests and Rule-Based models have been extended to the use of Modal Logics of time and space. *Modal Decision Trees* and *Modal Random Forests* have been applied to classification tasks, showing statistical performances that are often comparable to those of functional methods (e.g., neural networks), while providing, at the same time, highly-interpretable classification models. Examples of these tasks are COVID-19 diagnosis from cough/breath audio [[1]](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4102488), [[2]](https://drops.dagstuhl.de/opus/volltexte/2021/14783/pdf/LIPIcs-TIME-2021-7.pdf), land cover classification from aereal images [[3]](https://arxiv.org/abs/2109.08325), EEG-related tasks [[4]](https://link.springer.com/chapter/10.1007/978-3-031-06242-1_53), and gas turbine trip prediction.
 This technology also offers a natural extension for *multimodal* learning [[5]](http://ceur-ws.org/Vol-2987/paper7.pdf).
@@ -152,8 +152,9 @@ This technology also offers a natural extension for *multimodal* learning [[5]](
 
 The package is developed by Giovanni Pagliarini ([@giopaglia](https://giopaglia.github.io/)) and Federico Manzella ([@ferdiu](https://ferdiu.github.io/)).
 
-Thanks to [ACLAI Lab](https://aclai.unife.it/index.php/en/home-page/) @ University of Ferrara.
+Thanks to [ACLAI Lab](https://aclai.unife.it/en/) @ University of Ferrara.
 
-Thanks to Ben Sadeghi ([@bensadeghi](https://github.com/bensadeghi/)), original author of [DecisionTree.jl](https://github.com/bensadeghi/DecisionTree.jl).
+Thanks to Ben Sadeghi ([@bensadeghi](https://github.com/bensadeghi/)), author of [DecisionTree.jl](https://github.com/bensadeghi/DecisionTree.jl),
+which inspired the construction of this package.
 
 <!-- TODO add citation and CITATION.bib file -->

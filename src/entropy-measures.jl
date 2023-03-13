@@ -1,7 +1,7 @@
 default_loss_function(::Type{<:CLabel}) = entropy
 default_loss_function(::Type{<:RLabel}) = variance
 
-################################################################################
+############################################################################################
 # Loss functions for regression and classification
 # These functions return the additive inverse of entropy measures
 # 
@@ -12,9 +12,12 @@ default_loss_function(::Type{<:RLabel}) = variance
 # 
 # Note: regression losses are defined in the weighted & unweigthed versions
 # TODO: write a loss based on gini index
-################################################################################
+############################################################################################
 
-################################################################################
+# Useful references:
+# - Wang, Y., & Xia, S. T. (2017, March). Unifying attribute splitting criteria of decision trees by Tsallis entropy. In 2017 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP) (pp. 2507-2511). IEEE.
+
+############################################################################################
 # Classification: Shannon entropy
 # (ps = normalize(ws, 1); return -sum(ps.*log.(ps)))
 # Source: _shannon_entropy from https://github.com/bensadeghi/DecisionTree.jl/blob/master/src/util.jl, with inverted sign
@@ -47,7 +50,7 @@ end
 # ShannonEntropy() = _shannon_entropy
 ShannonEntropy() = _shannon_entropy_mod
 
-################################################################################
+############################################################################################
 # Classification: Shannon (second untested version)
 
 # # Single
@@ -77,7 +80,7 @@ ShannonEntropy() = _shannon_entropy_mod
 #     e*log2(ℯ)
 # end
 
-################################################################################
+############################################################################################
 # Classification: Tsallis entropy
 # (ps = normalize(ws, 1); return -log(sum(ps.^alpha))/(1.0-alpha)) with (alpha > 1.0)
 
@@ -103,7 +106,7 @@ end
 
 TsallisEntropy(alpha::AbstractFloat) = (args...)->_tsallis_entropy(alpha, args...)
 
-################################################################################
+############################################################################################
 # Classification: Renyi entropy
 # (ps = normalize(ws, 1); -(1.0-sum(ps.^alpha))/(alpha-1.0)) with (alpha > 1.0)
 
@@ -129,8 +132,8 @@ end
 
 RenyiEntropy(alpha::AbstractFloat) = (args...)->_renyi_entropy(alpha, args...)
 
-################################################################################
-# Regression: Variance (weighted & unweigthed, see https://en.m.wikipedia.org/wiki/Weighted_arithmetic_mean)
+############################################################################################
+# Regression: Variance (weighted & unweigthed, see https://en.wikipedia.org/wiki/Weighted_arithmetic_mean)
 
 # Single
 # sum(ws .* ((ns .- (sum(ws .* ns)/t)).^2)) / (t)

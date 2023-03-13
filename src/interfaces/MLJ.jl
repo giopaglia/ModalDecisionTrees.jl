@@ -854,13 +854,13 @@ MMI.metadata_model(
 
 # # DOCUMENT STRINGS
 
-const DOC_CART = "[CART algorithm](https://en.m.wikipedia.org/wiki/Decision_tree_learning)"*
+const DOC_CART = "[CART algorithm](https://en.wikipedia.org/wiki/Decision_tree_learning)"*
 ", originally published in Breiman, Leo; Friedman, J. H.; Olshen, R. A.; "*
 "Stone, C. J. (1984): \"Classification and regression trees\". *Monterey, "*
 "CA: Wadsworth & Brooks/Cole Advanced Books & Software.*"
 
 const DOC_RANDOM_FOREST = "[Random Forest algorithm]"*
-    "(https://en.m.wikipedia.org/wiki/Random_forest), originally published in "*
+    "(https://en.wikipedia.org/wiki/Random_forest), originally published in "*
     "Breiman, L. (2001): \"Random Forests.\", *Machine Learning*, vol. 45, pp. 5–32"
 
 function docstring_piece_1(
@@ -888,9 +888,9 @@ Train the machine with `fit!(mach)`.
 - `min_purity_increase=$(default_min_purity_increase)`: Minimum purity needed for a split
 - `max_purity_at_leaf=$(default_max_purity_at_leaf)`: Minimum purity needed for a split
 - `relations=nothing`       Relations that the model uses to "move" around the image; it can be a symbol in [:IA, :IA3, :IA7, :RCC5, :RCC8],
-                            where :IA stands [Allen's Interval Algebra](https://en.m.wikipedia.org/wiki/Allen%27s_interval_algebra) (13 relations in 1D, 169 relations in 2D),
+                            where :IA stands [Allen's Interval Algebra](https://en.wikipedia.org/wiki/Allen%27s_interval_algebra) (13 relations in 1D, 169 relations in 2D),
                             :IA3 and :IA7 are [coarser fragments with 3 and 7 relations, respectively](https://www.sciencedirect.com/science/article/pii/S0004370218305964),
-                            :RCC5 and :RCC8 are [Region Connection Calculus algebras](https://en.m.wikipedia.org/wiki/Region_connection_calculus) with 5 and 8 topological operators, respectively.
+                            :RCC5 and :RCC8 are [Region Connection Calculus algebras](https://en.wikipedia.org/wiki/Region_connection_calculus) with 5 and 8 topological operators, respectively.
                             Relations from :IA, :IA3, :IA7, capture directional aspects of the relative arrangement of two intervals in time (or rectangles in a 2D space),
                              while relations from :RCC5 and :RCC8 only capture topological aspects and are therefore rotation-invariant.
                             This hyper-parameter defaults to :IA for temporal variables (1D), and to :RCC8 for spatial variables (2D).
