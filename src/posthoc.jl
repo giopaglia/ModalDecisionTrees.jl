@@ -137,6 +137,7 @@ function nondominated_pruning_parametrizations(args::AbstractVector; do_it_or_no
                 :n_subfeatures,
                 :init_conditions,
                 :allow_global_splits,
+                :hybrid_type,
                 :rng,
                 :partial_sampling,
                 :perform_consistency_check,
@@ -149,7 +150,7 @@ function nondominated_pruning_parametrizations(args::AbstractVector; do_it_or_no
             ]
 
             dominating = OrderedDict()
-            @assert all((a)->length(setdiff(collect(keys(a)), [to_opt..., to_match..., to_leave...])) == 0, args) "Got unexpected model parameters in: $(args)"
+            @assert all(map((a)->length(setdiff(collect(keys(a)), [to_opt..., to_match..., to_leave...])), args) .== 0) "Got unexpected model parameters in: $(args)"
 
             # Note: this optimizatio assumes that parameters are defaulted to their bottom value
             polarity(::Val{:max_depth})           = max
