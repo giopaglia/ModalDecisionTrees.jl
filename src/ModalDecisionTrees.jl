@@ -22,6 +22,7 @@ export Decision,                # Decision (e.g., (e.g., ⟨L⟩ (minimum(A2) �
         DTNode,                 # Decision node (leaf or internal)
         DTree,                  # Decision tree
         DForest,                # Decision forest
+        RootLevelNeuroSymbolicHybrid,                # Root-level neurosymbolic hybrid model
         #
         num_nodes, height, modal_height
 
@@ -545,6 +546,32 @@ struct DForest{L<:Label} <: SymbolicModel{L}
 end
 
 ############################################################################################
+
+# Ensamble of decision trees weighted by softmax autoencoder
+struct RootLevelNeuroSymbolicHybrid{F<:Any,L<:Label} <: SymbolicModel{L}
+    feature_function :: F
+    # trees
+    trees       :: Vector{<:DTree{L}}
+    # metrics
+    metrics     :: NamedTuple
+
+    function RootLevelNeuroSymbolicHybrid{F,L}(
+        feature_function :: F,
+        trees     :: AbstractVector{<:DTree},
+        metrics   :: NamedTuple = (;),
+    ) where {F<:Any,L<:Label}
+        new{F,L}(feature_function, collect(trees), metrics)
+    end
+    function RootLevelNeuroSymbolicHybrid(
+        feature_function :: F,
+        trees     :: AbstractVector{<:DTree{L}},
+        metrics   :: NamedTuple = (;),
+    ) where {F<:Any,L<:Label}
+        RootLevelNeuroSymbolicHybrid{F,L}(feature_function, trees, metrics)
+    end
+end
+
+############################################################################################
 # Methods
 ############################################################################################
 
@@ -552,36 +579,46 @@ end
 num_leaves(leaf::AbstractDecisionLeaf)     = 1
 num_leaves(node::DTInternal) = num_leaves(node.left) + num_leaves(node.right)
 num_leaves(tree::DTree)      = num_leaves(tree.root)
+num_leaves(f::DForest)      = sum(num_leaves.(f.trees))
+num_leaves(nsdt::RootLevelNeuroSymbolicHybrid)      = sum(num_leaves.(nsdt.trees))
 
 # Number of nodes
 num_nodes(leaf::AbstractDecisionLeaf)     = 1
 num_nodes(node::DTInternal) = 1 + num_nodes(node.left) + num_nodes(node.right)
 num_nodes(tree::DTree)   = num_nodes(tree.root)
 num_nodes(f::DForest) = sum(num_nodes.(f.trees))
+num_nodes(nsdt::RootLevelNeuroSymbolicHybrid)      = sum(num_nodes.(nsdt.trees))
 
 # Number of trees
 num_trees(f::DForest) = length(f.trees)
 Base.length(f::DForest)    = num_trees(f)
+num_trees(nsdt::RootLevelNeuroSymbolicHybrid) = length(nsdt.trees)
+Base.length(nsdt::RootLevelNeuroSymbolicHybrid)    = num_trees(nsdt)
 
 # Height
 height(leaf::AbstractDecisionLeaf)     = 0
 height(node::DTInternal) = 1 + max(height(node.left), height(node.right))
 height(tree::DTree)      = height(tree.root)
+height(f::DForest)      = maximum(height.(f.trees))
+height(nsdt::RootLevelNeuroSymbolicHybrid)      = maximum(height.(nsdt.trees))
 
 # Modal height
 modal_height(leaf::AbstractDecisionLeaf)     = 0
 modal_height(node::DTInternal) = Int(is_modal_node(node)) + max(modal_height(node.left), modal_height(node.right))
 modal_height(tree::DTree)      = modal_height(tree.root)
+modal_height(f::DForest)      = maximum(modal_height.(f.trees))
+modal_height(nsdt::RootLevelNeuroSymbolicHybrid)      = maximum(modal_height.(nsdt.trees))
 
 # Number of supporting instances
 n_samples(leaf::AbstractDecisionLeaf; train_or_valid = true) = length(supp_labels(leaf; train_or_valid = train_or_valid))
 n_samples(node::DTInternal;           train_or_valid = true) = n_samples(node.left; train_or_valid = train_or_valid) + n_samples(node.right; train_or_valid = train_or_valid)
 n_samples(tree::DTree;                train_or_valid = true) = n_samples(tree.root; train_or_valid = train_or_valid)
+n_samples(nsdt::RootLevelNeuroSymbolicHybrid;                 train_or_valid = true) = maximum(map(t->n_samples(t; train_or_valid = train_or_valid), nsdt.trees)) # TODO actually wrong
 
 # TODO remove deprecated use num_leaves
 Base.length(leaf::AbstractDecisionLeaf)     = num_leaves(leaf)
 Base.length(node::DTInternal) = num_leaves(node)
-Base.length(tree::DTree)      = num_leaves(tree)
+Base.length(model::SymbolicModel)      = num_leaves(tree)
 
 ############################################################################################
 ############################################################################################
@@ -678,10 +715,19 @@ end
 
 function Base.show(io::IO, forest::DForest{L}) where {L}
     println(io, "Decision Forest{$(L)}(")
-    println(io, "\t# trees: $(length(forest))")
+    println(io, "\t# trees: $(num_trees(forest))")
     println(io, "\tmetrics: $(forest.metrics)")
     println(io, "\ttrees:")
     print_model(io, forest)
+    println(io, ")")
+end
+
+function Base.show(io::IO, nsdt::RootLevelNeuroSymbolicHybrid{L}) where {L}
+    println(io, "Root-Level Neuro-Symbolic Decision Tree Hybrid{$(L)}(")
+    println(io, "\t# trees: $(num_trees(nsdt))")
+    println(io, "\tmetrics: $(nsdt.metrics)")
+    println(io, "\ttrees:")
+    print_model(io, nsdt)
     println(io, ")")
 end
 

@@ -702,7 +702,7 @@ Base.@propagate_inbounds @inline function split_node!(
                 sum(Wf[BitVector(unsatisfied_flags)])
         end
 
-        if !isapprox(best_consistency,consistency; atol=eps(Float32), rtol=eps(Float32))
+        if !isapprox(best_consistency,consistency; atol=eps(Float16), rtol=eps(Float16))
             errStr = ""
             errStr *= "A low-level error occurred. Please open a pull request with the following info."
             errStr *= "Decision $(best_decision).\n"

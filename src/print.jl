@@ -2,12 +2,15 @@ export print_model, print_tree, print_forest
 
 print_model(tree::DTree;     kwargs...) = print_tree(tree;     kwargs...)
 print_model(forest::DForest; kwargs...) = print_forest(forest; kwargs...)
+print_model(rlnsdt::RootLevelNeuroSymbolicHybrid; kwargs...) = print_rlnsdt(rlnsdt; kwargs...)
 
 print_model(io::IO, tree::DTree;     kwargs...) = print_tree(io, tree;     kwargs...)
 print_model(io::IO, forest::DForest; kwargs...) = print_forest(io, forest; kwargs...)
+print_model(io::IO, rlnsdt::RootLevelNeuroSymbolicHybrid; kwargs...) = print_rlnsdt(io, rlnsdt; kwargs...)
 
-print_forest(forest::DForest, args...; kwargs...) = print_forest(stdout, forest, args...; kwargs...)
 print_tree(tree::Union{DTree,DTNode}, args...; kwargs...) = print_tree(stdout, tree, args...; kwargs...)
+print_forest(forest::DForest, args...; kwargs...) = print_forest(stdout, forest, args...; kwargs...)
+print_rlnsdt(rlnsdt::RootLevelNeuroSymbolicHybrid, args...; kwargs...) = print_rlnsdt(stdout, rlnsdt, args...; kwargs...)
 
 function brief_prediction_str(leaf::DTLeaf)
     string(prediction(leaf))
@@ -24,10 +27,26 @@ function print_forest(
     args...;
     kwargs...,
 )
-    n_trees = length(forest)
-    for i in 1:n_trees
-        println(io, "Tree $(i) / $(n_trees)")
-        print_tree(io, forest.trees[i], args...; kwargs...)
+    n_trees = num_trees(forest)
+    for (i_tree,tree) in enumerate(forest.trees)
+        println(io, "Tree $(i_tree) / $(n_trees)")
+        print_tree(io, tree, args...; kwargs...)
+    end
+end
+
+
+function print_rlnsdt(
+    io::IO,
+    nsdt::RootLevelNeuroSymbolicHybrid,
+    args...;
+    kwargs...,
+)
+    println(io, "Feature function: $(nsdt.feature_function)")
+    println(io, "")
+    n_trees = num_trees(nsdt)
+    for (i_tree,tree) in enumerate(nsdt.trees)
+        println(io, "Tree $(i_tree) / $(n_trees)")
+        print_tree(io, tree, args...; kwargs...)
     end
 end
 

@@ -15,6 +15,9 @@ inst_init_world_sets(Xs::MultiFrameModalDataset, tree::DTree, i_sample::Integer)
     Ss
 end
 
+softmax(v::AbstractVector) = exp.(v) ./ sum(exp.(v))
+softmax(m::AbstractMatrix) = mapslices(softmax, m; dims=1)
+
 ############################################################################################
 ############################################################################################
 ############################################################################################
@@ -109,15 +112,25 @@ function apply(
         trees::AbstractVector{<:DTree{<:L}},
         X::MultiFrameModalDataset;
         suppress_parity_warning = false,
-        tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
+        tree_weights::Union{AbstractMatrix{Z},AbstractVector{Z},Nothing} = nothing,
     ) where {L<:Label, Z<:Real}
     @logmsg DTDetail "apply..."
     n_trees = length(trees)
     _n_samples = n_samples(X)
 
-    if !isnothing(tree_weights)
-        @assert length(trees) === length(tree_weights) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
+    if !(tree_weights isa AbstractMatrix)
+        if isnothing(tree_weights)
+            tree_weights = fill(nothing, length(trees), n_samples(X))
+        elseif tree_weights isa AbstractVector
+            tree_weights = hcat([tree_weights for i in 1:n_samples(X)]...)
+        else
+            @show typef(tree_weights)
+            error("Unexpected tree_weights encountered $(tree_weights).")
+        end
     end
+
+    @assert length(trees) == size(tree_weights, 1) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
+    @assert n_samples(X) == size(tree_weights, 2) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
 
     # apply each tree to the whole dataset
     _predictions = Matrix{L}(undef, n_trees, _n_samples)
@@ -127,8 +140,8 @@ function apply(
 
     # for each instance, aggregate the predictions
     predictions = Vector{L}(undef, _n_samples)
-    Threads.@threads for i in 1:_n_samples
-        predictions[i] = majority_vote(_predictions[:,i], tree_weights; suppress_parity_warning = suppress_parity_warning)
+    Threads.@threads for i_sample in 1:_n_samples
+        predictions[i_sample] = majority_vote(_predictions[:,i_sample], tree_weights[:,i_sample]; suppress_parity_warning = suppress_parity_warning)
     end
 
     predictions
@@ -136,11 +149,11 @@ end
 
 # use a proper forest to test features
 function apply(
-        forest::DForest,
-        X::MultiFrameModalDataset;
-        suppress_parity_warning = false,
-        weight_trees_by::Union{Bool,Symbol,AbstractVector} = false,
-    )
+    forest::DForest,
+    X::MultiFrameModalDataset;
+    suppress_parity_warning = false,
+    weight_trees_by::Union{Bool,Symbol,AbstractVector} = false,
+)
     if weight_trees_by == false
         apply(forest.trees, X; suppress_parity_warning = suppress_parity_warning)
     elseif isa(weight_trees_by, AbstractVector)
@@ -151,6 +164,15 @@ function apply(
     else
         @error "Unexpected value for weight_trees_by: $(weight_trees_by)"
     end
+end
+
+function apply(
+    nsdt::RootLevelNeuroSymbolicHybrid,
+    X::MultiFrameModalDataset;
+    suppress_parity_warning = false,
+)
+    W = softmax(nsdt.feature_function(X))
+    apply(nsdt.trees, X; suppress_parity_warning = suppress_parity_warning, tree_weights = W)
 end
 
 ################################################################################
@@ -281,20 +303,30 @@ end
 
 # use an array of trees to test features
 function apply(
-        trees::AbstractVector{<:DTree{<:L}},
-        X::MultiFrameModalDataset,
-        Y::AbstractVector{<:L};
-        suppress_parity_warning = false,
-        tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
-    ) where {L<:Label, Z<:Real}
+    trees::AbstractVector{<:DTree{<:L}},
+    X::MultiFrameModalDataset,
+    Y::AbstractVector{<:L};
+    suppress_parity_warning = false,
+    tree_weights::Union{AbstractMatrix{Z},AbstractVector{Z},Nothing} = nothing,
+) where {L<:Label, Z<:Real}
     @logmsg DTDetail "apply..."
     trees = deepcopy(trees)
     n_trees = length(trees)
     _n_samples = n_samples(X)
 
-    if !isnothing(tree_weights)
-        @assert length(trees) === length(tree_weights) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
+    if !(tree_weights isa AbstractMatrix)
+        if isnothing(tree_weights)
+            tree_weights = fill(nothing, length(trees), n_samples(X))
+        elseif tree_weights isa AbstractVector
+            tree_weights = hcat([tree_weights for i in 1:n_samples(X)]...)
+        else
+            @show typef(tree_weights)
+            error("Unexpected tree_weights encountered $(tree_weights).")
+        end
     end
+
+    @assert length(trees) == size(tree_weights, 1) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
+    @assert n_samples(X) == size(tree_weights, 2) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
 
     # apply each tree to the whole dataset
     _predictions = Matrix{L}(undef, n_trees, _n_samples)
@@ -304,8 +336,8 @@ function apply(
 
     # for each instance, aggregate the predictions
     predictions = Vector{L}(undef, _n_samples)
-    Threads.@threads for i in 1:_n_samples
-        predictions[i] = majority_vote(_predictions[:,i], tree_weights; suppress_parity_warning = suppress_parity_warning)
+    Threads.@threads for i_sample in 1:_n_samples
+        predictions[i_sample] = majority_vote(_predictions[:,i_sample], tree_weights[:,i_sample]; suppress_parity_warning = suppress_parity_warning)
     end
 
     predictions, trees
@@ -313,13 +345,13 @@ end
 
 # use a proper forest to test features
 function apply(
-        forest::DForest,
-        X::MultiFrameModalDataset,
-        Y::AbstractVector{<:L};
-        suppress_parity_warning = false,
-        weight_trees_by::Union{Bool,Symbol,AbstractVector} = false,
-        kwargs...
-    ) where {L<:Label}
+    forest::DForest,
+    X::MultiFrameModalDataset,
+    Y::AbstractVector{<:L};
+    suppress_parity_warning = false,
+    weight_trees_by::Union{Bool,Symbol,AbstractVector} = false,
+    kwargs...
+) where {L<:Label}
     predictions, trees = begin
         if weight_trees_by == false
             apply(forest.trees, X, Y; suppress_parity_warning = suppress_parity_warning, kwargs...)
@@ -333,6 +365,25 @@ function apply(
         end
     end
     predictions, DForest{L}(trees, (;)) # TODO note that the original metrics are lost here
+end
+
+function apply(
+    nsdt::RootLevelNeuroSymbolicHybrid,
+    X::MultiFrameModalDataset,
+    Y::AbstractVector{<:L};
+    suppress_parity_warning = false,
+    kwargs...
+) where {L<:Label}
+    W = softmax(nsdt.feature_function(X))
+    predictions, trees = apply(
+        nsdt.trees,
+        X,
+        Y;
+        suppress_parity_warning = suppress_parity_warning,
+        tree_weights = W,
+        kwargs...,
+    )
+    predictions, RootLevelNeuroSymbolicHybrid(nsdt.feature_function, trees, (;)) # TODO note that the original metrics are lost here
 end
 
 # function apply(tree::DTNode{T, L}, X::DimensionalDataset{T,D}, Y::AbstractVector{<:L}; reset_leaves = true, update_labels = false) where {L, T, D}
