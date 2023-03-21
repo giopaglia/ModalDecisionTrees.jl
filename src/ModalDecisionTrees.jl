@@ -618,7 +618,7 @@ n_samples(nsdt::RootLevelNeuroSymbolicHybrid;                 train_or_valid = t
 # TODO remove deprecated use num_leaves
 Base.length(leaf::AbstractDecisionLeaf)     = num_leaves(leaf)
 Base.length(node::DTInternal) = num_leaves(node)
-Base.length(model::SymbolicModel)      = num_leaves(tree)
+Base.length(model::SymbolicModel)      = num_leaves(model)
 
 ############################################################################################
 ############################################################################################
