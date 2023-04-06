@@ -132,7 +132,7 @@ average_label(labels::AbstractVector{<:RLabel}) = majority_vote(labels; suppress
 
 function majority_vote(
         labels::AbstractVector{L},
-        weights::Union{Nothing,AbstractVector} = nothing;
+        weights::Union{Nothing,AbstractVector{<:Real}} = nothing;
         suppress_parity_warning = false,
     ) where {L<:CLabel}
 

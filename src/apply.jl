@@ -109,18 +109,18 @@ end
 
 # use an array of trees to test features
 function apply(
-        trees::AbstractVector{<:DTree{<:L}},
-        X::MultiFrameModalDataset;
-        suppress_parity_warning = false,
-        tree_weights::Union{AbstractMatrix{Z},AbstractVector{Z},Nothing} = nothing,
-    ) where {L<:Label, Z<:Real}
+    trees::AbstractVector{<:DTree{<:L}},
+    X::MultiFrameModalDataset;
+    suppress_parity_warning = false,
+    tree_weights::Union{AbstractMatrix{Z},AbstractVector{Z},Nothing} = nothing,
+) where {L<:Label, Z<:Real}
     @logmsg DTDetail "apply..."
     n_trees = length(trees)
     _n_samples = n_samples(X)
 
     if !(tree_weights isa AbstractMatrix)
         if isnothing(tree_weights)
-            tree_weights = fill(nothing, length(trees), n_samples(X))
+            tree_weights = fill(1, length(trees), n_samples(X)) # TODO optimize?
         elseif tree_weights isa AbstractVector
             tree_weights = hcat([tree_weights for i in 1:n_samples(X)]...)
         else
@@ -141,7 +141,11 @@ function apply(
     # for each instance, aggregate the predictions
     predictions = Vector{L}(undef, _n_samples)
     Threads.@threads for i_sample in 1:_n_samples
-        predictions[i_sample] = majority_vote(_predictions[:,i_sample], tree_weights[:,i_sample]; suppress_parity_warning = suppress_parity_warning)
+        predictions[i_sample] = majority_vote(
+            _predictions[:,i_sample],
+            tree_weights[:,i_sample];
+            suppress_parity_warning = suppress_parity_warning
+        )
     end
 
     predictions
@@ -316,7 +320,7 @@ function apply(
 
     if !(tree_weights isa AbstractMatrix)
         if isnothing(tree_weights)
-            tree_weights = fill(nothing, length(trees), n_samples(X))
+            tree_weights = fill(1, length(trees), n_samples(X)) # TODO optimize?
         elseif tree_weights isa AbstractVector
             tree_weights = hcat([tree_weights for i in 1:n_samples(X)]...)
         else
@@ -337,7 +341,11 @@ function apply(
     # for each instance, aggregate the predictions
     predictions = Vector{L}(undef, _n_samples)
     Threads.@threads for i_sample in 1:_n_samples
-        predictions[i_sample] = majority_vote(_predictions[:,i_sample], tree_weights[:,i_sample]; suppress_parity_warning = suppress_parity_warning)
+        predictions[i_sample] = majority_vote(
+            _predictions[:,i_sample],
+            tree_weights[:,i_sample];
+            suppress_parity_warning = suppress_parity_warning
+        )
     end
 
     predictions, trees
