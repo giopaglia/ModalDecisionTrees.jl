@@ -56,6 +56,3 @@ pure_tree2 = translate(tree2)
 
 
 end
-# rcs = unroll_rules_cascade(pure_tree1)
-# printmodel.(rcs);
-
