@@ -39,5 +39,4 @@ ThreadsX = "ac1d9e8a-700a-412c-b207-f0111f4b6c0d"
 ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 
 [compat]
-MLJ = "0.18.5"
 julia = "1"
