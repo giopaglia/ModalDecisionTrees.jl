@@ -55,11 +55,11 @@ predict(model::Union{DTree,DForest}, X::AbstractConditionalDataset, args...; kwa
 # Apply models: predict labels for a new dataset of instances
 ################################################################################
 
-function apply(leaf::DTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
+function apply(leaf::DTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet}; suppress_parity_warning = false)
     prediction(leaf)
 end
 
-function apply(leaf::NSDTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
+function apply(leaf::NSDTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet}; suppress_parity_warning = false)
     d = slice_dataset(X, [i_sample])
     # println(typeof(d))
     # println(hasmethod(size,   (typeof(d),)) ? size(d)   : nothing)
@@ -71,7 +71,7 @@ function apply(leaf::NSDTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector
     preds[1]
 end
 
-function apply(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
+function apply(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet}; kwargs...)
     @logmsg LogDetail "applying branch..."
     @logmsg LogDetail " worlds" worlds
     (satisfied,new_worlds) =
@@ -84,11 +84,11 @@ function apply(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Integer, w
 
     worlds[i_frame(tree)] = new_worlds
     @logmsg LogDetail " ->(satisfied,worlds')" satisfied worlds
-    apply((satisfied ? left(tree) : right(tree)), X, i_sample, worlds)
+    apply((satisfied ? left(tree) : right(tree)), X, i_sample, worlds; kwargs...)
 end
 
 # Obtain predictions of a tree on a dataset
-function apply(tree::DTree{L}, X::MultiFrameModalDataset) where {L}
+function apply(tree::DTree{L}, X::MultiFrameModalDataset; kwargs...) where {L}
     @logmsg LogDetail "apply..."
     _n_samples = nsamples(X)
     predictions = Vector{L}(undef, _n_samples)
@@ -99,7 +99,7 @@ function apply(tree::DTree{L}, X::MultiFrameModalDataset) where {L}
 
         worlds = mm_instance_initialworldset(X, tree, i_sample)
 
-        predictions[i_sample] = apply(root(tree), X, i_sample, worlds)
+        predictions[i_sample] = apply(root(tree), X, i_sample, worlds; kwargs...)
     end
     predictions
 end
@@ -122,7 +122,7 @@ function apply(
     # apply each tree to the whole dataset
     _predictions = Matrix{L}(undef, n_trees, _n_samples)
     Threads.@threads for i_tree in 1:n_trees
-        _predictions[i_tree,:] = apply(trees[i_tree], X)
+        _predictions[i_tree,:] = apply(trees[i_tree], X; suppress_parity_warning = suppress_parity_warning)
     end
 
     # for each instance, aggregate the predictions
@@ -191,6 +191,7 @@ function apply(
         worlds::AbstractVector{<:AbstractWorldSet},
         class::L;
         update_labels = false,
+        suppress_parity_warning = false,
     ) where {L<:Label}
     _supp_labels = L[supp_labels(leaf)..., class]
 
@@ -211,9 +212,10 @@ function apply(
         worlds::AbstractVector{<:AbstractWorldSet},
         class::L;
         update_labels = false,
+        suppress_parity_warning = false,
     ) where {L<:Label}
     _supp_train_labels      = L[leaf.supp_train_labels...,      class]
-    _supp_train_predictions = L[leaf.supp_train_predictions..., apply(leaf, X, i_sample, worlds)]
+    _supp_train_predictions = L[leaf.supp_train_predictions..., apply(leaf, X, i_sample, worlds; kwargs...)]
 
     _predicting_function =
         if update_labels
@@ -231,7 +233,7 @@ function apply(
     i_sample::Integer,
     worlds::AbstractVector{<:AbstractWorldSet},
     class::L;
-    update_labels = false,
+    kwargs...,
 ) where {L}
 
     (satisfied,new_worlds) = modalstep(get_frame(X, i_frame(tree)), i_sample, worlds[i_frame(tree)], decision(tree))
@@ -242,14 +244,14 @@ function apply(
 
     worlds[i_frame(tree)] = new_worlds
 
-    this_prediction, this_leaf = apply(this(tree),  X, i_sample, worlds, class, update_labels = update_labels) # TODO test whether this works correctly
+    this_prediction, this_leaf = apply(this(tree),  X, i_sample, worlds, class; kwargs...) # TODO test whether this works correctly
 
     pred, left_leaf, right_leaf =
         if satisfied
-            pred, left_leaf = apply(left(tree),  X, i_sample, worlds, class, update_labels = update_labels)
+            pred, left_leaf = apply(left(tree),  X, i_sample, worlds, class; kwargs...)
             pred, left_leaf, right(tree)
         else
-            pred, right_leaf = apply(right(tree), X, i_sample, worlds, class, update_labels = update_labels)
+            pred, right_leaf = apply(right(tree), X, i_sample, worlds, class; kwargs...)
             pred, left(tree), right_leaf
         end
 
@@ -261,7 +263,7 @@ function apply(
     X::MultiFrameModalDataset,
     Y::AbstractVector{<:L};
     reset_leaves = true,
-    update_labels = false,
+    kwargs...,
 ) where {L}
 
     # Reset
@@ -273,7 +275,7 @@ function apply(
     # Propagate instances down the tree
     for i_sample in 1:nsamples(X)
         worlds = mm_instance_initialworldset(X, tree, i_sample)
-        pred, _root = apply(_root, X, i_sample, worlds, Y[i_sample], update_labels = update_labels)
+        pred, _root = apply(_root, X, i_sample, worlds, Y[i_sample]; kwargs...)
         push!(predictions, pred)
     end
     predictions, DTree(_root, world_types(tree), init_conditions(tree))
@@ -281,12 +283,12 @@ end
 
 # use an array of trees to test features
 function apply(
-        trees::AbstractVector{<:DTree{<:L}},
-        X::MultiFrameModalDataset,
-        Y::AbstractVector{<:L};
-        suppress_parity_warning = false,
-        tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
-    ) where {L<:Label,Z<:Real}
+    trees::AbstractVector{<:DTree{<:L}},
+    X::MultiFrameModalDataset,
+    Y::AbstractVector{<:L};
+    tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
+    kwargs...
+) where {L<:Label,Z<:Real}
     @logmsg LogDetail "apply..."
     trees = deepcopy(trees)
     n_trees = length(trees)
@@ -305,7 +307,7 @@ function apply(
     # for each instance, aggregate the predictions
     predictions = Vector{L}(undef, _n_samples)
     Threads.@threads for i in 1:_n_samples
-        predictions[i] = best_guess(_predictions[:,i], tree_weights; suppress_parity_warning = suppress_parity_warning)
+        predictions[i] = best_guess(_predictions[:,i], tree_weights; kwargs...)
     end
 
     predictions, trees
@@ -313,18 +315,17 @@ end
 
 # use a proper forest to test features
 function apply(
-        forest::DForest,
-        X::MultiFrameModalDataset,
-        Y::AbstractVector{<:L};
-        suppress_parity_warning = false,
-        weight_trees_by::Union{Bool,Symbol,AbstractVector} = false,
-        kwargs...
-    ) where {L<:Label}
+    forest::DForest,
+    X::MultiFrameModalDataset,
+    Y::AbstractVector{<:L};
+    weight_trees_by::Union{Bool,Symbol,AbstractVector} = false,
+    kwargs...
+) where {L<:Label}
     predictions, trees = begin
         if weight_trees_by == false
-            apply(trees(forest), X, Y; suppress_parity_warning = suppress_parity_warning, kwargs...)
+            apply(trees(forest), X, Y; kwargs...)
         elseif isa(weight_trees_by, AbstractVector)
-            apply(trees(forest), X, Y; suppress_parity_warning = suppress_parity_warning, tree_weights = weight_trees_by, kwargs...)
+            apply(trees(forest), X, Y; tree_weights = weight_trees_by, kwargs...)
         # elseif weight_trees_by == :accuracy
         #   # TODO: choose HOW to weight a tree... overall_accuracy is just an example (maybe can be parameterized)
         #   apply(forest.trees, X; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))

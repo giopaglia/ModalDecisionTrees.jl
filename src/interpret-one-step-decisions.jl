@@ -37,12 +37,13 @@ end
 # Perform the modal step, that is, evaluate a modal formula
 #  on a domain, and eventually compute the new world set.
 function modalstep(
-    X::ActiveFeaturedDataset{V,W},
+    # X::ActiveFeaturedDataset{V,W},
+    X::AbstractConditionalDataset{W},
     i_sample::Integer,
     worlds::WorldSetType,
     decision::ExistentialDimensionalDecision{U},
     returns_survivors::Union{Val{true},Val{false}} = Val(false)
-) where {V,W<:AbstractWorld,WorldSetType<:AbstractWorldSet,U}
+) where {W<:AbstractWorld,WorldSetType<:AbstractWorldSet,U}
     @logmsg LogDetail "modalstep" worlds display_decision(decision)
 
     satisfied = false

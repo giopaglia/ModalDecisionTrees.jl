@@ -61,7 +61,7 @@ function get_metrics(
         metrics = merge(metrics, (
             cur_class_counts = cur_class_counts,
             rel_tot_inst = rel_tot_inst,
-            rel_conf = rel_conf,
+            # rel_conf = rel_conf,
         ))
 
         if !isnothing(n_tot_inst) && isa(leaf, DTLeaf)

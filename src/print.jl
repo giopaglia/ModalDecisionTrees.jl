@@ -61,9 +61,6 @@ function get_metrics_str(metrics::NamedTuple)
     if haskey(metrics,:rmse)
         push!(metrics_str_pieces, "rmse = $(@sprintf "%.4f" metrics.rmse)")
     end
-    if haskey(metrics,:support)
-        push!(metrics_str_pieces, "supp = $(@sprintf "%.4f" metrics.support)")
-    end
     metrics_str = join(metrics_str_pieces, ", ")
     if haskey(metrics,:n_correct) # Classification
         "$(metrics.n_correct)/$(metrics.n_inst) ($(metrics_str))"

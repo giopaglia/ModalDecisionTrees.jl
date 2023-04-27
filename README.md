@@ -5,7 +5,7 @@
 ### Interpretable models for native time-series & image classification!
 
 This package provides algorithms for learning *decision trees* and *decision forests* with enhanced abilities.
-Leveraging the express power of Modal Logic, these models can extract *temporal/spatial patterns*, and can natively handle *time series* and *images* (without any data preprocessing). Currently available via [MLJ.jl](https://github.com/alan-turing-institute/MLJ.jl) and [Sole.jl](https://github.com/aclai-lab/Sole.jl).
+Leveraging the express power of Modal Logic, these models can extract *temporal/spatial patterns*, and can natively handle *time series* and *images* (without any data preprocessing). Currently available via [MLJ.jl](https://github.com/alan-turing-institute/MLJ.jl) and [*Sole.jl*](https://github.com/aclai-lab/Sole.jl).
 
 #### Features & differences with [DecisionTree.jl](https://github.com/JuliaAI/DecisionTree.jl):
 - Ability to handle attributes that are `AbstractVector{<:Real}` or `AbstractMatrix{<:Real}`;

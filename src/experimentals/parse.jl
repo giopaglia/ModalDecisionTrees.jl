@@ -3,14 +3,26 @@
 # Parse Trees
 ################################################################################
 
-function parse_tree(tree_str::String; check_format = true, _depth = 0, offset = 0, world_types = Type{ML.AbstractWorld}[], init_conditions = MDT.InitCondition[])
+function parse_tree(
+    tree_str::String;
+    check_format = true,
+    _depth = 0,
+    offset = 0,
+    world_types = Type{ML.AbstractWorld}[],
+    init_conditions = MDT.InitCondition[],
+)
     world_types = Type{<:ML.AbstractWorld}[world_types...]
     init_conditions = MDT.InitCondition[init_conditions...]
     root = _parse_tree(tree_str; check_format = check_format, _depth = _depth, offset = offset)
     DTree(root, world_types, init_conditions)
 end
 
-function _parse_tree(tree_str::String; check_format = true, _depth = 0, offset = 0)
+function _parse_tree(
+    tree_str::String;
+    check_format = true,
+    _depth = 0,
+    offset = 0,
+)
 
     ########################################################################################
     ########################################################################################
@@ -47,20 +59,26 @@ function _parse_tree(tree_str::String; check_format = true, _depth = 0, offset =
 
     function _parse_decision((i_this_line, decision_str)::Tuple{<:Integer,<:AbstractString},)
         function _parse_relation(relation_str)
+            # parsable_rels = concretesubtypes(AbstractRelation) TODO
+            parsable_rels = [
+                SL.globalrel,
+                SL.identityrel,
+                SoleLogics.IARelations...,
+                SoleLogics.IA3Relations...,
+                SoleLogics.IA7Relations...,
+                SoleLogics.RCC5Relations...,
+                SoleLogics.RCC8Relations...,
+            ] |> unique
             rel_d = Dict([
-                "G" => SL.globalrel,
-                "A" => SL.IA_A,
-                "L" => SL.IA_L,
-                "B" => SL.IA_B,
-                "E" => SL.IA_E,
-                "D" => SL.IA_D,
-                "O" => SL.IA_O,
-                "Ai" => SL.IA_Ai,        "A̅" => SL.IA_Ai,
-                "Li" => SL.IA_Li,        "L̅" => SL.IA_Li,
-                "Bi" => SL.IA_Bi,        "B̅" => SL.IA_Bi,
-                "Ei" => SL.IA_Ei,        "E̅" => SL.IA_Ei,
-                "Di" => SL.IA_Di,        "D̅" => SL.IA_Di,
-                "Oi" => SL.IA_Oi,        "O̅" => SL.IA_Oi,
+                [
+                    "Ai" => SL.IA_Ai,
+                    "Li" => SL.IA_Li,
+                    "Bi" => SL.IA_Bi,
+                    "Ei" => SL.IA_Ei,
+                    "Di" => SL.IA_Di,
+                    "Oi" => SL.IA_Oi,
+                ]...,
+                [syntaxstring(r) => r for r in parsable_rels]...
             ])
             if isnothing(relation_str)
                 identityrel
@@ -229,7 +247,7 @@ function _parse_tree(tree_str::String; check_format = true, _depth = 0, offset =
         m = match(Regex(split_ex), this_line)
         @assert !isnothing(m) && length(m) == 3 "Unexpected format encountered on line $(i_this_line+offset) : \"$(this_line)\". Matches: $(m) Expected matches = 3"
         # println(m)
-        i_frame_str, decision_str, leaf_str = m 
+        i_frame_str, decision_str, leaf_str = m
 
         i_frame = parse(Int, i_frame_str)
         decision = _parse_decision((i_this_line, decision_str),) 

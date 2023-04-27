@@ -30,7 +30,7 @@ function prune_tree(node::DTInternal{L}; depth = nothing, kwargs...) where {L}
     pruning_params = merge((
         loss_function       = default_loss_function(L)      ::Union{Nothing,Function},
         max_depth           = default_max_depth             ::Int                    ,
-        # min_samples_leaf    = default_min_samples_leaf      ::Int                    ,
+        min_samples_leaf    = default_min_samples_leaf      ::Int                    ,
         min_purity_increase = default_min_purity_increase   ::AbstractFloat          ,
         max_purity_at_leaf  = default_max_purity_at_leaf    ::AbstractFloat          ,
     ), NamedTuple(kwargs))
@@ -42,10 +42,9 @@ function prune_tree(node::DTInternal{L}; depth = nothing, kwargs...) where {L}
     nl = length(supp_labels(left(node)))
     nr = length(supp_labels(right(node)))
 
-    if (pruning_params.max_depth < depth)
-        # ||
-       # (pruning_params.min_samples_leaf > nr)  ||
-       # (pruning_params.min_samples_leaf > nl)  ||
+    if (pruning_params.max_depth < depth) ||
+       (pruning_params.min_samples_leaf > nr) ||
+       (pruning_params.min_samples_leaf > nl)
         return this(node)
     end
 

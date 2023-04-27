@@ -19,6 +19,8 @@ export ExistentialDimensionalDecision,
 # A decision inducing a branching/split (e.g., ⟨L⟩ (minimum(A2) ≥ 10) )
 abstract type AbstractDecision end
 
+import SoleModels: negation
+
 function Base.show(io::IO, decision::AbstractDecision)
     println(io, display_decision(decision))
 end
