@@ -449,9 +449,9 @@ height(node::DTInternal) = 1 + max(height(left(node)), height(right(node)))
 height(tree::DTree)      = height(root(tree))
 
 # Modal height
-modal_height(leaf::AbstractDecisionLeaf)     = 0
-modal_height(node::DTInternal) = Int(ismodalnode(node)) + max(modal_height(left(node)), modal_height(right(node)))
-modal_height(tree::DTree)      = modal_height(root(tree))
+modalheight(leaf::AbstractDecisionLeaf)     = 0
+modalheight(node::DTInternal) = Int(ismodalnode(node)) + max(modalheight(left(node)), modalheight(right(node)))
+modalheight(tree::DTree)      = modalheight(root(tree))
 
 # Number of supporting instances
 nsamples(leaf::AbstractDecisionLeaf; train_or_valid = true) = length(supp_labels(leaf; train_or_valid = train_or_valid))
@@ -544,7 +544,7 @@ $(display(this(node)))
     sub-tree leaves: $(nleaves(node))
     sub-tree nodes: $(nnodes(node))
     sub-tree height: $(height(node))
-    sub-tree modal height:  $(modal_height(node))
+    sub-tree modal height:  $(modalheight(node))
 )
 """
 end
@@ -553,12 +553,12 @@ function display(tree::DTree{L}) where {L}
     return """
 Decision Tree{$(L)}(
     world_types:    $(world_types(tree))
-    initConditions: $(init_conditions(tree))
+    init_conditions: $(init_conditions(tree))
     ###########################################################
     sub-tree leaves: $(nleaves(tree))
     sub-tree nodes: $(nnodes(tree))
     sub-tree height: $(height(tree))
-    sub-tree modal height:  $(modal_height(tree))
+    sub-tree modal height:  $(modalheight(tree))
     ###########################################################
     tree:
 $(displaymodel(tree))

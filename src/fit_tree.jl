@@ -12,7 +12,7 @@
 mutable struct NodeMeta{L<:Label,P} <: AbstractNode{L}
     region             :: UnitRange{Int}                   # a slice of the samples used to decide the split of the node
     depth              :: Int
-    modal_depth        :: Int
+    modaldepth         :: Int
     # worlds      :: AbstractVector{WorldSet{W}}           # current set of worlds for each training instance
     purity             :: P                                # purity grade attained at training time
     prediction         :: L                                # most likely label
@@ -30,13 +30,13 @@ mutable struct NodeMeta{L<:Label,P} <: AbstractNode{L}
     function NodeMeta{L,P}(
             region      :: UnitRange{Int},
             depth       :: Int,
-            modal_depth :: Int,
+            modaldepth :: Int,
             oura        :: Vector{Bool},
             ) where {L,P}
         node = new{L,P}()
         node.region = region
         node.depth = depth
-        node.modal_depth = modal_depth
+        node.modaldepth = modaldepth
         node.purity = P(NaN)
         node.is_leaf = false
         node.onlyallowglobal = oura
@@ -50,7 +50,7 @@ end
     ind = node.split_at
     region = node.region
     depth = node.depth+1
-    mdepth = node.modal_depth+Int(!node.is_leaf && !is_propositional_decision(node.decision))
+    mdepth = node.modaldepth+Int(!node.is_leaf && !is_propositional_decision(node.decision))
     @logmsg LogDetail "fork!(...): " node ind region mdepth
 
     # onlyallowglobal changes:
@@ -144,10 +144,10 @@ end
 #   #  to being hard operators
 #   # max_world_wratio = 1/prod(max_channel_size(X))
 #   # if canonical_geq in test_operators
-#   #   test_operators = filter((e)->(typeof(e) != CanonicalFeatureGeqSoft || e.alpha < 1-max_world_wratio), test_operators)
+#   #   test_operators = filter((e)->(!(e isa CanonicalFeatureGeqSoft) || e.alpha < 1-max_world_wratio), test_operators)
 #   # end
 #   # if canonical_leq in test_operators
-#   #   test_operators = filter((e)->(typeof(e) != CanonicalFeatureLeqSoft || e.alpha < 1-max_world_wratio), test_operators)
+#   #   test_operators = filter((e)->(!(e isa CanonicalFeatureLeqSoft) || e.alpha < 1-max_world_wratio), test_operators)
 #   # end
 
 

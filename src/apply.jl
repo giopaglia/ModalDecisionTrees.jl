@@ -109,7 +109,7 @@ function apply(
         trees::AbstractVector{<:DTree{<:L}},
         X::MultiFrameModalDataset;
         suppress_parity_warning = false,
-        tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
+        tree_weights::Union{Nothing,AbstractVector{Z}} = nothing,
     ) where {L<:Label,Z<:Real}
     @logmsg LogDetail "apply..."
     n_trees = length(trees)
@@ -286,7 +286,7 @@ function apply(
     trees::AbstractVector{<:DTree{<:L}},
     X::MultiFrameModalDataset,
     Y::AbstractVector{<:L};
-    tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
+    tree_weights::Union{Nothing,AbstractVector{Z}} = nothing,
     kwargs...
 ) where {L<:Label,Z<:Real}
     @logmsg LogDetail "apply..."
@@ -337,7 +337,7 @@ function apply(
 end
 
 # function apply(tree::DTNode{L}, X::AbstractDimensionalDataset{T,D}, Y::AbstractVector{<:L}; reset_leaves = true, update_labels = false) where {L,T,D}
-#   return apply(DTree(tree, [worldtype(ModalDecisionTrees.get_interval_ontology(Val(D-2)))], [start_without_world]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
+#   return apply(DTree(tree, [worldtype(SoleModels.ModalLogic.get_interval_ontology(Val(D-2)))], [start_without_world]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
 # end
 
 ############################################################################################
@@ -413,7 +413,7 @@ function apply_proba(
         trees::AbstractVector{<:DTree{<:L}},
         X::MultiFrameModalDataset,
         classes;
-        tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
+        tree_weights::Union{Nothing,AbstractVector{Z}} = nothing,
     ) where {L<:CLabel,Z<:Real}
     @logmsg LogDetail "apply_proba..."
     n_trees = length(trees)
@@ -446,7 +446,7 @@ end
 function apply_proba(
         trees::AbstractVector{<:DTree{<:L}},
         X::MultiFrameModalDataset;
-        tree_weights::Union{AbstractVector{Z},Nothing} = nothing,
+        tree_weights::Union{Nothing,AbstractVector{Z}} = nothing,
     ) where {L<:RLabel,Z<:Real}
     @logmsg LogDetail "apply_proba..."
     n_trees = length(trees)

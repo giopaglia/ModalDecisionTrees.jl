@@ -1,3 +1,5 @@
+__precompile__()
+
 module ModalDecisionTrees
 
 ############################################################################################
@@ -46,7 +48,7 @@ export slice_dataset,
 export DTree,                   # Decision tree
         DForest,                # Decision forest
         #
-        nnodes, height, modal_height
+        nnodes, height, modalheight
 
 ############################################################################################
 

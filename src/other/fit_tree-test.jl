@@ -27,7 +27,7 @@ end
 
 Xs = MultiFrameModalDataset{SupportedFeaturedDataset}([
     SupportedFeaturedDataset(
-        DimensionalFeaturedDataset(randn(n_pts, n_attrs, _n_samples), ModalDecisionTrees.get_interval_ontology(1), features, featsnops);
+        DimensionalFeaturedDataset(randn(n_pts, n_attrs, _n_samples), SoleModels.ModalLogic.get_interval_ontology(1), features, featsnops);
         use_memoization = false,
         compute_relation_glob = true,
     )
