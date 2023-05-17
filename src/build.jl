@@ -25,10 +25,11 @@ end
 
 # Build a stump (tree with depth 1)
 function build_stump(
-        X                 :: ActiveMultiFrameModalDataset,
-        Y                 :: AbstractVector{L},
-        W                 :: Union{Nothing,AbstractVector{U},Symbol} = nothing;
-        kwargs...) where {L<:Label, U}
+    X                 :: ActiveMultiFrameModalDataset,
+    Y                 :: AbstractVector{L},
+    W                 :: Union{Nothing,AbstractVector{U},Symbol} = nothing;
+    kwargs...,
+) where {L<:Label, U}
     params = NamedTuple(kwargs)
     @assert !haskey(params, :max_depth) || params.max_depth == 1 "build_stump doesn't allow max_depth != 1"
     build_tree(X, Y, W; max_depth = 1, kwargs...)
@@ -37,27 +38,27 @@ end
 # TODO set default pruning arguments for tree, and make sure that forests override these
 # Build a tree
 function build_tree(
-        X                   :: ActiveMultiFrameModalDataset,
-        Y                   :: AbstractVector{L},
-        W                   :: Union{Nothing,AbstractVector{U},Symbol}   = default_weights(Y);
-        ##############################################################################
-        loss_function       :: Union{Nothing,Function}            = nothing,
-        max_depth           :: Int64                              = default_max_depth,
-        min_samples_leaf    :: Int64                              = default_min_samples_leaf,
-        min_purity_increase :: AbstractFloat                      = default_min_purity_increase,
-        max_purity_at_leaf  :: AbstractFloat                      = default_max_purity_at_leaf,
-        ##############################################################################
-        n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
-        n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = identity,
-        init_conditions     :: Union{InitCondition,AbstractVector{<:InitCondition}}   = start_without_world,
-        allow_global_splits :: Union{Bool,AbstractVector{Bool}}                       = true,
-        ##############################################################################
-        perform_minification      :: Bool = false,
-        perform_consistency_check :: Bool = true,
-        ##############################################################################
-        rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG,
-        print_progress      :: Bool = true,
-    ) where {L<:Label, U}
+    X                   :: ActiveMultiFrameModalDataset,
+    Y                   :: AbstractVector{L},
+    W                   :: Union{Nothing,AbstractVector{U},Symbol}   = default_weights(n_samples(X));
+    ##############################################################################
+    loss_function       :: Union{Nothing,Function}            = nothing,
+    max_depth           :: Int64                              = default_max_depth,
+    min_samples_leaf    :: Int64                              = default_min_samples_leaf,
+    min_purity_increase :: AbstractFloat                      = default_min_purity_increase,
+    max_purity_at_leaf  :: AbstractFloat                      = default_max_purity_at_leaf,
+    ##############################################################################
+    n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
+    n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = identity,
+    init_conditions     :: Union{InitCondition,AbstractVector{<:InitCondition}}   = start_without_world,
+    allow_global_splits :: Union{Bool,AbstractVector{Bool}}                       = true,
+    ##############################################################################
+    perform_minification      :: Bool = false,
+    perform_consistency_check :: Bool = true,
+    ##############################################################################
+    rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG,
+    print_progress      :: Bool = true,
+) where {L<:Label, U}
     
     @assert W isa AbstractVector || W in [nothing, :rebalance, :default]
 
@@ -119,35 +120,35 @@ end
 
 
 function build_forest(
-        X                   :: ActiveMultiFrameModalDataset,
-        Y                   :: AbstractVector{L},
-        # Use unary weights if no weight is supplied
-        W                   :: Union{Nothing,AbstractVector{U},Symbol} = default_weights(Y);
-        ##############################################################################
-        # Forest logic-agnostic parameters
-        n_trees             = 100,
-        partial_sampling    = 0.7,      # portion of sub-sampled samples (without replacement) by each tree
-        ##############################################################################
-        # Tree logic-agnostic parameters
-        loss_function       :: Union{Nothing,Function}          = nothing,
-        max_depth           :: Int64                            = default_max_depth,
-        min_samples_leaf    :: Int64                            = default_min_samples_leaf,
-        min_purity_increase :: AbstractFloat                    = default_min_purity_increase,
-        max_purity_at_leaf  :: AbstractFloat                    = default_max_purity_at_leaf,
-        ##############################################################################
-        # Modal parameters
-        n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
-        n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = x -> ceil(Int64, sqrt(x)),
-        init_conditions     :: Union{InitCondition,AbstractVector{<:InitCondition}}   = start_without_world,
-        allow_global_splits :: Union{Bool,AbstractVector{Bool}}                       = true,
-        ##############################################################################
-        perform_minification      :: Bool = false,
-        perform_consistency_check :: Bool = true,
-        ##############################################################################
-        rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG,
-        print_progress :: Bool = true,
-        suppress_parity_warning :: Bool = false,
-    ) where {L<:Label, U}
+    X                   :: ActiveMultiFrameModalDataset,
+    Y                   :: AbstractVector{L},
+    # Use unary weights if no weight is supplied
+    W                   :: Union{Nothing,AbstractVector{U},Symbol} = default_weights(Y);
+    ##############################################################################
+    # Forest logic-agnostic parameters
+    n_trees             = 100,
+    partial_sampling    = 0.7,      # portion of sub-sampled samples (without replacement) by each tree
+    ##############################################################################
+    # Tree logic-agnostic parameters
+    loss_function       :: Union{Nothing,Function}          = nothing,
+    max_depth           :: Int64                            = default_max_depth,
+    min_samples_leaf    :: Int64                            = default_min_samples_leaf,
+    min_purity_increase :: AbstractFloat                    = default_min_purity_increase,
+    max_purity_at_leaf  :: AbstractFloat                    = default_max_purity_at_leaf,
+    ##############################################################################
+    # Modal parameters
+    n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
+    n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = x -> ceil(Int64, sqrt(x)),
+    init_conditions     :: Union{InitCondition,AbstractVector{<:InitCondition}}   = start_without_world,
+    allow_global_splits :: Union{Bool,AbstractVector{Bool}}                       = true,
+    ##############################################################################
+    perform_minification      :: Bool = false,
+    perform_consistency_check :: Bool = true,
+    ##############################################################################
+    rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG,
+    print_progress :: Bool = true,
+    suppress_parity_warning :: Bool = false,
+) where {L<:Label, U}
 
     @assert W isa AbstractVector || W in [nothing, :rebalance, :default]
 
