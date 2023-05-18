@@ -425,6 +425,35 @@ trees(forest::DForest) = forest.trees
 metrics(forest::DForest) = forest.metrics
 
 ############################################################################################
+
+# Ensamble of decision trees weighted by softmax autoencoder
+struct RootLevelNeuroSymbolicHybrid{F<:Any,L<:Label} <: SymbolicModel{L}
+    feature_function :: F
+    # trees
+    trees       :: Vector{<:DTree{L}}
+    # metrics
+    metrics     :: NamedTuple
+
+    function RootLevelNeuroSymbolicHybrid{F,L}(
+        feature_function :: F,
+        trees     :: AbstractVector{<:DTree},
+        metrics   :: NamedTuple = (;),
+    ) where {F<:Any,L<:Label}
+        new{F,L}(feature_function, collect(trees), metrics)
+    end
+    function RootLevelNeuroSymbolicHybrid(
+        feature_function :: F,
+        trees     :: AbstractVector{<:DTree{L}},
+        metrics   :: NamedTuple = (;),
+    ) where {F<:Any,L<:Label}
+        RootLevelNeuroSymbolicHybrid{F,L}(feature_function, trees, metrics)
+    end
+end
+
+trees(nsdt::RootLevelNeuroSymbolicHybrid) = nsdt.trees
+metrics(nsdt::RootLevelNeuroSymbolicHybrid) = nsdt.metrics
+
+############################################################################################
 # Methods
 ############################################################################################
 
@@ -432,31 +461,41 @@ metrics(forest::DForest) = forest.metrics
 nleaves(leaf::AbstractDecisionLeaf)     = 1
 nleaves(node::DTInternal) = nleaves(left(node)) + nleaves(right(node))
 nleaves(tree::DTree)      = nleaves(root(tree))
+nleaves(nsdt::RootLevelNeuroSymbolicHybrid)      = sum(nleaves.(trees(nsdt)))
 
 # Number of nodes
 nnodes(leaf::AbstractDecisionLeaf)     = 1
 nnodes(node::DTInternal) = 1 + nnodes(left(node)) + nnodes(right(node))
 nnodes(tree::DTree)   = nnodes(root(tree))
 nnodes(f::DForest) = sum(nnodes.(trees(f)))
+nnodes(nsdt::RootLevelNeuroSymbolicHybrid)      = sum(nnodes.(trees(nsdt)))
 
 # Number of trees
 ntrees(f::DForest) = length(trees(f))
 Base.length(f::DForest)    = ntrees(f)
+ntrees(nsdt::RootLevelNeuroSymbolicHybrid) = length(trees(nsdt))
+Base.length(nsdt::RootLevelNeuroSymbolicHybrid)    = ntrees(nsdt)
 
 # Height
 height(leaf::AbstractDecisionLeaf)     = 0
 height(node::DTInternal) = 1 + max(height(left(node)), height(right(node)))
 height(tree::DTree)      = height(root(tree))
+height(f::DForest)      = maximum(height.(trees(f)))
+height(nsdt::RootLevelNeuroSymbolicHybrid)      = maximum(height.(trees(nsdt)))
 
 # Modal height
 modalheight(leaf::AbstractDecisionLeaf)     = 0
 modalheight(node::DTInternal) = Int(ismodalnode(node)) + max(modalheight(left(node)), modalheight(right(node)))
 modalheight(tree::DTree)      = modalheight(root(tree))
+modalheight(f::DForest)      = maximum(modalheight.(trees(f)))
+modalheight(nsdt::RootLevelNeuroSymbolicHybrid)      = maximum(modalheight.(trees(nsdt)))
 
 # Number of supporting instances
 nsamples(leaf::AbstractDecisionLeaf; train_or_valid = true) = length(supp_labels(leaf; train_or_valid = train_or_valid))
 nsamples(node::DTInternal;           train_or_valid = true) = nsamples(left(node); train_or_valid = train_or_valid) + nsamples(right(node); train_or_valid = train_or_valid)
 nsamples(tree::DTree;                train_or_valid = true) = nsamples(root(tree); train_or_valid = train_or_valid)
+nsamples(f::DForest;                 train_or_valid = true) = maximum(map(t->nsamples(t; train_or_valid = train_or_valid), trees(f))) # TODO actually wrong
+nsamples(nsdt::RootLevelNeuroSymbolicHybrid;                 train_or_valid = true) = maximum(map(t->nsamples(t; train_or_valid = train_or_valid), trees(nsdt))) # TODO actually wrong
 
 ############################################################################################
 ############################################################################################
@@ -569,10 +608,22 @@ end
 function display(forest::DForest{L}) where {L}
     return """
 Decision Forest{$(L)}(
-    # trees: $(length(forest))
+    # trees: $(ntrees(forest))
     metrics: $(metrics(forest))
     forest:
 $(displaymodel(forest))
+)
+"""
+end
+
+
+function display(nsdt::RootLevelNeuroSymbolicHybrid{F,L}) where {F,L}
+    return """
+Root-Level Neuro-Symbolic Decision Tree Hybrid{$(F),$(L)}(
+    # trees: $(ntrees(nsdt))
+    metrics: $(metrics(nsdt))
+    nsdt:
+$(displaymodel(nsdt))
 )
 """
 end

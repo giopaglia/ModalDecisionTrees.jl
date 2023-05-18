@@ -112,7 +112,12 @@ end
 
 # When training many trees with different pruning parametrizations, it can be beneficial to find the non-dominated set of parametrizations,
 #  train a single tree per each non-dominated parametrization, and prune it afterwards x times. This hack can help save cpu time
-function nondominated_pruning_parametrizations(args::AbstractVector; do_it_or_not = true, return_perm = false)
+function nondominated_pruning_parametrizations(
+    args::AbstractVector;
+    do_it_or_not = true,
+    return_perm = false,
+    ignore_additional_args = [],
+)
     args = convert(Vector{NamedTuple}, args)
     nondominated_pars, perm =
         if do_it_or_not
@@ -145,21 +150,26 @@ function nondominated_pruning_parametrizations(args::AbstractVector; do_it_or_no
             to_leave = [
                 to_opt...,
                 :loss_function,
+                ignore_additional_args...,
             ]
 
             dominating = OrderedDict()
-            @assert all((a)->length(setdiff(collect(keys(a)), [to_opt..., to_match..., to_leave...])) == 0, args) "Got unexpected model parameters in: $(args)"
+
+            overflowing_args = map((a)->setdiff(collect(keys(a)), [to_opt..., to_match..., to_leave...]), args)
+            @assert all(length.(overflowing_args) .== 0) "Got unexpected model parameters: $(filter((a)->length(a) != 0, overflowing_args)) . In: $(args)."
 
             # Note: this optimizatio assumes that parameters are defaulted to their bottom value
             polarity(::Val{:max_depth})           = max
             # polarity(::Val{:min_samples_leaf})    = min
             polarity(::Val{:min_purity_increase}) = min
             polarity(::Val{:max_purity_at_leaf})  = max
+            polarity(::Val{:n_trees})             = max
 
             bottom(::Val{:max_depth})           = typemin(Int)
             # bottom(::Val{:min_samples_leaf})    = typemax(Int)
             bottom(::Val{:min_purity_increase}) = Inf
             bottom(::Val{:max_purity_at_leaf})  = -Inf
+            bottom(::Val{:n_trees})             = typemin(Int)
 
             perm = []
             # Find non-dominated parameter set
@@ -170,6 +180,7 @@ function nondominated_pruning_parametrizations(args::AbstractVector; do_it_or_no
                     # min_samples_leaf    = nothing,
                     min_purity_increase = nothing,
                     max_purity_at_leaf  = nothing,
+                    n_trees             = nothing,
                 ))
 
                 dominating[base_args] = ((
@@ -177,6 +188,7 @@ function nondominated_pruning_parametrizations(args::AbstractVector; do_it_or_no
                     # min_samples_leaf    = polarity(Val(:min_samples_leaf   ))((haskey(this_args, :min_samples_leaf   ) ? this_args.min_samples_leaf    : bottom(Val(:min_samples_leaf   ))),(haskey(dominating, base_args) ? dominating[base_args][1].min_samples_leaf    : bottom(Val(:min_samples_leaf   )))),
                     min_purity_increase = polarity(Val(:min_purity_increase))((haskey(this_args, :min_purity_increase) ? this_args.min_purity_increase : bottom(Val(:min_purity_increase))),(haskey(dominating, base_args) ? dominating[base_args][1].min_purity_increase : bottom(Val(:min_purity_increase)))),
                     max_purity_at_leaf  = polarity(Val(:max_purity_at_leaf ))((haskey(this_args, :max_purity_at_leaf ) ? this_args.max_purity_at_leaf  : bottom(Val(:max_purity_at_leaf ))),(haskey(dominating, base_args) ? dominating[base_args][1].max_purity_at_leaf  : bottom(Val(:max_purity_at_leaf )))),
+                    n_trees             = polarity(Val(:n_trees            ))((haskey(this_args, :n_trees            ) ? this_args.n_trees             : bottom(Val(:n_trees            ))),(haskey(dominating, base_args) ? dominating[base_args][1].n_trees             : bottom(Val(:n_trees            )))),
                 ),[(haskey(dominating, base_args) ? dominating[base_args][2] : [])..., this_args])
 
                 outer_idx = findfirst((k)->k==base_args, collect(keys(dominating)))
@@ -190,6 +202,7 @@ function nondominated_pruning_parametrizations(args::AbstractVector; do_it_or_no
                     # if (rep_args.min_samples_leaf    == bottom(Val(:min_samples_leaf))   ) rep_args = Base.structdiff(rep_args, (; min_samples_leaf    = nothing)) end
                     if (rep_args.min_purity_increase == bottom(Val(:min_purity_increase))) rep_args = Base.structdiff(rep_args, (; min_purity_increase = nothing)) end
                     if (rep_args.max_purity_at_leaf  == bottom(Val(:max_purity_at_leaf)) ) rep_args = Base.structdiff(rep_args, (; max_purity_at_leaf  = nothing)) end
+                    if (rep_args.n_trees             == bottom(Val(:n_trees           )) ) rep_args = Base.structdiff(rep_args, (; n_trees             = nothing)) end
 
                     this_args = merge(base_args, rep_args)
                     (this_args, [begin

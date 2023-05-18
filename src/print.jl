@@ -1,7 +1,7 @@
 export printmodel, print_tree, print_forest
 
 # print model
-function printmodel(model::Union{DTNode,DTree,DForest}; kwargs...)
+function printmodel(model::Union{DTNode,DTree,DForest,RootLevelNeuroSymbolicHybrid}; kwargs...)
     printmodel(stdout, model; kwargs...)
 end
 function printmodel(io::IO, model::Union{DTNode,DTree}; kwargs...)
@@ -10,14 +10,21 @@ end
 function printmodel(io::IO, model::DForest; kwargs...)
     print_forest(io, model; kwargs...)
 end
+function printmodel(io::IO, model::RootLevelNeuroSymbolicHybrid; kwargs...)
+    print_rlnsdt(io, model; kwargs...)
+end
 
-# print tree and forest
+
 function print_tree(tree::Union{DTNode,DTree}, args...; kwargs...)
     print_tree(stdout, tree, args...; kwargs...)
 end
 function print_forest(forest::DForest, args...; kwargs...)
     print_forest(stdout, forest, args...; kwargs...)
 end
+function print_rlnsdt(rlnsdt::RootLevelNeuroSymbolicHybrid, args...; kwargs...)
+    print_rlnsdt(stdout, rlnsdt, args...; kwargs...)
+end
+
 
 function print_tree(io::IO, tree::Union{DTNode,DTree}, args...; kwargs...)
     print(io, displaymodel(tree; args..., kwargs...))
@@ -25,6 +32,11 @@ end
 function print_forest(io::IO, forest::DForest, args...; kwargs...)
     print(io, displaymodel(forest; args..., kwargs...))
 end
+function print_rlnsdt(io::IO, rlnstd::RootLevelNeuroSymbolicHybrid, args...; kwargs...)
+    print(io, displaymodel(rlnstd; args..., kwargs...))
+end
+
+############################################################################################
 
 function brief_prediction_str(leaf::DTLeaf)
     string(prediction(leaf))
@@ -70,19 +82,40 @@ function get_metrics_str(metrics::NamedTuple)
 end
 
 function displaymodel(
+    tree::DTree;
+    metrics_kwargs...,
+)
+    return displaymodel(root(tree); metrics_kwargs...)
+end
+
+function displaymodel(
     forest::DForest,
     args...;
     kwargs...,
 )
     outstr = ""
-    n_trees = length(forest)
-    for i in 1:n_trees
-        outstr *= "Tree $(i) / $(n_trees)"
-        outstr *= displaymodel(trees(forest)[i], args...; kwargs...)
+    n_trees = num_trees(forest)
+    for i_tree in 1:n_trees
+        outstr *= "Tree $(i_tree) / $(n_trees)"
+        outstr *= displaymodel(trees(forest)[i_tree], args...; kwargs...)
     end
     return outstr
 end
 
+function displaymodel(
+    nsdt::RootLevelNeuroSymbolicHybrid,
+    args...;
+    kwargs...,
+)
+    outstr = ""
+    outstr *= "Feature function: $(nsdt.feature_function)"
+    n_trees = num_trees(forest)
+    for (i_tree,tree) in enumerate(nsdt.trees)
+        outstr *= "Tree $(i_tree) / $(n_trees)"
+        outstr *= displaymodel(tree, args...; kwargs...)
+    end
+    return outstr
+end
 
 function displaymodel(
         leaf::DTLeaf;
@@ -120,14 +153,14 @@ function displaymodel(
     outstr *= "$(display_decision(node; attribute_names_map = attribute_names_map))\t\t\t"
     outstr *= displaymodel(this(node); indentation_str = "", metrics_kwargs...)
     if isnothing(max_depth) || length(indentation_str) < max_depth
-        outstr *= indentation_str * "✔ " # "╭✔ 
+        outstr *= indentation_str * "✔ " # "╭✔
         outstr *= displaymodel(left(node);
             indentation_str = indentation_str*"│",
             attribute_names_map = attribute_names_map,
             max_depth = max_depth,
             metrics_kwargs...,
         )
-        outstr *= indentation_str * "✘ " # "╰✘ 
+        outstr *= indentation_str * "✘ " # "╰✘
         outstr *= displaymodel(right(node);
             indentation_str = indentation_str*" ",
             attribute_names_map = attribute_names_map,
@@ -138,17 +171,4 @@ function displaymodel(
         outstr *= " [...]\n"
     end
     return outstr
-end
-
-function displaymodel(
-    tree::DTree;
-    metrics_kwargs...,
-)
-    # print_relative_confidence = false,
-    # if print_relative_confidence && L<:CLabel
-    #     outstr *= displaymodel(tree; rel_confidence_class_counts = countmap(Y))
-    # else
-    #     outstr *= displaymodel(tree)
-    # end
-    return displaymodel(root(tree); metrics_kwargs...)
 end

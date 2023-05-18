@@ -40,7 +40,7 @@ end
 function build_tree(
     X                   :: ActiveMultiFrameModalDataset,
     Y                   :: AbstractVector{L},
-    W                   :: Union{Nothing,AbstractVector{U},Symbol}   = default_weights(n_samples(X));
+    W                   :: Union{Nothing,AbstractVector{U},Symbol}   = default_weights(nsamples(X));
     ##############################################################################
     loss_function       :: Union{Nothing,Function}            = nothing,
     max_depth           :: Int64                              = default_max_depth,

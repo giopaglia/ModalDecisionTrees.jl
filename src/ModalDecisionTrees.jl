@@ -47,6 +47,7 @@ export slice_dataset,
 
 export DTree,                   # Decision tree
         DForest,                # Decision forest
+        RootLevelNeuroSymbolicHybrid,                # Root-level neurosymbolic hybrid model
         #
         nnodes, height, modalheight
 
@@ -69,6 +70,7 @@ include("purity.jl")
 
 # Definitions for Decision Leaf, Internal, Node, Tree & Forest
 include("base.jl")
+
 include("print.jl")
 
 # Default parameter values
