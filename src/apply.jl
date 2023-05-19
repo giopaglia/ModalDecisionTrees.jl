@@ -79,13 +79,13 @@ function apply(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Integer, w
     @logmsg LogDetail " worlds" worlds
     (satisfied,new_worlds) =
         modalstep(
-            get_frame(X, i_frame(tree)),
+            get_frame(X, frameid(tree)),
             i_sample,
-            worlds[i_frame(tree)],
+            worlds[frameid(tree)],
             decision(tree),
     )
 
-    worlds[i_frame(tree)] = new_worlds
+    worlds[frameid(tree)] = new_worlds
     @logmsg LogDetail " ->(satisfied,worlds')" satisfied worlds
     apply((satisfied ? left(tree) : right(tree)), X, i_sample, worlds; kwargs...)
 end
@@ -115,7 +115,7 @@ function apply(
     tree_weights::Union{AbstractMatrix{Z},AbstractVector{Z},Nothing} = nothing,
 ) where {L<:Label,Z<:Real}
     @logmsg LogDetail "apply..."
-    n_trees = length(trees)
+    ntrees = length(trees)
     _n_samples = nsamples(X)
 
     if !(tree_weights isa AbstractMatrix)
@@ -133,8 +133,8 @@ function apply(
     @assert nsamples(X) == size(tree_weights, 2) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
 
     # apply each tree to the whole dataset
-    _predictions = Matrix{L}(undef, n_trees, _n_samples)
-    Threads.@threads for i_tree in 1:n_trees
+    _predictions = Matrix{L}(undef, ntrees, _n_samples)
+    Threads.@threads for i_tree in 1:ntrees
         _predictions[i_tree,:] = apply(trees[i_tree], X; suppress_parity_warning = suppress_parity_warning)
     end
 
@@ -193,7 +193,7 @@ end
 
 function _empty_tree_leaves(node::DTInternal)
     return DTInternal(
-        i_frame(node),
+        frameid(node),
         decision(node),
         _empty_tree_leaves(this(node)),
         _empty_tree_leaves(left(node)),
@@ -204,7 +204,7 @@ end
 function _empty_tree_leaves(tree::DTree)
     return DTree(
         _empty_tree_leaves(root(tree)),
-        world_types(tree),
+        worldtypes(tree),
         init_conditions(tree),
     )
 end
@@ -262,13 +262,13 @@ function apply(
     kwargs...,
 ) where {L}
 
-    (satisfied,new_worlds) = modalstep(get_frame(X, i_frame(tree)), i_sample, worlds[i_frame(tree)], decision(tree))
+    (satisfied,new_worlds) = modalstep(get_frame(X, frameid(tree)), i_sample, worlds[frameid(tree)], decision(tree))
 
     # if satisfied
     #   println("new_worlds: $(new_worlds)")
     # end
 
-    worlds[i_frame(tree)] = new_worlds
+    worlds[frameid(tree)] = new_worlds
 
     this_prediction, this_leaf = apply(this(tree),  X, i_sample, worlds, class; kwargs...) # TODO test whether this works correctly
 
@@ -281,7 +281,7 @@ function apply(
             pred, left(tree), right_leaf
         end
 
-    pred, DTInternal(i_frame(tree), decision(tree), this_leaf, left_leaf, right_leaf)
+    pred, DTInternal(frameid(tree), decision(tree), this_leaf, left_leaf, right_leaf)
 end
 
 function apply(
@@ -304,7 +304,7 @@ function apply(
         pred, _root = apply(_root, X, i_sample, worlds, Y[i_sample]; kwargs...)
         push!(predictions, pred)
     end
-    predictions, DTree(_root, world_types(tree), init_conditions(tree))
+    predictions, DTree(_root, worldtypes(tree), init_conditions(tree))
 end
 
 # use an array of trees to test features
@@ -317,7 +317,7 @@ function apply(
 ) where {L<:Label,Z<:Real}
     @logmsg LogDetail "apply..."
     trees = deepcopy(trees)
-    n_trees = length(trees)
+    ntrees = length(trees)
     _n_samples = nsamples(X)
 
     if !(tree_weights isa AbstractMatrix)
@@ -335,8 +335,8 @@ function apply(
     @assert nsamples(X) == size(tree_weights, 2) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
 
     # apply each tree to the whole dataset
-    _predictions = Matrix{L}(undef, n_trees, _n_samples)
-    Threads.@threads for i_tree in 1:n_trees
+    _predictions = Matrix{L}(undef, ntrees, _n_samples)
+    Threads.@threads for i_tree in 1:ntrees
         _predictions[i_tree,:], trees[i_tree] = apply(trees[i_tree], X, Y)
     end
 
@@ -396,7 +396,7 @@ function apply(
 end
 
 # function apply(tree::DTNode{T, L}, X::AbstractDimensionalDataset{T,D}, Y::AbstractVector{<:L}; reset_leaves = true, update_labels = false) where {L,T,D}
-#   return apply(DTree(tree, [world_type(SoleModels.ModalLogic.get_interval_ontology(Val(D-2)))], [start_without_world]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
+#   return apply(DTree(tree, [worldtype(SoleModels.ModalLogic.get_interval_ontology(Val(D-2)))], [start_without_world]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
 # end
 
 ############################################################################################
@@ -414,13 +414,13 @@ function apply_proba(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Inte
     @logmsg LogDetail " worlds" worlds
     (satisfied,new_worlds) =
         modalstep(
-            get_frame(X, i_frame(tree)),
+            get_frame(X, frameid(tree)),
             i_sample,
-            worlds[i_frame(tree)],
+            worlds[frameid(tree)],
             decision(tree),
     )
 
-    worlds[i_frame(tree)] = new_worlds
+    worlds[frameid(tree)] = new_worlds
     @logmsg LogDetail " ->(satisfied,worlds')" satisfied worlds
     apply_proba((satisfied ? left(tree) : right(tree)), X, i_sample, worlds)
 end
@@ -475,7 +475,7 @@ function apply_proba(
     tree_weights::Union{AbstractMatrix{Z},AbstractVector{Z},Nothing} = nothing,
 ) where {L<:CLabel,Z<:Real}
     @logmsg LogDetail "apply_proba..."
-    n_trees = length(trees)
+    ntrees = length(trees)
     _n_samples = nsamples(X)
 
     if !(tree_weights isa AbstractMatrix)
@@ -493,8 +493,8 @@ function apply_proba(
     @assert nsamples(X) == size(tree_weights, 2) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
 
     # apply each tree to the whole dataset
-    _predictions = Array{Float64,3}(undef, _n_samples, n_trees, length(classes))
-    Threads.@threads for i_tree in 1:n_trees
+    _predictions = Array{Float64,3}(undef, _n_samples, ntrees, length(classes))
+    Threads.@threads for i_tree in 1:ntrees
         _predictions[:,i_tree,:] = apply_proba(trees[i_tree], X, classes)
     end
 
@@ -518,7 +518,7 @@ function apply_proba(
     tree_weights::Union{Nothing,AbstractVector{Z}} = nothing,
 ) where {L<:RLabel,Z<:Real}
     @logmsg LogDetail "apply_proba..."
-    n_trees = length(trees)
+    ntrees = length(trees)
     _n_samples = nsamples(X)
 
     if !isnothing(tree_weights)
@@ -526,8 +526,8 @@ function apply_proba(
     end
 
     # apply each tree to the whole dataset
-    _predictions = Matrix{Vector{Float64}}(undef, _n_samples, n_trees)
-    Threads.@threads for i_tree in 1:n_trees
+    _predictions = Matrix{Vector{Float64}}(undef, _n_samples, ntrees)
+    Threads.@threads for i_tree in 1:ntrees
         _predictions[:,i_tree] = apply_proba(trees[i_tree], X)
     end
 

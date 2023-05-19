@@ -94,9 +94,9 @@ function displaymodel(
     kwargs...,
 )
     outstr = ""
-    n_trees = num_trees(forest)
-    for i_tree in 1:n_trees
-        outstr *= "Tree $(i_tree) / $(n_trees)"
+    _ntrees = ntrees(forest)
+    for i_tree in 1:_ntrees
+        outstr *= "Tree $(i_tree) / $(_ntrees)"
         outstr *= displaymodel(trees(forest)[i_tree], args...; kwargs...)
     end
     return outstr
@@ -109,9 +109,9 @@ function displaymodel(
 )
     outstr = ""
     outstr *= "Feature function: $(nsdt.feature_function)"
-    n_trees = num_trees(forest)
+    _ntrees = ntrees(forest)
     for (i_tree,tree) in enumerate(nsdt.trees)
-        outstr *= "Tree $(i_tree) / $(n_trees)"
+        outstr *= "Tree $(i_tree) / $(_ntrees)"
         outstr *= displaymodel(tree, args...; kwargs...)
     end
     return outstr

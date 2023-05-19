@@ -13,8 +13,8 @@ features = string.(features)
 labels   = string.(labels)
 
 n_subfeatures = 3
-n_trees = 5
-model = build_forest(labels, features, n_subfeatures, n_trees)
+ntrees = 5
+model = build_forest(labels, features, n_subfeatures, ntrees)
 preds = apply_forest(model, features)
 @test MLJBase.accuracy(labels, preds) > 0.9
 
@@ -31,10 +31,10 @@ accuracy = nfoldCV_tree(labels, features, nfolds, pruning_purity; verbose=false)
 
 println("\n##### 3 foldCV Classification Forest #####")
 n_subfeatures = 2
-n_trees = 10
+ntrees = 10
 n_folds = 3
 partial_sampling = 0.5
-accuracy = nfoldCV_forest(labels, features, n_folds, n_subfeatures, n_trees, partial_sampling; verbose=false)
+accuracy = nfoldCV_forest(labels, features, n_folds, n_subfeatures, ntrees, partial_sampling; verbose=false)
 @test mean(accuracy) > 0.8
 
 println("\n##### nfoldCV Classification Adaboosted Stumps #####")

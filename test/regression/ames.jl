@@ -31,7 +31,7 @@ yhat = MLJ.predict(mach, X_test)
 
 @test StatsBase.cor(yhat, y_test) > 0.6
 
-model = ModalRandomForest(n_trees = 15)
+model = ModalRandomForest(ntrees = 15)
 
 mach = machine(model, X_train, y_train) |> fit!
 

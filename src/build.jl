@@ -43,10 +43,10 @@ function build_tree(
     W                   :: Union{Nothing,AbstractVector{U},Symbol}   = default_weights(nsamples(X));
     ##############################################################################
     loss_function       :: Union{Nothing,Function}            = nothing,
-    max_depth           :: Int64                              = default_max_depth,
-    min_samples_leaf    :: Int64                              = default_min_samples_leaf,
-    min_purity_increase :: AbstractFloat                      = default_min_purity_increase,
-    max_purity_at_leaf  :: AbstractFloat                      = default_max_purity_at_leaf,
+    max_depth           :: Int64                              = DEFAULT_MAX_DEPTH,
+    min_samples_leaf    :: Int64                              = DEFAULT_MIN_SAMPLES_LEAF,
+    min_purity_increase :: AbstractFloat                      = DEFAULT_MIN_PURITY_INCREASE,
+    max_purity_at_leaf  :: AbstractFloat                      = DEFAULT_MAX_PURITY_AT_LEAF,
     ##############################################################################
     n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
     n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = identity,
@@ -126,15 +126,15 @@ function build_forest(
     W                   :: Union{Nothing,AbstractVector{U},Symbol} = default_weights(Y);
     ##############################################################################
     # Forest logic-agnostic parameters
-    n_trees             = 100,
+    ntrees              = 100,
     partial_sampling    = 0.7,      # portion of sub-sampled samples (without replacement) by each tree
     ##############################################################################
     # Tree logic-agnostic parameters
     loss_function       :: Union{Nothing,Function}          = nothing,
-    max_depth           :: Int64                            = default_max_depth,
-    min_samples_leaf    :: Int64                            = default_min_samples_leaf,
-    min_purity_increase :: AbstractFloat                    = default_min_purity_increase,
-    max_purity_at_leaf  :: AbstractFloat                    = default_max_purity_at_leaf,
+    max_depth           :: Int64                            = DEFAULT_MAX_DEPTH,
+    min_samples_leaf    :: Int64                            = DEFAULT_MIN_SAMPLES_LEAF,
+    min_purity_increase :: AbstractFloat                    = DEFAULT_MIN_PURITY_INCREASE,
+    max_purity_at_leaf  :: AbstractFloat                    = DEFAULT_MAX_PURITY_AT_LEAF,
     ##############################################################################
     # Modal parameters
     n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
@@ -177,7 +177,7 @@ function build_forest(
         allow_global_splits = fill(allow_global_splits, nframes(X))
     end
 
-    if n_trees < 1
+    if ntrees < 1
         throw_n_log("the number of trees must be >= 1")
     end
     
@@ -192,16 +192,16 @@ function build_forest(
     tot_samples = nsamples(X)
     num_samples = floor(Int64, partial_sampling * tot_samples)
 
-    trees = Vector{DTree{L}}(undef, n_trees)
-    oob_samples = Vector{Vector{Integer}}(undef, n_trees)
-    oob_metrics = Vector{NamedTuple}(undef, n_trees)
+    trees = Vector{DTree{L}}(undef, ntrees)
+    oob_samples = Vector{Vector{Integer}}(undef, ntrees)
+    oob_metrics = Vector{NamedTuple}(undef, ntrees)
 
-    rngs = [spawn_rng(rng) for i_tree in 1:n_trees]
+    rngs = [spawn_rng(rng) for i_tree in 1:ntrees]
 
     if print_progress
-        p = Progress(n_trees, 1, "Computing DForest...")
+        p = Progress(ntrees, 1, "Computing DForest...")
     end
-    Threads.@threads for i_tree in 1:n_trees
+    Threads.@threads for i_tree in 1:ntrees
         train_idxs = rand(rngs[i_tree], 1:tot_samples, num_samples)
 
         X_slice = _slice_dataset(X, train_idxs, Val(true))
@@ -256,10 +256,10 @@ function build_forest(
         #  trees corresponding to boot-strap samples in which the sample did not appear
         oob_classified = Vector{Bool}()
         Threads.@threads for i in 1:tot_samples
-            selected_trees = fill(false, n_trees)
+            selected_trees = fill(false, ntrees)
             
             # pick every tree trained without i-th sample
-            for i_tree in 1:n_trees
+            for i_tree in 1:ntrees
                 if i in oob_samples[i_tree] # if i is present in the i_tree-th tree, selecte thi tree
                     selected_trees[i_tree] = true
                 end

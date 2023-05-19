@@ -22,17 +22,17 @@ mutable struct NodeMeta{L<:Label,P} <: AbstractNode{L}
     l                  :: NodeMeta{L,P}                    # left child
     r                  :: NodeMeta{L,P}                    # right child
     
-    i_frame            :: Integer                          # Id of frame
+    frameid            :: FrameId                          # Id of frame
     decision           :: AbstractDecision
 
     onlyallowglobal:: Vector{Bool}
 
     function NodeMeta{L,P}(
-            region      :: UnitRange{Int},
-            depth       :: Int,
-            modaldepth :: Int,
-            oura        :: Vector{Bool},
-            ) where {L,P}
+        region      :: UnitRange{Int},
+        depth       :: Int,
+        modaldepth :: Int,
+        oura        :: Vector{Bool},
+    ) where {L,P}
         node = new{L,P}()
         node.region = region
         node.depth = depth
@@ -56,7 +56,7 @@ end
     # onlyallowglobal changes:
     # on the left node, the frame where the decision was taken
     l_oura = copy(node.onlyallowglobal)
-    l_oura[node.i_frame] = false
+    l_oura[node.frameid] = false
     r_oura = node.onlyallowglobal
 
     # no need to copy because we will copy at the end
@@ -66,34 +66,34 @@ end
 
 # Conversion: NodeMeta (node + training info) -> DTNode (bare decision tree model)
 function _convert(
-        node          :: NodeMeta,
-        labels        :: AbstractVector{L},
-        class_names   :: AbstractVector{L},
-        threshold_backmap :: Vector{<:Function}
-    ) where {L<:CLabel}
+    node          :: NodeMeta,
+    labels        :: AbstractVector{L},
+    class_names   :: AbstractVector{L},
+    threshold_backmap :: Vector{<:Function}
+) where {L<:CLabel}
     this_leaf = DTLeaf(class_names[node.prediction], labels[node.region])
     if node.is_leaf
         this_leaf
     else
         left  = _convert(node.l, labels, class_names, threshold_backmap)
         right = _convert(node.r, labels, class_names, threshold_backmap)
-        DTInternal(node.i_frame, ExistentialDimensionalDecision(node.decision, threshold_backmap[node.i_frame]), this_leaf, left, right)
+        DTInternal(node.frameid, ExistentialDimensionalDecision(node.decision, threshold_backmap[node.frameid]), this_leaf, left, right)
     end
 end
 
 # Conversion: NodeMeta (node + training info) -> DTNode (bare decision tree model)
 function _convert(
-        node   :: NodeMeta,
-        labels :: AbstractVector{L},
-        threshold_backmap :: Vector{<:Function}
-    ) where {L<:RLabel}
+    node   :: NodeMeta,
+    labels :: AbstractVector{L},
+    threshold_backmap :: Vector{<:Function}
+) where {L<:RLabel}
     this_leaf = DTLeaf(node.prediction, labels[node.region])
     if node.is_leaf
         this_leaf
     else
         left  = _convert(node.l, labels, threshold_backmap)
         right = _convert(node.r, labels, threshold_backmap)
-        DTInternal(node.i_frame, ExistentialDimensionalDecision(node.decision, threshold_backmap[node.i_frame]), this_leaf, left, right)
+        DTInternal(node.frameid, ExistentialDimensionalDecision(node.decision, threshold_backmap[node.frameid]), this_leaf, left, right)
     end
 end
 
@@ -382,7 +382,7 @@ Base.@propagate_inbounds @inline function split_node!(
     # end
 
     Sfs = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, nframes(Xs))
-    for (i_frame,WT) in enumerate(get_world_types(Xs))
+    for (i_frame,WT) in enumerate(worldtypes(Xs))
         Sfs[i_frame] = Vector{Vector{WT}}(undef, _n_samples)
         @simd for i in 1:_n_samples
             Sfs[i_frame][i] = Ss[i_frame][idxs[i + r_start]]
@@ -755,7 +755,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # split the samples into two parts:
             #  ones for which the is satisfied and those for whom it's not
             node.purity         = best_purity
-            node.i_frame        = best_i_frame
+            node.frameid        = best_i_frame
             node.decision       = best_decision
 
             # DEBUGprintln("unsatisfied_flags")
@@ -787,18 +787,18 @@ end
 ############################################################################################
 
 @inline function _fit_tree(
-        Xs                        :: ActiveMultiFrameModalDataset,       # modal dataset
-        Y                         :: AbstractVector{L},                  # label vector
-        init_conditions           :: AbstractVector{<:InitCondition},   # world starting conditions
-        W                         :: AbstractVector{U}                   # weight vector
-        ;
-        ##########################################################################
-        _is_classification        :: Union{Val{true},Val{false}},
-        _perform_consistency_check:: Union{Val{true},Val{false}},
-        rng = Random.GLOBAL_RNG   :: Random.AbstractRNG,
-        print_progress            :: Bool = true,
-        kwargs...,
-    ) where{L<:_Label,U}
+    Xs                        :: ActiveMultiFrameModalDataset,       # modal dataset
+    Y                         :: AbstractVector{L},                  # label vector
+    init_conditions           :: AbstractVector{<:InitCondition},   # world starting conditions
+    W                         :: AbstractVector{U}                   # weight vector
+    ;
+    ##########################################################################
+    _is_classification        :: Union{Val{true},Val{false}},
+    _perform_consistency_check:: Union{Val{true},Val{false}},
+    rng = Random.GLOBAL_RNG   :: Random.AbstractRNG,
+    print_progress            :: Bool = true,
+    kwargs...,
+) where{L<:_Label,U}
 
     _n_samples = nsamples(Xs)
 
@@ -849,24 +849,24 @@ end
 ##############################################################################
 
 @inline function check_input(
-        Xs                      :: ActiveMultiFrameModalDataset,
-        Y                       :: AbstractVector{S},
-        init_conditions         :: Vector{<:InitCondition},
-        W                       :: AbstractVector{U}
-        ;
-        ##########################################################################
-        loss_function           :: Function,
-        max_depth               :: Int,
-        min_samples_leaf        :: Int,
-        min_purity_increase     :: AbstractFloat,
-        max_purity_at_leaf      :: AbstractFloat,
-        ##########################################################################
-        n_subrelations          :: Vector{<:Function},
-        n_subfeatures           :: Vector{<:Integer},
-        allow_global_splits     :: Vector{Bool},
-        ##########################################################################
-        kwargs...,
-    ) where {S,U}
+    Xs                      :: ActiveMultiFrameModalDataset,
+    Y                       :: AbstractVector{S},
+    init_conditions         :: Vector{<:InitCondition},
+    W                       :: AbstractVector{U}
+    ;
+    ##########################################################################
+    loss_function           :: Function,
+    max_depth               :: Int,
+    min_samples_leaf        :: Int,
+    min_purity_increase     :: AbstractFloat,
+    max_purity_at_leaf      :: AbstractFloat,
+    ##########################################################################
+    n_subrelations          :: Vector{<:Function},
+    n_subfeatures           :: Vector{<:Integer},
+    allow_global_splits     :: Vector{Bool},
+    ##########################################################################
+    kwargs...,
+) where {S,U}
     _n_samples = nsamples(Xs)
 
     if length(Y) != _n_samples
@@ -947,22 +947,22 @@ end
 ################################################################################
 
 function fit_tree(
-        # modal dataset
-        Xs                        :: ActiveMultiFrameModalDataset,
-        # label vector
-        Y                         :: AbstractVector{L},
-        # world starting conditions
-        init_conditions           :: Vector{<:InitCondition},
-        # Weights (unary weigths are used if no weight is supplied)
-        W                         :: AbstractVector{U} = default_weights(Y)
-        # W                       :: AbstractVector{U} = Ones{Int}(nsamples(Xs)), # TODO check whether this is faster
-        ;
-        # Perform minification: transform dataset so that learning happens faster
-        perform_minification      :: Bool,
-        # Debug-only: checks the consistency of the dataset during training
-        perform_consistency_check :: Bool,
-        kwargs...,
-    ) where {L<:Union{CLabel,RLabel}, U}
+    # modal dataset
+    Xs                        :: ActiveMultiFrameModalDataset,
+    # label vector
+    Y                         :: AbstractVector{L},
+    # world starting conditions
+    init_conditions           :: Vector{<:InitCondition},
+    # Weights (unary weigths are used if no weight is supplied)
+    W                         :: AbstractVector{U} = default_weights(Y)
+    # W                       :: AbstractVector{U} = Ones{Int}(nsamples(Xs)), # TODO check whether this is faster
+    ;
+    # Perform minification: transform dataset so that learning happens faster
+    perform_minification      :: Bool,
+    # Debug-only: checks the consistency of the dataset during training
+    perform_consistency_check :: Bool,
+    kwargs...,
+) where {L<:Union{CLabel,RLabel}, U}
     # Check validity of the input
     check_input(Xs, Y, init_conditions, W; kwargs...)
 
@@ -1001,5 +1001,5 @@ function fit_tree(
             _convert(root, Y[idxs], threshold_backmaps)
         end
     end
-    DTree{L}(root, get_world_types(Xs), init_conditions)
+    DTree{L}(root, worldtypes(Xs), init_conditions)
 end

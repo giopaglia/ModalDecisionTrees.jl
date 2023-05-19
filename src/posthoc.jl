@@ -4,21 +4,21 @@
 ################################################################################
 ################################################################################
 
-export prune_tree, prune_forest
+export prune
 
 using DataStructures
 
-function prune_tree(tree::DTree; kwargs...)
-    DTree(prune_tree(root(tree); depth = 0, kwargs...), world_types(tree), init_conditions(tree))
+function prune(tree::DTree; kwargs...)
+    DTree(prune(root(tree); depth = 0, kwargs...), worldtypes(tree), init_conditions(tree))
 end
 
-function prune_tree(leaf::AbstractDecisionLeaf; kwargs...)
+function prune(leaf::AbstractDecisionLeaf; kwargs...)
     leaf
 end
 
-function prune_tree(node::DTInternal{L}; depth = nothing, kwargs...) where {L}
+function prune(node::DTInternal{L}; depth = nothing, kwargs...) where {L}
 
-    @assert ! (haskey(kwargs, :max_depth) && isnothing(depth)) "Please specify the node depth: prune_tree(node; depth = ...)"
+    @assert ! (haskey(kwargs, :max_depth) && isnothing(depth)) "Please specify the node depth: prune(node; depth = ...)"
 
     kwargs = NamedTuple(kwargs)
 
@@ -29,10 +29,10 @@ function prune_tree(node::DTInternal{L}; depth = nothing, kwargs...) where {L}
 
     pruning_params = merge((
         loss_function       = default_loss_function(L)      ::Union{Nothing,Function},
-        max_depth           = default_max_depth             ::Int                    ,
-        min_samples_leaf    = default_min_samples_leaf      ::Int                    ,
-        min_purity_increase = default_min_purity_increase   ::AbstractFloat          ,
-        max_purity_at_leaf  = default_max_purity_at_leaf    ::AbstractFloat          ,
+        max_depth           = DEFAULT_MAX_DEPTH             ::Int                    ,
+        min_samples_leaf    = DEFAULT_MIN_SAMPLES_LEAF      ::Int                    ,
+        min_purity_increase = DEFAULT_MIN_PURITY_INCREASE   ::AbstractFloat          ,
+        max_purity_at_leaf  = DEFAULT_MAX_PURITY_AT_LEAF    ::AbstractFloat          ,
     ), NamedTuple(kwargs))
 
     @assert all(map((x)->(isa(x, DTInternal) || isa(x, DTLeaf)), [this(node), left(node), right(node)]))
@@ -67,31 +67,31 @@ function prune_tree(node::DTInternal{L}; depth = nothing, kwargs...) where {L}
     end
 
     DTInternal(
-        i_frame(node),
+        frameid(node),
         decision(node),
         this(node),
-        prune_tree(left(node);  pruning_params..., depth = depth+1),
-        prune_tree(right(node); pruning_params..., depth = depth+1)
+        prune(left(node);  pruning_params..., depth = depth+1),
+        prune(right(node); pruning_params..., depth = depth+1)
     )
 end
 
-function prune_forest(forest::DForest{L}, rng::Random.AbstractRNG = Random.GLOBAL_RNG; kwargs...) where {L}
+function prune(forest::DForest{L}, rng::Random.AbstractRNG = Random.GLOBAL_RNG; kwargs...) where {L}
     pruning_params = merge((
-        n_trees             = default_n_trees                      ::Integer                ,
+        ntrees             = DEFAULT_NTREES                      ::Integer                ,
     ), NamedTuple(kwargs))
 
     # Remove trees
-    if pruning_params.n_trees != default_n_trees
-        perm = Random.randperm(rng, length(trees(forest)))[1:pruning_params.n_trees]
+    if pruning_params.ntrees != DEFAULT_NTREES
+        perm = Random.randperm(rng, length(trees(forest)))[1:pruning_params.ntrees]
         forest = slice_forest(forest, perm)
     end
     pruning_params = Base.structdiff(pruning_params, (;
-        n_trees           = nothing,
+        ntrees           = nothing,
     ))
 
     # Prune trees
     # if parametrization_is_going_to_prune(pruning_params)
-    v_trees = map((t)->prune_tree(t; pruning_params...), trees(forest))
+    v_trees = map((t)->prune(t; pruning_params...), trees(forest))
     # Note: metrics are lost
     forest = DForest{L}(v_trees)
     # end
@@ -130,7 +130,7 @@ function nondominated_pruning_parametrizations(
                 :min_purity_increase,
                 :max_purity_at_leaf,
                 # forest
-                :n_trees,
+                :ntrees,
             ]
 
             # To be matched
@@ -163,13 +163,13 @@ function nondominated_pruning_parametrizations(
             # polarity(::Val{:min_samples_leaf})    = min
             polarity(::Val{:min_purity_increase}) = min
             polarity(::Val{:max_purity_at_leaf})  = max
-            polarity(::Val{:n_trees})             = max
+            polarity(::Val{:ntrees})             = max
 
             bottom(::Val{:max_depth})           = typemin(Int)
             # bottom(::Val{:min_samples_leaf})    = typemax(Int)
             bottom(::Val{:min_purity_increase}) = Inf
             bottom(::Val{:max_purity_at_leaf})  = -Inf
-            bottom(::Val{:n_trees})             = typemin(Int)
+            bottom(::Val{:ntrees})             = typemin(Int)
 
             perm = []
             # Find non-dominated parameter set
@@ -180,7 +180,7 @@ function nondominated_pruning_parametrizations(
                     # min_samples_leaf    = nothing,
                     min_purity_increase = nothing,
                     max_purity_at_leaf  = nothing,
-                    n_trees             = nothing,
+                    ntrees             = nothing,
                 ))
 
                 dominating[base_args] = ((
@@ -188,7 +188,7 @@ function nondominated_pruning_parametrizations(
                     # min_samples_leaf    = polarity(Val(:min_samples_leaf   ))((haskey(this_args, :min_samples_leaf   ) ? this_args.min_samples_leaf    : bottom(Val(:min_samples_leaf   ))),(haskey(dominating, base_args) ? dominating[base_args][1].min_samples_leaf    : bottom(Val(:min_samples_leaf   )))),
                     min_purity_increase = polarity(Val(:min_purity_increase))((haskey(this_args, :min_purity_increase) ? this_args.min_purity_increase : bottom(Val(:min_purity_increase))),(haskey(dominating, base_args) ? dominating[base_args][1].min_purity_increase : bottom(Val(:min_purity_increase)))),
                     max_purity_at_leaf  = polarity(Val(:max_purity_at_leaf ))((haskey(this_args, :max_purity_at_leaf ) ? this_args.max_purity_at_leaf  : bottom(Val(:max_purity_at_leaf ))),(haskey(dominating, base_args) ? dominating[base_args][1].max_purity_at_leaf  : bottom(Val(:max_purity_at_leaf )))),
-                    n_trees             = polarity(Val(:n_trees            ))((haskey(this_args, :n_trees            ) ? this_args.n_trees             : bottom(Val(:n_trees            ))),(haskey(dominating, base_args) ? dominating[base_args][1].n_trees             : bottom(Val(:n_trees            )))),
+                    ntrees             = polarity(Val(:ntrees            ))((haskey(this_args, :ntrees            ) ? this_args.ntrees             : bottom(Val(:ntrees            ))),(haskey(dominating, base_args) ? dominating[base_args][1].ntrees             : bottom(Val(:ntrees            )))),
                 ),[(haskey(dominating, base_args) ? dominating[base_args][2] : [])..., this_args])
 
                 outer_idx = findfirst((k)->k==base_args, collect(keys(dominating)))
@@ -202,7 +202,7 @@ function nondominated_pruning_parametrizations(
                     # if (rep_args.min_samples_leaf    == bottom(Val(:min_samples_leaf))   ) rep_args = Base.structdiff(rep_args, (; min_samples_leaf    = nothing)) end
                     if (rep_args.min_purity_increase == bottom(Val(:min_purity_increase))) rep_args = Base.structdiff(rep_args, (; min_purity_increase = nothing)) end
                     if (rep_args.max_purity_at_leaf  == bottom(Val(:max_purity_at_leaf)) ) rep_args = Base.structdiff(rep_args, (; max_purity_at_leaf  = nothing)) end
-                    if (rep_args.n_trees             == bottom(Val(:n_trees           )) ) rep_args = Base.structdiff(rep_args, (; n_trees             = nothing)) end
+                    if (rep_args.ntrees             == bottom(Val(:ntrees           )) ) rep_args = Base.structdiff(rep_args, (; ntrees             = nothing)) end
 
                     this_args = merge(base_args, rep_args)
                     (this_args, [begin
@@ -235,17 +235,17 @@ function train_functional_leaves(
     worlds = Vector{Vector{Vector{<:WST} where {WorldType<:AbstractWorld,WST<:WorldSet{WorldType}}}}([
         ModalDecisionTrees.initialworldsets(X, init_conditions(tree))
     for (X,Y) in datasets])
-    DTree(train_functional_leaves(root(tree), worlds, datasets, args...; kwargs...), world_types(tree), init_conditions(tree))
+    DTree(train_functional_leaves(root(tree), worlds, datasets, args...; kwargs...), worldtypes(tree), init_conditions(tree))
 end
 
 # At internal nodes, a functional model is trained by calling a callback function, and the leaf is created
 function train_functional_leaves(
-        node::DTInternal{L},
-        worlds::AbstractVector{<:AbstractVector{<:AbstractVector{<:AbstractWorldSet}}},
-        datasets::AbstractVector{Tuple{GenericModalDataset,AbstractVector}},
-        args...;
-        kwargs...,
-    ) where {L}
+    node::DTInternal{L},
+    worlds::AbstractVector{<:AbstractVector{<:AbstractVector{<:AbstractWorldSet}}},
+    datasets::AbstractVector{Tuple{GenericModalDataset,AbstractVector}},
+    args...;
+    kwargs...,
+) where {L}
 
     # Each dataset is sliced, and two subsets are derived (left and right)
     datasets_l = Tuple{GenericModalDataset,AbstractVector}[]
@@ -260,7 +260,7 @@ function train_functional_leaves(
         unsatisfied_idxs = Integer[]
 
         for i_sample in 1:nsamples(X)
-            (satisfied,new_worlds) = modalstep(get_frame(X, i_frame(node)), i_sample, worlds[i_dataset][i_frame(node)][i_sample], decision(node))
+            (satisfied,new_worlds) = modalstep(get_frame(X, frameid(node)), i_sample, worlds[i_dataset][frameid(node)][i_sample], decision(node))
 
             if satisfied
                 push!(satisfied_idxs, i_sample)
@@ -268,7 +268,7 @@ function train_functional_leaves(
                 push!(unsatisfied_idxs, i_sample)
             end
 
-            worlds[i_dataset][i_frame(node)][i_sample] = new_worlds
+            worlds[i_dataset][frameid(node)][i_sample] = new_worlds
         end
 
         push!(datasets_l, slice_dataset((X,Y), satisfied_idxs;   allow_no_instances = true))
@@ -279,7 +279,7 @@ function train_functional_leaves(
     end
 
     DTInternal(
-        i_frame(node),
+        frameid(node),
         decision(node),
         # train_functional_leaves(node.this,  worlds,   datasets,   args...; kwargs...), # TODO test whether this makes sense and works correctly
         this(node),
@@ -290,11 +290,11 @@ end
 
 # At leaves, a functional model is trained by calling a callback function, and the leaf is created
 function train_functional_leaves(
-        leaf::AbstractDecisionLeaf{L},
-        worlds::AbstractVector{<:AbstractVector{<:AbstractVector{<:AbstractWorldSet}}},
-        datasets::AbstractVector{Tuple{GenericModalDataset,AbstractVector}};
-        train_callback::Function,
-    ) where {L<:Label}
+    leaf::AbstractDecisionLeaf{L},
+    worlds::AbstractVector{<:AbstractVector{<:AbstractVector{<:AbstractWorldSet}}},
+    datasets::AbstractVector{Tuple{GenericModalDataset,AbstractVector}};
+    train_callback::Function,
+) where {L<:Label}
     functional_model = train_callback(datasets)
 
     @assert length(datasets) == 2 "TODO expand code: $(length(datasets))"
@@ -336,7 +336,7 @@ function _variable_countmap(node::DTInternal{L}; weighted = false) where {L<:Lab
     th = begin
         d = decision(node)
         f = feature(d)
-        (f isa SingleAttributeFeature) ? [((i_frame(node), f.i_attribute), (weighted ? length(supp_labels) : 1)),] : []
+        (f isa SingleAttributeFeature) ? [((frameid(node), f.i_attribute), (weighted ? length(supp_labels) : 1)),] : []
     end
     [th..., _variable_countmap(left(node); weighted = weighted)..., _variable_countmap(right(node); weighted = weighted)...]
 end

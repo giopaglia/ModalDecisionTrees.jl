@@ -1,7 +1,6 @@
 using Revise
 using ModalDecisionTrees
 using SoleModels.ModalLogic
-using ReTest
 
 using Random
 using BenchmarkTools

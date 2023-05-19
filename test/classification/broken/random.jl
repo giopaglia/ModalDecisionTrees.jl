@@ -42,7 +42,7 @@ preds = apply_forest(model, features)
 @test typeof(preds) == Vector{Int}
 
 n_subfeatures       = 3
-n_trees             = 9
+ntrees             = 9
 partial_sampling    = 0.7
 max_depth           = -1
 min_samples_leaf    = 5
@@ -51,7 +51,7 @@ min_purity_increase = 0.0
 model = build_forest(
         labels, features,
         n_subfeatures,
-        n_trees,
+        ntrees,
         partial_sampling,
         max_depth,
         min_samples_leaf,
@@ -59,7 +59,7 @@ model = build_forest(
         min_purity_increase)
 preds = apply_forest(model, features)
 @test MLJBase.accuracy(labels, preds) > 0.9
-@test length(model) == n_trees
+@test length(model) == ntrees
 
 # test n_subfeatures
 n_subfeatures       = 0
@@ -70,7 +70,7 @@ m_full    = build_forest(labels, features, n_subfeatures)
 # test partial_sampling parameter, train on single sample
 partial_sampling    = 1 / n
 n_subfeatures       = 0
-n_trees             = 1         # single tree test
+ntrees             = 1         # single tree test
 max_depth           = -1
 min_samples_leaf    = 1
 min_samples_split   = 2
@@ -78,7 +78,7 @@ min_purity_increase = 0.0
 partial = build_forest(
             labels, features,
             n_subfeatures,
-            n_trees,
+            ntrees,
             partial_sampling,
             max_depth,
             min_samples_leaf,
@@ -88,18 +88,18 @@ partial = build_forest(
 
 # test RNG parameter for forests
 n_subfeatures       = 2
-n_trees             = 5
+ntrees             = 5
 m1 = build_forest(labels, features,
         n_subfeatures,
-        n_trees;
+        ntrees;
         rng=10)
 m2 = build_forest(labels, features,
         n_subfeatures,
-        n_trees;
+        ntrees;
         rng=10)
 m3 = build_forest(labels, features,
         n_subfeatures,
-        n_trees;
+        ntrees;
         rng=5)
 @test length.(trees(m1)) == length.(trees(m2))
 @test depth.(trees(m1))  == depth.(trees(m2))
@@ -127,10 +127,10 @@ accuracy3 = nfoldCV_tree(labels, features, nfolds, pruning_purity, max_depth; rn
 println("\n##### nfoldCV Classification Forest #####")
 nfolds          = 3
 n_subfeatures   = 2
-n_trees         = 10
-accuracy  = nfoldCV_forest(labels, features, nfolds, n_subfeatures, n_trees; rng=10, verbose=false)
-accuracy2 = nfoldCV_forest(labels, features, nfolds, n_subfeatures, n_trees; rng=10)
-accuracy3 = nfoldCV_forest(labels, features, nfolds, n_subfeatures, n_trees; rng=5)
+ntrees         = 10
+accuracy  = nfoldCV_forest(labels, features, nfolds, n_subfeatures, ntrees; rng=10, verbose=false)
+accuracy2 = nfoldCV_forest(labels, features, nfolds, n_subfeatures, ntrees; rng=10)
+accuracy3 = nfoldCV_forest(labels, features, nfolds, n_subfeatures, ntrees; rng=5)
 @test mean(accuracy) > 0.7
 @test accuracy == accuracy2
 @test accuracy != accuracy3

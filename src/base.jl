@@ -1,5 +1,6 @@
 using SoleLogics: AbstractMultiModalFrame
 import SoleModels: printmodel, displaymodel
+import SoleModels.ModalLogic: worldtypes
 
 ############################################################################################
 # Initial world conditions
@@ -231,7 +232,7 @@ predictions(leaf::NSDTLeaf; train_or_valid = true) = (train_or_valid ? leaf.supp
 # Internal decision node, holding a split-decision and a frame index
 struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
     # frame index + split-decision
-    i_frame       :: Int64
+    frameid       :: FrameId
     decision      :: D
     # representative leaf for the current node
     this          :: AbstractDecisionLeaf{<:L}
@@ -244,39 +245,39 @@ struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
 
     # create node
     function DTInternal{L,D}(
-        i_frame          :: Int64,
+        frameid          :: FrameId,
         decision         :: D,
         this             :: AbstractDecisionLeaf,
         left             :: Union{AbstractDecisionLeaf,DTInternal},
         right            :: Union{AbstractDecisionLeaf,DTInternal},
         miscellaneous    :: NamedTuple = (;),
     ) where {D<:AbstractDecision,L<:Label}
-        new{L,D}(i_frame, decision, this, left, right, miscellaneous)
+        new{L,D}(frameid, decision, this, left, right, miscellaneous)
     end
     function DTInternal{L}(
-        i_frame          :: Int64,
+        frameid          :: FrameId,
         decision         :: D,
         this             :: AbstractDecisionLeaf{<:L},
         left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
         right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
         miscellaneous    :: NamedTuple = (;),
     ) where {D<:AbstractDecision,L<:Label}
-        DTInternal{L,D}(i_frame, decision, this, left, right, miscellaneous)
+        DTInternal{L,D}(frameid, decision, this, left, right, miscellaneous)
     end
     function DTInternal(
-        i_frame          :: Int64,
+        frameid          :: FrameId,
         decision         :: D,
         this             :: AbstractDecisionLeaf{<:L},
         left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
         right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
         miscellaneous    :: NamedTuple = (;),
     ) where {D<:AbstractDecision,L<:Label}
-        DTInternal{L,D}(i_frame, decision, this, left, right, miscellaneous)
+        DTInternal{L,D}(frameid, decision, this, left, right, miscellaneous)
     end
 
     # create node without local decision
     function DTInternal{L,D}(
-        i_frame          :: Int64,
+        frameid          :: FrameId,
         decision         :: D,
         left             :: Union{AbstractDecisionLeaf,DTInternal},
         right            :: Union{AbstractDecisionLeaf,DTInternal},
@@ -284,25 +285,25 @@ struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
     ) where {D<:AbstractDecision,L<:Label}
         # this = merge_into_leaf(Vector{<:Union{AbstractDecisionLeaf,DTInternal}}([left, right]))
         this = merge_into_leaf(Union{<:AbstractDecisionLeaf,<:DTInternal}[left, right])
-        new{L,D}(i_frame, decision, this, left, right, miscellaneous)
+        new{L,D}(frameid, decision, this, left, right, miscellaneous)
     end
     function DTInternal{L}(
-        i_frame          :: Int64,
+        frameid          :: FrameId,
         decision         :: D,
         left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
         right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
         miscellaneous    :: NamedTuple = (;),
     ) where {D<:AbstractDecision,L<:Label}
-        DTInternal{L,D}(i_frame, decision, left, right, miscellaneous)
+        DTInternal{L,D}(frameid, decision, left, right, miscellaneous)
     end
     function DTInternal(
-        i_frame          :: Int64,
+        frameid          :: FrameId,
         decision         :: D,
         left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
         right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
         miscellaneous    :: NamedTuple = (;),
     ) where {D<:AbstractDecision,L<:Label}
-        DTInternal{L,D}(i_frame, decision, left, right, miscellaneous)
+        DTInternal{L,D}(frameid, decision, left, right, miscellaneous)
     end
 
     # create node without frame
@@ -311,8 +312,8 @@ struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
     #     this             :: AbstractDecisionLeaf,
     #     left             :: Union{AbstractDecisionLeaf,DTInternal},
     #     right            :: Union{AbstractDecisionLeaf,DTInternal}) where {T,L<:Label}
-    #     i_frame = 1
-    #     DTInternal{L,D}(i_frame, decision, this, left, right)
+    #     frameid = 1
+    #     DTInternal{L,D}(frameid, decision, this, left, right)
     # end
     # function DTInternal(
     #     decision         :: AbstractDecision{T},
@@ -327,8 +328,8 @@ struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
     #     decision         :: AbstractDecision,
     #     left             :: Union{AbstractDecisionLeaf,DTInternal},
     #     right            :: Union{AbstractDecisionLeaf,DTInternal}) where {T,L<:Label}
-    #     i_frame = 1
-    #     DTInternal{L,D}(i_frame, decision, left, right)
+    #     frameid = 1
+    #     DTInternal{L,D}(frameid, decision, left, right)
     # end
     # function DTInternal(
     #     decision         :: AbstractDecision{T},
@@ -338,7 +339,7 @@ struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
     # end
 end
 
-i_frame(node::DTInternal) = node.i_frame
+frameid(node::DTInternal) = node.frameid
 decision(node::DTInternal) = node.decision
 this(node::DTInternal) = node.this
 left(node::DTInternal) = node.left
@@ -359,29 +360,29 @@ struct DTree{L<:Label} <: SymbolicModel{L}
     # root node
     root            :: DTNode{L}
     # world types (one per frame)
-    world_types     :: Vector{Type{<:AbstractWorld}}
+    worldtypes     :: Vector{Type{<:AbstractWorld}}
     # initial world conditions (one per frame)
     init_conditions :: Vector{<:InitCondition}
 
     function DTree{L}(
         root            :: DTNode,
-        world_types     :: AbstractVector{<:Type},
+        worldtypes     :: AbstractVector{<:Type},
         init_conditions :: AbstractVector{<:InitCondition},
     ) where {L<:Label}
-        new{L}(root, collect(world_types), collect(init_conditions))
+        new{L}(root, collect(worldtypes), collect(init_conditions))
     end
 
     function DTree(
         root            :: DTNode{L,D},
-        world_types     :: AbstractVector{<:Type},
+        worldtypes     :: AbstractVector{<:Type},
         init_conditions :: AbstractVector{<:InitCondition},
     ) where {L<:Label,D<:AbstractDecision}
-        DTree{L}(root, world_types, init_conditions)
+        DTree{L}(root, worldtypes, init_conditions)
     end
 end
 
 root(tree::DTree) = tree.root
-world_types(tree::DTree) = tree.world_types
+worldtypes(tree::DTree) = tree.worldtypes
 init_conditions(tree::DTree) = tree.init_conditions
 
 ############################################################################################
@@ -511,9 +512,9 @@ ismodalnode(tree::DTree)      = ismodalnode(root(tree))
 ############################################################################################
 
 display_decision(node::DTInternal, args...; kwargs...) =
-    display_decision(i_frame(node), decision(node), args...; kwargs...)
+    display_decision(frameid(node), decision(node), args...; kwargs...)
 display_decision_inverse(node::DTInternal, args...; kwargs...) =
-    display_decision_inverse(i_frame(node), decision(node), args...; kwargs...)
+    display_decision_inverse(frameid(node), decision(node), args...; kwargs...)
 
 ############################################################################################
 ############################################################################################
@@ -576,7 +577,7 @@ function display(node::DTInternal{L,D}) where {L,D}
 Decision Node{$(L),$(D)}(
 $(display(this(node)))
     ###########################################################
-    i_frame: $(i_frame(node))
+    frameid: $(frameid(node))
     decision: $(decision(node))
     miscellaneous: $(miscellaneous(node))
     ###########################################################
@@ -591,7 +592,7 @@ end
 function display(tree::DTree{L}) where {L}
     return """
 Decision Tree{$(L)}(
-    world_types:    $(world_types(tree))
+    worldtypes:    $(worldtypes(tree))
     init_conditions: $(init_conditions(tree))
     ###########################################################
     sub-tree leaves: $(nleaves(tree))
@@ -633,84 +634,13 @@ end
 # Tests
 ############################################################################################
 
-# https://stackoverflow.com/questions/66801702/deriving-equality-for-julia-structs-with-mutable-members
-import Base: == # TODO isequal...?
-function (Base).==(a::S, b::S) where {S<:AbstractDecisionLeaf}
-    for name in fieldnames(S)
-        if getfield(a, name) != getfield(b, name)
-            return false
-        end
-    end
-    return true
-end
-
-@testset "Creation of decision leaves, nodes, decision trees, forests" begin
-
-    @testset "Decision leaves (DTLeaf)" begin
-
-        # Construct a leaf from a label
-        @test DTLeaf(1)        == DTLeaf{Int64}(1, Int64[])
-        @test DTLeaf{Int64}(1) == DTLeaf{Int64}(1, Int64[])
-
-        @test DTLeaf("Class_1")           == DTLeaf{String}("Class_1", String[])
-        @test DTLeaf{String}("Class_1")   == DTLeaf{String}("Class_1", String[])
-
-        # Construct a leaf from a label & supporting labels
-        @test DTLeaf(1, [])               == DTLeaf{Int64}(1, Int64[])
-        @test DTLeaf{Int64}(1, [1.0])     == DTLeaf{Int64}(1, Int64[1])
-
-        @test DTLeaf(1.0, [1.0])   == DTLeaf{Float64}(1.0, [1.0])
-        @test_nowarn DTLeaf{Float32}(1, [1])
-        @test_nowarn DTLeaf{Float32}(1.0, [1.5])
-
-        @test_throws MethodError DTLeaf(1, ["Class1"])
-        @test_throws InexactError DTLeaf(1, [1.5])
-
-        @test_nowarn DTLeaf{String}("1.0", ["0.5", "1.5"])
-
-        # Inferring the label from supporting labels
-        @test prediction(DTLeaf{String}(["Class_1", "Class_1", "Class_2"])) == "Class_1"
-
-        @test_nowarn DTLeaf(["1.5"])
-        @test_throws MethodError DTLeaf([1.0,"Class_1"])
-
-        # Check robustness
-        @test_nowarn DTLeaf{Int64}(1, 1:10)
-        @test_nowarn DTLeaf{Int64}(1, 1.0:10.0)
-        @test_nowarn DTLeaf{Float32}(1, 1:10)
-
-        # @test prediction(DTLeaf(1:10)) == 5
-        @test prediction(DTLeaf{Float64}(1:10)) == 5.5
-        @test prediction(DTLeaf{Float32}(1:10)) == 5.5f0
-        @test prediction(DTLeaf{Float64}(1:11)) == 6
-
-        # Check edge parity case (aggregation biased towards the first class)
-        @test prediction(DTLeaf{String}(["Class_1", "Class_2"])) == "Class_1"
-        @test prediction(DTLeaf(["Class_1", "Class_2"])) == "Class_1"
-
-    end
-
-    # TODO test NSDT Leaves
-
-    @testset "Decision internal node (DTInternal) + Decision Tree & Forest (DTree & DForest)" begin
-
-        decision = ExistentialDimensionalDecision(globalrel, SingleAttributeMin(1), >=, 10)
-
-        reg_leaf, cls_leaf = DTLeaf([1.0,2.0]), DTLeaf([1,2])
-
-        # # create node
-        # # cls_node = @test_nowarn DTInternal(decision, cls_leaf, cls_leaf, cls_leaf)
-        # # cls_node = @test_nowarn DTInternal(2, decision, cls_leaf, cls_leaf, cls_leaf)
-        # # create node without local decision
-        # cls_node = @test_nowarn DTInternal(2, decision, cls_leaf, cls_leaf)
-        # @test_throws MethodError DTInternal(2, decision, reg_leaf, cls_leaf)
-        # # create node without frame
-        # # @test_nowarn DTInternal(decision, reg_leaf, reg_leaf, reg_leaf)
-        # # create node without frame nor local decision
-        # cls_node = @test_nowarn DTInternal(decision, cls_node, cls_leaf)
-
-        # cls_tree = @test_nowarn DTree(cls_node, [ModalLogic.Interval], [start_without_world])
-        # cls_forest = @test_nowarn DForest([cls_tree, cls_tree, cls_tree])
-    end
-
-end
+# # https://stackoverflow.com/questions/66801702/deriving-equality-for-julia-structs-with-mutable-members
+# import Base: == # TODO isequal...?
+# function (Base).==(a::S, b::S) where {S<:AbstractDecisionLeaf}
+#     for name in fieldnames(S)
+#         if getfield(a, name) != getfield(b, name)
+#             return false
+#         end
+#     end
+#     return true
+# end

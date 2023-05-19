@@ -25,13 +25,13 @@ function Base.show(io::IO, decision::AbstractDecision)
     println(io, display_decision(decision))
 end
 function display_decision(
-    i_frame::Integer,
+    frameid::FrameId,
     decision::AbstractDecision;
     attribute_names_map::Union{Nothing,AbstractVector{<:AbstractVector},AbstractVector{<:AbstractDict}} = nothing,
     kwargs...,
 )
-    _attribute_names_map = isnothing(attribute_names_map) ? nothing : attribute_names_map[i_frame]
-    "{$i_frame} $(display_decision(decision; attribute_names_map = _attribute_names_map, kwargs...))"
+    _attribute_names_map = isnothing(attribute_names_map) ? nothing : attribute_names_map[frameid]
+    "{$frameid} $(display_decision(decision; attribute_names_map = _attribute_names_map, kwargs...))"
 end
 
 ############################################################################################
@@ -42,8 +42,8 @@ function display_decision_inverse(decision::SimpleDecision, kwargs...; args...)
     display_decision(negation(decision), kwargs...; args...)
 end
 
-function display_decision_inverse(i_frame::Integer, decision::SimpleDecision, kwargs...; args...)
-    display_decision(i_frame, negation(decision), kwargs...; args...)
+function display_decision_inverse(frameid::FrameId, decision::SimpleDecision, kwargs...; args...)
+    display_decision(frameid, negation(decision), kwargs...; args...)
 end
 
 display_existential(rel::AbstractRelation; kwargs...) = SoleLogics.syntaxstring(DiamondRelationalOperator{typeof(rel)}(); kwargs...)

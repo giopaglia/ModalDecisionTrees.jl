@@ -26,7 +26,7 @@ preds = apply_tree(model, round.(Int32, features))
 @test typeof(preds) <: Vector{Float64}
 
 n_subfeatures       = Int32(3)
-n_trees             = Int32(10)
+ntrees              = Int32(10)
 partial_sampling    = 0.7
 max_depth           = Int32(-1)
 min_samples_leaf    = Int32(5)
@@ -35,7 +35,7 @@ min_purity_increase = 0.0
 model = build_forest(
         labels, features,
         n_subfeatures,
-        n_trees,
+        ntrees,
         partial_sampling,
         max_depth,
         min_samples_leaf,
@@ -63,7 +63,7 @@ r2 = nfoldCV_tree(
 @test mean(r2) > 0.6
 
 println("\n##### nfoldCV Regression Forest #####")
-n_trees             = Int32(10)
+ntrees              = Int32(10)
 n_subfeatures       = Int32(2)
 n_folds             = Int32(3)
 max_depth           = Int32(-1)
@@ -74,7 +74,7 @@ r2 = nfoldCV_forest(
         labels, features,
         n_folds,
         n_subfeatures,
-        n_trees,
+        ntrees,
         partial_sampling,
         max_depth,
         min_samples_leaf,

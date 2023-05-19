@@ -24,6 +24,7 @@ function run_tests(list)
 end
 
 test_suites = [
+    ("Base", ["base.jl"]),
     ("Classification", [
         "classification/japanesevowels.jl",
         "classification/iris.jl",
@@ -43,6 +44,7 @@ test_suites = [
         # "regression/low_precision.jl",
     ]),
     ("Miscellaneous", [
+        "dummy-multimodal-datasets.jl"
         # "miscellaneous/convert.jl"
         "translation/parse-and-translate-existentialdecisions.jl"
     ]),

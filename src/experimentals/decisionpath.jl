@@ -3,6 +3,8 @@ using SoleModels
 using SoleModels.ModalLogic
 using ..ModalDecisionTrees: AbstractFeature, TestOperatorFun
 
+using ..ModalDecisionTrees: FrameId
+
 using ..ModalDecisionTrees: DTLeaf, DTNode, DTInternal
 
 export DecisionPath, DecisionPathNode,
@@ -26,20 +28,20 @@ worlds(n::DecisionPathNode) = n.worlds
 
 const DecisionPath = Vector{DecisionPathNode}
 
-_get_path_in_tree(leaf::DTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet}, i_frame::Integer, paths::Vector{DecisionPath})::AbstractWorldSet = return worlds[i_frame]
-function _get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet}, i_frame::Integer, paths::Vector{DecisionPath})::AbstractWorldSet
+_get_path_in_tree(leaf::DTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet}, frameid::FrameId, paths::Vector{DecisionPath})::AbstractWorldSet = return worlds[frameid]
+function _get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet}, frameid::Integer, paths::Vector{DecisionPath})::AbstractWorldSet
     satisfied = true
     (satisfied,new_worlds,worlds_map) =
         modalstep(
-                        get_frame(X, i_frame(tree)),
+                        get_frame(X, frameid(tree)),
                         i_sample,
-                        worlds[i_frame(tree)],
+                        worlds[frameid(tree)],
                         decision(tree),
                         Val(true)
                     )
 
-    worlds[i_frame(tree)] = new_worlds
-    survivors = _get_path_in_tree((satisfied ? left(tree) : right(tree)), X, i_sample, worlds, i_frame(tree), paths)
+    worlds[frameid(tree)] = new_worlds
+    survivors = _get_path_in_tree((satisfied ? left(tree) : right(tree)), X, i_sample, worlds, frameid(tree), paths)
 
     # if survivors of next step are in the list of worlds viewed by one
     # of the just accumulated "new_worlds" then that world is a survivor

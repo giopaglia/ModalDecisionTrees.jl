@@ -29,14 +29,14 @@ probs = apply_tree_proba(model, features, classes)
 
 # prune tree to 8 leaves
 pruning_purity = 0.9
-pt = prune_tree(model, pruning_purity)
+pt = prune(model, pruning_purity)
 @test length(pt) == 8
 preds = apply_tree(pt, features)
 @test 0.99 < MLJBase.accuracy(labels, preds) < 1.0
 
 # prune tree to 3 leaves
 pruning_purity = 0.6
-pt = prune_tree(model, pruning_purity)
+pt = prune(model, pruning_purity)
 @test length(pt) == 3
 preds = apply_tree(pt, features)
 @test 0.95 < MLJBase.accuracy(labels, preds) < 1.0
@@ -45,7 +45,7 @@ probs = apply_tree_proba(model, features, classes)
 
 # prune tree to a stump, 2 leaves
 pruning_purity = 0.5
-pt = prune_tree(model, pruning_purity)
+pt = prune(model, pruning_purity)
 @test length(pt) == 2
 preds = apply_tree(pt, features)
 @test 0.66 < MLJBase.accuracy(labels, preds) < 1.0
@@ -58,10 +58,10 @@ accuracy = nfoldCV_tree(labels, features, nfolds)
 @test mean(accuracy) > 0.8
 
 # train random forest classifier
-n_trees = 10
+ntrees = 10
 n_subfeatures = 2
 partial_sampling = 0.5
-model = build_forest(labels, features, n_subfeatures, n_trees, partial_sampling)
+model = build_forest(labels, features, n_subfeatures, ntrees, partial_sampling)
 preds = apply_forest(model, features)
 @test MLJBase.accuracy(labels, preds) > 0.95
 @test typeof(preds) == Vector{String}
@@ -71,10 +71,10 @@ probs = apply_forest_proba(model, features, classes)
 # run n-fold cross validation for forests
 println("\n##### nfoldCV Classification Forest #####")
 n_subfeatures = 2
-n_trees = 10
+ntrees = 10
 n_folds = 3
 partial_sampling = 0.5
-accuracy = nfoldCV_forest(labels, features, nfolds, n_subfeatures, n_trees, partial_sampling)
+accuracy = nfoldCV_forest(labels, features, nfolds, n_subfeatures, ntrees, partial_sampling)
 @test mean(accuracy) > 0.9
 
 # train adaptive-boosted decision stumps

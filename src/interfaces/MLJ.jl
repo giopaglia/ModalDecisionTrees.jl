@@ -292,7 +292,7 @@ tree_downsizing_function(channel_size, nsamples) = function (_X)
     _X
 end
 
-forest_downsizing_function(channel_size, nsamples; n_trees) = function (_X)
+forest_downsizing_function(channel_size, nsamples; ntrees) = function (_X)
     channel_dim = length(channel_size)
     if channel_dim == 1
         n_points = channel_size[1]
@@ -355,7 +355,7 @@ mlj_mdt_default_max_purity_at_leaf = Inf
 mlj_mrf_default_min_samples_leaf = 1
 mlj_mrf_default_min_purity_increase = -Inf
 mlj_mrf_default_max_purity_at_leaf = Inf
-mlj_mrf_default_n_trees = 50
+mlj_mrf_default_ntrees = 50
 
 MMI.@mlj_model mutable struct ModalDecisionTree <: MMI.Deterministic
     # Pruning hyper-parameters
@@ -527,7 +527,7 @@ MMI.@mlj_model mutable struct ModalRandomForest <: MMI.Probabilistic
 
     n_subrelations         ::Union{Nothing,Int,Function}   = nothing::(isnothing(_) || _ isa Function || _ ≥ -1)
     n_subfeatures          ::Union{Nothing,Int,Function}   = nothing::(isnothing(_) || _ isa Function || _ ≥ -1)
-    n_trees                ::Int                 = mlj_mrf_default_n_trees::(_ ≥ 2)
+    ntrees                ::Int                 = mlj_mrf_default_ntrees::(_ ≥ 2)
     sampling_fraction      ::Float64   = 0.7::(0 < _ ≤ 1)
     rng                    ::Union{AbstractRNG,Integer} = GLOBAL_RNG
 end
@@ -558,7 +558,7 @@ function MMI.fit(m::ModalRandomForest, verbosity::Int, X, y, w=nothing)
     n_subrelations       = isnothing(_n_subrelations) ? identity : (isa(_n_subrelations, Integer) ? (x)->(_n_subrelations) : _n_subrelations)
     _n_subfeatures       = m.n_subfeatures
     n_subfeatures        = isnothing(_n_subfeatures) ? identity : (isa(_n_subfeatures, Integer) ? (x)->(_n_subfeatures) : _n_subfeatures)
-    n_trees              = m.n_trees
+    ntrees               = m.ntrees
     sampling_fraction    = m.sampling_fraction
     rng                  = m.rng
 
@@ -573,7 +573,7 @@ function MMI.fit(m::ModalRandomForest, verbosity::Int, X, y, w=nothing)
         init_conditions,
         allow_global_splits,
         :explicit;
-        downsizing_function = (automatic_downsizing ? (args...)->forest_downsizing_function(args...; n_trees = m.n_trees) : identity),
+        downsizing_function = (automatic_downsizing ? (args...)->forest_downsizing_function(args...; ntrees = m.ntrees) : identity),
     )
 
     model = MDT.build_forest(
@@ -581,7 +581,7 @@ function MMI.fit(m::ModalRandomForest, verbosity::Int, X, y, w=nothing)
         y,
         w,
         ##############################################################################
-        n_trees              = n_trees,
+        ntrees              = ntrees,
         partial_sampling     = sampling_fraction,
         ##############################################################################
         loss_function        = nothing,
@@ -656,7 +656,7 @@ function MMI.predict(m::ModalRandomForest, fitresult, Xnew) #, ynew = nothing)
         init_conditions,
         allow_global_splits,
         :implicit,
-        downsizing_function = (automatic_downsizing ? (args...)->forest_downsizing_function(args...; n_trees = m.n_trees) : identity),
+        downsizing_function = (automatic_downsizing ? (args...)->forest_downsizing_function(args...; ntrees = m.ntrees) : identity),
     )
 
     is_classification = hasproperty(fitresult, :classes_seen)
@@ -731,7 +731,7 @@ end
 #                             rng=m.rng)
 
 #     if m.post_prune
-#         tree = MDT.prune_tree(tree, m.merge_purity_threshold)
+#         tree = MDT.prune(tree, m.merge_purity_threshold)
 #     end
 #     cache  = nothing
 #     report = NamedTuple()
@@ -754,7 +754,7 @@ end
 #     min_samples_split::Int       = 2::(_ ≥ 2)
 #     min_purity_increase::Float64 = 0.0::(_ ≥ 0)
 #     n_subfeatures::Int           = (-)(1)::(_ ≥ -1)
-#     n_trees::Int                 = 10::(_ ≥ 2)
+#     ntrees::Int                 = 10::(_ ≥ 2)
 #     sampling_fraction::Float64   = 0.7::(0 < _ ≤ 1)
 #     rng::Union{AbstractRNG,Integer} = GLOBAL_RNG
 # end
@@ -763,7 +763,7 @@ end
 #     Xmatrix = MMI.matrix(X)
 #     forest  = MDT.build_forest(float(y), Xmatrix,
 #                               m.n_subfeatures,
-#                               m.n_trees,
+#                               m.ntrees,
 #                               m.sampling_fraction,
 #                               m.max_depth,
 #                               m.min_samples_leaf,
@@ -864,9 +864,9 @@ const DOC_RANDOM_FOREST = "[Random Forest algorithm]"*
     "Breiman, L. (2001): \"Random Forests.\", *Machine Learning*, vol. 45, pp. 5–32"
 
 function docstring_piece_1(
-    default_min_samples_leaf,
-    default_min_purity_increase,
-    default_max_purity_at_leaf,
+    DEFAULT_MIN_SAMPLES_LEAF,
+    DEFAULT_MIN_PURITY_INCREASE,
+    DEFAULT_MAX_PURITY_AT_LEAF,
 )
 """a variation of the $DOC_CART that adopts modal logics of time and space
 to perform temporal/spatial reasoning on non-scalar data such as time-series and image.
@@ -884,9 +884,9 @@ Train the machine with `fit!(mach)`.
 
 # Hyper-parameters
 - `max_depth=-1`:          Maximum depth of the decision tree (-1=any)
-- `min_samples_leaf=$(default_min_samples_leaf)`:    Minimum number of samples required at each leaf
-- `min_purity_increase=$(default_min_purity_increase)`: Minimum purity needed for a split
-- `max_purity_at_leaf=$(default_max_purity_at_leaf)`: Minimum purity needed for a split
+- `min_samples_leaf=$(DEFAULT_MIN_SAMPLES_LEAF)`:    Minimum number of samples required at each leaf
+- `min_purity_increase=$(DEFAULT_MIN_PURITY_INCREASE)`: Minimum purity needed for a split
+- `max_purity_at_leaf=$(DEFAULT_MAX_PURITY_AT_LEAF)`: Minimum purity needed for a split
 - `relations=nothing`       Relations that the model uses to "move" around the image; it can be a symbol in [:IA, :IA3, :IA7, :RCC5, :RCC8],
                             where :IA stands [Allen's Interval Algebra](https://en.wikipedia.org/wiki/Allen%27s_interval_algebra) (13 relations in 1D, 169 relations in 2D),
                             :IA3 and :IA7 are [coarser fragments with 3 and 7 relations, respectively](https://www.sciencedirect.com/science/article/pii/S0004370218305964),
@@ -1003,7 +1003,7 @@ $(MMI.doc_header(ModalRandomForest))
 $(docstring_piece_1(mlj_mrf_default_min_samples_leaf, mlj_mrf_default_min_purity_increase, mlj_mrf_default_max_purity_at_leaf))
 - `n_subrelations=identity`            Number of relations to randomly select at any point of the tree. Must be a function of the number of the available relations. It defaults to `identity`, that is, consider all available relations.
 - `n_subfeatures=x -> ceil(Int64, sqrt(x))`             Number of functions to randomly select at any point of the tree. Must be a function of the number of the available functions. It defaults to `x -> ceil(Int64, sqrt(x))`, that is, consider only about square root of the available functions.
-- `n_trees=$(mlj_mrf_default_n_trees)`                   Number of trees in the forest.
+- `ntrees=$(mlj_mrf_default_ntrees)`                   Number of trees in the forest.
 - `sampling_fraction=0.7`          Fraction of samples to train each tree on.
 - `rng=Random.GLOBAL_RNG`          Random number generator or seed.
 
@@ -1047,7 +1047,7 @@ using MLJ
 using ModalDecisionTrees
 using Random
 
-forest = ModalRandomForest(n_trees = 50)
+forest = ModalRandomForest(ntrees = 50)
 
 # Load an example dataset (a temporal one)
 X, y = @load_japanesevowels
@@ -1194,7 +1194,7 @@ ModalRandomForest
 # - `min_purity_increase=0`: min purity needed for a split
 # - `n_subfeatures=-1`: number of attributes to select at random (0 for all,
 #   -1 for square root of number of attributes)
-# - `n_trees=10`:            number of trees to train
+# - `ntrees=10`:            number of trees to train
 # - `sampling_fraction=0.7`  fraction of samples to train each tree on
 # - `rng=Random.GLOBAL_RNG`: random number generator or seed
 # # Operations

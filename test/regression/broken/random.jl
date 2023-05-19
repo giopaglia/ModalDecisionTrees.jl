@@ -94,7 +94,7 @@ preds = apply_forest(model, features)
 @test typeof(preds) <: Vector{Float64}
 
 n_subfeatures       = 3
-n_trees             = 9
+ntrees              = 9
 partial_sampling    = 0.7
 max_depth           = -1
 min_samples_leaf    = 5
@@ -103,7 +103,7 @@ min_purity_increase = 0.0
 model = build_forest(
         labels, features,
         n_subfeatures,
-        n_trees,
+        ntrees,
         partial_sampling,
         max_depth,
         min_samples_leaf,
@@ -111,10 +111,10 @@ model = build_forest(
         min_purity_increase)
 preds = apply_forest(model, features)
 @test R2(labels, preds) > 0.9
-@test length(model) == n_trees
+@test length(model) == ntrees
 
 # test n_subfeatures
-n_trees             = 10
+ntrees              = 10
 partial_sampling    = 1.0
 max_depth           = -1
 min_samples_leaf    = 10
@@ -122,7 +122,7 @@ n_subfeatures       = 1
 m_partial = build_forest(
         labels, features,
         n_subfeatures,
-        n_trees,
+        ntrees,
         partial_sampling,
         max_depth,
         min_samples_leaf)
@@ -130,7 +130,7 @@ n_subfeatures       = 0
 m_full = build_forest(
         labels, features,
         n_subfeatures,
-        n_trees,
+        ntrees,
         partial_sampling,
         max_depth,
         min_samples_leaf)
@@ -139,7 +139,7 @@ m_full = build_forest(
 # test partial_sampling parameter, train on single sample
 partial_sampling    = 1 / n
 n_subfeatures       = 0
-n_trees             = 1         # single tree test
+ntrees              = 1         # single tree test
 max_depth           = -1
 min_samples_leaf    = 1
 min_samples_split   = 2
@@ -147,7 +147,7 @@ min_purity_increase = 0.0
 partial = build_forest(
             labels, features,
             n_subfeatures,
-            n_trees,
+            ntrees,
             partial_sampling,
             max_depth,
             min_samples_leaf,
@@ -157,18 +157,18 @@ partial = build_forest(
 
 # test RNG parameter
 n_subfeatures       = 2
-n_trees             = 5
+ntrees              = 5
 m1 = build_forest(labels, features,
         n_subfeatures,
-        n_trees;
+        ntrees;
         rng=10)
 m2 = build_forest(labels, features,
         n_subfeatures,
-        n_trees;
+        ntrees;
         rng=10)
 m3 = build_forest(labels, features,
         n_subfeatures,
-        n_trees;
+        ntrees;
         rng=5)
 @test length.(trees(m1)) == length.(trees(m2))
 @test depth.(trees(m1))  == depth.(trees(m2))
@@ -189,10 +189,10 @@ r2_3 = nfoldCV_tree(labels, features, nfolds, pruning_purity, max_depth; rng=5)
 println("\n##### nfoldCV Regression Forest #####")
 nfolds          = 3
 n_subfeatures   = 2
-n_trees         = 10
-r2_1  = nfoldCV_forest(labels, features, nfolds, n_subfeatures, n_trees; rng=10, verbose=false)
-r2_2 = nfoldCV_forest(labels, features, nfolds, n_subfeatures, n_trees; rng=10)
-r2_3 = nfoldCV_forest(labels, features, nfolds, n_subfeatures, n_trees; rng=5)
+ntrees         = 10
+r2_1  = nfoldCV_forest(labels, features, nfolds, n_subfeatures, ntrees; rng=10, verbose=false)
+r2_2 = nfoldCV_forest(labels, features, nfolds, n_subfeatures, ntrees; rng=10)
+r2_3 = nfoldCV_forest(labels, features, nfolds, n_subfeatures, ntrees; rng=5)
 @test mean(r2_1) > 0.8
 @test r2_1 == r2_2
 @test r2_1 != r2_3

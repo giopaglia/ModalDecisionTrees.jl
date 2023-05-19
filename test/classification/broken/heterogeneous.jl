@@ -19,8 +19,8 @@ preds = apply_tree(model, features)
 @test MLJBase.accuracy(labels, preds) > 0.9
 
 n_subfeatures = 2
-n_trees = 3
-model = build_forest(labels, features, n_subfeatures, n_trees)
+ntrees = 3
+model = build_forest(labels, features, n_subfeatures, ntrees)
 preds = apply_forest(model, features)
 @test MLJBase.accuracy(labels, preds) > 0.9
 

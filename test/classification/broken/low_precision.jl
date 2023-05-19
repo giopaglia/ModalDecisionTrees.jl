@@ -31,13 +31,13 @@ preds = apply_tree(model, features)
 @test MLJBase.accuracy(labels, preds) > 0.9
 
 n_subfeatures       = Int32(0)
-n_trees             = Int32(10)
+ntrees             = Int32(10)
 partial_sampling    = 0.7
 max_depth           = Int32(-1)
 model = build_forest(
         labels, features,
         n_subfeatures,
-        n_trees,
+        ntrees,
         partial_sampling,
         max_depth)
 preds = apply_forest(model, features)
@@ -68,7 +68,7 @@ accuracy = nfoldCV_tree(
 @test mean(accuracy) > 0.7
 
 println("\n##### nfoldCV Classification Forest #####")
-n_trees             = Int32(10)
+ntrees             = Int32(10)
 n_subfeatures       = Int32(2)
 n_folds             = Int32(3)
 max_depth           = Int32(-1)
@@ -79,7 +79,7 @@ accuracy = nfoldCV_forest(
         labels, features,
         n_folds,
         n_subfeatures,
-        n_trees,
+        ntrees,
         partial_sampling,
         max_depth,
         min_samples_leaf,

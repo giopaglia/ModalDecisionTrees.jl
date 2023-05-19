@@ -42,7 +42,7 @@ function modalstep(
     i_sample::Integer,
     worlds::WorldSetType,
     decision::ExistentialDimensionalDecision{U},
-    returns_survivors::Union{Val{true},Val{false}} = Val(false)
+    return_survivors::Union{Val{true},Val{false}} = Val(false)
 ) where {W<:AbstractWorld,WorldSetType<:AbstractWorldSet,U}
     @logmsg LogDetail "modalstep" worlds display_decision(decision)
 
@@ -50,7 +50,7 @@ function modalstep(
     
     # TODO space for optimization here: with some relations (e.g. IA_A, IA_L) can be made smaller
 
-    if returns_survivors isa Val{true}
+    if return_survivors isa Val{true}
         worlds_map = Dict{W,AbstractWorldSet{W}}()
     end
     if length(worlds) == 0
@@ -64,9 +64,9 @@ function modalstep(
 
         # List all accessible worlds
         acc_worlds = 
-            if returns_survivors isa Val{true}
+            if return_survivors isa Val{true}
+                l = ReentrantLock()
                 Threads.@threads for curr_w in worlds
-                    l = ReentrantLock()
                     acc = accessibles(X, i_sample, curr_w, relation(decision)) |> collect
                     lock(l)
                     worlds_map[curr_w] = acc
@@ -97,7 +97,7 @@ function modalstep(
     else
         @logmsg LogDetail "   NO"
     end
-    if returns_survivors isa Val{true}
+    if return_survivors isa Val{true}
         return (satisfied, worlds, worlds_map)
     else
         return (satisfied, worlds)

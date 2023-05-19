@@ -91,7 +91,7 @@ children(leaf::InfoLeaf) = ()
     TODO use AbstractTrees.nodevalue when a version > 0.4 is available
 """
 
-_nodevalue(dt_node::MDT.DTInternal) = (i_frame(dt_node), decision(dt_node))
+_nodevalue(dt_node::MDT.DTInternal) = (frameid(dt_node), decision(dt_node))
 _nodevalue(dt_leaf::MDT.AbstractDecisionLeaf) = (prediction(dt_leaf), )
 
 _nodevalue(node::InfoNode) = _nodevalue(node.node)

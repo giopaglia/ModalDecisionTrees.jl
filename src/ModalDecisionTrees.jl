@@ -12,7 +12,6 @@ using Logging: LogLevel, @logmsg
 using Printf
 using ProgressMeter
 using Random
-using ReTest
 using StatsBase
 
 using SoleBase
@@ -50,6 +49,8 @@ export DTree,                   # Decision tree
         RootLevelNeuroSymbolicHybrid,                # Root-level neurosymbolic hybrid model
         #
         nnodes, height, modalheight
+
+FrameId = Int
 
 ############################################################################################
 
