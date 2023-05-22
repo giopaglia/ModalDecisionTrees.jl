@@ -10,7 +10,7 @@ end
 # TODO fix
 # function _compute_purity( # faster_version assuming L<:Integer and labels going from 1:n_classes
 #     labels           ::AbstractVector{L},
-#     n_classes        ::Int,
+#     n_classes        ::Integer,
 #     weights          ::AbstractVector{U} = default_weights(labels);
 #     loss_function    ::Union{Nothing,Function} = default_loss_function(L),
 # ) where {L<:CLabel,L<:Integer,U}

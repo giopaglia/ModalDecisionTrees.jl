@@ -11,9 +11,9 @@ using ModalDecisionTrees: DTLeaf, DTInternal
 
 reg_leaf, cls_leaf = DTLeaf([1.0,2.0]), DTLeaf([1,2])
 
-decision1 = ExistentialDimensionalDecision(global_rel, SingleAttributeMin(1), >=, 10)
-decision2 = ExistentialDimensionalDecision(IA_A, SingleAttributeMin(2), <, 0)
-decision3 = ExistentialDimensionalDecision(IA_L, SingleAttributeMin(3), <=, 0)
+decision1 = ExistentialDimensionalDecision(global_rel, UnivariateMin(1), >=, 10)
+decision2 = ExistentialDimensionalDecision(IA_A, UnivariateMin(2), <, 0)
+decision3 = ExistentialDimensionalDecision(IA_L, UnivariateMin(3), <=, 0)
 
 branch = DTInternal(2, decision1, cls_leaf, cls_leaf)
 branch = DTInternal(2, decision2, cls_leaf, branch)

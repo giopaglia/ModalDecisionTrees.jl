@@ -96,14 +96,14 @@ function _parse_tree(
             if !isnothing(m_normal) && length(m_normal) == 3
                 feature_fun, i_attribute, test_operator = m_normal
                 function eval_feature_fun_constructor(fun_str)
-                    if     fun_str == "min" MDT.SingleAttributeMin
-                    elseif fun_str == "max" MDT.SingleAttributeMax
+                    if     fun_str == "min" MDT.UnivariateMin
+                    elseif fun_str == "max" MDT.UnivariateMax
                     else
                         try
                             fun = eval(Symbol(fun_str))
-                            (i_attribute)->MDT.SingleAttributeGenericFeature(i_attribute, fun)
+                            (i_attribute)->MDT.UnivariateGenericFeature(i_attribute, fun)
                         catch
-                            (i_attribute)->MDT.SingleAttributeNamedFeature(i_attribute, fun_str)
+                            (i_attribute)->MDT.UnivariateNamedFeature(i_attribute, fun_str)
                         end
                     end
                 end
@@ -114,12 +114,12 @@ function _parse_tree(
             elseif !isnothing(m_special) && length(m_special) == 2
                 i_attribute, feature_fun_test_operator = m_special
                 feature_fun_test_operator_d = Dict([
-                    "⪴"   => (i_attribute)->(ML.SingleAttributeMin(i_attribute), ≥),
-                    "⪴₈₀" => (i_attribute)->(ML.SingleAttributeSoftMin(i_attribute, 80), ≥),
-                    "⪳₈₀" => (i_attribute)->(ML.SingleAttributeSoftMax(i_attribute, 80), ≤),
-                    "⪳"   => (i_attribute)->(ML.SingleAttributeMax(i_attribute), ≤),
-                    "↘"   => (i_attribute)->(ML.SingleAttributeMin(i_attribute), ≤),
-                    "↗"   => (i_attribute)->(ML.SingleAttributeMax(i_attribute), ≥),
+                    "⪴"   => (i_attribute)->(ML.UnivariateMin(i_attribute), ≥),
+                    "⪴₈₀" => (i_attribute)->(ML.UnivariateSoftMin(i_attribute, 80), ≥),
+                    "⪳₈₀" => (i_attribute)->(ML.UnivariateSoftMax(i_attribute, 80), ≤),
+                    "⪳"   => (i_attribute)->(ML.UnivariateMax(i_attribute), ≤),
+                    "↘"   => (i_attribute)->(ML.UnivariateMin(i_attribute), ≤),
+                    "↗"   => (i_attribute)->(ML.UnivariateMax(i_attribute), ≥),
                 ])
                 feature_fun_test_operator = feature_fun_test_operator_d[feature_fun_test_operator]
                 i_attribute = parse(Int, i_attribute)
@@ -127,7 +127,7 @@ function _parse_tree(
             elseif !isnothing(m_propos) && length(m_propos) == 2
                 i_attribute, test_operator = m_propos
                 i_attribute = parse(Int, i_attribute)
-                feature = MDT.SingleAttributeNamedFeature(i_attribute, "")
+                feature = MDT.UnivariateNamedFeature(i_attribute, "")
                 test_operator = eval(Symbol(test_operator))
                 feature, test_operator
             else

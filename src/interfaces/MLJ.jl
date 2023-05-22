@@ -379,7 +379,7 @@ MMI.@mlj_model mutable struct ModalDecisionTree <: MMI.Deterministic
 end
 
 
-function MMI.fit(m::ModalDecisionTree, verbosity::Int, X, y, w=nothing)
+function MMI.fit(m::ModalDecisionTree, verbosity::Integer, X, y, w=nothing)
     X = wrap_dataset(X)
     is_classification = eltype(scitype(y)) != Continuous
     if is_classification
@@ -533,7 +533,7 @@ MMI.@mlj_model mutable struct ModalRandomForest <: MMI.Probabilistic
 end
 
 
-function MMI.fit(m::ModalRandomForest, verbosity::Int, X, y, w=nothing)
+function MMI.fit(m::ModalRandomForest, verbosity::Integer, X, y, w=nothing)
     X = wrap_dataset(X)
     is_classification = eltype(scitype(y)) != Continuous
     if is_classification
@@ -681,7 +681,7 @@ end
 #     n_iter::Int            = 10::(_ ≥ 1)
 # end
 
-# function MMI.fit(m::AdaBoostStumpClassifier, verbosity::Int, X, y)
+# function MMI.fit(m::AdaBoostStumpClassifier, verbosity::Integer, X, y)
 #     Xmatrix = MMI.matrix(X)
 #     yplain  = MMI.int(y)
 
@@ -720,7 +720,7 @@ end
 #     rng::Union{AbstractRNG,Integer} = GLOBAL_RNG
 # end
 
-# function MMI.fit(m::DecisionTreeRegressor, verbosity::Int, X, y)
+# function MMI.fit(m::DecisionTreeRegressor, verbosity::Integer, X, y)
 #     Xmatrix = MMI.matrix(X)
 #     tree    = MDT.build_tree(float(y), Xmatrix,
 #                             m.n_subfeatures,
@@ -759,7 +759,7 @@ end
 #     rng::Union{AbstractRNG,Integer} = GLOBAL_RNG
 # end
 
-# function MMI.fit(m::RandomForestRegressor, verbosity::Int, X, y)
+# function MMI.fit(m::RandomForestRegressor, verbosity::Integer, X, y)
 #     Xmatrix = MMI.matrix(X)
 #     forest  = MDT.build_forest(float(y), Xmatrix,
 #                               m.n_subfeatures,

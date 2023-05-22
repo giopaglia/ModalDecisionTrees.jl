@@ -13,14 +13,14 @@ n_feats = n_attrs*2
 n_pts = 5
 
 using SoleModels
-using SoleModels: SingleAttributeMin, SingleAttributeMax
+using SoleModels: UnivariateMin, UnivariateMax
 
 features  = []
 featsnops = []
 for i_attr in 1:n_attrs
-    push!(features, SingleAttributeMin(i_attr))
+    push!(features, UnivariateMin(i_attr))
     push!(featsnops, [≥])
-    push!(features, SingleAttributeMax(i_attr))
+    push!(features, UnivariateMax(i_attr))
     push!(featsnops, [≤])
 end
 

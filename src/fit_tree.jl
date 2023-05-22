@@ -958,7 +958,7 @@ function fit_tree(
     # W                       :: AbstractVector{U} = Ones{Int}(nsamples(Xs)), # TODO check whether this is faster
     ;
     # Perform minification: transform dataset so that learning happens faster
-    use_minification      :: Bool,
+    use_minification          :: Bool,
     # Debug-only: checks the consistency of the dataset during training
     perform_consistency_check :: Bool,
     kwargs...,

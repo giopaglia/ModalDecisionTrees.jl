@@ -53,7 +53,7 @@ function build_tree(
     init_conditions     :: Union{InitCondition,AbstractVector{<:InitCondition}}   = start_without_world,
     allow_global_splits :: Union{Bool,AbstractVector{Bool}}                       = true,
     ##############################################################################
-    use_minification      :: Bool = false,
+    use_minification    :: Bool = false,
     perform_consistency_check :: Bool = true,
     ##############################################################################
     rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG,
@@ -110,7 +110,7 @@ function build_tree(
         n_subfeatures       = [ n_subfeatures[i](nfeatures(frame)) for (i,frame) in enumerate(frames(X)) ],
         allow_global_splits = allow_global_splits,
         ############################################################################
-        use_minification      = use_minification,
+        use_minification    = use_minification,
         perform_consistency_check = perform_consistency_check,
         ############################################################################
         rng                 = rng,
@@ -142,7 +142,7 @@ function build_forest(
     init_conditions     :: Union{InitCondition,AbstractVector{<:InitCondition}}   = start_without_world,
     allow_global_splits :: Union{Bool,AbstractVector{Bool}}                       = true,
     ##############################################################################
-    use_minification      :: Bool = false,
+    use_minification    :: Bool = false,
     perform_consistency_check :: Bool = true,
     ##############################################################################
     rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG,
@@ -225,7 +225,7 @@ function build_forest(
             init_conditions      = init_conditions,
             allow_global_splits  = allow_global_splits,
             ################################################################################
-            use_minification      = use_minification,
+            use_minification     = use_minification,
             perform_consistency_check = perform_consistency_check,
             ################################################################################
             rng                  = rngs[i_tree],
