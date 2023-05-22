@@ -128,9 +128,9 @@ struct DTLeaf{L<:Label} <: AbstractDecisionLeaf{L}
     DTLeaf(prediction::L) where {L<:Label} = DTLeaf{L}(prediction, L[])
 
     # create leaf from supporting labels
-    DTLeaf{L}(supp_labels::AbstractVector) where {L<:Label} = DTLeaf{L}(best_guess(L.(supp_labels)), supp_labels)
+    DTLeaf{L}(supp_labels::AbstractVector) where {L<:Label} = DTLeaf{L}(bestguess(L.(supp_labels)), supp_labels)
     function DTLeaf(supp_labels::AbstractVector)
-        prediction = best_guess(supp_labels)
+        prediction = bestguess(supp_labels)
         DTLeaf(prediction, supp_labels)
     end
 end
@@ -216,9 +216,9 @@ struct NSDTLeaf{L<:Label} <: AbstractDecisionLeaf{L}
     end
 
     # create leaf from supporting labels
-    # NSDTLeaf{L}(supp_labels::AbstractVector) where {L<:Label} = NSDTLeaf{L}(best_guess(supp_labels), supp_labels)
+    # NSDTLeaf{L}(supp_labels::AbstractVector) where {L<:Label} = NSDTLeaf{L}(bestguess(supp_labels), supp_labels)
     # function NSDTLeaf(supp_labels::AbstractVector)
-    #     predicting_function = best_guess(supp_labels)
+    #     predicting_function = bestguess(supp_labels)
     #     NSDTLeaf(predicting_function, supp_labels)
     # end
 end

@@ -279,7 +279,7 @@ Base.@propagate_inbounds @inline function split_node!(
             purity = loss_function(loss_function(nc, nt)::Float64)::Float64
             # Assign the most likely label before the split
             prediction = argmax(nc)
-            # prediction = best_guess(Yf)
+            # prediction = bestguess(Yf)
             (nc, nt), (purity, prediction)
         end
     else
@@ -315,7 +315,7 @@ Base.@propagate_inbounds @inline function split_node!(
             end
             # Assign the most likely label before the split
             prediction =  tsum / nt
-            # prediction = best_guess(Yf)
+            # prediction = bestguess(Yf)
             sums, (tsum, nt), (purity, prediction)
         end
     end

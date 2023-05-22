@@ -141,7 +141,7 @@ function apply(
     # for each instance, aggregate the predictions
     predictions = Vector{L}(undef, _n_samples)
     Threads.@threads for i_sample in 1:_n_samples
-        predictions[i_sample] = best_guess(
+        predictions[i_sample] = bestguess(
             _predictions[:,i_sample],
             tree_weights[:,i_sample];
             suppress_parity_warning = suppress_parity_warning
@@ -223,7 +223,7 @@ function apply(
 
     _prediction =
         if update_labels
-            best_guess(supp_labels(leaf))
+            bestguess(supp_labels(leaf))
         else
             prediction(leaf)
         end
@@ -343,7 +343,7 @@ function apply(
     # for each instance, aggregate the predictions
     predictions = Vector{L}(undef, _n_samples)
     Threads.@threads for i_sample in 1:_n_samples
-        predictions[i_sample] = best_guess(
+        predictions[i_sample] = bestguess(
             _predictions[:,i_sample],
             tree_weights[:,i_sample];
             suppress_parity_warning = suppress_parity_warning

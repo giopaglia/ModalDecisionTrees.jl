@@ -20,7 +20,7 @@ using SoleBase: spawn_rng, nat_sort
 using SoleModels
 using SoleModels: CLabel, RLabel, Label, _CLabel, _Label, get_categorical_form
 
-using SoleModels: best_guess, default_weights, slice_weights
+using SoleModels: bestguess, default_weights, slice_weights
 using SoleData: max_channel_size,
                 nattributes,
                 get_instance,
