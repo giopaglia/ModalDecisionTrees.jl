@@ -101,7 +101,7 @@ function _parse_tree(
                     else
                         try
                             fun = eval(Symbol(fun_str))
-                            (i_attribute)->MDT.UnivariateGenericFeature(i_attribute, fun)
+                            (i_attribute)->MDT.UnivariateFeature(i_attribute, fun)
                         catch
                             (i_attribute)->MDT.UnivariateNamedFeature(i_attribute, fun_str)
                         end
