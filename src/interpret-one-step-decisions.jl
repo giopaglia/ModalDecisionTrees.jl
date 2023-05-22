@@ -26,11 +26,11 @@ function _test_decision(
     i_sample::Integer,
     w::AbstractWorld,
     feature::AbstractFeature{V},
-    test_operator::TestOperatorFun,
+    test_operator::TestOperator,
     threshold::U
 ) where {V,U}
     gamma = X[i_sample, w, feature]::V
-    evaluate_thresh_decision(test_operator, gamma, threshold)
+    apply_test_operator(test_operator, gamma, threshold)
 end
 
 
@@ -184,12 +184,12 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
             for w in worlds
                 gamma = X[i_sample, w, feature, i_feature]
                 for (i_aggr,aggr) in enumerate(aggregators)
-                    thresholds[i_aggr,instance_idx] = aggregator_to_binary(aggr)(gamma, thresholds[i_aggr,instance_idx])
+                    thresholds[i_aggr,instance_idx] = SoleModels.aggregator_to_binary(aggr)(gamma, thresholds[i_aggr,instance_idx])
                 end
             end
         end
         
-        # tested_test_operator = TestOperatorFun[]
+        # tested_test_operator = TestOperator[]
 
         # @logmsg LogDebug "thresholds: " thresholds
         # For each aggregator
@@ -276,7 +276,7 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
                                 error("generate_global_feasible_decisions is broken.")
                             end
                         end
-                        thresholds[i_aggr,instance_id] = aggregator_to_binary(aggr)(gamma, thresholds[i_aggr,instance_id])
+                        thresholds[i_aggr,instance_id] = SoleModels.aggregator_to_binary(aggr)(gamma, thresholds[i_aggr,instance_id])
                     end
                 end
                 
@@ -373,7 +373,7 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
                 end
 
                 thresholds[i_aggr,instance_id] = gamma
-                # thresholds[i_aggr,instance_id] = aggregator_to_binary(aggr)(gamma, thresholds[i_aggr,instance_id])
+                # thresholds[i_aggr,instance_id] = SoleModels.aggregator_to_binary(aggr)(gamma, thresholds[i_aggr,instance_id])
                 # println(gamma)
                 # println(thresholds[i_aggr,instance_id])
             end

@@ -106,7 +106,7 @@ end
 #       X               :: DimensionalFeaturedDataset{T,N},
 #       iC   :: InitCondition,
 #       allow_global_splits :: Bool,
-#       test_operators  :: AbstractVector{<:TestOperatorFun}
+#       test_operators  :: AbstractVector{<:TestOperator}
 #   ) where {T,N}
 
 #   # A dimensional ontological datasets:
@@ -481,7 +481,7 @@ Base.@propagate_inbounds @inline function split_node!(
                     end
                     for i_sample in 1:_n_samples
                         gamma = aggr_thresholds[i_sample]
-                        satisfied = evaluate_thresh_decision(_test_operator, gamma, _threshold)
+                        satisfied = apply_test_operator(_test_operator, gamma, _threshold)
                         # @logmsg LogDetail " instance $i_sample/$_n_samples: (f=$(gamma)) -> satisfied = $(satisfied)"
 
                         # Note: in a fuzzy generalization, `satisfied` becomes a [0-1] value
@@ -517,7 +517,7 @@ Base.@propagate_inbounds @inline function split_node!(
                     end
                     for i_sample in 1:_n_samples
                         gamma = aggr_thresholds[i_sample]
-                        satisfied = evaluate_thresh_decision(_test_operator, gamma, _threshold)
+                        satisfied = apply_test_operator(_test_operator, gamma, _threshold)
                         # @logmsg LogDetail " instance $i_sample/$_n_samples: (f=$(gamma)) -> satisfied = $(satisfied)"
 
                         # TODO make this satisfied a fuzzy value

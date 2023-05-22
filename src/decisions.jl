@@ -1,7 +1,7 @@
 using SoleLogics: identityrel, globalrel
 
 using SoleLogics: AbstractRelation
-using SoleModels: AbstractFeature, TestOperatorFun, FeatCondition
+using SoleModels: AbstractFeature, TestOperator, FeatCondition
 using SoleModels: alpha, syntaxstring
 
 export ExistentialDimensionalDecision,
@@ -133,7 +133,7 @@ struct ExistentialDimensionalDecision{U} <: ModalDimensionalDecision{U}
     function ExistentialDimensionalDecision{U}(
         relation      :: AbstractRelation,
         feature       :: AbstractFeature,
-        test_operator :: TestOperatorFun,
+        test_operator :: TestOperator,
         threshold     :: U
     ) where {U}
         p = FeatCondition(feature, test_operator, threshold)
@@ -143,7 +143,7 @@ struct ExistentialDimensionalDecision{U} <: ModalDimensionalDecision{U}
     function ExistentialDimensionalDecision(
         relation      :: AbstractRelation,
         feature       :: AbstractFeature,
-        test_operator :: TestOperatorFun,
+        test_operator :: TestOperator,
         threshold     :: U
     ) where {U}
         ExistentialDimensionalDecision{U}(relation, feature, test_operator, threshold)

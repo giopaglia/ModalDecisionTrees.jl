@@ -7,7 +7,7 @@ using SoleModels: info, FeatCondition, FeatMetaCondition
 using ModalDecisionTrees: left, right
 
 using ModalDecisionTrees: relation, feature, test_operator, threshold
-using ModalDecisionTrees: test_operator_inverse
+using ModalDecisionTrees: inverse_test_operator
 using ModalDecisionTrees: AbstractFeature
 using ModalDecisionTrees: DTInternal, DTNode, DTLeaf, NSDTLeaf
 using ModalDecisionTrees: isleftchild, isrightchild
@@ -103,7 +103,7 @@ function get_proposition(dec::ExistentialDimensionalDecision)
 end
 
 function get_proposition_inv(dec::ExistentialDimensionalDecision)
-    test_op = test_operator_inverse(test_operator(dec))
+    test_op = inverse_test_operator(test_operator(dec))
     return Proposition(_condition(feature(dec), test_op, threshold(dec)))
 end
 

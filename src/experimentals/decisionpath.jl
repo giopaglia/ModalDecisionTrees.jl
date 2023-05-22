@@ -1,7 +1,7 @@
 using ..ModalDecisionTrees
 using SoleModels
 using SoleModels.ModalLogic
-using ..ModalDecisionTrees: AbstractFeature, TestOperatorFun
+using ..ModalDecisionTrees: AbstractFeature, TestOperator
 
 using ..ModalDecisionTrees: FrameId
 
@@ -14,7 +14,7 @@ export DecisionPath, DecisionPathNode,
 struct DecisionPathNode
     taken         :: Bool
     feature       :: AbstractFeature
-    test_operator :: TestOperatorFun
+    test_operator :: TestOperator
     threshold     :: T where T
     worlds        :: AbstractWorldSet
 end
