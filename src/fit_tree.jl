@@ -958,7 +958,7 @@ function fit_tree(
     # W                       :: AbstractVector{U} = Ones{Int}(nsamples(Xs)), # TODO check whether this is faster
     ;
     # Perform minification: transform dataset so that learning happens faster
-    perform_minification      :: Bool,
+    use_minification      :: Bool,
     # Debug-only: checks the consistency of the dataset during training
     perform_consistency_check :: Bool,
     kwargs...,
@@ -977,7 +977,7 @@ function fit_tree(
     end
 
     Xs, threshold_backmaps = begin
-        if perform_minification
+        if use_minification
             minify(Xs)
         else
             Xs, fill(identity, nframes(Xs))

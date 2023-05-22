@@ -44,7 +44,7 @@ max_purity_at_leaf         = 0.2,
 n_subrelations             = Function[identity],
 n_subfeatures              = Int64[n_feats],
 allow_global_splits        = [true],
-perform_minification = false,
+use_minification = false,
 )
 perform_consistency_check  = true
 
