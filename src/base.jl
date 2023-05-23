@@ -1,6 +1,6 @@
 using SoleLogics: AbstractMultiModalFrame
 import SoleModels: printmodel, displaymodel
-import SoleModels.ModalLogic: worldtypes
+import SoleModels.DimensionalDatasets: worldtypes
 
 ############################################################################################
 # Initial world conditions
@@ -28,12 +28,12 @@ function initialworldset(::AbstractMultiModalFrame{W}, iC::StartAtWorld{W}) wher
     WorldSet{W}([iC.w])
 end
 
-function initialworldsets(Xs::MultiFrameModalDataset, iCs::AbstractVector{<:InitCondition})
+function initialworldsets(Xs::MultiFrameConditionalDataset, iCs::AbstractVector{<:InitCondition})
     Ss = Vector{Vector{WST} where {W,WST<:WorldSet{W}}}(undef, nframes(Xs)) # Fix
     for (i_frame,X) in enumerate(frames(Xs))
         W = worldtype(X)
         Ss[i_frame] = WorldSet{W}[initialworldset(X, i_sample, iCs[i_frame]) for i_sample in 1:nsamples(Xs)]
-        # Ss[i_frame] = WorldSet{W}[[ModalLogic.Interval(1,2)] for i_sample in 1:nsamples(Xs)]
+        # Ss[i_frame] = WorldSet{W}[[Interval(1,2)] for i_sample in 1:nsamples(Xs)]
     end
     Ss
 end
@@ -149,12 +149,12 @@ end
 ############################################################################################
 
 struct PredictingFunction{L<:Label}
-    # f::FunctionWrapper{Vector{L},Tuple{MultiFrameModalDataset}} # TODO restore!!!
-    f::FunctionWrapper{Any,Tuple{MultiFrameModalDataset}}
+    # f::FunctionWrapper{Vector{L},Tuple{MultiFrameConditionalDataset}} # TODO restore!!!
+    f::FunctionWrapper{Any,Tuple{MultiFrameConditionalDataset}}
 
     function PredictingFunction{L}(f::Any) where {L<:Label}
-        # new{L}(FunctionWrapper{Vector{L},Tuple{MultiFrameModalDataset}}(f)) # TODO restore!!!
-        new{L}(FunctionWrapper{Any,Tuple{MultiFrameModalDataset}}(f))
+        # new{L}(FunctionWrapper{Vector{L},Tuple{MultiFrameConditionalDataset}}(f)) # TODO restore!!!
+        new{L}(FunctionWrapper{Any,Tuple{MultiFrameConditionalDataset}}(f))
     end
 end
 (pf::PredictingFunction{L})(args...; kwargs...) where {L} = pf.f(args...; kwargs...)::Vector{L}

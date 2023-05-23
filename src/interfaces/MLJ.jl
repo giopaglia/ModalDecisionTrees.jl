@@ -25,6 +25,7 @@ using Random
 using DataFrames
 import Random.GLOBAL_RNG
 
+using SoleData
 using SoleModels
 using SoleModels: CanonicalFeatureGeq, CanonicalFeatureGeqSoft, CanonicalFeatureLeq, CanonicalFeatureLeqSoft
 
@@ -175,7 +176,7 @@ function moving_average(
     return new_X
 end
 
-function DataFrame2MultiFrameModalDataset(
+function DataFrame2MultiFrameConditionalDataset(
         X,
         frame_grouping,
         relations,
@@ -189,7 +190,7 @@ function DataFrame2MultiFrameModalDataset(
     @assert mode in [:explicit, :implicit]
 
     @assert all((<:).(eltype.(eachcol(X)), Union{Real,AbstractVector{<:Real},AbstractMatrix{<:Real}})) "ModalDecisionTrees.jl only allows variables that are `Real`, `AbstractVector{<:Real}` or `AbstractMatrix{<:Real}`"
-    @assert ! any(map((x)->(any(SoleModels.ModalLogic.hasnans.(x))), eachcol(X))) "ModalDecisionTrees.jl doesn't allow NaN values"
+    @assert ! any(map((x)->(any(SoleData.hasnans.(x))), eachcol(X))) "ModalDecisionTrees.jl doesn't allow NaN values"
 
     Xs_ic = [begin
         X_frame = X[:,frame]
@@ -243,27 +244,27 @@ function DataFrame2MultiFrameModalDataset(
             init_conditions_d[init_conditions]
         end
 
-        ontology = MDT.get_interval_ontology(channel_dim, _relations)
+        ontology = SoleModels.get_interval_ontology(channel_dim, _relations)
         # println(eltype(_X))
-        __X = MDT.DimensionalFeaturedDataset{eltype(_X)}(_X, ontology, mixed_attributes)
-        # println(MDT.display_structure(__X))
+        __X = SoleModels.DimensionalFeaturedDataset{eltype(_X)}(_X, ontology, mixed_attributes)
+        # println(SoleModels.display_structure(__X))
 
         (if mode == :implicit
             __X
         else
-            WorldType = MDT.worldtype(ontology)
+            WorldType = SoleModels.worldtype(ontology)
 
             compute_relation_glob =
-                WorldType != MDT.OneWorld && (
+                WorldType != SoleModels.OneWorld && (
                     (allow_global_splits || _init_conditions == MDT.start_without_world)
                 )
-            MDT.SupportedFeaturedDataset(__X; use_memoization = true, compute_relation_glob = compute_relation_glob)
+            SoleModels.SupportedFeaturedDataset(__X; use_memoization = true, compute_relation_glob = compute_relation_glob)
         end, _init_conditions)
     end for (i_frame, frame) in enumerate(frame_grouping)]
     Xs, init_conditions = zip(Xs_ic...)
     Xs, init_conditions = collect(Xs), collect(init_conditions)
-    Xs = MDT.MultiFrameModalDataset{MDT.ModalLogic.ActiveFeaturedDataset}(Xs)
-    # println(MDT.display_structure(Xs))
+    Xs = SoleModels.MultiFrameConditionalDataset{SoleModels.AbstractActiveFeaturedDataset}(Xs)
+    # println(SoleModels.display_structure(Xs))
     Xs, init_conditions
 end
 
@@ -405,7 +406,7 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Integer, X, y, w=nothing)
     ########################################################################################
 
     frame_grouping = separate_variables_into_frames(X)
-    Xs, init_conditions = DataFrame2MultiFrameModalDataset(
+    Xs, init_conditions = DataFrame2MultiFrameConditionalDataset(
         X,
         frame_grouping,
         relations,
@@ -484,7 +485,7 @@ function MMI.predict(m::ModalDecisionTree, fitresult, Xnew) #, ynew = nothing)
     missing_columns = setdiff(Iterators.flatten(fitresult.frame_grouping), names(Xnew))
     @assert length(missing_columns) == 0 "Can't perform prediction due to missing DataFrame columns: $(missing_columns)"
 
-    Xs, init_conditions = DataFrame2MultiFrameModalDataset(
+    Xs, init_conditions = DataFrame2MultiFrameConditionalDataset(
         Xnew,
         fitresult.frame_grouping,
         relations,
@@ -565,7 +566,7 @@ function MMI.fit(m::ModalRandomForest, verbosity::Integer, X, y, w=nothing)
     ########################################################################################
 
     frame_grouping = separate_variables_into_frames(X)
-    Xs, init_conditions = DataFrame2MultiFrameModalDataset(
+    Xs, init_conditions = DataFrame2MultiFrameConditionalDataset(
         X,
         frame_grouping,
         relations,
@@ -648,7 +649,7 @@ function MMI.predict(m::ModalRandomForest, fitresult, Xnew) #, ynew = nothing)
     missing_columns = setdiff(Iterators.flatten(fitresult.frame_grouping), names(Xnew))
     @assert length(missing_columns) == 0 "Can't perform prediction due to missing DataFrame columns: $(missing_columns)"
 
-    Xs, init_conditions = DataFrame2MultiFrameModalDataset(
+    Xs, init_conditions = DataFrame2MultiFrameConditionalDataset(
         Xnew,
         fitresult.frame_grouping,
         relations,

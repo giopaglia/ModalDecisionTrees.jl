@@ -1,6 +1,6 @@
 using ..ModalDecisionTrees
 using SoleModels
-using SoleModels.ModalLogic
+using SoleModels.DimensionalDatasets
 using ..ModalDecisionTrees: AbstractFeature, TestOperator
 
 using ..ModalDecisionTrees: FrameId
@@ -29,11 +29,11 @@ worlds(n::DecisionPathNode) = n.worlds
 const DecisionPath = Vector{DecisionPathNode}
 
 _get_path_in_tree(leaf::DTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet}, frameid::FrameId, paths::Vector{DecisionPath})::AbstractWorldSet = return worlds[frameid]
-function _get_path_in_tree(tree::DTInternal, X::MultiFrameModalDataset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet}, frameid::Integer, paths::Vector{DecisionPath})::AbstractWorldSet
+function _get_path_in_tree(tree::DTInternal, X::MultiFrameConditionalDataset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet}, frameid::Integer, paths::Vector{DecisionPath})::AbstractWorldSet
     satisfied = true
     (satisfied,new_worlds,worlds_map) =
         modalstep(
-                        get_frame(X, frameid(tree)),
+                        getframe(X, frameid(tree)),
                         i_sample,
                         worlds[frameid(tree)],
                         decision(tree),

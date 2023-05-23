@@ -115,14 +115,14 @@ end
 #       if (length(ontology(X).relations) > 0)
 #           warn("The DimensionalFeaturedDataset provided has degenerate max_channel_size $(max_channel_size(X)), and more than 0 relations: $(ontology(X).relations).")
 #       end
-#       # X = DimensionalFeaturedDataset{T,0}(ModalLogic.strip_ontology(ontology(X)), @views ModalLogic.strip_domain(domain(X)))
+#       # X = DimensionalFeaturedDataset{T,0}(DimensionalDatasets.strip_ontology(ontology(X)), @views DimensionalDatasets.strip_domain(domain(X)))
 #   end
 
 #   ontology_relations = deepcopy(ontology(X).relations)
 
 #   # Fix test_operators order
 #   test_operators = unique(test_operators)
-#   ModalLogic.sort_test_operators!(test_operators)
+#   DimensionalDatasets.sort_test_operators!(test_operators)
 
 #   # Adimensional operators:
 #   #  in the adimensional case, some pairs of operators (e.g. <= and >)
@@ -131,7 +131,7 @@ end
 #   if prod(max_channel_size(X)) == 1
 #       # No ontological relation
 #       ontology_relations = []
-#       if test_operators ⊆ ModalLogic.all_lowlevel_test_operators
+#       if test_operators ⊆ DimensionalDatasets.all_lowlevel_test_operators
 #           test_operators = [canonical_geq]
 #           # test_operators = filter(e->e ≠ canonical_geq,test_operators)
 #       else
@@ -215,7 +215,7 @@ end
 #  (e.g. max_depth, min_samples_leaf, etc.)
 Base.@propagate_inbounds @inline function split_node!(
     node                      :: NodeMeta{L,P},                     # node to split
-    Xs                        :: ActiveMultiFrameModalDataset,       # modal dataset
+    Xs                        :: ActiveMultiFrameConditionalDataset,       # modal dataset
     Ss                        :: AbstractVector{
         <:AbstractVector{WST} where {WorldType,WST<:WorldSet{WorldType}}
     }, # vector of current worlds for each instance and frame
@@ -659,10 +659,10 @@ Base.@propagate_inbounds @inline function split_node!(
         for i_sample in 1:_n_samples
             # TODO perform step with an OntologicalModalDataset
 
-            # instance = ModalLogic.get_instance(X, best_i_frame, idxs[i_sample + r_start])
-            X = get_frame(Xs, best_i_frame)
+            # instance = DimensionalDatasets.get_instance(X, best_i_frame, idxs[i_sample + r_start])
+            X = getframe(Xs, best_i_frame)
             Sf = Sfs[best_i_frame]
-            # instance = ModalLogic.get_instance(X, idxs[i_sample + r_start])
+            # instance = DimensionalDatasets.get_instance(X, idxs[i_sample + r_start])
 
             # println(instance)
             # println(Sf[i_sample])
@@ -732,7 +732,7 @@ Base.@propagate_inbounds @inline function split_node!(
             end
 
             # for i in 1:_n_samples
-                # errStr *= "$(ModalLogic.get_channel(Xs, idxs[i + r_start], feature(best_decision)))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[best_i_frame][idxs[i + r_start]])\n";
+                # errStr *= "$(DimensionalDatasets.get_channel(Xs, idxs[i + r_start], feature(best_decision)))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[best_i_frame][idxs[i + r_start]])\n";
             # end
 
             # throw_n_log("ERROR! " * errStr)
@@ -787,7 +787,7 @@ end
 ############################################################################################
 
 @inline function _fit_tree(
-    Xs                        :: ActiveMultiFrameModalDataset,       # modal dataset
+    Xs                        :: ActiveMultiFrameConditionalDataset,       # modal dataset
     Y                         :: AbstractVector{L},                  # label vector
     init_conditions           :: AbstractVector{<:InitCondition},   # world starting conditions
     W                         :: AbstractVector{U}                   # weight vector
@@ -849,7 +849,7 @@ end
 ##############################################################################
 
 @inline function check_input(
-    Xs                      :: ActiveMultiFrameModalDataset,
+    Xs                      :: ActiveMultiFrameConditionalDataset,
     Y                       :: AbstractVector{S},
     init_conditions         :: Vector{<:InitCondition},
     W                       :: AbstractVector{U}
@@ -918,12 +918,12 @@ end
             * " max_depth >= 0, or max_depth = -1 for infinite depth)")
     end
 
-    if ModalLogic.hasnans(Xs)
+    if SoleData.hasnans(Xs)
         # println(Xs)
-        # println(ModalLogic.display_structure(Xs))
-        # println(ModalLogic.hasnans(Xs))
-        # println(ModalLogic.hasnans.([fd(X) for X in frames(Xs)]))
-        # println(ModalLogic.hasnans.([fd(X).fwd for X in frames(Xs)]))
+        # println(DimensionalDatasets.display_structure(Xs))
+        # println(SoleData.hasnans(Xs))
+        # println(SoleData.hasnans.([fd(X) for X in frames(Xs)]))
+        # println(SoleData.hasnans.([fd(X).fwd for X in frames(Xs)]))
         # println(fwd(frames(Xs)[1].fd))
         throw_n_log("This algorithm doesn't allow NaN values")
     end
@@ -948,7 +948,7 @@ end
 
 function fit_tree(
     # modal dataset
-    Xs                        :: ActiveMultiFrameModalDataset,
+    Xs                        :: ActiveMultiFrameConditionalDataset,
     # label vector
     Y                         :: AbstractVector{L},
     # world starting conditions

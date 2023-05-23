@@ -66,7 +66,7 @@ using ModalDecisionTrees: DTLeaf, prediction
         # # create node without frame nor local decision
         # cls_node = @test_nowarn DTInternal(decision, cls_node, cls_leaf)
 
-        # cls_tree = @test_nowarn DTree(cls_node, [ModalLogic.Interval], [start_without_world])
+        # cls_tree = @test_nowarn DTree(cls_node, [Interval], [start_without_world])
         # cls_forest = @test_nowarn DForest([cls_tree, cls_tree, cls_tree])
     # end
 

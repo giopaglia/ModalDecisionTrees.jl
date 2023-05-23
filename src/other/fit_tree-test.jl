@@ -1,6 +1,6 @@
 using Revise
 using ModalDecisionTrees
-using SoleModels.ModalLogic
+using SoleModels.DimensionalDatasets
 
 using Random
 using BenchmarkTools
@@ -24,9 +24,9 @@ for i_attr in 1:n_attrs
     push!(featsnops, [≤])
 end
 
-Xs = MultiFrameModalDataset{SupportedFeaturedDataset}([
+Xs = MultiFrameConditionalDataset{SupportedFeaturedDataset}([
     SupportedFeaturedDataset(
-        DimensionalFeaturedDataset(randn(n_pts, n_attrs, _n_samples), SoleModels.ModalLogic.get_interval_ontology(1), features, featsnops);
+        DimensionalFeaturedDataset(randn(n_pts, n_attrs, _n_samples), get_interval_ontology(1), features, featsnops);
         use_memoization = false,
         compute_relation_glob = true,
     )

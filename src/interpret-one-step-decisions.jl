@@ -1,25 +1,24 @@
 
 using ResumableFunctions
-using SoleLogics: FullDimensionalFrame
+using SoleModels: AbstractWorld, AbstractWorldSet, FullDimensionalFrame
 using Logging: @logmsg
-using SoleModels.ModalLogic: AbstractConditionalDataset, features
-using SoleModels.ModalLogic: FeaturedDataset, SupportedFeaturedDataset, DimensionalFeaturedDataset
+using SoleModels.DimensionalDatasets: AbstractConditionalDataset, features
+using SoleModels.DimensionalDatasets: FeaturedDataset, SupportedFeaturedDataset, DimensionalFeaturedDataset
+using SoleModels.DimensionalDatasets: AbstractActiveFeaturedDataset
 
-using SoleModels.ModalLogic: relations,
+using SoleModels.DimensionalDatasets: relations,
                     grouped_featsaggrsnops,
                     grouped_featsnaggrs,
                     fwd,
                     fwd_gs,
                     support
 
-using SoleModels.ModalLogic: fwdread_channel,
+using SoleModels.DimensionalDatasets: fwdread_channel,
                     fwdslice_onestep_accessible_aggregation,
                     onestep_accessible_aggregation
 
 
 export generate_feasible_decisions
-
-using SoleModels: existential_aggregator, universal_aggregator
 
 function _test_decision(
     X::AbstractConditionalDataset,
@@ -37,7 +36,7 @@ end
 # Perform the modal step, that is, evaluate a modal formula
 #  on a domain, and eventually compute the new world set.
 function modalstep(
-    # X::ActiveFeaturedDataset{V,W},
+    # X::AbstractActiveFeaturedDataset{V,W},
     X::AbstractConditionalDataset{W},
     i_sample::Integer,
     worlds::WorldSetType,
@@ -110,7 +109,7 @@ end
 
 
 Base.@propagate_inbounds @resumable function generate_feasible_decisions(
-    X::ActiveFeaturedDataset{V,W},
+    X::AbstractActiveFeaturedDataset{V,W},
     i_samples::AbstractVector{<:Integer},
     Sf::AbstractVector{<:AbstractWorldSet{W}},
     allow_propositional_decisions::Bool,
@@ -142,7 +141,7 @@ end
 ############################################################################################
 
 Base.@propagate_inbounds @resumable function generate_propositional_feasible_decisions(
-    X::ActiveFeaturedDataset{V,W,FR},
+    X::AbstractActiveFeaturedDataset{V,W,FR},
     i_samples::AbstractVector{<:Integer},
     Sf::AbstractVector{<:AbstractWorldSet{W}},
     features_inds::AbstractVector{<:Integer},
@@ -219,7 +218,7 @@ end
 ############################################################################################
 
 Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
-    X::ActiveFeaturedDataset{V,W,FR},
+    X::AbstractActiveFeaturedDataset{V,W,FR},
     i_samples::AbstractVector{<:Integer},
     Sf::AbstractVector{<:AbstractWorldSet{W}},
     modal_relations_inds::AbstractVector{<:Integer},
@@ -312,7 +311,7 @@ end
 ############################################################################################
 
 Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
-    X::ActiveFeaturedDataset{V,W,FR},
+    X::AbstractActiveFeaturedDataset{V,W,FR},
     i_samples::AbstractVector{<:Integer},
     Sf::AbstractVector{<:AbstractWorldSet{W}},
     features_inds::AbstractVector{<:Integer},

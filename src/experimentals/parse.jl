@@ -8,10 +8,10 @@ function parse_tree(
     check_format = true,
     _depth = 0,
     offset = 0,
-    worldtypes = Type{ML.AbstractWorld}[],
+    worldtypes = Type{SL.AbstractWorld}[],
     init_conditions = MDT.InitCondition[],
 )
-    worldtypes = Type{<:ML.AbstractWorld}[worldtypes...]
+    worldtypes = Type{<:SL.AbstractWorld}[worldtypes...]
     init_conditions = MDT.InitCondition[init_conditions...]
     root = _parse_tree(tree_str; check_format = check_format, _depth = _depth, offset = offset)
     DTree(root, worldtypes, init_conditions)
@@ -114,12 +114,12 @@ function _parse_tree(
             elseif !isnothing(m_special) && length(m_special) == 2
                 i_attribute, feature_fun_test_operator = m_special
                 feature_fun_test_operator_d = Dict([
-                    "⪴"   => (i_attribute)->(ML.UnivariateMin(i_attribute), ≥),
-                    "⪴₈₀" => (i_attribute)->(ML.UnivariateSoftMin(i_attribute, 80), ≥),
-                    "⪳₈₀" => (i_attribute)->(ML.UnivariateSoftMax(i_attribute, 80), ≤),
-                    "⪳"   => (i_attribute)->(ML.UnivariateMax(i_attribute), ≤),
-                    "↘"   => (i_attribute)->(ML.UnivariateMin(i_attribute), ≤),
-                    "↗"   => (i_attribute)->(ML.UnivariateMax(i_attribute), ≥),
+                    "⪴"   => (i_attribute)->(SoleModels.UnivariateMin(i_attribute), ≥),
+                    "⪴₈₀" => (i_attribute)->(SoleModels.UnivariateSoftMin(i_attribute, 80), ≥),
+                    "⪳₈₀" => (i_attribute)->(SoleModels.UnivariateSoftMax(i_attribute, 80), ≤),
+                    "⪳"   => (i_attribute)->(SoleModels.UnivariateMax(i_attribute), ≤),
+                    "↘"   => (i_attribute)->(SoleModels.UnivariateMin(i_attribute), ≤),
+                    "↗"   => (i_attribute)->(SoleModels.UnivariateMax(i_attribute), ≥),
                 ])
                 feature_fun_test_operator = feature_fun_test_operator_d[feature_fun_test_operator]
                 i_attribute = parse(Int, i_attribute)

@@ -21,6 +21,7 @@ using SoleModels
 using SoleModels: CLabel, RLabel, Label, _CLabel, _Label, get_categorical_form
 
 using SoleModels: bestguess, default_weights, slice_weights
+using SoleData
 using SoleData: max_channel_size,
                 nattributes,
                 get_instance,
@@ -37,7 +38,43 @@ import SoleModels: feature, test_operator, threshold
 import AbstractTrees: print_tree
 
 # Data structures
-using SoleModels.ModalLogic
+using SoleModels.DimensionalDatasets
+using SoleModels.DimensionalDatasets: MultiFrameConditionalDataset
+using SoleModels.DimensionalDatasets: ActiveMultiFrameConditionalDataset
+using SoleModels: WorldSet, GenericModalDataset
+
+using SoleModels: nfeatures, nrelations,
+                            nframes, frames, getframe,
+                            display_structure,
+                            #
+                            relations,
+                            #
+                            GenericModalDataset,
+                            ActiveMultiFrameConditionalDataset,
+                            MultiFrameConditionalDataset,
+                            AbstractActiveFeaturedDataset,
+                            DimensionalFeaturedDataset,
+                            FeaturedDataset,
+                            SupportedFeaturedDataset
+
+using SoleModels: AbstractWorld, AbstractRelation
+using SoleModels: AbstractWorldSet, WorldSet
+using SoleModels: FullDimensionalFrame
+
+using SoleModels: Ontology, worldtype
+
+import SoleModels: worldtypes
+
+using SoleModels: get_ontology,
+                            get_interval_ontology
+
+using SoleModels: OneWorld, OneWorldOntology
+
+using SoleModels: Interval, Interval2D
+
+using SoleModels: IARelations
+
+using SoleModels: existential_aggregator, universal_aggregator, aggregator_bottom
 
 ############################################################################################
 
@@ -79,6 +116,8 @@ include("default-parameters.jl")
 
 # Metrics for assessing the goodness of a decision leaf/rule
 include("leaf-metrics.jl")
+
+export build_stump, build_tree, build_forest
 
 # Build a decision tree/forest from a dataset
 include("build.jl")

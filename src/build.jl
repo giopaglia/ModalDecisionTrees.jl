@@ -1,4 +1,3 @@
-export build_stump, build_tree, build_forest
 
 include("fit_tree.jl")
 
@@ -7,16 +6,16 @@ include("fit_tree.jl")
 ################################################################################
 
 # # Build models on (multi-dimensional) arrays
-function build_stump(X :: ActiveFeaturedDataset, args...; kwargs...)
-    build_stump(ActiveMultiFrameModalDataset(X), args...; kwargs...)
+function build_stump(X :: AbstractActiveFeaturedDataset, args...; kwargs...)
+    build_stump(ActiveMultiFrameConditionalDataset(X), args...; kwargs...)
 end
 
-function build_tree(X :: ActiveFeaturedDataset, args...; kwargs...)
-    build_tree(ActiveMultiFrameModalDataset(X), args...; kwargs...)
+function build_tree(X :: AbstractActiveFeaturedDataset, args...; kwargs...)
+    build_tree(ActiveMultiFrameConditionalDataset(X), args...; kwargs...)
 end
 
-function build_forest(X :: ActiveFeaturedDataset, args...; kwargs...)
-    build_forest(ActiveMultiFrameModalDataset(X), args...; kwargs...)
+function build_forest(X :: AbstractActiveFeaturedDataset, args...; kwargs...)
+    build_forest(ActiveMultiFrameConditionalDataset(X), args...; kwargs...)
 end
 
 ################################################################################
@@ -25,7 +24,7 @@ end
 
 # Build a stump (tree with depth 1)
 function build_stump(
-    X                 :: ActiveMultiFrameModalDataset,
+    X                 :: ActiveMultiFrameConditionalDataset,
     Y                 :: AbstractVector{L},
     W                 :: Union{Nothing,AbstractVector{U},Symbol} = nothing;
     kwargs...,
@@ -38,7 +37,7 @@ end
 # TODO set default pruning arguments for tree, and make sure that forests override these
 # Build a tree
 function build_tree(
-    X                   :: ActiveMultiFrameModalDataset,
+    X                   :: ActiveMultiFrameConditionalDataset,
     Y                   :: AbstractVector{L},
     W                   :: Union{Nothing,AbstractVector{U},Symbol}   = default_weights(nsamples(X));
     ##############################################################################
@@ -120,7 +119,7 @@ end
 
 
 function build_forest(
-    X                   :: ActiveMultiFrameModalDataset,
+    X                   :: ActiveMultiFrameConditionalDataset,
     Y                   :: AbstractVector{L},
     # Use unary weights if no weight is supplied
     W                   :: Union{Nothing,AbstractVector{U},Symbol} = default_weights(Y);
