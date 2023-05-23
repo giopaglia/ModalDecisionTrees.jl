@@ -12,6 +12,7 @@ using Logging: LogLevel, @logmsg
 using Printf
 using ProgressMeter
 using Random
+using Reexport
 using StatsBase
 
 using SoleBase
@@ -26,8 +27,7 @@ using SoleData: max_channel_size,
                 nattributes,
                 get_instance,
                 slice_dataset,
-                _slice_dataset,
-                instance_channel_size
+                _slice_dataset
 
 using SoleModels: AbstractConditionalDataset
 
@@ -38,13 +38,12 @@ import SoleModels: feature, test_operator, threshold
 import AbstractTrees: print_tree
 
 # Data structures
-using SoleModels.DimensionalDatasets
-using SoleModels.DimensionalDatasets: MultiFrameConditionalDataset
-using SoleModels.DimensionalDatasets: ActiveMultiFrameConditionalDataset
+@reexport using SoleModels.DimensionalDatasets
+using SoleModels: MultiFrameConditionalDataset
 using SoleModels: WorldSet, GenericModalDataset
 
 using SoleModels: nfeatures, nrelations,
-                            nframes, frames, getframe,
+                            nframes, frames, frame,
                             display_structure,
                             #
                             relations,

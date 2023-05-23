@@ -33,7 +33,7 @@ function _get_path_in_tree(tree::DTInternal, X::MultiFrameConditionalDataset, i_
     satisfied = true
     (satisfied,new_worlds,worlds_map) =
         modalstep(
-                        getframe(X, frameid(tree)),
+                        frame(X, frameid(tree)),
                         i_sample,
                         worlds[frameid(tree)],
                         decision(tree),

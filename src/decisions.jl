@@ -2,7 +2,8 @@ using SoleLogics: identityrel, globalrel
 
 using SoleLogics: AbstractRelation
 using SoleModels: AbstractFeature, TestOperator, FeatCondition
-using SoleModels: alpha, syntaxstring
+using SoleModels: syntaxstring
+using SoleModels.DimensionalDatasets: alpha
 
 export ExistentialDimensionalDecision,
        #

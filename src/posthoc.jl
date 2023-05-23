@@ -7,6 +7,7 @@
 export prune
 
 using DataStructures
+using SoleModels.DimensionalDatasets: AbstractUnivariateFeature
 
 function prune(tree::DTree; kwargs...)
     DTree(prune(root(tree); depth = 0, kwargs...), worldtypes(tree), init_conditions(tree))
@@ -260,7 +261,7 @@ function train_functional_leaves(
         unsatisfied_idxs = Integer[]
 
         for i_sample in 1:nsamples(X)
-            (satisfied,new_worlds) = modalstep(getframe(X, frameid(node)), i_sample, worlds[i_dataset][frameid(node)][i_sample], decision(node))
+            (satisfied,new_worlds) = modalstep(frame(X, frameid(node)), i_sample, worlds[i_dataset][frameid(node)][i_sample], decision(node))
 
             if satisfied
                 push!(satisfied_idxs, i_sample)

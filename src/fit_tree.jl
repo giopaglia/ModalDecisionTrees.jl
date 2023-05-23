@@ -660,7 +660,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # TODO perform step with an OntologicalModalDataset
 
             # instance = DimensionalDatasets.get_instance(X, best_i_frame, idxs[i_sample + r_start])
-            X = getframe(Xs, best_i_frame)
+            X = frame(Xs, best_i_frame)
             Sf = Sfs[best_i_frame]
             # instance = DimensionalDatasets.get_instance(X, idxs[i_sample + r_start])
 

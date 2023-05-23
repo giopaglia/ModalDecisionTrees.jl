@@ -79,7 +79,7 @@ function apply(tree::DTInternal, X::MultiFrameConditionalDataset, i_sample::Inte
     @logmsg LogDetail " worlds" worlds
     (satisfied,new_worlds) =
         modalstep(
-            getframe(X, frameid(tree)),
+            frame(X, frameid(tree)),
             i_sample,
             worlds[frameid(tree)],
             decision(tree),
@@ -262,7 +262,7 @@ function apply(
     kwargs...,
 ) where {L}
 
-    (satisfied,new_worlds) = modalstep(getframe(X, frameid(tree)), i_sample, worlds[frameid(tree)], decision(tree))
+    (satisfied,new_worlds) = modalstep(frame(X, frameid(tree)), i_sample, worlds[frameid(tree)], decision(tree))
 
     # if satisfied
     #   println("new_worlds: $(new_worlds)")
@@ -414,7 +414,7 @@ function apply_proba(tree::DTInternal, X::MultiFrameConditionalDataset, i_sample
     @logmsg LogDetail " worlds" worlds
     (satisfied,new_worlds) =
         modalstep(
-            getframe(X, frameid(tree)),
+            frame(X, frameid(tree)),
             i_sample,
             worlds[frameid(tree)],
             decision(tree),

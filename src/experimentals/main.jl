@@ -9,13 +9,12 @@ using SoleModels.DimensionalDatasets
 using SoleLogics
 
 using SoleModels.DimensionalDatasets
-using SoleModels.DimensionalDatasets: MultiFrameConditionalDataset
-using SoleModels.DimensionalDatasets: ActiveMultiFrameConditionalDataset
+using SoleModels: MultiFrameConditionalDataset
 using SoleModels: WorldSet, GenericModalDataset
 
 
 using SoleModels: nfeatures, nrelations,
-                            nframes, frames, getframe,
+                            nframes, frames, frame,
                             display_structure,
                             #
                             relations,
