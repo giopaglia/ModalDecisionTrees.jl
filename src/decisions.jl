@@ -1,7 +1,7 @@
 using SoleLogics: identityrel, globalrel
 
 using SoleLogics: AbstractRelation
-using SoleModels: AbstractFeature, TestOperator, FeatCondition
+using SoleModels: AbstractFeature, TestOperator, ScalarCondition
 using SoleModels: syntaxstring
 using SoleModels.DimensionalDatasets: alpha
 
@@ -18,7 +18,7 @@ export ExistentialDimensionalDecision,
 ############################################################################################
 
 # A decision inducing a branching/split (e.g., ⟨L⟩ (minimum(A2) ≥ 10) )
-abstract type AbstractDecision end
+abstract type AbstractDecision  <: SoleLogics.AbstractFormula end
 
 import SoleModels: negation
 
@@ -81,7 +81,7 @@ abstract type DimensionalDecision{U} <: SimpleDecision end
 
 # p
 struct PropositionalDimensionalDecision{U} <: DimensionalDecision{U}
-    p :: FeatCondition{U}
+    p :: ScalarCondition{U}
 end
 
 proposition(d::PropositionalDimensionalDecision) = d.p
@@ -111,7 +111,7 @@ struct ExistentialDimensionalDecision{U} <: ModalDimensionalDecision{U}
     # Relation, interpreted as an existential modal operator
     relation  :: AbstractRelation
 
-    p         :: FeatCondition{U}
+    p         :: ScalarCondition{U}
 
     function ExistentialDimensionalDecision{U}() where {U}
         new{U}()
@@ -119,14 +119,14 @@ struct ExistentialDimensionalDecision{U} <: ModalDimensionalDecision{U}
 
     function ExistentialDimensionalDecision{U}(
         relation      :: AbstractRelation,
-        p             :: FeatCondition{U}
+        p             :: ScalarCondition{U}
     ) where {U}
         new{U}(relation, p)
     end
 
     function ExistentialDimensionalDecision(
         relation      :: AbstractRelation,
-        p             :: FeatCondition{U}
+        p             :: ScalarCondition{U}
     ) where {U}
         ExistentialDimensionalDecision{U}(relation, p)
     end
@@ -137,7 +137,7 @@ struct ExistentialDimensionalDecision{U} <: ModalDimensionalDecision{U}
         test_operator :: TestOperator,
         threshold     :: U
     ) where {U}
-        p = FeatCondition(feature, test_operator, threshold)
+        p = ScalarCondition(feature, test_operator, threshold)
         ExistentialDimensionalDecision{U}(relation, p)
     end
 
@@ -154,7 +154,7 @@ struct ExistentialDimensionalDecision{U} <: ModalDimensionalDecision{U}
         decision      :: ExistentialDimensionalDecision{U},
         threshold_f   :: Function
     ) where {U}
-        q = FeatCondition(decision.p, threshold_f(threshold(decision.p)))
+        q = ScalarCondition(decision.p, threshold_f(threshold(decision.p)))
         ExistentialDimensionalDecision{U}(relation(decision), q)
     end
 end
@@ -162,7 +162,7 @@ end
 # [R]p
 struct UniversalDimensionalDecision{U} <: ModalDimensionalDecision{U}
     relation  :: AbstractRelation
-    p         :: FeatCondition{U}
+    p         :: ScalarCondition{U}
 end
 
 function negation(decision::ExistentialDimensionalDecision{U}) where {U}

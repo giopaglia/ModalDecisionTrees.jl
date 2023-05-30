@@ -103,7 +103,7 @@ end
 ##############################################################################
 
 # function optimize_tree_parameters!(
-#       X               :: DimensionalFeaturedDataset{T,N},
+#       X               :: DimensionalLogiset{T,N},
 #       iC   :: InitCondition,
 #       allow_global_splits :: Bool,
 #       test_operators  :: AbstractVector{<:TestOperator}
@@ -113,9 +113,9 @@ end
 #   #  flatten to adimensional case + strip of all relations from the ontology
 #   if prod(max_channel_size(X)) == 1
 #       if (length(ontology(X).relations) > 0)
-#           warn("The DimensionalFeaturedDataset provided has degenerate max_channel_size $(max_channel_size(X)), and more than 0 relations: $(ontology(X).relations).")
+#           warn("The DimensionalLogiset provided has degenerate max_channel_size $(max_channel_size(X)), and more than 0 relations: $(ontology(X).relations).")
 #       end
-#       # X = DimensionalFeaturedDataset{T,0}(DimensionalDatasets.strip_ontology(ontology(X)), @views DimensionalDatasets.strip_domain(domain(X)))
+#       # X = DimensionalLogiset{T,0}(DimensionalDatasets.strip_ontology(ontology(X)), @views DimensionalDatasets.strip_domain(domain(X)))
 #   end
 
 #   ontology_relations = deepcopy(ontology(X).relations)
@@ -215,7 +215,7 @@ end
 #  (e.g. max_depth, min_samples_leaf, etc.)
 Base.@propagate_inbounds @inline function split_node!(
     node                      :: NodeMeta{L,P},                     # node to split
-    Xs                        :: ActiveMultiFrameConditionalDataset,       # modal dataset
+    Xs                        :: ActiveMultiFrameLogiset,       # modal dataset
     Ss                        :: AbstractVector{
         <:AbstractVector{WST} where {WorldType,WST<:WorldSet{WorldType}}
     }, # vector of current worlds for each instance and frame
@@ -787,7 +787,7 @@ end
 ############################################################################################
 
 @inline function _fit_tree(
-    Xs                        :: ActiveMultiFrameConditionalDataset,       # modal dataset
+    Xs                        :: ActiveMultiFrameLogiset,       # modal dataset
     Y                         :: AbstractVector{L},                  # label vector
     init_conditions           :: AbstractVector{<:InitCondition},   # world starting conditions
     W                         :: AbstractVector{U}                   # weight vector
@@ -849,7 +849,7 @@ end
 ##############################################################################
 
 @inline function check_input(
-    Xs                      :: ActiveMultiFrameConditionalDataset,
+    Xs                      :: ActiveMultiFrameLogiset,
     Y                       :: AbstractVector{S},
     init_conditions         :: Vector{<:InitCondition},
     W                       :: AbstractVector{U}
@@ -920,7 +920,7 @@ end
 
     if SoleData.hasnans(Xs)
         # println(Xs)
-        # println(DimensionalDatasets.display_structure(Xs))
+        # println(DimensionalDatasets.displaystructure(Xs))
         # println(SoleData.hasnans(Xs))
         # println(SoleData.hasnans.([fd(X) for X in frames(Xs)]))
         # println(SoleData.hasnans.([fd(X).fwd for X in frames(Xs)]))
@@ -948,7 +948,7 @@ end
 
 function fit_tree(
     # modal dataset
-    Xs                        :: ActiveMultiFrameConditionalDataset,
+    Xs                        :: ActiveMultiFrameLogiset,
     # label vector
     Y                         :: AbstractVector{L},
     # world starting conditions

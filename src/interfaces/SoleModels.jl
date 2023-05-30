@@ -2,7 +2,7 @@ using Revise
 
 using SoleLogics
 using SoleModels
-using SoleModels: info, FeatCondition, FeatMetaCondition
+using SoleModels: info, ScalarCondition, ScalarMetaCondition
 
 using ModalDecisionTrees: left, right
 
@@ -92,8 +92,8 @@ end
 
 function _condition(feature::AbstractFeature{U}, test_op, threshold::T) where {U,T}
     # t = FunctionWrapper{Bool,Tuple{U,T}}(test_op)
-    metacond = FeatMetaCondition(feature, test_op)
-    cond = FeatCondition(metacond, threshold)
+    metacond = ScalarMetaCondition(feature, test_op)
+    cond = ScalarCondition(metacond, threshold)
     return cond
 end
 
@@ -136,8 +136,8 @@ end
 ############################################################################################
 
 # Compute path formula using semantics from TODO cite
-function pathformula(internal::Vector{<:DTInternal{L,<:ExistentialDimensionalDecision}}, leaf::DTNode{LL}) where {L,LL}
-    nodes = [internal..., leaf]
+function pathformula(ancestors::Vector{<:DTInternal{L,<:ExistentialDimensionalDecision}}, leaf::DTNode{LL}) where {L,LL}
+    nodes = [ancestors..., leaf]
     # dispatch a seconda del numero di nodi degli ancestors
     if length(nodes) == 0
         error("Cannot compute pathformula on empty path.")
@@ -202,8 +202,8 @@ end
 #         (any(isa.(token(t), [BoxRelationalOperator, □])) && first(children(t)) == →)
 # end
 
-# function pathformula(internal::Vector{<:DTInternal{L,<:DoubleEdgedDecision}}, leaf::DTNode{L}) where {L}
-#     nodes = [internal..., leaf]
+# function pathformula(ancestors::Vector{<:DTInternal{L,<:DoubleEdgedDecision}}, leaf::DTNode{L}) where {L}
+#     nodes = [ancestors..., leaf]
 #     depth = length(ancestors)
 
 #     if depth == 0

@@ -7,7 +7,7 @@ import MLJ: predict
 ############################################################################################
 ############################################################################################
 
-mm_instance_initialworldset(Xs::MultiFrameConditionalDataset, tree::DTree, i_sample::Integer) = begin
+mm_instance_initialworldset(Xs::MultiFrameLogiset, tree::DTree, i_sample::Integer) = begin
     Ss = Vector{WorldSet}(undef, nframes(Xs))
     for (i_frame,X) in enumerate(frames(Xs))
         Ss[i_frame] = initialworldset(X, i_sample, init_conditions(tree)[i_frame])
@@ -22,9 +22,9 @@ softmax(m::AbstractMatrix) = mapslices(softmax, m; dims=1)
 ############################################################################################
 ############################################################################################
 
-# Patch single-frame _-> multi-frame
-apply(model::Union{DTree,DForest}, X::AbstractConditionalDataset, args...; kwargs...) =
-    apply(model, MultiFrameConditionalDataset(X), args...; kwargs...)
+# Patch single-frame _-> multiframe
+apply(model::Union{DTree,DForest}, X::AbstractLogiset, args...; kwargs...) =
+    apply(model, MultiFrameLogiset(X), args...; kwargs...)
 
 apply_model = apply
 
@@ -42,8 +42,8 @@ function print_apply(tree::DTree, X::GenericModalDataset, Y::AbstractVector; kwa
 end
 
 
-apply_proba(model::Union{DTree,DForest}, X::AbstractConditionalDataset, args...; kwargs...) =
-    apply_proba(model, MultiFrameConditionalDataset(X), args...; kwargs...)
+apply_proba(model::Union{DTree,DForest}, X::AbstractLogiset, args...; kwargs...) =
+    apply_proba(model, MultiFrameLogiset(X), args...; kwargs...)
 
 # apply_tree_proba   = apply_model_proba
 # apply_trees_proba  = apply_model_proba
@@ -51,8 +51,8 @@ apply_proba(model::Union{DTree,DForest}, X::AbstractConditionalDataset, args...;
 
 apply_model_proba = apply_proba
 
-predict(model::Union{DTree,DForest}, X::AbstractConditionalDataset, args...; kwargs...) =
-    predict(model, MultiFrameConditionalDataset(X), args...; kwargs...)
+predict(model::Union{DTree,DForest}, X::AbstractLogiset, args...; kwargs...) =
+    predict(model, MultiFrameLogiset(X), args...; kwargs...)
 
 ################################################################################
 # Apply models: predict labels for a new dataset of instances
@@ -74,7 +74,7 @@ function apply(leaf::NSDTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector
     preds[1]
 end
 
-function apply(tree::DTInternal, X::MultiFrameConditionalDataset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet}; kwargs...)
+function apply(tree::DTInternal, X::MultiFrameLogiset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet}; kwargs...)
     @logmsg LogDetail "applying branch..."
     @logmsg LogDetail " worlds" worlds
     (satisfied,new_worlds) =
@@ -91,7 +91,7 @@ function apply(tree::DTInternal, X::MultiFrameConditionalDataset, i_sample::Inte
 end
 
 # Obtain predictions of a tree on a dataset
-function apply(tree::DTree{L}, X::MultiFrameConditionalDataset; kwargs...) where {L}
+function apply(tree::DTree{L}, X::MultiFrameLogiset; kwargs...) where {L}
     @logmsg LogDetail "apply..."
     _n_samples = nsamples(X)
     predictions = Vector{L}(undef, _n_samples)
@@ -110,7 +110,7 @@ end
 # use an array of trees to test features
 function apply(
     trees::AbstractVector{<:DTree{<:L}},
-    X::MultiFrameConditionalDataset;
+    X::MultiFrameLogiset;
     suppress_parity_warning = false,
     tree_weights::Union{AbstractMatrix{Z},AbstractVector{Z},Nothing} = nothing,
 ) where {L<:Label,Z<:Real}
@@ -154,7 +154,7 @@ end
 # use a proper forest to test features
 function apply(
     forest::DForest,
-    X::MultiFrameConditionalDataset;
+    X::MultiFrameLogiset;
     suppress_parity_warning = false,
     weight_trees_by::Union{Bool,Symbol,AbstractVector} = false,
 )
@@ -172,7 +172,7 @@ end
 
 function apply(
     nsdt::RootLevelNeuroSymbolicHybrid,
-    X::MultiFrameConditionalDataset;
+    X::MultiFrameLogiset;
     suppress_parity_warning = false,
 )
     W = softmax(nsdt.feature_function(X))
@@ -212,7 +212,7 @@ end
 
 function apply(
     leaf::DTLeaf{L},
-    X::MultiFrameConditionalDataset,
+    X::MultiFrameLogiset,
     i_sample::Integer,
     worlds::AbstractVector{<:AbstractWorldSet},
     class::L;
@@ -233,7 +233,7 @@ end
 
 function apply(
     leaf::NSDTLeaf{L},
-    X::MultiFrameConditionalDataset,
+    X::MultiFrameLogiset,
     i_sample::Integer,
     worlds::AbstractVector{<:AbstractWorldSet},
     class::L;
@@ -255,7 +255,7 @@ end
 
 function apply(
     tree::DTInternal{L},
-    X::MultiFrameConditionalDataset,
+    X::MultiFrameLogiset,
     i_sample::Integer,
     worlds::AbstractVector{<:AbstractWorldSet},
     class::L;
@@ -286,7 +286,7 @@ end
 
 function apply(
     tree::DTree{L},
-    X::MultiFrameConditionalDataset,
+    X::MultiFrameLogiset,
     Y::AbstractVector{<:L};
     reset_leaves = true,
     kwargs...,
@@ -310,7 +310,7 @@ end
 # use an array of trees to test features
 function apply(
     trees::AbstractVector{<:DTree{<:L}},
-    X::MultiFrameConditionalDataset,
+    X::MultiFrameLogiset,
     Y::AbstractVector{<:L};
     tree_weights::Union{AbstractMatrix{Z},AbstractVector{Z},Nothing} = nothing,
     suppress_parity_warning = false,
@@ -356,7 +356,7 @@ end
 # use a proper forest to test features
 function apply(
     forest::DForest,
-    X::MultiFrameConditionalDataset,
+    X::MultiFrameLogiset,
     Y::AbstractVector{<:L};
     weight_trees_by::Union{Bool,Symbol,AbstractVector} = false,
     kwargs...
@@ -378,7 +378,7 @@ end
 
 function apply(
     nsdt::RootLevelNeuroSymbolicHybrid,
-    X::MultiFrameConditionalDataset,
+    X::MultiFrameLogiset,
     Y::AbstractVector{<:L};
     suppress_parity_warning = false,
     kwargs...
@@ -409,7 +409,7 @@ function apply_proba(leaf::DTLeaf, X::Any, i_sample::Integer, worlds::AbstractVe
     supp_labels(leaf)
 end
 
-function apply_proba(tree::DTInternal, X::MultiFrameConditionalDataset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
+function apply_proba(tree::DTInternal, X::MultiFrameLogiset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet})
     @logmsg LogDetail "applying branch..."
     @logmsg LogDetail " worlds" worlds
     (satisfied,new_worlds) =
@@ -426,7 +426,7 @@ function apply_proba(tree::DTInternal, X::MultiFrameConditionalDataset, i_sample
 end
 
 # Obtain predictions of a tree on a dataset
-function apply_proba(tree::DTree{L}, X::MultiFrameConditionalDataset, classes) where {L<:CLabel}
+function apply_proba(tree::DTree{L}, X::MultiFrameLogiset, classes) where {L<:CLabel}
     @logmsg LogDetail "apply_proba..."
     _n_samples = nsamples(X)
     prediction_scores = Matrix{Float64}(undef, _n_samples, length(classes))
@@ -451,7 +451,7 @@ function apply_proba(tree::DTree{L}, X::MultiFrameConditionalDataset, classes) w
 end
 
 # Obtain predictions of a tree on a dataset
-function apply_proba(tree::DTree{L}, X::MultiFrameConditionalDataset) where {L<:RLabel}
+function apply_proba(tree::DTree{L}, X::MultiFrameLogiset) where {L<:RLabel}
     @logmsg LogDetail "apply_proba..."
     _n_samples = nsamples(X)
     prediction_scores = Vector{Vector{Float64}}(undef, _n_samples)
@@ -470,7 +470,7 @@ end
 # use an array of trees to test features
 function apply_proba(
     trees::AbstractVector{<:DTree{<:L}},
-    X::MultiFrameConditionalDataset,
+    X::MultiFrameLogiset,
     classes;
     tree_weights::Union{AbstractMatrix{Z},AbstractVector{Z},Nothing} = nothing,
 ) where {L<:CLabel,Z<:Real}
@@ -514,7 +514,7 @@ end
 # use an array of trees to test features
 function apply_proba(
     trees::AbstractVector{<:DTree{<:L}},
-    X::MultiFrameConditionalDataset;
+    X::MultiFrameLogiset;
     tree_weights::Union{Nothing,AbstractVector{Z}} = nothing,
 ) where {L<:RLabel,Z<:Real}
     @logmsg LogDetail "apply_proba..."
@@ -543,7 +543,7 @@ end
 # use a proper forest to test features
 function apply_proba(
     forest::DForest{L},
-    X::MultiFrameConditionalDataset,
+    X::MultiFrameLogiset,
     args...;
     weight_trees_by::Union{Bool,Symbol,AbstractVector} = false
 ) where {L<:Label}

@@ -28,7 +28,7 @@ function initialworldset(::AbstractMultiModalFrame{W}, iC::StartAtWorld{W}) wher
     WorldSet{W}([iC.w])
 end
 
-function initialworldsets(Xs::MultiFrameConditionalDataset, iCs::AbstractVector{<:InitCondition})
+function initialworldsets(Xs::MultiFrameLogiset, iCs::AbstractVector{<:InitCondition})
     Ss = Vector{Vector{WST} where {W,WST<:WorldSet{W}}}(undef, nframes(Xs)) # Fix
     for (i_frame,X) in enumerate(frames(Xs))
         W = worldtype(X)
@@ -38,7 +38,7 @@ function initialworldsets(Xs::MultiFrameConditionalDataset, iCs::AbstractVector{
     Ss
 end
 
-initialworldset(X::AbstractConditionalDataset, i_sample, args...) = initialworldset(SoleModels.frame(X, i_sample), args...)
+initialworldset(X::AbstractLogiset, i_sample, args...) = initialworldset(SoleModels.frame(X, i_sample), args...)
 
 ############################################################################################
 
@@ -149,12 +149,12 @@ end
 ############################################################################################
 
 struct PredictingFunction{L<:Label}
-    # f::FunctionWrapper{Vector{L},Tuple{MultiFrameConditionalDataset}} # TODO restore!!!
-    f::FunctionWrapper{Any,Tuple{MultiFrameConditionalDataset}}
+    # f::FunctionWrapper{Vector{L},Tuple{MultiFrameLogiset}} # TODO restore!!!
+    f::FunctionWrapper{Any,Tuple{MultiFrameLogiset}}
 
     function PredictingFunction{L}(f::Any) where {L<:Label}
-        # new{L}(FunctionWrapper{Vector{L},Tuple{MultiFrameConditionalDataset}}(f)) # TODO restore!!!
-        new{L}(FunctionWrapper{Any,Tuple{MultiFrameConditionalDataset}}(f))
+        # new{L}(FunctionWrapper{Vector{L},Tuple{MultiFrameLogiset}}(f)) # TODO restore!!!
+        new{L}(FunctionWrapper{Any,Tuple{MultiFrameLogiset}}(f))
     end
 end
 (pf::PredictingFunction{L})(args...; kwargs...) where {L} = pf.f(args...; kwargs...)::Vector{L}

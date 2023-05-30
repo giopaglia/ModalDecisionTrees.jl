@@ -29,7 +29,7 @@ worlds(n::DecisionPathNode) = n.worlds
 const DecisionPath = Vector{DecisionPathNode}
 
 _get_path_in_tree(leaf::DTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet}, frameid::FrameId, paths::Vector{DecisionPath})::AbstractWorldSet = return worlds[frameid]
-function _get_path_in_tree(tree::DTInternal, X::MultiFrameConditionalDataset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet}, frameid::Integer, paths::Vector{DecisionPath})::AbstractWorldSet
+function _get_path_in_tree(tree::DTInternal, X::MultiFrameLogiset, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet}, frameid::Integer, paths::Vector{DecisionPath})::AbstractWorldSet
     satisfied = true
     (satisfied,new_worlds,worlds_map) =
         modalstep(

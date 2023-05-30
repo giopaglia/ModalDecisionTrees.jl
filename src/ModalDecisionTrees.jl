@@ -29,7 +29,7 @@ using SoleData: max_channel_size,
                 slice_dataset,
                 _slice_dataset
 
-using SoleModels: AbstractConditionalDataset
+using SoleModels: AbstractLogiset
 
 import SoleData: nsamples
 
@@ -39,22 +39,22 @@ import AbstractTrees: print_tree
 
 # Data structures
 @reexport using SoleModels.DimensionalDatasets
-using SoleModels: MultiFrameConditionalDataset
+using SoleModels: MultiFrameLogiset
 using SoleModels: WorldSet, GenericModalDataset
 
 using SoleModels: nfeatures, nrelations,
                             nframes, frames, frame,
-                            display_structure,
+                            displaystructure,
                             #
                             relations,
                             #
                             GenericModalDataset,
-                            ActiveMultiFrameConditionalDataset,
-                            MultiFrameConditionalDataset,
-                            AbstractActiveFeaturedDataset,
-                            DimensionalFeaturedDataset,
-                            FeaturedDataset,
-                            SupportedFeaturedDataset
+                            ActiveMultiFrameLogiset,
+                            MultiFrameLogiset,
+                            AbstractLogiset,
+                            DimensionalLogiset,
+                            Logiset,
+                            SupportedScalarLogiset
 
 using SoleModels: AbstractWorld, AbstractRelation
 using SoleModels: AbstractWorldSet, WorldSet

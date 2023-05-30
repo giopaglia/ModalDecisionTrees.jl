@@ -9,23 +9,23 @@ using SoleModels.DimensionalDatasets
 using SoleLogics
 
 using SoleModels.DimensionalDatasets
-using SoleModels: MultiFrameConditionalDataset
+using SoleModels: MultiFrameLogiset
 using SoleModels: WorldSet, GenericModalDataset
 
 
 using SoleModels: nfeatures, nrelations,
                             nframes, frames, frame,
-                            display_structure,
+                            displaystructure,
                             #
                             relations,
                             #
                             GenericModalDataset,
-                            ActiveMultiFrameConditionalDataset,
-                            MultiFrameConditionalDataset,
-                            AbstractActiveFeaturedDataset,
-                            DimensionalFeaturedDataset,
-                            FeaturedDataset,
-                            SupportedFeaturedDataset
+                            ActiveMultiFrameLogiset,
+                            MultiFrameLogiset,
+                            AbstractLogiset,
+                            DimensionalLogiset,
+                            Logiset,
+                            SupportedScalarLogiset
 
 using SoleModels: AbstractWorld, AbstractRelation
 using SoleModels: AbstractWorldSet, WorldSet

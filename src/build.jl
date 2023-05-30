@@ -6,25 +6,25 @@ include("fit_tree.jl")
 ################################################################################
 
 # # Build models on (multi-dimensional) arrays
-function build_stump(X :: AbstractActiveFeaturedDataset, args...; kwargs...)
-    build_stump(ActiveMultiFrameConditionalDataset(X), args...; kwargs...)
+function build_stump(X :: AbstractLogiset, args...; kwargs...)
+    build_stump(ActiveMultiFrameLogiset(X), args...; kwargs...)
 end
 
-function build_tree(X :: AbstractActiveFeaturedDataset, args...; kwargs...)
-    build_tree(ActiveMultiFrameConditionalDataset(X), args...; kwargs...)
+function build_tree(X :: AbstractLogiset, args...; kwargs...)
+    build_tree(ActiveMultiFrameLogiset(X), args...; kwargs...)
 end
 
-function build_forest(X :: AbstractActiveFeaturedDataset, args...; kwargs...)
-    build_forest(ActiveMultiFrameConditionalDataset(X), args...; kwargs...)
+function build_forest(X :: AbstractLogiset, args...; kwargs...)
+    build_forest(ActiveMultiFrameLogiset(X), args...; kwargs...)
 end
 
 ################################################################################
-####################### Multi-frame active datasets ############################
+######################## Multiframe active datasets ############################
 ################################################################################
 
 # Build a stump (tree with depth 1)
 function build_stump(
-    X                 :: ActiveMultiFrameConditionalDataset,
+    X                 :: ActiveMultiFrameLogiset,
     Y                 :: AbstractVector{L},
     W                 :: Union{Nothing,AbstractVector{U},Symbol} = nothing;
     kwargs...,
@@ -37,7 +37,7 @@ end
 # TODO set default pruning arguments for tree, and make sure that forests override these
 # Build a tree
 function build_tree(
-    X                   :: ActiveMultiFrameConditionalDataset,
+    X                   :: ActiveMultiFrameLogiset,
     Y                   :: AbstractVector{L},
     W                   :: Union{Nothing,AbstractVector{U},Symbol}   = default_weights(nsamples(X));
     ##############################################################################
@@ -93,7 +93,7 @@ function build_tree(
     @assert max_depth > 0
 
     # if any(map(f->f isa AbstractDimensionalDataset, frames(X)))
-    #     @error "Cannot learn from AbstractDimensionalDataset! Please use DimensionalFeaturedDataset, FeaturedDataset or SupportedFeaturedDataset."
+    #     @error "Cannot learn from AbstractDimensionalDataset! Please use DimensionalLogiset, Logiset or SupportedScalarLogiset."
     # end
 
     # TODO figure out what to do here. Maybe it can be helpful to make rng either an rng or a seed, and then mk_rng transforms it into an rng
@@ -119,7 +119,7 @@ end
 
 
 function build_forest(
-    X                   :: ActiveMultiFrameConditionalDataset,
+    X                   :: ActiveMultiFrameLogiset,
     Y                   :: AbstractVector{L},
     # Use unary weights if no weight is supplied
     W                   :: Union{Nothing,AbstractVector{U},Symbol} = default_weights(Y);
@@ -184,8 +184,8 @@ function build_forest(
         throw_n_log("partial_sampling must be in the range (0,1]")
     end
     
-    if any(map(f->f isa FeaturedDataset, frames(X)))
-        @warn "Warning! Consider using the optimized structure SupportedFeaturedDataset, instead of FeaturedDataset."
+    if any(map(f->f isa Logiset, frames(X)))
+        @warn "Warning! Consider using the optimized structure SupportedScalarLogiset, instead of Logiset."
     end
 
     tot_samples = nsamples(X)

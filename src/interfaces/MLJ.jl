@@ -176,7 +176,7 @@ function moving_average(
     return new_X
 end
 
-function DataFrame2MultiFrameConditionalDataset(
+function DataFrame2MultiFrameLogiset(
         X,
         frame_grouping,
         relations,
@@ -246,8 +246,8 @@ function DataFrame2MultiFrameConditionalDataset(
 
         ontology = SoleModels.get_interval_ontology(channel_dim, _relations)
         # println(eltype(_X))
-        __X = SoleModels.DimensionalFeaturedDataset{eltype(_X)}(_X, ontology, mixed_attributes)
-        # println(SoleModels.display_structure(__X))
+        __X = SoleModels.DimensionalLogiset{eltype(_X)}(_X, ontology, mixed_attributes)
+        # println(SoleModels.displaystructure(__X))
 
         (if mode == :implicit
             __X
@@ -258,13 +258,13 @@ function DataFrame2MultiFrameConditionalDataset(
                 WorldType != SoleModels.OneWorld && (
                     (allow_global_splits || _init_conditions == MDT.start_without_world)
                 )
-            SoleModels.SupportedFeaturedDataset(__X; use_memoization = true, compute_relation_glob = compute_relation_glob)
+            SoleModels.SupportedScalarLogiset(__X; use_memoization = true, compute_relation_glob = compute_relation_glob)
         end, _init_conditions)
     end for (i_frame, frame) in enumerate(frame_grouping)]
     Xs, init_conditions = zip(Xs_ic...)
     Xs, init_conditions = collect(Xs), collect(init_conditions)
-    Xs = SoleModels.MultiFrameConditionalDataset{SoleModels.AbstractActiveFeaturedDataset}(Xs)
-    # println(SoleModels.display_structure(Xs))
+    Xs = SoleModels.MultiFrameLogiset{SoleModels.AbstractLogiset}(Xs)
+    # println(SoleModels.displaystructure(Xs))
     Xs, init_conditions
 end
 
@@ -406,7 +406,7 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Integer, X, y, w=nothing)
     ########################################################################################
 
     frame_grouping = separate_variables_into_frames(X)
-    Xs, init_conditions = DataFrame2MultiFrameConditionalDataset(
+    Xs, init_conditions = DataFrame2MultiFrameLogiset(
         X,
         frame_grouping,
         relations,
@@ -485,7 +485,7 @@ function MMI.predict(m::ModalDecisionTree, fitresult, Xnew) #, ynew = nothing)
     missing_columns = setdiff(Iterators.flatten(fitresult.frame_grouping), names(Xnew))
     @assert length(missing_columns) == 0 "Can't perform prediction due to missing DataFrame columns: $(missing_columns)"
 
-    Xs, init_conditions = DataFrame2MultiFrameConditionalDataset(
+    Xs, init_conditions = DataFrame2MultiFrameLogiset(
         Xnew,
         fitresult.frame_grouping,
         relations,
@@ -566,7 +566,7 @@ function MMI.fit(m::ModalRandomForest, verbosity::Integer, X, y, w=nothing)
     ########################################################################################
 
     frame_grouping = separate_variables_into_frames(X)
-    Xs, init_conditions = DataFrame2MultiFrameConditionalDataset(
+    Xs, init_conditions = DataFrame2MultiFrameLogiset(
         X,
         frame_grouping,
         relations,
@@ -649,7 +649,7 @@ function MMI.predict(m::ModalRandomForest, fitresult, Xnew) #, ynew = nothing)
     missing_columns = setdiff(Iterators.flatten(fitresult.frame_grouping), names(Xnew))
     @assert length(missing_columns) == 0 "Can't perform prediction due to missing DataFrame columns: $(missing_columns)"
 
-    Xs, init_conditions = DataFrame2MultiFrameConditionalDataset(
+    Xs, init_conditions = DataFrame2MultiFrameLogiset(
         Xnew,
         fitresult.frame_grouping,
         relations,
