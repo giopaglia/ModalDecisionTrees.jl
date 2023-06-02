@@ -8,7 +8,7 @@ This package provides algorithms for learning *decision trees* and *decision for
 Leveraging the express power of Modal Logic, these models can extract *temporal/spatial patterns*, and can natively handle *time series* and *images* (without any data preprocessing). Currently available via [MLJ.jl](https://github.com/alan-turing-institute/MLJ.jl) and [*Sole.jl*](https://github.com/aclai-lab/Sole.jl).
 
 #### Features & differences with [DecisionTree.jl](https://github.com/JuliaAI/DecisionTree.jl):
-- Ability to handle attributes that are `AbstractVector{<:Real}` or `AbstractMatrix{<:Real}`;
+- Ability to handle variables that are `AbstractVector{<:Real}` or `AbstractMatrix{<:Real}`;
 - Supports *multimodal* learning (i.e., learning from *combinations* of scalars, time series and images);
 - Fully optimized implementation (fancy data structures, multithreading, memoization, minification, Pareto-based pruning optimizations, etc);
 - A unique algorithm that extends CART and C4.5;
@@ -94,7 +94,7 @@ Pkg.add("GraphRecipes"); Pkg.add("Plots")
 using GraphRecipes
 using Plots
 
-#wrapped_model = ModalDecisionTrees.wrap(model.root, (attribute_names_map = report(mach).frame_grouping,))
+#wrapped_model = ModalDecisionTrees.wrap(model.root, (variable_names_map = report(mach).frame_grouping,))
 # for _method in [:spectral, :sfdp, :circular, :shell, :stress, :spring, :tree, :buchheim, :arcdiagram, :chorddiagram]
 wrapped_model = ModalDecisionTrees.wrap(model.root, (; threshold_display_method = x->round(x, digits=2)), use_feature_abbreviations = true)
 for _method in [:tree, :buchheim]

@@ -120,7 +120,7 @@ end
 function displaymodel(
         leaf::DTLeaf;
         indentation_str="",
-        attribute_names_map = nothing,
+        variable_names_map = nothing,
         max_depth = nothing,
         kwargs...,
     )
@@ -132,7 +132,7 @@ end
 function displaymodel(
         leaf::NSDTLeaf;
         indentation_str="",
-        attribute_names_map = nothing,
+        variable_names_map = nothing,
         max_depth = nothing,
         kwargs...,
     )
@@ -144,26 +144,26 @@ end
 function displaymodel(
     node::DTInternal;
     indentation_str="",
-    attribute_names_map = nothing,
+    variable_names_map = nothing,
     max_depth = nothing,
     # TODO print_rules = false,
     metrics_kwargs...,
 )
     outstr = ""
-    outstr *= "$(display_decision(node; attribute_names_map = attribute_names_map))\t\t\t"
+    outstr *= "$(display_decision(node; variable_names_map = variable_names_map))\t\t\t"
     outstr *= displaymodel(this(node); indentation_str = "", metrics_kwargs...)
     if isnothing(max_depth) || length(indentation_str) < max_depth
         outstr *= indentation_str * "✔ " # "╭✔
         outstr *= displaymodel(left(node);
             indentation_str = indentation_str*"│",
-            attribute_names_map = attribute_names_map,
+            variable_names_map = variable_names_map,
             max_depth = max_depth,
             metrics_kwargs...,
         )
         outstr *= indentation_str * "✘ " # "╰✘
         outstr *= displaymodel(right(node);
             indentation_str = indentation_str*" ",
-            attribute_names_map = attribute_names_map,
+            variable_names_map = variable_names_map,
             max_depth = max_depth,
             metrics_kwargs...,
         )

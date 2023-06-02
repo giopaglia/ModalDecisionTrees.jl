@@ -94,40 +94,40 @@ function _parse_tree(
             m_propos  = match(Regex(_propositional_feature_ex_capturing), feature_str)
 
             if !isnothing(m_normal) && length(m_normal) == 3
-                feature_fun, i_attribute, test_operator = m_normal
+                feature_fun, i_variable, test_operator = m_normal
                 function eval_feature_fun_constructor(fun_str)
                     if     fun_str == "min" MDT.UnivariateMin
                     elseif fun_str == "max" MDT.UnivariateMax
                     else
                         try
                             fun = eval(Symbol(fun_str))
-                            (i_attribute)->MDT.UnivariateFeature(i_attribute, fun)
+                            (i_variable)->MDT.UnivariateFeature(i_variable, fun)
                         catch
-                            (i_attribute)->MDT.UnivariateNamedFeature(i_attribute, fun_str)
+                            (i_variable)->MDT.UnivariateNamedFeature(i_variable, fun_str)
                         end
                     end
                 end
                 feature_type = eval_feature_fun_constructor(feature_fun)
-                i_attribute = parse(Int, i_attribute)
+                i_variable = parse(Int, i_variable)
                 test_operator = eval(Symbol(test_operator))
-                feature_type(i_attribute), test_operator
+                feature_type(i_variable), test_operator
             elseif !isnothing(m_special) && length(m_special) == 2
-                i_attribute, feature_fun_test_operator = m_special
+                i_variable, feature_fun_test_operator = m_special
                 feature_fun_test_operator_d = Dict([
-                    "⪴"   => (i_attribute)->(SoleModels.UnivariateMin(i_attribute), ≥),
-                    "⪴₈₀" => (i_attribute)->(SoleModels.UnivariateSoftMin(i_attribute, 80), ≥),
-                    "⪳₈₀" => (i_attribute)->(SoleModels.UnivariateSoftMax(i_attribute, 80), ≤),
-                    "⪳"   => (i_attribute)->(SoleModels.UnivariateMax(i_attribute), ≤),
-                    "↘"   => (i_attribute)->(SoleModels.UnivariateMin(i_attribute), ≤),
-                    "↗"   => (i_attribute)->(SoleModels.UnivariateMax(i_attribute), ≥),
+                    "⪴"   => (i_variable)->(SoleModels.UnivariateMin(i_variable), ≥),
+                    "⪴₈₀" => (i_variable)->(SoleModels.UnivariateSoftMin(i_variable, 80), ≥),
+                    "⪳₈₀" => (i_variable)->(SoleModels.UnivariateSoftMax(i_variable, 80), ≤),
+                    "⪳"   => (i_variable)->(SoleModels.UnivariateMax(i_variable), ≤),
+                    "↘"   => (i_variable)->(SoleModels.UnivariateMin(i_variable), ≤),
+                    "↗"   => (i_variable)->(SoleModels.UnivariateMax(i_variable), ≥),
                 ])
                 feature_fun_test_operator = feature_fun_test_operator_d[feature_fun_test_operator]
-                i_attribute = parse(Int, i_attribute)
-                feature_fun_test_operator(i_attribute)
+                i_variable = parse(Int, i_variable)
+                feature_fun_test_operator(i_variable)
             elseif !isnothing(m_propos) && length(m_propos) == 2
-                i_attribute, test_operator = m_propos
-                i_attribute = parse(Int, i_attribute)
-                feature = MDT.UnivariateNamedFeature(i_attribute, "")
+                i_variable, test_operator = m_propos
+                i_variable = parse(Int, i_variable)
+                feature = MDT.UnivariateNamedFeature(i_variable, "")
                 test_operator = eval(Symbol(test_operator))
                 feature, test_operator
             else

@@ -22,7 +22,7 @@ preds = apply_tree(model, features)
 @test MLJBase.accuracy(labels, preds) == 1.0
 @test length(model) == 9
 @test depth(model) == 5
-@test typeof(preds) == Vector{String}
+@test preds isa Vector{String}
 print_tree(model)
 probs = apply_tree_proba(model, features, classes)
 @test reshape(sum(probs, dims=2), n) ≈ ones(n)
@@ -64,7 +64,7 @@ partial_sampling = 0.5
 model = build_forest(labels, features, n_subfeatures, ntrees, partial_sampling)
 preds = apply_forest(model, features)
 @test MLJBase.accuracy(labels, preds) > 0.95
-@test typeof(preds) == Vector{String}
+@test preds isa Vector{String}
 probs = apply_forest_proba(model, features, classes)
 @test reshape(sum(probs, dims=2), n) ≈ ones(n)
 
@@ -82,7 +82,7 @@ n_iterations = 15
 model, coeffs = build_adaboost_stumps(labels, features, n_iterations)
 preds = apply_adaboost_stumps(model, coeffs, features)
 @test MLJBase.accuracy(labels, preds) > 0.9
-@test typeof(preds) == Vector{String}
+@test preds isa Vector{String}
 probs = apply_adaboost_stumps_proba(model, coeffs, features, classes)
 @test reshape(sum(probs, dims=2), n) ≈ ones(n)
 

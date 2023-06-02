@@ -42,7 +42,7 @@ struct ModelPrinter{T<:MDT.SymbolicModel}
     frame_grouping::Union{Nothing,AbstractVector{<:AbstractVector},AbstractVector{<:AbstractDict}}
 end
 (c::ModelPrinter)(max_depth::Union{Nothing,Integer} = nothing; args...) = c(c.model; max_depth, args...)
-(c::ModelPrinter)(model; max_depth = 5) = MDT.printmodel(model; attribute_names_map = c.frame_grouping, max_depth = max_depth)
+(c::ModelPrinter)(model; max_depth = 5) = MDT.printmodel(model; variable_names_map = c.frame_grouping, max_depth = max_depth)
 
 Base.show(io::IO, c::ModelPrinter) =
     print(io, "ModelPrinter object (call with display depth)")
@@ -180,11 +180,11 @@ function DataFrame2MultiFrameLogiset(
         X,
         frame_grouping,
         relations,
-        mixed_attributes,
+        mixed_variables,
         init_conditions,
         allow_global_splits,
         mode;
-        downsizing_function = (channel_size, nsamples)->identity,
+        downsizing_function = (channel_size, ninstances)->identity,
     )
 
     @assert mode in [:explicit, :implicit]
@@ -206,19 +206,19 @@ function DataFrame2MultiFrameLogiset(
 
         _X = begin
             n_variables = DataFrames.ncol(X_frame)
-            nsamples = DataFrames.nrow(X_frame)
+            ninstances = DataFrames.nrow(X_frame)
 
             # dataframe2cube(X_frame)
             common_type = Union{eltype.(eltype.(eachcol(X_frame)))...}
             common_type = common_type == Any ? Real : common_type
-            _X = Array{common_type}(undef, channel_size..., n_variables, nsamples)
+            _X = Array{common_type}(undef, channel_size..., n_variables, ninstances)
             for (i_col, col) in enumerate(eachcol(X_frame))
                 for (i_row, row) in enumerate(col)
                     _X[[(:) for i in 1:length(size(row))]...,i_col,i_row] = row
                 end
             end
 
-            _X = downsizing_function(channel_size, nsamples)(_X)
+            _X = downsizing_function(channel_size, ninstances)(_X)
 
             _X
         end
@@ -246,7 +246,7 @@ function DataFrame2MultiFrameLogiset(
 
         ontology = SoleModels.get_interval_ontology(channel_dim, _relations)
         # println(eltype(_X))
-        __X = SoleModels.DimensionalLogiset{eltype(_X)}(_X, ontology, mixed_attributes)
+        __X = SoleModels.DimensionalLogiset{eltype(_X)}(_X, ontology, mixed_variables)
         # println(SoleModels.displaystructure(__X))
 
         (if mode == :implicit
@@ -268,50 +268,50 @@ function DataFrame2MultiFrameLogiset(
     Xs, init_conditions
 end
 
-tree_downsizing_function(channel_size, nsamples) = function (_X)
+tree_downsizing_function(channel_size, ninstances) = function (_X)
     channel_dim = length(channel_size)
     if channel_dim == 1
         n_points = channel_size[1]
-        if nsamples > 300 && n_points > 100
-            println("Warning: downsizing series of size $(n_points) to $(100) points ($(nsamples) samples). If this process gets killed, please downsize your dataset beforehand.")
+        if ninstances > 300 && n_points > 100
+            println("Warning: downsizing series of size $(n_points) to $(100) points ($(ninstances) instances). If this process gets killed, please downsize your dataset beforehand.")
             _X = moving_average(_X, 100)
         elseif n_points > 150
-            println("Warning: downsizing series of size $(n_points) to $(150) points ($(nsamples) samples). If this process gets killed, please downsize your dataset beforehand.")
+            println("Warning: downsizing series of size $(n_points) to $(150) points ($(ninstances) instances). If this process gets killed, please downsize your dataset beforehand.")
             _X = moving_average(_X, 150)
         end
     elseif channel_dim == 2
-        if nsamples > 300 && prod(channel_size) > prod((7,7),)
+        if ninstances > 300 && prod(channel_size) > prod((7,7),)
             new_channel_size = min.(channel_size, (7,7))
-            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(nsamples) samples). If this process gets killed, please downsize your dataset beforehand.")
+            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(ninstances) instances). If this process gets killed, please downsize your dataset beforehand.")
             _X = moving_average(_X, new_channel_size)
         elseif prod(channel_size) > prod((10,10),)
             new_channel_size = min.(channel_size, (10,10))
-            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(nsamples) samples). If this process gets killed, please downsize your dataset beforehand.")
+            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(ninstances) instances). If this process gets killed, please downsize your dataset beforehand.")
             _X = moving_average(_X, new_channel_size)
         end
     end
     _X
 end
 
-forest_downsizing_function(channel_size, nsamples; ntrees) = function (_X)
+forest_downsizing_function(channel_size, ninstances; ntrees) = function (_X)
     channel_dim = length(channel_size)
     if channel_dim == 1
         n_points = channel_size[1]
-        if nsamples > 300 && n_points > 100
-            println("Warning: downsizing series of size $(n_points) to $(100) points ($(nsamples) samples). If this process gets killed, please downsize your dataset beforehand.")
+        if ninstances > 300 && n_points > 100
+            println("Warning: downsizing series of size $(n_points) to $(100) points ($(ninstances) instances). If this process gets killed, please downsize your dataset beforehand.")
             _X = moving_average(_X, 100)
         elseif n_points > 150
-            println("Warning: downsizing series of size $(n_points) to $(150) points ($(nsamples) samples). If this process gets killed, please downsize your dataset beforehand.")
+            println("Warning: downsizing series of size $(n_points) to $(150) points ($(ninstances) instances). If this process gets killed, please downsize your dataset beforehand.")
             _X = moving_average(_X, 150)
         end
     elseif channel_dim == 2
-        if nsamples > 300 && prod(channel_size) > prod((4,4),)
+        if ninstances > 300 && prod(channel_size) > prod((4,4),)
             new_channel_size = min.(channel_size, (4,4))
-            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(nsamples) samples). If this process gets killed, please downsize your dataset beforehand.")
+            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(ninstances) instances). If this process gets killed, please downsize your dataset beforehand.")
             _X = moving_average(_X, new_channel_size)
         elseif prod(channel_size) > prod((7,7),)
             new_channel_size = min.(channel_size, (7,7))
-            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(nsamples) samples). If this process gets killed, please downsize your dataset beforehand.")
+            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(ninstances) instances). If this process gets killed, please downsize your dataset beforehand.")
             _X = moving_average(_X, new_channel_size)
         end
     end
@@ -323,15 +323,15 @@ init_conditions_d = Dict([
     :start_at_center   => MDT.start_at_center,
 ])
 
-function _check_attributes(attributes)
+function _check_variables(variables)
     good = [
         [
             map(
             (f)->(f isa CanonicalFeature || (ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch))),
-            attributes) for ch in [collect(1:10), collect(1.:10.)]
+            variables) for ch in [collect(1:10), collect(1.:10.)]
         ]
     ] |> Iterators.flatten |> all
-    @assert good "`attributes` should be a vector of scalar functions accepting on object of type `AbstractVector{T}` and returning an object of type `T`."
+    @assert good "`variables` should be a vector of scalar functions accepting on object of type `AbstractVector{T}` and returning an object of type `T`."
     # println(typeof(good))
     good
 end
@@ -367,10 +367,10 @@ MMI.@mlj_model mutable struct ModalDecisionTree <: MMI.Deterministic
     # Modal hyper-parameters
     relations              :: Union{Nothing,Symbol,Vector{<:AbstractRelation}} = (nothing)::(isnothing(nothing) || _ in [:IA, :IA3, :IA7, :RCC5, :RCC8] || _ isa AbstractVector{<:AbstractRelation})
     # TODO expand to AbstractFeature
-    # attributes               :: Vector{<:Function}           = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
-    # attributes               :: Vector{<:Union{CanonicalFeature,Function}}       TODO = Vector{<:Union{CanonicalFeature,Function}}([canonical_geq, canonical_leq]) # TODO: ::(_check_attributes(_))
-    # attributes               :: AbstractVector{<:CanonicalFeature}       = CanonicalFeature[canonical_geq, canonical_leq] # TODO: ::(_check_attributes(_))
-    # attributes               :: Vector                       = [canonical_geq, canonical_leq] # TODO: ::(_check_attributes(_))
+    # variables               :: Vector{<:Function}           = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
+    # variables               :: Vector{<:Union{CanonicalFeature,Function}}       TODO = Vector{<:Union{CanonicalFeature,Function}}([canonical_geq, canonical_leq]) # TODO: ::(_check_variables(_))
+    # variables               :: AbstractVector{<:CanonicalFeature}       = CanonicalFeature[canonical_geq, canonical_leq] # TODO: ::(_check_variables(_))
+    # variables               :: Vector                       = [canonical_geq, canonical_leq] # TODO: ::(_check_variables(_))
     init_conditions        :: Union{Nothing,Symbol}                       = nothing::(isnothing(_) || _ in [:start_with_global, :start_at_center])
     allow_global_splits    :: Bool                         = true
     automatic_downsizing   :: Bool                         = true
@@ -396,7 +396,7 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Integer, X, y, w=nothing)
     min_purity_increase  = m.min_purity_increase
     max_purity_at_leaf   = m.max_purity_at_leaf
     relations            = m.relations
-    attributes             = [canonical_geq, canonical_leq] # TODO: m.attributes
+    variables             = [canonical_geq, canonical_leq] # TODO: m.variables
     init_conditions      = m.init_conditions
     allow_global_splits  = m.allow_global_splits
     automatic_downsizing = m.automatic_downsizing
@@ -410,7 +410,7 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Integer, X, y, w=nothing)
         X,
         frame_grouping,
         relations,
-        attributes,
+        variables,
         init_conditions,
         allow_global_splits,
         :explicit;
@@ -436,9 +436,9 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Integer, X, y, w=nothing)
         perform_consistency_check = false,
     )
 
-    verbosity < 2 || MDT.printmodel(model; max_depth = display_depth, attribute_names_map = frame_grouping)
+    verbosity < 2 || MDT.printmodel(model; max_depth = display_depth, variable_names_map = frame_grouping)
 
-    feature_importance_by_count = Dict([i_attr => frame_grouping[i_frame][i_attr] for ((i_frame, i_attr), count) in MDT.variable_countmap(model)])
+    feature_importance_by_count = Dict([i_var => frame_grouping[i_frame][i_var] for ((i_frame, i_var), count) in MDT.variable_countmap(model)])
 
     fitresult = (
         model           = model,
@@ -477,7 +477,7 @@ function MMI.predict(m::ModalDecisionTree, fitresult, Xnew) #, ynew = nothing)
     @assert isnothing(ynew)
 
     relations = m.relations
-    attributes = [canonical_geq, canonical_leq] # TODO: m.attributes
+    variables = [canonical_geq, canonical_leq] # TODO: m.variables
     init_conditions = m.init_conditions
     allow_global_splits = m.allow_global_splits
     automatic_downsizing = m.automatic_downsizing
@@ -489,7 +489,7 @@ function MMI.predict(m::ModalDecisionTree, fitresult, Xnew) #, ynew = nothing)
         Xnew,
         fitresult.frame_grouping,
         relations,
-        attributes,
+        variables,
         init_conditions,
         allow_global_splits,
         :implicit,
@@ -516,10 +516,10 @@ MMI.@mlj_model mutable struct ModalRandomForest <: MMI.Probabilistic
     # Modal hyper-parameters
     relations              :: Union{Nothing,Symbol,Vector{<:AbstractRelation}} = (nothing)::(isnothing(nothing) || _ in [:IA, :IA3, :IA7, :RCC5, :RCC8] || _ isa AbstractVector{<:AbstractRelation})
     # TODO expand to AbstractFeature
-    # attributes               :: Vector{<:Function}           = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
-    # attributes               :: Vector{<:Union{CanonicalFeature,Function}}       TODO = Vector{<:Union{CanonicalFeature,Function}}([canonical_geq, canonical_leq]) # TODO: ::(_check_attributes(_))
-    # attributes               :: AbstractVector{<:CanonicalFeature}       = CanonicalFeature[canonical_geq, canonical_leq] # TODO: ::(_check_attributes(_))
-    # attributes               :: Vector                       = [canonical_geq, canonical_leq] # TODO: ::(_check_attributes(_))
+    # variables               :: Vector{<:Function}           = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
+    # variables               :: Vector{<:Union{CanonicalFeature,Function}}       TODO = Vector{<:Union{CanonicalFeature,Function}}([canonical_geq, canonical_leq]) # TODO: ::(_check_variables(_))
+    # variables               :: AbstractVector{<:CanonicalFeature}       = CanonicalFeature[canonical_geq, canonical_leq] # TODO: ::(_check_variables(_))
+    # variables               :: Vector                       = [canonical_geq, canonical_leq] # TODO: ::(_check_variables(_))
     init_conditions        :: Union{Nothing,Symbol}                       = nothing::(isnothing(_) || _ in [:start_with_global, :start_at_center])
     allow_global_splits    :: Bool                         = true
     automatic_downsizing   :: Bool                         = true
@@ -550,7 +550,7 @@ function MMI.fit(m::ModalRandomForest, verbosity::Integer, X, y, w=nothing)
     min_purity_increase  = m.min_purity_increase
     max_purity_at_leaf   = m.max_purity_at_leaf
     relations            = m.relations
-    attributes             = [canonical_geq, canonical_leq] # TODO: m.attributes
+    variables             = [canonical_geq, canonical_leq] # TODO: m.variables
     init_conditions      = m.init_conditions
     allow_global_splits  = m.allow_global_splits
     automatic_downsizing = m.automatic_downsizing
@@ -570,7 +570,7 @@ function MMI.fit(m::ModalRandomForest, verbosity::Integer, X, y, w=nothing)
         X,
         frame_grouping,
         relations,
-        attributes,
+        variables,
         init_conditions,
         allow_global_splits,
         :explicit;
@@ -601,7 +601,7 @@ function MMI.fit(m::ModalRandomForest, verbosity::Integer, X, y, w=nothing)
         suppress_parity_warning = true,
     )
     # println(MDT.variable_countmap(model))
-    feature_importance_by_count = Dict([i_attr => frame_grouping[i_frame][i_attr] for ((i_frame, i_attr), count) in MDT.variable_countmap(model)])
+    feature_importance_by_count = Dict([i_var => frame_grouping[i_frame][i_var] for ((i_frame, i_var), count) in MDT.variable_countmap(model)])
 
     fitresult = (
         model           = model,
@@ -641,7 +641,7 @@ function MMI.predict(m::ModalRandomForest, fitresult, Xnew) #, ynew = nothing)
     @assert isnothing(ynew)
 
     relations = m.relations
-    attributes = [canonical_geq, canonical_leq] # TODO: m.attributes
+    variables = [canonical_geq, canonical_leq] # TODO: m.variables
     init_conditions = m.init_conditions
     allow_global_splits = m.allow_global_splits
     automatic_downsizing = m.automatic_downsizing
@@ -653,7 +653,7 @@ function MMI.predict(m::ModalRandomForest, fitresult, Xnew) #, ynew = nothing)
         Xnew,
         fitresult.frame_grouping,
         relations,
-        attributes,
+        variables,
         init_conditions,
         allow_global_splits,
         :implicit,
@@ -1083,7 +1083,7 @@ ModalRandomForest
 # In MLJ or MLJBase, bind an instance `model` to data with
 #     mach = machine(model, X, y)
 # where:
-# - `X`: any table of input attributes (eg, a `DataFrame`) whose columns
+# - `X`: any table of input variables (eg, a `DataFrame`) whose columns
 #   each have one of the following element scitypes: `Continuous`,
 #   `Count`, or `<:OrderedFactor`; check column scitypes with `schema(X)`
 # - `y`: the target, which can be any `AbstractVector` whose element
@@ -1094,7 +1094,7 @@ ModalRandomForest
 # - `n_iter=10`:   number of iterations of AdaBoost
 # # Operations
 # - `predict(mach, Xnew)`: return predictions of the target given
-#   attributes `Xnew` having the same scitype as `X` above. Predictions
+#   variables `Xnew` having the same scitype as `X` above. Predictions
 #   are probabilistic, but uncalibrated.
 # - `predict_mode(mach, Xnew)`: instead return the mode of each
 #   prediction above.
@@ -1133,7 +1133,7 @@ ModalRandomForest
 # In MLJ or MLJBase, bind an instance `model` to data with
 #     mach = machine(model, X, y)
 # where
-# - `X`: any table of input attributes (eg, a `DataFrame`) whose columns
+# - `X`: any table of input variables (eg, a `DataFrame`) whose columns
 #   each have one of the following element scitypes: `Continuous`,
 #   `Count`, or `<:OrderedFactor`; check column scitypes with `schema(X)`
 # - `y`: the target, which can be any `AbstractVector` whose element
@@ -1144,15 +1144,15 @@ ModalRandomForest
 # - `min_samples_leaf=1`:    max number of samples each leaf needs to have
 # - `min_samples_split=2`:   min number of samples needed for a split
 # - `min_purity_increase=0`: min purity needed for a split
-# - `n_subfeatures=0`: number of attributes to select at random (0 for all,
-#   -1 for square root of number of attributes)
+# - `n_subfeatures=0`: number of variables to select at random (0 for all,
+#   -1 for square root of number of variables)
 # - `post_prune=false`:      set to `true` for post-fit pruning
 # - `merge_purity_threshold=1.0`: (post-pruning) merge leaves having
 #                            combined purity `>= merge_purity_threshold`
 # - `rng=Random.GLOBAL_RNG`: random number generator or seed
 # # Operations
 # - `predict(mach, Xnew)`: return predictions of the target given new
-#   attributes `Xnew` having the same scitype as `X` above.
+#   variables `Xnew` having the same scitype as `X` above.
 # # Fitted parameters
 # The fields of `fitted_params(mach)` are:
 # - `tree`: the tree or stump object returned by the core
@@ -1182,7 +1182,7 @@ ModalRandomForest
 # In MLJ or MLJBase, bind an instance `model` to data with
 #     mach = machine(model, X, y)
 # where
-# - `X`: any table of input attributes (eg, a `DataFrame`) whose columns
+# - `X`: any table of input variables (eg, a `DataFrame`) whose columns
 #   each have one of the following element scitypes: `Continuous`,
 #   `Count`, or `<:OrderedFactor`; check column scitypes with `schema(X)`
 # - `y`: the target, which can be any `AbstractVector` whose element
@@ -1193,14 +1193,14 @@ ModalRandomForest
 # - `min_samples_leaf=1`:    min number of samples each leaf needs to have
 # - `min_samples_split=2`:   min number of samples needed for a split
 # - `min_purity_increase=0`: min purity needed for a split
-# - `n_subfeatures=-1`: number of attributes to select at random (0 for all,
-#   -1 for square root of number of attributes)
+# - `n_subfeatures=-1`: number of variables to select at random (0 for all,
+#   -1 for square root of number of variables)
 # - `ntrees=10`:            number of trees to train
 # - `sampling_fraction=0.7`  fraction of samples to train each tree on
 # - `rng=Random.GLOBAL_RNG`: random number generator or seed
 # # Operations
 # - `predict(mach, Xnew)`: return predictions of the target given new
-#   attributes `Xnew` having the same scitype as `X` above.
+#   variables `Xnew` having the same scitype as `X` above.
 # # Fitted parameters
 # The fields of `fitted_params(mach)` are:
 # - `forest`: the `Ensemble` object returned by the core DecisionTree.jl algorithm

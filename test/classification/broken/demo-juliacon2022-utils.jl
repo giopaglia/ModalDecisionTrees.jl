@@ -8,7 +8,7 @@ import MLJModelInterface: fit
 using HTTP
 using ZipFile
 
-attribute_names_latex = [
+variable_names_latex = [
 "\\text{hand tip}_X^L",
 "\\text{hand tip}_Y^L",
 "\\text{hand tip}_Z^L",
@@ -54,7 +54,7 @@ function load_arff_dataset(dataset_name, path = "http://www.timeseriesclassifica
     end
 
     @assert dataset_name == "NATOPS" "This code is only for showcasing. Need to expand code to comprehend more datasets."
-    attribute_names = [
+    variable_names = [
         "Hand tip left, X coordinate",
         "Hand tip left, Y coordinate",
         "Hand tip left, Z coordinate",
@@ -82,7 +82,7 @@ function load_arff_dataset(dataset_name, path = "http://www.timeseriesclassifica
     ]
 
 
-    attribute_names_latex = [
+    variable_names_latex = [
     "\\text{hand tip l}_X",
     "\\text{hand tip l}_Y",
     "\\text{hand tip l}_Z",
@@ -108,8 +108,8 @@ function load_arff_dataset(dataset_name, path = "http://www.timeseriesclassifica
     "\\text{thumb r}_Y",
     "\\text{thumb r}_Z",
     ]
-    X_train, Y_train = fix_dataframe(df_train, attribute_names)
-    X_test,  Y_test  = fix_dataframe(df_test, attribute_names)
+    X_train, Y_train = fix_dataframe(df_train, variable_names)
+    X_test,  Y_test  = fix_dataframe(df_test, variable_names)
 
     class_names = [
         "I have command",
@@ -130,23 +130,23 @@ function load_arff_dataset(dataset_name, path = "http://www.timeseriesclassifica
     ((X_train, Y_train), (X_test,  Y_test))
 end
 
-function fix_dataframe(df, attribute_names = nothing)
+function fix_dataframe(df, variable_names = nothing)
     s = unique(size.(df[:,:relationalAtt]))
     @assert length(s) == 1 "$(s)"
     n = unique(names.(df[:,:relationalAtt]))
     @assert length(n) == 1 "$(n)"
-    nattrs, npoints = s[1]
-    old_attr_names = n[1]
+    nvars, npoints = s[1]
+    old_var_names = n[1]
     X = Dict()
 
-    if isnothing(attribute_names)
-        attribute_names = ["A$(i_attr)" for i_attr in 1:nattrs]
+    if isnothing(variable_names)
+        variable_names = ["V$(i_var)" for i_var in 1:nvars]
     end
 
-    @assert nattrs == length(attribute_names)
+    @assert nvars == length(variable_names)
 
-    for (i_attr,attr) in enumerate(attribute_names)
-        X[Symbol(attr)] = [collect(instance[i_attr,old_attr_names]) for instance in (df[:,:relationalAtt])]
+    for (i_var,var) in enumerate(variable_names)
+        X[Symbol(var)] = [collect(instance[i_var,old_var_names]) for instance in (df[:,:relationalAtt])]
     end
 
     X = DataFrame(X)
@@ -158,7 +158,7 @@ end
 
 
 
-function show_latex(tree; file_suffix = "", attribute_names = nothing, silent = true)
+function show_latex(tree; file_suffix = "", variable_names = nothing, silent = true)
     include("../results/utils/print-tree-to-latex.jl")
 
     savedir = "latex"
@@ -177,7 +177,7 @@ function show_latex(tree; file_suffix = "", attribute_names = nothing, silent = 
         # threshold_scale_factor = 3,
         threshold_show_decimals = 2,    
         hide_frame_ids = true,
-        attribute_names_map = attribute_names,
+        variable_names_map = variable_names,
         # replace_dict = Dict([
         # #     "\\{1\\}" => "",
         # #     "{1}" => "",

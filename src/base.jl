@@ -32,13 +32,13 @@ function initialworldsets(Xs::MultiFrameLogiset, iCs::AbstractVector{<:InitCondi
     Ss = Vector{Vector{WST} where {W,WST<:WorldSet{W}}}(undef, nframes(Xs)) # Fix
     for (i_frame,X) in enumerate(frames(Xs))
         W = worldtype(X)
-        Ss[i_frame] = WorldSet{W}[initialworldset(X, i_sample, iCs[i_frame]) for i_sample in 1:nsamples(Xs)]
-        # Ss[i_frame] = WorldSet{W}[[Interval(1,2)] for i_sample in 1:nsamples(Xs)]
+        Ss[i_frame] = WorldSet{W}[initialworldset(X, i_instance, iCs[i_frame]) for i_instance in 1:ninstances(Xs)]
+        # Ss[i_frame] = WorldSet{W}[[Interval(1,2)] for i_instance in 1:ninstances(Xs)]
     end
     Ss
 end
 
-initialworldset(X::AbstractLogiset, i_sample, args...) = initialworldset(SoleModels.frame(X, i_sample), args...)
+initialworldset(X::AbstractLogiset, i_instance, args...) = initialworldset(SoleModels.frame(X, i_instance), args...)
 
 ############################################################################################
 
@@ -492,11 +492,11 @@ modalheight(f::DForest)      = maximum(modalheight.(trees(f)))
 modalheight(nsdt::RootLevelNeuroSymbolicHybrid)      = maximum(modalheight.(trees(nsdt)))
 
 # Number of supporting instances
-nsamples(leaf::AbstractDecisionLeaf; train_or_valid = true) = length(supp_labels(leaf; train_or_valid = train_or_valid))
-nsamples(node::DTInternal;           train_or_valid = true) = nsamples(left(node); train_or_valid = train_or_valid) + nsamples(right(node); train_or_valid = train_or_valid)
-nsamples(tree::DTree;                train_or_valid = true) = nsamples(root(tree); train_or_valid = train_or_valid)
-nsamples(f::DForest;                 train_or_valid = true) = maximum(map(t->nsamples(t; train_or_valid = train_or_valid), trees(f))) # TODO actually wrong
-nsamples(nsdt::RootLevelNeuroSymbolicHybrid;                 train_or_valid = true) = maximum(map(t->nsamples(t; train_or_valid = train_or_valid), trees(nsdt))) # TODO actually wrong
+ninstances(leaf::AbstractDecisionLeaf; train_or_valid = true) = length(supp_labels(leaf; train_or_valid = train_or_valid))
+ninstances(node::DTInternal;           train_or_valid = true) = ninstances(left(node); train_or_valid = train_or_valid) + ninstances(right(node); train_or_valid = train_or_valid)
+ninstances(tree::DTree;                train_or_valid = true) = ninstances(root(tree); train_or_valid = train_or_valid)
+ninstances(f::DForest;                 train_or_valid = true) = maximum(map(t->ninstances(t; train_or_valid = train_or_valid), trees(f))) # TODO actually wrong
+ninstances(nsdt::RootLevelNeuroSymbolicHybrid;                 train_or_valid = true) = maximum(map(t->ninstances(t; train_or_valid = train_or_valid), trees(nsdt))) # TODO actually wrong
 
 ############################################################################################
 ############################################################################################

@@ -15,7 +15,7 @@ default_loss_function(::Type{<:RLabel}) = variance
 ############################################################################################
 
 # Useful references:
-# - Wang, Y., & Xia, S. T. (2017, March). Unifying attribute splitting criteria of decision trees by Tsallis entropy. In 2017 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP) (pp. 2507-2511). IEEE.
+# - Wang, Y., & Xia, S. T. (2017, March). Unifying variable splitting criteria of decision trees by Tsallis entropy. In 2017 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP) (pp. 2507-2511). IEEE.
 
 ############################################################################################
 # Classification: Shannon entropy

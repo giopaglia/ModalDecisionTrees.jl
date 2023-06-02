@@ -39,7 +39,7 @@ end
 function build_tree(
     X                   :: ActiveMultiFrameLogiset,
     Y                   :: AbstractVector{L},
-    W                   :: Union{Nothing,AbstractVector{U},Symbol}   = default_weights(nsamples(X));
+    W                   :: Union{Nothing,AbstractVector{U},Symbol}   = default_weights(ninstances(X));
     ##############################################################################
     loss_function       :: Union{Nothing,Function}            = nothing,
     max_depth           :: Int64                              = DEFAULT_MAX_DEPTH,
@@ -71,7 +71,7 @@ function build_tree(
 
     @assert all(W .>= 0) "Sample weights must be non-negative."
 
-    @assert nsamples(X) == length(Y) == length(W) "Mismatching number of samples in X, Y & W: $(nsamples(X)), $(length(Y)), $(length(W))"
+    @assert ninstances(X) == length(Y) == length(W) "Mismatching number of samples in X, Y & W: $(ninstances(X)), $(length(Y)), $(length(W))"
     
     if isnothing(loss_function)
         loss_function = default_loss_function(L)
@@ -161,7 +161,7 @@ function build_forest(
 
     @assert all(W .>= 0) "Sample weights must be non-negative."
 
-    @assert nsamples(X) == length(Y) == length(W) "Mismatching number of samples in X, Y & W: $(nsamples(X)), $(length(Y)), $(length(W))"
+    @assert ninstances(X) == length(Y) == length(W) "Mismatching number of samples in X, Y & W: $(ninstances(X)), $(length(Y)), $(length(W))"
 
     if n_subrelations isa Function
         n_subrelations = fill(n_subrelations, nframes(X))
@@ -188,11 +188,11 @@ function build_forest(
         @warn "Warning! Consider using the optimized structure SupportedScalarLogiset, instead of Logiset."
     end
 
-    tot_samples = nsamples(X)
+    tot_samples = ninstances(X)
     num_samples = floor(Int64, partial_sampling * tot_samples)
 
     trees = Vector{DTree{L}}(undef, ntrees)
-    oob_samples = Vector{Vector{Integer}}(undef, ntrees)
+    oob_instances = Vector{Vector{Integer}}(undef, ntrees)
     oob_metrics = Vector{NamedTuple}(undef, ntrees)
 
     rngs = [spawn_rng(rng) for i_tree in 1:ntrees]
@@ -232,14 +232,14 @@ function build_forest(
         )
 
         # grab out-of-bag indices
-        oob_samples[i_tree] = setdiff(1:tot_samples, train_idxs)
+        oob_instances[i_tree] = setdiff(1:tot_samples, train_idxs)
 
-        tree_preds = apply_tree(trees[i_tree], _slice_dataset(X, oob_samples[i_tree], Val(true)))
+        tree_preds = apply_tree(trees[i_tree], _slice_dataset(X, oob_instances[i_tree], Val(true)))
 
         oob_metrics[i_tree] = (;
-            actual = Y[oob_samples[i_tree]],
+            actual = Y[oob_instances[i_tree]],
             predicted = tree_preds,
-            weights = collect(SoleModels.slice_weights(W, oob_samples[i_tree]))
+            weights = collect(SoleModels.slice_weights(W, oob_instances[i_tree]))
         )
 
         !print_progress || next!(p)
@@ -259,7 +259,7 @@ function build_forest(
             
             # pick every tree trained without i-th sample
             for i_tree in 1:ntrees
-                if i in oob_samples[i_tree] # if i is present in the i_tree-th tree, selecte thi tree
+                if i in oob_instances[i_tree] # if i is present in the i_tree-th tree, selecte thi tree
                     selected_trees[i_tree] = true
                 end
             end

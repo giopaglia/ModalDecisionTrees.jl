@@ -26,7 +26,7 @@ in "Towards Data Science":
     InfoLeaf{T}
 These types are introduced so that additional information currently not present in
 a `ModalDecisionTree`-structure -- for example, the names of the variables --
-can be used for visualization. This additional information is stored in the attribute `info` of
+can be used for visualization. This additional information is stored in the variable `info` of
 these types. It is a `NamedTuple`. So it can be used to store arbitraty information,
 apart from the two points mentioned.
 In analogy to the type definitions of `ModalDecisionTree`, the generic type `S` is
@@ -123,7 +123,7 @@ end
 filter_nt_fields(f, nt) = NamedTuple{filter(f, keys(nt))}(nt)
 
 function printnode(io::IO, node::InfoNode)
-    kwargs = filter_nt_fields(x -> x in [:attribute_names_map, :threshold_display_method, :use_feature_abbreviations], node.info)
+    kwargs = filter_nt_fields(x -> x in [:variable_names_map, :threshold_display_method, :use_feature_abbreviations], node.info)
     dt_node = node.node
     print(io, display_decision(dt_node; kwargs...))
 end

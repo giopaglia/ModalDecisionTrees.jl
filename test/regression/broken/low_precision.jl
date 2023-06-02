@@ -89,18 +89,18 @@ labels = Float16.(labels)
 
 model = build_stump(labels, features)
 preds = apply_tree(model, features)
-@test typeof(preds) == Vector{Float16}
+@test preds isa Vector{Float16}
 
 model = build_tree(labels, features)
 preds = apply_tree(model, features)
-@test typeof(preds) == Vector{Float16}
+@test preds isa Vector{Float16}
 
 model = build_forest(labels, features)
 preds = apply_forest(model, features)
-@test typeof(preds) == Vector{Float16}
+@test preds isa Vector{Float16}
 
 model = build_tree(labels, features)
 preds = apply_tree(model, features)
-@test typeof(preds) == Vector{Float16}
+@test preds isa Vector{Float16}
 
 end # @testset

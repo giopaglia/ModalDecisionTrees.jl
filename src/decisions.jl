@@ -28,11 +28,11 @@ end
 function display_decision(
     frameid::FrameId,
     decision::AbstractDecision;
-    attribute_names_map::Union{Nothing,AbstractVector{<:AbstractVector},AbstractVector{<:AbstractDict}} = nothing,
+    variable_names_map::Union{Nothing,AbstractVector{<:AbstractVector},AbstractVector{<:AbstractDict}} = nothing,
     kwargs...,
 )
-    _attribute_names_map = isnothing(attribute_names_map) ? nothing : attribute_names_map[frameid]
-    "{$frameid} $(display_decision(decision; attribute_names_map = _attribute_names_map, kwargs...))"
+    _variable_names_map = isnothing(variable_names_map) ? nothing : variable_names_map[frameid]
+    "{$frameid} $(display_decision(decision; variable_names_map = _variable_names_map, kwargs...))"
 end
 
 ############################################################################################
@@ -181,13 +181,13 @@ end
 function display_decision(
     decision::Union{ExistentialDimensionalDecision,UniversalDimensionalDecision};
     threshold_display_method::Function = x -> x,
-    attribute_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing,
+    variable_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing,
     use_feature_abbreviations::Bool = false,
 )
     prop_decision_str = syntaxstring(
         decision.p;
         threshold_display_method = threshold_display_method,
-        attribute_names_map = attribute_names_map,
+        variable_names_map = variable_names_map,
         use_feature_abbreviations = use_feature_abbreviations,
     )
     if !is_propositional_decision(decision)

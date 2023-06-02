@@ -54,13 +54,13 @@ Renamings:
 ✔	n_frames -> nframes @done (22-11-28 16:51)
 ✔	n_features -> nfeatures @done (22-11-28 16:51)
 ☐	pick one between samples & instances
-✔	n_instances -> nsamples @done (22-11-28 16:51)
+✔	n_instances -> ninstances @done (22-11-28 16:51)
 
 ############################################################################################
 
 ☐	CODE: adhere to style https://github.com/invenia/BlueStyle
 ☐	CODE: Add proper comments, docs and authors
-☐	CODE: Fix naming style (e.g. variables/features/attributes, etc. Order of struct's members)
+☐	CODE: Fix naming style (e.g. variables/features/variables, etc. Order of struct's members)
 ☐	CODE: Custom pretty printing, instead of display_. Figure out print/show/display See https://docs.julialang.org/en/v1/manual/types/#man-custom-pretty-printing https://schurkus.com/2018/01/05/julia-print-show-display-dump-what-to-override-what-to-use/
 ☐	CODE: Keep this: throw, error(), @error -> throw_n_log()
 ☐	CODE: Improve output/logging
@@ -109,7 +109,7 @@ Renamings:
 ☐	Check whether CatWalk.jl can help runtime dispatch look-up time
 ☐	OPTIMIZE: yield said to be fast with Continuables.jl. https://schlichtanders.github.io/Continuables.jl/dev/
 ☐	Decision Tree Lookahead (e.g. two levels of decisions in one)
-☐	OPTIMIZE: Test whether it's better to use that thresholds[:,i_sample] = map(aggr->aggr(values), aggregators)
+☐	OPTIMIZE: Test whether it's better to use that thresholds[:,i_instance] = map(aggr->aggr(values), aggregators)
 
 ☐	OPTIMIZE: check whether threading il actually better ( JULIA_EXCLUSIVE=1 julia -i -t30 scovid.jl -f 2>&1 | tee scan-covid-t30.out; JULIA_EXCLUSIVE=1 julia -i -t20 scovid.jl -f 2>&1 | tee scan-covid-t20.out; JULIA_EXCLUSIVE=1 julia -i -t16 scovid.jl -f 2>&1 | tee scan-covid-t16.out; JULIA_EXCLUSIVE=1 julia -i -t12 scovid.jl -f 2>&1 | tee scan-covid-t12.out; JULIA_EXCLUSIVE=1 julia -i -t8 scovid.jl -f 2>&1 | tee scan-covid-t8.out; JULIA_EXCLUSIVE=1 julia -i -t4 scovid.jl -f 2>&1 | tee scan-covid-t4.out ) &
 ☐	Profiling: @profile to certify the memory bottleneck
@@ -151,7 +151,7 @@ Renamings:
 
 ☐	Future: ROC and PR curve in binary classification context 0/1, interpret 1-abs(class_value-score) as the confidence of the prediction (transform binary classification problems in regression problems with labels between 0 and 1?); i) in Random Forest, one could aggregate tree answers in a continuous manner, and output confidence values, in this context, ROC and PR curve can be computed; ii) in Decision Tree there are other approaches. Also compute ROC-AUC, and PR curve ( The Precision-Recall Plot Is More Informative than the ROC Plot When Evaluating Binary Classifiers on Imbalanced Datasets: https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0118432 )
 
-☐ feature-importance.jl: Feature importance with one could first consider the propositional problem, the associated attributes (avg A1, max A1, min A1, std A1, avg A2, etc...), and select features using the Mutual Information Score! [https://www.kaggle.com/ryanholbrook/mutual-information]
+☐ feature-importance.jl: Feature importance with one could first consider the propositional problem, the associated variables (avg A1, max A1, min A1, std A1, avg A2, etc...), and select features using the Mutual Information Score! [https://www.kaggle.com/ryanholbrook/mutual-information]
 ☐ Expressing the discrete regression case. Currently, String's and Integer's are interpreted as classes, while AbstractFloat's are interpreted as numbers; this is what differentiates classification from regression. Perhaps, the distinction must be made between String's and Number's, that is, theTwo cases Categorical and Numeric, with Numeric's being either Continuous (like Float64) or Discrete (like Integers). But this can be dangerous because if not coded right Categorical cases indexed by Integers end up being considered Numerical cases.
 
 
@@ -169,7 +169,7 @@ Archive:
 	✔	Refactor and distinguish between testoperators and functions; and opt/aggregator/polarity @done (21-10-07 23:19)
 	✔	Add IA7 relations: Complete by writing enumAccBare, enumAcc, enum_acc_repr. @done (21-10-07 23:18)
 	✔	multi-frame extension! @done (21-10-07 23:16)
-	✔	rename _n_samples -> n_samples @done (21-10-07 23:14)
+	✔	rename _n_instances -> n_instances @done (21-10-07 23:14)
 	✔	clean modallogic.jl @done (21-05-06 12:55)
 	✔	timeit -> symbol @done (21-05-06 10:51)
 	✔	Clean InitCondition and worldType code @done (21-05-06 10:36)

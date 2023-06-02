@@ -77,13 +77,13 @@ println(test_tree)
 
 
 
-show_latex(tree, "train", [attribute_names_latex])
-show_latex(test_tree, "test", [attribute_names_latex])
+show_latex(tree, "train", [variable_names_latex])
+show_latex(test_tree, "test", [variable_names_latex])
 
 
 # function apply_static_descriptor(X::DataFrame, f::Function)
-#     attribute_names = names(X)
-#     rename(f.(X), Dict([Symbol(a) => Symbol("$(f)($(a))") for a in attribute_names]))
+#     variable_names = names(X)
+#     rename(f.(X), Dict([Symbol(a) => Symbol("$(f)($(a))") for a in variable_names]))
 # end
 
 # function apply_static_descriptor(X::DataFrame, fs::AbstractVector{<:Function})

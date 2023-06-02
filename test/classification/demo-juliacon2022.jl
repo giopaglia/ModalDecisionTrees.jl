@@ -62,6 +62,6 @@ cm = ConfusionMatrix(y_test, y_test_preds; force_class_order=["I have command", 
 @test overall_accuracy(cm) > 0.6
 
 # Render model in LaTeX
-# show_latex(mach.fitresult.model; attribute_names = [attribute_names_latex], silent = true);
+# show_latex(mach.fitresult.model; variable_names = [variable_names_latex], silent = true);
 
 end

@@ -39,16 +39,16 @@ macro load_japanesevowels()
         new_X = (x->x[1:minimum_n_points]).(X[:,Not([:speaker, :take, :utterance])])
 
         # dataframe2cube(new_X)
-        # instances, n_attrs, minimum_n_points = begin
-        #     instances = [hcat([collect(attr) for attr in instance]...) for instance in eachrow(new_X)]
-        #     n_attrs = unique((x->x[2]).(size.(instances)))
-        #     @assert length(n_attrs) == 1
-        #     n_attrs = n_attrs[1]
+        # instances, n_vars, minimum_n_points = begin
+        #     instances = [hcat([collect(var) for var in instance]...) for instance in eachrow(new_X)]
+        #     n_vars = unique((x->x[2]).(size.(instances)))
+        #     @assert length(n_vars) == 1
+        #     n_vars = n_vars[1]
         #     minimum_n_points = minimum(first.(size.(instances)))
-        #     instances, n_attrs, minimum_n_points
+        #     instances, n_vars, minimum_n_points
         # end
 
-        # X_cube = Array{Float64,3}(undef, minimum_n_points, n_attrs, length(instances))
+        # X_cube = Array{Float64,3}(undef, minimum_n_points, n_vars, length(instances))
 
         # for (i_instance, instance) in enumerate(instances)
         #     X_cube[:,:,i_instance] = instance[1:minimum_n_points,:]

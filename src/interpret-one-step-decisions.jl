@@ -22,13 +22,13 @@ export generate_feasible_decisions
 
 function _test_decision(
     X::AbstractLogiset,
-    i_sample::Integer,
+    i_instance::Integer,
     w::AbstractWorld,
     feature::AbstractFeature{V},
     test_operator::TestOperator,
     threshold::U
 ) where {V,U}
-    gamma = X[i_sample, w, feature]::V
+    gamma = X[i_instance, w, feature]::V
     apply_test_operator(test_operator, gamma, threshold)
 end
 
@@ -38,7 +38,7 @@ end
 function modalstep(
     # X::AbstractActiveScalarLogiset{W,V},
     X::AbstractLogiset{W},
-    i_sample::Integer,
+    i_instance::Integer,
     worlds::WorldSetType,
     decision::ExistentialDimensionalDecision{U},
     return_survivors::Union{Val{true},Val{false}} = Val(false)
@@ -66,18 +66,18 @@ function modalstep(
             if return_survivors isa Val{true}
                 l = ReentrantLock()
                 Threads.@threads for curr_w in worlds
-                    acc = accessibles(X, i_sample, curr_w, relation(decision)) |> collect
+                    acc = accessibles(X, i_instance, curr_w, relation(decision)) |> collect
                     lock(l)
                     worlds_map[curr_w] = acc
                     unlock(l)
                 end
                 unique(cat([ worlds_map[k] for k in keys(worlds_map) ]...; dims = 1))
             else
-                accessibles(X, i_sample, worlds, relation(decision))
+                accessibles(X, i_instance, worlds, relation(decision))
             end
 
         for w in acc_worlds
-            if _test_decision(X, i_sample, w, feature(decision), test_operator(decision), threshold(decision))
+            if _test_decision(X, i_instance, w, feature(decision), test_operator(decision), threshold(decision))
                 # @logmsg LogDetail " Found world " w ch_readWorld ... ch_readWorld(w, channel)
                 satisfied = true
                 push!(new_worlds, w)
@@ -110,7 +110,7 @@ end
 
 Base.@propagate_inbounds @resumable function generate_feasible_decisions(
     X::AbstractActiveScalarLogiset{W,V},
-    i_samples::AbstractVector{<:Integer},
+    i_instances::AbstractVector{<:Integer},
     Sf::AbstractVector{<:AbstractWorldSet{W}},
     allow_propositional_decisions::Bool,
     allow_modal_decisions::Bool,
@@ -120,19 +120,19 @@ Base.@propagate_inbounds @resumable function generate_feasible_decisions(
 ) where {W<:AbstractWorld,V}
     # Propositional splits
     if allow_propositional_decisions
-        for decision in generate_propositional_feasible_decisions(X, i_samples, Sf, features_inds)
+        for decision in generate_propositional_feasible_decisions(X, i_instances, Sf, features_inds)
             @yield decision
         end
     end
     # Global splits
     if allow_global_decisions
-        for decision in generate_global_feasible_decisions(X, i_samples, Sf, features_inds)
+        for decision in generate_global_feasible_decisions(X, i_instances, Sf, features_inds)
             @yield decision
         end
     end
     # Modal splits
     if allow_modal_decisions
-        for decision in generate_modal_feasible_decisions(X, i_samples, Sf, modal_relations_inds, features_inds)
+        for decision in generate_modal_feasible_decisions(X, i_instances, Sf, modal_relations_inds, features_inds)
             @yield decision
         end
     end
@@ -142,12 +142,12 @@ end
 
 Base.@propagate_inbounds @resumable function generate_propositional_feasible_decisions(
     X::AbstractActiveScalarLogiset{W,V,FT,Bool,FR},
-    i_samples::AbstractVector{<:Integer},
+    i_instances::AbstractVector{<:Integer},
     Sf::AbstractVector{<:AbstractWorldSet{W}},
     features_inds::AbstractVector{<:Integer},
 ) where {W<:AbstractWorld,V,FT<:AbstractFeature{V},N,FR<:FullDimensionalFrame{N,W,Bool}}
     relation = identityrel
-    _n_samples = length(i_samples)
+    _n_instances = length(i_instances)
 
     _features = features(X)
     _grouped_featsaggrsnops = grouped_featsaggrsnops(X)
@@ -166,22 +166,22 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
         # aggrsnops = [aggrsnops[i_aggr] for i_aggr in aggregators]
 
         # Initialize thresholds with the bottoms
-        thresholds = Array{V,2}(undef, length(aggregators), _n_samples)
+        thresholds = Array{V,2}(undef, length(aggregators), _n_instances)
         for (i_aggr,aggr) in enumerate(aggregators)
             thresholds[i_aggr,:] .= aggregator_bottom(aggr, V)
         end
 
         # For each instance, compute thresholds by applying each aggregator to the set of existing values (from the worldset)
-        for (instance_idx,i_sample) in enumerate(i_samples)
-            # @logmsg LogDetail " Instance $(instance_idx)/$(_n_samples)"
+        for (instance_idx,i_instance) in enumerate(i_instances)
+            # @logmsg LogDetail " Instance $(instance_idx)/$(_n_instances)"
             worlds = Sf[instance_idx]
 
             # TODO also try this instead
-            # values = [X[i_sample, w, i_feature] for w in worlds]
+            # values = [X[i_instance, w, i_feature] for w in worlds]
             # thresholds[:,instance_idx] = map(aggr->aggr(values), aggregators)
             
             for w in worlds
-                gamma = X[i_sample, w, feature, i_feature]
+                gamma = X[i_instance, w, feature, i_feature]
                 for (i_aggr,aggr) in enumerate(aggregators)
                     thresholds[i_aggr,instance_idx] = SoleModels.aggregator_to_binary(aggr)(gamma, thresholds[i_aggr,instance_idx])
                 end
@@ -219,12 +219,12 @@ end
 
 Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
     X::AbstractActiveScalarLogiset{W,V,FT,Bool,FR},
-    i_samples::AbstractVector{<:Integer},
+    i_instances::AbstractVector{<:Integer},
     Sf::AbstractVector{<:AbstractWorldSet{W}},
     modal_relations_inds::AbstractVector{<:Integer},
     features_inds::AbstractVector{<:Integer},
 ) where {W<:AbstractWorld,V,FT<:AbstractFeature{V},N,FR<:FullDimensionalFrame{N,W,Bool}}
-    _n_samples = length(i_samples)
+    _n_instances = length(i_instances)
 
     _relations = relations(X)
     _features = features(X)
@@ -250,27 +250,27 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
             # aggrsnops = [aggrsnops[i_aggr] for i_aggr in aggregators]
 
             # Initialize thresholds with the bottoms
-            thresholds = Array{V,2}(undef, length(aggregators_with_ids), _n_samples)
+            thresholds = Array{V,2}(undef, length(aggregators_with_ids), _n_instances)
             for (i_aggr,(_,aggr)) in enumerate(aggregators_with_ids)
                 thresholds[i_aggr,:] .= aggregator_bottom(aggr, V)
             end
 
             # For each instance, compute thresholds by applying each aggregator to the set of existing values (from the worldset)
-            for (instance_id,i_sample) in enumerate(i_samples)
-                # @logmsg LogDetail " Instance $(instance_id)/$(_n_samples)"
+            for (instance_id,i_instance) in enumerate(i_instances)
+                # @logmsg LogDetail " Instance $(instance_id)/$(_n_instances)"
                 worlds = Sf[instance_id]
                 if X isa Union{Logiset,SupportedScalarLogiset}
-                    fwdslice = fwdread_channel(fwd(X), i_sample, i_feature)
+                    fwdslice = fwdread_channel(fwd(X), i_instance, i_feature)
                 end
                 for (i_aggr,(i_featsnaggr,aggr)) in enumerate(aggregators_with_ids)
                     for w in worlds
                         gamma = begin
                             if X isa Union{Logiset,SupportedScalarLogiset}
-                                # fwdslice = fwdread_channel(fwd(X), i_sample, i_feature)
-                                fwdslice_onestep_accessible_aggregation(X, fwdslice, i_sample, w, relation, feature, aggr, i_featsnaggr, i_relation)
-                                # onestep_accessible_aggregation(X, i_sample, w, relation, feature, aggr, i_featsnaggr, i_relation)
+                                # fwdslice = fwdread_channel(fwd(X), i_instance, i_feature)
+                                fwdslice_onestep_accessible_aggregation(X, fwdslice, i_instance, w, relation, feature, aggr, i_featsnaggr, i_relation)
+                                # onestep_accessible_aggregation(X, i_instance, w, relation, feature, aggr, i_featsnaggr, i_relation)
                             elseif X isa DimensionalLogiset
-                                 onestep_accessible_aggregation(X, i_sample, w, relation, feature, aggr, i_featsnaggr, i_relation)
+                                 onestep_accessible_aggregation(X, i_instance, w, relation, feature, aggr, i_featsnaggr, i_relation)
                             else
                                 error("generate_global_feasible_decisions is broken.")
                             end
@@ -280,7 +280,7 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
                 end
                 
                 # for (i_aggr,(i_featsnaggr,aggr)) in enumerate(aggregators_with_ids)
-                #     gammas = [onestep_accessible_aggregation(X, i_sample, w, relation, feature, aggr, i_featsnaggr, i_relation) for w in worlds]
+                #     gammas = [onestep_accessible_aggregation(X, i_instance, w, relation, feature, aggr, i_featsnaggr, i_relation) for w in worlds]
                 #     thresholds[i_aggr,instance_id] = aggr(gammas)
                 # end
             end
@@ -312,12 +312,12 @@ end
 
 Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
     X::AbstractActiveScalarLogiset{W,V,FT,Bool,FR},
-    i_samples::AbstractVector{<:Integer},
+    i_instances::AbstractVector{<:Integer},
     Sf::AbstractVector{<:AbstractWorldSet{W}},
     features_inds::AbstractVector{<:Integer},
 ) where {W<:AbstractWorld,V,FT<:AbstractFeature{V},N,FR<:FullDimensionalFrame{N,W,Bool}}
     relation = globalrel
-    _n_samples = length(i_samples)
+    _n_instances = length(i_instances)
 
     _features = features(X)
     _grouped_featsaggrsnops = grouped_featsaggrsnops(X)
@@ -343,29 +343,29 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
         # # TODO use this optimized version for SupportedScalarLogiset:
         #   thresholds can in fact be directly given by slicing fwd_gs and permuting the two dimensions
         # aggregators_ids = fst.(aggregators_with_ids)
-        # thresholds = transpose(fwd_gs(X)[i_samples, aggregators_ids])
+        # thresholds = transpose(fwd_gs(X)[i_instances, aggregators_ids])
 
         # Initialize thresholds with the bottoms
-        thresholds = Array{V,2}(undef, length(aggregators_with_ids), _n_samples)
+        thresholds = Array{V,2}(undef, length(aggregators_with_ids), _n_instances)
         # for (i_aggr,(_,aggr)) in enumerate(aggregators_with_ids)
         #     thresholds[i_aggr,:] .= aggregator_bottom(aggr, V)
         # end
         
         # For each instance, compute thresholds by applying each aggregator to the set of existing values (from the worldset)
-        for (instance_id,i_sample) in enumerate(i_samples)
-            # @logmsg LogDetail " Instance $(instance_id)/$(_n_samples)"
+        for (instance_id,i_instance) in enumerate(i_instances)
+            # @logmsg LogDetail " Instance $(instance_id)/$(_n_instances)"
             if X isa Union{Logiset,SupportedScalarLogiset}
-                fwdslice = fwdread_channel(fwd(X), i_sample, i_feature)
+                fwdslice = fwdread_channel(fwd(X), i_instance, i_feature)
             end
             for (i_aggr,(i_featsnaggr,aggr)) in enumerate(aggregators_with_ids)
                 # TODO delegate this job to different flavors of `get_global_gamma`. Test whether the fwdslice assignment outside is faster!
                 gamma = begin
                     if X isa Union{Logiset,SupportedScalarLogiset}
-                        # fwdslice = fwdread_channel(fwd(X), i_sample, i_feature)
-                        fwdslice_onestep_accessible_aggregation(X, fwdslice, i_sample, relation, feature, aggr, i_featsnaggr)
-                        # onestep_accessible_aggregation(X, i_sample, relation, feature, aggr, i_featsnaggr)
+                        # fwdslice = fwdread_channel(fwd(X), i_instance, i_feature)
+                        fwdslice_onestep_accessible_aggregation(X, fwdslice, i_instance, relation, feature, aggr, i_featsnaggr)
+                        # onestep_accessible_aggregation(X, i_instance, relation, feature, aggr, i_featsnaggr)
                     elseif X isa DimensionalLogiset
-                        onestep_accessible_aggregation(X, i_sample, relation, feature, aggr, i_featsnaggr)
+                        onestep_accessible_aggregation(X, i_instance, relation, feature, aggr, i_featsnaggr)
                     else
                         error("generate_global_feasible_decisions is broken.")
                     end

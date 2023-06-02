@@ -260,16 +260,16 @@ function train_functional_leaves(
         satisfied_idxs   = Integer[]
         unsatisfied_idxs = Integer[]
 
-        for i_sample in 1:nsamples(X)
-            (satisfied,new_worlds) = modalstep(frame(X, frameid(node)), i_sample, worlds[i_dataset][frameid(node)][i_sample], decision(node))
+        for i_instance in 1:ninstances(X)
+            (satisfied,new_worlds) = modalstep(frame(X, frameid(node)), i_instance, worlds[i_dataset][frameid(node)][i_instance], decision(node))
 
             if satisfied
-                push!(satisfied_idxs, i_sample)
+                push!(satisfied_idxs, i_instance)
             else
-                push!(unsatisfied_idxs, i_sample)
+                push!(unsatisfied_idxs, i_instance)
             end
 
-            worlds[i_dataset][frameid(node)][i_sample] = new_worlds
+            worlds[i_dataset][frameid(node)][i_instance] = new_worlds
         end
 
         push!(datasets_l, slice_dataset((X,Y), satisfied_idxs;   allow_no_instances = true))
@@ -305,13 +305,13 @@ function train_functional_leaves(
     # println(typeof(train_X))
     # println(hasmethod(size,   (typeof(train_X),)) ? size(train_X)   : nothing)
     # println(hasmethod(length, (typeof(train_X),)) ? length(train_X) : nothing)
-    # println(nsamples(train_X))
+    # println(ninstances(train_X))
 
     # println(typeof(valid_X))
     # println(hasmethod(size,   (typeof(valid_X),)) ? size(valid_X)   : nothing)
     # println(hasmethod(length, (typeof(valid_X),)) ? length(valid_X) : nothing)
 
-    # println(nsamples(valid_X))
+    # println(ninstances(valid_X))
 
     supp_train_labels = train_Y
     supp_valid_labels = valid_Y
@@ -337,7 +337,7 @@ function _variable_countmap(node::DTInternal{L}; weighted = false) where {L<:Lab
     th = begin
         d = decision(node)
         f = feature(d)
-        (f isa AbstractUnivariateFeature) ? [((frameid(node), f.i_attribute), (weighted ? length(supp_labels) : 1)),] : []
+        (f isa AbstractUnivariateFeature) ? [((frameid(node), f.i_variable), (weighted ? length(supp_labels) : 1)),] : []
     end
     [th..., _variable_countmap(left(node); weighted = weighted)..., _variable_countmap(right(node); weighted = weighted)...]
 end
@@ -347,11 +347,11 @@ function variable_countmap(tree::DTree{L}; weighted = false) where {L<:Label}
     if !weighted
         countmap(first.(vals))
     else
-        c = Dict([attr => 0 for attr in unique(first.(vals))])
-        for (attr, weight) in vals
-            c[attr] += weight
+        c = Dict([var => 0 for var in unique(first.(vals))])
+        for (var, weight) in vals
+            c[var] += weight
         end
-        Dict([attr => count/sum(values(c)) for (attr, count) in c])
+        Dict([var => count/sum(values(c)) for (var, count) in c])
     end
 end
 
@@ -360,11 +360,11 @@ function variable_countmap(forest::DForest{L}; weighted = false) where {L<:Label
     if !weighted
         countmap(first.(vals))
     else
-        c = Dict([attr => 0 for attr in unique(first.(vals))])
-        for (attr, weight) in vals
-            c[attr] += weight
+        c = Dict([var => 0 for var in unique(first.(vals))])
+        for (var, weight) in vals
+            c[var] += weight
         end
-        Dict([attr => count/sum(values(c)) for (attr, count) in c])
+        Dict([var => count/sum(values(c)) for (var, count) in c])
     end
 end
 

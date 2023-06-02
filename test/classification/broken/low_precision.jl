@@ -12,7 +12,7 @@ labels = round.(Int32, features * weights);
 
 model = build_stump(labels, features)
 preds = apply_tree(model, features)
-@test typeof(preds) == Vector{Int32}
+@test preds isa Vector{Int32}
 @test depth(model) == 1
 
 n_subfeatures       = Int32(0)
@@ -27,7 +27,7 @@ model = build_tree(
         min_samples_split,
         min_purity_increase)
 preds = apply_tree(model, features)
-@test typeof(preds) == Vector{Int32}
+@test preds isa Vector{Int32}
 @test MLJBase.accuracy(labels, preds) > 0.9
 
 n_subfeatures       = Int32(0)
@@ -41,13 +41,13 @@ model = build_forest(
         partial_sampling,
         max_depth)
 preds = apply_forest(model, features)
-@test typeof(preds) == Vector{Int32}
+@test preds isa Vector{Int32}
 @test MLJBase.accuracy(labels, preds) > 0.9
 
 n_iterations        = Int32(25)
 model, coeffs = build_adaboost_stumps(labels, features, n_iterations);
 preds = apply_adaboost_stumps(model, coeffs, features);
-@test typeof(preds) == Vector{Int32}
+@test preds isa Vector{Int32}
 @test MLJBase.accuracy(labels, preds) > 0.6
 
 println("\n##### nfoldCV Classification Tree #####")
@@ -99,22 +99,22 @@ labels = Int8.(labels)
 
 model = build_stump(labels, features)
 preds = apply_tree(model, features)
-@test typeof(preds) == Vector{Int8}
+@test preds isa Vector{Int8}
 
 model = build_tree(labels, features)
 preds = apply_tree(model, features)
-@test typeof(preds) == Vector{Int8}
+@test preds isa Vector{Int8}
 
 model = build_forest(labels, features)
 preds = apply_forest(model, features)
-@test typeof(preds) == Vector{Int8}
+@test preds isa Vector{Int8}
 
 model = build_tree(labels, features)
 preds = apply_tree(model, features)
-@test typeof(preds) == Vector{Int8}
+@test preds isa Vector{Int8}
 
 model, coeffs = build_adaboost_stumps(labels, features, n_iterations);
 preds = apply_adaboost_stumps(model, coeffs, features);
-@test typeof(preds) == Vector{Int8}
+@test preds isa Vector{Int8}
 
 end # @testset
