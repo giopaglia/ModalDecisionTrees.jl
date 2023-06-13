@@ -26,8 +26,8 @@ using SoleData
 using SoleData: max_channel_size,
                 nvariables,
                 get_instance,
-                slice_dataset,
-                _slice_dataset
+                slicedataset,
+                instances
 
 using SoleModels: AbstractLogiset
 
@@ -39,18 +39,17 @@ import AbstractTrees: print_tree
 
 # Data structures
 @reexport using SoleModels.DimensionalDatasets
-using SoleModels: MultiFrameLogiset
+using SoleModels: MultiLogiset
 using SoleModels: WorldSet, GenericModalDataset
 
 using SoleModels: nfeatures, nrelations,
-                            nframes, frames, frame,
+                            nmodalities, frames, frame,
                             displaystructure,
                             #
                             relations,
                             #
                             GenericModalDataset,
-                            ActiveMultiFrameLogiset,
-                            MultiFrameLogiset,
+                            MultiLogiset,
                             AbstractLogiset,
                             DimensionalLogiset,
                             Logiset,
@@ -77,8 +76,8 @@ using SoleModels: existential_aggregator, universal_aggregator, aggregator_botto
 
 ############################################################################################
 
-export slice_dataset, 
-       nframes, ninstances, nvariables, max_channel_size
+export slicedataset,
+       nmodalities, ninstances, nvariables, max_channel_size
 
 export DTree,                   # Decision tree
         DForest,                # Decision forest

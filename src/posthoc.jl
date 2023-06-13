@@ -272,8 +272,8 @@ function train_functional_leaves(
             worlds[i_dataset][frameid(node)][i_instance] = new_worlds
         end
 
-        push!(datasets_l, slice_dataset((X,Y), satisfied_idxs;   allow_no_instances = true))
-        push!(datasets_r, slice_dataset((X,Y), unsatisfied_idxs; allow_no_instances = true))
+        push!(datasets_l, slicedataset((X,Y), satisfied_idxs;   allow_no_instances = true))
+        push!(datasets_r, slicedataset((X,Y), unsatisfied_idxs; allow_no_instances = true))
 
         push!(worlds_l, [frame_worlds[satisfied_idxs]   for frame_worlds in worlds[i_dataset]])
         push!(worlds_r, [frame_worlds[unsatisfied_idxs] for frame_worlds in worlds[i_dataset]])

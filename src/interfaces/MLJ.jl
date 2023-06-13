@@ -202,7 +202,7 @@ function DataFrame2MultiFrameLogiset(
 
         channel_dim = length(channel_size)
 
-        # println("$(i_frame)\tchannel size: $(channel_size)\t => $(frame_grouping)")
+        # println("$(i_modality)\tchannel size: $(channel_size)\t => $(frame_grouping)")
 
         _X = begin
             n_variables = DataFrames.ncol(X_frame)
@@ -260,10 +260,10 @@ function DataFrame2MultiFrameLogiset(
                 )
             SoleModels.SupportedScalarLogiset(__X; use_memoization = true, compute_relation_glob = compute_relation_glob)
         end, _init_conditions)
-    end for (i_frame, frame) in enumerate(frame_grouping)]
+    end for (i_modality, frame) in enumerate(frame_grouping)]
     Xs, init_conditions = zip(Xs_ic...)
     Xs, init_conditions = collect(Xs), collect(init_conditions)
-    Xs = SoleModels.MultiFrameLogiset{SoleModels.AbstractLogiset}(Xs)
+    Xs = SoleModels.MultiLogiset(Xs)
     # println(SoleModels.displaystructure(Xs))
     Xs, init_conditions
 end
@@ -438,7 +438,7 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Integer, X, y, w=nothing)
 
     verbosity < 2 || MDT.printmodel(model; max_depth = display_depth, variable_names_map = frame_grouping)
 
-    feature_importance_by_count = Dict([i_var => frame_grouping[i_frame][i_var] for ((i_frame, i_var), count) in MDT.variable_countmap(model)])
+    feature_importance_by_count = Dict([i_var => frame_grouping[i_modality][i_var] for ((i_modality, i_var), count) in MDT.variable_countmap(model)])
 
     fitresult = (
         model           = model,
@@ -601,7 +601,7 @@ function MMI.fit(m::ModalRandomForest, verbosity::Integer, X, y, w=nothing)
         suppress_parity_warning = true,
     )
     # println(MDT.variable_countmap(model))
-    feature_importance_by_count = Dict([i_var => frame_grouping[i_frame][i_var] for ((i_frame, i_var), count) in MDT.variable_countmap(model)])
+    feature_importance_by_count = Dict([i_var => frame_grouping[i_modality][i_var] for ((i_modality, i_var), count) in MDT.variable_countmap(model)])
 
     fitresult = (
         model           = model,

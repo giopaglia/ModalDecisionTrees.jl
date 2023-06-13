@@ -145,7 +145,7 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
     i_instances::AbstractVector{<:Integer},
     Sf::AbstractVector{<:AbstractWorldSet{W}},
     features_inds::AbstractVector{<:Integer},
-) where {W<:AbstractWorld,V,FT<:AbstractFeature{V},N,FR<:FullDimensionalFrame{N,W,Bool}}
+) where {W<:AbstractWorld,V,FT<:AbstractFeature{V},N,FR<:FullDimensionalFrame{N,W}}
     relation = identityrel
     _n_instances = length(i_instances)
 
@@ -223,7 +223,7 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
     Sf::AbstractVector{<:AbstractWorldSet{W}},
     modal_relations_inds::AbstractVector{<:Integer},
     features_inds::AbstractVector{<:Integer},
-) where {W<:AbstractWorld,V,FT<:AbstractFeature{V},N,FR<:FullDimensionalFrame{N,W,Bool}}
+) where {W<:AbstractWorld,V,FT<:AbstractFeature{V},N,FR<:FullDimensionalFrame{N,W}}
     _n_instances = length(i_instances)
 
     _relations = relations(X)
@@ -315,7 +315,7 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
     i_instances::AbstractVector{<:Integer},
     Sf::AbstractVector{<:AbstractWorldSet{W}},
     features_inds::AbstractVector{<:Integer},
-) where {W<:AbstractWorld,V,FT<:AbstractFeature{V},N,FR<:FullDimensionalFrame{N,W,Bool}}
+) where {W<:AbstractWorld,V,FT<:AbstractFeature{V},N,FR<:FullDimensionalFrame{N,W}}
     relation = globalrel
     _n_instances = length(i_instances)
 

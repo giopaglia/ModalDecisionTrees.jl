@@ -24,7 +24,7 @@ for i_var in 1:n_vars
     push!(featsnops, [≤])
 end
 
-Xs = MultiFrameLogiset{SupportedScalarLogiset}([
+Xs = MultiLogiset([
     SupportedScalarLogiset(
         DimensionalLogiset(randn(n_pts, n_vars, _n_instances), get_interval_ontology(1), features, featsnops);
         use_memoization = false,

@@ -28,17 +28,17 @@ function initialworldset(::AbstractMultiModalFrame{W}, iC::StartAtWorld{W}) wher
     WorldSet{W}([iC.w])
 end
 
-function initialworldsets(Xs::MultiFrameLogiset, iCs::AbstractVector{<:InitCondition})
-    Ss = Vector{Vector{WST} where {W,WST<:WorldSet{W}}}(undef, nframes(Xs)) # Fix
-    for (i_frame,X) in enumerate(frames(Xs))
+function initialworldsets(Xs::MultiLogiset, iCs::AbstractVector{<:InitCondition})
+    Ss = Vector{Vector{WST} where {W,WST<:WorldSet{W}}}(undef, nmodalities(Xs)) # Fix
+    for (i_modality,X) in enumerate(modalities(Xs))
         W = worldtype(X)
-        Ss[i_frame] = WorldSet{W}[initialworldset(X, i_instance, iCs[i_frame]) for i_instance in 1:ninstances(Xs)]
-        # Ss[i_frame] = WorldSet{W}[[Interval(1,2)] for i_instance in 1:ninstances(Xs)]
+        Ss[i_modality] = WorldSet{W}[initialworldset(X, i_instance, iCs[i_modality]) for i_instance in 1:ninstances(Xs)]
+        # Ss[i_modality] = WorldSet{W}[[Interval(1,2)] for i_instance in 1:ninstances(Xs)]
     end
     Ss
 end
 
-initialworldset(X::AbstractLogiset, i_instance, args...) = initialworldset(SoleModels.frame(X, i_instance), args...)
+initialworldset(X::AbstractLogiset, i_instance::Integer, args...) = initialworldset(SoleModels.frame(X, i_instance), args...)
 
 ############################################################################################
 
@@ -149,12 +149,12 @@ end
 ############################################################################################
 
 struct PredictingFunction{L<:Label}
-    # f::FunctionWrapper{Vector{L},Tuple{MultiFrameLogiset}} # TODO restore!!!
-    f::FunctionWrapper{Any,Tuple{MultiFrameLogiset}}
+    # f::FunctionWrapper{Vector{L},Tuple{MultiLogiset}} # TODO restore!!!
+    f::FunctionWrapper{Any,Tuple{MultiLogiset}}
 
     function PredictingFunction{L}(f::Any) where {L<:Label}
-        # new{L}(FunctionWrapper{Vector{L},Tuple{MultiFrameLogiset}}(f)) # TODO restore!!!
-        new{L}(FunctionWrapper{Any,Tuple{MultiFrameLogiset}}(f))
+        # new{L}(FunctionWrapper{Vector{L},Tuple{MultiLogiset}}(f)) # TODO restore!!!
+        new{L}(FunctionWrapper{Any,Tuple{MultiLogiset}}(f))
     end
 end
 (pf::PredictingFunction{L})(args...; kwargs...) where {L} = pf.f(args...; kwargs...)::Vector{L}

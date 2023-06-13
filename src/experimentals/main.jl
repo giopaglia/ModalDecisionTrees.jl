@@ -9,19 +9,18 @@ using SoleModels.DimensionalDatasets
 using SoleLogics
 
 using SoleModels.DimensionalDatasets
-using SoleModels: MultiFrameLogiset
+using SoleModels: MultiLogiset
 using SoleModels: WorldSet, GenericModalDataset
 
 
 using SoleModels: nfeatures, nrelations,
-                            nframes, frames, frame,
+                            nmodalities, frames, frame,
                             displaystructure,
                             #
                             relations,
                             #
                             GenericModalDataset,
-                            ActiveMultiFrameLogiset,
-                            MultiFrameLogiset,
+                            MultiLogiset,
                             AbstractLogiset,
                             DimensionalLogiset,
                             Logiset,

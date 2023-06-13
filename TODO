@@ -51,7 +51,7 @@ Half-ideas:
 
 Renamings:
 ☐ Decision->Condition (careful: conflicts with Base.Condition)
-✔	n_frames -> nframes @done (22-11-28 16:51)
+✔	n_frames -> nmodalities @done (22-11-28 16:51)
 ✔	n_features -> nfeatures @done (22-11-28 16:51)
 ☐	pick one between samples & instances
 ✔	n_instances -> ninstances @done (22-11-28 16:51)
