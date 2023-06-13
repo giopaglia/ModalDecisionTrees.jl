@@ -92,9 +92,6 @@ FrameId = Int
 # Utility functions
 include("utils.jl")
 
-# Decisions at the tree's internal nodes
-include("decisions.jl")
-
 # TODO fix
 include("interpret-one-step-decisions.jl")
 

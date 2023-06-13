@@ -40,7 +40,7 @@ function modalstep(
     X::AbstractLogiset{W},
     i_instance::Integer,
     worlds::WorldSetType,
-    decision::ExistentialDimensionalDecision{U},
+    decision::ExistentialScalarDecision{U},
     return_survivors::Union{Val{true},Val{false}} = Val(false)
 ) where {W<:AbstractWorld,WorldSetType<:AbstractWorldSet,U}
     @logmsg LogDetail "modalstep" worlds display_decision(decision)
@@ -205,7 +205,7 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
                 # @logmsg LogDetail " Test operator $(test_operator)"
                 # Look for the best threshold 'a', as in propositions like "feature >= a"
                 for threshold in aggr_domain
-                    decision = ExistentialDimensionalDecision(relation, feature, test_operator, threshold)
+                    decision = ExistentialScalarDecision(relation, feature, test_operator, threshold)
                     # @logmsg LogDebug " Testing decision: $(display_decision(decision))"
                     @yield decision, aggr_thresholds
                 end # for threshold
@@ -298,7 +298,7 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
 
                     # Look for the best threshold 'a', as in propositions like "feature >= a"
                     for threshold in aggr_domain
-                        decision = ExistentialDimensionalDecision(relation, feature, test_operator, threshold)
+                        decision = ExistentialScalarDecision(relation, feature, test_operator, threshold)
                         # @logmsg LogDebug " Testing decision: $(display_decision(decision))"
                         @yield decision, aggr_thresholds
                     end # for threshold
@@ -394,7 +394,7 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
 
                 # Look for the best threshold 'a', as in propositions like "feature >= a"
                 for threshold in aggr_domain
-                    decision = ExistentialDimensionalDecision(relation, feature, test_operator, threshold)
+                    decision = ExistentialScalarDecision(relation, feature, test_operator, threshold)
                     # @logmsg LogDebug " Testing decision: $(display_decision(decision))"
                     @yield decision, aggr_thresholds
                 end # for threshold
