@@ -42,6 +42,8 @@ initialworldset(X::AbstractLogiset, i_instance::Integer, args...) = initialworld
 
 ############################################################################################
 
+abstract type AbstractDecision end
+
 abstract type AbstractNode{L<:Label} end
 abstract type AbstractDecisionLeaf{L<:Label} <: AbstractNode{L} end
 abstract type AbstractDecisionInternal{L<:Label,D<:AbstractDecision} <: AbstractNode{L} end
@@ -59,20 +61,63 @@ isrightchild(node::DTNode, parent::DTNode) = (right(parent) == node)
 # abstract type AbstractDecisionInternal{L<:Label,D<:AbstractDecision} <: DTNode{L,D} end
 
 ############################################################################################
+TODO...
+using SoleLogics: identityrel, globalrel
+using SoleModels: syntaxstring
+using SoleModels.DimensionalDatasets: alpha
+
+export ExistentialScalarDecision,
+       #
+       relation, feature, test_operator, threshold,
+       is_propositional_decision,
+       is_global_decision,
+       #
+       displaydecision, displaydecision_inverse
+
+is_propositional_decision(d::ScalarOneStepFormula) = (relation(d) == identityrel)
+is_global_decision(d::ScalarOneStepFormula) = (relation(d) == globalrel)
+
+function displaydecision(
+    decision::Union{ScalarExistentialFormula,ScalarUniversalFormula};
+    threshold_display_method::Function = x -> x,
+    variable_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing,
+    use_feature_abbreviations::Bool = false,
+)
+    prop_decision_str = syntaxstring(
+        decision.p;
+        threshold_display_method = threshold_display_method,
+        variable_names_map = variable_names_map,
+        use_feature_abbreviations = use_feature_abbreviations,
+    )
+    if !is_propositional_decision(decision)
+        TODO
+        rel_display_fun = (decision isa ScalarExistentialFormula ? display_existential : display_universal)
+        "$(rel_display_fun(relation(decision))) ($prop_decision_str)"
+    else
+        "$prop_decision_str"
+    end
+end
 
 
-mutable struct DoubleEdgedDecision{D<:SimpleDecision} <: AbstractDecision
-    decision :: D
+
+mutable struct SimpleDecision{D<:AbstractTemplatedFormula} <: AbstractDecision
+    decision  :: D
+end
+
+TODO
+
+mutable struct DoubleEdgedDecision{D<:AbstractTemplatedFormula} <: AbstractDecision
+    decision  :: D
     _back     :: Base.RefValue{N} where N<:AbstractNode # {L,DoubleEdgedDecision}
     _forth    :: Base.RefValue{N} where N<:AbstractNode # {L,DoubleEdgedDecision}
 
-    function DoubleEdgedDecision{D}(decision::D) where {D<:SimpleDecision}
+    function DoubleEdgedDecision{D}(decision::D) where {D<:AbstractTemplatedFormula}
         ded = new{D}()
         ded.decision = decision
         ded
     end
 
-    function DoubleEdgedDecision(decision::D) where {D<:SimpleDecision}
+    function DoubleEdgedDecision(decision::D) where {D<:AbstractTemplatedFormula}
         DoubleEdgedDecision{D}(decision)
     end
 end
@@ -86,6 +131,7 @@ _forth(ded::DoubleEdgedDecision) = isdefined(ded, :_forth) ? ded._forth : nothin
 decision!(ded::DoubleEdgedDecision, decision) = (ded.decision = decision)
 _back!(ded::DoubleEdgedDecision, _back) = (ded._back = _back)
 _forth!(ded::DoubleEdgedDecision, _forth) = (ded._forth = _forth)
+
 
 # TODO remove?
 is_propositional_decision(ded::DoubleEdgedDecision) = is_propositional_decision(decision(ded))
@@ -282,7 +328,10 @@ struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
         left             :: Union{AbstractDecisionLeaf,DTInternal},
         right            :: Union{AbstractDecisionLeaf,DTInternal},
         miscellaneous    :: NamedTuple = (;),
-    ) where {D<:AbstractDecision,L<:Label}
+    ) where {D<:Union{AbstractDecision,AbstractTemplatedFormula},L<:Label}
+        if decision isa AbstractTemplatedFormula
+            decision = SimpleDecision(decision)
+        end
         # this = merge_into_leaf(Vector{<:Union{AbstractDecisionLeaf,DTInternal}}([left, right]))
         this = merge_into_leaf(Union{<:AbstractDecisionLeaf,<:DTInternal}[left, right])
         new{L,D}(frameid, decision, this, left, right, miscellaneous)
@@ -302,7 +351,10 @@ struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
         left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
         right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
         miscellaneous    :: NamedTuple = (;),
-    ) where {D<:AbstractDecision,L<:Label}
+    ) where {D<:Union{AbstractDecision,AbstractTemplatedFormula},L<:Label}
+        if decision isa AbstractTemplatedFormula
+            decision = SimpleDecision(decision)
+        end
         DTInternal{L,D}(frameid, decision, left, right, miscellaneous)
     end
 

@@ -40,7 +40,7 @@ function modalstep(
     X::AbstractLogiset{W},
     i_instance::Integer,
     worlds::WorldSetType,
-    decision::ExistentialScalarDecision{U},
+    decision::ScalarExistentialFormula{U},
     return_survivors::Union{Val{true},Val{false}} = Val(false)
 ) where {W<:AbstractWorld,WorldSetType<:AbstractWorldSet,U}
     @logmsg LogDetail "modalstep" worlds displaydecision(decision)
@@ -205,7 +205,7 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
                 # @logmsg LogDetail " Test operator $(test_operator)"
                 # Look for the best threshold 'a', as in propositions like "feature >= a"
                 for threshold in aggr_domain
-                    decision = ExistentialScalarDecision(relation, feature, test_operator, threshold)
+                    decision = ScalarExistentialFormula(relation, feature, test_operator, threshold)
                     # @logmsg LogDebug " Testing decision: $(displaydecision(decision))"
                     @yield decision, aggr_thresholds
                 end # for threshold
@@ -298,7 +298,7 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
 
                     # Look for the best threshold 'a', as in propositions like "feature >= a"
                     for threshold in aggr_domain
-                        decision = ExistentialScalarDecision(relation, feature, test_operator, threshold)
+                        decision = ScalarExistentialFormula(relation, feature, test_operator, threshold)
                         # @logmsg LogDebug " Testing decision: $(displaydecision(decision))"
                         @yield decision, aggr_thresholds
                     end # for threshold
@@ -323,7 +323,7 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
     _grouped_featsaggrsnops = grouped_featsaggrsnops(X)
     _grouped_featsnaggrs = grouped_featsnaggrs(X)
 
-    @assert !(X isa SupportedScalarLogiset && isnothing(fwd_gs(support(X)))) "Error. SupportedScalarLogiset must be built with compute_relation_glob = true for it to be ready to generate global decisions."
+    @assert !(X isa SupportedScalarLogiset && isnothing(fwd_gs(support(X)))) "Error. SupportedScalarLogiset must be built with compute_globmemoseTODOfixt = true for it to be ready to generate global decisions."
 
     # For each feature
     for i_feature in features_inds
@@ -394,7 +394,7 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
 
                 # Look for the best threshold 'a', as in propositions like "feature >= a"
                 for threshold in aggr_domain
-                    decision = ExistentialScalarDecision(relation, feature, test_operator, threshold)
+                    decision = ScalarExistentialFormula(relation, feature, test_operator, threshold)
                     # @logmsg LogDebug " Testing decision: $(displaydecision(decision))"
                     @yield decision, aggr_thresholds
                 end # for threshold

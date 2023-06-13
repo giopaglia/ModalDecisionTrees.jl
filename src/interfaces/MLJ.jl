@@ -254,11 +254,12 @@ function DataFrame2MultiFrameLogiset(
         else
             WorldType = SoleModels.worldtype(ontology)
 
-            compute_relation_glob =
+            compute_globmemoset =
                 WorldType != SoleModels.OneWorld && (
                     (allow_global_splits || _init_conditions == MDT.start_without_world)
                 )
-            SoleModels.SupportedScalarLogiset(__X; use_memoization = true, compute_relation_glob = compute_relation_glob)
+            TODO compute_globmemoset-> relations does not have globalrel.
+            SoleModels.SupportedScalarLogiset(__X)
         end, _init_conditions)
     end for (i_modality, frame) in enumerate(frame_grouping)]
     Xs, init_conditions = zip(Xs_ic...)

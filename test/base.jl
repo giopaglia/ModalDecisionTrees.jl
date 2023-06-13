@@ -51,7 +51,7 @@ using ModalDecisionTrees: DTLeaf, prediction
 
     # @testset "Decision internal node (DTInternal) + Decision Tree & Forest (DTree & DForest)" begin
 
-        decision = ExistentialScalarDecision(SoleModels.globalrel, UnivariateMin(1), >=, 10)
+        decision = ScalarExistentialFormula(SoleModels.globalrel, UnivariateMin(1), >=, 10)
 
         reg_leaf, cls_leaf = DTLeaf([1.0,2.0]), DTLeaf([1,2])
 

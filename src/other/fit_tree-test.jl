@@ -27,8 +27,8 @@ end
 Xs = MultiLogiset([
     SupportedScalarLogiset(
         DimensionalLogiset(randn(n_pts, n_vars, _n_instances), get_interval_ontology(1), features, featsnops);
-        use_memoization = false,
-        compute_relation_glob = true,
+        precompute_relmemoset = true,
+        precompute_globmemoset = true,
     )
 ]);
 

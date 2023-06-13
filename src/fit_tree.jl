@@ -77,7 +77,7 @@ function _convert(
     else
         left  = _convert(node.l, labels, class_names, threshold_backmap)
         right = _convert(node.r, labels, class_names, threshold_backmap)
-        DTInternal(node.frameid, ExistentialScalarDecision(node.decision, threshold_backmap[node.frameid]), this_leaf, left, right)
+        DTInternal(node.frameid, ScalarExistentialFormula(node.decision, threshold_backmap[node.frameid]), this_leaf, left, right)
     end
 end
 
@@ -93,7 +93,7 @@ function _convert(
     else
         left  = _convert(node.l, labels, threshold_backmap)
         right = _convert(node.r, labels, threshold_backmap)
-        DTInternal(node.frameid, ExistentialScalarDecision(node.decision, threshold_backmap[node.frameid]), this_leaf, left, right)
+        DTInternal(node.frameid, ScalarExistentialFormula(node.decision, threshold_backmap[node.frameid]), this_leaf, left, right)
     end
 end
 
@@ -171,10 +171,10 @@ end
 #   relationGlob_id = 2
 #   ontology_relation_ids = map((x)->x+2, 1:length(ontology_relations))
 
-#   compute_relation_glob = (allow_global_splits || (iC == ModalDecisionTrees.start_without_world))
+#   compute_globmemoset = (allow_global_splits || (iC == ModalDecisionTrees.start_without_world))
 
 #   # Modal relations to compute gammas for
-#   inUseRelation_ids = if compute_relation_glob
+#   inUseRelation_ids = if compute_globmemoset
 #       [relationGlob_id, ontology_relation_ids...]
 #   else
 #       ontology_relation_ids
@@ -392,7 +392,7 @@ Base.@propagate_inbounds @inline function split_node!(
     # Optimization-tracking variables
     best_i_modality = -1
     best_purity_times_nt = typemin(P)
-    best_decision = ExistentialScalarDecision{Float64}()
+    best_decision = ScalarExistentialFormula{Float64}()
     if isa(_perform_consistency_check,Val{true})
         consistency_sat_check = Vector{Bool}(undef, _n_instances)
     end

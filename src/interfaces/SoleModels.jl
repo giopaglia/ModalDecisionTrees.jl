@@ -97,21 +97,21 @@ function _condition(feature::AbstractFeature{U}, test_op, threshold::T) where {U
     return cond
 end
 
-function get_proposition(dec::ExistentialScalarDecision)
+function get_proposition(dec::ScalarExistentialFormula)
     test_op = test_operator(dec)
     return Proposition(_condition(feature(dec), test_op, threshold(dec)))
 end
 
-function get_proposition_inv(dec::ExistentialScalarDecision)
+function get_proposition_inv(dec::ScalarExistentialFormula)
     test_op = inverse_test_operator(test_operator(dec))
     return Proposition(_condition(feature(dec), test_op, threshold(dec)))
 end
 
-function get_diamond_op(dec::ExistentialScalarDecision)
+function get_diamond_op(dec::ScalarExistentialFormula)
     return DiamondRelationalOperator{typeof(relation(dec))}()
 end
 
-function get_box_op(dec::ExistentialScalarDecision)
+function get_box_op(dec::ScalarExistentialFormula)
     return BoxRelationalOperator{typeof(relation(dec))}()
 end
 
@@ -136,7 +136,7 @@ end
 ############################################################################################
 
 # Compute path formula using semantics from TODO cite
-function pathformula(ancestors::Vector{<:DTInternal{L,<:ExistentialScalarDecision}}, leaf::DTNode{LL}) where {L,LL}
+function pathformula(ancestors::Vector{<:DTInternal{L,<:SimpleDecision}}, leaf::DTNode{LL}) where {L,LL}
     nodes = [ancestors..., leaf]
     # dispatch a seconda del numero di nodi degli ancestors
     if length(nodes) == 0
@@ -146,7 +146,7 @@ function pathformula(ancestors::Vector{<:DTInternal{L,<:ExistentialScalarDecisio
     elseif length(nodes) == 2
         return get_lambda(nodes[1], nodes[2])
     else
-        φ = pathformula(Vector{DTInternal{Union{L,LL},<:ExistentialScalarDecision}}(nodes[2:end-1]), nodes[end])
+        φ = pathformula(Vector{DTInternal{Union{L,LL},<:SimpleDecision}}(nodes[2:end-1]), nodes[end])
 
         if isleftchild(nodes[2], nodes[1])
             dec = ModalDecisionTrees.decision(nodes[1])
