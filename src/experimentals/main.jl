@@ -14,7 +14,7 @@ using SoleModels: WorldSet, GenericModalDataset
 
 
 using SoleModels: nfeatures, nrelations,
-                            nframes, frames, frame,
+                            nmodalities, modalities, frame,
                             display_structure,
                             #
                             relations,

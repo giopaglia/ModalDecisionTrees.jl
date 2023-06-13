@@ -104,7 +104,7 @@ Write a printable representation of `node` or `leaf` to output-stream `io`.
 If `node.info`/`leaf.info` have a field called
 - `frame_variable_names` it is expected to be an array of arrays of variable names corresponding
   to the variable names used in the tree nodes; note that there are two layers of reference
-  because variables are grouped into `frames` (see MLJ's docs for ModalDecisionTree: @doc ModalDecisionTree)
+  because variables are grouped into `modalities` (see MLJ's docs for ModalDecisionTree: @doc ModalDecisionTree)
   They will be used for printing instead of the ids.
 Note that the left subtree of any split node represents the 'yes-branch', while the right subtree
  the 'no-branch', respectively. `print_tree` outputs the left subtree first

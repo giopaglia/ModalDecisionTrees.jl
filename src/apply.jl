@@ -8,8 +8,8 @@ import MLJ: predict
 ############################################################################################
 
 mm_instance_initialworldset(Xs::MultiFrameConditionalDataset, tree::DTree, i_sample::Integer) = begin
-    Ss = Vector{WorldSet}(undef, nframes(Xs))
-    for (i_frame,X) in enumerate(frames(Xs))
+    Ss = Vector{WorldSet}(undef, nmodalities(Xs))
+    for (i_frame,X) in enumerate(modalities(Xs))
         Ss[i_frame] = initialworldset(X, i_sample, init_conditions(tree)[i_frame])
     end
     Ss
@@ -63,7 +63,7 @@ function apply(leaf::DTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector{<
 end
 
 function apply(leaf::NSDTLeaf, X::Any, i_sample::Integer, worlds::AbstractVector{<:AbstractWorldSet}; suppress_parity_warning = false)
-    d = slice_dataset(X, [i_sample])
+    d = slicedataset(X, [i_sample])
     # println(typeof(d))
     # println(hasmethod(size,   (typeof(d),)) ? size(d)   : nothing)
     # println(hasmethod(length, (typeof(d),)) ? length(d) : nothing)
@@ -93,7 +93,7 @@ end
 # Obtain predictions of a tree on a dataset
 function apply(tree::DTree{L}, X::MultiFrameConditionalDataset; kwargs...) where {L}
     @logmsg LogDetail "apply..."
-    _n_samples = nsamples(X)
+    _n_samples = ninstances(X)
     predictions = Vector{L}(undef, _n_samples)
 
     for i_sample in 1:_n_samples
@@ -116,13 +116,13 @@ function apply(
 ) where {L<:Label,Z<:Real}
     @logmsg LogDetail "apply..."
     ntrees = length(trees)
-    _n_samples = nsamples(X)
+    _n_samples = ninstances(X)
 
     if !(tree_weights isa AbstractMatrix)
         if isnothing(tree_weights)
-            tree_weights = Ones{Int}(length(trees), nsamples(X)) # TODO optimize?
+            tree_weights = Ones{Int}(length(trees), ninstances(X)) # TODO optimize?
         elseif tree_weights isa AbstractVector
-            tree_weights = hcat([tree_weights for i in 1:nsamples(X)]...)
+            tree_weights = hcat([tree_weights for i in 1:ninstances(X)]...)
         else
             @show typef(tree_weights)
             error("Unexpected tree_weights encountered $(tree_weights).")
@@ -130,7 +130,7 @@ function apply(
     end
 
     @assert length(trees) == size(tree_weights, 1) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
-    @assert nsamples(X) == size(tree_weights, 2) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
+    @assert ninstances(X) == size(tree_weights, 2) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
 
     # apply each tree to the whole dataset
     _predictions = Matrix{L}(undef, ntrees, _n_samples)
@@ -249,7 +249,7 @@ function apply(
         else
             leaf.predicting_function
         end
-    d = slice_dataset(X, [i_sample])
+    d = slicedataset(X, [i_sample])
     _predicting_function(d)[1], NSDTLeaf{L}(_predicting_function, _supp_train_labels, leaf.supp_valid_labels, _supp_train_predictions, leaf.supp_valid_predictions)
 end
 
@@ -299,7 +299,7 @@ function apply(
     _root = root(tree)
 
     # Propagate instances down the tree
-    for i_sample in 1:nsamples(X)
+    for i_sample in 1:ninstances(X)
         worlds = mm_instance_initialworldset(X, tree, i_sample)
         pred, _root = apply(_root, X, i_sample, worlds, Y[i_sample]; kwargs...)
         push!(predictions, pred)
@@ -318,13 +318,13 @@ function apply(
     @logmsg LogDetail "apply..."
     trees = deepcopy(trees)
     ntrees = length(trees)
-    _n_samples = nsamples(X)
+    _n_samples = ninstances(X)
 
     if !(tree_weights isa AbstractMatrix)
         if isnothing(tree_weights)
-            tree_weights = Ones{Int}(length(trees), nsamples(X)) # TODO optimize?
+            tree_weights = Ones{Int}(length(trees), ninstances(X)) # TODO optimize?
         elseif tree_weights isa AbstractVector
-            tree_weights = hcat([tree_weights for i in 1:nsamples(X)]...)
+            tree_weights = hcat([tree_weights for i in 1:ninstances(X)]...)
         else
             @show typef(tree_weights)
             error("Unexpected tree_weights encountered $(tree_weights).")
@@ -332,7 +332,7 @@ function apply(
     end
 
     @assert length(trees) == size(tree_weights, 1) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
-    @assert nsamples(X) == size(tree_weights, 2) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
+    @assert ninstances(X) == size(tree_weights, 2) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
 
     # apply each tree to the whole dataset
     _predictions = Matrix{L}(undef, ntrees, _n_samples)
@@ -428,7 +428,7 @@ end
 # Obtain predictions of a tree on a dataset
 function apply_proba(tree::DTree{L}, X::MultiFrameConditionalDataset, classes) where {L<:CLabel}
     @logmsg LogDetail "apply_proba..."
-    _n_samples = nsamples(X)
+    _n_samples = ninstances(X)
     prediction_scores = Matrix{Float64}(undef, _n_samples, length(classes))
 
     for i_sample in 1:_n_samples
@@ -453,7 +453,7 @@ end
 # Obtain predictions of a tree on a dataset
 function apply_proba(tree::DTree{L}, X::MultiFrameConditionalDataset) where {L<:RLabel}
     @logmsg LogDetail "apply_proba..."
-    _n_samples = nsamples(X)
+    _n_samples = ninstances(X)
     prediction_scores = Vector{Vector{Float64}}(undef, _n_samples)
 
     for i_sample in 1:_n_samples
@@ -476,13 +476,13 @@ function apply_proba(
 ) where {L<:CLabel,Z<:Real}
     @logmsg LogDetail "apply_proba..."
     ntrees = length(trees)
-    _n_samples = nsamples(X)
+    _n_samples = ninstances(X)
 
     if !(tree_weights isa AbstractMatrix)
         if isnothing(tree_weights)
-            tree_weights = Ones{Int}(length(trees), nsamples(X)) # TODO optimize?
+            tree_weights = Ones{Int}(length(trees), ninstances(X)) # TODO optimize?
         elseif tree_weights isa AbstractVector
-            tree_weights = hcat([tree_weights for i in 1:nsamples(X)]...)
+            tree_weights = hcat([tree_weights for i in 1:ninstances(X)]...)
         else
             @show typef(tree_weights)
             error("Unexpected tree_weights encountered $(tree_weights).")
@@ -490,7 +490,7 @@ function apply_proba(
     end
 
     @assert length(trees) == size(tree_weights, 1) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
-    @assert nsamples(X) == size(tree_weights, 2) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
+    @assert ninstances(X) == size(tree_weights, 2) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
 
     # apply each tree to the whole dataset
     _predictions = Array{Float64,3}(undef, _n_samples, ntrees, length(classes))
@@ -519,7 +519,7 @@ function apply_proba(
 ) where {L<:RLabel,Z<:Real}
     @logmsg LogDetail "apply_proba..."
     ntrees = length(trees)
-    _n_samples = nsamples(X)
+    _n_samples = ninstances(X)
 
     if !isnothing(tree_weights)
         @assert length(trees) === length(tree_weights) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
@@ -564,7 +564,7 @@ end
 
 # function tree_walk_metrics(leaf::DTLeaf; n_tot_inst = nothing, best_rule_params = [])
 #     if isnothing(n_tot_inst)
-#         n_tot_inst = nsamples(leaf)
+#         n_tot_inst = ninstances(leaf)
 #     end
 
 #     matches = findall(leaf.supp_labels .== predictions(leaf))
@@ -602,7 +602,7 @@ end
 
 # function tree_walk_metrics(tree::DTInternal; n_tot_inst = nothing, best_rule_params = [])
 #     if isnothing(n_tot_inst)
-#         n_tot_inst = nsamples(tree)
+#         n_tot_inst = ninstances(tree)
 #     end
 #     # TODO visit also tree.this
 #     metrics_l = tree_walk_metrics(tree.left;  n_tot_inst = n_tot_inst, best_rule_params = best_rule_params)

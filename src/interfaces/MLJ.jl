@@ -90,17 +90,17 @@ function separate_variables_into_frames(X)
 
     frame_ids = [findfirst((ucs)->(ucs==cs), unique_channel_sizes) for cs in channel_sizes]
 
-    frames = Dict([frame_id => [] for frame_id in unique(frame_ids)])
+    modalities = Dict([frame_id => [] for frame_id in unique(frame_ids)])
     for (frame_id, col) in zip(frame_ids, columns)
-        push!(frames[frame_id], col)
+        push!(modalities[frame_id], col)
     end
-    frames = [frames[frame_id] for frame_id in unique(frame_ids)]
+    modalities = [modalities[frame_id] for frame_id in unique(frame_ids)]
 
     # println("Frames:");
     # println()
-    # display(collect(((x)->Pair(x...)).((enumerate(frames)))));
+    # display(collect(((x)->Pair(x...)).((enumerate(modalities)))));
 
-    frames
+    modalities
 end
 
 
@@ -184,7 +184,7 @@ function DataFrame2MultiFrameConditionalDataset(
         init_conditions,
         allow_global_splits,
         mode;
-        downsizing_function = (channel_size, nsamples)->identity,
+        downsizing_function = (channel_size, ninstances)->identity,
     )
 
     @assert mode in [:explicit, :implicit]
@@ -206,19 +206,19 @@ function DataFrame2MultiFrameConditionalDataset(
 
         _X = begin
             n_variables = DataFrames.ncol(X_frame)
-            nsamples = DataFrames.nrow(X_frame)
+            ninstances = DataFrames.nrow(X_frame)
 
             # dataframe2cube(X_frame)
             common_type = Union{eltype.(eltype.(eachcol(X_frame)))...}
             common_type = common_type == Any ? Real : common_type
-            _X = Array{common_type}(undef, channel_size..., n_variables, nsamples)
+            _X = Array{common_type}(undef, channel_size..., n_variables, ninstances)
             for (i_col, col) in enumerate(eachcol(X_frame))
                 for (i_row, row) in enumerate(col)
                     _X[[(:) for i in 1:length(size(row))]...,i_col,i_row] = row
                 end
             end
 
-            _X = downsizing_function(channel_size, nsamples)(_X)
+            _X = downsizing_function(channel_size, ninstances)(_X)
 
             _X
         end
@@ -268,50 +268,50 @@ function DataFrame2MultiFrameConditionalDataset(
     Xs, init_conditions
 end
 
-tree_downsizing_function(channel_size, nsamples) = function (_X)
+tree_downsizing_function(channel_size, ninstances) = function (_X)
     channel_dim = length(channel_size)
     if channel_dim == 1
         n_points = channel_size[1]
-        if nsamples > 300 && n_points > 100
-            println("Warning: downsizing series of size $(n_points) to $(100) points ($(nsamples) samples). If this process gets killed, please downsize your dataset beforehand.")
+        if ninstances > 300 && n_points > 100
+            println("Warning: downsizing series of size $(n_points) to $(100) points ($(ninstances) samples). If this process gets killed, please downsize your dataset beforehand.")
             _X = moving_average(_X, 100)
         elseif n_points > 150
-            println("Warning: downsizing series of size $(n_points) to $(150) points ($(nsamples) samples). If this process gets killed, please downsize your dataset beforehand.")
+            println("Warning: downsizing series of size $(n_points) to $(150) points ($(ninstances) samples). If this process gets killed, please downsize your dataset beforehand.")
             _X = moving_average(_X, 150)
         end
     elseif channel_dim == 2
-        if nsamples > 300 && prod(channel_size) > prod((7,7),)
+        if ninstances > 300 && prod(channel_size) > prod((7,7),)
             new_channel_size = min.(channel_size, (7,7))
-            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(nsamples) samples). If this process gets killed, please downsize your dataset beforehand.")
+            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(ninstances) samples). If this process gets killed, please downsize your dataset beforehand.")
             _X = moving_average(_X, new_channel_size)
         elseif prod(channel_size) > prod((10,10),)
             new_channel_size = min.(channel_size, (10,10))
-            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(nsamples) samples). If this process gets killed, please downsize your dataset beforehand.")
+            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(ninstances) samples). If this process gets killed, please downsize your dataset beforehand.")
             _X = moving_average(_X, new_channel_size)
         end
     end
     _X
 end
 
-forest_downsizing_function(channel_size, nsamples; ntrees) = function (_X)
+forest_downsizing_function(channel_size, ninstances; ntrees) = function (_X)
     channel_dim = length(channel_size)
     if channel_dim == 1
         n_points = channel_size[1]
-        if nsamples > 300 && n_points > 100
-            println("Warning: downsizing series of size $(n_points) to $(100) points ($(nsamples) samples). If this process gets killed, please downsize your dataset beforehand.")
+        if ninstances > 300 && n_points > 100
+            println("Warning: downsizing series of size $(n_points) to $(100) points ($(ninstances) samples). If this process gets killed, please downsize your dataset beforehand.")
             _X = moving_average(_X, 100)
         elseif n_points > 150
-            println("Warning: downsizing series of size $(n_points) to $(150) points ($(nsamples) samples). If this process gets killed, please downsize your dataset beforehand.")
+            println("Warning: downsizing series of size $(n_points) to $(150) points ($(ninstances) samples). If this process gets killed, please downsize your dataset beforehand.")
             _X = moving_average(_X, 150)
         end
     elseif channel_dim == 2
-        if nsamples > 300 && prod(channel_size) > prod((4,4),)
+        if ninstances > 300 && prod(channel_size) > prod((4,4),)
             new_channel_size = min.(channel_size, (4,4))
-            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(nsamples) samples). If this process gets killed, please downsize your dataset beforehand.")
+            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(ninstances) samples). If this process gets killed, please downsize your dataset beforehand.")
             _X = moving_average(_X, new_channel_size)
         elseif prod(channel_size) > prod((7,7),)
             new_channel_size = min.(channel_size, (7,7))
-            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(nsamples) samples). If this process gets killed, please downsize your dataset beforehand.")
+            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(ninstances) samples). If this process gets killed, please downsize your dataset beforehand.")
             _X = moving_average(_X, new_channel_size)
         end
     end
@@ -921,11 +921,11 @@ The fields of `fitted_params(mach)` are:
     The MLJ interface can currently deal with scalar, temporal and spatial variables, but
     has one limitation, and one tricky procedure for handling them at the same time.
     The limitation is for temporal and spatial variables to be uniform in size across the instances (the algorithm will automatically throw away variables that do not satisfy this constraint).
-    As for the tricky procedure: before the learning phase, variables are divided into groups (referred to as `frames`) according to each variable's `channel size`, that is, the size of the vector or matrix.
+    As for the tricky procedure: before the learning phase, variables are divided into groups (referred to as `modalities`) according to each variable's `channel size`, that is, the size of the vector or matrix.
     For example, if X is multimodal, and has three temporal variables :x, :y, :z with 10, 10 and 20 points, respectively,
      plus three spatial variables :R, :G, :B, with the same size 5 × 5 pixels, the algorithm assumes that :x and :y share a temporal axis,
      :R, :G, :B share two spatial axis, while :z does not share any axis with any other variable. As a result,
-     the model will group variables into three frames:
+     the model will group variables into three modalities:
         - {1} [:x, :y]
         - {2} [:z]
         - {3} [:R, :G, :B]
@@ -1022,11 +1022,11 @@ The fields of `fitted_params(mach)` are:
     The MLJ interface can currently deal with scalar, temporal and spatial variables, but
     has one limitation, and one tricky procedure for handling them at the same time.
     The limitation is for temporal and spatial variables to be uniform in size across the instances (the algorithm will automatically throw away variables that do not satisfy this constraint).
-    As for the tricky procedure: before the learning phase, variables are divided into groups (referred to as `frames`) according to each variable's `channel size`, that is, the size of the vector or matrix.
+    As for the tricky procedure: before the learning phase, variables are divided into groups (referred to as `modalities`) according to each variable's `channel size`, that is, the size of the vector or matrix.
     For example, if X is multimodal, and has three temporal variables :x, :y, :z with 10, 10 and 20 points, respectively,
      plus three spatial variables :R, :G, :B, with the same size 5 × 5 pixels, the algorithm assumes that :x and :y share a temporal axis,
      :R, :G, :B share two spatial axis, while :z does not share any axis with any other variable. As a result,
-     the model will group variables into three frames:
+     the model will group variables into three modalities:
         - {1} [:x, :y]
         - {2} [:z]
         - {3} [:R, :G, :B]

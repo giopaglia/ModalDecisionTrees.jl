@@ -260,7 +260,7 @@ function train_functional_leaves(
         satisfied_idxs   = Integer[]
         unsatisfied_idxs = Integer[]
 
-        for i_sample in 1:nsamples(X)
+        for i_sample in 1:ninstances(X)
             (satisfied,new_worlds) = modalstep(frame(X, frameid(node)), i_sample, worlds[i_dataset][frameid(node)][i_sample], decision(node))
 
             if satisfied
@@ -272,8 +272,8 @@ function train_functional_leaves(
             worlds[i_dataset][frameid(node)][i_sample] = new_worlds
         end
 
-        push!(datasets_l, slice_dataset((X,Y), satisfied_idxs;   allow_no_instances = true))
-        push!(datasets_r, slice_dataset((X,Y), unsatisfied_idxs; allow_no_instances = true))
+        push!(datasets_l, slicedataset((X,Y), satisfied_idxs;   allow_no_instances = true))
+        push!(datasets_r, slicedataset((X,Y), unsatisfied_idxs; allow_no_instances = true))
 
         push!(worlds_l, [frame_worlds[satisfied_idxs]   for frame_worlds in worlds[i_dataset]])
         push!(worlds_r, [frame_worlds[unsatisfied_idxs] for frame_worlds in worlds[i_dataset]])
@@ -305,13 +305,13 @@ function train_functional_leaves(
     # println(typeof(train_X))
     # println(hasmethod(size,   (typeof(train_X),)) ? size(train_X)   : nothing)
     # println(hasmethod(length, (typeof(train_X),)) ? length(train_X) : nothing)
-    # println(nsamples(train_X))
+    # println(ninstances(train_X))
 
     # println(typeof(valid_X))
     # println(hasmethod(size,   (typeof(valid_X),)) ? size(valid_X)   : nothing)
     # println(hasmethod(length, (typeof(valid_X),)) ? length(valid_X) : nothing)
 
-    # println(nsamples(valid_X))
+    # println(ninstances(valid_X))
 
     supp_train_labels = train_Y
     supp_valid_labels = valid_Y

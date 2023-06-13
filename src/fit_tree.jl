@@ -381,7 +381,7 @@ Base.@propagate_inbounds @inline function split_node!(
     #   lsums[i] = zero(U)
     # end
 
-    Sfs = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, nframes(Xs))
+    Sfs = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, nmodalities(Xs))
     for (i_frame,WT) in enumerate(worldtypes(Xs))
         Sfs[i_frame] = Vector{Vector{WT}}(undef, _n_samples)
         @simd for i in 1:_n_samples
@@ -409,9 +409,9 @@ Base.@propagate_inbounds @inline function split_node!(
                 frame_n_subrelations::Function,
                 frame_n_subfeatures,
                 frame_allow_global_splits,
-                frame_onlyallowglobal)) in enumerate(zip(frames(Xs), Sfs, n_subrelations, n_subfeatures, allow_global_splits, node.onlyallowglobal))
+                frame_onlyallowglobal)) in enumerate(zip(modalities(Xs), Sfs, n_subrelations, n_subfeatures, allow_global_splits, node.onlyallowglobal))
 
-        @logmsg LogDetail "  Frame $(best_i_frame)/$(length(frames(Xs)))"
+        @logmsg LogDetail "  Frame $(best_i_frame)/$(length(modalities(Xs)))"
 
         allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds = begin
 
@@ -800,7 +800,7 @@ end
     kwargs...,
 ) where{L<:_Label,U}
 
-    _n_samples = nsamples(Xs)
+    _n_samples = ninstances(Xs)
 
     # Initialize world sets for each instance
     Ss = ModalDecisionTrees.initialworldsets(Xs, init_conditions)
@@ -867,21 +867,21 @@ end
     ##########################################################################
     kwargs...,
 ) where {S,U}
-    _n_samples = nsamples(Xs)
+    _n_samples = ninstances(Xs)
 
     if length(Y) != _n_samples
         throw_n_log("Dimension mismatch between dataset and label vector Y: ($(_n_samples)) vs $(size(Y))")
     elseif length(W) != _n_samples
         throw_n_log("Dimension mismatch between dataset and weights vector W: ($(_n_samples)) vs $(size(W))")
     ############################################################################
-    elseif length(n_subrelations) != nframes(Xs)
-        throw_n_log("Mismatching number of n_subrelations with number of frames: $(length(n_subrelations)) vs $(nframes(Xs))")
-    elseif length(n_subfeatures)  != nframes(Xs)
-        throw_n_log("Mismatching number of n_subfeatures with number of frames: $(length(n_subfeatures)) vs $(nframes(Xs))")
-    elseif length(init_conditions) != nframes(Xs)
-        throw_n_log("Mismatching number of init_conditions with number of frames: $(length(init_conditions)) vs $(nframes(Xs))")
-    elseif length(allow_global_splits) != nframes(Xs)
-        throw_n_log("Mismatching number of allow_global_splits with number of frames: $(length(allow_global_splits)) vs $(nframes(Xs))")
+    elseif length(n_subrelations) != nmodalities(Xs)
+        throw_n_log("Mismatching number of n_subrelations with number of modalities: $(length(n_subrelations)) vs $(nmodalities(Xs))")
+    elseif length(n_subfeatures)  != nmodalities(Xs)
+        throw_n_log("Mismatching number of n_subfeatures with number of modalities: $(length(n_subfeatures)) vs $(nmodalities(Xs))")
+    elseif length(init_conditions) != nmodalities(Xs)
+        throw_n_log("Mismatching number of init_conditions with number of modalities: $(length(init_conditions)) vs $(nmodalities(Xs))")
+    elseif length(allow_global_splits) != nmodalities(Xs)
+        throw_n_log("Mismatching number of allow_global_splits with number of modalities: $(length(allow_global_splits)) vs $(nmodalities(Xs))")
     ############################################################################
     # elseif any(nrelations(Xs) .< n_subrelations)
     #   throw_n_log("In at least one frame the total number of relations is less than the number "
@@ -922,9 +922,9 @@ end
         # println(Xs)
         # println(DimensionalDatasets.display_structure(Xs))
         # println(SoleData.hasnans(Xs))
-        # println(SoleData.hasnans.([fd(X) for X in frames(Xs)]))
-        # println(SoleData.hasnans.([fd(X).fwd for X in frames(Xs)]))
-        # println(fwd(frames(Xs)[1].fd))
+        # println(SoleData.hasnans.([fd(X) for X in modalities(Xs)]))
+        # println(SoleData.hasnans.([fd(X).fwd for X in modalities(Xs)]))
+        # println(fwd(modalities(Xs)[1].fd))
         throw_n_log("This algorithm doesn't allow NaN values")
     end
 
@@ -955,7 +955,7 @@ function fit_tree(
     init_conditions           :: Vector{<:InitCondition},
     # Weights (unary weigths are used if no weight is supplied)
     W                         :: AbstractVector{U} = default_weights(Y)
-    # W                       :: AbstractVector{U} = Ones{Int}(nsamples(Xs)), # TODO check whether this is faster
+    # W                       :: AbstractVector{U} = Ones{Int}(ninstances(Xs)), # TODO check whether this is faster
     ;
     # Perform minification: transform dataset so that learning happens faster
     use_minification          :: Bool,
@@ -980,7 +980,7 @@ function fit_tree(
         if use_minification
             minify(Xs)
         else
-            Xs, fill(identity, nframes(Xs))
+            Xs, fill(identity, nmodalities(Xs))
         end
     end
 

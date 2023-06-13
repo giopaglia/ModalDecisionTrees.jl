@@ -24,14 +24,14 @@ using SoleModels: CLabel, RLabel, Label, _CLabel, _Label, get_categorical_form
 using SoleModels: bestguess, default_weights, slice_weights
 using SoleData
 using SoleData: max_channel_size,
-                nattributes,
+                nvariables,
                 get_instance,
-                slice_dataset,
-                _slice_dataset
+                slicedataset,
+                instances
 
 using SoleModels: AbstractConditionalDataset
 
-import SoleData: nsamples
+import SoleData: ninstances
 
 import SoleModels: feature, test_operator, threshold
 
@@ -43,7 +43,7 @@ using SoleModels: MultiFrameConditionalDataset
 using SoleModels: WorldSet, GenericModalDataset
 
 using SoleModels: nfeatures, nrelations,
-                            nframes, frames, frame,
+                            nmodalities, modalities, frame,
                             display_structure,
                             #
                             relations,
@@ -77,8 +77,8 @@ using SoleModels: existential_aggregator, universal_aggregator, aggregator_botto
 
 ############################################################################################
 
-export slice_dataset, 
-       nframes, nsamples, nattributes, max_channel_size
+export slicedataset,
+       nmodalities, ninstances, nvariables, max_channel_size
 
 export DTree,                   # Decision tree
         DForest,                # Decision forest

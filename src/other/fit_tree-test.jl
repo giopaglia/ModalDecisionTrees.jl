@@ -48,7 +48,7 @@ use_minification = false,
 )
 perform_consistency_check  = true
 
-# @code_warntype nsamples(Xs)
+# @code_warntype ninstances(Xs)
 
 init_conditions             = [ModalDecisionTrees.start_without_world]
 
