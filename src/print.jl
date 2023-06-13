@@ -150,7 +150,7 @@ function displaymodel(
     metrics_kwargs...,
 )
     outstr = ""
-    outstr *= "$(display_decision(node; variable_names_map = variable_names_map))\t\t\t"
+    outstr *= "$(displaydecision(node; variable_names_map = variable_names_map))\t\t\t"
     outstr *= displaymodel(this(node); indentation_str = "", metrics_kwargs...)
     if isnothing(max_depth) || length(indentation_str) < max_depth
         outstr *= indentation_str * "✔ " # "╭✔

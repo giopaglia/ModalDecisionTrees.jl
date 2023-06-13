@@ -111,7 +111,7 @@ Note that the left subtree of any split node represents the 'yes-branch', while 
 and then below the right subtree.
 """
 function printnode(io::IO, dt_node::MDT.DTInternal)
-    print(io, display_decision(dt_node))
+    print(io, displaydecision(dt_node))
 end
 
 function printnode(io::IO, dt_leaf::MDT.AbstractDecisionLeaf)
@@ -125,7 +125,7 @@ filter_nt_fields(f, nt) = NamedTuple{filter(f, keys(nt))}(nt)
 function printnode(io::IO, node::InfoNode)
     kwargs = filter_nt_fields(x -> x in [:variable_names_map, :threshold_display_method, :use_feature_abbreviations], node.info)
     dt_node = node.node
-    print(io, display_decision(dt_node; kwargs...))
+    print(io, displaydecision(dt_node; kwargs...))
 end
 
 function printnode(io::IO, leaf::InfoLeaf)

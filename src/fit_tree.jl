@@ -463,7 +463,7 @@ Base.@propagate_inbounds @inline function split_node!(
 
         @inbounds for (decision, aggr_thresholds) in generate_feasible_decisions(X, idxs[region], frame_Sf, allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds)
 
-            # println(display_decision(i_modality, decision))
+            # println(displaydecision(i_modality, decision))
 
             # TODO avoid ugly unpacking and figure out a different way of achieving this
             (_test_operator, _threshold) = (test_operator(decision), threshold(decision))
@@ -649,7 +649,7 @@ Base.@propagate_inbounds @inline function split_node!(
         # Compute new world sets (= take a modal step)
 
         # println(decision_str)
-        decision_str = display_decision(best_i_modality, best_decision)
+        decision_str = displaydecision(best_i_modality, best_decision)
 
         # TODO instead of using memory, here, just use two opposite indices and perform substitutions. indj = _n_instances
         unsatisfied_flags = fill(1, _n_instances)

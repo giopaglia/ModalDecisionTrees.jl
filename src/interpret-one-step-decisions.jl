@@ -43,7 +43,7 @@ function modalstep(
     decision::ExistentialScalarDecision{U},
     return_survivors::Union{Val{true},Val{false}} = Val(false)
 ) where {W<:AbstractWorld,WorldSetType<:AbstractWorldSet,U}
-    @logmsg LogDetail "modalstep" worlds display_decision(decision)
+    @logmsg LogDetail "modalstep" worlds displaydecision(decision)
 
     satisfied = false
     
@@ -206,7 +206,7 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
                 # Look for the best threshold 'a', as in propositions like "feature >= a"
                 for threshold in aggr_domain
                     decision = ExistentialScalarDecision(relation, feature, test_operator, threshold)
-                    # @logmsg LogDebug " Testing decision: $(display_decision(decision))"
+                    # @logmsg LogDebug " Testing decision: $(displaydecision(decision))"
                     @yield decision, aggr_thresholds
                 end # for threshold
                 # push!(tested_test_operator, test_operator)
@@ -299,7 +299,7 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
                     # Look for the best threshold 'a', as in propositions like "feature >= a"
                     for threshold in aggr_domain
                         decision = ExistentialScalarDecision(relation, feature, test_operator, threshold)
-                        # @logmsg LogDebug " Testing decision: $(display_decision(decision))"
+                        # @logmsg LogDebug " Testing decision: $(displaydecision(decision))"
                         @yield decision, aggr_thresholds
                     end # for threshold
                 end # for test_operator
@@ -395,7 +395,7 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
                 # Look for the best threshold 'a', as in propositions like "feature >= a"
                 for threshold in aggr_domain
                     decision = ExistentialScalarDecision(relation, feature, test_operator, threshold)
-                    # @logmsg LogDebug " Testing decision: $(display_decision(decision))"
+                    # @logmsg LogDebug " Testing decision: $(displaydecision(decision))"
                     @yield decision, aggr_thresholds
                 end # for threshold
             end # for test_operator

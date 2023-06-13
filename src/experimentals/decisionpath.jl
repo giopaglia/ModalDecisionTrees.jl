@@ -68,7 +68,7 @@ function get_path_in_tree(tree::DTree{S}, X::GenericModalDataset)::Vector{Decisi
 end
 
 function get_internalnode_dirname(node::DTInternal)::String
-    replace(display_decision(node), " " => "_")
+    replace(displaydecision(node), " " => "_")
 end
 
 mk_tree_path(leaf::DTLeaf; path::String) = touch(path * "/" * string(prediction(leaf)) * ".txt")

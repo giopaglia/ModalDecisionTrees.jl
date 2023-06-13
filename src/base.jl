@@ -91,15 +91,15 @@ _forth!(ded::DoubleEdgedDecision, _forth) = (ded._forth = _forth)
 is_propositional_decision(ded::DoubleEdgedDecision) = is_propositional_decision(decision(ded))
 is_global_decision(ded::DoubleEdgedDecision) = is_global_decision(decision(ded))
 
-function display_decision(ded::DoubleEdgedDecision, args...; kwargs...)
+function displaydecision(ded::DoubleEdgedDecision, args...; kwargs...)
     outstr = ""
     outstr *= "DoubleEdgedDecision("
-    outstr *= display_decision(decision(ded))
+    outstr *= displaydecision(decision(ded))
     outstr *= ", " * (isnothing(_back(ded)) ? "-" : "$(typeof(_back(ded)))")
     outstr *= ", " * (isnothing(_forth(ded)) ? "-" : "$(typeof(_forth(ded)))")
     outstr *= ")"
     # outstr *= "DoubleEdgedDecision(\n\t"
-    # outstr *= display_decision(decision(ded))
+    # outstr *= displaydecision(decision(ded))
     # # outstr *= "\n\tback: " * (isnothing(back(ded)) ? "-" : displaymodel(back(ded), args...; kwargs...))
     # # outstr *= "\n\tforth: " * (isnothing(forth(ded)) ? "-" : displaymodel(forth(ded), args...; kwargs...))
     # outstr *= "\n\tback: " * (isnothing(_back(ded)) ? "-" : "$(typeof(_back(ded)))")
@@ -511,10 +511,10 @@ ismodalnode(tree::DTree)      = ismodalnode(root(tree))
 ############################################################################################
 ############################################################################################
 
-display_decision(node::DTInternal, args...; kwargs...) =
-    display_decision(frameid(node), decision(node), args...; kwargs...)
-display_decision_inverse(node::DTInternal, args...; kwargs...) =
-    display_decision_inverse(frameid(node), decision(node), args...; kwargs...)
+displaydecision(node::DTInternal, args...; kwargs...) =
+    displaydecision(frameid(node), decision(node), args...; kwargs...)
+displaydecision_inverse(node::DTInternal, args...; kwargs...) =
+    displaydecision_inverse(frameid(node), decision(node), args...; kwargs...)
 
 ############################################################################################
 ############################################################################################
