@@ -13,9 +13,9 @@ using SoleModels.DimensionalDatasets: relations,
                     fwd_gs,
                     support
 
-using SoleModels.DimensionalDatasets: fwdread_channel,
-                    fwdslice_onestep_accessible_aggregation,
-                    onestep_accessible_aggregation
+using SoleModels.DimensionalDatasets: featchannel,
+                    featchannel_onestep_aggregation,
+                    onestep_aggregation
 
 
 export generate_feasible_decisions
@@ -260,17 +260,17 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
                 # @logmsg LogDetail " Instance $(instance_id)/$(_n_instances)"
                 worlds = Sf[instance_id]
                 if X isa Union{Logiset,SupportedScalarLogiset}
-                    fwdslice = fwdread_channel(fwd(X), i_instance, i_feature)
+                    _featchannel = featchannel(fwd(X), i_instance, i_feature)
                 end
                 for (i_aggr,(i_featsnaggr,aggr)) in enumerate(aggregators_with_ids)
                     for w in worlds
                         gamma = begin
                             if X isa Union{Logiset,SupportedScalarLogiset}
-                                # fwdslice = fwdread_channel(fwd(X), i_instance, i_feature)
-                                fwdslice_onestep_accessible_aggregation(X, fwdslice, i_instance, w, relation, feature, aggr, i_featsnaggr, i_relation)
-                                # onestep_accessible_aggregation(X, i_instance, w, relation, feature, aggr, i_featsnaggr, i_relation)
+                                # _featchannel = featchannel(fwd(X), i_instance, i_feature)
+                                featchannel_onestep_aggregation(X, _featchannel, i_instance, w, relation, feature, aggr, i_featsnaggr, i_relation)
+                                # onestep_aggregation(X, i_instance, w, relation, feature, aggr, i_featsnaggr, i_relation)
                             elseif X isa DimensionalLogiset
-                                 onestep_accessible_aggregation(X, i_instance, w, relation, feature, aggr, i_featsnaggr, i_relation)
+                                 onestep_aggregation(X, i_instance, w, relation, feature, aggr, i_featsnaggr, i_relation)
                             else
                                 error("generate_global_feasible_decisions is broken.")
                             end
@@ -280,7 +280,7 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
                 end
                 
                 # for (i_aggr,(i_featsnaggr,aggr)) in enumerate(aggregators_with_ids)
-                #     gammas = [onestep_accessible_aggregation(X, i_instance, w, relation, feature, aggr, i_featsnaggr, i_relation) for w in worlds]
+                #     gammas = [onestep_aggregation(X, i_instance, w, relation, feature, aggr, i_featsnaggr, i_relation) for w in worlds]
                 #     thresholds[i_aggr,instance_id] = aggr(gammas)
                 # end
             end
@@ -355,17 +355,17 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
         for (instance_id,i_instance) in enumerate(i_instances)
             # @logmsg LogDetail " Instance $(instance_id)/$(_n_instances)"
             if X isa Union{Logiset,SupportedScalarLogiset}
-                fwdslice = fwdread_channel(fwd(X), i_instance, i_feature)
+                _featchannel = featchannel(fwd(X), i_instance, i_feature)
             end
             for (i_aggr,(i_featsnaggr,aggr)) in enumerate(aggregators_with_ids)
-                # TODO delegate this job to different flavors of `get_global_gamma`. Test whether the fwdslice assignment outside is faster!
+                # TODO delegate this job to different flavors of `get_global_gamma`. Test whether the _featchannel assignment outside is faster!
                 gamma = begin
                     if X isa Union{Logiset,SupportedScalarLogiset}
-                        # fwdslice = fwdread_channel(fwd(X), i_instance, i_feature)
-                        fwdslice_onestep_accessible_aggregation(X, fwdslice, i_instance, relation, feature, aggr, i_featsnaggr)
-                        # onestep_accessible_aggregation(X, i_instance, relation, feature, aggr, i_featsnaggr)
+                        # _featchannel = featchannel(fwd(X), i_instance, i_feature)
+                        featchannel_onestep_aggregation(X, _featchannel, i_instance, dummyworldTODO, relation, feature, aggr, i_featsnaggr)
+                        # onestep_aggregation(X, i_instance, dummyworldTODO, relation, feature, aggr, i_featsnaggr)
                     elseif X isa DimensionalLogiset
-                        onestep_accessible_aggregation(X, i_instance, relation, feature, aggr, i_featsnaggr)
+                        onestep_aggregation(X, i_instance, dummyworldTODO, relation, feature, aggr, i_featsnaggr)
                     else
                         error("generate_global_feasible_decisions is broken.")
                     end
