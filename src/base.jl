@@ -1,44 +1,45 @@
-using SoleLogics: AbstractMultiModalFrame
 import SoleModels: printmodel, displaymodel
 import SoleModels.DimensionalDatasets: worldtypes
 
+using SoleModels: StartWithoutWorld, StartAtCenter, StartAtWorld
+
 ############################################################################################
-# Initial world conditions
+# Initial conditions
 ############################################################################################
-using SoleLogics: InitCondition
-import SoleLogics: initialworldset
 
-struct StartWithoutWorld               <: InitCondition end; const start_without_world  = StartWithoutWorld();
-struct StartAtCenter                   <: InitCondition end; const start_at_center      = StartAtCenter();
-struct StartAtWorld{W<:AbstractWorld}  <: InitCondition w::W end;
+using SoleLogics: AbstractMultiModalFrame
 
-function initialworldset(frs::AbstractVector{<:AbstractMultiModalFrame}, iCs::AbstractVector{<:InitCondition})
-    [initialworldset(fr, iC) for (fr, iC) in zip(frs, iCs)]
-end
+abstract type InitialCondition end
 
-function initialworldset(fr::AbstractMultiModalFrame{W}, iC::StartWithoutWorld) where {W<:AbstractWorld}
+struct StartWithoutWorld               <: InitialCondition end;
+const start_without_world  = StartWithoutWorld();
+
+struct StartAtCenter                   <: InitialCondition end;
+const start_at_center      = StartAtCenter();
+
+struct StartAtWorld{W<:AbstractWorld}  <: InitialCondition w::W end;
+
+function initialworldset(fr::AbstractMultiModalFrame{W}, initcond::StartWithoutWorld) where {W<:AbstractWorld}
     WorldSet{W}([SoleLogics.emptyworld(fr)])
 end
 
-function initialworldset(fr::AbstractMultiModalFrame{W}, iC::StartAtCenter) where {W<:AbstractWorld}
-    WorldSet{W}([SoleLogics.centeredworld(fr)])
+function initialworldset(fr::AbstractMultiModalFrame{W}, initcond::StartAtCenter) where {W<:AbstractWorld}
+    WorldSet{W}([SoleModels.world(fr, SoleModels.CenteredCheck)])
 end
 
-function initialworldset(::AbstractMultiModalFrame{W}, iC::StartAtWorld{W}) where {W<:AbstractWorld}
-    WorldSet{W}([iC.w])
+function initialworldset(::AbstractMultiModalFrame{W}, initcond::StartAtWorld{W}) where {W<:AbstractWorld}
+    WorldSet{W}([initcond.w])
 end
 
-function initialworldsets(Xs::MultiLogiset, iCs::AbstractVector{<:InitCondition})
+function initialworldsets(Xs::MultiLogiset, initconds::AbstractVector{<:InitialCondition})
     Ss = Vector{Vector{WST} where {W,WST<:WorldSet{W}}}(undef, nmodalities(Xs)) # Fix
     for (i_modality,X) in enumerate(modalities(Xs))
         W = worldtype(X)
-        Ss[i_modality] = WorldSet{W}[initialworldset(X, i_instance, iCs[i_modality]) for i_instance in 1:ninstances(Xs)]
+        Ss[i_modality] = WorldSet{W}[initialworldset(X, i_instance, initconds[i_modality]) for i_instance in 1:ninstances(Xs)]
         # Ss[i_modality] = WorldSet{W}[[Interval(1,2)] for i_instance in 1:ninstances(Xs)]
     end
     Ss
 end
-
-initialworldset(X::AbstractLogiset, i_instance::Integer, args...) = initialworldset(SoleModels.frame(X, i_instance), args...)
 
 ############################################################################################
 
@@ -278,7 +279,7 @@ predictions(leaf::NSDTLeaf; train_or_valid = true) = (train_or_valid ? leaf.supp
 # Internal decision node, holding a split-decision and a frame index
 struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
     # frame index + split-decision
-    frameid       :: FrameId
+    i_modality    :: ModalityId
     decision      :: D
     # representative leaf for the current node
     this          :: AbstractDecisionLeaf{<:L}
@@ -291,39 +292,39 @@ struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
 
     # create node
     function DTInternal{L,D}(
-        frameid          :: FrameId,
+        i_modality       :: ModalityId,
         decision         :: D,
         this             :: AbstractDecisionLeaf,
         left             :: Union{AbstractDecisionLeaf,DTInternal},
         right            :: Union{AbstractDecisionLeaf,DTInternal},
         miscellaneous    :: NamedTuple = (;),
     ) where {D<:AbstractDecision,L<:Label}
-        new{L,D}(frameid, decision, this, left, right, miscellaneous)
+        new{L,D}(i_modality, decision, this, left, right, miscellaneous)
     end
     function DTInternal{L}(
-        frameid          :: FrameId,
+        i_modality       :: ModalityId,
         decision         :: D,
         this             :: AbstractDecisionLeaf{<:L},
         left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
         right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
         miscellaneous    :: NamedTuple = (;),
     ) where {D<:AbstractDecision,L<:Label}
-        DTInternal{L,D}(frameid, decision, this, left, right, miscellaneous)
+        DTInternal{L,D}(i_modality, decision, this, left, right, miscellaneous)
     end
     function DTInternal(
-        frameid          :: FrameId,
+        i_modality       :: ModalityId,
         decision         :: D,
         this             :: AbstractDecisionLeaf{<:L},
         left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
         right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
         miscellaneous    :: NamedTuple = (;),
     ) where {D<:AbstractDecision,L<:Label}
-        DTInternal{L,D}(frameid, decision, this, left, right, miscellaneous)
+        DTInternal{L,D}(i_modality, decision, this, left, right, miscellaneous)
     end
 
     # create node without local decision
     function DTInternal{L,D}(
-        frameid          :: FrameId,
+        i_modality       :: ModalityId,
         decision         :: D,
         left             :: Union{AbstractDecisionLeaf,DTInternal},
         right            :: Union{AbstractDecisionLeaf,DTInternal},
@@ -334,19 +335,19 @@ struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
         end
         # this = merge_into_leaf(Vector{<:Union{AbstractDecisionLeaf,DTInternal}}([left, right]))
         this = merge_into_leaf(Union{<:AbstractDecisionLeaf,<:DTInternal}[left, right])
-        new{L,D}(frameid, decision, this, left, right, miscellaneous)
+        new{L,D}(i_modality, decision, this, left, right, miscellaneous)
     end
     function DTInternal{L}(
-        frameid          :: FrameId,
+        i_modality       :: ModalityId,
         decision         :: D,
         left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
         right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
         miscellaneous    :: NamedTuple = (;),
     ) where {D<:AbstractDecision,L<:Label}
-        DTInternal{L,D}(frameid, decision, left, right, miscellaneous)
+        DTInternal{L,D}(i_modality, decision, left, right, miscellaneous)
     end
     function DTInternal(
-        frameid          :: FrameId,
+        i_modality       :: ModalityId,
         decision         :: D,
         left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
         right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
@@ -355,7 +356,7 @@ struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
         if decision isa AbstractTemplatedFormula
             decision = SimpleDecision(decision)
         end
-        DTInternal{L,D}(frameid, decision, left, right, miscellaneous)
+        DTInternal{L,D}(i_modality, decision, left, right, miscellaneous)
     end
 
     # create node without frame
@@ -364,8 +365,8 @@ struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
     #     this             :: AbstractDecisionLeaf,
     #     left             :: Union{AbstractDecisionLeaf,DTInternal},
     #     right            :: Union{AbstractDecisionLeaf,DTInternal}) where {T,L<:Label}
-    #     frameid = 1
-    #     DTInternal{L,D}(frameid, decision, this, left, right)
+    #     i_modality = 1
+    #     DTInternal{L,D}(i_modality, decision, this, left, right)
     # end
     # function DTInternal(
     #     decision         :: AbstractDecision{T},
@@ -380,8 +381,8 @@ struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
     #     decision         :: AbstractDecision,
     #     left             :: Union{AbstractDecisionLeaf,DTInternal},
     #     right            :: Union{AbstractDecisionLeaf,DTInternal}) where {T,L<:Label}
-    #     frameid = 1
-    #     DTInternal{L,D}(frameid, decision, left, right)
+    #     i_modality = 1
+    #     DTInternal{L,D}(i_modality, decision, left, right)
     # end
     # function DTInternal(
     #     decision         :: AbstractDecision{T},
@@ -391,7 +392,7 @@ struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
     # end
 end
 
-frameid(node::DTInternal) = node.frameid
+i_modality(node::DTInternal) = node.i_modality
 decision(node::DTInternal) = node.decision
 this(node::DTInternal) = node.this
 left(node::DTInternal) = node.left
@@ -414,12 +415,12 @@ struct DTree{L<:Label} <: SymbolicModel{L}
     # world types (one per frame)
     worldtypes     :: Vector{Type{<:AbstractWorld}}
     # initial world conditions (one per frame)
-    init_conditions :: Vector{<:InitCondition}
+    init_conditions :: Vector{<:InitialCondition}
 
     function DTree{L}(
         root            :: DTNode,
         worldtypes     :: AbstractVector{<:Type},
-        init_conditions :: AbstractVector{<:InitCondition},
+        init_conditions :: AbstractVector{<:InitialCondition},
     ) where {L<:Label}
         new{L}(root, collect(worldtypes), collect(init_conditions))
     end
@@ -427,7 +428,7 @@ struct DTree{L<:Label} <: SymbolicModel{L}
     function DTree(
         root            :: DTNode{L,D},
         worldtypes     :: AbstractVector{<:Type},
-        init_conditions :: AbstractVector{<:InitCondition},
+        init_conditions :: AbstractVector{<:InitialCondition},
     ) where {L<:Label,D<:AbstractDecision}
         DTree{L}(root, worldtypes, init_conditions)
     end
@@ -564,9 +565,9 @@ ismodalnode(tree::DTree)      = ismodalnode(root(tree))
 ############################################################################################
 
 displaydecision(node::DTInternal, args...; kwargs...) =
-    displaydecision(frameid(node), decision(node), args...; kwargs...)
+    displaydecision(i_modality(node), decision(node), args...; kwargs...)
 displaydecision_inverse(node::DTInternal, args...; kwargs...) =
-    displaydecision_inverse(frameid(node), decision(node), args...; kwargs...)
+    displaydecision_inverse(i_modality(node), decision(node), args...; kwargs...)
 
 ############################################################################################
 ############################################################################################
@@ -629,7 +630,7 @@ function display(node::DTInternal{L,D}) where {L,D}
 Decision Node{$(L),$(D)}(
 $(display(this(node)))
     ###########################################################
-    frameid: $(frameid(node))
+    i_modality: $(i_modality(node))
     decision: $(decision(node))
     miscellaneous: $(miscellaneous(node))
     ###########################################################

@@ -7,10 +7,6 @@ using LinearAlgebra
 using Random
 using StatsBase
 
-############################################################################################
-# Sort utils
-############################################################################################
-
 # adapted from the Julia Base.Sort Library
 Base.@propagate_inbounds @inline function partition!(v::AbstractVector, w::AbstractVector{T}, pivot::T, region::UnitRange{<:Integer}) where T
     i, j = 1, length(region)
@@ -27,20 +23,5 @@ Base.@propagate_inbounds @inline function partition!(v::AbstractVector, w::Abstr
     end
     return j
 end
-
-# TODO figure out what to do with this.
-function all_broadcast_sc(_test_operator, values, threshold)
-    # Note: this is faster than all(broadcast(_test_operator, values, threshold))
-    for x in values
-        (_test_operator)(x,threshold) || return false
-    end
-    return true
-end
-
-
-# minExtrema(extr::Union{NTuple{N,NTuple{2,T}},AbstractVector{NTuple{2,T}}}) where {T<:Real,N} = reduce(((fst,snd),(f,s))->(min(fst,f),max(snd,s)), extr; init=(typemax(T),typemin(T)))
-# maxExtrema(extr::Union{NTuple{N,NTuple{2,T}},AbstractVector{NTuple{2,T}}}) where {T<:Real,N} = reduce(((fst,snd),(f,s))->(max(fst,f),min(snd,s)), extr; init=(typemin(T),typemax(T)))
-# minExtrema(extr::Vararg{NTuple{2,T}}) where {T<:Real} = minExtrema(extr)
-# maxExtrema(extr::Vararg{NTuple{2,T}}) where {T<:Real} = maxExtrema(extr)
 
 end

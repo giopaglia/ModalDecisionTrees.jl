@@ -23,7 +23,7 @@ using SoleModels: CLabel, RLabel, Label, _CLabel, _Label, get_categorical_form
 
 using SoleModels: bestguess, default_weights, slice_weights
 using SoleData
-using SoleData: max_channel_size,
+using SoleData: maxchannelsize,
                 nvariables,
                 get_instance,
                 slicedataset,
@@ -77,7 +77,7 @@ using SoleModels: existential_aggregator, universal_aggregator, aggregator_botto
 ############################################################################################
 
 export slicedataset,
-       nmodalities, ninstances, nvariables, max_channel_size
+       nmodalities, ninstances, nvariables, maxchannelsize
 
 export DTree,                   # Decision tree
         DForest,                # Decision forest
@@ -85,7 +85,7 @@ export DTree,                   # Decision tree
         #
         nnodes, height, modalheight
 
-FrameId = Int
+ModalityId = Int
 
 ############################################################################################
 

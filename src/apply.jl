@@ -79,13 +79,13 @@ function apply(tree::DTInternal, X::MultiLogiset, i_instance::Integer, worlds::A
     @logmsg LogDetail " worlds" worlds
     (satisfied,new_worlds) =
         modalstep(
-            frame(X, frameid(tree)),
+            frame(X, i_modality(tree)),
             i_instance,
-            worlds[frameid(tree)],
+            worlds[i_modality(tree)],
             decision(tree),
     )
 
-    worlds[frameid(tree)] = new_worlds
+    worlds[i_modality(tree)] = new_worlds
     @logmsg LogDetail " ->(satisfied,worlds')" satisfied worlds
     apply((satisfied ? left(tree) : right(tree)), X, i_instance, worlds; kwargs...)
 end
@@ -193,7 +193,7 @@ end
 
 function _empty_tree_leaves(node::DTInternal)
     return DTInternal(
-        frameid(node),
+        i_modality(node),
         decision(node),
         _empty_tree_leaves(this(node)),
         _empty_tree_leaves(left(node)),
@@ -262,13 +262,13 @@ function apply(
     kwargs...,
 ) where {L}
 
-    (satisfied,new_worlds) = modalstep(frame(X, frameid(tree)), i_instance, worlds[frameid(tree)], decision(tree))
+    (satisfied,new_worlds) = modalstep(frame(X, i_modality(tree)), i_instance, worlds[i_modality(tree)], decision(tree))
 
     # if satisfied
     #   println("new_worlds: $(new_worlds)")
     # end
 
-    worlds[frameid(tree)] = new_worlds
+    worlds[i_modality(tree)] = new_worlds
 
     this_prediction, this_leaf = apply(this(tree),  X, i_instance, worlds, class; kwargs...) # TODO test whether this works correctly
 
@@ -281,7 +281,7 @@ function apply(
             pred, left(tree), right_leaf
         end
 
-    pred, DTInternal(frameid(tree), decision(tree), this_leaf, left_leaf, right_leaf)
+    pred, DTInternal(i_modality(tree), decision(tree), this_leaf, left_leaf, right_leaf)
 end
 
 function apply(
@@ -414,13 +414,13 @@ function apply_proba(tree::DTInternal, X::MultiLogiset, i_instance::Integer, wor
     @logmsg LogDetail " worlds" worlds
     (satisfied,new_worlds) =
         modalstep(
-            frame(X, frameid(tree)),
+            frame(X, i_modality(tree)),
             i_instance,
-            worlds[frameid(tree)],
+            worlds[i_modality(tree)],
             decision(tree),
     )
 
-    worlds[frameid(tree)] = new_worlds
+    worlds[i_modality(tree)] = new_worlds
     @logmsg LogDetail " ->(satisfied,worlds')" satisfied worlds
     apply_proba((satisfied ? left(tree) : right(tree)), X, i_instance, worlds)
 end

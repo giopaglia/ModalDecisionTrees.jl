@@ -106,7 +106,7 @@ Y  = Int64[fill(1, _n_instances_h)..., fill(2, _n_instances_h)...]
 idxs = collect(1:_n_instances)
 Ss = ModalDecisionTrees.initialworldsets(Xs, init_conditions)
 
-onlyallowglobal = [(iC == ModalDecisionTrees.start_without_world) for iC in init_conditions]
+onlyallowglobal = [(initcond == ModalDecisionTrees.start_without_world) for initcond in init_conditions]
 node = ModalDecisionTrees.NodeMeta{Float64,Int64}(1:_n_instances, 0, 0, onlyallowglobal)
 
 

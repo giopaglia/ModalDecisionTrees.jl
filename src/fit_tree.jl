@@ -22,7 +22,7 @@ mutable struct NodeMeta{L<:Label,P} <: AbstractNode{L}
     l                  :: NodeMeta{L,P}                    # left child
     r                  :: NodeMeta{L,P}                    # right child
     
-    frameid            :: FrameId                          # Id of frame
+    i_modality         :: ModalityId                          # Id of frame
     decision           :: AbstractDecision
 
     onlyallowglobal:: Vector{Bool}
@@ -56,7 +56,7 @@ end
     # onlyallowglobal changes:
     # on the left node, the frame where the decision was taken
     l_oura = copy(node.onlyallowglobal)
-    l_oura[node.frameid] = false
+    l_oura[node.i_modality] = false
     r_oura = node.onlyallowglobal
 
     # no need to copy because we will copy at the end
@@ -77,7 +77,7 @@ function _convert(
     else
         left  = _convert(node.l, labels, class_names, threshold_backmap)
         right = _convert(node.r, labels, class_names, threshold_backmap)
-        DTInternal(node.frameid, ScalarExistentialFormula(node.decision, threshold_backmap[node.frameid]), this_leaf, left, right)
+        DTInternal(node.i_modality, ScalarExistentialFormula(node.decision, threshold_backmap[node.i_modality]), this_leaf, left, right)
     end
 end
 
@@ -93,7 +93,7 @@ function _convert(
     else
         left  = _convert(node.l, labels, threshold_backmap)
         right = _convert(node.r, labels, threshold_backmap)
-        DTInternal(node.frameid, ScalarExistentialFormula(node.decision, threshold_backmap[node.frameid]), this_leaf, left, right)
+        DTInternal(node.i_modality, ScalarExistentialFormula(node.decision, threshold_backmap[node.i_modality]), this_leaf, left, right)
     end
 end
 
@@ -104,16 +104,16 @@ end
 
 # function optimize_tree_parameters!(
 #       X               :: DimensionalLogiset{T,N},
-#       iC   :: InitCondition,
+#       initcond   :: InitialCondition,
 #       allow_global_splits :: Bool,
 #       test_operators  :: AbstractVector{<:TestOperator}
 #   ) where {T,N}
 
 #   # A dimensional ontological datasets:
 #   #  flatten to adimensional case + strip of all relations from the ontology
-#   if prod(max_channel_size(X)) == 1
+#   if prod(maxchannelsize(X)) == 1
 #       if (length(ontology(X).relations) > 0)
-#           warn("The DimensionalLogiset provided has degenerate max_channel_size $(max_channel_size(X)), and more than 0 relations: $(ontology(X).relations).")
+#           warn("The DimensionalLogiset provided has degenerate maxchannelsize $(maxchannelsize(X)), and more than 0 relations: $(ontology(X).relations).")
 #       end
 #       # X = DimensionalLogiset{T,0}(DimensionalDatasets.strip_ontology(ontology(X)), @views DimensionalDatasets.strip_domain(domain(X)))
 #   end
@@ -128,7 +128,7 @@ end
 #   #  in the adimensional case, some pairs of operators (e.g. <= and >)
 #   #  are complementary, and thus it is redundant to check both at the same node.
 #   #  We avoid this by only keeping one of the two operators.
-#   if prod(max_channel_size(X)) == 1
+#   if prod(maxchannelsize(X)) == 1
 #       # No ontological relation
 #       ontology_relations = []
 #       if test_operators ⊆ DimensionalDatasets.all_lowlevel_test_operators
@@ -142,7 +142,7 @@ end
 #   # Softened operators:
 #   #  when the largest world only has a few values, softened operators fallback
 #   #  to being hard operators
-#   # max_world_wratio = 1/prod(max_channel_size(X))
+#   # max_world_wratio = 1/prod(maxchannelsize(X))
 #   # if canonical_geq in test_operators
 #   #   test_operators = filter((e)->(!(e isa CanonicalFeatureGeqSoft) || e.alpha < 1-max_world_wratio), test_operators)
 #   # end
@@ -171,7 +171,7 @@ end
 #   relationGlob_id = 2
 #   ontology_relation_ids = map((x)->x+2, 1:length(ontology_relations))
 
-#   compute_globmemoset = (allow_global_splits || (iC == ModalDecisionTrees.start_without_world))
+#   compute_globmemoset = (allow_global_splits || (initcond == ModalDecisionTrees.start_without_world))
 
 #   # Modal relations to compute gammas for
 #   inUseRelation_ids = if compute_globmemoset
@@ -220,7 +220,7 @@ Base.@propagate_inbounds @inline function split_node!(
         <:AbstractVector{WST} where {WorldType,WST<:WorldSet{WorldType}}
     }, # vector of current worlds for each instance and frame
     Y                         :: AbstractVector{L},                  # label vector
-    init_conditions           :: AbstractVector{<:InitCondition},   # world starting conditions
+    init_conditions           :: AbstractVector{<:InitialCondition},   # world starting conditions
     W                         :: AbstractVector{U}                   # weight vector
     ;
     ##########################################################################
@@ -584,7 +584,7 @@ Base.@propagate_inbounds @inline function split_node!(
                 if purity_times_nt > best_purity_times_nt # && !isapprox(purity_times_nt, best_purity_times_nt)
                     # DEBUGprintln((ncl,nl,ncr,nr), purity_times_nt)
                     #################################
-                    best_i_modality             = i_modality
+                    best_i_modality          = i_modality
                     #################################
                     best_purity_times_nt     = purity_times_nt
                     #################################
@@ -755,7 +755,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # split the instances into two parts:
             #  ones for which the is satisfied and those for whom it's not
             node.purity         = best_purity
-            node.frameid        = best_i_modality
+            node.i_modality     = best_i_modality
             node.decision       = best_decision
 
             # DEBUGprintln("unsatisfied_flags")
@@ -789,7 +789,7 @@ end
 @inline function _fit_tree(
     Xs                        :: MultiLogiset,       # modal dataset
     Y                         :: AbstractVector{L},                  # label vector
-    init_conditions           :: AbstractVector{<:InitCondition},   # world starting conditions
+    init_conditions           :: AbstractVector{<:InitialCondition},   # world starting conditions
     W                         :: AbstractVector{U}                   # weight vector
     ;
     ##########################################################################
@@ -811,7 +811,7 @@ end
 
     # Create root node
     NodeMetaT = NodeMeta{(_is_classification isa Val{true} ? Int64 : Float64),Float64}
-    onlyallowglobal = [(iC == ModalDecisionTrees.start_without_world) for iC in init_conditions]
+    onlyallowglobal = [(initcond == ModalDecisionTrees.start_without_world) for initcond in init_conditions]
     root = NodeMetaT(1:_n_instances, 0, 0, onlyallowglobal)
     
     # if print_progress TODO
@@ -851,7 +851,7 @@ end
 @inline function check_input(
     Xs                      :: MultiLogiset,
     Y                       :: AbstractVector{S},
-    init_conditions         :: Vector{<:InitCondition},
+    init_conditions         :: Vector{<:InitialCondition},
     W                       :: AbstractVector{U}
     ;
     ##########################################################################
@@ -952,7 +952,7 @@ function fit_tree(
     # label vector
     Y                         :: AbstractVector{L},
     # world starting conditions
-    init_conditions           :: Vector{<:InitCondition},
+    init_conditions           :: Vector{<:InitialCondition},
     # Weights (unary weigths are used if no weight is supplied)
     W                         :: AbstractVector{U} = default_weights(Y)
     # W                       :: AbstractVector{U} = Ones{Int}(ninstances(Xs)), # TODO check whether this is faster

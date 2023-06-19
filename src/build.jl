@@ -49,7 +49,7 @@ function build_tree(
     ##############################################################################
     n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
     n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = identity,
-    init_conditions     :: Union{InitCondition,AbstractVector{<:InitCondition}}   = start_without_world,
+    init_conditions     :: Union{InitialCondition,AbstractVector{<:InitialCondition}}   = start_without_world,
     allow_global_splits :: Union{Bool,AbstractVector{Bool}}                       = true,
     ##############################################################################
     use_minification    :: Bool = false,
@@ -86,7 +86,7 @@ function build_tree(
     if n_subfeatures isa Function
         n_subfeatures  = fill(n_subfeatures, nmodalities(X))
     end
-    if init_conditions isa InitCondition
+    if init_conditions isa InitialCondition
         init_conditions = fill(init_conditions, nmodalities(X))
     end
 
@@ -138,7 +138,7 @@ function build_forest(
     # Modal parameters
     n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
     n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = x -> ceil(Int64, sqrt(x)),
-    init_conditions     :: Union{InitCondition,AbstractVector{<:InitCondition}}   = start_without_world,
+    init_conditions     :: Union{InitialCondition,AbstractVector{<:InitialCondition}}   = start_without_world,
     allow_global_splits :: Union{Bool,AbstractVector{Bool}}                       = true,
     ##############################################################################
     use_minification    :: Bool = false,
@@ -169,7 +169,7 @@ function build_forest(
     if n_subfeatures isa Function
         n_subfeatures  = fill(n_subfeatures, nmodalities(X))
     end
-    if init_conditions isa InitCondition
+    if init_conditions isa InitialCondition
         init_conditions = fill(init_conditions, nmodalities(X))
     end
     if allow_global_splits isa Bool

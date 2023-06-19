@@ -10,6 +10,7 @@ module MLJInterface
 
 export ModalDecisionTree, ModalRandomForest
 
+using SoleModels.DimensionalDatasets: group_variables_by_nature
 
 using MLJBase
 import MLJModelInterface
@@ -39,10 +40,10 @@ const PKG = "ModalDecisionTrees"
 
 struct ModelPrinter{T<:MDT.SymbolicModel}
     model::T
-    frame_grouping::Union{Nothing,AbstractVector{<:AbstractVector},AbstractVector{<:AbstractDict}}
+    var_grouping::Union{Nothing,AbstractVector{<:AbstractVector},AbstractVector{<:AbstractDict}}
 end
 (c::ModelPrinter)(max_depth::Union{Nothing,Integer} = nothing; args...) = c(c.model; max_depth, args...)
-(c::ModelPrinter)(model; max_depth = 5) = MDT.printmodel(model; variable_names_map = c.frame_grouping, max_depth = max_depth)
+(c::ModelPrinter)(model; max_depth = 5) = MDT.printmodel(model; variable_names_map = c.var_grouping, max_depth = max_depth)
 
 Base.show(io::IO, c::ModelPrinter) =
     print(io, "ModelPrinter object (call with display depth)")
@@ -52,57 +53,6 @@ Base.show(io::IO, c::ModelPrinter) =
 ############################################################################################
 
 _size = ((x)->(hasmethod(size, (typeof(x),)) ? size(x) : missing))
-
-function separate_variables_into_frames(X)
-
-    types = eltype.(eachcol(X))
-
-    # Check that columns with same dimensionality have same eltype's.
-    for T in [Real, Vector, Matrix]
-        these_types = filter((t)->(t<:T), types)
-        @assert all([eltype(t) <: Real for t in these_types]) "$(these_types). Cannot apply this algorithm on dataset column types with non-Real eltype's: $(filter((t)->(!(eltype(t) <: Real)), these_types))."
-        @assert length(unique(these_types)) <= 1 "$(these_types). Cannot apply this algorithm on dataset with non-uniform types for columns with $(T) values. Please, convert all values to $(promote_type(these_types...))."
-    end
-
-    columns = names(X)
-    channel_sizes = [unique(_size.(X)[:,col]) for col in columns]
-
-    # Must have common channel size across instances
-    _uniform_columns = (length.(channel_sizes) .== 1)
-    _nonmissing_columns = (((cs)->all((!).(ismissing.(cs)))).(channel_sizes))
-
-    __uniform_cols = columns[(!).(_uniform_columns)]
-    if length(__uniform_cols) > 0
-        println("Dropping columns due to non-uniform channel size across instances: $(__uniform_cols)...")
-    end
-    __uniform_non_missing_cols = columns[_uniform_columns .&& (!).(_nonmissing_columns)]
-    if length(__uniform_non_missing_cols) > 0
-        println("Dropping columns due to missings: $(__uniform_non_missing_cols)...")
-    end
-    _good_columns = _uniform_columns .&& _nonmissing_columns
-
-    _good_columns = _uniform_columns .&& _nonmissing_columns
-    channel_sizes = channel_sizes[_good_columns]
-    columns = columns[_good_columns]
-    channel_sizes = getindex.(channel_sizes, 1)
-
-    unique_channel_sizes = sort(unique(channel_sizes))
-
-    frame_ids = [findfirst((ucs)->(ucs==cs), unique_channel_sizes) for cs in channel_sizes]
-
-    frames = Dict([frame_id => [] for frame_id in unique(frame_ids)])
-    for (frame_id, col) in zip(frame_ids, columns)
-        push!(frames[frame_id], col)
-    end
-    frames = [frames[frame_id] for frame_id in unique(frame_ids)]
-
-    # println("Frames:");
-    # println()
-    # display(collect(((x)->Pair(x...)).((enumerate(frames)))));
-
-    frames
-end
-
 
 function __moving_window_without_overflow_fixed_num(
     npoints::Integer;
@@ -161,13 +111,13 @@ end
 
 function moving_average(
     X::AbstractArray{T,4},
-    new_channel_size::Tuple{Integer,Integer},
+    new_channelsize::Tuple{Integer,Integer},
     relative_overlap::AbstractFloat = .5,
 ) where {T}
     n_X, n_Y, n_variables, n_instances = size(X)
-    windows_1 = __moving_window_without_overflow_fixed_num(n_X; nwindows = new_channel_size[1], relative_overlap = relative_overlap)
-    windows_2 = __moving_window_without_overflow_fixed_num(n_Y; nwindows = new_channel_size[2], relative_overlap = relative_overlap)
-    new_X = similar(X, (new_channel_size..., n_variables, n_instances))
+    windows_1 = __moving_window_without_overflow_fixed_num(n_X; nwindows = new_channelsize[1], relative_overlap = relative_overlap)
+    windows_2 = __moving_window_without_overflow_fixed_num(n_Y; nwindows = new_channelsize[2], relative_overlap = relative_overlap)
+    new_X = similar(X, (new_channelsize..., n_variables, n_instances))
     for i_instance in 1:n_instances
         for i_variable in 1:n_variables
             new_X[:, :, i_variable, i_instance] .= [mean(X[idxs1, idxs2, i_variable, i_instance]) for idxs1 in windows_1, idxs2 in windows_2]
@@ -178,13 +128,13 @@ end
 
 function DataFrame2MultiFrameLogiset(
         X,
-        frame_grouping,
+        var_grouping,
         relations,
         mixed_variables,
         init_conditions,
         allow_global_splits,
         mode;
-        downsizing_function = (channel_size, ninstances)->identity,
+        downsizing_function = (channelsize, ninstances)->identity,
     )
 
     @assert mode in [:explicit, :implicit]
@@ -195,33 +145,20 @@ function DataFrame2MultiFrameLogiset(
     Xs_ic = [begin
         X_frame = X[:,frame]
 
-        channel_size = unique([unique(_size.(X_frame[:, col])) for col in names(X_frame)])
-        @assert length(channel_size) == 1
-        @assert length(channel_size[1]) == 1
-        channel_size = channel_size[1][1]
+        channelsize = unique([unique(_size.(X_frame[:, col])) for col in names(X_frame)])
+        @assert length(channelsize) == 1
+        @assert length(channelsize[1]) == 1
+        channelsize = channelsize[1][1]
 
-        channel_dim = length(channel_size)
+        channel_dim = length(channelsize)
 
-        # println("$(i_modality)\tchannel size: $(channel_size)\t => $(frame_grouping)")
+        # println("$(i_modality)\tchannel size: $(channelsize)\t => $(var_grouping)")
 
-        _X = begin
-            n_variables = DataFrames.ncol(X_frame)
-            ninstances = DataFrames.nrow(X_frame)
+        n_variables = DataFrames.ncol(X_frame)
+        ninstances = DataFrames.nrow(X_frame)
 
-            # dataframe2cube(X_frame)
-            common_type = Union{eltype.(eltype.(eachcol(X_frame)))...}
-            common_type = common_type == Any ? Real : common_type
-            _X = Array{common_type}(undef, channel_size..., n_variables, ninstances)
-            for (i_col, col) in enumerate(eachcol(X_frame))
-                for (i_row, row) in enumerate(col)
-                    _X[[(:) for i in 1:length(size(row))]...,i_col,i_row] = row
-                end
-            end
-
-            _X = downsizing_function(channel_size, ninstances)(_X)
-
-            _X
-        end
+        _X = SoleData.dataframe2cube(X_frame)
+        _X = downsizing_function(channelsize, ninstances)(_X)
 
         _relations = if isnothing(relations)
             if channel_dim == 1
@@ -261,7 +198,7 @@ function DataFrame2MultiFrameLogiset(
             TODO compute_globmemoset-> relations does not have globalrel.
             SoleModels.SupportedScalarLogiset(__X)
         end, _init_conditions)
-    end for (i_modality, frame) in enumerate(frame_grouping)]
+    end for (i_modality, frame) in enumerate(var_grouping)]
     Xs, init_conditions = zip(Xs_ic...)
     Xs, init_conditions = collect(Xs), collect(init_conditions)
     Xs = SoleModels.MultiLogiset(Xs)
@@ -269,10 +206,10 @@ function DataFrame2MultiFrameLogiset(
     Xs, init_conditions
 end
 
-tree_downsizing_function(channel_size, ninstances) = function (_X)
-    channel_dim = length(channel_size)
+tree_downsizing_function(channelsize, ninstances) = function (_X)
+    channel_dim = length(channelsize)
     if channel_dim == 1
-        n_points = channel_size[1]
+        n_points = channelsize[1]
         if ninstances > 300 && n_points > 100
             println("Warning: downsizing series of size $(n_points) to $(100) points ($(ninstances) instances). If this process gets killed, please downsize your dataset beforehand.")
             _X = moving_average(_X, 100)
@@ -281,23 +218,23 @@ tree_downsizing_function(channel_size, ninstances) = function (_X)
             _X = moving_average(_X, 150)
         end
     elseif channel_dim == 2
-        if ninstances > 300 && prod(channel_size) > prod((7,7),)
-            new_channel_size = min.(channel_size, (7,7))
-            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(ninstances) instances). If this process gets killed, please downsize your dataset beforehand.")
-            _X = moving_average(_X, new_channel_size)
-        elseif prod(channel_size) > prod((10,10),)
-            new_channel_size = min.(channel_size, (10,10))
-            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(ninstances) instances). If this process gets killed, please downsize your dataset beforehand.")
-            _X = moving_average(_X, new_channel_size)
+        if ninstances > 300 && prod(channelsize) > prod((7,7),)
+            new_channelsize = min.(channelsize, (7,7))
+            println("Warning: downsizing image of size $(channelsize) to $(new_channelsize) pixels ($(ninstances) instances). If this process gets killed, please downsize your dataset beforehand.")
+            _X = moving_average(_X, new_channelsize)
+        elseif prod(channelsize) > prod((10,10),)
+            new_channelsize = min.(channelsize, (10,10))
+            println("Warning: downsizing image of size $(channelsize) to $(new_channelsize) pixels ($(ninstances) instances). If this process gets killed, please downsize your dataset beforehand.")
+            _X = moving_average(_X, new_channelsize)
         end
     end
     _X
 end
 
-forest_downsizing_function(channel_size, ninstances; ntrees) = function (_X)
-    channel_dim = length(channel_size)
+forest_downsizing_function(channelsize, ninstances; ntrees) = function (_X)
+    channel_dim = length(channelsize)
     if channel_dim == 1
-        n_points = channel_size[1]
+        n_points = channelsize[1]
         if ninstances > 300 && n_points > 100
             println("Warning: downsizing series of size $(n_points) to $(100) points ($(ninstances) instances). If this process gets killed, please downsize your dataset beforehand.")
             _X = moving_average(_X, 100)
@@ -306,14 +243,14 @@ forest_downsizing_function(channel_size, ninstances; ntrees) = function (_X)
             _X = moving_average(_X, 150)
         end
     elseif channel_dim == 2
-        if ninstances > 300 && prod(channel_size) > prod((4,4),)
-            new_channel_size = min.(channel_size, (4,4))
-            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(ninstances) instances). If this process gets killed, please downsize your dataset beforehand.")
-            _X = moving_average(_X, new_channel_size)
-        elseif prod(channel_size) > prod((7,7),)
-            new_channel_size = min.(channel_size, (7,7))
-            println("Warning: downsizing image of size $(channel_size) to $(new_channel_size) pixels ($(ninstances) instances). If this process gets killed, please downsize your dataset beforehand.")
-            _X = moving_average(_X, new_channel_size)
+        if ninstances > 300 && prod(channelsize) > prod((4,4),)
+            new_channelsize = min.(channelsize, (4,4))
+            println("Warning: downsizing image of size $(channelsize) to $(new_channelsize) pixels ($(ninstances) instances). If this process gets killed, please downsize your dataset beforehand.")
+            _X = moving_average(_X, new_channelsize)
+        elseif prod(channelsize) > prod((7,7),)
+            new_channelsize = min.(channelsize, (7,7))
+            println("Warning: downsizing image of size $(channelsize) to $(new_channelsize) pixels ($(ninstances) instances). If this process gets killed, please downsize your dataset beforehand.")
+            _X = moving_average(_X, new_channelsize)
         end
     end
     _X
@@ -406,10 +343,10 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Integer, X, y, w=nothing)
 
     ########################################################################################
 
-    frame_grouping = separate_variables_into_frames(X)
+    var_grouping = group_variables_by_nature(X)
     Xs, init_conditions = DataFrame2MultiFrameLogiset(
         X,
-        frame_grouping,
+        var_grouping,
         relations,
         variables,
         init_conditions,
@@ -437,19 +374,19 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Integer, X, y, w=nothing)
         perform_consistency_check = false,
     )
 
-    verbosity < 2 || MDT.printmodel(model; max_depth = display_depth, variable_names_map = frame_grouping)
+    verbosity < 2 || MDT.printmodel(model; max_depth = display_depth, variable_names_map = var_grouping)
 
-    feature_importance_by_count = Dict([i_var => frame_grouping[i_modality][i_var] for ((i_modality, i_var), count) in MDT.variable_countmap(model)])
+    feature_importance_by_count = Dict([i_var => var_grouping[i_modality][i_var] for ((i_modality, i_var), count) in MDT.variable_countmap(model)])
 
     fitresult = (
         model           = model,
-        frame_grouping  = frame_grouping,
+        var_grouping  = var_grouping,
     )
 
     cache  = nothing
     report = (
-        printmodel                  = ModelPrinter(model, frame_grouping),
-        frame_grouping              = frame_grouping,
+        printmodel                  = ModelPrinter(model, var_grouping),
+        var_grouping              = var_grouping,
         feature_importance_by_count = feature_importance_by_count,
     )
 
@@ -468,7 +405,7 @@ end
 MMI.fitted_params(::ModalDecisionTree, fitresult) =
     (
         model           = fitresult.model,
-        frame_grouping  = fitresult.frame_grouping,
+        var_grouping  = fitresult.var_grouping,
     )
 
 function MMI.predict(m::ModalDecisionTree, fitresult, Xnew) #, ynew = nothing)
@@ -483,12 +420,12 @@ function MMI.predict(m::ModalDecisionTree, fitresult, Xnew) #, ynew = nothing)
     allow_global_splits = m.allow_global_splits
     automatic_downsizing = m.automatic_downsizing
 
-    missing_columns = setdiff(Iterators.flatten(fitresult.frame_grouping), names(Xnew))
-    @assert length(missing_columns) == 0 "Can't perform prediction due to missing DataFrame columns: $(missing_columns)"
+    missing_columns = setdiff(Iterators.flatten(fitresult.var_grouping), names(Xnew))
+    @assert length(missing_columns) == 0 "Cannot perform prediction due to missing DataFrame columns: $(missing_columns)"
 
     Xs, init_conditions = DataFrame2MultiFrameLogiset(
         Xnew,
-        fitresult.frame_grouping,
+        fitresult.var_grouping,
         relations,
         variables,
         init_conditions,
@@ -566,10 +503,10 @@ function MMI.fit(m::ModalRandomForest, verbosity::Integer, X, y, w=nothing)
 
     ########################################################################################
 
-    frame_grouping = separate_variables_into_frames(X)
+    var_grouping = group_variables_by_nature(X)
     Xs, init_conditions = DataFrame2MultiFrameLogiset(
         X,
-        frame_grouping,
+        var_grouping,
         relations,
         variables,
         init_conditions,
@@ -602,17 +539,17 @@ function MMI.fit(m::ModalRandomForest, verbosity::Integer, X, y, w=nothing)
         suppress_parity_warning = true,
     )
     # println(MDT.variable_countmap(model))
-    feature_importance_by_count = Dict([i_var => frame_grouping[i_modality][i_var] for ((i_modality, i_var), count) in MDT.variable_countmap(model)])
+    feature_importance_by_count = Dict([i_var => var_grouping[i_modality][i_var] for ((i_modality, i_var), count) in MDT.variable_countmap(model)])
 
     fitresult = (
         model           = model,
-        frame_grouping  = frame_grouping,
+        var_grouping  = var_grouping,
     )
 
     cache  = nothing
     report = (
-        printmodel                  = ModelPrinter(model, frame_grouping),
-        frame_grouping              = frame_grouping,
+        printmodel                  = ModelPrinter(model, var_grouping),
+        var_grouping              = var_grouping,
         feature_importance_by_count = feature_importance_by_count,
     )
 
@@ -632,7 +569,7 @@ end
 MMI.fitted_params(::ModalRandomForest, fitresult) =
     (
         model           = fitresult.model,
-        frame_grouping  = fitresult.frame_grouping,
+        var_grouping  = fitresult.var_grouping,
     )
 
 function MMI.predict(m::ModalRandomForest, fitresult, Xnew) #, ynew = nothing)
@@ -647,12 +584,12 @@ function MMI.predict(m::ModalRandomForest, fitresult, Xnew) #, ynew = nothing)
     allow_global_splits = m.allow_global_splits
     automatic_downsizing = m.automatic_downsizing
 
-    missing_columns = setdiff(Iterators.flatten(fitresult.frame_grouping), names(Xnew))
-    @assert length(missing_columns) == 0 "Can't perform prediction due to missing DataFrame columns: $(missing_columns)"
+    missing_columns = setdiff(Iterators.flatten(fitresult.var_grouping), names(Xnew))
+    @assert length(missing_columns) == 0 "Cannot perform prediction due to missing DataFrame columns: $(missing_columns)"
 
     Xs, init_conditions = DataFrame2MultiFrameLogiset(
         Xnew,
-        fitresult.frame_grouping,
+        fitresult.var_grouping,
         relations,
         variables,
         init_conditions,
@@ -918,7 +855,7 @@ $(docstring_piece_1(mlj_mdt_default_min_samples_leaf, mlj_mdt_default_min_purity
 # Fitted parameters
 The fields of `fitted_params(mach)` are:
 - `model`: the tree object, as returned by the core algorithm
-- `frame_grouping`: the adopted grouping of the variables encountered in training, in an order consistent with the output of `printmodel`.
+- `var_grouping`: the adopted grouping of the variables encountered in training, in an order consistent with the output of `printmodel`.
     The MLJ interface can currently deal with scalar, temporal and spatial variables, but
     has one limitation, and one tricky procedure for handling them at the same time.
     The limitation is for temporal and spatial variables to be uniform in size across the instances (the algorithm will automatically throw away variables that do not satisfy this constraint).
@@ -930,7 +867,7 @@ The fields of `fitted_params(mach)` are:
         - {1} [:x, :y]
         - {2} [:z]
         - {3} [:R, :G, :B]
-    and `frame_grouping` will be [["x", "y"], ["z"], ["R", "G", "B"]].
+    and `var_grouping` will be [["x", "y"], ["z"], ["R", "G", "B"]].
 "R", "G", "B"]
 
 # Report
@@ -938,10 +875,10 @@ The fields of `report(mach)` are:
 - `printmodel`: method to print a pretty representation of the fitted
   model, with single argument the tree depth. The interpretation of the tree requires you
   to understand how the current MLJ interface of ModalDecisionTrees.jl handles variables of different modals.
-  See `frame_grouping` above. Note that the split conditions (or decisions) in the tree are relativized to a specific frame, of which the number is shown.
-- `frame_grouping`: the adopted grouping of the variables encountered in training, in an order consistent with the output of `printmodel`.
-    See `frame_grouping` above.
-- `feature_importance_by_count`: a simple count of each of the occurrences of the variables across the model, in an order consistent with `frame_grouping`.
+  See `var_grouping` above. Note that the split conditions (or decisions) in the tree are relativized to a specific frame, of which the number is shown.
+- `var_grouping`: the adopted grouping of the variables encountered in training, in an order consistent with the output of `printmodel`.
+    See `var_grouping` above.
+- `feature_importance_by_count`: a simple count of each of the occurrences of the variables across the model, in an order consistent with `var_grouping`.
 - `classes_seen`: list of target classes actually observed in training.
 # Examples
 ```
@@ -1019,7 +956,7 @@ $(docstring_piece_1(mlj_mrf_default_min_samples_leaf, mlj_mrf_default_min_purity
 # Fitted parameters
 The fields of `fitted_params(mach)` are:
 - `model`: the forest object, as returned by the core algorithm
-- `frame_grouping`: the adopted grouping of the variables encountered in training, in an order consistent with the output of `printmodel`.
+- `var_grouping`: the adopted grouping of the variables encountered in training, in an order consistent with the output of `printmodel`.
     The MLJ interface can currently deal with scalar, temporal and spatial variables, but
     has one limitation, and one tricky procedure for handling them at the same time.
     The limitation is for temporal and spatial variables to be uniform in size across the instances (the algorithm will automatically throw away variables that do not satisfy this constraint).
@@ -1031,17 +968,17 @@ The fields of `fitted_params(mach)` are:
         - {1} [:x, :y]
         - {2} [:z]
         - {3} [:R, :G, :B]
-    and `frame_grouping` will be [["x", "y"], ["z"], ["R", "G", "B"]].
+    and `var_grouping` will be [["x", "y"], ["z"], ["R", "G", "B"]].
 
 # Report
 The fields of `report(mach)` are:
 - `printmodel`: method to print a pretty representation of the fitted
   model, with single argument the depth of the trees. The interpretation of the tree requires you
   to understand how the current MLJ interface of ModalDecisionTrees.jl handles variables of different modals.
-  See `frame_grouping` above. Note that the split conditions (or decisions) in the tree are relativized to a specific frame, of which the number is shown.
-- `frame_grouping`: the adopted grouping of the variables encountered in training, in an order consistent with the output of `printmodel`.
-    See `frame_grouping` above.
-- `feature_importance_by_count`: a simple count of each of the occurrences of the variables across the model, in an order consistent with `frame_grouping`.
+  See `var_grouping` above. Note that the split conditions (or decisions) in the tree are relativized to a specific frame, of which the number is shown.
+- `var_grouping`: the adopted grouping of the variables encountered in training, in an order consistent with the output of `printmodel`.
+    See `var_grouping` above.
+- `feature_importance_by_count`: a simple count of each of the occurrences of the variables across the model, in an order consistent with `var_grouping`.
 - `classes_seen`: list of target classes actually observed in training.
 # Examples
 ```

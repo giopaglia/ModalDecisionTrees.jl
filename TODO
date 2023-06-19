@@ -15,7 +15,7 @@ Cool ideas:
 ☐ minified fwd structures: once computed the fwd, map each unique value to a UInt8/UInt16 value, while mantaining the relative order. Once a tree is learnt, remap the values to the old ones. tables contain a lot of redundance: perhaps use PooledArrays.jl, IndirectArrays.jl, CategoricalArrays.jl for saving space, both for saving to file AND for learing (might be beneficial for caching)?
 
 ☐ feature-importance.jl: mean decreased impurity https://medium.com/the-artificial-impostor/feature-importance-measures-for-tree-models-part-i-47f187c1a2c3
-☐	DATA: Instances with different channel size. find implementation of multi-dimensional array where one can specify that along one axis subArrays have non-uniform size?! Highlight difference between channel_size and max_channel_size; define NonUniformDimensionalDataset using ArrayOfVectors https://juliaarrays.github.io/ArraysOfArrays.jl/stable/; then fwd can simply be a gigantic table with Inf and -Inf for non-existing worlds!
+☐	DATA: Instances with different channel size. find implementation of multi-dimensional array where one can specify that along one axis subArrays have non-uniform size?! Highlight difference between channelsize and maxchannelsize; define NonUniformDimensionalDataset using ArrayOfVectors https://juliaarrays.github.io/ArraysOfArrays.jl/stable/; then fwd can simply be a gigantic table with Inf and -Inf for non-existing worlds!
 
 ☐	add a parameter controlling how many thresholds are (randomly) considered at each node. Check that this optimization doesn't degrade performances and improves training times
 ☐ test: create a proper test suite, and test reproducibility of the results
@@ -172,7 +172,7 @@ Archive:
 	✔	rename _n_instances -> n_instances @done (21-10-07 23:14)
 	✔	clean modallogic.jl @done (21-05-06 12:55)
 	✔	timeit -> symbol @done (21-05-06 10:51)
-	✔	Clean InitCondition and worldType code @done (21-05-06 10:36)
+	✔	Clean InitialCondition and worldType code @done (21-05-06 10:36)
 	✔	check that missing is not in X or Y @done (21-05-06 10:18)
 	✔	Play with parameters: @done (21-04-03 20:04)
 	✔	Preliminary scan on logic-agnostic parameters @done (21-03-19 15:05)
@@ -192,7 +192,7 @@ Archive:
 	✔	Now move the extremes computation to the outer algorithm scope, so that it happens BEFORE the whole computation. @done (21-03-08 00:59)
 	✔	Improve the computation of the extremes leveraging the structure of IA Frames. @done (21-03-08 00:59)
 	✔	Soften > and <= to be >alpha and <=alpha. Make alpha an array to iterate over. Find an efficient way to compute it (note that with a few elements in the world, it can be made efficient with integer operations). @done (21-03-08 00:58)
-	✔	enumAcc to only use channel_size and not the whole channel @done (21-03-07 16:44)
+	✔	enumAcc to only use channelsize and not the whole channel @done (21-03-07 16:44)
 	✔	Optimize/fix topological enumerators. There may be some errors as well with interval relations (think of the TPPi thingy, that maybe happens elsewhere) @done (21-02-10 17:41)
 	✔	Fix the new optimization thingy. It fails, maybe need to swap min/max. @done (21-02-05 18:06)
 	✔	Parametrize on the test operators @done (21-02-02 17:52)
@@ -200,7 +200,7 @@ Archive:
 	✔	Fix print_world @done (21-02-02 14:07)
 	✔	Check the speedup with/without inbounds (3x3 and 5x5 cases) @done (21-02-02 13:56)
 	✔	verify new code. (test all datasets (avoid dataset[2] flattened)) @done (21-01-26 18:06)
-	✔	Test with no InitCondition @done (21-01-26 18:06)
+	✔	Test with no InitialCondition @done (21-01-26 18:06)
 	✔	Try different starting condition: start at the central pixel. @done (21-01-25 00:10)
 	✔	Note that we need to know the speedup for using the extremes array. Hide computation of the extremes. @done (21-01-24 14:32)
 	✔	Bring back the extremes, noting that this leads to constant propositional check. @done (21-01-24 14:32)

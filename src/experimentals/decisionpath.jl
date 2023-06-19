@@ -3,7 +3,7 @@ using SoleModels
 using SoleModels.DimensionalDatasets
 using ..ModalDecisionTrees: AbstractFeature, TestOperator
 
-using ..ModalDecisionTrees: FrameId
+using ..ModalDecisionTrees: ModalityId
 
 using ..ModalDecisionTrees: DTLeaf, DTNode, DTInternal
 
@@ -28,20 +28,20 @@ worlds(n::DecisionPathNode) = n.worlds
 
 const DecisionPath = Vector{DecisionPathNode}
 
-_get_path_in_tree(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, frameid::FrameId, paths::Vector{DecisionPath})::AbstractWorldSet = return worlds[frameid]
-function _get_path_in_tree(tree::DTInternal, X::MultiLogiset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, frameid::Integer, paths::Vector{DecisionPath})::AbstractWorldSet
+_get_path_in_tree(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, i_modality::ModalityId, paths::Vector{DecisionPath})::AbstractWorldSet = return worlds[i_modality]
+function _get_path_in_tree(tree::DTInternal, X::MultiLogiset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}, i_modality::Integer, paths::Vector{DecisionPath})::AbstractWorldSet
     satisfied = true
     (satisfied,new_worlds,worlds_map) =
         modalstep(
-                        frame(X, frameid(tree)),
+                        frame(X, i_modality(tree)),
                         i_instance,
-                        worlds[frameid(tree)],
+                        worlds[i_modality(tree)],
                         decision(tree),
                         Val(true)
                     )
 
-    worlds[frameid(tree)] = new_worlds
-    survivors = _get_path_in_tree((satisfied ? left(tree) : right(tree)), X, i_instance, worlds, frameid(tree), paths)
+    worlds[i_modality(tree)] = new_worlds
+    survivors = _get_path_in_tree((satisfied ? left(tree) : right(tree)), X, i_instance, worlds, i_modality(tree), paths)
 
     # if survivors of next step are in the list of worlds viewed by one
     # of the just accumulated "new_worlds" then that world is a survivor

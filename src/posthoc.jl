@@ -68,7 +68,7 @@ function prune(node::DTInternal{L}; depth = nothing, kwargs...) where {L}
     end
 
     DTInternal(
-        frameid(node),
+        i_modality(node),
         decision(node),
         this(node),
         prune(left(node);  pruning_params..., depth = depth+1),
@@ -261,7 +261,7 @@ function train_functional_leaves(
         unsatisfied_idxs = Integer[]
 
         for i_instance in 1:ninstances(X)
-            (satisfied,new_worlds) = modalstep(frame(X, frameid(node)), i_instance, worlds[i_dataset][frameid(node)][i_instance], decision(node))
+            (satisfied,new_worlds) = modalstep(frame(X, i_modality(node)), i_instance, worlds[i_dataset][i_modality(node)][i_instance], decision(node))
 
             if satisfied
                 push!(satisfied_idxs, i_instance)
@@ -269,7 +269,7 @@ function train_functional_leaves(
                 push!(unsatisfied_idxs, i_instance)
             end
 
-            worlds[i_dataset][frameid(node)][i_instance] = new_worlds
+            worlds[i_dataset][i_modality(node)][i_instance] = new_worlds
         end
 
         push!(datasets_l, slicedataset((X,Y), satisfied_idxs;   allow_no_instances = true))
@@ -280,7 +280,7 @@ function train_functional_leaves(
     end
 
     DTInternal(
-        frameid(node),
+        i_modality(node),
         decision(node),
         # train_functional_leaves(node.this,  worlds,   datasets,   args...; kwargs...), # TODO test whether this makes sense and works correctly
         this(node),
@@ -337,7 +337,7 @@ function _variable_countmap(node::DTInternal{L}; weighted = false) where {L<:Lab
     th = begin
         d = decision(node)
         f = feature(d)
-        (f isa AbstractUnivariateFeature) ? [((frameid(node), f.i_variable), (weighted ? length(supp_labels) : 1)),] : []
+        (f isa AbstractUnivariateFeature) ? [((i_modality(node), f.i_variable), (weighted ? length(supp_labels) : 1)),] : []
     end
     [th..., _variable_countmap(left(node); weighted = weighted)..., _variable_countmap(right(node); weighted = weighted)...]
 end
@@ -379,14 +379,14 @@ end
 
 function merge_into_leaf(leaves::AbstractVector{<:DTLeaf{L}}) where {L}
     dtleaf_types = typeof.(leaves)
-    @assert length(unique(dtleaf_types)) == 1 "Can't aggregate different leaf types: $(dtleaf_types)"
+    @assert length(unique(dtleaf_types)) == 1 "Cannot aggregate different leaf types: $(dtleaf_types)"
     dtleaf_type = dtleaf_types[1]
     dtleaf_type(L.(collect(Iterators.flatten(map((leaf)->supp_labels(leaf), leaves)))))
 end
 
 function merge_into_leaf(leaves::AbstractVector{<:NSDTLeaf{L}}) where {L}
     # dtleaf_types = typeof.(leaves)
-    # @assert length(unique(dtleaf_types)) == 1 "Can't aggregate different leaf types: $(dtleaf_types)"
+    # @assert length(unique(dtleaf_types)) == 1 "Cannot aggregate different leaf types: $(dtleaf_types)"
     # dtleaf_type = dtleaf_types[1]
     dtleaf_type = DTLeaf{L}
     supp_train_labels      = L.(collect(Iterators.flatten(map((leaf)->leaf.supp_train_labels, leaves))))

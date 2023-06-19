@@ -9,10 +9,10 @@ function parse_tree(
     _depth = 0,
     offset = 0,
     worldtypes = Type{SL.AbstractWorld}[],
-    init_conditions = MDT.InitCondition[],
+    init_conditions = MDT.InitialCondition[],
 )
     worldtypes = Type{<:SL.AbstractWorld}[worldtypes...]
-    init_conditions = MDT.InitCondition[init_conditions...]
+    init_conditions = MDT.InitialCondition[init_conditions...]
     root = _parse_tree(tree_str; check_format = check_format, _depth = _depth, offset = offset)
     DTree(root, worldtypes, init_conditions)
 end
@@ -215,7 +215,7 @@ function _parse_tree(
                 _line = line 
 
                 if !isnothing(match(r"^\s*{.*$", _line))
-                    @assert isnothing(this_line) "Can't have more than one row beginning with '{'"
+                    @assert isnothing(this_line) "Cannot have more than one row beginning with '{'"
                     this_line = i_line
                     yes_line = i_line + 1
                     # print(repeat(" ", _depth))
@@ -247,9 +247,9 @@ function _parse_tree(
         m = match(Regex(split_ex), this_line)
         @assert !isnothing(m) && length(m) == 3 "Unexpected format encountered on line $(i_this_line+offset) : \"$(this_line)\". Matches: $(m) Expected matches = 3"
         # println(m)
-        frameid, decision_str, leaf_str = m
+        i_modality, decision_str, leaf_str = m
 
-        frameid = parse(Int, frameid)
+        i_modality = parse(Int, i_modality)
         decision = _parse_decision((i_this_line, decision_str),) 
 
         # println(clean_lines(lines[yes_line:no_line]))
@@ -259,10 +259,10 @@ function _parse_tree(
         right = _parse_tree(right_tree_str; offset = no_line-1,  check_format = false, _depth = _depth + 1)
         
         if isnothing(leaf_str)
-            DTInternal(frameid, decision, left, right)
+            DTInternal(i_modality, decision, left, right)
         else
             this = _parse_leaf((i_this_line, leaf_str),)
-            DTInternal(frameid, decision, this, left, right)
+            DTInternal(i_modality, decision, this, left, right)
         end
     end
 end 
