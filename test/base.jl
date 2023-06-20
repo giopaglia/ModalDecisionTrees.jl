@@ -61,9 +61,9 @@ using ModalDecisionTrees: DTLeaf, prediction
         # # create node without local decision
         # cls_node = @test_nowarn DTInternal(2, decision, cls_leaf, cls_leaf)
         # @test_throws MethodError DTInternal(2, decision, reg_leaf, cls_leaf)
-        # # create node without frame
+        # # create node without modality
         # # @test_nowarn DTInternal(decision, reg_leaf, reg_leaf, reg_leaf)
-        # # create node without frame nor local decision
+        # # create node without modality nor local decision
         # cls_node = @test_nowarn DTInternal(decision, cls_node, cls_leaf)
 
         # cls_tree = @test_nowarn DTree(cls_node, [Interval], [start_without_world])

@@ -92,7 +92,7 @@ function build_tree(
 
     @assert max_depth > 0
 
-    # if any(map(f->f isa AbstractDimensionalDataset, modalities(X)))
+    # if any(map(f->f isa AbstractDimensionalDataset, eachmodality(X)))
     #     @error "Cannot learn from AbstractDimensionalDataset! Please use DimensionalLogiset, Logiset or SupportedScalarLogiset."
     # end
 
@@ -106,7 +106,7 @@ function build_tree(
         max_purity_at_leaf  = max_purity_at_leaf,
         ############################################################################
         n_subrelations      = n_subrelations,
-        n_subfeatures       = [ n_subfeatures[i](nfeatures(frame)) for (i,frame) in enumerate(modalities(X)) ],
+        n_subfeatures       = [ n_subfeatures[i](nfeatures(frame)) for (i,frame) in enumerate(eachmodality(X)) ],
         allow_global_splits = allow_global_splits,
         ############################################################################
         use_minification    = use_minification,
@@ -184,7 +184,7 @@ function build_forest(
         throw_n_log("partial_sampling must be in the range (0,1]")
     end
     
-    if any(map(f->f isa Logiset, modalities(X)))
+    if any(map(f->f isa Logiset, eachmodality(X)))
         @warn "Warning! Consider using the optimized structure SupportedScalarLogiset, instead of Logiset."
     end
 
@@ -195,7 +195,7 @@ function build_forest(
     oob_instances = Vector{Vector{Integer}}(undef, ntrees)
     oob_metrics = Vector{NamedTuple}(undef, ntrees)
 
-    rngs = [spawn_rng(rng) for i_tree in 1:ntrees]
+    rngs = [spawn(rng) for i_tree in 1:ntrees]
 
     if print_progress
         p = Progress(ntrees, 1, "Computing DForest...")

@@ -4,7 +4,6 @@ using SoleModels.DimensionalDatasets
 
 using Random
 using BenchmarkTools
-using FillArrays
 rng = MersenneTwister(1)
 
 _n_instances, _n_instances_h = 10, 5

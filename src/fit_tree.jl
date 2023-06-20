@@ -409,9 +409,9 @@ Base.@propagate_inbounds @inline function split_node!(
                 frame_n_subrelations::Function,
                 frame_n_subfeatures,
                 frame_allow_global_splits,
-                frame_onlyallowglobal)) in enumerate(zip(modalities(Xs), Sfs, n_subrelations, n_subfeatures, allow_global_splits, node.onlyallowglobal))
+                frame_onlyallowglobal)) in enumerate(zip(eachmodality(Xs), Sfs, n_subrelations, n_subfeatures, allow_global_splits, node.onlyallowglobal))
 
-        @logmsg LogDetail "  Frame $(best_i_modality)/$(length(modalities(Xs)))"
+        @logmsg LogDetail "  Frame $(best_i_modality)/$(length(eachmodality(Xs)))"
 
         allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds = begin
 
@@ -821,8 +821,8 @@ end
     # Process nodes recursively, using multi-threading
     function process_node!(node, rng)
         # Note: better to spawn rng's beforehand, to preserve reproducibility independently from split_node!
-        rng_l = spawn_rng(rng)
-        rng_r = spawn_rng(rng)
+        rng_l = spawn(rng)
+        rng_r = spawn(rng)
         @inbounds split_node!(node, Xs, Ss, Y, init_conditions, W;
             _is_classification         = _is_classification,
             _perform_consistency_check = _perform_consistency_check,
@@ -922,9 +922,9 @@ end
         # println(Xs)
         # println(DimensionalDatasets.displaystructure(Xs))
         # println(SoleData.hasnans(Xs))
-        # println(SoleData.hasnans.([fd(X) for X in modalities(Xs)]))
-        # println(SoleData.hasnans.([fd(X).fwd for X in modalities(Xs)]))
-        # println(fwd(modalities(Xs)[1].fd))
+        # println(SoleData.hasnans.([fd(X) for X in eachmodality(Xs)]))
+        # println(SoleData.hasnans.([fd(X).fwd for X in eachmodality(Xs)]))
+        # println(fwd(eachmodality(Xs)[1].fd))
         throw_n_log("This algorithm doesn't allow NaN values")
     end
 

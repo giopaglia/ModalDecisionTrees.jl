@@ -6,7 +6,6 @@ module ModalDecisionTrees
 
 import Base: show, length
 
-using FillArrays # TODO remove?
 using FunctionWrappers: FunctionWrapper
 using Logging: LogLevel, @logmsg
 using Printf
@@ -17,11 +16,8 @@ using StatsBase
 
 using SoleBase
 using SoleBase: LogOverview, LogDebug, LogDetail, throw_n_log
-using SoleBase: spawn_rng, nat_sort
-using SoleModels
-using SoleModels: CLabel, RLabel, Label, _CLabel, _Label, get_categorical_form
+using SoleBase: spawn, nat_sort
 
-using SoleModels: bestguess, default_weights, slice_weights
 using SoleData
 using SoleData: maxchannelsize,
                 nvariables,
@@ -29,7 +25,11 @@ using SoleData: maxchannelsize,
                 slicedataset,
                 instances
 
+using SoleModels
 using SoleModels: AbstractLogiset
+using SoleModels: CLabel, RLabel, Label, _CLabel, _Label, get_categorical_form
+
+using SoleModels: bestguess, default_weights, slice_weights
 
 import SoleData: ninstances
 
@@ -40,7 +40,7 @@ import AbstractTrees: print_tree
 # Data structures
 @reexport using SoleModels.DimensionalDatasets
 using SoleModels: MultiLogiset
-using SoleModels: WorldSet, GenericModalDataset
+using SoleModels: WorldSet, GenericDataset
 
 using SoleModels: nfeatures, nrelations,
                             nmodalities, frames, frame,
@@ -48,7 +48,7 @@ using SoleModels: nfeatures, nrelations,
                             #
                             relations,
                             #
-                            GenericModalDataset,
+                            GenericDataset,
                             MultiLogiset,
                             AbstractLogiset,
                             DimensionalLogiset,

@@ -10,7 +10,7 @@ using SoleLogics
 
 using SoleModels.DimensionalDatasets
 using SoleModels: MultiLogiset
-using SoleModels: WorldSet, GenericModalDataset
+using SoleModels: WorldSet, GenericDataset
 
 
 using SoleModels: nfeatures, nrelations,
@@ -19,7 +19,7 @@ using SoleModels: nfeatures, nrelations,
                             #
                             relations,
                             #
-                            GenericModalDataset,
+                            GenericDataset,
                             MultiLogiset,
                             AbstractLogiset,
                             DimensionalLogiset,

@@ -228,7 +228,7 @@ end
 
 function train_functional_leaves(
         tree::DTree,
-        datasets::AbstractVector{Tuple{GenericModalDataset,AbstractVector}},
+        datasets::AbstractVector{Tuple{GenericDataset,AbstractVector}},
         args...;
         kwargs...,
     )
@@ -243,14 +243,14 @@ end
 function train_functional_leaves(
     node::DTInternal{L},
     worlds::AbstractVector{<:AbstractVector{<:AbstractVector{<:AbstractWorldSet}}},
-    datasets::AbstractVector{Tuple{GenericModalDataset,AbstractVector}},
+    datasets::AbstractVector{Tuple{GenericDataset,AbstractVector}},
     args...;
     kwargs...,
 ) where {L}
 
     # Each dataset is sliced, and two subsets are derived (left and right)
-    datasets_l = Tuple{GenericModalDataset,AbstractVector}[]
-    datasets_r = Tuple{GenericModalDataset,AbstractVector}[]
+    datasets_l = Tuple{GenericDataset,AbstractVector}[]
+    datasets_r = Tuple{GenericDataset,AbstractVector}[]
 
     worlds_l = AbstractVector{<:AbstractVector{<:AbstractWorldSet}}[]
     worlds_r = AbstractVector{<:AbstractVector{<:AbstractWorldSet}}[]
@@ -293,7 +293,7 @@ end
 function train_functional_leaves(
     leaf::AbstractDecisionLeaf{L},
     worlds::AbstractVector{<:AbstractVector{<:AbstractVector{<:AbstractWorldSet}}},
-    datasets::AbstractVector{Tuple{GenericModalDataset,AbstractVector}};
+    datasets::AbstractVector{Tuple{GenericDataset,AbstractVector}};
     train_callback::Function,
 ) where {L<:Label}
     functional_model = train_callback(datasets)

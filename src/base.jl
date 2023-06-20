@@ -33,7 +33,7 @@ end
 
 function initialworldsets(Xs::MultiLogiset, initconds::AbstractVector{<:InitialCondition})
     Ss = Vector{Vector{WST} where {W,WST<:WorldSet{W}}}(undef, nmodalities(Xs)) # Fix
-    for (i_modality,X) in enumerate(modalities(Xs))
+    for (i_modality,X) in enumerate(eachmodality(Xs))
         W = worldtype(X)
         Ss[i_modality] = WorldSet{W}[initialworldset(X, i_instance, initconds[i_modality]) for i_instance in 1:ninstances(Xs)]
         # Ss[i_modality] = WorldSet{W}[[Interval(1,2)] for i_instance in 1:ninstances(Xs)]

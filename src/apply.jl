@@ -9,7 +9,7 @@ import MLJ: predict
 
 mm_instance_initialworldset(Xs::MultiLogiset, tree::DTree, i_instance::Integer) = begin
     Ss = Vector{WorldSet}(undef, nmodalities(Xs))
-    for (i_modality,X) in enumerate(modalities(Xs))
+    for (i_modality,X) in enumerate(eachmodality(Xs))
         Ss[i_modality] = initialworldset(X, i_instance, init_conditions(tree)[i_modality])
     end
     Ss
@@ -35,7 +35,7 @@ apply_forest = apply_model
 ############################################################################################
 
 # TODO discriminate between kwargs for apply_tree & print_tree
-function print_apply(tree::DTree, X::GenericModalDataset, Y::AbstractVector; kwargs...)
+function print_apply(tree::DTree, X::GenericDataset, Y::AbstractVector; kwargs...)
     predictions, new_tree = apply_model(tree, X, Y)
     print_tree(new_tree; kwargs...)
     predictions, new_tree
