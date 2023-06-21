@@ -1,7 +1,5 @@
 import SoleModels: printmodel, displaymodel
-import SoleModels.DimensionalDatasets: worldtypes
 
-using SoleModels: StartWithoutWorld, StartAtCenter, StartAtWorld
 
 ############################################################################################
 # Initial conditions
@@ -24,7 +22,7 @@ function initialworldset(fr::AbstractMultiModalFrame{W}, initcond::StartWithoutW
 end
 
 function initialworldset(fr::AbstractMultiModalFrame{W}, initcond::StartAtCenter) where {W<:AbstractWorld}
-    WorldSet{W}([SoleModels.world(fr, SoleModels.CenteredCheck)])
+    WorldSet{W}([SoleModels.getworld(fr, SoleModels.CenteredCheck)])
 end
 
 function initialworldset(::AbstractMultiModalFrame{W}, initcond::StartAtWorld{W}) where {W<:AbstractWorld}
@@ -43,110 +41,128 @@ end
 
 ############################################################################################
 
+"""
+A decision is an object that is placed at an internal decision node,
+and influences on how the instances are routed to its left or right child.
+"""
 abstract type AbstractDecision end
 
+"""
+Abstract type for nodes in a decision tree.
+"""
 abstract type AbstractNode{L<:Label} end
+
+predictiontype(::AbstractNode{L}) where {L} = L
+
+"""
+Abstract type for leaves in a decision tree.
+"""
 abstract type AbstractDecisionLeaf{L<:Label} <: AbstractNode{L} end
+
+"""
+Abstract type for internal decision nodes of a decision tree.
+"""
 abstract type AbstractDecisionInternal{L<:Label,D<:AbstractDecision} <: AbstractNode{L} end
 
-# Decision Node (Leaf or Internal)
+"""
+Union type for internal and decision nodes of a decision tree.
+"""
 const DTNode{L<:Label,D<:AbstractDecision} = Union{<:AbstractDecisionLeaf{<:L},<:AbstractDecisionInternal{L,D}}
 
 isleftchild(node::DTNode, parent::DTNode) = (left(parent) == node)
 isrightchild(node::DTNode, parent::DTNode) = (right(parent) == node)
 
-# TODO maybe one day?
-# abstract type AbstractNode{L<:Label} end
-# abstract type DTNode{L<:Label,D<:AbstractDecision} <: AbstractNode{L} end
-# abstract type AbstractDecisionLeaf{L<:Label} <: DTNode{L,D} where D<:AbstractDecision end
-# abstract type AbstractDecisionInternal{L<:Label,D<:AbstractDecision} <: DTNode{L,D} end
-
 ############################################################################################
-TODO...
+# Decisions
+############################################################################################
+using SoleLogics
 using SoleLogics: identityrel, globalrel
-using SoleModels: syntaxstring
 using SoleModels.DimensionalDatasets: alpha
+using SoleModels: AbstractTemplatedFormula,
+                  ScalarOneStepFormula,
+                  ScalarExistentialFormula,
+                  ScalarUniversalFormula
 
-export ExistentialScalarDecision,
-       #
-       relation, feature, test_operator, threshold,
-       is_propositional_decision,
-       is_global_decision,
-       #
-       displaydecision, displaydecision_inverse
-
-is_propositional_decision(d::ScalarOneStepFormula) = (relation(d) == identityrel)
-is_global_decision(d::ScalarOneStepFormula) = (relation(d) == globalrel)
 
 function displaydecision(
-    decision::Union{ScalarExistentialFormula,ScalarUniversalFormula};
-    threshold_display_method::Function = x -> x,
-    variable_names_map::Union{Nothing,AbstractVector,AbstractDict} = nothing,
-    use_feature_abbreviations::Bool = false,
+    i_modality::ModalityId,
+    decision::AbstractDecision;
+    variable_names_map::Union{Nothing,AbstractVector{<:AbstractVector},AbstractVector{<:AbstractDict}} = nothing,
+    kwargs...,
 )
-    prop_decision_str = syntaxstring(
-        decision.p;
-        threshold_display_method = threshold_display_method,
-        variable_names_map = variable_names_map,
-        use_feature_abbreviations = use_feature_abbreviations,
-    )
-    if !is_propositional_decision(decision)
-        TODO
-        rel_display_fun = (decision isa ScalarExistentialFormula ? display_existential : display_universal)
-        "$(rel_display_fun(relation(decision))) ($prop_decision_str)"
-    else
-        "$prop_decision_str"
-    end
+    _variable_names_map = isnothing(variable_names_map) ? nothing : variable_names_map[i_modality]
+    "{$i_modality} $(displaydecision(decision; variable_names_map = _variable_names_map, kwargs...))"
+end
+
+function displaydecision_inverse(decision::AbstractDecision, kwargs...; args...)
+    syntaxstring(negation(decision), kwargs...; args...)
+end
+
+function displaydecision_inverse(i_modality::ModalityId, decision::AbstractDecision, kwargs...; args...)
+    displaydecision(i_modality, negation(decision), kwargs...; args...)
 end
 
 
+is_propositional_decision(d::ScalarOneStepFormula) = (SoleModels.relation(d) == identityrel)
+is_global_decision(d::ScalarOneStepFormula) = (SoleModels.relation(d) == globalrel)
 
-mutable struct SimpleDecision{D<:AbstractTemplatedFormula} <: AbstractDecision
-    decision  :: D
+struct SimpleDecision{F<:ScalarExistentialFormula} <: AbstractDecision
+    formula  :: F
 end
 
-TODO
+formula(d::SimpleDecision) = d.formula
 
-mutable struct DoubleEdgedDecision{D<:AbstractTemplatedFormula} <: AbstractDecision
-    decision  :: D
+is_propositional_decision(d::SimpleDecision) = is_propositional_decision(formula(d))
+is_global_decision(d::SimpleDecision) = is_global_decision(formula(d))
+
+function displaydecision(d::SimpleDecision; kwargs...)
+    outstr = ""
+    outstr *= "SimpleDecision("
+    outstr *= syntaxstring(formula(d); kwargs...)
+    outstr *= ")"
+    outstr
+end
+
+mutable struct DoubleEdgedDecision{F<:AbstractTemplatedFormula} <: AbstractDecision
+    formula   :: F
     _back     :: Base.RefValue{N} where N<:AbstractNode # {L,DoubleEdgedDecision}
     _forth    :: Base.RefValue{N} where N<:AbstractNode # {L,DoubleEdgedDecision}
 
-    function DoubleEdgedDecision{D}(decision::D) where {D<:AbstractTemplatedFormula}
-        ded = new{D}()
-        ded.decision = decision
+    function DoubleEdgedDecision{F}(formula::F) where {F<:AbstractTemplatedFormula}
+        ded = new{F}()
+        ded.formula = formula
         ded
     end
 
-    function DoubleEdgedDecision(decision::D) where {D<:AbstractTemplatedFormula}
-        DoubleEdgedDecision{D}(decision)
+    function DoubleEdgedDecision(formula::F) where {F<:AbstractTemplatedFormula}
+        DoubleEdgedDecision{F}(formula)
     end
 end
 
-decision(ded::DoubleEdgedDecision) = ded.decision
+formula(ded::DoubleEdgedDecision) = ded.formula
 back(ded::DoubleEdgedDecision) = isdefined(ded, :_back) ? ded._back[] : nothing
 forth(ded::DoubleEdgedDecision) = isdefined(ded, :_forth) ? ded._forth[] : nothing
 _back(ded::DoubleEdgedDecision) = isdefined(ded, :_back) ? ded._back : nothing
 _forth(ded::DoubleEdgedDecision) = isdefined(ded, :_forth) ? ded._forth : nothing
 
-decision!(ded::DoubleEdgedDecision, decision) = (ded.decision = decision)
+formula!(ded::DoubleEdgedDecision, formula) = (ded.formula = formula)
 _back!(ded::DoubleEdgedDecision, _back) = (ded._back = _back)
 _forth!(ded::DoubleEdgedDecision, _forth) = (ded._forth = _forth)
 
 
 # TODO remove?
-is_propositional_decision(ded::DoubleEdgedDecision) = is_propositional_decision(decision(ded))
-is_global_decision(ded::DoubleEdgedDecision) = is_global_decision(decision(ded))
+is_propositional_decision(ded::DoubleEdgedDecision) = is_propositional_decision(formula(ded))
+is_global_decision(ded::DoubleEdgedDecision) = is_global_decision(formula(ded))
 
-function displaydecision(ded::DoubleEdgedDecision, args...; kwargs...)
+function displaydecision(ded::DoubleEdgedDecision; kwargs...)
     outstr = ""
     outstr *= "DoubleEdgedDecision("
-    outstr *= displaydecision(decision(ded))
+    outstr *= syntaxstring(formula(ded); kwargs...)
     outstr *= ", " * (isnothing(_back(ded)) ? "-" : "$(typeof(_back(ded)))")
     outstr *= ", " * (isnothing(_forth(ded)) ? "-" : "$(typeof(_forth(ded)))")
     outstr *= ")"
     # outstr *= "DoubleEdgedDecision(\n\t"
-    # outstr *= displaydecision(decision(ded))
+    # outstr *= syntaxstring(formula(ded))
     # # outstr *= "\n\tback: " * (isnothing(back(ded)) ? "-" : displaymodel(back(ded), args...; kwargs...))
     # # outstr *= "\n\tforth: " * (isnothing(forth(ded)) ? "-" : displaymodel(forth(ded), args...; kwargs...))
     # outstr *= "\n\tback: " * (isnothing(_back(ded)) ? "-" : "$(typeof(_back(ded)))")
@@ -276,16 +292,16 @@ predictions(leaf::NSDTLeaf; train_or_valid = true) = (train_or_valid ? leaf.supp
 
 ############################################################################################
 
-# Internal decision node, holding a split-decision and a frame index
+# Internal decision node, holding a split-decision and a modality index
 struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
-    # frame index + split-decision
+    # modality index + split-decision
     i_modality    :: ModalityId
     decision      :: D
     # representative leaf for the current node
     this          :: AbstractDecisionLeaf{<:L}
     # child nodes
-    left          :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}}
-    right         :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}}
+    left          :: Union{AbstractDecisionLeaf{<:L}, DTInternal{<:L,D}}
+    right         :: Union{AbstractDecisionLeaf{<:L}, DTInternal{<:L,D}}
 
     # semantics-specific miscellanoeus info
     miscellaneous :: NamedTuple
@@ -305,8 +321,8 @@ struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
         i_modality       :: ModalityId,
         decision         :: D,
         this             :: AbstractDecisionLeaf{<:L},
-        left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
-        right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
+        left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{<:L,D}},
+        right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{<:L,D}},
         miscellaneous    :: NamedTuple = (;),
     ) where {D<:AbstractDecision,L<:Label}
         DTInternal{L,D}(i_modality, decision, this, left, right, miscellaneous)
@@ -314,34 +330,34 @@ struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
     function DTInternal(
         i_modality       :: ModalityId,
         decision         :: D,
-        this             :: AbstractDecisionLeaf{<:L},
-        left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
-        right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
+        this             :: AbstractDecisionLeaf{L0},
+        left             :: Union{AbstractDecisionLeaf{L1}, DTInternal{L1,D}},
+        right            :: Union{AbstractDecisionLeaf{L2}, DTInternal{L2,D}},
         miscellaneous    :: NamedTuple = (;),
-    ) where {D<:AbstractDecision,L<:Label}
+    ) where {D<:AbstractDecision,L0<:Label,L1<:Label,L2<:Label}
+        L = Union{L0,L1,L2}
         DTInternal{L,D}(i_modality, decision, this, left, right, miscellaneous)
     end
 
-    # create node without local decision
+    # create node without local leaf
     function DTInternal{L,D}(
         i_modality       :: ModalityId,
         decision         :: D,
         left             :: Union{AbstractDecisionLeaf,DTInternal},
         right            :: Union{AbstractDecisionLeaf,DTInternal},
         miscellaneous    :: NamedTuple = (;),
-    ) where {D<:Union{AbstractDecision,AbstractTemplatedFormula},L<:Label}
-        if decision isa AbstractTemplatedFormula
+    ) where {D<:Union{AbstractDecision,ScalarExistentialFormula},L<:Label}
+        if decision isa ScalarExistentialFormula
             decision = SimpleDecision(decision)
         end
-        # this = merge_into_leaf(Vector{<:Union{AbstractDecisionLeaf,DTInternal}}([left, right]))
-        this = merge_into_leaf(Union{<:AbstractDecisionLeaf,<:DTInternal}[left, right])
-        new{L,D}(i_modality, decision, this, left, right, miscellaneous)
+        this = squashtoleaf(Union{<:AbstractDecisionLeaf,<:DTInternal}[left, right])
+        DTInternal{L,D}(i_modality, decision, this, left, right, miscellaneous)
     end
     function DTInternal{L}(
         i_modality       :: ModalityId,
         decision         :: D,
-        left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
-        right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
+        left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{<:L,D}},
+        right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{<:L,D}},
         miscellaneous    :: NamedTuple = (;),
     ) where {D<:AbstractDecision,L<:Label}
         DTInternal{L,D}(i_modality, decision, left, right, miscellaneous)
@@ -349,47 +365,16 @@ struct DTInternal{L<:Label,D<:AbstractDecision} <: AbstractDecisionInternal{L,D}
     function DTInternal(
         i_modality       :: ModalityId,
         decision         :: D,
-        left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
-        right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
+        left             :: Union{AbstractDecisionLeaf{L1}, DTInternal{L1,D}},
+        right            :: Union{AbstractDecisionLeaf{L2}, DTInternal{L2,D}},
         miscellaneous    :: NamedTuple = (;),
-    ) where {D<:Union{AbstractDecision,AbstractTemplatedFormula},L<:Label}
-        if decision isa AbstractTemplatedFormula
+    ) where {D<:Union{AbstractDecision,ScalarExistentialFormula},L1<:Label,L2<:Label}
+        if decision isa ScalarExistentialFormula
             decision = SimpleDecision(decision)
         end
+        L = Union{L1,L2}
         DTInternal{L,D}(i_modality, decision, left, right, miscellaneous)
     end
-
-    # create node without frame
-    # function DTInternal{L,D}(
-    #     decision         :: AbstractDecision,
-    #     this             :: AbstractDecisionLeaf,
-    #     left             :: Union{AbstractDecisionLeaf,DTInternal},
-    #     right            :: Union{AbstractDecisionLeaf,DTInternal}) where {T,L<:Label}
-    #     i_modality = 1
-    #     DTInternal{L,D}(i_modality, decision, this, left, right)
-    # end
-    # function DTInternal(
-    #     decision         :: AbstractDecision{T},
-    #     this             :: AbstractDecisionLeaf,
-    #     left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
-    #     right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}}) where {T,L<:Label}
-    #     DTInternal{L,D}(decision, this, left, right)
-    # end
-
-    # # create node without frame nor local decision
-    # function DTInternal{L,D}(
-    #     decision         :: AbstractDecision,
-    #     left             :: Union{AbstractDecisionLeaf,DTInternal},
-    #     right            :: Union{AbstractDecisionLeaf,DTInternal}) where {T,L<:Label}
-    #     i_modality = 1
-    #     DTInternal{L,D}(i_modality, decision, left, right)
-    # end
-    # function DTInternal(
-    #     decision         :: AbstractDecision{T},
-    #     left             :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}},
-    #     right            :: Union{AbstractDecisionLeaf{<:L}, DTInternal{L,D}}) where {T,L<:Label}
-    #     DTInternal{L,D}(decision, left, right)
-    # end
 end
 
 i_modality(node::DTInternal) = node.i_modality
@@ -411,32 +396,32 @@ abstract type SymbolicModel{L} end
 # Decision Tree
 struct DTree{L<:Label} <: SymbolicModel{L}
     # root node
-    root            :: DTNode{L}
-    # world types (one per frame)
-    worldtypes     :: Vector{Type{<:AbstractWorld}}
-    # initial world conditions (one per frame)
-    init_conditions :: Vector{<:InitialCondition}
+    root           :: DTNode{L}
+    # world types (one per modality)
+    worldtypes     :: Vector{<:Type}
+    # initial world conditions (one per modality)
+    initconditions :: Vector{InitialCondition}
 
     function DTree{L}(
-        root            :: DTNode,
+        root           :: DTNode,
         worldtypes     :: AbstractVector{<:Type},
-        init_conditions :: AbstractVector{<:InitialCondition},
+        initconditions :: AbstractVector{<:InitialCondition},
     ) where {L<:Label}
-        new{L}(root, collect(worldtypes), collect(init_conditions))
+        new{L}(root, collect(worldtypes), Vector{InitialCondition}(collect(initconditions)))
     end
 
     function DTree(
-        root            :: DTNode{L,D},
+        root           :: DTNode{L,D},
         worldtypes     :: AbstractVector{<:Type},
-        init_conditions :: AbstractVector{<:InitialCondition},
+        initconditions :: AbstractVector{<:InitialCondition},
     ) where {L<:Label,D<:AbstractDecision}
-        DTree{L}(root, worldtypes, init_conditions)
+        DTree{L}(root, worldtypes, initconditions)
     end
 end
 
 root(tree::DTree) = tree.root
 worldtypes(tree::DTree) = tree.worldtypes
-init_conditions(tree::DTree) = tree.init_conditions
+initconditions(tree::DTree) = tree.initconditions
 
 ############################################################################################
 
@@ -566,6 +551,7 @@ ismodalnode(tree::DTree)      = ismodalnode(root(tree))
 
 displaydecision(node::DTInternal, args...; kwargs...) =
     displaydecision(i_modality(node), decision(node), args...; kwargs...)
+
 displaydecision_inverse(node::DTInternal, args...; kwargs...) =
     displaydecision_inverse(i_modality(node), decision(node), args...; kwargs...)
 
@@ -646,7 +632,7 @@ function display(tree::DTree{L}) where {L}
     return """
 Decision Tree{$(L)}(
     worldtypes:    $(worldtypes(tree))
-    init_conditions: $(init_conditions(tree))
+    initconditions: $(initconditions(tree))
     ###########################################################
     sub-tree leaves: $(nleaves(tree))
     sub-tree nodes: $(nnodes(tree))
@@ -681,19 +667,3 @@ $(displaymodel(nsdt))
 )
 """
 end
-
-
-############################################################################################
-# Tests
-############################################################################################
-
-# # https://stackoverflow.com/questions/66801702/deriving-equality-for-julia-structs-with-mutable-members
-# import Base: == # TODO isequal...?
-# function (Base).==(a::S, b::S) where {S<:AbstractDecisionLeaf}
-#     for name in fieldnames(S)
-#         if getfield(a, name) != getfield(b, name)
-#             return false
-#         end
-#     end
-#     return true
-# end

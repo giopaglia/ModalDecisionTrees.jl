@@ -2,27 +2,36 @@
 include("fit_tree.jl")
 
 ################################################################################
-###################### Single-frame active datasets ############################
+############################# Unimodal datasets ################################
 ################################################################################
 
-# # Build models on (multi-dimensional) arrays
-function build_stump(X :: AbstractLogiset, args...; kwargs...)
+function build_stump(X::AbstractLogiset, args...; kwargs...)
     build_stump(MultiLogiset(X), args...; kwargs...)
 end
 
-function build_tree(X :: AbstractLogiset, args...; kwargs...)
+function build_tree(X::AbstractLogiset, args...; kwargs...)
     build_tree(MultiLogiset(X), args...; kwargs...)
 end
 
-function build_forest(X :: AbstractLogiset, args...; kwargs...)
+function build_forest(X::AbstractLogiset, args...; kwargs...)
     build_forest(MultiLogiset(X), args...; kwargs...)
 end
 
 ################################################################################
-######################## Multiframe active datasets ############################
+############################ Multimodal datasets ###############################
 ################################################################################
 
-# Build a stump (tree with depth 1)
+doc_build = """
+    build_stump(X, Y, W = nothing; kwargs...)
+    build_tree(X, Y, W = nothing; kwargs...)
+    build_forest(X, Y, W = nothing; kwargs...)
+
+Train a decision stump (i.e., decision tree with depth 1), a decision tree, or
+a random forest model on logiset `X` with labels `Y` and weights `W`.
+
+"""
+
+"""$(doc_build)"""
 function build_stump(
     X                 :: MultiLogiset,
     Y                 :: AbstractVector{L},
@@ -30,12 +39,12 @@ function build_stump(
     kwargs...,
 ) where {L<:Label, U}
     params = NamedTuple(kwargs)
-    @assert !haskey(params, :max_depth) || params.max_depth == 1 "build_stump doesn't allow max_depth != 1"
+    @assert !haskey(params, :max_depth) || params.max_depth == 1 "build_stump " *
+        "doesn't allow max_depth != 1."
     build_tree(X, Y, W; max_depth = 1, kwargs...)
 end
 
-# TODO set default pruning arguments for tree, and make sure that forests override these
-# Build a tree
+"""$(doc_build)"""
 function build_tree(
     X                   :: MultiLogiset,
     Y                   :: AbstractVector{L},
@@ -49,7 +58,7 @@ function build_tree(
     ##############################################################################
     n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
     n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = identity,
-    init_conditions     :: Union{InitialCondition,AbstractVector{<:InitialCondition}}   = start_without_world,
+    initconditions      :: Union{InitialCondition,AbstractVector{<:InitialCondition}}   = start_without_world,
     allow_global_splits :: Union{Bool,AbstractVector{Bool}}                       = true,
     ##############################################################################
     use_minification    :: Bool = false,
@@ -86,18 +95,18 @@ function build_tree(
     if n_subfeatures isa Function
         n_subfeatures  = fill(n_subfeatures, nmodalities(X))
     end
-    if init_conditions isa InitialCondition
-        init_conditions = fill(init_conditions, nmodalities(X))
+    if initconditions isa InitialCondition
+        initconditions = fill(initconditions, nmodalities(X))
     end
 
     @assert max_depth > 0
 
     # if any(map(f->f isa AbstractDimensionalDataset, eachmodality(X)))
-    #     @error "Cannot learn from AbstractDimensionalDataset! Please use DimensionalLogiset, Logiset or SupportedScalarLogiset."
+    #     error("Cannot learn from AbstractDimensionalDataset! Please use DimensionalLogiset, Logiset or SupportedLogiset.")
     # end
 
     # TODO figure out what to do here. Maybe it can be helpful to make rng either an rng or a seed, and then mk_rng transforms it into an rng
-    fit_tree(X, Y, init_conditions, W
+    fit_tree(X, Y, initconditions, W
         ;###########################################################################
         loss_function       = loss_function,
         max_depth           = max_depth,
@@ -106,18 +115,18 @@ function build_tree(
         max_purity_at_leaf  = max_purity_at_leaf,
         ############################################################################
         n_subrelations      = n_subrelations,
-        n_subfeatures       = [ n_subfeatures[i](nfeatures(frame)) for (i,frame) in enumerate(eachmodality(X)) ],
+        n_subfeatures       = [ n_subfeatures[i](nfeatures(modality)) for (i,modality) in enumerate(eachmodality(X)) ],
         allow_global_splits = allow_global_splits,
         ############################################################################
         use_minification    = use_minification,
         perform_consistency_check = perform_consistency_check,
         ############################################################################
         rng                 = rng,
-        print_progress                 = print_progress,
+        print_progress      = print_progress,
     )
 end
 
-
+"""$(doc_build)"""
 function build_forest(
     X                   :: MultiLogiset,
     Y                   :: AbstractVector{L},
@@ -138,14 +147,14 @@ function build_forest(
     # Modal parameters
     n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
     n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = x -> ceil(Int64, sqrt(x)),
-    init_conditions     :: Union{InitialCondition,AbstractVector{<:InitialCondition}}   = start_without_world,
+    initconditions      :: Union{InitialCondition,AbstractVector{<:InitialCondition}}   = start_without_world,
     allow_global_splits :: Union{Bool,AbstractVector{Bool}}                       = true,
     ##############################################################################
     use_minification    :: Bool = false,
     perform_consistency_check :: Bool = true,
     ##############################################################################
     rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG,
-    print_progress :: Bool = true,
+    print_progress      :: Bool = true,
     suppress_parity_warning :: Bool = false,
 ) where {L<:Label, U}
 
@@ -169,23 +178,24 @@ function build_forest(
     if n_subfeatures isa Function
         n_subfeatures  = fill(n_subfeatures, nmodalities(X))
     end
-    if init_conditions isa InitialCondition
-        init_conditions = fill(init_conditions, nmodalities(X))
+    if initconditions isa InitialCondition
+        initconditions = fill(initconditions, nmodalities(X))
     end
     if allow_global_splits isa Bool
         allow_global_splits = fill(allow_global_splits, nmodalities(X))
     end
 
     if ntrees < 1
-        throw_n_log("the number of trees must be >= 1")
+        error("the number of trees must be >= 1")
     end
     
     if !(0.0 < partial_sampling <= 1.0)
-        throw_n_log("partial_sampling must be in the range (0,1]")
+        error("partial_sampling must be in the range (0,1]")
     end
     
-    if any(map(f->f isa Logiset, eachmodality(X)))
-        @warn "Warning! Consider using the optimized structure SupportedScalarLogiset, instead of Logiset."
+    if any(map(f->!(f isa SupportedLogiset), eachmodality(X)))
+        @warn "Warning! Consider using structures optimized for model checking " *
+            "such as SupportedLogiset."
     end
 
     tot_samples = ninstances(X)
@@ -203,7 +213,7 @@ function build_forest(
     Threads.@threads for i_tree in 1:ntrees
         train_idxs = rand(rngs[i_tree], 1:tot_samples, num_samples)
 
-        X_slice = instances(X, train_idxs, Val(true))
+        X_slice = SoleData.instances(X, train_idxs, Val(true))
         Y_slice = @view Y[train_idxs]
         W_slice = SoleModels.slice_weights(W, train_idxs)
 
@@ -221,7 +231,7 @@ function build_forest(
             ################################################################################
             n_subrelations       = n_subrelations,
             n_subfeatures        = n_subfeatures,
-            init_conditions      = init_conditions,
+            initconditions       = initconditions,
             allow_global_splits  = allow_global_splits,
             ################################################################################
             use_minification     = use_minification,
@@ -234,7 +244,7 @@ function build_forest(
         # grab out-of-bag indices
         oob_instances[i_tree] = setdiff(1:tot_samples, train_idxs)
 
-        tree_preds = apply_tree(trees[i_tree], instances(X, oob_instances[i_tree], Val(true)))
+        tree_preds = apply_tree(trees[i_tree], SoleData.instances(X, oob_instances[i_tree], Val(true)))
 
         oob_metrics[i_tree] = (;
             actual = Y[oob_instances[i_tree]],
@@ -270,7 +280,7 @@ function build_forest(
                 continue
             end
             
-            X_slice = instances(X, [i], Val(true))
+            X_slice = SoleData.instances(X, [i], Val(true))
             Y_slice = [Y[i]]
             
             preds = apply_model(trees[index_of_trees_to_test_with], X_slice; suppress_parity_warning = suppress_parity_warning)

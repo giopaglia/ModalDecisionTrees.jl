@@ -3,18 +3,19 @@
 ################################################################################
 module experimentals
 
-using ..ModalDecisionTrees
+using ModalDecisionTrees
+using ModalDecisionTrees:
+       relation, feature, test_operator, threshold,
+       is_propositional_decision,
+       is_global_decision
+
 using SoleModels
 using SoleModels.DimensionalDatasets
 using SoleLogics
 
-using SoleModels.DimensionalDatasets
-using SoleModels: MultiLogiset
-using SoleModels: WorldSet, GenericDataset
-
 
 using SoleModels: nfeatures, nrelations,
-                            nmodalities, frames, frame,
+                            nmodalities, eachmodality, modality,
                             displaystructure,
                             #
                             relations,
@@ -22,20 +23,22 @@ using SoleModels: nfeatures, nrelations,
                             GenericDataset,
                             MultiLogiset,
                             AbstractLogiset,
-                            DimensionalLogiset,
-                            Logiset,
-                            SupportedScalarLogiset
+                            SupportedLogiset
+
+using SoleModels: scalarlogiset
 
 using SoleModels: AbstractWorld, AbstractRelation
 using SoleModels: AbstractWorldSet, WorldSet
-using SoleModels: FullDimensionalFrame
 
-using SoleModels: Ontology, worldtype, worldtypes
+using SoleLogics: FullDimensionalFrame
+using SoleModels.DimensionalDatasets
+using SoleModels: MultiLogiset
+using SoleModels: WorldSet, GenericDataset
 
-using SoleModels: get_ontology,
-                            get_interval_ontology
 
-using SoleModels: OneWorld, OneWorldOntology
+using SoleModels: worldtype
+
+using SoleModels: OneWorld
 
 using SoleModels: Interval, Interval2D
 

@@ -38,11 +38,11 @@ end
 
 ############################################################################################
 
-function brief_prediction_str(leaf::DTLeaf)
+function displaybriefprediction(leaf::DTLeaf)
     string(prediction(leaf))
 end
 
-function brief_prediction_str(leaf::NSDTLeaf)
+function displaybriefprediction(leaf::NSDTLeaf)
     # "{$(leaf.predicting_function), size = $(Base.summarysize(leaf.predicting_function))}"
     "<$(leaf.predicting_function)>"
 end
@@ -126,7 +126,7 @@ function displaymodel(
     )
     metrics = get_metrics(leaf; kwargs...)
     metrics_str = get_metrics_str(metrics)
-    return "$(brief_prediction_str(leaf)) : $(metrics_str)\n"
+    return "$(displaybriefprediction(leaf)) : $(metrics_str)\n"
 end
 
 function displaymodel(
@@ -138,7 +138,7 @@ function displaymodel(
     )
     train_metrics_str = get_metrics_str(get_metrics(leaf; train_or_valid = true, kwargs...))
     valid_metrics_str = get_metrics_str(get_metrics(leaf; train_or_valid = false, kwargs...))
-    return "$(brief_prediction_str(leaf)) : {TRAIN: $(train_metrics_str); VALID: $(valid_metrics_str)}\n"
+    return "$(displaybriefprediction(leaf)) : {TRAIN: $(train_metrics_str); VALID: $(valid_metrics_str)}\n"
 end
 
 function displaymodel(

@@ -10,7 +10,7 @@ import MLJ: predict
 mm_instance_initialworldset(Xs::MultiLogiset, tree::DTree, i_instance::Integer) = begin
     Ss = Vector{WorldSet}(undef, nmodalities(Xs))
     for (i_modality,X) in enumerate(eachmodality(Xs))
-        Ss[i_modality] = initialworldset(X, i_instance, init_conditions(tree)[i_modality])
+        Ss[i_modality] = initialworldset(X, i_instance, initconditions(tree)[i_modality])
     end
     Ss
 end
@@ -22,7 +22,7 @@ softmax(m::AbstractMatrix) = mapslices(softmax, m; dims=1)
 ############################################################################################
 ############################################################################################
 
-# Patch single-frame _-> multiframe
+# Patch unimodal -> multimodal
 apply(model::Union{DTree,DForest}, X::AbstractLogiset, args...; kwargs...) =
     apply(model, MultiLogiset(X), args...; kwargs...)
 
@@ -79,7 +79,7 @@ function apply(tree::DTInternal, X::MultiLogiset, i_instance::Integer, worlds::A
     @logmsg LogDetail " worlds" worlds
     (satisfied,new_worlds) =
         modalstep(
-            frame(X, i_modality(tree)),
+            modality(X, i_modality(tree)),
             i_instance,
             worlds[i_modality(tree)],
             decision(tree),
@@ -166,7 +166,7 @@ function apply(
     #   # TODO: choose HOW to weight a tree... overall_accuracy is just an example (maybe can be parameterized)
     #   apply(forest.trees, X; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
     else
-        @error "Unexpected value for weight_trees_by: $(weight_trees_by)"
+        error("Unexpected value for weight_trees_by: $(weight_trees_by)")
     end
 end
 
@@ -205,7 +205,7 @@ function _empty_tree_leaves(tree::DTree)
     return DTree(
         _empty_tree_leaves(root(tree)),
         worldtypes(tree),
-        init_conditions(tree),
+        initconditions(tree),
     )
 end
 
@@ -262,7 +262,13 @@ function apply(
     kwargs...,
 ) where {L}
 
-    (satisfied,new_worlds) = modalstep(frame(X, i_modality(tree)), i_instance, worlds[i_modality(tree)], decision(tree))
+    (satisfied,new_worlds) =
+        modalstep(
+            modality(X, i_modality(tree)),
+            i_instance,
+            worlds[i_modality(tree)],
+            decision(tree)
+    )
 
     # if satisfied
     #   println("new_worlds: $(new_worlds)")
@@ -304,7 +310,7 @@ function apply(
         pred, _root = apply(_root, X, i_instance, worlds, Y[i_instance]; kwargs...)
         push!(predictions, pred)
     end
-    predictions, DTree(_root, worldtypes(tree), init_conditions(tree))
+    predictions, DTree(_root, worldtypes(tree), initconditions(tree))
 end
 
 # use an array of trees to test features
@@ -370,7 +376,7 @@ function apply(
         #   # TODO: choose HOW to weight a tree... overall_accuracy is just an example (maybe can be parameterized)
         #   apply(forest.trees, X; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
         else
-            @error "Unexpected value for weight_trees_by: $(weight_trees_by)"
+            error("Unexpected value for weight_trees_by: $(weight_trees_by)")
         end
     end
     predictions, DForest{L}(trees, (;)) # TODO note that the original metrics are lost here
@@ -414,7 +420,7 @@ function apply_proba(tree::DTInternal, X::MultiLogiset, i_instance::Integer, wor
     @logmsg LogDetail " worlds" worlds
     (satisfied,new_worlds) =
         modalstep(
-            frame(X, i_modality(tree)),
+            modality(X, i_modality(tree)),
             i_instance,
             worlds[i_modality(tree)],
             decision(tree),
@@ -555,7 +561,7 @@ function apply_proba(
     #   # TODO: choose HOW to weight a tree... overall_accuracy is just an example (maybe can be parameterized)
     #   apply_proba(forest.trees, X, args...; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
     else
-        @error "Unexpected value for weight_trees_by: $(weight_trees_by)"
+        error("Unexpected value for weight_trees_by: $(weight_trees_by)")
     end
 end
 

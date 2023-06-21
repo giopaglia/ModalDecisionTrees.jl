@@ -22,7 +22,7 @@ mutable struct NodeMeta{L<:Label,P} <: AbstractNode{L}
     l                  :: NodeMeta{L,P}                    # left child
     r                  :: NodeMeta{L,P}                    # right child
     
-    i_modality         :: ModalityId                          # Id of frame
+    i_modality         :: ModalityId                       # modality id
     decision           :: AbstractDecision
 
     onlyallowglobal:: Vector{Bool}
@@ -54,7 +54,7 @@ end
     @logmsg LogDetail "fork!(...): " node ind region mdepth
 
     # onlyallowglobal changes:
-    # on the left node, the frame where the decision was taken
+    # on the left node, the modality where the decision was taken
     l_oura = copy(node.onlyallowglobal)
     l_oura[node.i_modality] = false
     r_oura = node.onlyallowglobal
@@ -77,7 +77,7 @@ function _convert(
     else
         left  = _convert(node.l, labels, class_names, threshold_backmap)
         right = _convert(node.r, labels, class_names, threshold_backmap)
-        DTInternal(node.i_modality, ScalarExistentialFormula(node.decision, threshold_backmap[node.i_modality]), this_leaf, left, right)
+        DTInternal(node.i_modality, SimpleDecision(ScalarExistentialFormula(node.decision, threshold_backmap[node.i_modality])), this_leaf, left, right)
     end
 end
 
@@ -93,7 +93,7 @@ function _convert(
     else
         left  = _convert(node.l, labels, threshold_backmap)
         right = _convert(node.r, labels, threshold_backmap)
-        DTInternal(node.i_modality, ScalarExistentialFormula(node.decision, threshold_backmap[node.i_modality]), this_leaf, left, right)
+        DTInternal(node.i_modality, SimpleDecision(ScalarExistentialFormula(node.decision, threshold_backmap[node.i_modality])), this_leaf, left, right)
     end
 end
 
@@ -156,12 +156,12 @@ end
 #   #  propositional splits.
 
 #   if identityrel in ontology_relations
-#       throw_n_log("Found identityrel in ontology provided. No need.")
+#       error("Found identityrel in ontology provided. No need.")
 #       # ontology_relations = filter(e->e ≠ identityrel, ontology_relations)
 #   end
 
 #   if globalrel in ontology_relations
-#       throw_n_log("Found globalrel in ontology provided. Use allow_global_splits = true instead.")
+#       error("Found globalrel in ontology provided. Use allow_global_splits = true instead.")
 #       # ontology_relations = filter(e->e ≠ globalrel, ontology_relations)
 #       # allow_global_splits = true
 #   end
@@ -218,10 +218,13 @@ Base.@propagate_inbounds @inline function split_node!(
     Xs                        :: MultiLogiset,       # modal dataset
     Ss                        :: AbstractVector{
         <:AbstractVector{WST} where {WorldType,WST<:WorldSet{WorldType}}
-    }, # vector of current worlds for each instance and frame
+    }, # vector of current worlds for each instance and modality
     Y                         :: AbstractVector{L},                  # label vector
-    init_conditions           :: AbstractVector{<:InitialCondition},   # world starting conditions
-    W                         :: AbstractVector{U}                   # weight vector
+    initconditions            :: AbstractVector{<:InitialCondition},   # world starting conditions
+    W                         :: AbstractVector{U},                   # weight vector
+    grouped_featsaggrsnopss::AbstractVector{<:AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperator}}}},
+    grouped_featsnaggrss::AbstractVector{<:AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}}}
+    ##########################################################################
     ;
     ##########################################################################
     # Logic-agnostic training parameters
@@ -382,7 +385,7 @@ Base.@propagate_inbounds @inline function split_node!(
     # end
 
     Sfs = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, nmodalities(Xs))
-    for (i_modality,WT) in enumerate(worldtypes(Xs))
+    for (i_modality,WT) in enumerate(worldtype.(eachmodality(Xs)))
         Sfs[i_modality] = Vector{Vector{WT}}(undef, _n_instances)
         @simd for i in 1:_n_instances
             Sfs[i_modality][i] = Ss[i_modality][idxs[i + r_start]]
@@ -392,7 +395,7 @@ Base.@propagate_inbounds @inline function split_node!(
     # Optimization-tracking variables
     best_i_modality = -1
     best_purity_times_nt = typemin(P)
-    best_decision = ScalarExistentialFormula{Float64}()
+    best_decision = SimpleDecision(ScalarExistentialFormula{Float64}())
     if isa(_perform_consistency_check,Val{true})
         consistency_sat_check = Vector{Bool}(undef, _n_instances)
     end
@@ -402,32 +405,32 @@ Base.@propagate_inbounds @inline function split_node!(
     ## Find best split ##
     #####################
     ## Test all decisions
-    # For each frame (modal dataset)
+    # For each modality (modal dataset)
     @inbounds for (i_modality,
                 (X,
-                frame_Sf,
-                frame_n_subrelations::Function,
-                frame_n_subfeatures,
-                frame_allow_global_splits,
-                frame_onlyallowglobal)) in enumerate(zip(eachmodality(Xs), Sfs, n_subrelations, n_subfeatures, allow_global_splits, node.onlyallowglobal))
+                modality_Sf,
+                modality_n_subrelations::Function,
+                modality_n_subfeatures,
+                modality_allow_global_splits,
+                modality_onlyallowglobal)) in enumerate(zip(eachmodality(Xs), Sfs, n_subrelations, n_subfeatures, allow_global_splits, node.onlyallowglobal))
 
-        @logmsg LogDetail "  Frame $(best_i_modality)/$(length(eachmodality(Xs)))"
+        @logmsg LogDetail "  Modality $(best_i_modality)/$(nmodalities(Xs))"
 
         allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds = begin
 
             # Derive subset of features to consider
             # Note: using "sample" function instead of "randperm" allows to insert weights for features which may be wanted in the future
-            features_inds = StatsBase.sample(rng, 1:nfeatures(X), frame_n_subfeatures, replace = false)
+            features_inds = StatsBase.sample(rng, 1:nfeatures(X), modality_n_subfeatures, replace = false)
             sort!(features_inds)
 
             # Derive all available relations
             allow_propositional_decisions, allow_modal_decisions, allow_global_decisions = begin
                 if worldtype(X) == OneWorld
                     true, false, false
-                elseif frame_onlyallowglobal
+                elseif modality_onlyallowglobal
                     false, false, true
                 else
-                    true, true, frame_allow_global_splits
+                    true, true, modality_allow_global_splits
                 end
             end
 
@@ -440,7 +443,7 @@ Base.@propagate_inbounds @inline function split_node!(
             end
 
             # Derive subset of relations to consider
-            n_subrel = Int(frame_n_subrelations(tot_relations))
+            n_subrel = Int(modality_n_subrelations(tot_relations))
             modal_relations_inds = StatsBase.sample(rng, 1:tot_relations, n_subrel, replace = false)
             sort!(modal_relations_inds)
 
@@ -461,7 +464,18 @@ Base.@propagate_inbounds @inline function split_node!(
         ########################################################################
         ########################################################################
 
-        @inbounds for (decision, aggr_thresholds) in generate_feasible_decisions(X, idxs[region], frame_Sf, allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds)
+        @inbounds for (decision, aggr_thresholds) in generate_feasible_decisions(
+                X,
+                idxs[region],
+                modality_Sf,
+                allow_propositional_decisions,
+                allow_modal_decisions,
+                allow_global_decisions,
+                modal_relations_inds,
+                features_inds,
+                grouped_featsaggrsnopss[i_modality],
+                grouped_featsnaggrss[i_modality],
+            )
 
             # println(displaydecision(i_modality, decision))
 
@@ -481,7 +495,7 @@ Base.@propagate_inbounds @inline function split_node!(
                     end
                     for i_instance in 1:_n_instances
                         gamma = aggr_thresholds[i_instance]
-                        satisfied = apply_test_operator(_test_operator, gamma, _threshold)
+                        satisfied = SoleModels.apply_test_operator(_test_operator, gamma, _threshold)
                         # @logmsg LogDetail " instance $i_instance/$_n_instances: (f=$(gamma)) -> satisfied = $(satisfied)"
 
                         # Note: in a fuzzy generalization, `satisfied` becomes a [0-1] value
@@ -517,7 +531,7 @@ Base.@propagate_inbounds @inline function split_node!(
                     end
                     for i_instance in 1:_n_instances
                         gamma = aggr_thresholds[i_instance]
-                        satisfied = apply_test_operator(_test_operator, gamma, _threshold)
+                        satisfied = SoleModels.apply_test_operator(_test_operator, gamma, _threshold)
                         # @logmsg LogDetail " instance $i_instance/$_n_instances: (f=$(gamma)) -> satisfied = $(satisfied)"
 
                         # TODO make this satisfied a fuzzy value
@@ -592,7 +606,7 @@ Base.@propagate_inbounds @inline function split_node!(
                     #################################
                     # print(decision)
                     # println(" NEW BEST $best_i_modality, $best_purity_times_nt/nt")
-                    # @logmsg LogDetail "  Found new optimum in frame $(best_i_modality): " (best_purity_times_nt/nt) best_decision
+                    # @logmsg LogDetail "  Found new optimum in modality $(best_i_modality): " (best_purity_times_nt/nt) best_decision
                     #################################
                     best_consistency = begin
                         if isa(_perform_consistency_check,Val{true})
@@ -605,7 +619,7 @@ Base.@propagate_inbounds @inline function split_node!(
                 end
             end
         end # END decisions
-    end # END frame
+    end # END modality
 
     # TODO, actually, when using Shannon entropy, we must correct the purity:
     corrected_best_purity_times_nt = loss_function(best_purity_times_nt)::Float64
@@ -660,7 +674,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # TODO perform step with an OntologicalModalDataset
 
             # instance = DimensionalDatasets.get_instance(X, best_i_modality, idxs[i_instance + r_start])
-            X = frame(Xs, best_i_modality)
+            X = modality(Xs, best_i_modality)
             Sf = Sfs[best_i_modality]
             # instance = DimensionalDatasets.get_instance(X, idxs[i_instance + r_start])
 
@@ -687,7 +701,7 @@ Base.@propagate_inbounds @inline function split_node!(
             node.is_leaf = true
             return node
         end
-        @logmsg LogDetail " Branch ($(sum(unsatisfied_flags))+$(_n_instances-sum(unsatisfied_flags))=$(_n_instances) instances) on frame $(best_i_modality) with decision: $(decision_str), purity $(best_purity)"
+        @logmsg LogDetail " Branch ($(sum(unsatisfied_flags))+$(_n_instances-sum(unsatisfied_flags))=$(_n_instances) instances) at modality $(best_i_modality) with decision: $(decision_str), purity $(best_purity)"
 
         # if sum(unsatisfied_flags) >= min_samples_leaf && (_n_instances - sum(unsatisfied_flags)) >= min_samples_leaf
             # DEBUGprintln("LEAF!")
@@ -710,7 +724,7 @@ Base.@propagate_inbounds @inline function split_node!(
             errStr *= "- feature returning NaNs\n"
             errStr *= "- erroneous representatives for relation $(relation(best_decision)), aggregator $(existential_aggregator(test_operator(best_decision))) and feature $(feature(best_decision))\n"
             errStr *= "\n"
-            errStr *= "Branch ($(sum(unsatisfied_flags))+$(_n_instances-sum(unsatisfied_flags))=$(_n_instances) instances) on frame $(best_i_modality) with decision: $(decision_str), purity $(best_purity)\n"
+            errStr *= "Branch ($(sum(unsatisfied_flags))+$(_n_instances-sum(unsatisfied_flags))=$(_n_instances) instances) at modality $(best_i_modality) with decision: $(decision_str), purity $(best_purity)\n"
             errStr *= "$(length(idxs[region])) Instances: $(idxs[region])\n"
             errStr *= "Different partition was expected:\n"
             if isa(_perform_consistency_check,Val{true})
@@ -735,7 +749,7 @@ Base.@propagate_inbounds @inline function split_node!(
                 # errStr *= "$(DimensionalDatasets.get_channel(Xs, idxs[i + r_start], feature(best_decision)))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[best_i_modality][idxs[i + r_start]])\n";
             # end
 
-            # throw_n_log("ERROR! " * errStr)
+            # error("ERROR! " * errStr)
             println("ERROR! " * errStr) # TODO fix
         end
 
@@ -749,20 +763,20 @@ Base.@propagate_inbounds @inline function split_node!(
             errStr *= "Unsatisfied flags: $(unsatisfied_flags)"
 
             println("ERROR! " * errStr) # TODO fix
-            # throw_n_log(errStr)
+            # error(errStr)
             node.is_leaf = true
         else
             # split the instances into two parts:
             #  ones for which the is satisfied and those for whom it's not
             node.purity         = best_purity
             node.i_modality     = best_i_modality
-            node.decision       = best_decision
+            node.decision       = SimpleDecision(best_decision)
 
             # DEBUGprintln("unsatisfied_flags")
             # DEBUGprintln(unsatisfied_flags)
 
             # @logmsg LogDetail "pre-partition" region idxs[region] unsatisfied_flags
-            node.split_at = utils.partition!(idxs, unsatisfied_flags, 0, region)
+            node.split_at = partition!(idxs, unsatisfied_flags, 0, region)
             # @logmsg LogDetail "post-partition" idxs[region] node.split_at
 
             # For debug:
@@ -789,7 +803,7 @@ end
 @inline function _fit_tree(
     Xs                        :: MultiLogiset,       # modal dataset
     Y                         :: AbstractVector{L},                  # label vector
-    init_conditions           :: AbstractVector{<:InitialCondition},   # world starting conditions
+    initconditions            :: AbstractVector{<:InitialCondition},   # world starting conditions
     W                         :: AbstractVector{U}                   # weight vector
     ;
     ##########################################################################
@@ -803,7 +817,7 @@ end
     _n_instances = ninstances(Xs)
 
     # Initialize world sets for each instance
-    Ss = ModalDecisionTrees.initialworldsets(Xs, init_conditions)
+    Ss = ModalDecisionTrees.initialworldsets(Xs, initconditions)
 
     # Distribution of the instances indices throughout the tree.
     #  It will be recursively permuted, and regions of it assigned to the tree nodes (idxs[node.region])
@@ -811,19 +825,59 @@ end
 
     # Create root node
     NodeMetaT = NodeMeta{(_is_classification isa Val{true} ? Int64 : Float64),Float64}
-    onlyallowglobal = [(initcond == ModalDecisionTrees.start_without_world) for initcond in init_conditions]
+    onlyallowglobal = [(initcond == ModalDecisionTrees.start_without_world) for initcond in initconditions]
     root = NodeMetaT(1:_n_instances, 0, 0, onlyallowglobal)
     
     # if print_progress TODO
     #     p = ProgressThresh(Inf, 1, "Computing DTree...")
     # end
 
+    grouped_featsnaggrss = zip([
+        begin
+            _features = features(X)
+            _metaconditions = metaconditions(X)
+
+            _grouped_metaconditions = SoleModels.grouped_metaconditions(_metaconditions, _features)
+
+            # _grouped_metaconditions::AbstractVector{<:AbstractVector{Tuple{<:ScalarMetaCondition}}}
+            # [[(i_metacond, aggregator, metacondition)...]...]
+
+            grouped_featsaggrsnops, grouped_featsnaggrs = zip([begin
+                    aggrsnops = Dict{<:Aggregator,<:AbstractVector{<:ScalarMetaCondition}}()
+                    aggregators_with_ids = Tuple{<:Integer,<:Aggregator}[]
+                    for (i_metacond, aggregator, metacondition) in these_metaconditions
+                        if !haskey(aggrsnops, aggregator)
+                            aggrsnops[aggregator] = Dict{Aggregator,AbstractVector{<:ScalarMetaCondition}}()
+                        end
+                        push!(aggrsnops[aggregator], metacondition)
+                        push!(aggregators_with_ids, (i_metacond,aggregator))
+                    end
+                    [aggrsnops, aggregators_with_ids]
+                end for (i_feature, (_feature, these_metaconditions)) in enumerate(_grouped_metaconditions)]...)
+
+            # grouped_featsaggrsnops::AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:ScalarMetaCondition}}}
+            # [Dict([aggregator => [metacondition...]]...)...]
+
+            # grouped_featsnaggrs::AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}}
+            # [[(i_metacond,aggregator)...]...]
+
+            [grouped_featsaggrsnops, grouped_featsnaggrs]
+        end for X in eachmodality(X)]...)
+
     # Process nodes recursively, using multi-threading
     function process_node!(node, rng)
         # Note: better to spawn rng's beforehand, to preserve reproducibility independently from split_node!
         rng_l = spawn(rng)
         rng_r = spawn(rng)
-        @inbounds split_node!(node, Xs, Ss, Y, init_conditions, W;
+        @inbounds split_node!(
+            node,
+            Xs,
+            Ss,
+            Y,
+            initconditions,
+            W,
+            grouped_featsaggrsnopss,
+            grouped_featsnaggrss;
             _is_classification         = _is_classification,
             _perform_consistency_check = _perform_consistency_check,
             idxs                       = idxs,
@@ -851,7 +905,7 @@ end
 @inline function check_input(
     Xs                      :: MultiLogiset,
     Y                       :: AbstractVector{S},
-    init_conditions         :: Vector{<:InitialCondition},
+    initconditions          :: Vector{<:InitialCondition},
     W                       :: AbstractVector{U}
     ;
     ##########################################################################
@@ -870,35 +924,35 @@ end
     _n_instances = ninstances(Xs)
 
     if length(Y) != _n_instances
-        throw_n_log("Dimension mismatch between dataset and label vector Y: ($(_n_instances)) vs $(size(Y))")
+        error("Dimension mismatch between dataset and label vector Y: ($(_n_instances)) vs $(size(Y))")
     elseif length(W) != _n_instances
-        throw_n_log("Dimension mismatch between dataset and weights vector W: ($(_n_instances)) vs $(size(W))")
+        error("Dimension mismatch between dataset and weights vector W: ($(_n_instances)) vs $(size(W))")
     ############################################################################
     elseif length(n_subrelations) != nmodalities(Xs)
-        throw_n_log("Mismatching number of n_subrelations with number of frames: $(length(n_subrelations)) vs $(nmodalities(Xs))")
+        error("Mismatching number of n_subrelations with number of modalities: $(length(n_subrelations)) vs $(nmodalities(Xs))")
     elseif length(n_subfeatures)  != nmodalities(Xs)
-        throw_n_log("Mismatching number of n_subfeatures with number of frames: $(length(n_subfeatures)) vs $(nmodalities(Xs))")
-    elseif length(init_conditions) != nmodalities(Xs)
-        throw_n_log("Mismatching number of init_conditions with number of frames: $(length(init_conditions)) vs $(nmodalities(Xs))")
+        error("Mismatching number of n_subfeatures with number of modalities: $(length(n_subfeatures)) vs $(nmodalities(Xs))")
+    elseif length(initconditions) != nmodalities(Xs)
+        error("Mismatching number of initconditions with number of modalities: $(length(initconditions)) vs $(nmodalities(Xs))")
     elseif length(allow_global_splits) != nmodalities(Xs)
-        throw_n_log("Mismatching number of allow_global_splits with number of frames: $(length(allow_global_splits)) vs $(nmodalities(Xs))")
+        error("Mismatching number of allow_global_splits with number of modalities: $(length(allow_global_splits)) vs $(nmodalities(Xs))")
     ############################################################################
-    # elseif any(nrelations(Xs) .< n_subrelations)
-    #   throw_n_log("In at least one frame the total number of relations is less than the number "
+    # elseif any(nrelations.(eachmodality(Xs)) .< n_subrelations)
+    #   error("In at least one modality the total number of relations is less than the number "
     #       * "of relations required at each split\n"
-    #       * "# relations:    " * string(nrelations(Xs)) * "\n\tvs\n"
+    #       * "# relations:    " * string(nrelations.(eachmodality(Xs))) * "\n\tvs\n"
     #       * "# subrelations: " * string(n_subrelations |> collect))
     # elseif length(findall(n_subrelations .< 0)) > 0
-    #   throw_n_log("Total number of relations $(n_subrelations) must be >= zero ")
-    elseif any(nfeatures(Xs) .< n_subfeatures)
-        throw_n_log("In at least one frame the total number of features is less than the number "
+    #   error("Total number of relations $(n_subrelations) must be >= zero ")
+    elseif any(nfeatures.(eachmodality(Xs)) .< n_subfeatures)
+        error("In at least one modality the total number of features is less than the number "
             * "of features required at each split\n"
-            * "# features:    " * string(nfeatures(Xs)) * "\n\tvs\n"
+            * "# features:    " * string(nfeatures.(eachmodality(Xs))) * "\n\tvs\n"
             * "# subfeatures: " * string(n_subfeatures |> collect))
     elseif length(findall(n_subfeatures .< 0)) > 0
-        throw_n_log("Total number of features $(n_subfeatures) must be >= zero ")
+        error("Total number of features $(n_subfeatures) must be >= zero ")
     elseif min_samples_leaf < 1
-        throw_n_log("Min_samples_leaf must be a positive integer "
+        error("Min_samples_leaf must be a positive integer "
             * "(given $(min_samples_leaf))")
     # if loss_function in [entropy]
     #   max_purity_at_leaf_thresh = 0.75 # min_purity_increase 0.01
@@ -911,10 +965,10 @@ end
     #           * "(given $(min_purity_increase))")
     # end
     # elseif loss_function in [gini, zero_one] && (max_purity_at_leaf > 1.0 || max_purity_at_leaf <= 0.0)
-    #     throw_n_log("Max_purity_at_leaf for loss $(loss_function) must be in (0,1]"
+    #     error("Max_purity_at_leaf for loss $(loss_function) must be in (0,1]"
     #         * "(given $(max_purity_at_leaf))")
     elseif max_depth < -1
-        throw_n_log("Unexpected value for max_depth: $(max_depth) (expected:"
+        error("Unexpected value for max_depth: $(max_depth) (expected:"
             * " max_depth >= 0, or max_depth = -1 for infinite depth)")
     end
 
@@ -925,17 +979,17 @@ end
         # println(SoleData.hasnans.([fd(X) for X in eachmodality(Xs)]))
         # println(SoleData.hasnans.([fd(X).fwd for X in eachmodality(Xs)]))
         # println(fwd(eachmodality(Xs)[1].fd))
-        throw_n_log("This algorithm doesn't allow NaN values")
+        error("This algorithm doesn't allow NaN values")
     end
 
     if nothing in Y
-        throw_n_log("This algorithm doesn't allow nothing values in Y")
+        error("This algorithm doesn't allow nothing values in Y")
     # elseif any(isnan.(Y))
-    #   throw_n_log("This algorithm doesn't allow NaN values in Y")
+    #   error("This algorithm doesn't allow NaN values in Y")
     elseif nothing in W
-        throw_n_log("This algorithm doesn't allow nothing values in W")
+        error("This algorithm doesn't allow nothing values in W")
     elseif any(isnan.(W))
-        throw_n_log("This algorithm doesn't allow NaN values in W")
+        error("This algorithm doesn't allow NaN values in W")
     end
 
 end
@@ -952,7 +1006,7 @@ function fit_tree(
     # label vector
     Y                         :: AbstractVector{L},
     # world starting conditions
-    init_conditions           :: Vector{<:InitialCondition},
+    initconditions            :: Vector{<:InitialCondition},
     # Weights (unary weigths are used if no weight is supplied)
     W                         :: AbstractVector{U} = default_weights(Y)
     # W                       :: AbstractVector{U} = Ones{Int}(ninstances(Xs)), # TODO check whether this is faster
@@ -964,7 +1018,7 @@ function fit_tree(
     kwargs...,
 ) where {L<:Union{CLabel,RLabel}, U}
     # Check validity of the input
-    check_input(Xs, Y, init_conditions, W; kwargs...)
+    check_input(Xs, Y, initconditions, W; kwargs...)
 
     # Classification-only: transform labels to categorical form (indexed by integers)
     n_classes = begin
@@ -986,7 +1040,7 @@ function fit_tree(
 
     # println(threshold_backmaps)
     # Call core learning function
-    root, idxs = _fit_tree(Xs, Y, init_conditions, W;
+    root, idxs = _fit_tree(Xs, Y, initconditions, W;
         n_classes = n_classes,
         _is_classification = Val(L<:CLabel),
         _perform_consistency_check = Val(perform_consistency_check),
@@ -1001,5 +1055,5 @@ function fit_tree(
             _convert(root, Y[idxs], threshold_backmaps)
         end
     end
-    DTree{L}(root, worldtypes(Xs), init_conditions)
+    DTree{L}(root, worldtype.(eachmodality(Xs)), initconditions)
 end

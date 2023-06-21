@@ -11,14 +11,16 @@ using Random
 using CategoricalArrays
 using StatsBase
 
+using ModalDecisionTrees: build_stump, build_tree, build_forest
 
 include("load_data.jl")
 
 println("Julia version: ", VERSION)
 
 function run_tests(list)
+    println("\n" * ("#"^50))
     for test in list
-        println("TEST: $test \n")
+        println("TEST: $test")
         include(test)
         println("=" ^ 50)
     end
@@ -51,7 +53,7 @@ test_suites = [
     ]),
 ]
 
-@testset "Test Suites" begin
+@testset "ModalDecisionTrees.jl" begin
     for ts in 1:length(test_suites)
         name = test_suites[ts][1]
         list = test_suites[ts][2]

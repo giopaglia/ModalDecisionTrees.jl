@@ -4,13 +4,13 @@ using SoleLogics
 using SoleModels
 using SoleModels: info, ScalarCondition, ScalarMetaCondition
 
-using ModalDecisionTrees: left, right
+using SoleModels: AbstractFeature
+using SoleModels: relation, feature, test_operator, threshold, inverse_test_operator
 
-using ModalDecisionTrees: relation, feature, test_operator, threshold
-using ModalDecisionTrees: inverse_test_operator
-using ModalDecisionTrees: AbstractFeature
 using ModalDecisionTrees: DTInternal, DTNode, DTLeaf, NSDTLeaf
 using ModalDecisionTrees: isleftchild, isrightchild
+
+using ModalDecisionTrees: left, right
 
 using FunctionWrappers: FunctionWrapper
 
@@ -90,41 +90,41 @@ end
 ############################################################################################
 ############################################################################################
 
-function _condition(feature::AbstractFeature{U}, test_op, threshold::T) where {U,T}
+function _condition(feature::AbstractFeature, test_op, threshold::T) where {T}
     # t = FunctionWrapper{Bool,Tuple{U,T}}(test_op)
     metacond = ScalarMetaCondition(feature, test_op)
     cond = ScalarCondition(metacond, threshold)
     return cond
 end
 
-function get_proposition(dec::ScalarExistentialFormula)
-    test_op = test_operator(dec)
-    return Proposition(_condition(feature(dec), test_op, threshold(dec)))
+function get_proposition(φ::ScalarExistentialFormula)
+    test_op = test_operator(φ)
+    return Proposition(_condition(feature(φ), test_op, threshold(φ)))
 end
 
-function get_proposition_inv(dec::ScalarExistentialFormula)
-    test_op = inverse_test_operator(test_operator(dec))
-    return Proposition(_condition(feature(dec), test_op, threshold(dec)))
+function get_proposition_inv(φ::ScalarExistentialFormula)
+    test_op = inverse_test_operator(test_operator(φ))
+    return Proposition(_condition(feature(φ), test_op, threshold(φ)))
 end
 
-function get_diamond_op(dec::ScalarExistentialFormula)
-    return DiamondRelationalOperator{typeof(relation(dec))}()
+function get_diamond_op(φ::ScalarExistentialFormula)
+    return DiamondRelationalOperator{typeof(relation(φ))}()
 end
 
-function get_box_op(dec::ScalarExistentialFormula)
-    return BoxRelationalOperator{typeof(relation(dec))}()
+function get_box_op(φ::ScalarExistentialFormula)
+    return BoxRelationalOperator{typeof(relation(φ))}()
 end
 
 
 function get_lambda(parent::DTNode, child::DTNode)
-    dec = ModalDecisionTrees.decision(parent)
+    f = formula(ModalDecisionTrees.decision(parent))
     if isleftchild(child, parent)
-        p = get_proposition(dec)
-        diamond_op = get_diamond_op(dec)
+        p = get_proposition(f)
+        diamond_op = get_diamond_op(f)
         return diamond_op(p)
     elseif isrightchild(child, parent)
-        p_inv = get_proposition_inv(dec)
-        box_op = get_box_op(dec)
+        p_inv = get_proposition_inv(f)
+        box_op = get_box_op(f)
         return box_op(p_inv)
     else
         error("Cannot compute pathformula on malformed path: $(nodes).")
@@ -149,23 +149,23 @@ function pathformula(ancestors::Vector{<:DTInternal{L,<:SimpleDecision}}, leaf::
         φ = pathformula(Vector{DTInternal{Union{L,LL},<:SimpleDecision}}(nodes[2:end-1]), nodes[end])
 
         if isleftchild(nodes[2], nodes[1])
-            dec = ModalDecisionTrees.decision(nodes[1])
-            p = get_proposition(dec)
-            isprop = (relation(dec) == identityrel)
+            f = formula(ModalDecisionTrees.decision(nodes[1]))
+            p = get_proposition(formula)
+            isprop = (relation(f) == identityrel)
 
             if isleftchild(nodes[3], nodes[2])
                 if isprop
                     return p ∧ φ
                 else
-                    ◊ = get_diamond_op(dec)
+                    ◊ = get_diamond_op(f)
                     return ◊(p ∧ φ)
                 end
             elseif isrightchild(nodes[3], nodes[2])
                 if isprop
                     return p ∧ (p → φ)
                 else
-                    ◊ = get_diamond_op(dec)
-                    □ = get_box_op(dec)
+                    ◊ = get_diamond_op(f)
+                    □ = get_box_op(f)
                     return ◊(p) ∧ □(p → φ)
                 end
             else

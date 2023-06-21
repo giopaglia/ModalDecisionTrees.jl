@@ -176,7 +176,7 @@ function show_latex(tree; file_suffix = "", variable_names = nothing, silent = t
         conversion_dict = additional_dict,
         # threshold_scale_factor = 3,
         threshold_show_decimals = 2,    
-        hide_frame_ids = true,
+        hide_modality_ids = true,
         variable_names_map = variable_names,
         # replace_dict = Dict([
         # #     "\\{1\\}" => "",

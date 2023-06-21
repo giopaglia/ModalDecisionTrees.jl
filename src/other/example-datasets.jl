@@ -1,4 +1,5 @@
 using MLJ
+using SoleData
 using DataFrames
 
 macro load_japanesevowels()
@@ -38,21 +39,7 @@ macro load_japanesevowels()
         minimum_n_points = minimum(collect(Iterators.flatten(eachrow(length.(X[:,Not([:speaker, :take, :utterance])])))))
         new_X = (x->x[1:minimum_n_points]).(X[:,Not([:speaker, :take, :utterance])])
 
-        # dataframe2cube(new_X)
-        # instances, n_vars, minimum_n_points = begin
-        #     instances = [hcat([collect(var) for var in instance]...) for instance in eachrow(new_X)]
-        #     n_vars = unique((x->x[2]).(size.(instances)))
-        #     @assert length(n_vars) == 1
-        #     n_vars = n_vars[1]
-        #     minimum_n_points = minimum(first.(size.(instances)))
-        #     instances, n_vars, minimum_n_points
-        # end
-
-        # X_cube = Array{Float64,3}(undef, minimum_n_points, n_vars, length(instances))
-
-        # for (i_instance, instance) in enumerate(instances)
-        #     X_cube[:,:,i_instance] = instance[1:minimum_n_points,:]
-        # end
+        new_X, varnames = SoleData.dataframe2cube(new_X)
 
         new_X, Y
     end

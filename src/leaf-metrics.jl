@@ -1,10 +1,10 @@
 
 function get_metrics(
-        leaf::AbstractDecisionLeaf{<:CLabel};
-        n_tot_inst = nothing,
-        rel_confidence_class_counts = nothing,
-        train_or_valid = true,
-    )
+    leaf::AbstractDecisionLeaf{<:CLabel};
+    n_tot_inst = nothing,
+    rel_confidence_class_counts = nothing,
+    train_or_valid = true,
+)
     metrics = (;)
 
     supporting_labels      = supp_labels(leaf; train_or_valid = train_or_valid)
@@ -108,11 +108,11 @@ function get_metrics(
 end
 
 function get_metrics(
-        leaf::AbstractDecisionLeaf{<:RLabel};
-        n_tot_inst = nothing,
-        rel_confidence_class_counts = nothing,
-        train_or_valid = true,
-    )
+    leaf::AbstractDecisionLeaf{<:RLabel};
+    n_tot_inst = nothing,
+    rel_confidence_class_counts = nothing,
+    train_or_valid = true,
+)
     @assert isnothing(rel_confidence_class_counts)
 
     metrics = (;)

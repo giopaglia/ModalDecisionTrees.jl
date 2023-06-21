@@ -10,7 +10,7 @@ Cool ideas:
 ☐	INTERFACE: build_forest Add (Val{Bool}?) oob_error parameter (note that oob computation is expensive)
 ☐	MODEL: Bagging and boosting. ADABoost code n_iterations        = defaulted to 10; model, coeffs = build_adaboost_stumps(train_labels, train_features, n_iterations); predictions = apply_adaboost_stumps(model, coeffs, test_features [XGBoost](https://towardsdatascience.com/ensemble-learning-bagging-and-boosting-explained-in-3-minutes-2e6d2240ae21)
 ✔	use ProgressMeter: \@showprogress @done (22-07-14 18:23)
-☐	add conversion rules or promotion rules ModalDataset to MultiFrameModalDataset: https://docs.julialang.org/en/v1/manual/conversion-and-promotion/#Constructors-that-don't-return-instances-of-their-own-type
+☐	add conversion rules or promotion rules ModalDataset to MultiModalDataset: https://docs.julialang.org/en/v1/manual/conversion-and-promotion/#Constructors-that-don't-return-instances-of-their-own-type
 
 ☐ minified fwd structures: once computed the fwd, map each unique value to a UInt8/UInt16 value, while mantaining the relative order. Once a tree is learnt, remap the values to the old ones. tables contain a lot of redundance: perhaps use PooledArrays.jl, IndirectArrays.jl, CategoricalArrays.jl for saving space, both for saving to file AND for learing (might be beneficial for caching)?
 
@@ -62,7 +62,7 @@ Renamings:
 ☐	CODE: Add proper comments, docs and authors
 ☐	CODE: Fix naming style (e.g. variables/features/variables, etc. Order of struct's members)
 ☐	CODE: Custom pretty printing, instead of display_. Figure out print/show/display See https://docs.julialang.org/en/v1/manual/types/#man-custom-pretty-printing https://schurkus.com/2018/01/05/julia-print-show-display-dump-what-to-override-what-to-use/
-☐	CODE: Keep this: throw, error(), @error -> throw_n_log()
+✔	CODE: Keep this: throw, error(), @error -> error() @done (23-06-21 16:16)
 ☐	CODE: Improve output/logging
 ☐	CODE: DTree->ModalTree; DForest->ModalForest.
 ############################################################################################
@@ -88,7 +88,7 @@ Renamings:
 ############################################################################################
 ☐	DATA: _split!: enable learning in implicit form (allow training directly on InterpretedModalDataset) and study parallelization.
 ☐	DATA: Create class for labeled datasets, and remove slice_mf_dataset.
-☐	? DATA: test round_dataset_to_datatype/mapArrayToDataType in multiframe version
+☐	? DATA: test round_dataset_to_datatype/mapArrayToDataType in multimodal version
 ☐	DATA: Clean dataset creation pipeline
 ☐	DATA: add filters (e.g., derivatives, Edge detection, which is spatial https://juliahub.com/docs/ImageEdgeDetection/5h14T/0.1.0/#ImageEdgeDetection.jl-Documentation)!
 ☐	DATA: give names to features (e.g. create meta-feature that give features a name.)
@@ -151,7 +151,7 @@ Renamings:
 
 ☐	Future: ROC and PR curve in binary classification context 0/1, interpret 1-abs(class_value-score) as the confidence of the prediction (transform binary classification problems in regression problems with labels between 0 and 1?); i) in Random Forest, one could aggregate tree answers in a continuous manner, and output confidence values, in this context, ROC and PR curve can be computed; ii) in Decision Tree there are other approaches. Also compute ROC-AUC, and PR curve ( The Precision-Recall Plot Is More Informative than the ROC Plot When Evaluating Binary Classifiers on Imbalanced Datasets: https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0118432 )
 
-☐ feature-importance.jl: Feature importance with one could first consider the propositional problem, the associated variables (avg A1, max A1, min A1, std A1, avg A2, etc...), and select features using the Mutual Information Score! [https://www.kaggle.com/ryanholbrook/mutual-information]
+☐ feature-importance.jl: Feature importance with one could first consider the propositional problem, the associated variables (avg V1, max V1, min V1, std V1, avg V2, etc...), and select features using the Mutual Information Score! [https://www.kaggle.com/ryanholbrook/mutual-information]
 ☐ Expressing the discrete regression case. Currently, String's and Integer's are interpreted as classes, while AbstractFloat's are interpreted as numbers; this is what differentiates classification from regression. Perhaps, the distinction must be made between String's and Number's, that is, theTwo cases Categorical and Numeric, with Numeric's being either Continuous (like Float64) or Discrete (like Integers). But this can be dangerous because if not coded right Categorical cases indexed by Integers end up being considered Numerical cases.
 
 
@@ -168,7 +168,7 @@ Archive:
 	✔	Add IA3 relations @done (21-10-07 23:24)
 	✔	Refactor and distinguish between testoperators and functions; and opt/aggregator/polarity @done (21-10-07 23:19)
 	✔	Add IA7 relations: Complete by writing enumAccBare, enumAcc, enum_acc_repr. @done (21-10-07 23:18)
-	✔	multi-frame extension! @done (21-10-07 23:16)
+	✔	multi-modal extension! @done (21-10-07 23:16)
 	✔	rename _n_instances -> n_instances @done (21-10-07 23:14)
 	✔	clean modallogic.jl @done (21-05-06 12:55)
 	✔	timeit -> symbol @done (21-05-06 10:51)

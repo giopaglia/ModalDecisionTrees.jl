@@ -15,23 +15,20 @@ using Reexport
 using StatsBase
 
 using SoleBase
-using SoleBase: LogOverview, LogDebug, LogDetail, throw_n_log
+using SoleBase: LogOverview, LogDebug, LogDetail
 using SoleBase: spawn, nat_sort
 
 using SoleData
 using SoleData: maxchannelsize,
                 nvariables,
                 get_instance,
-                slicedataset,
-                instances
+                slicedataset
 
 using SoleModels
 using SoleModels: AbstractLogiset
 using SoleModels: CLabel, RLabel, Label, _CLabel, _Label, get_categorical_form
 
 using SoleModels: bestguess, default_weights, slice_weights
-
-import SoleData: ninstances
 
 import SoleModels: feature, test_operator, threshold
 
@@ -43,7 +40,7 @@ using SoleModels: MultiLogiset
 using SoleModels: WorldSet, GenericDataset
 
 using SoleModels: nfeatures, nrelations,
-                            nmodalities, frames, frame,
+                            nmodalities, eachmodality, modality,
                             displaystructure,
                             #
                             relations,
@@ -51,49 +48,44 @@ using SoleModels: nfeatures, nrelations,
                             GenericDataset,
                             MultiLogiset,
                             AbstractLogiset,
-                            DimensionalLogiset,
-                            Logiset,
-                            SupportedScalarLogiset
+                            SupportedLogiset
 
 using SoleModels: AbstractWorld, AbstractRelation
 using SoleModels: AbstractWorldSet, WorldSet
-using SoleModels: FullDimensionalFrame
 
-using SoleModels: Ontology, worldtype
+using SoleModels: worldtype
 
-import SoleModels: worldtypes
-
-using SoleModels: get_ontology,
-                            get_interval_ontology
-
-using SoleModels: OneWorld, OneWorldOntology
+using SoleModels: OneWorld
 
 using SoleModels: Interval, Interval2D
 
-using SoleModels: IARelations
+using SoleModels: IARelations, IA2DRelations
+
+using SoleLogics: FullDimensionalFrame
 
 using SoleModels: existential_aggregator, universal_aggregator, aggregator_bottom
+
+import SoleModels: nnodes
+import SoleModels: nleaves
+import SoleModels: height
 
 ############################################################################################
 
 export slicedataset,
        nmodalities, ninstances, nvariables, maxchannelsize
 
-export DTree,                   # Decision tree
-        DForest,                # Decision forest
-        RootLevelNeuroSymbolicHybrid,                # Root-level neurosymbolic hybrid model
+export DTree,                         # Decision tree
+        DForest,                      # Decision forest
+        RootLevelNeuroSymbolicHybrid, # Root-level neurosymbolic hybrid model
         #
         nnodes, height, modalheight
 
-ModalityId = Int
-
 ############################################################################################
+
+ModalityId = Int
 
 # Utility functions
 include("utils.jl")
-
-# TODO fix
-include("interpret-onestep-decisions.jl")
 
 # Loss functions
 include("entropy-measures.jl")
@@ -101,18 +93,24 @@ include("entropy-measures.jl")
 # Purity helpers
 include("purity.jl")
 
+
+export SimpleDecision,
+       ScalarExistentialFormula,
+       displaydecision
+
 # Definitions for Decision Leaf, Internal, Node, Tree & Forest
 include("base.jl")
 
 include("print.jl")
 
-# Default parameter values
-include("default-parameters.jl")
+# # Default parameter values
+# include("default-parameters.jl")
 
 # Metrics for assessing the goodness of a decision leaf/rule
 include("leaf-metrics.jl")
 
-export build_stump, build_tree, build_forest
+# One-step decisions
+include("interpret-onestep-decisions.jl")
 
 # Build a decision tree/forest from a dataset
 include("build.jl")
@@ -122,6 +120,8 @@ include("posthoc.jl")
 
 # Apply decision tree/forest to a dataset
 include("apply.jl")
+
+export ModalDecisionTree, ModalRandomForest
 
 # Interfaces
 include("interfaces/SoleModels.jl")

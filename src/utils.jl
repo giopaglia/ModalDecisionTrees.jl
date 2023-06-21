@@ -1,12 +1,4 @@
-
-# partially written by Poom Chiarawongse <eight1911@gmail.com> 
-
-module utils
-
-using LinearAlgebra
-using Random
-using StatsBase
-
+# partially written by Poom Chiarawongse <eight1911@gmail.com>
 # adapted from the Julia Base.Sort Library
 Base.@propagate_inbounds @inline function partition!(v::AbstractVector, w::AbstractVector{T}, pivot::T, region::UnitRange{<:Integer}) where T
     i, j = 1, length(region)
@@ -22,6 +14,4 @@ Base.@propagate_inbounds @inline function partition!(v::AbstractVector, w::Abstr
         i += 1; j -= 1
     end
     return j
-end
-
 end

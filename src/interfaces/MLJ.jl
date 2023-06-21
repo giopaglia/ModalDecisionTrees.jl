@@ -3,14 +3,9 @@
 # Reference: https://alan-turing-institute.github.io/MLJ.jl/dev/quick_start_guide_to_adding_models/#Quick-Start-Guide-to-Adding-Models
 # Reference: https://alan-turing-institute.github.io/MLJ.jl/dev/adding_models_for_general_use/
 
-# TODO remove redundance
-export ModalDecisionTree, ModalRandomForest
-
 module MLJInterface
 
 export ModalDecisionTree, ModalRandomForest
-
-using SoleModels.DimensionalDatasets: group_variables_by_nature
 
 using MLJBase
 import MLJModelInterface
@@ -18,6 +13,8 @@ using MLJModelInterface.ScientificTypesBase
 using CategoricalArrays
 using ..ModalDecisionTrees
 import Tables
+
+using SoleModels.DimensionalDatasets: naturalgrouping
 
 import Base: show
 
@@ -51,160 +48,6 @@ Base.show(io::IO, c::ModelPrinter) =
 ############################################################################################
 ############################################################################################
 ############################################################################################
-
-_size = ((x)->(hasmethod(size, (typeof(x),)) ? size(x) : missing))
-
-function __moving_window_without_overflow_fixed_num(
-    npoints::Integer;
-    nwindows::Integer,
-    relative_overlap::AbstractFloat,
-)::AbstractVector{UnitRange{Int}}
-    # Code by Giovanni Pagliarini (@giopaglia) & Federico Manzella (@ferdiu)
-    #
-    # start = 1+half_context
-    # stop = npoints-half_context
-    # step = (stop-start+1)/nwindows
-    # half_context = step*relative_overlap/2
-
-    # half_context = relative_overlap * (npoints-1) / (2* nwindows+2*relative_overlap)
-    half_context = relative_overlap * npoints / (2* nwindows+2*relative_overlap)
-    start = 1+half_context
-    stop = npoints-half_context
-    step = (stop-start+1)/nwindows
-
-    # _w = floor(Int, step+2*half_context)
-    # _w = floor(Int, ((stop-start+1)/nwindows)+2*half_context)
-    # _w = floor(Int, ((npoints-half_context)-(1+half_context)+1)/nwindows+2*half_context)
-    # _w = floor(Int, (npoints-2*half_context)/nwindows+2*half_context)
-    _w = floor(Int, (npoints-2*half_context)/nwindows + 2*half_context)
-
-    # println("step: ($(stop)-$(start)+1)/$(nwindows) = ($(stop-start+1)/$(nwindows) = $(step)")
-    # println("half_context: $(half_context)")
-    # first_points = range(start=start, stop=stop, length=nwindows+1)[1:end-1]
-    first_points = range(start=start, stop=stop, length=nwindows+1)[1:end-1] # TODO needs Julia 1.7: warn user
-    first_points = map((x)->x-half_context, first_points)
-    @assert isapprox(first_points[1], 1.0)
-    # println("first_points: $(collect(first_points))")
-    # println("window: $(step)+$(2*half_context) = $(step+2*half_context)")
-    # println("windowi: $(_w)")
-    first_points = map((x)->round(Int, x), first_points)
-    # first_points .|> (x)->(x+step/2) .|> (x)->(x-size/2,x+size/2)
-    # first_points .|> (x)->(max(1.0,x-half_context),min(x+step+half_context,npoints))
-    # first_points .|> (x)->(x-half_context,x+step+half_context)
-    first_points .|> (xi)->(xi:xi+_w-1)
-end
-
-function moving_average(
-    X::AbstractArray{T,3},
-    nwindows::Integer,
-    relative_overlap::AbstractFloat = .5,
-) where {T}
-    npoints, n_variables, n_instances = size(X)
-    new_X = similar(X, (nwindows, n_variables, n_instances))
-    for i_instance in 1:n_instances
-        for i_variable in 1:n_variables
-            new_X[:, i_variable, i_instance] .= [mean(X[idxs, i_variable, i_instance]) for idxs in __moving_window_without_overflow_fixed_num(npoints; nwindows = nwindows, relative_overlap = relative_overlap)]
-        end
-    end
-    return new_X
-end
-
-function moving_average(
-    X::AbstractArray{T,4},
-    new_channelsize::Tuple{Integer,Integer},
-    relative_overlap::AbstractFloat = .5,
-) where {T}
-    n_X, n_Y, n_variables, n_instances = size(X)
-    windows_1 = __moving_window_without_overflow_fixed_num(n_X; nwindows = new_channelsize[1], relative_overlap = relative_overlap)
-    windows_2 = __moving_window_without_overflow_fixed_num(n_Y; nwindows = new_channelsize[2], relative_overlap = relative_overlap)
-    new_X = similar(X, (new_channelsize..., n_variables, n_instances))
-    for i_instance in 1:n_instances
-        for i_variable in 1:n_variables
-            new_X[:, :, i_variable, i_instance] .= [mean(X[idxs1, idxs2, i_variable, i_instance]) for idxs1 in windows_1, idxs2 in windows_2]
-        end
-    end
-    return new_X
-end
-
-function DataFrame2MultiFrameLogiset(
-        X,
-        var_grouping,
-        relations,
-        mixed_variables,
-        init_conditions,
-        allow_global_splits,
-        mode;
-        downsizing_function = (channelsize, ninstances)->identity,
-    )
-
-    @assert mode in [:explicit, :implicit]
-
-    @assert all((<:).(eltype.(eachcol(X)), Union{Real,AbstractVector{<:Real},AbstractMatrix{<:Real}})) "ModalDecisionTrees.jl only allows variables that are `Real`, `AbstractVector{<:Real}` or `AbstractMatrix{<:Real}`"
-    @assert ! any(map((x)->(any(SoleData.hasnans.(x))), eachcol(X))) "ModalDecisionTrees.jl doesn't allow NaN values"
-
-    Xs_ic = [begin
-        X_frame = X[:,frame]
-
-        channelsize = unique([unique(_size.(X_frame[:, col])) for col in names(X_frame)])
-        @assert length(channelsize) == 1
-        @assert length(channelsize[1]) == 1
-        channelsize = channelsize[1][1]
-
-        channel_dim = length(channelsize)
-
-        # println("$(i_modality)\tchannel size: $(channelsize)\t => $(var_grouping)")
-
-        n_variables = DataFrames.ncol(X_frame)
-        ninstances = DataFrames.nrow(X_frame)
-
-        _X = SoleData.dataframe2cube(X_frame)
-        _X = downsizing_function(channelsize, ninstances)(_X)
-
-        _relations = if isnothing(relations)
-            if channel_dim == 1
-                :IA
-            else
-                # :RCC5 TODO
-                :RCC8
-            end
-        else
-            relations
-        end
-        _init_conditions = if isnothing(init_conditions)
-            if channel_dim in [0, 1]
-                init_conditions_d[:start_with_global]
-            else
-                # :RCC5 TODO
-                init_conditions_d[:start_at_center]
-            end
-        else
-            init_conditions_d[init_conditions]
-        end
-
-        ontology = SoleModels.get_interval_ontology(channel_dim, _relations)
-        # println(eltype(_X))
-        __X = SoleModels.DimensionalLogiset{eltype(_X)}(_X, ontology, mixed_variables)
-        # println(SoleModels.displaystructure(__X))
-
-        (if mode == :implicit
-            __X
-        else
-            WorldType = SoleModels.worldtype(ontology)
-
-            compute_globmemoset =
-                WorldType != SoleModels.OneWorld && (
-                    (allow_global_splits || _init_conditions == MDT.start_without_world)
-                )
-            TODO compute_globmemoset-> relations does not have globalrel.
-            SoleModels.SupportedScalarLogiset(__X)
-        end, _init_conditions)
-    end for (i_modality, frame) in enumerate(var_grouping)]
-    Xs, init_conditions = zip(Xs_ic...)
-    Xs, init_conditions = collect(Xs), collect(init_conditions)
-    Xs = SoleModels.MultiLogiset(Xs)
-    # println(SoleModels.displaystructure(Xs))
-    Xs, init_conditions
-end
 
 tree_downsizing_function(channelsize, ninstances) = function (_X)
     channel_dim = length(channelsize)
@@ -256,7 +99,7 @@ forest_downsizing_function(channelsize, ninstances; ntrees) = function (_X)
     _X
 end
 
-init_conditions_d = Dict([
+initconditions_d = Dict([
     :start_with_global => MDT.start_without_world,
     :start_at_center   => MDT.start_at_center,
 ])
@@ -305,11 +148,11 @@ MMI.@mlj_model mutable struct ModalDecisionTree <: MMI.Deterministic
     # Modal hyper-parameters
     relations              :: Union{Nothing,Symbol,Vector{<:AbstractRelation}} = (nothing)::(isnothing(nothing) || _ in [:IA, :IA3, :IA7, :RCC5, :RCC8] || _ isa AbstractVector{<:AbstractRelation})
     # TODO expand to AbstractFeature
-    # variables               :: Vector{<:Function}           = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
-    # variables               :: Vector{<:Union{CanonicalFeature,Function}}       TODO = Vector{<:Union{CanonicalFeature,Function}}([canonical_geq, canonical_leq]) # TODO: ::(_check_variables(_))
-    # variables               :: AbstractVector{<:CanonicalFeature}       = CanonicalFeature[canonical_geq, canonical_leq] # TODO: ::(_check_variables(_))
-    # variables               :: Vector                       = [canonical_geq, canonical_leq] # TODO: ::(_check_variables(_))
-    init_conditions        :: Union{Nothing,Symbol}                       = nothing::(isnothing(_) || _ in [:start_with_global, :start_at_center])
+    # variables              :: Vector{<:Function}           = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
+    # variables              :: Vector{<:Union{CanonicalFeature,Function}}       TODO = Vector{<:Union{CanonicalFeature,Function}}([canonical_geq, canonical_leq]) # TODO: ::(_check_variables(_))
+    # variables              :: AbstractVector{<:CanonicalFeature}       = CanonicalFeature[canonical_geq, canonical_leq] # TODO: ::(_check_variables(_))
+    # variables              :: Vector                       = [canonical_geq, canonical_leq] # TODO: ::(_check_variables(_))
+    initconditions         :: Union{Nothing,Symbol}                       = nothing::(isnothing(_) || _ in [:start_with_global, :start_at_center])
     allow_global_splits    :: Bool                         = true
     automatic_downsizing   :: Bool                         = true
 
@@ -334,8 +177,8 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Integer, X, y, w=nothing)
     min_purity_increase  = m.min_purity_increase
     max_purity_at_leaf   = m.max_purity_at_leaf
     relations            = m.relations
-    variables             = [canonical_geq, canonical_leq] # TODO: m.variables
-    init_conditions      = m.init_conditions
+    variables            = [canonical_geq, canonical_leq] # TODO: m.variables
+    initconditions       = m.initconditions
     allow_global_splits  = m.allow_global_splits
     automatic_downsizing = m.automatic_downsizing
 
@@ -343,13 +186,13 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Integer, X, y, w=nothing)
 
     ########################################################################################
 
-    var_grouping = group_variables_by_nature(X)
-    Xs, init_conditions = DataFrame2MultiFrameLogiset(
+    var_grouping = naturalgrouping(X)
+    Xs, initconditions = dataframe2multilogiset(
         X,
         var_grouping,
         relations,
         variables,
-        init_conditions,
+        initconditions,
         allow_global_splits,
         :explicit;
         downsizing_function = (automatic_downsizing ? tree_downsizing_function : identity),
@@ -368,7 +211,7 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Integer, X, y, w=nothing)
         ##############################################################################
         n_subrelations       = identity,
         n_subfeatures        = identity,
-        init_conditions      = init_conditions,
+        initconditions       = initconditions,
         allow_global_splits  = allow_global_splits,
         ##############################################################################
         perform_consistency_check = false,
@@ -416,19 +259,19 @@ function MMI.predict(m::ModalDecisionTree, fitresult, Xnew) #, ynew = nothing)
 
     relations = m.relations
     variables = [canonical_geq, canonical_leq] # TODO: m.variables
-    init_conditions = m.init_conditions
+    initconditions = m.initconditions
     allow_global_splits = m.allow_global_splits
     automatic_downsizing = m.automatic_downsizing
 
     missing_columns = setdiff(Iterators.flatten(fitresult.var_grouping), names(Xnew))
     @assert length(missing_columns) == 0 "Cannot perform prediction due to missing DataFrame columns: $(missing_columns)"
 
-    Xs, init_conditions = DataFrame2MultiFrameLogiset(
+    Xs, initconditions = dataframe2multilogiset(
         Xnew,
         fitresult.var_grouping,
         relations,
         variables,
-        init_conditions,
+        initconditions,
         allow_global_splits,
         :implicit,
         downsizing_function = (automatic_downsizing ? tree_downsizing_function : identity),
@@ -454,11 +297,11 @@ MMI.@mlj_model mutable struct ModalRandomForest <: MMI.Probabilistic
     # Modal hyper-parameters
     relations              :: Union{Nothing,Symbol,Vector{<:AbstractRelation}} = (nothing)::(isnothing(nothing) || _ in [:IA, :IA3, :IA7, :RCC5, :RCC8] || _ isa AbstractVector{<:AbstractRelation})
     # TODO expand to AbstractFeature
-    # variables               :: Vector{<:Function}           = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
-    # variables               :: Vector{<:Union{CanonicalFeature,Function}}       TODO = Vector{<:Union{CanonicalFeature,Function}}([canonical_geq, canonical_leq]) # TODO: ::(_check_variables(_))
-    # variables               :: AbstractVector{<:CanonicalFeature}       = CanonicalFeature[canonical_geq, canonical_leq] # TODO: ::(_check_variables(_))
-    # variables               :: Vector                       = [canonical_geq, canonical_leq] # TODO: ::(_check_variables(_))
-    init_conditions        :: Union{Nothing,Symbol}                       = nothing::(isnothing(_) || _ in [:start_with_global, :start_at_center])
+    # variables              :: Vector{<:Function}           = [minimum, maximum]::(all(Iterators.flatten([(f)->(ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch)), _) for ch in [collect(1:10), collect(1.:10.)]]))
+    # variables              :: Vector{<:Union{CanonicalFeature,Function}}       TODO = Vector{<:Union{CanonicalFeature,Function}}([canonical_geq, canonical_leq]) # TODO: ::(_check_variables(_))
+    # variables              :: AbstractVector{<:CanonicalFeature}       = CanonicalFeature[canonical_geq, canonical_leq] # TODO: ::(_check_variables(_))
+    # variables              :: Vector                       = [canonical_geq, canonical_leq] # TODO: ::(_check_variables(_))
+    initconditions         :: Union{Nothing,Symbol}                       = nothing::(isnothing(_) || _ in [:start_with_global, :start_at_center])
     allow_global_splits    :: Bool                         = true
     automatic_downsizing   :: Bool                         = true
 
@@ -488,8 +331,8 @@ function MMI.fit(m::ModalRandomForest, verbosity::Integer, X, y, w=nothing)
     min_purity_increase  = m.min_purity_increase
     max_purity_at_leaf   = m.max_purity_at_leaf
     relations            = m.relations
-    variables             = [canonical_geq, canonical_leq] # TODO: m.variables
-    init_conditions      = m.init_conditions
+    variables            = [canonical_geq, canonical_leq] # TODO: m.variables
+    initconditions       = m.initconditions
     allow_global_splits  = m.allow_global_splits
     automatic_downsizing = m.automatic_downsizing
 
@@ -503,13 +346,13 @@ function MMI.fit(m::ModalRandomForest, verbosity::Integer, X, y, w=nothing)
 
     ########################################################################################
 
-    var_grouping = group_variables_by_nature(X)
-    Xs, init_conditions = DataFrame2MultiFrameLogiset(
+    var_grouping = naturalgrouping(X)
+    Xs, initconditions = dataframe2multilogiset(
         X,
         var_grouping,
         relations,
         variables,
-        init_conditions,
+        initconditions,
         allow_global_splits,
         :explicit;
         downsizing_function = (automatic_downsizing ? (args...)->forest_downsizing_function(args...; ntrees = m.ntrees) : identity),
@@ -531,7 +374,7 @@ function MMI.fit(m::ModalRandomForest, verbosity::Integer, X, y, w=nothing)
         ##############################################################################
         n_subrelations       = n_subrelations,
         n_subfeatures        = n_subfeatures,
-        init_conditions      = init_conditions,
+        initconditions       = initconditions,
         allow_global_splits  = allow_global_splits,
         ##############################################################################
         perform_consistency_check = false,
@@ -580,19 +423,19 @@ function MMI.predict(m::ModalRandomForest, fitresult, Xnew) #, ynew = nothing)
 
     relations = m.relations
     variables = [canonical_geq, canonical_leq] # TODO: m.variables
-    init_conditions = m.init_conditions
+    initconditions = m.initconditions
     allow_global_splits = m.allow_global_splits
     automatic_downsizing = m.automatic_downsizing
 
     missing_columns = setdiff(Iterators.flatten(fitresult.var_grouping), names(Xnew))
     @assert length(missing_columns) == 0 "Cannot perform prediction due to missing DataFrame columns: $(missing_columns)"
 
-    Xs, init_conditions = DataFrame2MultiFrameLogiset(
+    Xs, initconditions = dataframe2multilogiset(
         Xnew,
         fitresult.var_grouping,
         relations,
         variables,
-        init_conditions,
+        initconditions,
         allow_global_splits,
         :implicit,
         downsizing_function = (automatic_downsizing ? (args...)->forest_downsizing_function(args...; ntrees = m.ntrees) : identity),
@@ -833,11 +676,11 @@ Train the machine with `fit!(mach)`.
                             Relations from :IA, :IA3, :IA7, capture directional aspects of the relative arrangement of two intervals in time (or rectangles in a 2D space),
                              while relations from :RCC5 and :RCC8 only capture topological aspects and are therefore rotation-invariant.
                             This hyper-parameter defaults to :IA for temporal variables (1D), and to :RCC8 for spatial variables (2D).
-- `init_conditions=nothing` initial conditions for evaluating modal decisions at the root; it can be a symbol in [:start_with_global, :start_at_center].
-                            :start_with_global forces the first decision to be a *global* decision (e.g., `⟨G⟩ (minimum(A2) ≥ 10)`, which translates to "there exists a region where the minimum of variable 2 is higher than 10").
+- `initconditions=nothing` initial conditions for evaluating modal decisions at the root; it can be a symbol in [:start_with_global, :start_at_center].
+                            :start_with_global forces the first decision to be a *global* decision (e.g., `⟨G⟩ (minimum[V2] ≥ 10)`, which translates to "there exists a region where the minimum of variable 2 is higher than 10").
                             :start_at_center forces the first decision to be evaluated on the smallest central world, that is, the central value of a time-series, or the central pixel of an image.
                             This hyper-parameter defaults to :start_with_global for temporal variables (1D), and to :start_at_center for spatial variables (2D).
-- `allow_global_splits=true`  Whether to allow global splits (e.g. `⟨G⟩ (minimum(A2) ≥ 10)`) at any point of the tree.
+- `allow_global_splits=true`  Whether to allow global splits (e.g. `⟨G⟩ (minimum[V2] ≥ 10)`) at any point of the tree.
 - `automatic_downsizing=true` Whether to perform automatic downsizing. In fact, this algorithm has high complexity (both time and space), and can only handle small time-series (< 100 points) & small images (< 10 x 10 pixels).
 """
 end
@@ -859,11 +702,11 @@ The fields of `fitted_params(mach)` are:
     The MLJ interface can currently deal with scalar, temporal and spatial variables, but
     has one limitation, and one tricky procedure for handling them at the same time.
     The limitation is for temporal and spatial variables to be uniform in size across the instances (the algorithm will automatically throw away variables that do not satisfy this constraint).
-    As for the tricky procedure: before the learning phase, variables are divided into groups (referred to as `frames`) according to each variable's `channel size`, that is, the size of the vector or matrix.
+    As for the tricky procedure: before the learning phase, variables are divided into groups (referred to as `modalities`) according to each variable's `channel size`, that is, the size of the vector or matrix.
     For example, if X is multimodal, and has three temporal variables :x, :y, :z with 10, 10 and 20 points, respectively,
      plus three spatial variables :R, :G, :B, with the same size 5 × 5 pixels, the algorithm assumes that :x and :y share a temporal axis,
      :R, :G, :B share two spatial axis, while :z does not share any axis with any other variable. As a result,
-     the model will group variables into three frames:
+     the model will group variables into three modalities:
         - {1} [:x, :y]
         - {2} [:z]
         - {3} [:R, :G, :B]
@@ -875,7 +718,7 @@ The fields of `report(mach)` are:
 - `printmodel`: method to print a pretty representation of the fitted
   model, with single argument the tree depth. The interpretation of the tree requires you
   to understand how the current MLJ interface of ModalDecisionTrees.jl handles variables of different modals.
-  See `var_grouping` above. Note that the split conditions (or decisions) in the tree are relativized to a specific frame, of which the number is shown.
+  See `var_grouping` above. Note that the split conditions (or decisions) in the tree are relativized to a specific modality, of which the number is shown.
 - `var_grouping`: the adopted grouping of the variables encountered in training, in an order consistent with the output of `printmodel`.
     See `var_grouping` above.
 - `feature_importance_by_count`: a simple count of each of the occurrences of the variables across the model, in an order consistent with `var_grouping`.
@@ -960,11 +803,11 @@ The fields of `fitted_params(mach)` are:
     The MLJ interface can currently deal with scalar, temporal and spatial variables, but
     has one limitation, and one tricky procedure for handling them at the same time.
     The limitation is for temporal and spatial variables to be uniform in size across the instances (the algorithm will automatically throw away variables that do not satisfy this constraint).
-    As for the tricky procedure: before the learning phase, variables are divided into groups (referred to as `frames`) according to each variable's `channel size`, that is, the size of the vector or matrix.
+    As for the tricky procedure: before the learning phase, variables are divided into groups (referred to as `modalities`) according to each variable's `channel size`, that is, the size of the vector or matrix.
     For example, if X is multimodal, and has three temporal variables :x, :y, :z with 10, 10 and 20 points, respectively,
      plus three spatial variables :R, :G, :B, with the same size 5 × 5 pixels, the algorithm assumes that :x and :y share a temporal axis,
      :R, :G, :B share two spatial axis, while :z does not share any axis with any other variable. As a result,
-     the model will group variables into three frames:
+     the model will group variables into three modalities:
         - {1} [:x, :y]
         - {2} [:z]
         - {3} [:R, :G, :B]

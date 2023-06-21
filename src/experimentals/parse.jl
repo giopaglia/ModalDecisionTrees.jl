@@ -9,12 +9,12 @@ function parse_tree(
     _depth = 0,
     offset = 0,
     worldtypes = Type{SL.AbstractWorld}[],
-    init_conditions = MDT.InitialCondition[],
+    initconditions = MDT.InitialCondition[],
 )
     worldtypes = Type{<:SL.AbstractWorld}[worldtypes...]
-    init_conditions = MDT.InitialCondition[init_conditions...]
+    initconditions = MDT.InitialCondition[initconditions...]
     root = _parse_tree(tree_str; check_format = check_format, _depth = _depth, offset = offset)
-    DTree(root, worldtypes, init_conditions)
+    DTree(root, worldtypes, initconditions)
 end
 
 function _parse_tree(

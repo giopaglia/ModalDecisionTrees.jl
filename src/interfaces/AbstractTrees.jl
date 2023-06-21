@@ -54,15 +54,15 @@ for this package (e.g., `MLJ`, see their docs for further details).
 Using the function `build_tree` of the native interface returns such an object.
 To use a ModalDecisionTree `mdt` (obtained this way) with the abstraction layer
 provided by the `AbstractTrees`-interface implemented here
-and optionally add variable names (`frame_variable_names`, an arrays of arrays of strings)
+and optionally add variable names (`modality_variable_names`, an arrays of arrays of strings)
  use the following syntax:
 1.  `wdc = wrap(mdt)`
-2.  `wdc = wrap(mdt, (frame_variable_names = frame_variable_names, ))`
+2.  `wdc = wrap(mdt, (modality_variable_names = modality_variable_names, ))`
 In the first case `mdt` gets just wrapped, no information is added. No. 2 adds variable names.
 Note that the trailing comma is needed, in order to create a NamedTuple.
 """
 wrap(node::MDT.DTree,                info::NamedTuple = NamedTuple()) = wrap(root(node), info = info)
-wrap(node::MDT.DTInternal,         info::NamedTuple = NamedTuple()) = InfoNode(node, info)
+wrap(node::MDT.DTInternal,           info::NamedTuple = NamedTuple()) = InfoNode(node, info)
 wrap(leaf::MDT.AbstractDecisionLeaf, info::NamedTuple = NamedTuple()) = InfoLeaf(leaf, info)
 
 """
@@ -102,9 +102,9 @@ _nodevalue(leaf::InfoLeaf) = _nodevalue(leaf.node)
     printnode(io::IO, leaf::InfoLeaf)
 Write a printable representation of `node` or `leaf` to output-stream `io`.
 If `node.info`/`leaf.info` have a field called
-- `frame_variable_names` it is expected to be an array of arrays of variable names corresponding
+- `modality_variable_names` it is expected to be an array of arrays of variable names corresponding
   to the variable names used in the tree nodes; note that there are two layers of reference
-  because variables are grouped into `frames` (see MLJ's docs for ModalDecisionTree: @doc ModalDecisionTree)
+  because variables are grouped into `modalities` (see MLJ's docs for ModalDecisionTree: @doc ModalDecisionTree)
   They will be used for printing instead of the ids.
 Note that the left subtree of any split node represents the 'yes-branch', while the right subtree
  the 'no-branch', respectively. `print_tree` outputs the left subtree first
@@ -116,7 +116,7 @@ end
 
 function printnode(io::IO, dt_leaf::MDT.AbstractDecisionLeaf)
     metrics = MDT.get_metrics(dt_leaf)
-    print(io, MDT.brief_prediction_str(dt_leaf), " ($(metrics.n_correct)/$(metrics.n_inst))")
+    print(io, MDT.displaybriefprediction(dt_leaf), " ($(metrics.n_correct)/$(metrics.n_inst))")
 end
 
 # https://discourse.julialang.org/t/filtering-keys-out-of-named-tuples/73564
@@ -133,8 +133,8 @@ function printnode(io::IO, leaf::InfoLeaf)
     metrics = MDT.get_metrics(dt_leaf)
 
     # if :class_labels ∈ keys(leaf.info)
-    #     print(io, leaf.info.class_labels[MDT.brief_prediction_str(dt_leaf)], " ($(metrics.n_correct)/$(metrics.n_inst))")
+    #     print(io, leaf.info.class_labels[MDT.displaybriefprediction(dt_leaf)], " ($(metrics.n_correct)/$(metrics.n_inst))")
     # else
-	    print(io, MDT.brief_prediction_str(dt_leaf), " ($(metrics.n_correct)/$(metrics.n_inst))")
+	    print(io, MDT.displaybriefprediction(dt_leaf), " ($(metrics.n_correct)/$(metrics.n_inst))")
     # end
 end

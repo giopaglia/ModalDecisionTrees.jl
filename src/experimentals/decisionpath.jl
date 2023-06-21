@@ -7,6 +7,8 @@ using ..ModalDecisionTrees: ModalityId
 
 using ..ModalDecisionTrees: DTLeaf, DTNode, DTInternal
 
+import SoleModels: feature, test_operator, threshold
+
 export DecisionPath, DecisionPathNode,
             get_path_in_tree, get_internalnode_dirname,
             mk_tree_path, get_tree_path_as_dirpath
@@ -33,7 +35,7 @@ function _get_path_in_tree(tree::DTInternal, X::MultiLogiset, i_instance::Intege
     satisfied = true
     (satisfied,new_worlds,worlds_map) =
         modalstep(
-                        frame(X, i_modality(tree)),
+                        modality(X, i_modality(tree)),
                         i_instance,
                         worlds[i_modality(tree)],
                         decision(tree),
@@ -53,7 +55,7 @@ function _get_path_in_tree(tree::DTInternal, X::MultiLogiset, i_instance::Intege
         end
     end
 
-    pushfirst!(paths[i_instance], DecisionPathNode(satisfied, featurea(decision(tree)), test_operatora(decision(tree)), thresholda(decision(tree)), deepcopy(new_survivors)))
+    pushfirst!(paths[i_instance], DecisionPathNode(satisfied, feature(decision(tree)), test_operator(decision(tree)), thresholda(decision(tree)), deepcopy(new_survivors)))
 
     return new_survivors
 end

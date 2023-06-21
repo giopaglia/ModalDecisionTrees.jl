@@ -10,7 +10,7 @@ using DataStructures
 using SoleModels.DimensionalDatasets: AbstractUnivariateFeature
 
 function prune(tree::DTree; kwargs...)
-    DTree(prune(root(tree); depth = 0, kwargs...), worldtypes(tree), init_conditions(tree))
+    DTree(prune(root(tree); depth = 0, kwargs...), worldtypes(tree), initconditions(tree))
 end
 
 function prune(leaf::AbstractDecisionLeaf; kwargs...)
@@ -140,7 +140,7 @@ function nondominated_pruning_parametrizations(
                 :loss_function,
                 :n_subrelations,
                 :n_subfeatures,
-                :init_conditions,
+                :initconditions,
                 :allow_global_splits,
                 :rng,
                 :partial_sampling,
@@ -232,11 +232,11 @@ function train_functional_leaves(
         args...;
         kwargs...,
     )
-    # World sets for (dataset, frame, instance)
+    # World sets for (dataset, modality, instance)
     worlds = Vector{Vector{Vector{<:WST} where {WorldType<:AbstractWorld,WST<:WorldSet{WorldType}}}}([
-        ModalDecisionTrees.initialworldsets(X, init_conditions(tree))
+        ModalDecisionTrees.initialworldsets(X, initconditions(tree))
     for (X,Y) in datasets])
-    DTree(train_functional_leaves(root(tree), worlds, datasets, args...; kwargs...), worldtypes(tree), init_conditions(tree))
+    DTree(train_functional_leaves(root(tree), worlds, datasets, args...; kwargs...), worldtypes(tree), initconditions(tree))
 end
 
 # At internal nodes, a functional model is trained by calling a callback function, and the leaf is created
@@ -261,7 +261,13 @@ function train_functional_leaves(
         unsatisfied_idxs = Integer[]
 
         for i_instance in 1:ninstances(X)
-            (satisfied,new_worlds) = modalstep(frame(X, i_modality(node)), i_instance, worlds[i_dataset][i_modality(node)][i_instance], decision(node))
+            (satisfied,new_worlds) =
+                modalstep(
+                    modality(X, i_modality(node)),
+                    i_instance,
+                    worlds[i_dataset][i_modality(node)][i_instance],
+                    decision(node)
+                )
 
             if satisfied
                 push!(satisfied_idxs, i_instance)
@@ -275,8 +281,8 @@ function train_functional_leaves(
         push!(datasets_l, slicedataset((X,Y), satisfied_idxs;   allow_no_instances = true))
         push!(datasets_r, slicedataset((X,Y), unsatisfied_idxs; allow_no_instances = true))
 
-        push!(worlds_l, [frame_worlds[satisfied_idxs]   for frame_worlds in worlds[i_dataset]])
-        push!(worlds_r, [frame_worlds[unsatisfied_idxs] for frame_worlds in worlds[i_dataset]])
+        push!(worlds_l, [modality_worlds[satisfied_idxs]   for modality_worlds in worlds[i_dataset]])
+        push!(worlds_r, [modality_worlds[unsatisfied_idxs] for modality_worlds in worlds[i_dataset]])
     end
 
     DTInternal(
@@ -373,29 +379,34 @@ end
 ############################################################################################
 ############################################################################################
 
-function merge_into_leaf(nodes::AbstractVector{<:DTNode})
-    merge_into_leaf(map((n)->(n isa AbstractDecisionLeaf ? n : this(n)), nodes))
+"""
+Squashes a vector of `DTNode`'s into a single leaf using `bestguess`.
+"""
+function squashtoleaf(nodes::AbstractVector{<:DTNode})
+    squashtoleaf(map((n)->(n isa AbstractDecisionLeaf ? n : this(n)), nodes))
 end
 
-function merge_into_leaf(leaves::AbstractVector{<:DTLeaf{L}}) where {L}
-    dtleaf_types = typeof.(leaves)
-    @assert length(unique(dtleaf_types)) == 1 "Cannot aggregate different leaf types: $(dtleaf_types)"
-    dtleaf_type = dtleaf_types[1]
-    dtleaf_type(L.(collect(Iterators.flatten(map((leaf)->supp_labels(leaf), leaves)))))
+function squashtoleaf(leaves::AbstractVector{<:DTLeaf})
+    @assert length(unique(predictiontype.(leaves))) == 1 "Cannot squash leaves " *
+        "with different prediction " *
+        "types: $(join(unique(predictiontype.(leaves)), ", "))"
+    L = Union{predictiontype.(leaves)...}
+    DTLeaf{L}(L.(collect(Iterators.flatten(map((leaf)->supp_labels(leaf), leaves)))))
 end
 
-function merge_into_leaf(leaves::AbstractVector{<:NSDTLeaf{L}}) where {L}
-    # dtleaf_types = typeof.(leaves)
-    # @assert length(unique(dtleaf_types)) == 1 "Cannot aggregate different leaf types: $(dtleaf_types)"
-    # dtleaf_type = dtleaf_types[1]
-    dtleaf_type = DTLeaf{L}
+function squashtoleaf(leaves::AbstractVector{<:NSDTLeaf})
+    @assert length(unique(predictiontype.(leaves))) == 1 "Cannot squash leaves " *
+        "with different prediction " *
+        "types: $(join(unique(predictiontype.(leaves)), ", "))"
+    L = Union{predictiontype.(leaves)...}
+
     supp_train_labels      = L.(collect(Iterators.flatten(map((leaf)->leaf.supp_train_labels, leaves))))
     supp_valid_labels      = L.(collect(Iterators.flatten(map((leaf)->leaf.supp_valid_labels, leaves))))
     supp_train_predictions = L.(collect(Iterators.flatten(map((leaf)->leaf.supp_train_predictions, leaves))))
     supp_valid_predictions = L.(collect(Iterators.flatten(map((leaf)->leaf.supp_valid_predictions, leaves))))
     supp_labels = [supp_train_labels..., supp_valid_labels..., supp_train_predictions..., supp_valid_predictions...]
     predicting_function = (args...; kwargs...)->(bestguess(supp_labels))
-    dtleaf_type(
+    DTLeaf{L}(
         predicting_function,
         supp_train_labels,
         supp_valid_labels,
