@@ -77,7 +77,7 @@ function _convert(
     else
         left  = _convert(node.l, labels, class_names, threshold_backmap)
         right = _convert(node.r, labels, class_names, threshold_backmap)
-        DTInternal(node.i_modality, SimpleDecision(ScalarExistentialFormula(node.decision, threshold_backmap[node.i_modality])), this_leaf, left, right)
+        DTInternal(node.i_modality, SimpleDecision(node.decision, threshold_backmap[node.i_modality]), this_leaf, left, right)
     end
 end
 
@@ -93,7 +93,7 @@ function _convert(
     else
         left  = _convert(node.l, labels, threshold_backmap)
         right = _convert(node.r, labels, threshold_backmap)
-        DTInternal(node.i_modality, SimpleDecision(ScalarExistentialFormula(node.decision, threshold_backmap[node.i_modality])), this_leaf, left, right)
+        DTInternal(node.i_modality, SimpleDecision(node.decision, threshold_backmap[node.i_modality]), this_leaf, left, right)
     end
 end
 
@@ -198,8 +198,8 @@ end
 # end
 
 
-# In the modal case, dataset instances are Kripke models.
-# In this implementation, we don't accept a generic Kripke model in the explicit form of
+# In the modal case, dataset instances are Kripke structures.
+# In this implementation, we don't accept a generic Kripke structure in the explicit form of
 #  a graph; instead, an instance is a dimensional domain (e.g. a matrix or a 3D matrix) onto which
 #  worlds and relations are determined by a given Ontology.
 
@@ -222,8 +222,8 @@ Base.@propagate_inbounds @inline function split_node!(
     Y                         :: AbstractVector{L},                  # label vector
     initconditions            :: AbstractVector{<:InitialCondition},   # world starting conditions
     W                         :: AbstractVector{U},                   # weight vector
-    grouped_featsaggrsnopss::AbstractVector{<:AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperator}}}},
-    grouped_featsnaggrss::AbstractVector{<:AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}}}
+    grouped_featsaggrsnopss::AbstractVector{<:AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:ScalarMetaCondition}}}},
+    grouped_featsnaggrss::AbstractVector{<:AbstractVector{<:AbstractVector{<:Tuple{<:Integer,<:Aggregator}}}}
     ##########################################################################
     ;
     ##########################################################################
@@ -342,7 +342,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # If the node is pure enough, avoid splitting # TODO rename purity to loss
              || (node.purity          > max_purity_at_leaf)
             # Honor maximum depth constraint
-             || (max_depth            < node.depth))
+             || (max_depth            <= node.depth))
             # DEBUGprintln("BEFORE LEAF!")
             # DEBUGprintln(nc[node.prediction])
             # DEBUGprintln(nt)
@@ -366,7 +366,7 @@ Base.@propagate_inbounds @inline function split_node!(
              || (node.purity          > max_purity_at_leaf) # TODO
              # || (tsum * node.prediction    > -1e-7 * nt + tssq)
             # Honor maximum depth constraint
-             || (max_depth            < node.depth))
+             || (max_depth            <= node.depth))
             node.is_leaf = true
             # @logmsg LogDetail "leaf created: " (min_samples_leaf * 2 >  _n_instances) (tsum * node.prediction    > -1e-7 * nt + tssq) (tsum * node.prediction) (-1e-7 * nt + tssq) (max_depth <= node.depth)
             return
@@ -476,6 +476,8 @@ Base.@propagate_inbounds @inline function split_node!(
                 grouped_featsaggrsnopss[i_modality],
                 grouped_featsnaggrss[i_modality],
             )
+
+            # @logmsg LogDetail " Testing decision: $(displaydecision(decision))"
 
             # println(displaydecision(i_modality, decision))
 
@@ -770,7 +772,7 @@ Base.@propagate_inbounds @inline function split_node!(
             #  ones for which the is satisfied and those for whom it's not
             node.purity         = best_purity
             node.i_modality     = best_i_modality
-            node.decision       = SimpleDecision(best_decision)
+            node.decision       = best_decision
 
             # DEBUGprintln("unsatisfied_flags")
             # DEBUGprintln(unsatisfied_flags)
@@ -832,7 +834,7 @@ end
     #     p = ProgressThresh(Inf, 1, "Computing DTree...")
     # end
 
-    grouped_featsnaggrss = zip([
+    permodality_groups = [
         begin
             _features = features(X)
             _metaconditions = metaconditions(X)
@@ -842,18 +844,20 @@ end
             # _grouped_metaconditions::AbstractVector{<:AbstractVector{Tuple{<:ScalarMetaCondition}}}
             # [[(i_metacond, aggregator, metacondition)...]...]
 
-            grouped_featsaggrsnops, grouped_featsnaggrs = zip([begin
-                    aggrsnops = Dict{<:Aggregator,<:AbstractVector{<:ScalarMetaCondition}}()
-                    aggregators_with_ids = Tuple{<:Integer,<:Aggregator}[]
-                    for (i_metacond, aggregator, metacondition) in these_metaconditions
-                        if !haskey(aggrsnops, aggregator)
-                            aggrsnops[aggregator] = Dict{Aggregator,AbstractVector{<:ScalarMetaCondition}}()
-                        end
-                        push!(aggrsnops[aggregator], metacondition)
-                        push!(aggregators_with_ids, (i_metacond,aggregator))
+            groups = [begin
+                aggrsnops = Dict{Aggregator,AbstractVector{<:ScalarMetaCondition}}()
+                aggregators_with_ids = Tuple{<:Integer,<:Aggregator}[]
+                for (i_metacond, aggregator, metacondition) in these_metaconditions
+                    if !haskey(aggrsnops, aggregator)
+                        aggrsnops[aggregator] = Vector{ScalarMetaCondition}()
                     end
-                    [aggrsnops, aggregators_with_ids]
-                end for (i_feature, (_feature, these_metaconditions)) in enumerate(_grouped_metaconditions)]...)
+                    push!(aggrsnops[aggregator], metacondition)
+                    push!(aggregators_with_ids, (i_metacond,aggregator))
+                end
+                (aggrsnops, aggregators_with_ids)
+            end for (i_feature, (_feature, these_metaconditions)) in enumerate(_grouped_metaconditions)]
+            grouped_featsaggrsnops = first.(groups)
+            grouped_featsnaggrs = last.(groups)
 
             # grouped_featsaggrsnops::AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:ScalarMetaCondition}}}
             # [Dict([aggregator => [metacondition...]]...)...]
@@ -861,8 +865,11 @@ end
             # grouped_featsnaggrs::AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}}
             # [[(i_metacond,aggregator)...]...]
 
-            [grouped_featsaggrsnops, grouped_featsnaggrs]
-        end for X in eachmodality(X)]...)
+            (grouped_featsaggrsnops, grouped_featsnaggrs)
+        end for X in eachmodality(Xs)]
+
+    grouped_featsaggrsnopss = first.(permodality_groups)
+    grouped_featsnaggrss = last.(permodality_groups)
 
     # Process nodes recursively, using multi-threading
     function process_node!(node, rng)
@@ -967,7 +974,7 @@ end
     # elseif loss_function in [gini, zero_one] && (max_purity_at_leaf > 1.0 || max_purity_at_leaf <= 0.0)
     #     error("Max_purity_at_leaf for loss $(loss_function) must be in (0,1]"
     #         * "(given $(max_purity_at_leaf))")
-    elseif max_depth < -1
+    elseif max_depth < 0
         error("Unexpected value for max_depth: $(max_depth) (expected:"
             * " max_depth >= 0, or max_depth = -1 for infinite depth)")
     end

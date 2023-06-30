@@ -24,6 +24,8 @@ using SoleData: maxchannelsize,
                 get_instance,
                 slicedataset
 
+using FillArrays
+
 using SoleModels
 using SoleModels: AbstractLogiset
 using SoleModels: CLabel, RLabel, Label, _CLabel, _Label, get_categorical_form
@@ -127,6 +129,10 @@ export ModalDecisionTree, ModalRandomForest
 include("interfaces/SoleModels.jl")
 include("interfaces/MLJ.jl")
 include("interfaces/AbstractTrees.jl")
+
+export depth
+
+include("interfaces/DecisionTree.jl")
 
 # Experimental features
 include("experimentals/main.jl")

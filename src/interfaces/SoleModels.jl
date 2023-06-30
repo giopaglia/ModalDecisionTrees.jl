@@ -14,6 +14,8 @@ using ModalDecisionTrees: left, right
 
 using FunctionWrappers: FunctionWrapper
 
+using Memoization
+
 ############################################################################################
 # MDTv1 translation
 ############################################################################################
@@ -51,11 +53,13 @@ function translate(
     info = (;),
 )
     new_ancestors = [ancestors..., node]
-    formula = pathformula(new_ancestors, left(node))
+    multipathformula = pathformula(new_ancestors, left(node))
     info = merge(info, (;
         this = translate(ModalDecisionTrees.this(node), new_ancestors),
         supp_labels = ModalDecisionTrees.supp_labels(node),
+        multipathformula = multipathformula,
     ))
+    formula = MultiFormula(i_modality(node), multipathformula.formulas[i_modality(node)])
     SoleModels.Branch(
         formula,
         translate(left(node), new_ancestors),
@@ -118,14 +122,15 @@ end
 
 function get_lambda(parent::DTNode, child::DTNode)
     f = formula(ModalDecisionTrees.decision(parent))
+    isprop = (relation(f) == identityrel)
     if isleftchild(child, parent)
         p = get_proposition(f)
         diamond_op = get_diamond_op(f)
-        return diamond_op(p)
+        return isprop ? SyntaxTree(p) : diamond_op(p)
     elseif isrightchild(child, parent)
         p_inv = get_proposition_inv(f)
         box_op = get_box_op(f)
-        return box_op(p_inv)
+        return isprop ? SyntaxTree(p_inv) : box_op(p_inv)
     else
         error("Cannot compute pathformula on malformed path: $(nodes).")
     end
@@ -136,21 +141,27 @@ end
 ############################################################################################
 
 # Compute path formula using semantics from TODO cite
-function pathformula(ancestors::Vector{<:DTInternal{L,<:SimpleDecision}}, leaf::DTNode{LL}) where {L,LL}
-    nodes = [ancestors..., leaf]
+@memoize function pathformula(
+    ancestors::Vector{<:DTInternal{L,<:SimpleDecision{<:ScalarExistentialFormula}}},
+    node::DTNode{LL}
+) where {L,LL}
+
     # dispatch a seconda del numero di nodi degli ancestors
-    if length(nodes) == 0
-        error("Cannot compute pathformula on empty path.")
-    elseif length(nodes) == 1
-        return SyntaxTree(TOP)
-    elseif length(nodes) == 2
-        return get_lambda(nodes[1], nodes[2])
+    if length(ancestors) == 0
+        return error("pathformula cannot accept 0 ancestors. node = $(node).")
+    elseif length(ancestors) == 1
+        return MultiFormula(i_modality(ancestors[1]), get_lambda(ancestors[1], node))
     else
-        φ = pathformula(Vector{DTInternal{Union{L,LL},<:SimpleDecision}}(nodes[2:end-1]), nodes[end])
+        φ = pathformula(Vector{DTInternal{Union{L,LL},<:SimpleDecision{<:ScalarExistentialFormula}}}(ancestors[2:end]), node)
+
+        nodes = [ancestors..., node]
+
+        # @assert length(unique(anc_mods)) == 1 "At the moment, translate does not work " *
+        #     "for MultiFormula formulas $(unique(anc_mods))."
 
         if isleftchild(nodes[2], nodes[1])
             f = formula(ModalDecisionTrees.decision(nodes[1]))
-            p = get_proposition(formula)
+            p = MultiFormula(i_modality(nodes[1]), SyntaxTree(get_proposition(f)))
             isprop = (relation(f) == identityrel)
 
             if isleftchild(nodes[3], nodes[2])

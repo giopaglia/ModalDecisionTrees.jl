@@ -64,9 +64,9 @@ cls_node = @test_nowarn DTInternal(2, _decision, cls_leaf, cls_leaf, cls_leaf)
 cls_node = DTInternal(2, _decision, cls_leaf, cls_leaf, cls_leaf)
 
 # Note: modality is required
-@test_throws MethodError cls_node = DTInternal(_decision, cls_leaf, cls_leaf, cls_leaf)
-@test_throws MethodError cls_node = DTInternal(_decision, reg_leaf, reg_leaf, reg_leaf)
-@test_throws MethodError cls_node = DTInternal(_decision, cls_node, cls_leaf)
+@test_throws MethodError DTInternal(_decision, cls_leaf, cls_leaf, cls_leaf)
+@test_throws MethodError DTInternal(_decision, reg_leaf, reg_leaf, reg_leaf)
+@test_throws MethodError DTInternal(_decision, cls_node, cls_leaf)
 
 # create node without local _decision
 # cls_node = @test_nowarn DTInternal(2, _decision, cls_leaf, cls_leaf)

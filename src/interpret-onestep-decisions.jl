@@ -14,6 +14,7 @@ using SoleModels: SupportedLogiset, ScalarOneStepMemoset, AbstractFullMemoset
 using SoleModels.DimensionalDatasets: UniformFullDimensionalLogiset
 
 import SoleModels: relations, nrelations, metaconditions, nmetaconditions
+import SoleModels: supports
 import SoleModels.DimensionalDatasets: nfeatures, features
 
 using SoleModels: Aggregator, TestOperator, ScalarMetaCondition
@@ -29,8 +30,6 @@ const AbstractScalarLogiset{
     FR<:AbstractFrame{W}
 } = AbstractLogiset{W,U,FT,FR}
 
-nfeatures(X::SupportedLogiset{W,U,FT,FR,<:UniformFullDimensionalLogiset}) where {W,U,FT,FR} = nfeatures(base(X))
-features(X::SupportedLogiset{W,U,FT,FR,<:UniformFullDimensionalLogiset}) where {W,U,FT,FR} = features(base(X))
 nrelations(X::SupportedLogiset{W,U,FT,FR,L,N,<:Tuple{<:ScalarOneStepMemoset}}) where {W,U,FT,FR,L,N} = nrelations(supports(X)[1])
 nrelations(X::SupportedLogiset{W,U,FT,FR,L,N,<:Tuple{<:ScalarOneStepMemoset,<:AbstractFullMemoset}}) where {W,U,FT,FR,L,N} = nrelations(supports(X)[1])
 relations(X::SupportedLogiset{W,U,FT,FR,L,N,<:Tuple{<:ScalarOneStepMemoset}}) where {W,U,FT,FR,L,N} = relations(supports(X)[1])
@@ -60,7 +59,7 @@ function modalstep(
     # TODO the's room for optimization here: with some relations (e.g. IA_A, IA_L) can be made smaller
 
     if return_survivors isa Val{true}
-        worlds_map = Dict{W,AbstractWorldSet{W}}()
+        worlds_map = ThreadSafeDict{W,AbstractWorldSet{W}}()
     end
     if length(worlds) == 0
         # If there are no neighboring worlds, then the modal decision is not met
@@ -74,12 +73,9 @@ function modalstep(
         # List all accessible worlds
         acc_worlds = 
             if return_survivors isa Val{true}
-                l = ReentrantLock()
                 Threads.@threads for curr_w in worlds
                     acc = accessibles(X, i_instance, curr_w, relation(φ)) |> collect
-                    lock(l)
                     worlds_map[curr_w] = acc
-                    unlock(l)
                 end
                 unique(cat([ worlds_map[k] for k in keys(worlds_map) ]...; dims = 1))
             else
@@ -127,24 +123,27 @@ Base.@propagate_inbounds @resumable function generate_feasible_decisions(
     allow_global_decisions::Bool,
     modal_relations_inds::AbstractVector{<:Integer},
     features_inds::AbstractVector{<:Integer},
-    grouped_featsaggrsnops::AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperator}}},
+    grouped_featsaggrsnops::AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:ScalarMetaCondition}}},
     grouped_featsnaggrs::AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}},
 ) where {W<:AbstractWorld,U}
     # Propositional splits
     if allow_propositional_decisions
         for decision in generate_propositional_feasible_decisions(X, i_instances, Sf, features_inds, grouped_featsaggrsnops, grouped_featsnaggrs)
+            # @logmsg LogDebug " Testing decision: $(displaydecision(decision))"
             @yield decision
         end
     end
     # Global splits
     if allow_global_decisions
         for decision in generate_global_feasible_decisions(X, i_instances, Sf, features_inds, grouped_featsaggrsnops, grouped_featsnaggrs)
+            # @logmsg LogDebug " Testing decision: $(displaydecision(decision))"
             @yield decision
         end
     end
     # Modal splits
     if allow_modal_decisions
         for decision in generate_modal_feasible_decisions(X, i_instances, Sf, modal_relations_inds, features_inds, grouped_featsaggrsnops, grouped_featsnaggrs)
+            # @logmsg LogDebug " Testing decision: $(displaydecision(decision))"
             @yield decision
         end
     end
@@ -157,7 +156,7 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
     i_instances::AbstractVector{<:Integer},
     Sf::AbstractVector{<:AbstractWorldSet{W}},
     features_inds::AbstractVector{<:Integer},
-    grouped_featsaggrsnops::AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperator}}},
+    grouped_featsaggrsnops::AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:ScalarMetaCondition}}},
     grouped_featsnaggrs::AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}},
 ) where {W<:AbstractWorld,U,FT<:AbstractFeature,N,FR<:FullDimensionalFrame{N,W}}
     relation = identityrel
@@ -194,7 +193,8 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
             # thresholds[:,instance_idx] = map(aggregator->aggregator(values), aggregators)
             
             for w in worlds
-                gamma = X[i_instance, w, feature, i_feature]
+                # gamma = featvalue(X[i_instance, w, feature) # TODO in general!
+                gamma = featvalue(X, i_instance, w, i_feature)
                 for (i_aggregator,aggregator) in enumerate(aggregators)
                     thresholds[i_aggregator,instance_idx] = SoleModels.aggregator_to_binary(aggregator)(gamma, thresholds[i_aggregator,instance_idx])
                 end
@@ -236,7 +236,7 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
     Sf::AbstractVector{<:AbstractWorldSet{W}},
     modal_relations_inds::AbstractVector{<:Integer},
     features_inds::AbstractVector{<:Integer},
-    grouped_featsaggrsnops::AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:TestOperator}}},
+    grouped_featsaggrsnops::AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:ScalarMetaCondition}}},
     grouped_featsnaggrs::AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}},
 ) where {W<:AbstractWorld,U,FT<:AbstractFeature,N,FR<:FullDimensionalFrame{N,W}}
     _n_instances = length(i_instances)
@@ -274,10 +274,12 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
                 worlds = Sf[instance_id]
                 _featchannel = featchannel(base(X), i_instance, i_feature)
                 for (i_aggregator,(i_metacond,aggregator)) in enumerate(aggregators_with_ids)
+                    metacondition = metaconditions(X)[i_metacond]
                     for w in worlds
                         gamma = begin
                             if true
                                 # _featchannel = featchannel(base(X), i_instance, i_feature)
+                                # featchannel_onestep_aggregation(X, _featchannel, i_instance, w, relation, feature(metacondition), aggregator)
                                 featchannel_onestep_aggregation(X, _featchannel, i_instance, w, relation, metacondition, i_metacond, i_relation)
                                 # onestep_aggregation(X, i_instance, w, relation, feature, aggregator, i_metacond, i_relation)
                             # elseif X isa UniformFullDimensionalLogiset
@@ -387,7 +389,7 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
         end
 
         # println(thresholds)
-        @logmsg LogDebug "thresholds: " thresholds
+        @logmsg LogDetail "thresholds: " thresholds
 
         # For each aggregator
         for (i_aggregator,(_,aggregator)) in enumerate(aggregators_with_ids)

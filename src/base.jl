@@ -1,4 +1,6 @@
+using SoleModels: AbstractLogiset
 import SoleModels: printmodel, displaymodel
+import SoleModels: ninstances, height, nnodes
 
 
 ############################################################################################
@@ -27,6 +29,14 @@ end
 
 function initialworldset(::AbstractMultiModalFrame{W}, initcond::StartAtWorld{W}) where {W<:AbstractWorld}
     WorldSet{W}([initcond.w])
+end
+
+function initialworldset(
+    X::AbstractLogiset,
+    i_instance::Integer,
+    args...
+)
+    initialworldset(frame(X, i_instance), args...)
 end
 
 function initialworldsets(Xs::MultiLogiset, initconds::AbstractVector{<:InitialCondition})
@@ -106,11 +116,20 @@ end
 is_propositional_decision(d::ScalarOneStepFormula) = (SoleModels.relation(d) == identityrel)
 is_global_decision(d::ScalarOneStepFormula) = (SoleModels.relation(d) == globalrel)
 
+import SoleModels: relation, proposition, metacond, feature, test_operator, threshold
+
 struct SimpleDecision{F<:ScalarExistentialFormula} <: AbstractDecision
     formula  :: F
 end
 
 formula(d::SimpleDecision) = d.formula
+
+relation(d::SimpleDecision) = relation(formula(d))
+proposition(d::SimpleDecision) = proposition(formula(d))
+metacond(d::SimpleDecision) = metacond(formula(d))
+feature(d::SimpleDecision) = feature(formula(d))
+test_operator(d::SimpleDecision) = test_operator(formula(d))
+threshold(d::SimpleDecision) = threshold(formula(d))
 
 is_propositional_decision(d::SimpleDecision) = is_propositional_decision(formula(d))
 is_global_decision(d::SimpleDecision) = is_global_decision(formula(d))
@@ -121,6 +140,17 @@ function displaydecision(d::SimpleDecision; kwargs...)
     outstr *= syntaxstring(formula(d); kwargs...)
     outstr *= ")"
     outstr
+end
+
+function SimpleDecision(
+    d::SimpleDecision{<:ScalarExistentialFormula},
+    threshold_backmap::Function
+)
+    f = formula(d)
+    p = proposition(f)
+    cond = atom(p)
+    newcond = ScalarCondition(metacond(cond), threshold_backmap(threshold(cond)))
+    SimpleDecision(ScalarExistentialFormula(relation(f), newcond))
 end
 
 mutable struct DoubleEdgedDecision{F<:AbstractTemplatedFormula} <: AbstractDecision
@@ -171,6 +201,12 @@ function displaydecision(ded::DoubleEdgedDecision; kwargs...)
     outstr
 end
 
+function DoubleEdgedDecision(
+    d::DoubleEdgedDecision,
+    threshold_backmap::Function
+)
+    error("TODO implement")
+end
 ############################################################################################
 ############################################################################################
 ############################################################################################

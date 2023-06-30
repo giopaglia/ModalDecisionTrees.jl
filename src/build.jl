@@ -56,13 +56,13 @@ function build_tree(
     min_purity_increase :: AbstractFloat                      = DEFAULT_MIN_PURITY_INCREASE,
     max_purity_at_leaf  :: AbstractFloat                      = DEFAULT_MAX_PURITY_AT_LEAF,
     ##############################################################################
-    n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
-    n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = identity,
+    n_subrelations      :: Union{Function,AbstractVector{<:Function}}                   = identity,
+    n_subfeatures       :: Union{Function,AbstractVector{<:Function}}                   = identity,
     initconditions      :: Union{InitialCondition,AbstractVector{<:InitialCondition}}   = start_without_world,
-    allow_global_splits :: Union{Bool,AbstractVector{Bool}}                       = true,
+    allow_global_splits :: Union{Bool,AbstractVector{Bool}}                             = true,
     ##############################################################################
-    use_minification    :: Bool = false,
-    perform_consistency_check :: Bool = true,
+    use_minification          :: Bool = false,
+    perform_consistency_check :: Bool = DEFAULT_PERFORM_CONSISTENCY_CHECK,
     ##############################################################################
     rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG,
     print_progress      :: Bool = true,
@@ -99,7 +99,7 @@ function build_tree(
         initconditions = fill(initconditions, nmodalities(X))
     end
 
-    @assert max_depth > 0
+    @assert max_depth >= 0
 
     # if any(map(f->f isa AbstractDimensionalDataset, eachmodality(X)))
     #     error("Cannot learn from AbstractDimensionalDataset! Please use DimensionalLogiset, Logiset or SupportedLogiset.")
@@ -145,13 +145,13 @@ function build_forest(
     max_purity_at_leaf  :: AbstractFloat                    = DEFAULT_MAX_PURITY_AT_LEAF,
     ##############################################################################
     # Modal parameters
-    n_subrelations      :: Union{Function,AbstractVector{<:Function}}             = identity,
-    n_subfeatures       :: Union{Function,AbstractVector{<:Function}}             = x -> ceil(Int64, sqrt(x)),
+    n_subrelations      :: Union{Function,AbstractVector{<:Function}}                   = identity,
+    n_subfeatures       :: Union{Function,AbstractVector{<:Function}}                   = x -> ceil(Int64, sqrt(x)),
     initconditions      :: Union{InitialCondition,AbstractVector{<:InitialCondition}}   = start_without_world,
-    allow_global_splits :: Union{Bool,AbstractVector{Bool}}                       = true,
+    allow_global_splits :: Union{Bool,AbstractVector{Bool}}                             = true,
     ##############################################################################
     use_minification    :: Bool = false,
-    perform_consistency_check :: Bool = true,
+    perform_consistency_check :: Bool = DEFAULT_PERFORM_CONSISTENCY_CHECK,
     ##############################################################################
     rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG,
     print_progress      :: Bool = true,

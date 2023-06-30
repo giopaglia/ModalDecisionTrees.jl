@@ -41,6 +41,7 @@ test_suites = [
         # "classification/scikitlearn.jl"
     ]),
     ("Regression", [
+        # "regression/simple.jl",
         "regression/ames.jl",
         "regression/digits-regression.jl",
         # "regression/random.jl",
