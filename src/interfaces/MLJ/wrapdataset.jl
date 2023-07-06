@@ -56,14 +56,18 @@ function wrapdataset(
         end
     end
 
+    # @show X
+    # @show collect.(X)
+    # readline()
+
     # DataFrame -> MultiModalDataset + variable grouping (needed for printing)
     X, var_grouping = begin
         if X isa AbstractDataFrame
 
             allowedcoltypes = Union{Real,AbstractVector{<:Real},AbstractMatrix{<:Real}}
-            wrong_columns = filter(c->!(eltype(c) <: allowedcoltypes), collect(eachcol(X)))
+            wrong_columns = first.(filter(((colname,c),)->!(eltype(c) <: allowedcoltypes), collect(zip(names(X), eachcol(X)))))
             @assert length(wrong_columns) == 0 "Invalid columns " *
-                "encountered: $(wrong_columns). $(MDT).jl only allows " *
+                "encountered: `$(join(wrong_columns, "`, `", "` and `"))`. $(MDT).jl only allows " *
                 "variables that are `Real`, `AbstractVector{<:Real}` " *
                 "or `AbstractMatrix{<:Real}`."
 
@@ -120,5 +124,5 @@ function wrapdataset(
         end
     end
 
-    return multimodal_X, var_grouping
+    return (multimodal_X, var_grouping)
 end

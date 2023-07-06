@@ -7,6 +7,11 @@ DEFAULT_MIN_PURITY_INCREASE = -Inf
 DEFAULT_MAX_PURITY_AT_LEAF = Inf
 DEFAULT_NTREES = typemax(Int64)
 
+DEFAULT_MAX_PERFORMANCE_AT_SPLIT = Inf
+DEFAULT_MIN_PERFORMANCE_AT_SPLIT = -Inf
+
+DEFAULT_MAX_MODAL_DEPTH = typemax(Int64)
+
 # function parametrization_is_going_to_prune(pruning_params)
 #     (haskey(pruning_params, :max_depth)           && pruning_params.max_depth            < DEFAULT_MAX_DEPTH) ||
 #     # (haskey(pruning_params, :min_samples_leaf)    && pruning_params.min_samples_leaf     > DEFAULT_MIN_SAMPLES_LEAF) ||

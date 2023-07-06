@@ -106,7 +106,7 @@ include("base.jl")
 include("print.jl")
 
 # # Default parameter values
-# include("default-parameters.jl")
+include("default-parameters.jl")
 
 # Metrics for assessing the goodness of a decision leaf/rule
 include("leaf-metrics.jl")
@@ -124,15 +124,12 @@ include("posthoc.jl")
 include("apply.jl")
 
 export ModalDecisionTree, ModalRandomForest
+export depth
 
 # Interfaces
 include("interfaces/SoleModels.jl")
 include("interfaces/MLJ.jl")
 include("interfaces/AbstractTrees.jl")
-
-export depth
-
-include("interfaces/DecisionTree.jl")
 
 # Experimental features
 include("experimentals/main.jl")

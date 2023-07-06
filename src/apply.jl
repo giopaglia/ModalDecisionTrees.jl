@@ -35,9 +35,9 @@ apply_forest = apply_model
 ############################################################################################
 
 # TODO discriminate between kwargs for apply_tree & print_tree
-function print_apply(tree::DTree, X::GenericDataset, Y::AbstractVector; kwargs...)
+function print_apply(tree::DTree, X::GenericDataset, Y::AbstractVector, io = stdout; kwargs...)
     predictions, new_tree = apply_model(tree, X, Y)
-    print_tree(new_tree; kwargs...)
+    print_tree(io, new_tree; kwargs...)
     predictions, new_tree
 end
 
@@ -407,8 +407,8 @@ end
 
 ############################################################################################
 
-# using Distributions
-# using CategoricalDistributions
+using Distributions
+using CategoricalDistributions
 using CategoricalArrays
 
 function apply_proba(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
@@ -432,10 +432,11 @@ function apply_proba(tree::DTInternal, X::MultiLogiset, i_instance::Integer, wor
 end
 
 # Obtain predictions of a tree on a dataset
-function apply_proba(tree::DTree{L}, X::MultiLogiset, classes) where {L<:CLabel}
+function apply_proba(tree::DTree{L}, X::MultiLogiset, _classes, return_scores = false) where {L<:CLabel}
     @logmsg LogDetail "apply_proba..."
+    _classes = string.(_classes)
     _n_instances = ninstances(X)
-    prediction_scores = Matrix{Float64}(undef, _n_instances, length(classes))
+    prediction_scores = Matrix{Float64}(undef, _n_instances, length(_classes))
 
     for i_instance in 1:_n_instances
         @logmsg LogDetail " instance $i_instance/$_n_instances"
@@ -444,20 +445,24 @@ function apply_proba(tree::DTree{L}, X::MultiLogiset, classes) where {L<:CLabel}
         worlds = mm_instance_initialworldset(X, tree, i_instance)
 
         this_prediction_scores = apply_proba(root(tree), X, i_instance, worlds)
-        # d = Distributions.fit(UnivariateFinite, categorical(this_prediction_scores; levels = classes))
+        # d = Distributions.fit(UnivariateFinite, categorical(this_prediction_scores; levels = _classes))
         d = begin
-            c = categorical(this_prediction_scores; levels = classes)
+            c = categorical(collect(this_prediction_scores); levels = _classes)
             cc = countmap(c)
-            s = [cc[cl] for cl in classes(c)]
+            s = [get(cc, cl, 0) for cl in classes(c)]
             UnivariateFinite(classes(c), s ./ sum(s))
         end
-        prediction_scores[i_instance, :] .= [pdf(d, c) for c in classes]
+        prediction_scores[i_instance, :] .= [pdf(d, c) for c in _classes]
     end
-    prediction_scores
+    if return_scores
+        prediction_scores
+    else
+        MMI.UnivariateFinite(_classes, prediction_scores)
+    end
 end
 
 # Obtain predictions of a tree on a dataset
-function apply_proba(tree::DTree{L}, X::MultiLogiset) where {L<:RLabel}
+function apply_proba(tree::DTree{L}, X::MultiLogiset, _classes = nothing, return_scores = false) where {L<:RLabel}
     @logmsg LogDetail "apply_proba..."
     _n_instances = ninstances(X)
     prediction_scores = Vector{Vector{Float64}}(undef, _n_instances)
@@ -470,7 +475,11 @@ function apply_proba(tree::DTree{L}, X::MultiLogiset) where {L<:RLabel}
 
         prediction_scores[i_instance] = apply_proba(tree.root, X, i_instance, worlds)
     end
-    prediction_scores
+    if return_scores
+        prediction_scores
+    else
+        [Distributions.fit(Normal, sc) for sc in prediction_scores]
+    end
 end
 
 # use an array of trees to test features

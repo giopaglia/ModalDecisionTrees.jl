@@ -56,6 +56,7 @@ function build_tree(
     min_purity_increase :: AbstractFloat                      = DEFAULT_MIN_PURITY_INCREASE,
     max_purity_at_leaf  :: AbstractFloat                      = DEFAULT_MAX_PURITY_AT_LEAF,
     ##############################################################################
+    max_modal_depth     :: Int64                              = DEFAULT_MAX_MODAL_DEPTH,
     n_subrelations      :: Union{Function,AbstractVector{<:Function}}                   = identity,
     n_subfeatures       :: Union{Function,AbstractVector{<:Function}}                   = identity,
     initconditions      :: Union{InitialCondition,AbstractVector{<:InitialCondition}}   = start_without_world,
@@ -100,29 +101,26 @@ function build_tree(
     end
 
     @assert max_depth >= 0
+    @assert max_modal_depth >= 0
 
-    # if any(map(f->f isa AbstractDimensionalDataset, eachmodality(X)))
-    #     error("Cannot learn from AbstractDimensionalDataset! Please use DimensionalLogiset, Logiset or SupportedLogiset.")
-    # end
-
-    # TODO figure out what to do here. Maybe it can be helpful to make rng either an rng or a seed, and then mk_rng transforms it into an rng
     fit_tree(X, Y, initconditions, W
         ;###########################################################################
-        loss_function       = loss_function,
-        max_depth           = max_depth,
-        min_samples_leaf    = min_samples_leaf,
-        min_purity_increase = min_purity_increase,
-        max_purity_at_leaf  = max_purity_at_leaf,
+        loss_function               = loss_function,
+        max_depth                   = max_depth,
+        min_samples_leaf            = min_samples_leaf,
+        min_purity_increase         = min_purity_increase,
+        max_purity_at_leaf          = max_purity_at_leaf,
         ############################################################################
-        n_subrelations      = n_subrelations,
-        n_subfeatures       = [ n_subfeatures[i](nfeatures(modality)) for (i,modality) in enumerate(eachmodality(X)) ],
-        allow_global_splits = allow_global_splits,
+        max_modal_depth             = max_modal_depth,
+        n_subrelations              = n_subrelations,
+        n_subfeatures               = [ n_subfeatures[i](nfeatures(modality)) for (i,modality) in enumerate(eachmodality(X)) ],
+        allow_global_splits         = allow_global_splits,
         ############################################################################
-        use_minification    = use_minification,
-        perform_consistency_check = perform_consistency_check,
+        use_minification            = use_minification,
+        perform_consistency_check   = perform_consistency_check,
         ############################################################################
-        rng                 = rng,
-        print_progress      = print_progress,
+        rng                         = rng,
+        print_progress              = print_progress,
     )
 end
 
@@ -145,6 +143,7 @@ function build_forest(
     max_purity_at_leaf  :: AbstractFloat                    = DEFAULT_MAX_PURITY_AT_LEAF,
     ##############################################################################
     # Modal parameters
+    max_modal_depth     :: Int64                            = DEFAULT_MAX_MODAL_DEPTH,
     n_subrelations      :: Union{Function,AbstractVector{<:Function}}                   = identity,
     n_subfeatures       :: Union{Function,AbstractVector{<:Function}}                   = x -> ceil(Int64, sqrt(x)),
     initconditions      :: Union{InitialCondition,AbstractVector{<:InitialCondition}}   = start_without_world,
@@ -208,7 +207,7 @@ function build_forest(
     rngs = [spawn(rng) for i_tree in 1:ntrees]
 
     if print_progress
-        p = Progress(ntrees, 1, "Computing DForest...")
+        p = Progress(ntrees, 1, "Computing Forest...")
     end
     Threads.@threads for i_tree in 1:ntrees
         train_idxs = rand(rngs[i_tree], 1:tot_samples, num_samples)
@@ -229,6 +228,7 @@ function build_forest(
             min_purity_increase  = min_purity_increase,
             max_purity_at_leaf   = max_purity_at_leaf,
             ################################################################################
+            max_modal_depth      = max_modal_depth,
             n_subrelations       = n_subrelations,
             n_subfeatures        = n_subfeatures,
             initconditions       = initconditions,

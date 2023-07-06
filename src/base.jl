@@ -24,7 +24,7 @@ function initialworldset(fr::AbstractMultiModalFrame{W}, initcond::StartWithoutW
 end
 
 function initialworldset(fr::AbstractMultiModalFrame{W}, initcond::StartAtCenter) where {W<:AbstractWorld}
-    WorldSet{W}([SoleModels.getworld(fr, SoleModels.CenteredCheck)])
+    WorldSet{W}([SoleModels.getworld(fr, SoleModels.CenteredCheck())])
 end
 
 function initialworldset(::AbstractMultiModalFrame{W}, initcond::StartAtWorld{W}) where {W<:AbstractWorld}
@@ -205,7 +205,7 @@ function DoubleEdgedDecision(
     d::DoubleEdgedDecision,
     threshold_backmap::Function
 )
-    error("TODO implement")
+    return error("TODO implement")
 end
 ############################################################################################
 ############################################################################################

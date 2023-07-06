@@ -13,8 +13,6 @@ using StatsBase
 
 using ModalDecisionTrees: build_stump, build_tree, build_forest
 
-include("load_data.jl")
-
 println("Julia version: ", VERSION)
 
 function run_tests(list)
@@ -29,8 +27,10 @@ end
 test_suites = [
     ("Base", ["base.jl"]),
     ("Classification", [
-        "classification/japanesevowels.jl",
         "classification/iris.jl",
+        "classification/iris-params.jl",
+        "classification/japanesevowels.jl",
+        # "classification/dummy-multimodal-datasets.jl",
         # "classification/demo-juliacon2022.jl",
         # 
         # "classification/random.jl",

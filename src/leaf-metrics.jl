@@ -1,3 +1,16 @@
+using MLJ
+
+function leafperformance(leaf::AbstractDecisionLeaf{L}) where {L}
+    _gts = supp_labels(leaf)
+    _preds = fill(prediction(leaf), length(_gts))
+    if L <: CLabel
+        MLJ.accuracy(_gts, _preds)
+    elseif L <: RLabel
+        MLJ.mae(_gts, _preds)
+    else
+        error("Could not compute leafperformance with unknown label type: $(L).")
+    end
+end
 
 function get_metrics(
     leaf::AbstractDecisionLeaf{<:CLabel};
@@ -122,7 +135,8 @@ function get_metrics(
 
     n_inst = length(supporting_labels)
     
-    mae = sum(abs.(supporting_labels .- supporting_predictions)) / n_inst
+    mae = MLJ.mae(supporting_labels, supporting_predictions)
+    # sum(abs.(supporting_labels .- supporting_predictions)) / n_inst
     rmse = StatsBase.rmsd(supporting_labels, supporting_predictions)
     var = StatsBase.var(supporting_labels)
     

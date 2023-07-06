@@ -6,6 +6,7 @@ using SoleModels: naturalconditions
 const ALLOW_GLOBAL_SPLITS = true
 
 const mlj_default_max_depth = typemax(Int64)
+const mlj_default_max_modal_depth = typemax(Int64)
 
 const mlj_mdt_default_min_samples_leaf = 4
 const mlj_mdt_default_min_purity_increase = 0.002
@@ -16,43 +17,56 @@ const mlj_mrf_default_min_purity_increase = -Inf
 const mlj_mrf_default_max_purity_at_leaf = Inf
 const mlj_mrf_default_ntrees = 50
 
-AVAILABLE_RELATIONS = OrderedDict{Symbol,Vector{<:AbstractRelation}}([
-    :none       => AbstractRelation[],
-    :IA         => [globalrel, SoleLogics.IARelations...],
-    :IA3        => [globalrel, SoleLogics.IA3Relations...],
-    :IA7        => [globalrel, SoleLogics.IA7Relations...],
-    :RCC5       => [globalrel, SoleLogics.RCC8Relations...],
-    :RCC8       => [globalrel, SoleLogics.RCC5Relations...],
+AVAILABLE_RELATIONS = OrderedDict{Symbol,Function}([
+    :none       => (d)->AbstractRelation[],
+    :IA         => (d)->[globalrel, (d == 1 ? SoleLogics.IARelations  : (d == 2 ? SoleLogics.IA2DRelations  : error("Unexpected dimensionality ($d).")))...],
+    :IA3        => (d)->[globalrel, (d == 1 ? SoleLogics.IA3Relations : (d == 2 ? SoleLogics.IA32DRelations : error("Unexpected dimensionality ($d).")))...],
+    :IA7        => (d)->[globalrel, (d == 1 ? SoleLogics.IA7Relations : (d == 2 ? SoleLogics.IA72DRelations : error("Unexpected dimensionality ($d).")))...],
+    :RCC5       => (d)->[globalrel, SoleLogics.RCC5Relations...],
+    :RCC8       => (d)->[globalrel, SoleLogics.RCC8Relations...],
 ])
 
 mlj_default_relations = nothing
 
 mlj_default_relations_str = "either no relation (adimensional data), " *
-    "IA7 interval relations (1-dimensional data), or RCC5 relations " *
-    "(2-dimensional data)."
+    "IA7 interval relations (1- and 2-dimensional data)."
+    # , or RCC5 relations " *
+    # "(2-dimensional data)."
 
-function defaultrelations(dataset)
+function defaultrelations(dataset, relations)
+    # @show typeof(dataset)
     if dataset isa Union{
         SupportedLogiset{W,U,FT,FR,L,N,<:Tuple{<:ScalarOneStepMemoset}} where {W,U,FT,FR,L,N},
         SupportedLogiset{W,U,FT,FR,L,N,<:Tuple{<:ScalarOneStepMemoset,<:AbstractFullMemoset}} where {W,U,FT,FR,L,N},
     }
-        MDT.relations(dataset)
-    elseif dimensionality(dataset) == 0
-        AVAILABLE_RELATIONS[:none]
-    elseif dimensionality(dataset) == 1
-        AVAILABLE_RELATIONS[:IA7]
-    elseif dimensionality(dataset) == 2
-        AVAILABLE_RELATIONS[:RCC5]
+        if relations == mlj_default_relations
+            MDT.relations(dataset)
+        else
+            error("Unexpected dataset type: $(typeof(dataset)).")
+        end
     else
-        error("Cannot infer relation set for dimensionality $(dimensionality(dataset)). " *
-            "Dimensionality should be 0, 1 or 2.")
+        symb = begin
+            if relations isa Symbol
+                relations
+            elseif dimensionality(dataset) == 0
+                :none
+            elseif dimensionality(dataset) == 1
+                :IA7
+            elseif dimensionality(dataset) == 2
+                :IA7
+            else
+                error("Cannot infer relation set for dimensionality $(dimensionality(dataset)). " *
+                    "Dimensionality should be 0, 1 or 2.")
+            end
+        end
+        AVAILABLE_RELATIONS[symb](dimensionality(dataset))
     end
 end
 
 # Infer relation set from model.relations parameter and the (unimodal) dataset.
 function readrelations(model, dataset)
-    if model.relations == mlj_default_relations
-        defaultrelations(dataset)
+    if model.relations == mlj_default_relations || model.relations isa Symbol
+        defaultrelations(dataset, model.relations)
     else
         if dataset isa Union{
             SupportedLogiset{W,U,FT,FR,L,N,<:Tuple{<:ScalarOneStepMemoset}} where {W,U,FT,FR,L,N},
@@ -119,15 +133,38 @@ function readconditions(model, dataset)
             "logiset metaconditions $(displaysyntaxvector(MDT.metaconditions(dataset)))."
         conditions
     else
-        naturalconditions(dataset, conditions)
+        naturalconditions(dataset, conditions, model.featvaltype)
     end
 end
 
-mlj_default_initconditions = MDT.start_without_world
+mlj_default_initconditions = nothing
 
-mlj_default_initconditions_str = ":start_with_global (i.e., starting with a global decision, such as ⟨G⟩ min(V1) > 2)."
+mlj_default_initconditions_str = "" *
+    ":start_with_global (i.e., starting with a global decision, such as ⟨G⟩ min(V1) > 2) " *
+    "for 1-dimensional data and :start_at_center for 2-dimensional data."
 
 AVAILABLE_INITCONDITIONS = OrderedDict{Symbol,InitialCondition}([
     :start_with_global => MDT.start_without_world,
     :start_at_center   => MDT.start_at_center,
 ])
+
+
+function readinitconditions(model, dataset::SoleModels.MultiLogiset)
+    map(mod->readinitconditions(model, mod), eachmodality(dataset))
+end
+function readinitconditions(model, dataset::SoleModels.AbstractLogiset)
+    if model.initconditions == mlj_default_initconditions
+        d = dimensionality(SoleModels.base(dataset))
+        if d == 2
+            AVAILABLE_INITCONDITIONS[:start_with_global]
+        elseif d == 2
+            AVAILABLE_INITCONDITIONS[:start_with_global]
+        elseif d == 2
+            AVAILABLE_INITCONDITIONS[:start_at_center]
+        else
+            error("Unexpected dimensionality: $(d)")
+        end
+    else
+        AVAILABLE_INITCONDITIONS[model.initconditions]
+    end
+end

@@ -5,8 +5,8 @@ function check_conditions(conditions)
     end
     # Check that feature extraction functions are scalar
     wrong_conditions = filter((f)->begin
-            all(
-                (ch)->!(ret isa Base.Callable) ||
+            !all(
+                (ch)->!(f isa Base.Callable) ||
                     (ret = f(ch); isa(ret, Real) && typeof(ret) == eltype(ch)),
                 [collect(1:10), collect(1.:10.)]
             )

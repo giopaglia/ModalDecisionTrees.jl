@@ -113,7 +113,7 @@ end
 #   #  flatten to adimensional case + strip of all relations from the ontology
 #   if prod(maxchannelsize(X)) == 1
 #       if (length(ontology(X).relations) > 0)
-#           warn("The DimensionalLogiset provided has degenerate maxchannelsize $(maxchannelsize(X)), and more than 0 relations: $(ontology(X).relations).")
+#           @warn "The DimensionalLogiset provided has degenerate maxchannelsize $(maxchannelsize(X)), and more than 0 relations: $(ontology(X).relations)."
 #       end
 #       # X = DimensionalLogiset{T,0}(DimensionalDatasets.strip_ontology(ontology(X)), @views DimensionalDatasets.strip_domain(domain(X)))
 #   end
@@ -135,7 +135,7 @@ end
 #           test_operators = [canonical_geq]
 #           # test_operators = filter(e->e ≠ canonical_geq,test_operators)
 #       else
-#           warn("Test operators set includes non-lowlevel test operators. Update this part of the code accordingly.")
+#           @warn "Test operators set includes non-lowlevel test operators. Update this part of the code accordingly."
 #       end
 #   end
 
@@ -235,6 +235,7 @@ Base.@propagate_inbounds @inline function split_node!(
     max_purity_at_leaf        :: AbstractFloat,              # minimum purity increase needed for a split
     ##########################################################################
     # Modal parameters
+    max_modal_depth           :: Int,                        # maximum modal depth of the resultant tree
     n_subrelations            :: AbstractVector{NSubRelationsFunction}, # relations used for the decisions
     n_subfeatures             :: AbstractVector{Int},        # number of features for the decisions
     allow_global_splits       :: AbstractVector{Bool},       # allow/disallow using globalrel at any decisional node
@@ -434,24 +435,28 @@ Base.@propagate_inbounds @inline function split_node!(
                 end
             end
 
-            tot_relations = 0
+            if max_modal_depth <= node.modaldepth
+                allow_modal_decisions = false
+            end
+
+            n_tot_relations = 0
             if allow_modal_decisions
-                tot_relations += length(relations(X))
+                n_tot_relations += length(relations(X))
             end
             if allow_global_decisions
-                tot_relations += 1
+                n_tot_relations += 1
             end
 
             # Derive subset of relations to consider
-            n_subrel = Int(modality_n_subrelations(tot_relations))
-            modal_relations_inds = StatsBase.sample(rng, 1:tot_relations, n_subrel, replace = false)
+            n_subrel = Int(modality_n_subrelations(n_tot_relations))
+            modal_relations_inds = StatsBase.sample(rng, 1:n_tot_relations, n_subrel, replace = false)
             sort!(modal_relations_inds)
 
             # Check whether the global relation survived
             if allow_global_decisions
-                allow_global_decisions = (tot_relations in modal_relations_inds)
-                modal_relations_inds = filter!(r->r≠tot_relations, modal_relations_inds)
-                tot_relations = length(modal_relations_inds)
+                allow_global_decisions = (n_tot_relations in modal_relations_inds)
+                modal_relations_inds = filter!(r->r≠n_tot_relations, modal_relations_inds)
+                n_tot_relations = length(modal_relations_inds)
             end
             allow_propositional_decisions, allow_modal_decisions, allow_global_decisions, modal_relations_inds, features_inds
         end
@@ -830,9 +835,10 @@ end
     onlyallowglobal = [(initcond == ModalDecisionTrees.start_without_world) for initcond in initconditions]
     root = NodeMetaT(1:_n_instances, 0, 0, onlyallowglobal)
     
-    # if print_progress TODO
-    #     p = ProgressThresh(Inf, 1, "Computing DTree...")
-    # end
+    if print_progress
+        # p = ProgressThresh(Inf, 1, "Computing DTree...")
+        p = ProgressUnknown("Computing DTree... nodes: ", spinner=true)
+    end
 
     permodality_groups = [
         begin
@@ -891,7 +897,8 @@ end
             rng                        = rng,
             kwargs...,
         )
-        # TODO: !print_progress || ProgressMeter.update!(p, ...idxs[region]...)
+        # !print_progress || ProgressMeter.update!(p, node.purity)
+        !print_progress || ProgressMeter.next!(p, spinner="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
         if !node.is_leaf
             fork!(node)
             l = Threads.@spawn process_node!(node.l, rng_l)
@@ -900,6 +907,8 @@ end
         end
     end
     @sync Threads.@spawn process_node!(root, rng)
+
+    !print_progress || ProgressMeter.finish!(p)
 
     return (root, idxs)
 end
@@ -922,6 +931,7 @@ end
     min_purity_increase     :: AbstractFloat,
     max_purity_at_leaf      :: AbstractFloat,
     ##########################################################################
+    max_modal_depth         :: Int,
     n_subrelations          :: Vector{<:Function},
     n_subfeatures           :: Vector{<:Integer},
     allow_global_splits     :: Vector{Bool},
@@ -977,6 +987,9 @@ end
     elseif max_depth < 0
         error("Unexpected value for max_depth: $(max_depth) (expected:"
             * " max_depth >= 0, or max_depth = -1 for infinite depth)")
+    elseif max_modal_depth < 0
+        error("Unexpected value for max_modal_depth: $(max_modal_depth) (expected:"
+            * " max_modal_depth >= 0, or max_modal_depth = -1 for infinite depth)")
     end
 
     if SoleData.hasnans(Xs)

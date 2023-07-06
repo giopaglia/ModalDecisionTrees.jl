@@ -96,7 +96,7 @@ function displaymodel(
     outstr = ""
     _ntrees = ntrees(forest)
     for i_tree in 1:_ntrees
-        outstr *= "Tree $(i_tree) / $(_ntrees)"
+        outstr *= "Tree $(i_tree) / $(_ntrees)\n"
         outstr *= displaymodel(trees(forest)[i_tree], args...; kwargs...)
     end
     return outstr
@@ -111,31 +111,33 @@ function displaymodel(
     outstr *= "Feature function: $(nsdt.feature_function)"
     _ntrees = ntrees(forest)
     for (i_tree,tree) in enumerate(nsdt.trees)
-        outstr *= "Tree $(i_tree) / $(_ntrees)"
+        outstr *= "Tree $(i_tree) / $(_ntrees)\n"
         outstr *= displaymodel(tree, args...; kwargs...)
     end
     return outstr
 end
 
 function displaymodel(
-        leaf::DTLeaf;
-        indentation_str="",
-        variable_names_map = nothing,
-        max_depth = nothing,
-        kwargs...,
-    )
+    leaf::DTLeaf;
+    indentation_str="",
+    depth=0,
+    variable_names_map = nothing,
+    max_depth = nothing,
+    kwargs...,
+)
     metrics = get_metrics(leaf; kwargs...)
     metrics_str = get_metrics_str(metrics)
     return "$(displaybriefprediction(leaf)) : $(metrics_str)\n"
 end
 
 function displaymodel(
-        leaf::NSDTLeaf;
-        indentation_str="",
-        variable_names_map = nothing,
-        max_depth = nothing,
-        kwargs...,
-    )
+    leaf::NSDTLeaf;
+    indentation_str="",
+    depth=0,
+    variable_names_map = nothing,
+    max_depth = nothing,
+    kwargs...,
+)
     train_metrics_str = get_metrics_str(get_metrics(leaf; train_or_valid = true, kwargs...))
     valid_metrics_str = get_metrics_str(get_metrics(leaf; train_or_valid = false, kwargs...))
     return "$(displaybriefprediction(leaf)) : {TRAIN: $(train_metrics_str); VALID: $(valid_metrics_str)}\n"
@@ -144,18 +146,22 @@ end
 function displaymodel(
     node::DTInternal;
     indentation_str="",
+    depth=0,
     variable_names_map = nothing,
     max_depth = nothing,
     # TODO print_rules = false,
     metrics_kwargs...,
 )
     outstr = ""
-    outstr *= "$(displaydecision(node; variable_names_map = variable_names_map))\t\t\t"
-    outstr *= displaymodel(this(node); indentation_str = "", metrics_kwargs...)
-    if isnothing(max_depth) || length(indentation_str) < max_depth
+    if isnothing(max_depth) || depth < max_depth
+        dec_str = displaydecision(node; variable_names_map = variable_names_map)
+        outstr *= "$(rpad(dec_str, 60-(length(indentation_str) == 0 ? length(indentation_str)-1 : length(indentation_str))))"
+        # outstr *= "$(60-max(length(indentation_str)+1)) "
+        outstr *= displaymodel(this(node); indentation_str = "", metrics_kwargs...)
         outstr *= indentation_str * "✔ " # "╭✔
         outstr *= displaymodel(left(node);
             indentation_str = indentation_str*"│",
+            depth = depth+1,
             variable_names_map = variable_names_map,
             max_depth = max_depth,
             metrics_kwargs...,
@@ -163,12 +169,14 @@ function displaymodel(
         outstr *= indentation_str * "✘ " # "╰✘
         outstr *= displaymodel(right(node);
             indentation_str = indentation_str*" ",
+            depth = depth+1,
             variable_names_map = variable_names_map,
             max_depth = max_depth,
             metrics_kwargs...,
         )
     else
-        outstr *= " [...]\n"
+        depth != 0 && (outstr *= " ")
+        outstr *= "[...]\n"
     end
     return outstr
 end

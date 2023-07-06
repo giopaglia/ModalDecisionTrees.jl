@@ -6,6 +6,7 @@ using SoleModels: info, ScalarCondition, ScalarMetaCondition
 
 using SoleModels: AbstractFeature
 using SoleModels: relation, feature, test_operator, threshold, inverse_test_operator
+using SoleModels: LogicalTruthCondition
 
 using ModalDecisionTrees: DTInternal, DTNode, DTLeaf, NSDTLeaf
 using ModalDecisionTrees: isleftchild, isrightchild
@@ -54,14 +55,15 @@ function translate(
 )
     new_ancestors = [ancestors..., node]
     multipathformula = pathformula(new_ancestors, left(node))
+    formula_tocheck = MultiFormula(i_modality(node), multipathformula.formulas[i_modality(node)])
     info = merge(info, (;
         this = translate(ModalDecisionTrees.this(node), new_ancestors),
-        supp_labels = ModalDecisionTrees.supp_labels(node),
-        multipathformula = multipathformula,
+        # supporting_labels = ModalDecisionTrees.supp_labels(node),
+        multipathformula = LogicalTruthCondition(multipathformula),
+        shortform = LogicalTruthCondition(multipathformula),
     ))
-    formula = MultiFormula(i_modality(node), multipathformula.formulas[i_modality(node)])
     SoleModels.Branch(
-        formula,
+        LogicalTruthCondition(formula_tocheck),
         translate(left(node), new_ancestors),
         translate(right(node), new_ancestors),
         info
@@ -74,7 +76,7 @@ function translate(
     info = (;),
 )
     info = merge(info, (;
-        supp_labels = ModalDecisionTrees.supp_labels(tree)
+        supporting_labels = ModalDecisionTrees.supp_labels(tree)
     ))
     return SoleModels.ConstantModel(ModalDecisionTrees.prediction(tree), info)
 end
@@ -85,7 +87,7 @@ function translate(
     info = (;),
 )
     info = merge(info, (;
-        supp_labels = ModalDecisionTrees.supp_labels(tree)
+        supporting_labels = ModalDecisionTrees.supp_labels(tree)
     ))
     return SoleModels.FunctionModel(ModalDecisionTrees.predicting_function(tree), info)
 end
@@ -183,7 +185,7 @@ end
                 error("Cannot compute pathformula on malformed path: $(nodes).")
             end
         else
-            λ = get_lambda(nodes[1], nodes[2])
+            λ = MultiFormula(i_modality(nodes[1]), get_lambda(nodes[1], nodes[2]))
             return λ ∧ φ
         end
     end
