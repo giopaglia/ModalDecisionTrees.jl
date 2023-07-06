@@ -17,7 +17,7 @@ using StatsBase
 
 using SoleBase
 using SoleBase: LogOverview, LogDebug, LogDetail, throw_n_log
-using SoleBase: spawn_rng, nat_sort
+using SoleBase: spawn, nat_sort
 using SoleModels
 using SoleModels: CLabel, RLabel, Label, _CLabel, _Label, get_categorical_form
 

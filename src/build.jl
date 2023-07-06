@@ -195,7 +195,7 @@ function build_forest(
     oob_samples = Vector{Vector{Integer}}(undef, ntrees)
     oob_metrics = Vector{NamedTuple}(undef, ntrees)
 
-    rngs = [spawn_rng(rng) for i_tree in 1:ntrees]
+    rngs = [spawn(rng) for i_tree in 1:ntrees]
 
     if print_progress
         p = Progress(ntrees, 1, "Computing DForest...")

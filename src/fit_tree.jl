@@ -821,8 +821,8 @@ end
     # Process nodes recursively, using multi-threading
     function process_node!(node, rng)
         # Note: better to spawn rng's beforehand, to preserve reproducibility independently from split_node!
-        rng_l = spawn_rng(rng)
-        rng_r = spawn_rng(rng)
+        rng_l = spawn(rng)
+        rng_r = spawn(rng)
         @inbounds split_node!(node, Xs, Ss, Y, init_conditions, W;
             _is_classification         = _is_classification,
             _perform_consistency_check = _perform_consistency_check,
