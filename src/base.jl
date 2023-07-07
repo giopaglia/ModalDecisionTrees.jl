@@ -32,7 +32,7 @@ function initialworldset(::AbstractMultiModalFrame{W}, initcond::StartAtWorld{W}
 end
 
 function initialworldset(
-    X::AbstractLogiset,
+    X,
     i_instance::Integer,
     args...
 )

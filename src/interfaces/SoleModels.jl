@@ -58,7 +58,7 @@ function translate(
     formula_tocheck = MultiFormula(i_modality(node), multipathformula.formulas[i_modality(node)])
     info = merge(info, (;
         this = translate(ModalDecisionTrees.this(node), new_ancestors),
-        # supporting_labels = ModalDecisionTrees.supp_labels(node),
+        supporting_labels = ModalDecisionTrees.supp_labels(node),
         multipathformula = LogicalTruthCondition(multipathformula),
         shortform = LogicalTruthCondition(multipathformula),
     ))
@@ -76,7 +76,8 @@ function translate(
     info = (;),
 )
     info = merge(info, (;
-        supporting_labels = ModalDecisionTrees.supp_labels(tree)
+        supporting_labels      = ModalDecisionTrees.supp_labels(tree),
+        supporting_predictions = ModalDecisionTrees.predictions(tree),
     ))
     return SoleModels.ConstantModel(ModalDecisionTrees.prediction(tree), info)
 end
@@ -87,7 +88,8 @@ function translate(
     info = (;),
 )
     info = merge(info, (;
-        supporting_labels = ModalDecisionTrees.supp_labels(tree)
+        supporting_labels      = ModalDecisionTrees.supp_labels(tree),
+        supporting_predictions = ModalDecisionTrees.predictions(tree),
     ))
     return SoleModels.FunctionModel(ModalDecisionTrees.predicting_function(tree), info)
 end

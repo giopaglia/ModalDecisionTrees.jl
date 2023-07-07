@@ -44,43 +44,45 @@ Perform the modal step, that is, evaluate an existential formula
  on a set of worlds, eventually computing the new world set.
 """
 function modalstep(
-    X::AbstractScalarLogiset{W},
+    X, # ::AbstractScalarLogiset{W},
     i_instance::Integer,
-    worlds::WorldSetType,
+    worlds::AbstractVector{W},
     decision::SimpleDecision{<:ScalarExistentialFormula},
-    return_survivors::Union{Val{true},Val{false}} = Val(false)
-) where {W<:AbstractWorld,WorldSetType<:AbstractWorldSet}
+    return_worldmap::Union{Val{true},Val{false}} = Val(false)
+) where {W<:AbstractWorld}
     @logmsg LogDetail "modalstep" worlds displaydecision(decision)
 
-    φ = formula(decision)
+    # W = worldtype(frame(X, 1))
 
+    φ = formula(decision)
     satisfied = false
     
     # TODO the's room for optimization here: with some relations (e.g. IA_A, IA_L) can be made smaller
 
-    if return_survivors isa Val{true}
-        worlds_map = ThreadSafeDict{W,AbstractWorldSet{W}}()
+    if return_worldmap isa Val{true}
+        worlds_map = ThreadSafeDict{W,AbstractVector{W}}()
     end
     if length(worlds) == 0
         # If there are no neighboring worlds, then the modal decision is not met
-        @logmsg LogDetail "   No accessible world"
+        @logmsg LogDetail "   Empty worldset"
     else
         # Otherwise, check whether at least one of the accessible worlds witnesses truth of the decision.
         # TODO rewrite with new_worlds = map(...acc_worlds)
         # Initialize new worldset
-        new_worlds = WorldSetType()
+        new_worlds = Vector{W}()
 
         # List all accessible worlds
-        acc_worlds = 
-            if return_survivors isa Val{true}
+        acc_worlds = begin
+            if return_worldmap isa Val{true}
                 Threads.@threads for curr_w in worlds
-                    acc = accessibles(X, i_instance, curr_w, relation(φ)) |> collect
+                    acc = accessibles(frame(X, i_instance), curr_w, relation(φ)) |> collect
                     worlds_map[curr_w] = acc
                 end
                 unique(cat([ worlds_map[k] for k in keys(worlds_map) ]...; dims = 1))
             else
-                accessibles(X, i_instance, worlds, relation(φ))
+                accessibles(frame(X, i_instance), worlds, relation(φ))
             end
+        end
 
         for w in acc_worlds
             if checkcondition(atom(proposition(φ)), X, i_instance, w)
@@ -102,7 +104,7 @@ function modalstep(
     else
         @logmsg LogDetail "   NO"
     end
-    if return_survivors isa Val{true}
+    if return_worldmap isa Val{true}
         return (satisfied, worlds, worlds_map)
     else
         return (satisfied, worlds)
@@ -160,7 +162,7 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
     grouped_featsnaggrs::AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}},
 ) where {W<:AbstractWorld,U,FT<:AbstractFeature,N,FR<:FullDimensionalFrame{N,W}}
     relation = identityrel
-    _n_instances = length(i_instances)
+    _ninstances = length(i_instances)
 
     _features = features(X)
 
@@ -178,14 +180,14 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
         # aggrsnops = [aggrsnops[i_aggregator] for i_aggregator in aggregators]
 
         # Initialize thresholds with the bottoms
-        thresholds = Array{U,2}(undef, length(aggregators), _n_instances)
+        thresholds = Array{U,2}(undef, length(aggregators), _ninstances)
         for (i_aggregator,aggregator) in enumerate(aggregators)
             thresholds[i_aggregator,:] .= aggregator_bottom(aggregator, U)
         end
 
         # For each instance, compute thresholds by applying each aggregator to the set of existing values (from the worldset)
         for (instance_idx,i_instance) in enumerate(i_instances)
-            # @logmsg LogDetail " Instance $(instance_idx)/$(_n_instances)"
+            # @logmsg LogDetail " Instance $(instance_idx)/$(_ninstances)"
             worlds = Sf[instance_idx]
 
             # TODO also try this instead
@@ -239,7 +241,7 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
     grouped_featsaggrsnops::AbstractVector{<:AbstractDict{<:Aggregator,<:AbstractVector{<:ScalarMetaCondition}}},
     grouped_featsnaggrs::AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}},
 ) where {W<:AbstractWorld,U,FT<:AbstractFeature,N,FR<:FullDimensionalFrame{N,W}}
-    _n_instances = length(i_instances)
+    _ninstances = length(i_instances)
 
     _relations = relations(X)
     _features = features(X)
@@ -263,14 +265,14 @@ Base.@propagate_inbounds @resumable function generate_modal_feasible_decisions(
             # aggrsnops = [aggrsnops[i_aggregator] for i_aggregator in aggregators]
 
             # Initialize thresholds with the bottoms
-            thresholds = Array{U,2}(undef, length(aggregators_with_ids), _n_instances)
+            thresholds = Array{U,2}(undef, length(aggregators_with_ids), _ninstances)
             for (i_aggregator,(_,aggregator)) in enumerate(aggregators_with_ids)
                 thresholds[i_aggregator,:] .= aggregator_bottom(aggregator, U)
             end
 
             # For each instance, compute thresholds by applying each aggregator to the set of existing values (from the worldset)
             for (instance_id,i_instance) in enumerate(i_instances)
-                # @logmsg LogDetail " Instance $(instance_id)/$(_n_instances)"
+                # @logmsg LogDetail " Instance $(instance_id)/$(_ninstances)"
                 worlds = Sf[instance_id]
                 _featchannel = featchannel(base(X), i_instance, i_feature)
                 for (i_aggregator,(i_metacond,aggregator)) in enumerate(aggregators_with_ids)
@@ -332,7 +334,7 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
     grouped_featsnaggrs::AbstractVector{<:AbstractVector{Tuple{<:Integer,<:Aggregator}}},
 ) where {W<:AbstractWorld,U,FT<:AbstractFeature,N,FR<:FullDimensionalFrame{N,W}}
     relation = globalrel
-    _n_instances = length(i_instances)
+    _ninstances = length(i_instances)
 
     _features = features(X)
 
@@ -357,14 +359,14 @@ Base.@propagate_inbounds @resumable function generate_global_feasible_decisions(
         # thresholds = transpose(globmemoset(X)[i_instances, aggregators_ids])
 
         # Initialize thresholds with the bottoms
-        thresholds = Array{U,2}(undef, length(aggregators_with_ids), _n_instances)
+        thresholds = Array{U,2}(undef, length(aggregators_with_ids), _ninstances)
         # for (i_aggregator,(_,aggregator)) in enumerate(aggregators_with_ids)
         #     thresholds[i_aggregator,:] .= aggregator_bottom(aggregator, U)
         # end
         
         # For each instance, compute thresholds by applying each aggregator to the set of existing values (from the worldset)
         for (instance_id,i_instance) in enumerate(i_instances)
-            # @logmsg LogDetail " Instance $(instance_id)/$(_n_instances)"
+            # @logmsg LogDetail " Instance $(instance_id)/$(_ninstances)"
             _featchannel = featchannel(base(X), i_instance, i_feature)
             for (i_aggregator,(i_metacond,aggregator)) in enumerate(aggregators_with_ids)
                 # TODO delegate this job to different flavors of `get_global_gamma`. Test whether the _featchannel assignment outside is faster!

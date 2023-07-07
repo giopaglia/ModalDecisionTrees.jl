@@ -30,12 +30,12 @@ function prune(node::DTInternal{L}; depth = nothing, kwargs...) where {L}
 
     pruning_params = merge((
         loss_function              = default_loss_function(L)            :: Union{Nothing,Function},
-        max_depth                  = DEFAULT_MAX_DEPTH                   :: Int                    ,
-        min_samples_leaf           = DEFAULT_MIN_SAMPLES_LEAF            :: Int                    ,
-        min_purity_increase        = DEFAULT_MIN_PURITY_INCREASE         :: AbstractFloat          ,
-        max_purity_at_leaf         = DEFAULT_MAX_PURITY_AT_LEAF          :: AbstractFloat          ,
-        max_performance_at_split   = DEFAULT_MAX_PERFORMANCE_AT_SPLIT    :: AbstractFloat          ,
-        min_performance_at_split   = DEFAULT_MIN_PERFORMANCE_AT_SPLIT    :: AbstractFloat          ,
+        max_depth                  = BOTTOM_MAX_DEPTH                   :: Int                    ,
+        min_samples_leaf           = BOTTOM_MIN_SAMPLES_LEAF            :: Int                    ,
+        min_purity_increase        = BOTTOM_MIN_PURITY_INCREASE         :: AbstractFloat          ,
+        max_purity_at_leaf         = BOTTOM_MAX_PURITY_AT_LEAF          :: AbstractFloat          ,
+        max_performance_at_split   = BOTTOM_MAX_PERFORMANCE_AT_SPLIT    :: AbstractFloat          ,
+        min_performance_at_split   = BOTTOM_MIN_PERFORMANCE_AT_SPLIT    :: AbstractFloat          ,
         simplify                   = false                               :: Bool                   ,
     ), NamedTuple(kwargs))
 
@@ -95,11 +95,11 @@ end
 
 function prune(forest::DForest{L}, rng::Random.AbstractRNG = Random.GLOBAL_RNG; kwargs...) where {L}
     pruning_params = merge((
-        ntrees             = DEFAULT_NTREES                      ::Integer                ,
+        ntrees             = BOTTOM_NTREES                      ::Integer                ,
     ), NamedTuple(kwargs))
 
     # Remove trees
-    if pruning_params.ntrees != DEFAULT_NTREES
+    if pruning_params.ntrees != BOTTOM_NTREES
         perm = Random.randperm(rng, length(trees(forest)))[1:pruning_params.ntrees]
         forest = slice_forest(forest, perm)
     end
@@ -178,7 +178,7 @@ function nondominated_pruning_parametrizations(
             overflowing_args = map((a)->setdiff(collect(keys(a)), [to_opt..., to_match..., to_leave...]), args)
             @assert all(length.(overflowing_args) .== 0) "Got unexpected model parameters: $(filter((a)->length(a) != 0, overflowing_args)) . In: $(args)."
 
-            # Note: this optimizatio assumes that parameters are defaulted to their bottom value
+            # Note: this optimizatio assumes that parameters are defaulted to their top (= most conservative) value
             polarity(::Val{:max_depth})           = max
             # polarity(::Val{:min_samples_leaf})    = min
             polarity(::Val{:min_purity_increase}) = min
@@ -187,13 +187,13 @@ function nondominated_pruning_parametrizations(
             polarity(::Val{:min_performance_at_split})  = min
             polarity(::Val{:ntrees})             = max
 
-            bottom(::Val{:max_depth})           = typemin(Int)
-            # bottom(::Val{:min_samples_leaf})    = typemax(Int)
-            bottom(::Val{:min_purity_increase}) = Inf
-            bottom(::Val{:max_purity_at_leaf})  = -Inf
-            bottom(::Val{:max_performance_at_split})  = -Inf
-            bottom(::Val{:min_performance_at_split})  = Inf
-            bottom(::Val{:ntrees})             = typemin(Int)
+            top(::Val{:max_depth})           = typemin(Int)
+            # top(::Val{:min_samples_leaf})    = typemax(Int)
+            top(::Val{:min_purity_increase}) = Inf
+            top(::Val{:max_purity_at_leaf})  = -Inf
+            top(::Val{:max_performance_at_split})  = -Inf
+            top(::Val{:min_performance_at_split})  = Inf
+            top(::Val{:ntrees})             = typemin(Int)
 
             perm = []
             # Find non-dominated parameter set
@@ -210,13 +210,13 @@ function nondominated_pruning_parametrizations(
                 ))
 
                 dominating[base_args] = ((
-                    max_depth           = polarity(Val(:max_depth          ))((haskey(this_args, :max_depth          ) ? this_args.max_depth           : bottom(Val(:max_depth          ))),(haskey(dominating, base_args) ? dominating[base_args][1].max_depth           : bottom(Val(:max_depth          )))),
-                    # min_samples_leaf    = polarity(Val(:min_samples_leaf   ))((haskey(this_args, :min_samples_leaf   ) ? this_args.min_samples_leaf    : bottom(Val(:min_samples_leaf   ))),(haskey(dominating, base_args) ? dominating[base_args][1].min_samples_leaf    : bottom(Val(:min_samples_leaf   )))),
-                    min_purity_increase = polarity(Val(:min_purity_increase))((haskey(this_args, :min_purity_increase) ? this_args.min_purity_increase : bottom(Val(:min_purity_increase))),(haskey(dominating, base_args) ? dominating[base_args][1].min_purity_increase : bottom(Val(:min_purity_increase)))),
-                    max_purity_at_leaf  = polarity(Val(:max_purity_at_leaf ))((haskey(this_args, :max_purity_at_leaf ) ? this_args.max_purity_at_leaf  : bottom(Val(:max_purity_at_leaf ))),(haskey(dominating, base_args) ? dominating[base_args][1].max_purity_at_leaf  : bottom(Val(:max_purity_at_leaf )))),
-                    max_performance_at_split  = polarity(Val(:max_performance_at_split ))((haskey(this_args, :max_performance_at_split ) ? this_args.max_performance_at_split  : bottom(Val(:max_performance_at_split ))),(haskey(dominating, base_args) ? dominating[base_args][1].max_performance_at_split  : bottom(Val(:max_performance_at_split )))),
-                    min_performance_at_split  = polarity(Val(:min_performance_at_split ))((haskey(this_args, :min_performance_at_split ) ? this_args.min_performance_at_split  : bottom(Val(:min_performance_at_split ))),(haskey(dominating, base_args) ? dominating[base_args][1].min_performance_at_split  : bottom(Val(:min_performance_at_split )))),
-                    ntrees              = polarity(Val(:ntrees            ))((haskey(this_args, :ntrees            ) ? this_args.ntrees             : bottom(Val(:ntrees            ))),(haskey(dominating, base_args) ? dominating[base_args][1].ntrees             : bottom(Val(:ntrees            )))),
+                    max_depth           = polarity(Val(:max_depth          ))((haskey(this_args, :max_depth          ) ? this_args.max_depth           : top(Val(:max_depth          ))),(haskey(dominating, base_args) ? dominating[base_args][1].max_depth           : top(Val(:max_depth          )))),
+                    # min_samples_leaf    = polarity(Val(:min_samples_leaf   ))((haskey(this_args, :min_samples_leaf   ) ? this_args.min_samples_leaf    : top(Val(:min_samples_leaf   ))),(haskey(dominating, base_args) ? dominating[base_args][1].min_samples_leaf    : top(Val(:min_samples_leaf   )))),
+                    min_purity_increase = polarity(Val(:min_purity_increase))((haskey(this_args, :min_purity_increase) ? this_args.min_purity_increase : top(Val(:min_purity_increase))),(haskey(dominating, base_args) ? dominating[base_args][1].min_purity_increase : top(Val(:min_purity_increase)))),
+                    max_purity_at_leaf  = polarity(Val(:max_purity_at_leaf ))((haskey(this_args, :max_purity_at_leaf ) ? this_args.max_purity_at_leaf  : top(Val(:max_purity_at_leaf ))),(haskey(dominating, base_args) ? dominating[base_args][1].max_purity_at_leaf  : top(Val(:max_purity_at_leaf )))),
+                    max_performance_at_split  = polarity(Val(:max_performance_at_split ))((haskey(this_args, :max_performance_at_split ) ? this_args.max_performance_at_split  : top(Val(:max_performance_at_split ))),(haskey(dominating, base_args) ? dominating[base_args][1].max_performance_at_split  : top(Val(:max_performance_at_split )))),
+                    min_performance_at_split  = polarity(Val(:min_performance_at_split ))((haskey(this_args, :min_performance_at_split ) ? this_args.min_performance_at_split  : top(Val(:min_performance_at_split ))),(haskey(dominating, base_args) ? dominating[base_args][1].min_performance_at_split  : top(Val(:min_performance_at_split )))),
+                    ntrees              = polarity(Val(:ntrees            ))((haskey(this_args, :ntrees            ) ? this_args.ntrees             : top(Val(:ntrees            ))),(haskey(dominating, base_args) ? dominating[base_args][1].ntrees             : top(Val(:ntrees            )))),
                 ),[(haskey(dominating, base_args) ? dominating[base_args][2] : [])..., this_args])
 
                 outer_idx = findfirst((k)->k==base_args, collect(keys(dominating)))
@@ -226,13 +226,13 @@ function nondominated_pruning_parametrizations(
 
             [
                 begin
-                    if (rep_args.max_depth           == bottom(Val(:max_depth))          ) rep_args = Base.structdiff(rep_args, (; max_depth           = nothing)) end
-                    # if (rep_args.min_samples_leaf    == bottom(Val(:min_samples_leaf))   ) rep_args = Base.structdiff(rep_args, (; min_samples_leaf    = nothing)) end
-                    if (rep_args.min_purity_increase == bottom(Val(:min_purity_increase))) rep_args = Base.structdiff(rep_args, (; min_purity_increase = nothing)) end
-                    if (rep_args.max_purity_at_leaf  == bottom(Val(:max_purity_at_leaf)) ) rep_args = Base.structdiff(rep_args, (; max_purity_at_leaf  = nothing)) end
-                    if (rep_args.max_performance_at_split  == bottom(Val(:max_performance_at_split)) ) rep_args = Base.structdiff(rep_args, (; max_performance_at_split  = nothing)) end
-                    if (rep_args.min_performance_at_split  == bottom(Val(:min_performance_at_split)) ) rep_args = Base.structdiff(rep_args, (; min_performance_at_split  = nothing)) end
-                    if (rep_args.ntrees             == bottom(Val(:ntrees           )) ) rep_args = Base.structdiff(rep_args, (; ntrees             = nothing)) end
+                    if (rep_args.max_depth           == top(Val(:max_depth))          ) rep_args = Base.structdiff(rep_args, (; max_depth           = nothing)) end
+                    # if (rep_args.min_samples_leaf    == top(Val(:min_samples_leaf))   ) rep_args = Base.structdiff(rep_args, (; min_samples_leaf    = nothing)) end
+                    if (rep_args.min_purity_increase == top(Val(:min_purity_increase))) rep_args = Base.structdiff(rep_args, (; min_purity_increase = nothing)) end
+                    if (rep_args.max_purity_at_leaf  == top(Val(:max_purity_at_leaf)) ) rep_args = Base.structdiff(rep_args, (; max_purity_at_leaf  = nothing)) end
+                    if (rep_args.max_performance_at_split  == top(Val(:max_performance_at_split)) ) rep_args = Base.structdiff(rep_args, (; max_performance_at_split  = nothing)) end
+                    if (rep_args.min_performance_at_split  == top(Val(:min_performance_at_split)) ) rep_args = Base.structdiff(rep_args, (; min_performance_at_split  = nothing)) end
+                    if (rep_args.ntrees             == top(Val(:ntrees           )) ) rep_args = Base.structdiff(rep_args, (; ntrees             = nothing)) end
 
                     this_args = merge(base_args, rep_args)
                     (this_args, [begin
@@ -256,11 +256,11 @@ end
 #
 
 function train_functional_leaves(
-        tree::DTree,
-        datasets::AbstractVector{Tuple{GenericDataset,AbstractVector}},
-        args...;
-        kwargs...,
-    )
+    tree::DTree,
+    datasets::AbstractVector{<:Tuple{Any,AbstractVector}},
+    args...;
+    kwargs...,
+)
     # World sets for (dataset, modality, instance)
     worlds = Vector{Vector{Vector{<:WST} where {WorldType<:AbstractWorld,WST<:WorldSet{WorldType}}}}([
         ModalDecisionTrees.initialworldsets(X, initconditions(tree))
@@ -272,14 +272,14 @@ end
 function train_functional_leaves(
     node::DTInternal{L},
     worlds::AbstractVector{<:AbstractVector{<:AbstractVector{<:AbstractWorldSet}}},
-    datasets::AbstractVector{Tuple{GenericDataset,AbstractVector}},
+    datasets::AbstractVector{D},
     args...;
     kwargs...,
-) where {L}
+) where {L,D<:Tuple{Any,AbstractVector}}
 
     # Each dataset is sliced, and two subsets are derived (left and right)
-    datasets_l = Tuple{GenericDataset,AbstractVector}[]
-    datasets_r = Tuple{GenericDataset,AbstractVector}[]
+    datasets_l = D[]
+    datasets_r = D[]
 
     worlds_l = AbstractVector{<:AbstractVector{<:AbstractWorldSet}}[]
     worlds_r = AbstractVector{<:AbstractVector{<:AbstractWorldSet}}[]
@@ -328,7 +328,7 @@ end
 function train_functional_leaves(
     leaf::AbstractDecisionLeaf{L},
     worlds::AbstractVector{<:AbstractVector{<:AbstractVector{<:AbstractWorldSet}}},
-    datasets::AbstractVector{Tuple{GenericDataset,AbstractVector}};
+    datasets::AbstractVector{<:Tuple{Any,AbstractVector}};
     train_callback::Function,
 ) where {L<:Label}
     functional_model = train_callback(datasets)

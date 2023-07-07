@@ -46,8 +46,8 @@ printmodel.(listrules(soletree2); show_metrics = true);
 
 SoleModels.info.(listrules(soletree2), :supporting_labels);
 leaves = consequent.(listrules(soletree2))
-SoleModels.leafmetrics.(leaves)
-zip(SoleModels.leafmetrics.(leaves),leaves) |> collect |> sort
+SoleModels.readmetrics.(leaves)
+zip(SoleModels.readmetrics.(leaves),leaves) |> collect |> sort
 
 
 @test MLJ.accuracy(y_test, yhat_test) > 0.4

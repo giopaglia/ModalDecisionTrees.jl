@@ -105,10 +105,6 @@ function MMI.clean!(model::SymbolicModel)
         end
     end
 
-    if model.check_conditions == true
-        check_conditions(model.conditions)
-    end
-
     if model.rng isa Integer
         model.rng = Random.MersenneTwister(model.rng)
     end
@@ -156,11 +152,12 @@ function MMI.clean!(model::SymbolicModel)
         end
     end
 
-    if !(0 ≤ model.merge_purity_threshold ≤ 1)
-        warning *= "merge_purity_threshold should be between 0 and 1, " *
-            "but $(model.merge_purity_threshold) " *
-            "was provided.\n"
-    end
+    # Only true for classification:
+    # if !(0 ≤ model.merge_purity_threshold ≤ 1)
+    #     warning *= "merge_purity_threshold should be between 0 and 1, " *
+    #         "but $(model.merge_purity_threshold) " *
+    #         "was provided.\n"
+    # end
 
     if model.feature_importance == :impurity
         error("feature_importance = :impurity is currently not supported." *

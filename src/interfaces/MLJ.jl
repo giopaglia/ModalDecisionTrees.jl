@@ -93,7 +93,6 @@ mutable struct ModalDecisionTree <: MMI.Probabilistic
 
     ## Miscellaneous
     downsize               :: Union{Bool,NTuple{N,Integer} where N,Function}
-    check_conditions       :: Bool
     print_progress         :: Bool
     rng                    :: Union{Random.AbstractRNG,Integer}
 
@@ -102,7 +101,7 @@ mutable struct ModalDecisionTree <: MMI.Probabilistic
     min_samples_split      :: Union{Nothing,Int}
     n_subfeatures          :: Union{Nothing,Int,Float64,Function}
     post_prune             :: Bool
-    merge_purity_threshold :: Float64
+    merge_purity_threshold :: Union{Nothing,Float64}
     feature_importance     :: Symbol
 end
 
@@ -120,15 +119,14 @@ function ModalDecisionTree(;
     initconditions = nothing,
     #
     downsize = true,
-    check_conditions = true,
     print_progress = false,
     rng = Random.GLOBAL_RNG,
     #
-    display_depth = 5,
+    display_depth = nothing,
     min_samples_split = nothing,
     n_subfeatures = nothing,
     post_prune = false,
-    merge_purity_threshold = 1.0,
+    merge_purity_threshold = nothing,
     feature_importance = :split,
 )
     model = ModalDecisionTree(
@@ -144,7 +142,6 @@ function ModalDecisionTree(;
         initconditions,
         #
         downsize,
-        check_conditions,
         print_progress,
         rng,
         #
@@ -192,7 +189,13 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Integer, X, y, var_grouping, c
     )
 
     if m.post_prune
-        model = MDT.prune(model; max_performance_at_split = m.merge_purity_threshold)
+        merge_purity_threshold = m.merge_purity_threshold
+        if isnothing(merge_purity_threshold) && !isnothing(classes_seen)
+            merge_purity_threshold = 1.0
+        else
+            error("Please, provide a `merge_purity_threshold` parameter (maximum MAE at splits).")
+        end
+        model = MDT.prune(model; max_performance_at_split = merge_purity_threshold)
     end
 
     verbosity < 2 || MDT.printmodel(model; max_depth = m.display_depth, variable_names_map = var_grouping)
@@ -210,7 +213,7 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Integer, X, y, var_grouping, c
     report = (
         printmodel                  = ModelPrinter(m, model, solemodel, var_grouping),
         printapply                  = (Xnew, ynew)->begin
-            (Xnew, ynew, var_grouping, classes_seen, w) = MMI.reformat(m, Xnew, ynew)
+            (Xnew, ynew, var_grouping, classes_seen, w) = MMI.reformat(m, Xnew, ynew; passive_mode = true)
             print_apply(model, Xnew, ynew)
         end,
         solemodel                   = solemodel,
@@ -263,8 +266,8 @@ end
 # DATA FRONT END
 ############################################################################################
 
-function MMI.reformat(m::SymbolicModel, X, y, w = nothing)
-    X, var_grouping = wrapdataset(X, m)
+function MMI.reformat(m::SymbolicModel, X, y, w = nothing; passive_mode = false)
+    X, var_grouping = wrapdataset(X, m; passive_mode = passive_mode)
     y, classes_seen = fix_y(y)
     (X, y, var_grouping, classes_seen, w)
 end
@@ -274,7 +277,7 @@ MMI.selectrows(::SymbolicModel, I, X, y, var_grouping, classes_seen, w = nothing
 
 # For predict
 function MMI.reformat(m::SymbolicModel, Xnew)
-    Xnew, var_grouping = wrapdataset(Xnew, m)
+    Xnew, var_grouping = wrapdataset(Xnew, m; passive_mode = true)
     (Xnew, var_grouping)
 end
 MMI.selectrows(::SymbolicModel, I, Xnew, var_grouping) =
@@ -333,14 +336,19 @@ MMI.metadata_model(
         # AbstractArray{Count,2},          AbstractArray{Count,3},         AbstractArray{Count,4},
         # AbstractArray{OrderedFactor,2},  AbstractArray{OrderedFactor,3}, AbstractArray{OrderedFactor,4},
     },
-    target_scitype = Union{AbstractVector{<:Continuous},AbstractVector{<:Finite},AbstractVector{<:Textual}},
+    target_scitype = Union{
+        AbstractVector{<:Continuous},
+        AbstractVector{<:Count},
+        AbstractVector{<:Finite},
+        AbstractVector{<:Textual}
+    },
     human_name = "Modal Decision Tree",
     descr   = "A Modal Decision Tree is a probabilistic, symbolic model " *
         "for classification and regression tasks with dimensional data " *
         "(e.g., images and time-series)." *
-        "The model is able to extract logical descriptions of the data "
-        "in terms of logical formulas (see SoleLogics.jl) on propositions that are, "
-        "for example, min[V2] ≥ 10, that is, \"the minimum of variable 2 is not less than 10\"."
+        "The model is able to extract logical descriptions of the data " *
+        "in terms of logical formulas (see SoleLogics.jl) on propositions that are, " *
+        "for example, min[V2] ≥ 10, that is, \"the minimum of variable 2 is not less than 10\"." *
         "As such, the model offers an interesting level of interpretability." *
         ""
         ,

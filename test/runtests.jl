@@ -30,14 +30,13 @@ test_suites = [
         "classification/iris.jl",
         "classification/iris-params.jl",
         "classification/japanesevowels.jl",
-        # "classification/dummy-multimodal-datasets.jl",
+        "classification/digits.jl",
+        "classification/mnist.jl",
         # "classification/demo-juliacon2022.jl",
         # 
         # "classification/random.jl",
         # "classification/low_precision.jl",
         # "classification/heterogeneous.jl",
-        # "classification/digits.jl",
-        # "classification/adult.jl",
         # "classification/scikitlearn.jl"
     ]),
     ("Regression", [
@@ -48,7 +47,7 @@ test_suites = [
         # "regression/low_precision.jl",
     ]),
     ("Miscellaneous", [
-        "dummy-multimodal-datasets.jl"
+        "multimodal-datasets.jl"
         # "miscellaneous/convert.jl"
         "translation/parse-and-translate-existentialdecisions.jl"
     ]),

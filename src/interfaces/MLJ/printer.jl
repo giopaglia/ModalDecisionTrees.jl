@@ -50,7 +50,7 @@ function (c::ModelPrinter)(
         MDT.printmodel(io, model; more_kwargs..., kwargs...)
     elseif !isnothing(X) && !isnothing(y)
         (X, y, var_grouping, classes_seen) = MMI.reformat(c.m, X, y)
-        MDT.print_apply(model, X, y, io; more_kwargs..., kwargs...)
+        MDT.print_apply(io, model, X, y; more_kwargs..., kwargs...)
         nothing
     else
         error("ModelPrinter: Either provide X and y or don't!")

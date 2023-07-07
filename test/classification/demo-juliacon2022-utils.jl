@@ -343,9 +343,9 @@ struct ConfusionMatrix{T<:Number}
             class_labels
         end
 
-        _n_instances = length(actual)
-        _actual    = zeros(Int, _n_instances)
-        _predicted = zeros(Int, _n_instances)
+        _ninstances = length(actual)
+        _actual    = zeros(Int, _ninstances)
+        _predicted = zeros(Int, _ninstances)
 
         n_classes = length(class_labels)
         for i in 1:n_classes

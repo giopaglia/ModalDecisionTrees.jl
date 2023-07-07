@@ -51,12 +51,12 @@ function build_tree(
     W                   :: Union{Nothing,AbstractVector{U},Symbol}   = default_weights(ninstances(X));
     ##############################################################################
     loss_function       :: Union{Nothing,Function}            = nothing,
-    max_depth           :: Int64                              = DEFAULT_MAX_DEPTH,
-    min_samples_leaf    :: Int64                              = DEFAULT_MIN_SAMPLES_LEAF,
-    min_purity_increase :: AbstractFloat                      = DEFAULT_MIN_PURITY_INCREASE,
-    max_purity_at_leaf  :: AbstractFloat                      = DEFAULT_MAX_PURITY_AT_LEAF,
+    max_depth           :: Union{Nothing,Int64}               = nothing,
+    min_samples_leaf    :: Int64                              = BOTTOM_MIN_SAMPLES_LEAF,
+    min_purity_increase :: AbstractFloat                      = BOTTOM_MIN_PURITY_INCREASE,
+    max_purity_at_leaf  :: AbstractFloat                      = BOTTOM_MAX_PURITY_AT_LEAF,
     ##############################################################################
-    max_modal_depth     :: Int64                              = DEFAULT_MAX_MODAL_DEPTH,
+    max_modal_depth     :: Union{Nothing,Int64}               = nothing,
     n_subrelations      :: Union{Function,AbstractVector{<:Function}}                   = identity,
     n_subfeatures       :: Union{Function,AbstractVector{<:Function}}                   = identity,
     initconditions      :: Union{InitialCondition,AbstractVector{<:InitialCondition}}   = start_without_world,
@@ -100,8 +100,8 @@ function build_tree(
         initconditions = fill(initconditions, nmodalities(X))
     end
 
-    @assert max_depth >= 0
-    @assert max_modal_depth >= 0
+    @assert isnothing(max_depth) || (max_depth >= 0)
+    @assert isnothing(max_modal_depth) || (max_modal_depth >= 0)
 
     fit_tree(X, Y, initconditions, W
         ;###########################################################################
@@ -137,13 +137,13 @@ function build_forest(
     ##############################################################################
     # Tree logic-agnostic parameters
     loss_function       :: Union{Nothing,Function}          = nothing,
-    max_depth           :: Int64                            = DEFAULT_MAX_DEPTH,
-    min_samples_leaf    :: Int64                            = DEFAULT_MIN_SAMPLES_LEAF,
-    min_purity_increase :: AbstractFloat                    = DEFAULT_MIN_PURITY_INCREASE,
-    max_purity_at_leaf  :: AbstractFloat                    = DEFAULT_MAX_PURITY_AT_LEAF,
+    max_depth           :: Union{Nothing,Int64}             = nothing,
+    min_samples_leaf    :: Int64                            = BOTTOM_MIN_SAMPLES_LEAF,
+    min_purity_increase :: AbstractFloat                    = BOTTOM_MIN_PURITY_INCREASE,
+    max_purity_at_leaf  :: AbstractFloat                    = BOTTOM_MAX_PURITY_AT_LEAF,
     ##############################################################################
     # Modal parameters
-    max_modal_depth     :: Int64                            = DEFAULT_MAX_MODAL_DEPTH,
+    max_modal_depth     :: Union{Nothing,Int64}             = nothing,
     n_subrelations      :: Union{Function,AbstractVector{<:Function}}                   = identity,
     n_subfeatures       :: Union{Function,AbstractVector{<:Function}}                   = x -> ceil(Int64, sqrt(x)),
     initconditions      :: Union{InitialCondition,AbstractVector{<:InitialCondition}}   = start_without_world,
@@ -283,7 +283,7 @@ function build_forest(
             X_slice = SoleData.instances(X, [i], Val(true))
             Y_slice = [Y[i]]
             
-            preds = apply_model(trees[index_of_trees_to_test_with], X_slice; suppress_parity_warning = suppress_parity_warning)
+            preds = apply(trees[index_of_trees_to_test_with], X_slice; suppress_parity_warning = suppress_parity_warning)
             
             push!(oob_classified, Y_slice[1] == preds[1])
         end

@@ -155,7 +155,7 @@ function displaymodel(
     outstr = ""
     if isnothing(max_depth) || depth < max_depth
         dec_str = displaydecision(node; variable_names_map = variable_names_map)
-        outstr *= "$(rpad(dec_str, 60-(length(indentation_str) == 0 ? length(indentation_str)-1 : length(indentation_str))))"
+        outstr *= "$(rpad(dec_str, 59-(length(indentation_str) == 0 ? length(indentation_str)-1 : length(indentation_str)))) "
         # outstr *= "$(60-max(length(indentation_str)+1)) "
         outstr *= displaymodel(this(node); indentation_str = "", metrics_kwargs...)
         outstr *= indentation_str * "✔ " # "╭✔

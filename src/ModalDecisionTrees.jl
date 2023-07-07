@@ -39,7 +39,7 @@ import AbstractTrees: print_tree
 # Data structures
 @reexport using SoleModels.DimensionalDatasets
 using SoleModels: MultiLogiset
-using SoleModels: WorldSet, GenericDataset
+using SoleModels: WorldSet
 
 using SoleModels: nfeatures, nrelations,
                             nmodalities, eachmodality, modality,
@@ -47,9 +47,7 @@ using SoleModels: nfeatures, nrelations,
                             #
                             relations,
                             #
-                            GenericDataset,
                             MultiLogiset,
-                            AbstractLogiset,
                             SupportedLogiset
 
 using SoleModels: AbstractWorld, AbstractRelation

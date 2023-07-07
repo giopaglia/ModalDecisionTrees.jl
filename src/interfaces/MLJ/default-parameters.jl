@@ -5,8 +5,8 @@ using SoleModels: naturalconditions
 
 const ALLOW_GLOBAL_SPLITS = true
 
-const mlj_default_max_depth = typemax(Int64)
-const mlj_default_max_modal_depth = typemax(Int64)
+const mlj_default_max_depth = nothing
+const mlj_default_max_modal_depth = nothing
 
 const mlj_mdt_default_min_samples_leaf = 4
 const mlj_mdt_default_min_purity_increase = 0.002
@@ -55,7 +55,7 @@ function defaultrelations(dataset, relations)
             elseif dimensionality(dataset) == 2
                 :IA7
             else
-                error("Cannot infer relation set for dimensionality $(dimensionality(dataset)). " *
+                error("Cannot infer relation set for dimensionality $(repr(dimensionality(dataset))). " *
                     "Dimensionality should be 0, 1 or 2.")
             end
         end
@@ -149,22 +149,24 @@ AVAILABLE_INITCONDITIONS = OrderedDict{Symbol,InitialCondition}([
 ])
 
 
-function readinitconditions(model, dataset::SoleModels.MultiLogiset)
-    map(mod->readinitconditions(model, mod), eachmodality(dataset))
-end
-function readinitconditions(model, dataset::SoleModels.AbstractLogiset)
-    if model.initconditions == mlj_default_initconditions
-        d = dimensionality(SoleModels.base(dataset))
-        if d == 2
-            AVAILABLE_INITCONDITIONS[:start_with_global]
-        elseif d == 2
-            AVAILABLE_INITCONDITIONS[:start_with_global]
-        elseif d == 2
-            AVAILABLE_INITCONDITIONS[:start_at_center]
-        else
-            error("Unexpected dimensionality: $(d)")
-        end
+function readinitconditions(model, dataset)
+    if SoleModels.ismultilogiseed(dataset)
+        map(mod->readinitconditions(model, mod), eachmodality(dataset))
     else
-        AVAILABLE_INITCONDITIONS[model.initconditions]
+        if model.initconditions == mlj_default_initconditions
+            # d = dimensionality(SoleModels.base(dataset)) # ? TODO maybe remove base for AbstractLogiset's?
+            d = dimensionality(frame(dataset, 1))
+            if d == 0
+                AVAILABLE_INITCONDITIONS[:start_with_global]
+            elseif d == 1
+                AVAILABLE_INITCONDITIONS[:start_with_global]
+            elseif d == 2
+                AVAILABLE_INITCONDITIONS[:start_at_center]
+            else
+                error("Unexpected dimensionality: $(d)")
+            end
+        else
+            AVAILABLE_INITCONDITIONS[model.initconditions]
+        end
     end
 end

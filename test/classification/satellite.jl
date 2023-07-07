@@ -59,9 +59,9 @@ train_idxs, test_idxs = p[1:round(Int, N*.8)], p[round(Int, N*.8)+1:end]
 MLJ.fit!(mach, rows=train_idxs)
 
 yhat = MLJ.predict(mach, rows=test_idxs)
-mae = MLJ.mae(mode.(yhat), y[test_idxs])
-mae = MLJ.mae(MLJ.predict_mode(mach, rows=test_idxs), y[test_idxs])
-mae = MLJ.mae(MLJ.predict_mode(mach, rows=train_idxs), y[train_idxs])
+mae = MLJ.mae(mean.(yhat), y[test_idxs])
+mae = MLJ.mae(MLJ.predict_mean(mach, rows=test_idxs), y[test_idxs])
+mae = MLJ.mae(MLJ.predict_mean(mach, rows=train_idxs), y[train_idxs])
 
 t = ModalDecisionTree(relations = :RCC5, min_samples_leaf=2)
 mach = machine(t, X, y)
@@ -126,5 +126,5 @@ simplify.(fsnorm)
 syntaxstring.(simplify.(fsnorm)) .|> println;
 
 printmodel.(listrules(report(mach).solemodel); show_metrics = true, threshold_digits = 2);
-mae = MLJ.mae(MLJ.predict_mode(mach, rows=test_idxs), y[test_idxs])
-mae = MLJ.mae(MLJ.predict_mode(mach, rows=train_idxs), y[train_idxs])
+mae = MLJ.mae(MLJ.predict_mean(mach, rows=test_idxs), y[test_idxs])
+mae = MLJ.mae(MLJ.predict_mean(mach, rows=train_idxs), y[train_idxs])

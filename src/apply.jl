@@ -1,13 +1,34 @@
 using StatsBase
+
 export apply_tree, apply_forest, apply_model, print_apply, tree_walk_metrics
 
-import MLJ: predict
+import SoleModels: apply
 
 ############################################################################################
 ############################################################################################
 ############################################################################################
 
-mm_instance_initialworldset(Xs::MultiLogiset, tree::DTree, i_instance::Integer) = begin
+function apply end
+
+apply_model = apply
+
+@deprecate apply_tree(x) apply_model(x)
+@deprecate apply_forest(x) apply_model(x)
+
+function apply_proba end
+
+apply_model_proba = apply_proba
+
+@deprecate apply_tree_proba(x) apply_model_proba(x)
+@deprecate apply_trees_proba(x) apply_model_proba(x)
+@deprecate apply_forest_proba(x) apply_model_proba(x)
+
+
+############################################################################################
+############################################################################################
+############################################################################################
+
+mm_instance_initialworldset(Xs, tree::DTree, i_instance::Integer) = begin
     Ss = Vector{WorldSet}(undef, nmodalities(Xs))
     for (i_modality,X) in enumerate(eachmodality(Xs))
         Ss[i_modality] = initialworldset(X, i_instance, initconditions(tree)[i_modality])
@@ -22,48 +43,31 @@ softmax(m::AbstractMatrix) = mapslices(softmax, m; dims=1)
 ############################################################################################
 ############################################################################################
 
-# Patch unimodal -> multimodal
-apply(model::Union{DTree,DForest}, X::AbstractLogiset, args...; kwargs...) =
-    apply(model, MultiLogiset(X), args...; kwargs...)
+print_apply(model::SymbolicModel, args...; kwargs...) = print_apply(stdout, model, args...; kwargs...)
+# print_apply_proba(model::SymbolicModel, args...; kwargs...) = print_apply_proba(stdout, model, args...; kwargs...)
 
-apply_model = apply
-
-# TODO remove these patches
-apply_tree   = apply_model
-apply_forest = apply_model
-
-############################################################################################
-
-# TODO discriminate between kwargs for apply_tree & print_tree
-function print_apply(tree::DTree, X::GenericDataset, Y::AbstractVector, io = stdout; kwargs...)
-    predictions, new_tree = apply_model(tree, X, Y)
-    print_tree(io, new_tree; kwargs...)
-    predictions, new_tree
+function print_apply(io::IO, model::SymbolicModel, Xs, Y::AbstractVector; kwargs...)
+    predictions, newmodel = apply(model, Xs, Y)
+    printmodel(io, newmodel; kwargs...)
+    predictions, newmodel
 end
 
-
-apply_proba(model::Union{DTree,DForest}, X::AbstractLogiset, args...; kwargs...) =
-    apply_proba(model, MultiLogiset(X), args...; kwargs...)
-
-# apply_tree_proba   = apply_model_proba
-# apply_trees_proba  = apply_model_proba
-# apply_forest_proba = apply_model_proba
-
-apply_model_proba = apply_proba
-
-predict(model::Union{DTree,DForest}, X::AbstractLogiset, args...; kwargs...) =
-    predict(model, MultiLogiset(X), args...; kwargs...)
+# function print_apply_proba(io::IO, model::SymbolicModel, Xs, Y::AbstractVector; kwargs...)
+#     predictions, newmodel = apply_proba(model, Xs, Y TODO)
+#     printmodel(io, newmodel; kwargs...)
+#     predictions, newmodel
+# end
 
 ################################################################################
 # Apply models: predict labels for a new dataset of instances
 ################################################################################
 
-function apply(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}; suppress_parity_warning = false)
+function apply(leaf::DTLeaf, Xs, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}; suppress_parity_warning = false)
     prediction(leaf)
 end
 
-function apply(leaf::NSDTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}; suppress_parity_warning = false)
-    d = slicedataset(X, [i_instance])
+function apply(leaf::NSDTLeaf, Xs, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}; suppress_parity_warning = false)
+    d = slicedataset(Xs, [i_instance])
     # println(typeof(d))
     # println(hasmethod(size,   (typeof(d),)) ? size(d)   : nothing)
     # println(hasmethod(length, (typeof(d),)) ? length(d) : nothing)
@@ -74,12 +78,12 @@ function apply(leaf::NSDTLeaf, X::Any, i_instance::Integer, worlds::AbstractVect
     preds[1]
 end
 
-function apply(tree::DTInternal, X::MultiLogiset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}; kwargs...)
+function apply(tree::DTInternal, Xs, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet}; kwargs...)
     @logmsg LogDetail "applying branch..."
     @logmsg LogDetail " worlds" worlds
     (satisfied,new_worlds) =
         modalstep(
-            modality(X, i_modality(tree)),
+            modality(Xs, i_modality(tree)),
             i_instance,
             worlds[i_modality(tree)],
             decision(tree),
@@ -87,22 +91,26 @@ function apply(tree::DTInternal, X::MultiLogiset, i_instance::Integer, worlds::A
 
     worlds[i_modality(tree)] = new_worlds
     @logmsg LogDetail " ->(satisfied,worlds')" satisfied worlds
-    apply((satisfied ? left(tree) : right(tree)), X, i_instance, worlds; kwargs...)
+    apply((satisfied ? left(tree) : right(tree)), Xs, i_instance, worlds; kwargs...)
 end
 
 # Obtain predictions of a tree on a dataset
-function apply(tree::DTree{L}, X::MultiLogiset; kwargs...) where {L}
+function apply(tree::DTree{L}, Xs; print_progress = !(Xs isa MultiLogiset), kwargs...) where {L}
     @logmsg LogDetail "apply..."
-    _n_instances = ninstances(X)
-    predictions = Vector{L}(undef, _n_instances)
+    _ninstances = ninstances(Xs)
+    predictions = Vector{L}(undef, _ninstances)
 
-    for i_instance in 1:_n_instances
-        @logmsg LogDetail " instance $i_instance/$_n_instances"
+    if print_progress
+        p = Progress(_ninstances, 1, "Applying tree...")
+    end
+    Threads.@threads for i_instance in 1:_ninstances
+        @logmsg LogDetail " instance $i_instance/$_ninstances"
         # TODO figure out: is it better to interpret the whole dataset at once, or instance-by-instance? The first one enables reusing training code
 
-        worlds = mm_instance_initialworldset(X, tree, i_instance)
+        worlds = mm_instance_initialworldset(Xs, tree, i_instance)
 
-        predictions[i_instance] = apply(root(tree), X, i_instance, worlds; kwargs...)
+        predictions[i_instance] = apply(root(tree), Xs, i_instance, worlds; kwargs...)
+        print_progress && next!(p)
     end
     predictions
 end
@@ -110,37 +118,42 @@ end
 # use an array of trees to test features
 function apply(
     trees::AbstractVector{<:DTree{<:L}},
-    X::MultiLogiset;
+    Xs;
+    print_progress = !(Xs isa MultiLogiset),
     suppress_parity_warning = false,
     tree_weights::Union{AbstractMatrix{Z},AbstractVector{Z},Nothing} = nothing,
 ) where {L<:Label,Z<:Real}
     @logmsg LogDetail "apply..."
     ntrees = length(trees)
-    _n_instances = ninstances(X)
+    _ninstances = ninstances(Xs)
 
     if !(tree_weights isa AbstractMatrix)
         if isnothing(tree_weights)
-            tree_weights = Ones{Int}(length(trees), ninstances(X)) # TODO optimize?
+            tree_weights = Ones{Int}(length(trees), ninstances(Xs)) # TODO optimize?
         elseif tree_weights isa AbstractVector
-            tree_weights = hcat([tree_weights for i in 1:ninstances(X)]...)
+            tree_weights = hcat([tree_weights for i in 1:ninstances(Xs)]...)
         else
-            @show typef(tree_weights)
+            @show typeof(tree_weights)
             error("Unexpected tree_weights encountered $(tree_weights).")
         end
     end
 
     @assert length(trees) == size(tree_weights, 1) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
-    @assert ninstances(X) == size(tree_weights, 2) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
+    @assert ninstances(Xs) == size(tree_weights, 2) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
 
     # apply each tree to the whole dataset
-    _predictions = Matrix{L}(undef, ntrees, _n_instances)
+    _predictions = Matrix{L}(undef, ntrees, _ninstances)
+    if print_progress
+        p = Progress(ntrees, 1, "Applying trees...")
+    end
     Threads.@threads for i_tree in 1:ntrees
-        _predictions[i_tree,:] = apply(trees[i_tree], X; suppress_parity_warning = suppress_parity_warning)
+        _predictions[i_tree,:] = apply(trees[i_tree], Xs; print_progress = false, suppress_parity_warning = suppress_parity_warning)
+        print_progress && next!(p)
     end
 
     # for each instance, aggregate the predictions
-    predictions = Vector{L}(undef, _n_instances)
-    Threads.@threads for i_instance in 1:_n_instances
+    predictions = Vector{L}(undef, _ninstances)
+    Threads.@threads for i_instance in 1:_ninstances
         predictions[i_instance] = bestguess(
             _predictions[:,i_instance],
             tree_weights[:,i_instance];
@@ -154,17 +167,17 @@ end
 # use a proper forest to test features
 function apply(
     forest::DForest,
-    X::MultiLogiset;
+    Xs;
     suppress_parity_warning = false,
     weight_trees_by::Union{Bool,Symbol,AbstractVector} = false,
 )
     if weight_trees_by == false
-        apply(trees(forest), X; suppress_parity_warning = suppress_parity_warning)
+        apply(trees(forest), Xs; suppress_parity_warning = suppress_parity_warning)
     elseif isa(weight_trees_by, AbstractVector)
-        apply(trees(forest), X; suppress_parity_warning = suppress_parity_warning, tree_weights = weight_trees_by)
+        apply(trees(forest), Xs; suppress_parity_warning = suppress_parity_warning, tree_weights = weight_trees_by)
     # elseif weight_trees_by == :accuracy
     #   # TODO: choose HOW to weight a tree... overall_accuracy is just an example (maybe can be parameterized)
-    #   apply(forest.trees, X; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
+    #   apply(forest.trees, Xs; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
     else
         error("Unexpected value for weight_trees_by: $(weight_trees_by)")
     end
@@ -172,11 +185,11 @@ end
 
 function apply(
     nsdt::RootLevelNeuroSymbolicHybrid,
-    X::MultiLogiset;
+    Xs;
     suppress_parity_warning = false,
 )
-    W = softmax(nsdt.feature_function(X))
-    apply(nsdt.trees, X; suppress_parity_warning = suppress_parity_warning, tree_weights = W)
+    W = softmax(nsdt.feature_function(Xs))
+    apply(nsdt.trees, Xs; suppress_parity_warning = suppress_parity_warning, tree_weights = W)
 end
 
 ################################################################################
@@ -212,14 +225,14 @@ end
 
 function apply(
     leaf::DTLeaf{L},
-    X::MultiLogiset,
+    Xs,
     i_instance::Integer,
     worlds::AbstractVector{<:AbstractWorldSet},
-    class::L;
+    y::L;
     update_labels = false,
     suppress_parity_warning = false,
 ) where {L<:Label}
-    _supp_labels = L[supp_labels(leaf)..., class]
+    _supp_labels = L[supp_labels(leaf)..., y]
 
     _prediction =
         if update_labels
@@ -233,15 +246,15 @@ end
 
 function apply(
     leaf::NSDTLeaf{L},
-    X::MultiLogiset,
+    Xs,
     i_instance::Integer,
     worlds::AbstractVector{<:AbstractWorldSet},
-    class::L;
+    y::L;
     update_labels = false,
     suppress_parity_warning = false,
 ) where {L<:Label}
-    _supp_train_labels      = L[leaf.supp_train_labels...,      class]
-    _supp_train_predictions = L[leaf.supp_train_predictions..., apply(leaf, X, i_instance, worlds; kwargs...)]
+    _supp_train_labels      = L[leaf.supp_train_labels...,      y]
+    _supp_train_predictions = L[leaf.supp_train_predictions..., apply(leaf, Xs, i_instance, worlds; kwargs...)]
 
     _predicting_function =
         if update_labels
@@ -249,22 +262,22 @@ function apply(
         else
             leaf.predicting_function
         end
-    d = slicedataset(X, [i_instance])
+    d = slicedataset(Xs, [i_instance])
     _predicting_function(d)[1], NSDTLeaf{L}(_predicting_function, _supp_train_labels, leaf.supp_valid_labels, _supp_train_predictions, leaf.supp_valid_predictions)
 end
 
 function apply(
     tree::DTInternal{L},
-    X::MultiLogiset,
+    Xs,
     i_instance::Integer,
     worlds::AbstractVector{<:AbstractWorldSet},
-    class::L;
+    y::L;
     kwargs...,
 ) where {L}
 
     (satisfied,new_worlds) =
         modalstep(
-            modality(X, i_modality(tree)),
+            modality(Xs, i_modality(tree)),
             i_instance,
             worlds[i_modality(tree)],
             decision(tree)
@@ -276,14 +289,14 @@ function apply(
 
     worlds[i_modality(tree)] = new_worlds
 
-    this_prediction, this_leaf = apply(this(tree),  X, i_instance, worlds, class; kwargs...) # TODO test whether this works correctly
+    this_prediction, this_leaf = apply(this(tree),  Xs, i_instance, worlds, y; kwargs...) # TODO test whether this works correctly
 
     pred, left_leaf, right_leaf =
         if satisfied
-            pred, left_leaf = apply(left(tree),  X, i_instance, worlds, class; kwargs...)
+            pred, left_leaf = apply(left(tree),  Xs, i_instance, worlds, y; kwargs...)
             pred, left_leaf, right(tree)
         else
-            pred, right_leaf = apply(right(tree), X, i_instance, worlds, class; kwargs...)
+            pred, right_leaf = apply(right(tree), Xs, i_instance, worlds, y; kwargs...)
             pred, left(tree), right_leaf
         end
 
@@ -292,8 +305,9 @@ end
 
 function apply(
     tree::DTree{L},
-    X::MultiLogiset,
+    Xs,
     Y::AbstractVector{<:L};
+    print_progress = !(Xs isa MultiLogiset),
     reset_leaves = true,
     kwargs...,
 ) where {L}
@@ -305,10 +319,14 @@ function apply(
     _root = root(tree)
 
     # Propagate instances down the tree
-    for i_instance in 1:ninstances(X)
-        worlds = mm_instance_initialworldset(X, tree, i_instance)
-        pred, _root = apply(_root, X, i_instance, worlds, Y[i_instance]; kwargs...)
+    if print_progress
+        p = Progress(ninstances(Xs), 1, "Applying trees...")
+    end
+    Threads.@threads for i_instance in 1:ninstances(Xs)
+        worlds = mm_instance_initialworldset(Xs, tree, i_instance)
+        pred, _root = apply(_root, Xs, i_instance, worlds, Y[i_instance]; kwargs...)
         push!(predictions, pred)
+        print_progress && next!(p)
     end
     predictions, DTree(_root, worldtypes(tree), initconditions(tree))
 end
@@ -316,39 +334,44 @@ end
 # use an array of trees to test features
 function apply(
     trees::AbstractVector{<:DTree{<:L}},
-    X::MultiLogiset,
+    Xs,
     Y::AbstractVector{<:L};
+    print_progress = !(Xs isa MultiLogiset),
     tree_weights::Union{AbstractMatrix{Z},AbstractVector{Z},Nothing} = nothing,
     suppress_parity_warning = false,
 ) where {L<:Label,Z<:Real}
     @logmsg LogDetail "apply..."
     trees = deepcopy(trees)
     ntrees = length(trees)
-    _n_instances = ninstances(X)
+    _ninstances = ninstances(Xs)
 
     if !(tree_weights isa AbstractMatrix)
         if isnothing(tree_weights)
-            tree_weights = Ones{Int}(length(trees), ninstances(X)) # TODO optimize?
+            tree_weights = Ones{Int}(length(trees), ninstances(Xs)) # TODO optimize?
         elseif tree_weights isa AbstractVector
-            tree_weights = hcat([tree_weights for i in 1:ninstances(X)]...)
+            tree_weights = hcat([tree_weights for i in 1:ninstances(Xs)]...)
         else
-            @show typef(tree_weights)
+            @show typeof(tree_weights)
             error("Unexpected tree_weights encountered $(tree_weights).")
         end
     end
 
     @assert length(trees) == size(tree_weights, 1) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
-    @assert ninstances(X) == size(tree_weights, 2) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
+    @assert ninstances(Xs) == size(tree_weights, 2) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
 
     # apply each tree to the whole dataset
-    _predictions = Matrix{L}(undef, ntrees, _n_instances)
+    _predictions = Matrix{L}(undef, ntrees, _ninstances)
+    if print_progress
+        p = Progress(ntrees, 1, "Applying trees...")
+    end
     Threads.@threads for i_tree in 1:ntrees
-        _predictions[i_tree,:], trees[i_tree] = apply(trees[i_tree], X, Y)
+        _predictions[i_tree,:], trees[i_tree] = apply(trees[i_tree], Xs, Y; print_progress = false)
+        print_progress && next!(p)
     end
 
     # for each instance, aggregate the predictions
-    predictions = Vector{L}(undef, _n_instances)
-    Threads.@threads for i_instance in 1:_n_instances
+    predictions = Vector{L}(undef, _ninstances)
+    Threads.@threads for i_instance in 1:_ninstances
         predictions[i_instance] = bestguess(
             _predictions[:,i_instance],
             tree_weights[:,i_instance];
@@ -362,19 +385,19 @@ end
 # use a proper forest to test features
 function apply(
     forest::DForest,
-    X::MultiLogiset,
+    Xs,
     Y::AbstractVector{<:L};
     weight_trees_by::Union{Bool,Symbol,AbstractVector} = false,
     kwargs...
 ) where {L<:Label}
     predictions, trees = begin
         if weight_trees_by == false
-            apply(trees(forest), X, Y; kwargs...)
+            apply(trees(forest), Xs, Y; kwargs...)
         elseif isa(weight_trees_by, AbstractVector)
-            apply(trees(forest), X, Y; tree_weights = weight_trees_by, kwargs...)
+            apply(trees(forest), Xs, Y; tree_weights = weight_trees_by, kwargs...)
         # elseif weight_trees_by == :accuracy
         #   # TODO: choose HOW to weight a tree... overall_accuracy is just an example (maybe can be parameterized)
-        #   apply(forest.trees, X; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
+        #   apply(forest.trees, Xs; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
         else
             error("Unexpected value for weight_trees_by: $(weight_trees_by)")
         end
@@ -384,15 +407,15 @@ end
 
 function apply(
     nsdt::RootLevelNeuroSymbolicHybrid,
-    X::MultiLogiset,
+    Xs,
     Y::AbstractVector{<:L};
     suppress_parity_warning = false,
     kwargs...
 ) where {L<:Label}
-    W = softmax(nsdt.feature_function(X))
+    W = softmax(nsdt.feature_function(Xs))
     predictions, trees = apply(
         nsdt.trees,
-        X,
+        Xs,
         Y;
         suppress_parity_warning = suppress_parity_warning,
         tree_weights = W,
@@ -411,16 +434,16 @@ using Distributions
 using CategoricalDistributions
 using CategoricalArrays
 
-function apply_proba(leaf::DTLeaf, X::Any, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
+function apply_proba(leaf::DTLeaf, Xs, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
     supp_labels(leaf)
 end
 
-function apply_proba(tree::DTInternal, X::MultiLogiset, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
+function apply_proba(tree::DTInternal, Xs, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
     @logmsg LogDetail "applying branch..."
     @logmsg LogDetail " worlds" worlds
     (satisfied,new_worlds) =
         modalstep(
-            modality(X, i_modality(tree)),
+            modality(Xs, i_modality(tree)),
             i_instance,
             worlds[i_modality(tree)],
             decision(tree),
@@ -428,23 +451,23 @@ function apply_proba(tree::DTInternal, X::MultiLogiset, i_instance::Integer, wor
 
     worlds[i_modality(tree)] = new_worlds
     @logmsg LogDetail " ->(satisfied,worlds')" satisfied worlds
-    apply_proba((satisfied ? left(tree) : right(tree)), X, i_instance, worlds)
+    apply_proba((satisfied ? left(tree) : right(tree)), Xs, i_instance, worlds)
 end
 
 # Obtain predictions of a tree on a dataset
-function apply_proba(tree::DTree{L}, X::MultiLogiset, _classes, return_scores = false) where {L<:CLabel}
+function apply_proba(tree::DTree{L}, Xs, _classes, return_scores = false) where {L<:CLabel}
     @logmsg LogDetail "apply_proba..."
     _classes = string.(_classes)
-    _n_instances = ninstances(X)
-    prediction_scores = Matrix{Float64}(undef, _n_instances, length(_classes))
+    _ninstances = ninstances(Xs)
+    prediction_scores = Matrix{Float64}(undef, _ninstances, length(_classes))
 
-    for i_instance in 1:_n_instances
-        @logmsg LogDetail " instance $i_instance/$_n_instances"
+    for i_instance in 1:_ninstances
+        @logmsg LogDetail " instance $i_instance/$_ninstances"
         # TODO figure out: is it better to interpret the whole dataset at once, or instance-by-instance? The first one enables reusing training code
 
-        worlds = mm_instance_initialworldset(X, tree, i_instance)
+        worlds = mm_instance_initialworldset(Xs, tree, i_instance)
 
-        this_prediction_scores = apply_proba(root(tree), X, i_instance, worlds)
+        this_prediction_scores = apply_proba(root(tree), Xs, i_instance, worlds)
         # d = Distributions.fit(UnivariateFinite, categorical(this_prediction_scores; levels = _classes))
         d = begin
             c = categorical(collect(this_prediction_scores); levels = _classes)
@@ -457,23 +480,23 @@ function apply_proba(tree::DTree{L}, X::MultiLogiset, _classes, return_scores = 
     if return_scores
         prediction_scores
     else
-        MMI.UnivariateFinite(_classes, prediction_scores)
+        UnivariateFinite(_classes, prediction_scores, pool=missing)
     end
 end
 
 # Obtain predictions of a tree on a dataset
-function apply_proba(tree::DTree{L}, X::MultiLogiset, _classes = nothing, return_scores = false) where {L<:RLabel}
+function apply_proba(tree::DTree{L}, Xs, _classes = nothing, return_scores = false) where {L<:RLabel}
     @logmsg LogDetail "apply_proba..."
-    _n_instances = ninstances(X)
-    prediction_scores = Vector{Vector{Float64}}(undef, _n_instances)
+    _ninstances = ninstances(Xs)
+    prediction_scores = Vector{Vector{Float64}}(undef, _ninstances)
 
-    for i_instance in 1:_n_instances
-        @logmsg LogDetail " instance $i_instance/$_n_instances"
+    for i_instance in 1:_ninstances
+        @logmsg LogDetail " instance $i_instance/$_ninstances"
         # TODO figure out: is it better to interpret the whole dataset at once, or instance-by-instance? The first one enables reusing training code
 
-        worlds = mm_instance_initialworldset(X, tree, i_instance)
+        worlds = mm_instance_initialworldset(Xs, tree, i_instance)
 
-        prediction_scores[i_instance] = apply_proba(tree.root, X, i_instance, worlds)
+        prediction_scores[i_instance] = apply_proba(tree.root, Xs, i_instance, worlds)
     end
     if return_scores
         prediction_scores
@@ -485,32 +508,32 @@ end
 # use an array of trees to test features
 function apply_proba(
     trees::AbstractVector{<:DTree{<:L}},
-    X::MultiLogiset,
+    Xs,
     classes;
     tree_weights::Union{AbstractMatrix{Z},AbstractVector{Z},Nothing} = nothing,
 ) where {L<:CLabel,Z<:Real}
     @logmsg LogDetail "apply_proba..."
     ntrees = length(trees)
-    _n_instances = ninstances(X)
+    _ninstances = ninstances(Xs)
 
     if !(tree_weights isa AbstractMatrix)
         if isnothing(tree_weights)
-            tree_weights = Ones{Int}(length(trees), ninstances(X)) # TODO optimize?
+            tree_weights = Ones{Int}(length(trees), ninstances(Xs)) # TODO optimize?
         elseif tree_weights isa AbstractVector
-            tree_weights = hcat([tree_weights for i in 1:ninstances(X)]...)
+            tree_weights = hcat([tree_weights for i in 1:ninstances(Xs)]...)
         else
-            @show typef(tree_weights)
+            @show typeof(tree_weights)
             error("Unexpected tree_weights encountered $(tree_weights).")
         end
     end
 
     @assert length(trees) == size(tree_weights, 1) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
-    @assert ninstances(X) == size(tree_weights, 2) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
+    @assert ninstances(Xs) == size(tree_weights, 2) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
 
     # apply each tree to the whole dataset
-    _predictions = Array{Float64,3}(undef, _n_instances, ntrees, length(classes))
+    _predictions = Array{Float64,3}(undef, _ninstances, ntrees, length(classes))
     Threads.@threads for i_tree in 1:ntrees
-        _predictions[:,i_tree,:] = apply_proba(trees[i_tree], X, classes)
+        _predictions[:,i_tree,:] = apply_proba(trees[i_tree], Xs, classes)
     end
 
     # Average the prediction scores
@@ -518,8 +541,8 @@ function apply_proba(
         dropdims(mean(_predictions; dims=2), dims=2)
     else
         tree_weights = tree_weights./sum(tree_weights)
-        prediction_scores = Matrix{Float64}(undef, _n_instances, length(classes))
-        Threads.@threads for i in 1:_n_instances
+        prediction_scores = Matrix{Float64}(undef, _ninstances, length(classes))
+        Threads.@threads for i in 1:_ninstances
             prediction_scores[i,:] .= mean(_predictions[i,:,:] * tree_weights; dims=1)
         end
         prediction_scores
@@ -529,21 +552,21 @@ end
 # use an array of trees to test features
 function apply_proba(
     trees::AbstractVector{<:DTree{<:L}},
-    X::MultiLogiset;
+    Xs;
     tree_weights::Union{Nothing,AbstractVector{Z}} = nothing,
 ) where {L<:RLabel,Z<:Real}
     @logmsg LogDetail "apply_proba..."
     ntrees = length(trees)
-    _n_instances = ninstances(X)
+    _ninstances = ninstances(Xs)
 
     if !isnothing(tree_weights)
         @assert length(trees) === length(tree_weights) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
     end
 
     # apply each tree to the whole dataset
-    _predictions = Matrix{Vector{Float64}}(undef, _n_instances, ntrees)
+    _predictions = Matrix{Vector{Float64}}(undef, _ninstances, ntrees)
     Threads.@threads for i_tree in 1:ntrees
-        _predictions[:,i_tree] = apply_proba(trees[i_tree], X)
+        _predictions[:,i_tree] = apply_proba(trees[i_tree], Xs)
     end
 
     # Average the prediction scores
@@ -558,17 +581,17 @@ end
 # use a proper forest to test features
 function apply_proba(
     forest::DForest{L},
-    X::MultiLogiset,
+    Xs,
     args...;
     weight_trees_by::Union{Bool,Symbol,AbstractVector} = false
 ) where {L<:Label}
     if weight_trees_by == false
-        apply_proba(trees(forest), X, args...)
+        apply_proba(trees(forest), Xs, args...)
     elseif isa(weight_trees_by, AbstractVector)
-        apply_proba(trees(forest), X, args...; tree_weights = weight_trees_by)
+        apply_proba(trees(forest), Xs, args...; tree_weights = weight_trees_by)
     # elseif weight_trees_by == :accuracy
     #   # TODO: choose HOW to weight a tree... overall_accuracy is just an example (maybe can be parameterized)
-    #   apply_proba(forest.trees, X, args...; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
+    #   apply_proba(forest.trees, Xs, args...; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
     else
         error("Unexpected value for weight_trees_by: $(weight_trees_by)")
     end
@@ -590,7 +613,7 @@ end
 #     metrics = Dict()
 #     confidence = n_correct/n_inst
 
-#     metrics["_n_instances"] = n_inst
+#     metrics["_ninstances"] = n_inst
 #     metrics["n_correct"] = n_correct
 #     metrics["avg_confidence"] = confidence
 #     metrics["best_confidence"] = confidence
@@ -626,8 +649,8 @@ end
 #     metrics = Dict()
 
 #     # Number of instances passing through the node
-#     metrics["_n_instances"] =
-#         metrics_l["_n_instances"] + metrics_r["_n_instances"]
+#     metrics["_ninstances"] =
+#         metrics_l["_ninstances"] + metrics_r["_ninstances"]
 
 #     # Number of correct instances passing through the node
 #     metrics["n_correct"] =
@@ -635,22 +658,22 @@ end
 
 #     # Average confidence of the subtree
 #     metrics["avg_confidence"] =
-#         (metrics_l["_n_instances"] * metrics_l["avg_confidence"] +
-#         metrics_r["_n_instances"] * metrics_r["avg_confidence"]) /
-#             (metrics_l["_n_instances"] + metrics_r["_n_instances"])
+#         (metrics_l["_ninstances"] * metrics_l["avg_confidence"] +
+#         metrics_r["_ninstances"] * metrics_r["avg_confidence"]) /
+#             (metrics_l["_ninstances"] + metrics_r["_ninstances"])
 
 #     # Average support of the subtree (Note to self: weird...?)
 #     metrics["avg_support"] =
-#         (metrics_l["_n_instances"] * metrics_l["avg_support"] +
-#         metrics_r["_n_instances"] * metrics_r["avg_support"]) /
-#             (metrics_l["_n_instances"] + metrics_r["_n_instances"])
+#         (metrics_l["_ninstances"] * metrics_l["avg_support"] +
+#         metrics_r["_ninstances"] * metrics_r["avg_support"]) /
+#             (metrics_l["_ninstances"] + metrics_r["_ninstances"])
 
 #     # Best confidence of the best-confidence path passing through the node
 #     metrics["best_confidence"] = max(metrics_l["best_confidence"], metrics_r["best_confidence"])
 
 #     # Support of the current node
 #     if !isnothing(n_tot_inst)
-#         metrics["support"] = (metrics_l["_n_instances"] + metrics_r["_n_instances"])/n_tot_inst
+#         metrics["support"] = (metrics_l["_ninstances"] + metrics_r["_ninstances"])/n_tot_inst
 
 #         # Best support of the best-support path passing through the node
 #         metrics["best_support"] = max(metrics_l["best_support"], metrics_r["best_support"])

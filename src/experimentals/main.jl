@@ -20,9 +20,7 @@ using SoleModels: nfeatures, nrelations,
                             #
                             relations,
                             #
-                            GenericDataset,
                             MultiLogiset,
-                            AbstractLogiset,
                             SupportedLogiset
 
 using SoleModels: scalarlogiset
@@ -33,7 +31,7 @@ using SoleModels: AbstractWorldSet, WorldSet
 using SoleLogics: FullDimensionalFrame
 using SoleModels.DimensionalDatasets
 using SoleModels: MultiLogiset
-using SoleModels: WorldSet, GenericDataset
+using SoleModels: WorldSet
 
 
 using SoleModels: worldtype

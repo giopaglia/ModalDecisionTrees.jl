@@ -229,13 +229,13 @@ Base.@propagate_inbounds @inline function split_node!(
     ##########################################################################
     # Logic-agnostic training parameters
     loss_function             :: Union{Nothing,LossFunction},
-    max_depth                 :: Int,                        # maximum depth of the resultant tree
+    max_depth                 :: Union{Nothing,Int},         # maximum depth of the resultant tree
     min_samples_leaf          :: Int,                        # minimum number of instancs each leaf needs to have
     min_purity_increase       :: AbstractFloat,              # maximum purity allowed on a leaf
     max_purity_at_leaf        :: AbstractFloat,              # minimum purity increase needed for a split
     ##########################################################################
     # Modal parameters
-    max_modal_depth           :: Int,                        # maximum modal depth of the resultant tree
+    max_modal_depth           :: Union{Nothing,Int},         # maximum modal depth of the resultant tree
     n_subrelations            :: AbstractVector{NSubRelationsFunction}, # relations used for the decisions
     n_subfeatures             :: AbstractVector{Int},        # number of features for the decisions
     allow_global_splits       :: AbstractVector{Bool},       # allow/disallow using globalrel at any decisional node
@@ -250,7 +250,7 @@ Base.@propagate_inbounds @inline function split_node!(
 
     # Region of idxs to use to perform the split
     region = node.region
-    _n_instances = length(region)
+    _ninstances = length(region)
     r_start = region.start - 1
 
     # DEBUGprintln("split_node!"); readline()
@@ -261,9 +261,9 @@ Base.@propagate_inbounds @inline function split_node!(
     @inbounds Yf = Y[idxs[region]]
     @inbounds Wf = W[idxs[region]]
 
-    # Yf = Vector{L}(undef, _n_instances)
-    # Wf = Vector{U}(undef, _n_instances)
-    # @inbounds @simd for i in 1:_n_instances
+    # Yf = Vector{L}(undef, _ninstances)
+    # Wf = Vector{U}(undef, _ninstances)
+    # @inbounds @simd for i in 1:_ninstances
     #   Yf[i] = Y[idxs[i + r_start]]
     #   Wf[i] = W[idxs[i + r_start]]
     # end
@@ -275,7 +275,7 @@ Base.@propagate_inbounds @inline function split_node!(
         (nc, nt),
         (node.purity, node.prediction) = begin
             nc = fill(zero(U), n_classes)
-            @inbounds @simd for i in 1:_n_instances
+            @inbounds @simd for i in 1:_ninstances
                 nc[Yf[i]] += Wf[i]
             end
             nt = sum(nc)
@@ -289,9 +289,9 @@ Base.@propagate_inbounds @inline function split_node!(
     else
         sums, (tsum, nt),
         (node.purity, node.prediction) = begin
-            # sums = [Wf[i]*Yf[i]       for i in 1:_n_instances]
+            # sums = [Wf[i]*Yf[i]       for i in 1:_ninstances]
             sums = Yf
-            # ssqs = [Wf[i]*Yf[i]*Yf[i] for i in 1:_n_instances]
+            # ssqs = [Wf[i]*Yf[i]*Yf[i] for i in 1:_ninstances]
 
             # tssq = zero(U)
             # tssq = sum(ssqs)
@@ -299,7 +299,7 @@ Base.@propagate_inbounds @inline function split_node!(
             tsum = sum(sums)
             # nt = zero(U)
             nt = sum(Wf)
-            # @inbounds @simd for i in 1:_n_instances
+            # @inbounds @simd for i in 1:_ninstances
             #   # tssq += Wf[i]*Yf[i]*Yf[i]
             #   # tsum += Wf[i]*Yf[i]
             #   nt += Wf[i]
@@ -328,7 +328,7 @@ Base.@propagate_inbounds @inline function split_node!(
     ############################################################################
     ############################################################################
 
-    @logmsg LogDebug "_split!(...) " _n_instances region nt
+    @logmsg LogDebug "_split!(...) " _ninstances region nt
 
     ############################################################################
     # Preemptive leaf conditions
@@ -339,37 +339,37 @@ Base.@propagate_inbounds @inline function split_node!(
                 (nc[node.prediction]       == nt)
             # No binary split can honor min_samples_leaf if there aren't as many as
             #  min_samples_leaf*2 instances in the first place
-             || (min_samples_leaf * 2 >  _n_instances)
+             || (min_samples_leaf * 2 >  _ninstances)
             # If the node is pure enough, avoid splitting # TODO rename purity to loss
              || (node.purity          > max_purity_at_leaf)
             # Honor maximum depth constraint
-             || (max_depth            <= node.depth))
+             || (!isnothing(max_depth) && max_depth <= node.depth))
             # DEBUGprintln("BEFORE LEAF!")
             # DEBUGprintln(nc[node.prediction])
             # DEBUGprintln(nt)
             # DEBUGprintln(min_samples_leaf)
-            # DEBUGprintln(_n_instances)
+            # DEBUGprintln(_ninstances)
             # DEBUGprintln(node.purity)
             # DEBUGprintln(max_purity_at_leaf)
             # DEBUGprintln(max_depth)
             # DEBUGprintln(node.depth)
             # readline()
             node.is_leaf = true
-            # @logmsg LogDetail "leaf created: " (min_samples_leaf * 2 >  _n_instances) (nc[node.prediction] == nt) (node.purity  > max_purity_at_leaf) (max_depth <= node.depth)
+            # @logmsg LogDetail "leaf created: " (min_samples_leaf * 2 >  _ninstances) (nc[node.prediction] == nt) (node.purity  > max_purity_at_leaf) (max_depth <= node.depth)
             return
         end
     else
         if (
             # No binary split can honor min_samples_leaf if there aren't as many as
             #  min_samples_leaf*2 instances in the first place
-                (min_samples_leaf * 2 >  _n_instances)
+                (min_samples_leaf * 2 >  _ninstances)
           # equivalent to old_purity > -1e-7
              || (node.purity          > max_purity_at_leaf) # TODO
              # || (tsum * node.prediction    > -1e-7 * nt + tssq)
             # Honor maximum depth constraint
-             || (max_depth            <= node.depth))
+             || (!isnothing(max_depth) && max_depth            <= node.depth))
             node.is_leaf = true
-            # @logmsg LogDetail "leaf created: " (min_samples_leaf * 2 >  _n_instances) (tsum * node.prediction    > -1e-7 * nt + tssq) (tsum * node.prediction) (-1e-7 * nt + tssq) (max_depth <= node.depth)
+            # @logmsg LogDetail "leaf created: " (min_samples_leaf * 2 >  _ninstances) (tsum * node.prediction    > -1e-7 * nt + tssq) (tsum * node.prediction) (-1e-7 * nt + tssq) (max_depth <= node.depth)
             return
         end
     end
@@ -378,17 +378,17 @@ Base.@propagate_inbounds @inline function split_node!(
     ############################################################################
 
     # TODO try this solution for rsums and lsums (regression case)
-    # rsums = Vector{U}(undef, _n_instances)
-    # lsums = Vector{U}(undef, _n_instances)
-    # @simd for i in 1:_n_instances
+    # rsums = Vector{U}(undef, _ninstances)
+    # lsums = Vector{U}(undef, _ninstances)
+    # @simd for i in 1:_ninstances
     #   rsums[i] = zero(U)
     #   lsums[i] = zero(U)
     # end
 
     Sfs = Vector{Vector{WST} where {WorldType,WST<:WorldSet{WorldType}}}(undef, nmodalities(Xs))
     for (i_modality,WT) in enumerate(worldtype.(eachmodality(Xs)))
-        Sfs[i_modality] = Vector{Vector{WT}}(undef, _n_instances)
-        @simd for i in 1:_n_instances
+        Sfs[i_modality] = Vector{Vector{WT}}(undef, _ninstances)
+        @simd for i in 1:_ninstances
             Sfs[i_modality][i] = Ss[i_modality][idxs[i + r_start]]
         end
     end
@@ -398,7 +398,7 @@ Base.@propagate_inbounds @inline function split_node!(
     best_purity_times_nt = typemin(P)
     best_decision = SimpleDecision(ScalarExistentialFormula{Float64}())
     if isa(_perform_consistency_check,Val{true})
-        consistency_sat_check = Vector{Bool}(undef, _n_instances)
+        consistency_sat_check = Vector{Bool}(undef, _ninstances)
     end
     best_consistency = nothing
 
@@ -435,7 +435,7 @@ Base.@propagate_inbounds @inline function split_node!(
                 end
             end
 
-            if max_modal_depth <= node.modaldepth
+            if !isnothing(max_modal_depth) && max_modal_depth <= node.modaldepth
                 allow_modal_decisions = false
             end
 
@@ -500,10 +500,10 @@ Base.@propagate_inbounds @inline function split_node!(
                     if isa(_perform_consistency_check,Val{true})
                         consistency_sat_check .= 1
                     end
-                    for i_instance in 1:_n_instances
+                    for i_instance in 1:_ninstances
                         gamma = aggr_thresholds[i_instance]
                         satisfied = SoleModels.apply_test_operator(_test_operator, gamma, _threshold)
-                        # @logmsg LogDetail " instance $i_instance/$_n_instances: (f=$(gamma)) -> satisfied = $(satisfied)"
+                        # @logmsg LogDetail " instance $i_instance/$_ninstances: (f=$(gamma)) -> satisfied = $(satisfied)"
 
                         # Note: in a fuzzy generalization, `satisfied` becomes a [0-1] value
                         if !satisfied
@@ -530,16 +530,16 @@ Base.@propagate_inbounds @inline function split_node!(
                     nr   = zero(U)
                     # TODO experiment with running mean instead, because this may cause a lot of memory inefficiency
                     # https://it.wikipedia.org/wiki/Algoritmi_per_il_calcolo_della_varianza
-                    rsums = Float64[] # Vector{U}(undef, _n_instances)
-                    lsums = Float64[] # Vector{U}(undef, _n_instances)
+                    rsums = Float64[] # Vector{U}(undef, _ninstances)
+                    lsums = Float64[] # Vector{U}(undef, _ninstances)
 
                     if isa(_perform_consistency_check,Val{true})
                         consistency_sat_check .= 1
                     end
-                    for i_instance in 1:_n_instances
+                    for i_instance in 1:_ninstances
                         gamma = aggr_thresholds[i_instance]
                         satisfied = SoleModels.apply_test_operator(_test_operator, gamma, _threshold)
-                        # @logmsg LogDetail " instance $i_instance/$_n_instances: (f=$(gamma)) -> satisfied = $(satisfied)"
+                        # @logmsg LogDetail " instance $i_instance/$_ninstances: (f=$(gamma)) -> satisfied = $(satisfied)"
 
                         # TODO make this satisfied a fuzzy value
                         if !satisfied
@@ -573,7 +573,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # @logmsg LogDebug "  (n_left,n_right) = ($nl,$nr)"
 
             # Honor min_samples_leaf
-            if nl >= min_samples_leaf && (_n_instances - nl) >= min_samples_leaf
+            if nl >= min_samples_leaf && (_ninstances - nl) >= min_samples_leaf
                 purity_times_nt = begin
                     if _is_classification isa Val{true}
                         loss_function(ncl, nl, ncr, nr)
@@ -617,7 +617,7 @@ Base.@propagate_inbounds @inline function split_node!(
                     #################################
                     best_consistency = begin
                         if isa(_perform_consistency_check,Val{true})
-                            consistency_sat_check[1:_n_instances]
+                            consistency_sat_check[1:_ninstances]
                         else
                             nr
                         end
@@ -672,12 +672,12 @@ Base.@propagate_inbounds @inline function split_node!(
         # println(decision_str)
         decision_str = displaydecision(best_i_modality, best_decision)
 
-        # TODO instead of using memory, here, just use two opposite indices and perform substitutions. indj = _n_instances
-        unsatisfied_flags = fill(1, _n_instances)
+        # TODO instead of using memory, here, just use two opposite indices and perform substitutions. indj = _ninstances
+        unsatisfied_flags = fill(1, _ninstances)
         if isa(_perform_consistency_check,Val{true})
             world_refs = []
         end
-        for i_instance in 1:_n_instances
+        for i_instance in 1:_ninstances
             # TODO perform step with an OntologicalModalDataset
 
             # instance = DimensionalDatasets.get_instance(X, best_i_modality, idxs[i_instance + r_start])
@@ -689,7 +689,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # println(Sf[i_instance])
             _sat, _ss = modalstep(X, idxs[i_instance + r_start], Sf[i_instance], best_decision)
             (satisfied,Ss[best_i_modality][idxs[i_instance + r_start]]) = _sat, _ss
-            # @logmsg LogDetail " [$satisfied] Instance $(i_instance)/$(_n_instances)" Sf[i_instance] (if satisfied Ss[best_i_modality][idxs[i_instance + r_start]] end)
+            # @logmsg LogDetail " [$satisfied] Instance $(i_instance)/$(_ninstances)" Sf[i_instance] (if satisfied Ss[best_i_modality][idxs[i_instance + r_start]] end)
             # println(satisfied)
             # println(Ss[best_i_modality][idxs[i_instance + r_start]])
             # readline()
@@ -708,9 +708,9 @@ Base.@propagate_inbounds @inline function split_node!(
             node.is_leaf = true
             return node
         end
-        @logmsg LogDetail " Branch ($(sum(unsatisfied_flags))+$(_n_instances-sum(unsatisfied_flags))=$(_n_instances) instances) at modality $(best_i_modality) with decision: $(decision_str), purity $(best_purity)"
+        @logmsg LogDetail " Branch ($(sum(unsatisfied_flags))+$(_ninstances-sum(unsatisfied_flags))=$(_ninstances) instances) at modality $(best_i_modality) with decision: $(decision_str), purity $(best_purity)"
 
-        # if sum(unsatisfied_flags) >= min_samples_leaf && (_n_instances - sum(unsatisfied_flags)) >= min_samples_leaf
+        # if sum(unsatisfied_flags) >= min_samples_leaf && (_ninstances - sum(unsatisfied_flags)) >= min_samples_leaf
             # DEBUGprintln("LEAF!")
         #     node.is_leaf = true
         #     return
@@ -731,7 +731,7 @@ Base.@propagate_inbounds @inline function split_node!(
             errStr *= "- feature returning NaNs\n"
             errStr *= "- erroneous representatives for relation $(relation(best_decision)), aggregator $(existential_aggregator(test_operator(best_decision))) and feature $(feature(best_decision))\n"
             errStr *= "\n"
-            errStr *= "Branch ($(sum(unsatisfied_flags))+$(_n_instances-sum(unsatisfied_flags))=$(_n_instances) instances) at modality $(best_i_modality) with decision: $(decision_str), purity $(best_purity)\n"
+            errStr *= "Branch ($(sum(unsatisfied_flags))+$(_ninstances-sum(unsatisfied_flags))=$(_ninstances) instances) at modality $(best_i_modality) with decision: $(decision_str), purity $(best_purity)\n"
             errStr *= "$(length(idxs[region])) Instances: $(idxs[region])\n"
             errStr *= "Different partition was expected:\n"
             if isa(_perform_consistency_check,Val{true})
@@ -749,10 +749,10 @@ Base.@propagate_inbounds @inline function split_node!(
 
             if isa(_perform_consistency_check,Val{true})
                 errStr *= "world_refs = $(world_refs)\n"
-                errStr *= "new world_refs = $([Ss[best_i_modality][idxs[i_instance + r_start]] for i_instance in 1:_n_instances])\n"
+                errStr *= "new world_refs = $([Ss[best_i_modality][idxs[i_instance + r_start]] for i_instance in 1:_ninstances])\n"
             end
 
-            # for i in 1:_n_instances
+            # for i in 1:_ninstances
                 # errStr *= "$(DimensionalDatasets.get_channel(Xs, idxs[i + r_start], feature(best_decision)))\t$(Sf[i])\t$(!(unsatisfied_flags[i]==1))\t$(Ss[best_i_modality][idxs[i + r_start]])\n";
             # end
 
@@ -792,7 +792,7 @@ Base.@propagate_inbounds @inline function split_node!(
             # partition!(idxs, unsatisfied_flags, 0, 1:10)
 
             # Sort [Xf, Yf, Wf, Sf and idxs] by Xf
-            # utils.q_bi_sort!(unsatisfied_flags, idxs, 1, _n_instances, r_start)
+            # utils.q_bi_sort!(unsatisfied_flags, idxs, 1, _ninstances, r_start)
             # node.split_at = searchsortedfirst(unsatisfied_flags, true)
         end
     end
@@ -821,19 +821,19 @@ end
     kwargs...,
 ) where{L<:_Label,U}
 
-    _n_instances = ninstances(Xs)
+    _ninstances = ninstances(Xs)
 
     # Initialize world sets for each instance
     Ss = ModalDecisionTrees.initialworldsets(Xs, initconditions)
 
     # Distribution of the instances indices throughout the tree.
     #  It will be recursively permuted, and regions of it assigned to the tree nodes (idxs[node.region])
-    idxs = collect(1:_n_instances)
+    idxs = collect(1:_ninstances)
 
     # Create root node
     NodeMetaT = NodeMeta{(_is_classification isa Val{true} ? Int64 : Float64),Float64}
     onlyallowglobal = [(initcond == ModalDecisionTrees.start_without_world) for initcond in initconditions]
-    root = NodeMetaT(1:_n_instances, 0, 0, onlyallowglobal)
+    root = NodeMetaT(1:_ninstances, 0, 0, onlyallowglobal)
     
     if print_progress
         # p = ProgressThresh(Inf, 1, "Computing DTree...")
@@ -926,24 +926,24 @@ end
     ;
     ##########################################################################
     loss_function           :: Function,
-    max_depth               :: Int,
+    max_depth               :: Union{Nothing,Int},
     min_samples_leaf        :: Int,
     min_purity_increase     :: AbstractFloat,
     max_purity_at_leaf      :: AbstractFloat,
     ##########################################################################
-    max_modal_depth         :: Int,
+    max_modal_depth         :: Union{Nothing,Int},
     n_subrelations          :: Vector{<:Function},
     n_subfeatures           :: Vector{<:Integer},
     allow_global_splits     :: Vector{Bool},
     ##########################################################################
     kwargs...,
 ) where {S,U}
-    _n_instances = ninstances(Xs)
+    _ninstances = ninstances(Xs)
 
-    if length(Y) != _n_instances
-        error("Dimension mismatch between dataset and label vector Y: ($(_n_instances)) vs $(size(Y))")
-    elseif length(W) != _n_instances
-        error("Dimension mismatch between dataset and weights vector W: ($(_n_instances)) vs $(size(W))")
+    if length(Y) != _ninstances
+        error("Dimension mismatch between dataset and label vector Y: ($(_ninstances)) vs $(size(Y))")
+    elseif length(W) != _ninstances
+        error("Dimension mismatch between dataset and weights vector W: ($(_ninstances)) vs $(size(W))")
     ############################################################################
     elseif length(n_subrelations) != nmodalities(Xs)
         error("Mismatching number of n_subrelations with number of modalities: $(length(n_subrelations)) vs $(nmodalities(Xs))")
@@ -984,12 +984,12 @@ end
     # elseif loss_function in [gini, zero_one] && (max_purity_at_leaf > 1.0 || max_purity_at_leaf <= 0.0)
     #     error("Max_purity_at_leaf for loss $(loss_function) must be in (0,1]"
     #         * "(given $(max_purity_at_leaf))")
-    elseif max_depth < 0
+    elseif !isnothing(max_depth) && max_depth < 0
         error("Unexpected value for max_depth: $(max_depth) (expected:"
-            * " max_depth >= 0, or max_depth = -1 for infinite depth)")
-    elseif max_modal_depth < 0
+            * " max_depth >= 0, or max_depth = nothing for unbounded depth)")
+    elseif !isnothing(max_modal_depth) && max_modal_depth < 0
         error("Unexpected value for max_modal_depth: $(max_modal_depth) (expected:"
-            * " max_modal_depth >= 0, or max_modal_depth = -1 for infinite depth)")
+            * " max_modal_depth >= 0, or max_modal_depth = nothing for unbounded depth)")
     end
 
     if SoleData.hasnans(Xs)

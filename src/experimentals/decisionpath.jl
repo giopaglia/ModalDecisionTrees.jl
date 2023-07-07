@@ -59,10 +59,10 @@ function _get_path_in_tree(tree::DTInternal, X::MultiLogiset, i_instance::Intege
 
     return new_survivors
 end
-function get_path_in_tree(tree::DTree{S}, X::GenericDataset)::Vector{DecisionPath} where {S}
-    _n_instances = ninstances(X)
-    paths::Vector{DecisionPath} = [ DecisionPath() for i in 1:_n_instances ]
-    for i_instance in 1:_n_instances
+function get_path_in_tree(tree::DTree{S}, X)::Vector{DecisionPath} where {S}
+    _ninstances = ninstances(X)
+    paths::Vector{DecisionPath} = [ DecisionPath() for i in 1:_ninstances ]
+    for i_instance in 1:_ninstances
         worlds = ModalDecisionTrees.mm_instance_initialworldset(X, tree, i_instance)
         _get_path_in_tree(root(tree), X, i_instance, worlds, 1, paths)
     end

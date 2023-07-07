@@ -166,7 +166,7 @@ Archive:
 	✔	Refactor and distinguish between testoperators and functions; and opt/aggregator/polarity @done (21-10-07 23:19)
 	✔	Add IA7 relations: Complete by writing enumAccBare, enumAcc, enum_acc_repr. @done (21-10-07 23:18)
 	✔	multi-modal extension! @done (21-10-07 23:16)
-	✔	rename _n_instances -> n_instances @done (21-10-07 23:14)
+	✔	rename _ninstances -> n_instances @done (21-10-07 23:14)
 	✔	clean modallogic.jl @done (21-05-06 12:55)
 	✔	timeit -> symbol @done (21-05-06 10:51)
 	✔	Clean InitialCondition and worldType code @done (21-05-06 10:36)

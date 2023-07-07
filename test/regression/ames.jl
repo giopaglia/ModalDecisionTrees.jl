@@ -27,7 +27,7 @@ model = ModalDecisionTree(min_purity_increase = 0.001)
 
 mach = machine(model, X_train, y_train) |> fit!
 
-yhat = MLJ.predict(mach, X_test)
+yhat = MLJ.predict_mean(mach, X_test)
 
 @test StatsBase.cor(yhat, y_test) > 0.6
 

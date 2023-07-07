@@ -1,6 +1,8 @@
 @testset "digits-regression.jl" begin
 
-X, y = load_data("digits")
+include("../data/load.jl")
+
+X, y = load_digits()
 
 y = float.(y)
 

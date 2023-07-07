@@ -69,15 +69,22 @@ begin
     model = ModalDecisionTree(;
         relations = :IA7,
         conditions = [minimum, maximum, recheight, recwidth],
-        check_conditions = false,
         featvaltype = Float32,
-        # conditions = [minimum, maximum, UnivariateFeature{Float64}(recheight), UnivariateFeature{Float64}(recwidth)],
-        # conditions = [minimum, maximum, UnivariateFeature{Float32}(1, recheight), UnivariateFeature{Float32}(1, recwidth)],
     )
 
-    mach = machine(model, X_train, y_train) |> fit!
+    mach1 = machine(model, X_train, y_train) |> fit!
 
-    report(mach).printmodel(1000; threshold_digits = 2);
+    model = ModalDecisionTree(;
+        relations = :IA7,
+        conditions = [recheight, recwidth, minimum, maximum],
+        featvaltype = Float32,
+    )
+
+    mach2 = machine(model, X_train, y_train) |> fit!
+
+    report(mach1).printmodel(1000; threshold_digits = 2);
+    report(mach2).printmodel(1000; threshold_digits = 2);
+    @test fitted_params(mach1).soletree == fitted_params(mach2).soletree
 
 
     yhat_test = MLJ.predict_mode(mach, X_test)
@@ -91,7 +98,6 @@ begin
     model = ModalDecisionTree(;
         relations = :IA7,
         conditions = [minimum, maximum, recheight, recwidth],
-        check_conditions = false,
         initconditions = :start_at_center,
         featvaltype = Float32,
         # conditions = [minimum, maximum, UnivariateFeature{Float64}(recheight), UnivariateFeature{Float64}(recwidth)],
@@ -168,8 +174,8 @@ begin
 
     SoleModels.info.(listrules(soletree2), :supporting_labels);
     leaves = consequent.(listrules(soletree2))
-    SoleModels.leafmetrics.(leaves)
-    zip(SoleModels.leafmetrics.(leaves),leaves) |> collect |> sort
+    SoleModels.readmetrics.(leaves)
+    zip(SoleModels.readmetrics.(leaves),leaves) |> collect |> sort
 
 
     @test MLJ.accuracy(y_test, yhat_test) > 0.4
