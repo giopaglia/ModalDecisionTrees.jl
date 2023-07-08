@@ -163,30 +163,8 @@ end
 ############################################################################################
 
 function MMI.fit(m::ModalDecisionTree, verbosity::Integer, X, y, var_grouping, classes_seen=nothing, w=nothing)
-
-    model = MDT.build_tree(
-        X,
-        y,
-        w;
-        ####################################################################################
-        loss_function             = nothing,
-        max_depth                 = m.max_depth,
-        min_samples_leaf          = m.min_samples_leaf,
-        min_purity_increase       = m.min_purity_increase,
-        max_purity_at_leaf        = m.max_purity_at_leaf,
-        max_modal_depth           = m.max_modal_depth,
-        ####################################################################################
-        n_subrelations            = identity,
-        n_subfeatures             = m.n_subfeatures,
-        initconditions            = readinitconditions(m, X),
-        allow_global_splits       = ALLOW_GLOBAL_SPLITS,
-        ####################################################################################
-        use_minification          = false,
-        perform_consistency_check = false,
-        ####################################################################################
-        rng                       = m.rng,
-        print_progress            = m.print_progress,
-    )
+    # @show get_kwargs(m, X)
+    model = MDT.build_tree(X, y, w; get_kwargs(m, X)...)
 
     if m.post_prune
         merge_purity_threshold = m.merge_purity_threshold
@@ -353,7 +331,6 @@ MMI.metadata_model(
         ""
         ,
     supports_weights = true,
-    reports_feature_importances=true,
     load_path = "$MDT.ModalDecisionTree",
 )
 

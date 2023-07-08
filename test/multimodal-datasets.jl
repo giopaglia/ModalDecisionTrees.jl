@@ -60,11 +60,54 @@ MLJ.fit!(machine(ModalDecisionTree(;), X_multi2, y), rows=train_idxs)
 
 X_images1 = DataFrame(
     ID = 1:N,
+    R1 = [randn(2,2), randn(2,2), randn(2,2), randn(2,2), randn(2,2)], # good
+)
+_size.(X_images1)
+
+MLJ.fit!(machine(ModalDecisionTree(;), X_images1, y), rows=train_idxs)
+
+X_images1 = DataFrame(
+    ID = 1:N,
+    R1 = [randn(2,3), randn(2,3), randn(2,3), randn(2,3), randn(2,3)], # good
+)
+_size.(X_images1)
+
+logiset = scalarlogiset(X_images1[:,Not(:ID)]; use_onestep_memoization=true, conditions = [
+    ScalarMetaCondition(UnivariateMax{Float64}(1), ≥),
+    ScalarMetaCondition(UnivariateMax{Float64}(1), <),
+    ScalarMetaCondition(UnivariateMin{Float64}(1), ≥),
+    ScalarMetaCondition(UnivariateMin{Float64}(1), <),
+], relations = [globalrel])
+ModalDecisionTrees.build_tree(logiset, y)
+ModalDecisionTrees.build_tree(logiset, y;
+    max_depth           = nothing,
+    min_samples_leaf    = ModalDecisionTrees.BOTTOM_MIN_SAMPLES_LEAF,
+    min_purity_increase = ModalDecisionTrees.BOTTOM_MIN_PURITY_INCREASE,
+    max_purity_at_leaf  = ModalDecisionTrees.BOTTOM_MAX_PURITY_AT_LEAF,
+)
+ModalDecisionTrees.build_tree(MultiLogiset(logiset), y)
+
+multilogiset, _ = ModalDecisionTrees.MLJInterface.wrapdataset(X_images1[:,Not(:ID)], ModalDecisionTree(; min_samples_leaf = 1))
+
+kwargs = (loss_function = nothing, max_depth = nothing, min_samples_leaf = 1, min_purity_increase = 0.002, max_purity_at_leaf = Inf, max_modal_depth = nothing, n_subrelations = identity, n_subfeatures = identity, initconditions = ModalDecisionTrees.StartAtCenter(), allow_global_splits = true, use_minification = false, perform_consistency_check = false, rng = Random.GLOBAL_RNG, print_progress = false)
+
+
+ModalDecisionTrees.build_tree(multilogiset, y;
+    kwargs...
+)
+MLJ.fit!(machine(ModalDecisionTree(; min_samples_leaf = 1, relations = (d)->[globalrel]), X_images1[:,Not(:ID)], y), rows=train_idxs, verbosity=2)
+MLJ.fit!(machine(ModalDecisionTree(; min_samples_leaf = 1, relations = (d)->[globalrel]), X_images1[:,Not(:ID)], y), verbosity=2)
+@test_throws CompositeException MLJ.fit!(machine(ModalDecisionTree(; min_samples_leaf = 1, initconditions = :start_at_center, relations = (d)->SoleLogics.AbstractRelation[]), X_images1[:,Not(:ID)], y), verbosity=2)
+
+X_images1 = DataFrame(
+    ID = 1:N,
     R1 = [randn(2,3), randn(2,3), randn(2,3), randn(2,3), randn(2,3)], # good
     G1 = [randn(3,3), randn(3,3), randn(3,3), randn(3,3), randn(3,3)], # good
     B1 = [randn(3,3), randn(3,3), randn(3,3), randn(3,3), randn(3,3)], # good
 )
 _size.(X_images1)
+
+MLJ.fit!(machine(ModalDecisionTree(; min_samples_leaf = 2), X_images1[:,Not(:ID)], y), rows=train_idxs)
 
 X_images2 = DataFrame(
     ID = 1:N,
@@ -79,8 +122,54 @@ _size.(X_all)
 
 MLJ.fit!(machine(ModalDecisionTree(;), X_all, y), rows=train_idxs)
 
-X_all = innerjoin([X_multi1, X_images1, X_images2]... , on = :ID)[:, Not(:ID)]
-MLJ.fit!(machine(ModalDecisionTree(; min_samples_leaf = 2), X_all, y), rows=train_idxs)
+X_all = innerjoin([X_multi1, X_images2]... , on = :ID)[:, Not(:ID)]
+mach = MLJ.fit!(machine(ModalDecisionTree(; min_samples_leaf = 1), X_all, y), rows=train_idxs)
+
+multilogiset, var_grouping = ModalDecisionTrees.MLJInterface.wrapdataset(X_all, ModalDecisionTree(; min_samples_leaf = 1))
+
+
+ModalDecisionTrees.build_tree(multilogiset, y;
+    kwargs...
+)
+
+
+# Multimodal tree:
+X_all = DataFrame(
+    mode0 = [1.0, 0.0, 0.0, 0.0, 0.0],
+    mode1 = [zeros(5), ones(5), zeros(5), zeros(5), zeros(5)],
+    mode2 = [zeros(5,5), zeros(5,5), ones(5,5), zeros(5,5), zeros(5,5)],
+)
+mach = MLJ.fit!(machine(ModalDecisionTree(; min_samples_leaf = 1), X_all, y), rows=train_idxs)
+
+report(mach).printmodel(1000; threshold_digits = 2);
+
+printmodel.(listrules(report(mach).solemodel; use_shortforms=true, use_leftmostlinearform = true))
+
+printmodel.(joinrules(listrules(report(mach).solemodel; use_shortforms=true, use_leftmostlinearform = true)))
+
+# Very multimodal tree:
+N = 100
+X_all = DataFrame(
+    mode0 = [rand() for i in 1:N],
+    mode1 = [rand(5) for i in 1:N],
+    mode2 = [rand(2,2) for i in 1:N],
+)
+y = string.(rand(1:10, N))
+mach = MLJ.fit!(machine(ModalDecisionTree(; min_samples_leaf = 1), X_all, y))
+
+
+@test repr(listrules(report(mach).solemodel; use_shortforms=false)) == repr(listrules(report(mach).solemodel; use_shortforms=true))
+
+report(mach).printmodel(1000; threshold_digits = 2);
+
+printmodel.(listrules(report(mach).solemodel; use_shortforms=true));
+printmodel.(joinrules(listrules(report(mach).solemodel; use_shortforms=true, use_leftmostlinearform = false)));
+
+printmodel.(joinrules(listrules(report(mach).solemodel)));
+
+@test_throws ErrorException printmodel.(listrules(report(mach).solemodel; use_shortforms=true, use_leftmostlinearform = true))
+@test_throws ErrorException printmodel.(joinrules(listrules(report(mach).solemodel; use_shortforms=true, use_leftmostlinearform = true)))
+
 
 model = ModalDecisionTree(min_purity_increase = 0.001)
 

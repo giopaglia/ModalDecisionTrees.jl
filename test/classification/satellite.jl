@@ -73,7 +73,7 @@ report(mach).printmodel(1000; threshold_digits = 2);
 listrules(report(mach).solemodel; use_shortforms=true, use_leftmostlinearform = true)
 
 fs = SoleModels.formula.(antecedent.(listrules(report(mach).solemodel; use_shortforms=true, use_leftmostlinearform = true)))
-fsnorm = map(f->normalize(f.formulas[1]; allow_proposition_flipping = true), fs)
+fsnorm = map(f->normalize(modants(f)[1]; allow_proposition_flipping = true), fs)
 
 # TODO: expand to implicationstate
 function knowntoimply(t1::SyntaxTree, t2::SyntaxTree)

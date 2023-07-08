@@ -52,7 +52,7 @@ function modalstep(
 ) where {W<:AbstractWorld}
     @logmsg LogDetail "modalstep" worlds displaydecision(decision)
 
-    # W = worldtype(frame(X, 1))
+    # W = worldtype(frame(X, i_instance))
 
     φ = formula(decision)
     satisfied = false
@@ -196,7 +196,7 @@ Base.@propagate_inbounds @resumable function generate_propositional_feasible_dec
             
             for w in worlds
                 # gamma = featvalue(X[i_instance, w, feature) # TODO in general!
-                gamma = featvalue(X, i_instance, w, i_feature)
+                gamma = featvalue(X, i_instance, w, feature, i_feature)
                 for (i_aggregator,aggregator) in enumerate(aggregators)
                     thresholds[i_aggregator,instance_idx] = SoleModels.aggregator_to_binary(aggregator)(gamma, thresholds[i_aggregator,instance_idx])
                 end

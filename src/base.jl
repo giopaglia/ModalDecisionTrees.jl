@@ -8,6 +8,7 @@ import SoleModels: ninstances, height, nnodes
 ############################################################################################
 
 using SoleLogics: AbstractMultiModalFrame
+using SoleLogics: AbstractSyntaxStructure
 
 abstract type InitialCondition end
 
@@ -30,6 +31,10 @@ end
 function initialworldset(::AbstractMultiModalFrame{W}, initcond::StartAtWorld{W}) where {W<:AbstractWorld}
     WorldSet{W}([initcond.w])
 end
+
+anchor(φ::AbstractSyntaxStructure, ::StartWithoutWorld) = φ # TruthAntecedent(φ, SoleModels.GlobalCheck())
+anchor(φ::AbstractSyntaxStructure, ::StartAtCenter) = TruthAntecedent(φ, SoleModels.CenteredCheck())
+anchor(φ::AbstractSyntaxStructure, cm::StartAtWorld) = TruthAntecedent(φ, SoleModels.WorldCheck(cm.w))
 
 function initialworldset(
     X,
@@ -79,8 +84,17 @@ Union type for internal and decision nodes of a decision tree.
 """
 const DTNode{L<:Label,D<:AbstractDecision} = Union{<:AbstractDecisionLeaf{<:L},<:AbstractDecisionInternal{L,D}}
 
-isleftchild(node::DTNode, parent::DTNode) = (left(parent) == node)
-isrightchild(node::DTNode, parent::DTNode) = (right(parent) == node)
+isleftchild(node::DTNode, parent::AbstractDecisionInternal) = (left(parent) == node)
+isrightchild(node::DTNode, parent::AbstractDecisionInternal) = (right(parent) == node)
+
+isinleftsubtree(node::DTNode, parent::AbstractDecisionInternal) = isleftchild(node, parent) || isinsubtree(node, left(parent))
+isinrightsubtree(node::DTNode, parent::AbstractDecisionInternal) = isrightchild(node, parent) || isinsubtree(node, right(parent))
+isinsubtree(node::DTNode, parent::DTNode) = (node == parent) || (isinleftsubtree(node, parent) || isinrightsubtree(node, parent))
+
+isleftchild(node::DTNode, parent::AbstractDecisionLeaf) = false
+isrightchild(node::DTNode, parent::AbstractDecisionLeaf) = false
+isinleftsubtree(node::DTNode, parent::AbstractDecisionLeaf) = false
+isinrightsubtree(node::DTNode, parent::AbstractDecisionLeaf) = false
 
 ############################################################################################
 # Decisions
