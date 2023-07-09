@@ -108,7 +108,7 @@ mach = machine(ModalDecisionTree(;
 @test nnodes(fitted_params(mach).model) == 71
 @test sum(predict_mode(mach, selectrows(Xnt, test_idxs)) .== y[test_idxs]) / length(y[test_idxs]) > 0.73
 
-preds, tree2 = report(mach).printapply(selectrows(Xnt, test_idxs), selectrows(y, test_idxs));
+preds, tree2 = report(mach).sprinkle(selectrows(Xnt, test_idxs), selectrows(y, test_idxs));
 
 @test MLJBase.accuracy(preds, selectrows(y, test_idxs)) > 0.75
 
@@ -126,7 +126,7 @@ mach = machine(ModalDecisionTree(;
 @test nnodes(fitted_params(mach).model) == 79
 @test sum(predict_mode(mach, selectrows(Xnt, test_idxs)) .== y[test_idxs]) / length(y[test_idxs]) > 0.73
 
-preds, tree2 = report(mach).printapply(selectrows(Xnt, test_idxs), selectrows(y, test_idxs));
+preds, tree2 = report(mach).sprinkle(selectrows(Xnt, test_idxs), selectrows(y, test_idxs));
 
 @test MLJBase.accuracy(preds, selectrows(y, test_idxs)) > 0.75
 

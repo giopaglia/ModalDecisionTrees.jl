@@ -49,6 +49,9 @@ end
 
 function get_metrics_str(metrics::NamedTuple)
     metrics_str_pieces = []
+    # if haskey(metrics,:n_inst)
+    #     push!(metrics_str_pieces, "ninst = $(metrics.n_inst)")
+    # end
     if haskey(metrics,:confidence)
         push!(metrics_str_pieces, "conf = $(@sprintf "%.4f" metrics.confidence)")
     end

@@ -7,6 +7,7 @@ using Random
 
 # A Modal Decision Tree with ≥ 4 samples at leaf
 t = ModalDecisionTree(;
+    min_samples_split=2,
     min_samples_leaf = 4,
 )
 
@@ -52,20 +53,48 @@ acc = sum(yhat .== y[test_idxs])/length(yhat)
 @test_nowarn listrules(report(mach).solemodel; use_shortforms=false, use_leftmostlinearform = true)
 @test_throws ErrorException listrules(report(mach).solemodel; use_shortforms=false, use_leftmostlinearform = true, force_syntaxtree = true)
 
-
-
 # Access raw model
 fitted_params(mach).model;
 report(mach).printmodel(3);
 
 MLJ.fit!(mach)
 
+@test_nowarn feature_importances(mach)
+
+############################################################################################
+############################################################################################
+############################################################################################
+
+mach = machine(ModalDecisionTree(post_prune = true), X, y) |> MLJ.fit!
+mach = machine(ModalDecisionTree(post_prune = true, max_modal_depth = 2), X, y) |> MLJ.fit!
+mach = machine(ModalDecisionTree(min_samples_split=100, post_prune = true, merge_purity_threshold = 0.4), X, y) |> MLJ.fit!
+
+############################################################################################
+############################################################################################
+############################################################################################
+
+# NaNs
+Xwithnans = deepcopy(X)
+for i in 1:4
+    rng = MersenneTwister(i)
+    c = rand(rng, 1:length(Xwithnans))
+    r = rand(rng, 1:length(Xwithnans[c]))
+    Xwithnans[c][r][rand(1:length(Xwithnans[c][r]))] = NaN
+    @test_throws ErrorException machine(ModalDecisionTree(), Xwithnans, y) |> MLJ.fit!
+end
+
+############################################################################################
+############################################################################################
+############################################################################################
+
 X, y = ModalDecisionTrees.@load_japanesevowels
 
-# A Modal Decision Tree with ≥ 4 samples at leaf
-t = ModalDecisionTree(min_samples_split=100)
+multilogiset, var_grouping = ModalDecisionTrees.MLJInterface.wrapdataset(X, ModalDecisionTree(; min_samples_leaf = 1))
 
-mach = machine(t, X, y)
+# A Modal Decision Tree
+t = ModalDecisionTree(min_samples_split=100, post_prune = true, merge_purity_threshold = true)
+
+@test_broken mach = machine(t, multilogiset, y)
 
 
 N = length(y)

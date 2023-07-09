@@ -164,7 +164,7 @@ begin
 
     @test yhat_test2 == yhat_test
 
-    yhat_test2, tree2 = report(mach).printapply(X_test, y_test);
+    yhat_test2, tree2 = report(mach).sprinkle(X_test, y_test);
 
     soletree2 = ModalDecisionTrees.translate(tree2)
     printmodel(soletree2; show_metrics = true);

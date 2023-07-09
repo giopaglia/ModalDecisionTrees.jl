@@ -1,6 +1,6 @@
 using StatsBase
 
-export apply_tree, apply_forest, apply_model, print_apply, tree_walk_metrics
+export apply_tree, apply_forest, apply_model, printapply, tree_walk_metrics
 
 import SoleModels: apply
 
@@ -43,16 +43,16 @@ softmax(m::AbstractMatrix) = mapslices(softmax, m; dims=1)
 ############################################################################################
 ############################################################################################
 
-print_apply(model::SymbolicModel, args...; kwargs...) = print_apply(stdout, model, args...; kwargs...)
-# print_apply_proba(model::SymbolicModel, args...; kwargs...) = print_apply_proba(stdout, model, args...; kwargs...)
+printapply(model::SymbolicModel, args...; kwargs...) = printapply(stdout, model, args...; kwargs...)
+# printapply_proba(model::SymbolicModel, args...; kwargs...) = printapply_proba(stdout, model, args...; kwargs...)
 
-function print_apply(io::IO, model::SymbolicModel, Xs, Y::AbstractVector; kwargs...)
-    predictions, newmodel = apply(model, Xs, Y)
+function printapply(io::IO, model::SymbolicModel, Xs, Y::AbstractVector; kwargs...)
+    predictions, newmodel = sprinkle(model, Xs, Y)
     printmodel(io, newmodel; kwargs...)
     predictions, newmodel
 end
 
-# function print_apply_proba(io::IO, model::SymbolicModel, Xs, Y::AbstractVector; kwargs...)
+# function printapply_proba(io::IO, model::SymbolicModel, Xs, Y::AbstractVector; kwargs...)
 #     predictions, newmodel = apply_proba(model, Xs, Y TODO)
 #     printmodel(io, newmodel; kwargs...)
 #     predictions, newmodel
@@ -193,7 +193,7 @@ function apply(
 end
 
 ################################################################################
-# Print+Apply models: apply labels for a new dataset of instances
+# Sprinkle: distribute dataset instances throughout a tree
 ################################################################################
 
 function _empty_tree_leaves(leaf::DTLeaf{L}) where {L}
@@ -223,7 +223,7 @@ function _empty_tree_leaves(tree::DTree)
 end
 
 
-function apply(
+function sprinkle(
     leaf::DTLeaf{L},
     Xs,
     i_instance::Integer,
@@ -244,7 +244,7 @@ function apply(
     _prediction, DTLeaf(_prediction, _supp_labels)
 end
 
-function apply(
+function sprinkle(
     leaf::NSDTLeaf{L},
     Xs,
     i_instance::Integer,
@@ -266,7 +266,7 @@ function apply(
     _predicting_function(d)[1], NSDTLeaf{L}(_predicting_function, _supp_train_labels, leaf.supp_valid_labels, _supp_train_predictions, leaf.supp_valid_predictions)
 end
 
-function apply(
+function sprinkle(
     tree::DTInternal{L},
     Xs,
     i_instance::Integer,
@@ -289,21 +289,21 @@ function apply(
 
     worlds[i_modality(tree)] = new_worlds
 
-    this_prediction, this_leaf = apply(this(tree),  Xs, i_instance, worlds, y; kwargs...) # TODO test whether this works correctly
+    this_prediction, this_leaf = sprinkle(this(tree),  Xs, i_instance, worlds, y; kwargs...) # TODO test whether this works correctly
 
     pred, left_leaf, right_leaf =
         if satisfied
-            pred, left_leaf = apply(left(tree),  Xs, i_instance, worlds, y; kwargs...)
+            pred, left_leaf = sprinkle(left(tree),  Xs, i_instance, worlds, y; kwargs...)
             pred, left_leaf, right(tree)
         else
-            pred, right_leaf = apply(right(tree), Xs, i_instance, worlds, y; kwargs...)
+            pred, right_leaf = sprinkle(right(tree), Xs, i_instance, worlds, y; kwargs...)
             pred, left(tree), right_leaf
         end
 
     pred, DTInternal(i_modality(tree), decision(tree), this_leaf, left_leaf, right_leaf)
 end
 
-function apply(
+function sprinkle(
     tree::DTree{L},
     Xs,
     Y::AbstractVector{<:L};
@@ -324,7 +324,7 @@ function apply(
     end
     Threads.@threads for i_instance in 1:ninstances(Xs)
         worlds = mm_instance_initialworldset(Xs, tree, i_instance)
-        pred, _root = apply(_root, Xs, i_instance, worlds, Y[i_instance]; kwargs...)
+        pred, _root = sprinkle(_root, Xs, i_instance, worlds, Y[i_instance]; kwargs...)
         push!(predictions, pred)
         print_progress && next!(p)
     end
@@ -332,7 +332,7 @@ function apply(
 end
 
 # use an array of trees to test features
-function apply(
+function sprinkle(
     trees::AbstractVector{<:DTree{<:L}},
     Xs,
     Y::AbstractVector{<:L};
@@ -340,7 +340,7 @@ function apply(
     tree_weights::Union{AbstractMatrix{Z},AbstractVector{Z},Nothing} = nothing,
     suppress_parity_warning = false,
 ) where {L<:Label,Z<:Real}
-    @logmsg LogDetail "apply..."
+    @logmsg LogDetail "sprinkle..."
     trees = deepcopy(trees)
     ntrees = length(trees)
     _ninstances = ninstances(Xs)
@@ -365,7 +365,7 @@ function apply(
         p = Progress(ntrees, 1, "Applying trees...")
     end
     Threads.@threads for i_tree in 1:ntrees
-        _predictions[i_tree,:], trees[i_tree] = apply(trees[i_tree], Xs, Y; print_progress = false)
+        _predictions[i_tree,:], trees[i_tree] = sprinkle(trees[i_tree], Xs, Y; print_progress = false)
         print_progress && next!(p)
     end
 
@@ -383,7 +383,7 @@ function apply(
 end
 
 # use a proper forest to test features
-function apply(
+function sprinkle(
     forest::DForest,
     Xs,
     Y::AbstractVector{<:L};
@@ -392,12 +392,12 @@ function apply(
 ) where {L<:Label}
     predictions, trees = begin
         if weight_trees_by == false
-            apply(trees(forest), Xs, Y; kwargs...)
+            sprinkle(trees(forest), Xs, Y; kwargs...)
         elseif isa(weight_trees_by, AbstractVector)
-            apply(trees(forest), Xs, Y; tree_weights = weight_trees_by, kwargs...)
+            sprinkle(trees(forest), Xs, Y; tree_weights = weight_trees_by, kwargs...)
         # elseif weight_trees_by == :accuracy
         #   # TODO: choose HOW to weight a tree... overall_accuracy is just an example (maybe can be parameterized)
-        #   apply(forest.trees, Xs; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
+        #   sprinkle(forest.trees, Xs; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
         else
             error("Unexpected value for weight_trees_by: $(weight_trees_by)")
         end
@@ -405,7 +405,7 @@ function apply(
     predictions, DForest{L}(trees, (;)) # TODO note that the original metrics are lost here
 end
 
-function apply(
+function sprinkle(
     nsdt::RootLevelNeuroSymbolicHybrid,
     Xs,
     Y::AbstractVector{<:L};
@@ -413,7 +413,7 @@ function apply(
     kwargs...
 ) where {L<:Label}
     W = softmax(nsdt.feature_function(Xs))
-    predictions, trees = apply(
+    predictions, trees = sprinkle(
         nsdt.trees,
         Xs,
         Y;
@@ -424,8 +424,8 @@ function apply(
     predictions, RootLevelNeuroSymbolicHybrid(nsdt.feature_function, trees, (;)) # TODO note that the original metrics are lost here
 end
 
-# function apply(tree::DTNode{T,L}, X::AbstractDimensionalDataset{T,D}, Y::AbstractVector{<:L}; reset_leaves = true, update_labels = false) where {L,T,D}
-#   return apply(DTree(tree, [worldtype(get_interval_ontology(Val(D-2)))], [start_without_world]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
+# function sprinkle(tree::DTNode{T,L}, X::AbstractDimensionalDataset{T,D}, Y::AbstractVector{<:L}; reset_leaves = true, update_labels = false) where {L,T,D}
+#   return sprinkle(DTree(tree, [worldtype(get_interval_ontology(Val(D-2)))], [start_without_world]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
 # end
 
 ############################################################################################

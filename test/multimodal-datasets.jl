@@ -133,6 +133,9 @@ ModalDecisionTrees.build_tree(multilogiset, y;
     kwargs...
 )
 
+############################################################################################
+############################################################################################
+############################################################################################
 
 # Multimodal tree:
 X_all = DataFrame(
@@ -155,3 +158,19 @@ model = ModalDecisionTree(min_purity_increase = 0.001)
 @test_logs (:info,) machine(model, X_images1, y) |> fit!
 @test_logs (:info,) machine(model, X_images2, y) |> fit!
 @test_throws AssertionError machine(model, X_all, y) |> fit!
+
+############################################################################################
+############################################################################################
+############################################################################################
+
+using SoleData
+
+# Multimodal tree:
+X_all = DataFrame(
+    mode0 = [1.0, 0.0, 0.0, 0.0, 0.0],
+    mode1 = [zeros(5), ones(5), zeros(5), zeros(5), zeros(5)],
+    mode2 = [zeros(5,5), zeros(5,5), ones(5,5), zeros(5,5), zeros(5,5)],
+)
+
+X_all = MultiModalDataset(X_all)
+@test_broken mach = MLJ.fit!(machine(ModalDecisionTree(; min_samples_leaf = 1), X_all, y), rows=train_idxs)

@@ -168,12 +168,14 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Integer, X, y, var_grouping, c
 
     if m.post_prune
         merge_purity_threshold = m.merge_purity_threshold
-        if isnothing(merge_purity_threshold) && !isnothing(classes_seen)
-            merge_purity_threshold = 1.0
-        else
-            error("Please, provide a `merge_purity_threshold` parameter (maximum MAE at splits).")
+        if isnothing(merge_purity_threshold)
+            if !isnothing(classes_seen)
+                merge_purity_threshold = 1.0
+            else
+                error("Please, provide a `merge_purity_threshold` parameter (maximum MAE at splits).")
+            end
         end
-        model = MDT.prune(model; max_performance_at_split = merge_purity_threshold)
+        model = MDT.prune(model; simplify = true, max_performance_at_split = merge_purity_threshold)
     end
 
     verbosity < 2 || MDT.printmodel(model; max_depth = m.display_depth, variable_names_map = var_grouping)
@@ -190,9 +192,9 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Integer, X, y, var_grouping, c
     cache  = nothing
     report = (
         printmodel                  = ModelPrinter(m, model, solemodel, var_grouping),
-        printapply                  = (Xnew, ynew)->begin
+        sprinkle                    = (Xnew, ynew)->begin
             (Xnew, ynew, var_grouping, classes_seen, w) = MMI.reformat(m, Xnew, ynew; passive_mode = true)
-            print_apply(model, Xnew, ynew)
+            sprinkle(model, Xnew, ynew)
         end,
         solemodel                   = solemodel,
         var_grouping                = var_grouping,

@@ -993,19 +993,13 @@ end
     end
 
     if SoleData.hasnans(Xs)
-        # println(Xs)
-        # println(DimensionalDatasets.displaystructure(Xs))
-        # println(SoleData.hasnans(Xs))
-        # println(SoleData.hasnans.([fd(X) for X in eachmodality(Xs)]))
-        # println(SoleData.hasnans.([fd(X).fwd for X in eachmodality(Xs)]))
-        # println(fwd(eachmodality(Xs)[1].fd))
         error("This algorithm doesn't allow NaN values")
     end
 
     if nothing in Y
         error("This algorithm doesn't allow nothing values in Y")
-    # elseif any(isnan.(Y))
-    #   error("This algorithm doesn't allow NaN values in Y")
+    elseif any(isnan.(Y))
+      error("This algorithm doesn't allow NaN values in Y")
     elseif nothing in W
         error("This algorithm doesn't allow nothing values in W")
     elseif any(isnan.(W))
