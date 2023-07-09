@@ -48,6 +48,7 @@ test_suites = [
     ]),
     ("Miscellaneous", [
         "multimodal-datasets.jl"
+        "multiformulas-construction.jl"
         # "miscellaneous/convert.jl"
         "translation/parse-and-translate-existentialdecisions.jl"
     ]),

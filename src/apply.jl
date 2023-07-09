@@ -424,7 +424,7 @@ function apply(
     predictions, RootLevelNeuroSymbolicHybrid(nsdt.feature_function, trees, (;)) # TODO note that the original metrics are lost here
 end
 
-# function apply(tree::DTNode{T, L}, X::AbstractDimensionalDataset{T,D}, Y::AbstractVector{<:L}; reset_leaves = true, update_labels = false) where {L,T,D}
+# function apply(tree::DTNode{T,L}, X::AbstractDimensionalDataset{T,D}, Y::AbstractVector{<:L}; reset_leaves = true, update_labels = false) where {L,T,D}
 #   return apply(DTree(tree, [worldtype(get_interval_ontology(Val(D-2)))], [start_without_world]), X, Y, reset_leaves = reset_leaves, update_labels = update_labels)
 # end
 

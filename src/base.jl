@@ -25,16 +25,16 @@ function initialworldset(fr::AbstractMultiModalFrame{W}, initcond::StartWithoutW
 end
 
 function initialworldset(fr::AbstractMultiModalFrame{W}, initcond::StartAtCenter) where {W<:AbstractWorld}
-    WorldSet{W}([SoleModels.getworld(fr, SoleModels.CenteredCheck())])
+    WorldSet{W}([SoleLogics.centralworld(fr)])
 end
 
 function initialworldset(::AbstractMultiModalFrame{W}, initcond::StartAtWorld{W}) where {W<:AbstractWorld}
     WorldSet{W}([initcond.w])
 end
 
-anchor(φ::AbstractSyntaxStructure, ::StartWithoutWorld) = φ # TruthAntecedent(φ, SoleModels.GlobalCheck())
-anchor(φ::AbstractSyntaxStructure, ::StartAtCenter) = TruthAntecedent(φ, SoleModels.CenteredCheck())
-anchor(φ::AbstractSyntaxStructure, cm::StartAtWorld) = TruthAntecedent(φ, SoleModels.WorldCheck(cm.w))
+anchor(φ::AbstractSyntaxStructure, ::StartWithoutWorld) = φ
+anchor(φ::AbstractSyntaxStructure, ::StartAtCenter) = DiamondRelationalOperator(SoleLogics.tocenterrel)(φ)
+anchor(φ::AbstractSyntaxStructure, cm::StartAtWorld) = error("TODO expand code")
 
 function initialworldset(
     X,

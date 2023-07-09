@@ -37,7 +37,7 @@ function build_stump(
     Y                 :: AbstractVector{L},
     W                 :: Union{Nothing,AbstractVector{U},Symbol} = nothing;
     kwargs...,
-) where {L<:Label, U}
+) where {L<:Label,U}
     params = NamedTuple(kwargs)
     @assert !haskey(params, :max_depth) || params.max_depth == 1 "build_stump " *
         "doesn't allow max_depth != 1."
@@ -67,7 +67,7 @@ function build_tree(
     ##############################################################################
     rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG,
     print_progress      :: Bool = true,
-) where {L<:Label, U}
+) where {L<:Label,U}
     
     @assert W isa AbstractVector || W in [nothing, :rebalance, :default]
 
@@ -155,7 +155,7 @@ function build_forest(
     rng                 :: Random.AbstractRNG = Random.GLOBAL_RNG,
     print_progress      :: Bool = true,
     suppress_parity_warning :: Bool = false,
-) where {L<:Label, U}
+) where {L<:Label,U}
 
     @assert W isa AbstractVector || W in [nothing, :rebalance, :default]
 

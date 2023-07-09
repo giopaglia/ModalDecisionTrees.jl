@@ -6,7 +6,6 @@ using SoleModels: info, ScalarCondition, ScalarMetaCondition
 
 using SoleModels: AbstractFeature
 using SoleModels: relation, feature, test_operator, threshold, inverse_test_operator
-using SoleModels: TruthAntecedent
 
 using ModalDecisionTrees: DTInternal, DTNode, DTLeaf, NSDTLeaf
 using ModalDecisionTrees: isleftchild, isrightchild, isinleftsubtree, isinrightsubtree
@@ -21,8 +20,8 @@ using Memoization
 # MDTv1 translation
 ############################################################################################
 
-function build_antecedent(a::MultiAntecedent{F}, initconditions) where {F<:AbstractSyntaxStructure}
-    MultiAntecedent(Dict([i_mod => anchor(f, initconditions[i_mod]) for (i_mod, f) in modants(a)]))
+function build_antecedent(a::MultiFormula{F}, initconditions) where {F<:AbstractSyntaxStructure}
+    MultiFormula(Dict([i_mod => anchor(f, initconditions[i_mod]) for (i_mod, f) in modforms(a)]))
 end
 
 function translate(
@@ -55,7 +54,7 @@ function translate(
     initconditions,
     ancestors::Vector{<:DTInternal} = DTInternal[],
     info = (;),
-    shortform::Union{Nothing,MultiAntecedent} = nothing,
+    shortform::Union{Nothing,MultiFormula} = nothing,
 )
     new_ancestors = [ancestors..., node]
     φl = pathformula(new_ancestors, left(node), false)
@@ -64,10 +63,10 @@ function translate(
         if isnothing(shortform)
             φl, φr
         else
-            dl, dr = deepcopy(modants(shortform)), deepcopy(modants(shortform))
-            dl[i_modality(node)] = modants(φl)[i_modality(node)]
-            dr[i_modality(node)] = modants(φr)[i_modality(node)]
-            MultiAntecedent(dl), MultiAntecedent(dr)
+            dl, dr = deepcopy(modforms(shortform)), deepcopy(modforms(shortform))
+            dl[i_modality(node)] = modforms(φl)[i_modality(node)]
+            dr[i_modality(node)] = modforms(φr)[i_modality(node)]
+            MultiFormula(dl), MultiFormula(dr)
         end
     end
     info = merge(info, (;
@@ -196,18 +195,18 @@ end
 
         if length(ancestors) == 1
             anc = first(ancestors)
-            return MultiAntecedent(i_modality(anc), get_lambda(anc, node))
+            return MultiFormula(i_modality(anc), get_lambda(anc, node))
         else
             φ = pathformula(Vector{DTInternal{Union{L,LL},<:SimpleDecision{<:ScalarExistentialFormula}}}(ancestors[2:end]), node, multi)
 
             nodes = [ancestors..., node]
 
             # @assert length(unique(anc_mods)) == 1 "At the moment, translate does not work " *
-            #     "for MultiAntecedent formulas $(unique(anc_mods))."
+            #     "for MultiFormula formulas $(unique(anc_mods))."
 
             if isinleftsubtree(nodes[2], nodes[1])
                 f = formula(ModalDecisionTrees.decision(nodes[1]))
-                p = MultiAntecedent(i_modality(nodes[1]), SyntaxTree(get_proposition(f)))
+                p = MultiFormula(i_modality(nodes[1]), SyntaxTree(get_proposition(f)))
                 isprop = (relation(f) == identityrel)
 
                 if isinleftsubtree(nodes[3], nodes[2])
@@ -229,7 +228,7 @@ end
                     error("Cannot compute pathformula on malformed path: $((nodes[3], nodes[2])).")
                 end
             elseif isinrightsubtree(nodes[2], nodes[1])
-                λ = MultiAntecedent(i_modality(nodes[1]), get_lambda(nodes[1], nodes[2]))
+                λ = MultiFormula(i_modality(nodes[1]), get_lambda(nodes[1], nodes[2]))
                 return λ ∧ φ
             else
                 error("Cannot compute pathformula on malformed path: $((nodes[2], nodes[1])).")

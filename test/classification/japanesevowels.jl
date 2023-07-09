@@ -6,7 +6,9 @@ using SoleModels
 using Random
 
 # A Modal Decision Tree with ≥ 4 samples at leaf
-t = ModalDecisionTree(min_samples_leaf=4)
+t = ModalDecisionTree(;
+    min_samples_leaf = 4,
+)
 
 # Load an example dataset (a temporal one)
 X, y = ModalDecisionTrees.@load_japanesevowels

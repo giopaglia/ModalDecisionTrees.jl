@@ -23,7 +23,7 @@ default_loss_function(::Type{<:RLabel}) = variance
 # Source: _shannon_entropy from https://github.com/bensadeghi/DecisionTree.jl/blob/master/src/util.jl, with inverted sign
 
 # Single
-Base.@propagate_inbounds @inline function _shannon_entropy_mod(ws :: AbstractVector{U}, t :: U) where {U <: Real}
+Base.@propagate_inbounds @inline function _shannon_entropy_mod(ws :: AbstractVector{U}, t :: U) where {U<:Real}
     s = 0.0
     @simd for k in ws
         if k > 0
@@ -37,7 +37,7 @@ end
 Base.@propagate_inbounds @inline function _shannon_entropy_mod(
     ws_l :: AbstractVector{U}, tl :: U,
     ws_r :: AbstractVector{U}, tr :: U,
-) where {U <: Real}
+) where {U<:Real}
     (tl * _shannon_entropy_mod(ws_l, tl) +
      tr * _shannon_entropy_mod(ws_r, tr))
 end
@@ -54,11 +54,11 @@ ShannonEntropy() = _shannon_entropy_mod
 # Classification: Shannon (second untested version)
 
 # # Single
-# Base.@propagate_inbounds @inline function _shannon_entropy(ws :: AbstractVector{U}, t :: U) where {U <: Real}
+# Base.@propagate_inbounds @inline function _shannon_entropy(ws :: AbstractVector{U}, t :: U) where {U<:Real}
 #     log(t) + _shannon_entropy(ws) / t
 # end
 
-# Base.@propagate_inbounds @inline function _shannon_entropy(ws :: AbstractVector{U}) where {U <: Real}
+# Base.@propagate_inbounds @inline function _shannon_entropy(ws :: AbstractVector{U}) where {U<:Real}
 #     s = 0.0
 #     for k in filter((k)->k > 0, ws)
 #         s += k * log(k)
@@ -70,7 +70,7 @@ ShannonEntropy() = _shannon_entropy_mod
 # Base.@propagate_inbounds @inline function _shannon_entropy(
 #     ws_l :: AbstractVector{U}, tl :: U,
 #     ws_r :: AbstractVector{U}, tr :: U,
-# ) where {U <: Real}
+# ) where {U<:Real}
 #     (tl * log(tl) + _shannon_entropy(ws_l) +
 #      tr * log(tr) + _shannon_entropy(ws_r))
 # end
@@ -85,7 +85,7 @@ ShannonEntropy() = _shannon_entropy_mod
 # (ps = normalize(ws, 1); return -log(sum(ps.^alpha))/(1.0-alpha)) with (alpha > 1.0)
 
 # Single
-Base.@propagate_inbounds @inline function _tsallis_entropy(alpha :: AbstractFloat, ws :: AbstractVector{U}, t :: U) where {U <: Real}
+Base.@propagate_inbounds @inline function _tsallis_entropy(alpha :: AbstractFloat, ws :: AbstractVector{U}, t :: U) where {U<:Real}
     log(sum(ps = normalize(ws, 1).^alpha))
 end
 
@@ -94,7 +94,7 @@ Base.@propagate_inbounds @inline function _tsallis_entropy(
     alpha :: AbstractFloat,
     ws_l :: AbstractVector{U}, tl :: U,
     ws_r :: AbstractVector{U}, tr :: U,
-) where {U <: Real}
+) where {U<:Real}
     (tl * _tsallis_entropy(alpha, ws_l, tl) +
      tr * _tsallis_entropy(alpha, ws_r, tr))
 end
@@ -111,7 +111,7 @@ TsallisEntropy(alpha::AbstractFloat) = (args...)->_tsallis_entropy(alpha, args..
 # (ps = normalize(ws, 1); -(1.0-sum(ps.^alpha))/(alpha-1.0)) with (alpha > 1.0)
 
 # Single
-Base.@propagate_inbounds @inline function _renyi_entropy(alpha :: AbstractFloat, ws :: AbstractVector{U}, t :: U) where {U <: Real}
+Base.@propagate_inbounds @inline function _renyi_entropy(alpha :: AbstractFloat, ws :: AbstractVector{U}, t :: U) where {U<:Real}
     (sum(normalize(ws, 1).^alpha)-1.0)
 end
 
@@ -120,7 +120,7 @@ Base.@propagate_inbounds @inline function _renyi_entropy(
     alpha :: AbstractFloat,
     ws_l :: AbstractVector{U}, tl :: U,
     ws_r :: AbstractVector{U}, tr :: U,
-) where {U <: Real}
+) where {U<:Real}
     (tl * _renyi_entropy(alpha, ws_l, tl) +
      tr * _renyi_entropy(alpha, ws_r, tr))
 end

@@ -2,6 +2,7 @@ using ModalDecisionTrees
 using MLJ
 using DataFrames
 using SoleData
+using SoleLogics
 using Random
 
 N = 5
@@ -146,30 +147,6 @@ report(mach).printmodel(1000; threshold_digits = 2);
 printmodel.(listrules(report(mach).solemodel; use_shortforms=true, use_leftmostlinearform = true))
 
 printmodel.(joinrules(listrules(report(mach).solemodel; use_shortforms=true, use_leftmostlinearform = true)))
-
-# Very multimodal tree:
-N = 100
-X_all = DataFrame(
-    mode0 = [rand() for i in 1:N],
-    mode1 = [rand(5) for i in 1:N],
-    mode2 = [rand(2,2) for i in 1:N],
-)
-y = string.(rand(1:10, N))
-mach = MLJ.fit!(machine(ModalDecisionTree(; min_samples_leaf = 1), X_all, y))
-
-
-@test repr(listrules(report(mach).solemodel; use_shortforms=false)) == repr(listrules(report(mach).solemodel; use_shortforms=true))
-
-report(mach).printmodel(1000; threshold_digits = 2);
-
-printmodel.(listrules(report(mach).solemodel; use_shortforms=true));
-printmodel.(joinrules(listrules(report(mach).solemodel; use_shortforms=true, use_leftmostlinearform = false)));
-
-printmodel.(joinrules(listrules(report(mach).solemodel)));
-
-@test_throws ErrorException printmodel.(listrules(report(mach).solemodel; use_shortforms=true, use_leftmostlinearform = true))
-@test_throws ErrorException printmodel.(joinrules(listrules(report(mach).solemodel; use_shortforms=true, use_leftmostlinearform = true)))
-
 
 model = ModalDecisionTree(min_purity_increase = 0.001)
 

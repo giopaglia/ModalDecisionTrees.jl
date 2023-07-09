@@ -162,6 +162,9 @@ function MMI.clean!(model::SymbolicModel)
         if isnothing(model.n_subfeatures)
             identity
         elseif model.n_subfeatures isa Integer
+            warning *= "An absolute n_subfeatures was provided $(model.n_subfeatures). " *
+                "It is recommended to use relative values (between 0 and 1), interpreted " *
+                " as the share of the random portion of feature space explored at each split."
             x -> convert(Int64, model.n_subfeatures)
         elseif model.n_subfeatures isa AbstractFloat && 0 ≤ model.n_subfeatures ≤ 1
             x -> ceil(Int64, x*model.n_subfeatures)

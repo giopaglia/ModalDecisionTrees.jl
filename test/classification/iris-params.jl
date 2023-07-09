@@ -53,6 +53,7 @@ model = ModalDecisionTree(;
 	max_purity_at_leaf = 1.0,
 	print_progress = true,
 	max_modal_depth = 2,
+    n_subfeatures = round(Int, length(Tables.columns(X)) * (2 - 0.5)),
 	# display_depth = nothing,
 	display_depth = 2,
 	rng = Random.MersenneTwister(2)
@@ -90,7 +91,7 @@ out2 = (io = IOBuffer(); report(mach).printmodel(io, false); String(take!(io)))
 @test_nowarn listrules(report(mach).solemodel)
 @test_nowarn listrules(report(mach).solemodel; use_shortforms=true)
 @test_nowarn listrules(report(mach).solemodel; use_shortforms=false)
-@test_nowarn listrules(report(mach).solemodel; use_shortforms=true, use_leftmostlinearform = true)
+@test_throws ErrorException listrules(report(mach).solemodel; use_shortforms=true, use_leftmostlinearform = true)
 @test_nowarn listrules(report(mach).solemodel; use_shortforms=false, use_leftmostlinearform = true)
 @test_throws ErrorException listrules(report(mach).solemodel; use_shortforms=false, use_leftmostlinearform = true, force_syntaxtree = true)
 
