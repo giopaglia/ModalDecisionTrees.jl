@@ -244,7 +244,7 @@ function build_forest(
         # grab out-of-bag indices
         oob_instances[i_tree] = setdiff(1:tot_samples, train_idxs)
 
-        tree_preds = apply_tree(trees[i_tree], SoleData.instances(X, oob_instances[i_tree], Val(true)))
+        tree_preds = apply(trees[i_tree], SoleData.instances(X, oob_instances[i_tree], Val(true)))
 
         oob_metrics[i_tree] = (;
             actual = Y[oob_instances[i_tree]],

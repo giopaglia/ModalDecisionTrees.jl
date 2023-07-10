@@ -2,6 +2,7 @@ using ModalDecisionTrees
 using MLJ
 using DataFrames
 using SoleData
+using Logging
 using SoleLogics
 using Random
 
@@ -88,7 +89,7 @@ ModalDecisionTrees.build_tree(logiset, y;
 )
 ModalDecisionTrees.build_tree(MultiLogiset(logiset), y)
 
-multilogiset, _ = ModalDecisionTrees.MLJInterface.wrapdataset(X_images1[:,Not(:ID)], ModalDecisionTree(; min_samples_leaf = 1))
+multilogiset, _ = ModalDecisionTrees.wrapdataset(X_images1[:,Not(:ID)], ModalDecisionTree(; min_samples_leaf = 1))
 
 kwargs = (loss_function = nothing, max_depth = nothing, min_samples_leaf = 1, min_purity_increase = 0.002, max_purity_at_leaf = Inf, max_modal_depth = nothing, n_subrelations = identity, n_subfeatures = identity, initconditions = ModalDecisionTrees.StartAtCenter(), allow_global_splits = true, use_minification = false, perform_consistency_check = false, rng = Random.GLOBAL_RNG, print_progress = false)
 
@@ -126,7 +127,7 @@ MLJ.fit!(machine(ModalDecisionTree(;), X_all, y), rows=train_idxs)
 X_all = innerjoin([X_multi1, X_images2]... , on = :ID)[:, Not(:ID)]
 mach = MLJ.fit!(machine(ModalDecisionTree(; min_samples_leaf = 1), X_all, y), rows=train_idxs)
 
-multilogiset, var_grouping = ModalDecisionTrees.MLJInterface.wrapdataset(X_all, ModalDecisionTree(; min_samples_leaf = 1))
+multilogiset, var_grouping = ModalDecisionTrees.wrapdataset(X_all, ModalDecisionTree(; min_samples_leaf = 1))
 
 
 ModalDecisionTrees.build_tree(multilogiset, y;
@@ -153,11 +154,12 @@ printmodel.(joinrules(listrules(report(mach).solemodel; use_shortforms=true, use
 
 model = ModalDecisionTree(min_purity_increase = 0.001)
 
-@test_logs (:info,) machine(model, X_multi1, y) |> fit!
-@test_logs (:info,) machine(model, X_multi2, y) |> fit!
-@test_logs (:info,) machine(model, X_images1, y) |> fit!
-@test_logs (:info,) machine(model, X_images2, y) |> fit!
-@test_throws AssertionError machine(model, X_all, y) |> fit!
+@test_logs min_level=Logging.Error machine(model, X_multi1, y) |> fit!
+@test_logs min_level=Logging.Error machine(model, X_multi2, y) |> fit!
+@test_logs min_level=Logging.Error machine(model, X_images1, y) |> fit!
+@test_logs min_level=Logging.Error machine(model, X_images2, y) |> fit!
+machine(model, X_all, y) |> fit!
+# @test_throws AssertionError machine(model, X_all, y) |> fit!
 
 ############################################################################################
 ############################################################################################

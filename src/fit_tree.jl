@@ -998,8 +998,8 @@ end
 
     if nothing in Y
         error("This algorithm doesn't allow nothing values in Y")
-    elseif any(isnan.(Y))
-      error("This algorithm doesn't allow NaN values in Y")
+    elseif eltype(Y) <: Number && any(isnan.(Y))
+        error("This algorithm doesn't allow NaN values in Y")
     elseif nothing in W
         error("This algorithm doesn't allow nothing values in W")
     elseif any(isnan.(W))

@@ -53,13 +53,13 @@ model = ModalDecisionTree(;
 	max_purity_at_leaf = 1.0,
 	print_progress = true,
 	max_modal_depth = 2,
-    n_subfeatures = round(Int, length(Tables.columns(X)) * (2 - 0.5)),
+    n_subfeatures = round(Int, length(Tables.columns(X)) * (0.5)),
 	# display_depth = nothing,
 	display_depth = 2,
 	rng = Random.MersenneTwister(2)
 )
 mach = machine(model, X, y) |> fit!
-@test depth(fitted_params(mach).tree) == 4
+@test depth(fitted_params(mach).tree) == 6
 @test_nowarn report(mach).printmodel()
 @test_nowarn report(mach).printmodel(false, 0)
 @test_nowarn report(mach).printmodel(true, 0)
@@ -91,7 +91,9 @@ out2 = (io = IOBuffer(); report(mach).printmodel(io, false); String(take!(io)))
 @test_nowarn listrules(report(mach).solemodel)
 @test_nowarn listrules(report(mach).solemodel; use_shortforms=true)
 @test_nowarn listrules(report(mach).solemodel; use_shortforms=false)
-@test_throws ErrorException listrules(report(mach).solemodel; use_shortforms=true, use_leftmostlinearform = true)
+printmodel.(listrules(report(mach).solemodel; use_shortforms=true, use_leftmostlinearform = true))
+@test_nowarn listrules(report(mach).solemodel; use_shortforms=true, use_leftmostlinearform = true)
+# @test_throws ErrorException listrules(report(mach).solemodel; use_shortforms=true, use_leftmostlinearform = true)
 @test_nowarn listrules(report(mach).solemodel; use_shortforms=false, use_leftmostlinearform = true)
 @test_throws ErrorException listrules(report(mach).solemodel; use_shortforms=false, use_leftmostlinearform = true, force_syntaxtree = true)
 

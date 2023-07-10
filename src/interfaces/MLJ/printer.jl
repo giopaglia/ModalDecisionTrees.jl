@@ -12,16 +12,20 @@ end
 function (c::ModelPrinter)(args...; kwargs...)
     c(stdout, args...; kwargs...)
 end
+# Do not remove (generates compile-time warnings)
+function (c::ModelPrinter)(io::IO; kwargs... )
+    c(io, true, c.m.display_depth; kwargs...)
+end
 function (c::ModelPrinter)(
     io::IO,
-    max_depth::Union{Nothing,Integer} = c.m.display_depth;
+    max_depth::Union{Nothing,Integer};
     kwargs...
 )
     c(io, true, max_depth = max_depth; kwargs...)
 end
 function (c::ModelPrinter)(
     io::IO,
-    print_solemodel::Bool = true,
+    print_solemodel::Bool,
     max_depth::Union{Nothing,Integer} = c.m.display_depth;
     kwargs...
 )

@@ -23,7 +23,7 @@ model = ModalDecisionTree(;
     conditions = [minimum],
     initconditions = :start_at_center,
     featvaltype = Float32,
-    downsize = (x)->ModalDecisionTrees.MLJInterface.moving_average(x, (10,10))
+    downsize = (x)->ModalDecisionTrees.moving_average(x, (10,10))
     # conditions = [minimum, maximum, UnivariateFeature{Float64}(recheight), UnivariateFeature{Float64}(recwidth)],
     # conditions = [minimum, maximum, UnivariateFeature{Float32}(1, recheight), UnivariateFeature{Float32}(1, recwidth)],
 )

@@ -60,8 +60,8 @@ accuracy = nfoldCV_tree(labels, features, nfolds)
 # train random forest classifier
 ntrees = 10
 n_subfeatures = 2
-partial_sampling = 0.5
-model = build_forest(labels, features, n_subfeatures, ntrees, partial_sampling)
+sampling_fraction = 0.5
+model = build_forest(labels, features, n_subfeatures, ntrees, sampling_fraction)
 preds = apply_forest(model, features)
 @test MLJBase.accuracy(labels, preds) > 0.95
 @test preds isa Vector{String}
@@ -73,8 +73,8 @@ println("\n##### nfoldCV Classification Forest #####")
 n_subfeatures = 2
 ntrees = 10
 n_folds = 3
-partial_sampling = 0.5
-accuracy = nfoldCV_forest(labels, features, nfolds, n_subfeatures, ntrees, partial_sampling)
+sampling_fraction = 0.5
+accuracy = nfoldCV_forest(labels, features, nfolds, n_subfeatures, ntrees, sampling_fraction)
 @test mean(accuracy) > 0.9
 
 # train adaptive-boosted decision stumps

@@ -1,4 +1,6 @@
 using Random
+using ModalDecisionTrees
+using MLJBase
 
 include("../data/load.jl")
 
@@ -34,16 +36,17 @@ mach = machine(ModalDecisionTree(;
 @test sum(predict_mode(mach, rows = test_idxs) .== y[test_idxs]) / length(y[test_idxs]) > 0.75
 
 
-mach = machine(ModalDecisionForest(;
-    n_subfeatures       = 3,
+mach = machine(ModalRandomForest(;
+    n_subfeatures       = 0.7,
     ntrees              = 10,
-    partial_sampling    = 0.7,
+    sampling_fraction   = 0.7,
     max_depth           = -1,
     min_samples_leaf    = 1,
     min_samples_split   = 2,
     min_purity_increase = 0.0,
+    rng = Random.MersenneTwister(1)
 ), X, y) |> m->fit!(m, rows = train_idxs)
-@test nnodes(fitted_params(mach).model) == 77
+@test nnodes(fitted_params(mach).model) == 2438
 @test sum(predict_mode(mach, rows = test_idxs) .== y[test_idxs]) / length(y[test_idxs]) > 0.75
 
 
@@ -51,7 +54,7 @@ mach = machine(ModalDecisionForest(;
 
 # NamedTuple dataset
 mach = mach = machine(ModalDecisionTree(;), Xnt, y) |> m->fit!(m, rows = train_idxs)
-@test nnodes(fitted_params(mach).model) == 137
+@test nnodes(fitted_params(mach).model) == 131
 @test sum(predict_mode(mach, rows = test_idxs) .== y[test_idxs]) / length(y[test_idxs]) > 0.68
 
 mach = machine(ModalDecisionTree(;
@@ -59,7 +62,7 @@ mach = machine(ModalDecisionTree(;
     conditions = [minimum],
     initconditions = :start_at_center,
 ), Xnt, y) |> m->fit!(m, rows = train_idxs)
-@test nnodes(fitted_params(mach).model) == 167
+@test nnodes(fitted_params(mach).model) == 147
 @test sum(predict_mode(mach, rows = test_idxs) .== y[test_idxs]) / length(y[test_idxs]) > 0.67
 
 mach = machine(ModalDecisionTree(;
@@ -68,8 +71,8 @@ mach = machine(ModalDecisionTree(;
     # initconditions = :start_at_center,
     featvaltype = Float32,
 ), selectrows(Xnt, train_idxs), selectrows(y, train_idxs)) |> m->fit!(m)
-@test nnodes(fitted_params(mach).model) == 71
-@test sum(predict_mode(mach, selectrows(Xnt, test_idxs)) .== y[test_idxs]) / length(y[test_idxs]) > 0.73
+@test nnodes(fitted_params(mach).model) == 131
+@test sum(predict_mode(mach, selectrows(Xnt, test_idxs)) .== y[test_idxs]) / length(y[test_idxs]) > 0.71
 
 
 using ImageFiltering
@@ -147,10 +150,10 @@ mach = machine(ModalDecisionTree(;
 @test sum(predict_mode(mach, rows = test_idxs) .== y[test_idxs]) / length(y[test_idxs]) > 0.75
 
 
-mach = machine(ModalDecisionForest(;
+mach = machine(ModalRandomForest(;
     n_subfeatures       = 3,
     ntrees              = 10,
-    partial_sampling    = 0.7,
+    sampling_fraction   = 0.7,
     max_depth           = -1,
     min_samples_leaf    = 1,
     min_samples_split   = 2,

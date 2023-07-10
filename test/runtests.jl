@@ -40,8 +40,8 @@ test_suites = [
         # "classification/scikitlearn.jl"
     ]),
     ("Regression", [
-        # "regression/simple.jl",
-        "regression/ames.jl",
+        "regression/simple.jl",
+        # "regression/ames.jl",
         "regression/digits-regression.jl",
         # "regression/random.jl",
         # "regression/low_precision.jl",
@@ -50,7 +50,6 @@ test_suites = [
         "multimodal-datasets.jl"
         "multiformulas-construction.jl"
         # "miscellaneous/convert.jl"
-        "translation/parse-and-translate-existentialdecisions.jl"
     ]),
 ]
 

@@ -8,58 +8,62 @@ function make_downsizing_function(channelsize::NTuple)
     end
 end
 
-function tree_downsizing_function(_X)
-    channelsize = SoleData.channelsize(_X)
-    nvariables = SoleData.nvariables(_X)
-    channelndims = length(channelsize)
-    if channelndims == 1
-        n_points = channelsize[1]
-        if nvariables > 30 && n_points > 100
-            @warn "Downsizing series $(n_points) points to $(100) points ($(nvariables) variables). $DOWNSIZE_MSG"
-            _X = moving_average(_X, 100)
-        elseif n_points > 150
-            @warn "Downsizing series $(n_points) points to $(150) points ($(nvariables) variables). $DOWNSIZE_MSG"
-            _X = moving_average(_X, 150)
+function make_downsizing_function(::TreeModel)
+    function downsize(X)
+        channelsize = SoleData.channelsize(X)
+        nvariables = SoleData.nvariables(X)
+        channelndims = length(channelsize)
+        if channelndims == 1
+            n_points = channelsize[1]
+            if nvariables > 30 && n_points > 100
+                @warn "Downsizing series $(n_points) points to $(100) points ($(nvariables) variables). $DOWNSIZE_MSG"
+                X = moving_average(X, 100)
+            elseif n_points > 150
+                @warn "Downsizing series $(n_points) points to $(150) points ($(nvariables) variables). $DOWNSIZE_MSG"
+                X = moving_average(X, 150)
+            end
+        elseif channelndims == 2
+            if nvariables > 30 && prod(channelsize) > prod((7,7),)
+                new_channelsize = min.(channelsize, (7,7))
+                @warn "Downsizing image of size $(channelsize) to $(new_channelsize) pixels ($(nvariables) variables). $DOWNSIZE_MSG"
+                X = moving_average(X, new_channelsize)
+            elseif prod(channelsize) > prod((10,10),)
+                new_channelsize = min.(channelsize, (10,10))
+                @warn "Downsizing image of size $(channelsize) to $(new_channelsize) pixels ($(nvariables) variables). $DOWNSIZE_MSG"
+                X = moving_average(X, new_channelsize)
+            end
         end
-    elseif channelndims == 2
-        if nvariables > 30 && prod(channelsize) > prod((7,7),)
-            new_channelsize = min.(channelsize, (7,7))
-            @warn "Downsizing image of size $(channelsize) to $(new_channelsize) pixels ($(nvariables) variables). $DOWNSIZE_MSG"
-            _X = moving_average(_X, new_channelsize)
-        elseif prod(channelsize) > prod((10,10),)
-            new_channelsize = min.(channelsize, (10,10))
-            @warn "Downsizing image of size $(channelsize) to $(new_channelsize) pixels ($(nvariables) variables). $DOWNSIZE_MSG"
-            _X = moving_average(_X, new_channelsize)
-        end
+        X
     end
-    _X
 end
 
-function forest_downsizing_function(_X)
-    channelsize = SoleData.channelsize(_X)
-    nvariables = SoleData.nvariables(_X)
-    channelndims = length(channelsize)
-    if channelndims == 1
-        n_points = channelsize[1]
-        if nvariables > 30 && n_points > 100
-            @warn "Downsizing series $(n_points) points to $(100) points ($(nvariables) variables). $DOWNSIZE_MSG"
-            _X = moving_average(_X, 100)
-        elseif n_points > 150
-            @warn "Downsizing series $(n_points) points to $(150) points ($(nvariables) variables). $DOWNSIZE_MSG"
-            _X = moving_average(_X, 150)
+function make_downsizing_function(::ForestModel)
+    function downsize(X)
+        channelsize = SoleData.channelsize(X)
+        nvariables = SoleData.nvariables(X)
+        channelndims = length(channelsize)
+        if channelndims == 1
+            n_points = channelsize[1]
+            if nvariables > 30 && n_points > 100
+                @warn "Downsizing series $(n_points) points to $(100) points ($(nvariables) variables). $DOWNSIZE_MSG"
+                X = moving_average(X, 100)
+            elseif n_points > 150
+                @warn "Downsizing series $(n_points) points to $(150) points ($(nvariables) variables). $DOWNSIZE_MSG"
+                X = moving_average(X, 150)
+            end
+        elseif channelndims == 2
+            if nvariables > 30 && prod(channelsize) > prod((4,4),)
+                new_channelsize = min.(channelsize, (4,4))
+                @warn "Downsizing image of size $(channelsize) to $(new_channelsize) pixels ($(nvariables) variables). $DOWNSIZE_MSG"
+                X = moving_average(X, new_channelsize)
+            elseif prod(channelsize) > prod((7,7),)
+                new_channelsize = min.(channelsize, (7,7))
+                @warn "Downsizing image of size $(channelsize) to $(new_channelsize) pixels ($(nvariables) variables). $DOWNSIZE_MSG"
+                X = moving_average(X, new_channelsize)
+            end
         end
-    elseif channelndims == 2
-        if nvariables > 30 && prod(channelsize) > prod((4,4),)
-            new_channelsize = min.(channelsize, (4,4))
-            @warn "Downsizing image of size $(channelsize) to $(new_channelsize) pixels ($(nvariables) variables). $DOWNSIZE_MSG"
-            _X = moving_average(_X, new_channelsize)
-        elseif prod(channelsize) > prod((7,7),)
-            new_channelsize = min.(channelsize, (7,7))
-            @warn "Downsizing image of size $(channelsize) to $(new_channelsize) pixels ($(nvariables) variables). $DOWNSIZE_MSG"
-            _X = moving_average(_X, new_channelsize)
-        end
+        X
     end
-    _X
 end
 
 function moving_average(

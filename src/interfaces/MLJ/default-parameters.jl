@@ -11,11 +11,15 @@ const mlj_default_max_modal_depth = nothing
 const mlj_mdt_default_min_samples_leaf = 4
 const mlj_mdt_default_min_purity_increase = 0.002
 const mlj_mdt_default_max_purity_at_leaf = Inf
+const mlj_mdt_default_n_subfeatures = identity
 
 const mlj_mrf_default_min_samples_leaf = 1
 const mlj_mrf_default_min_purity_increase = -Inf
 const mlj_mrf_default_max_purity_at_leaf = Inf
 const mlj_mrf_default_ntrees = 50
+sqrt_f(x) = ceil(Int, sqrt(x))
+const mlj_mrf_default_n_subfeatures = sqrt_f
+const mlj_mrf_default_sampling_fraction = 0.7
 
 AVAILABLE_RELATIONS = OrderedDict{Symbol,Function}([
     :none       => (d)->AbstractRelation[],

@@ -2,6 +2,9 @@
 
 module MLJInterface
 
+export ModalDecisionTree, ModalRandomForest
+export depth, wrapdataset
+
 using MLJModelInterface
 using MLJModelInterface.ScientificTypesBase
 using CategoricalArrays
@@ -10,7 +13,6 @@ using DataStructures
 using Tables
 using Random
 using Random: GLOBAL_RNG
-# using Distributions: Normal
 
 using SoleLogics
 using SoleLogics: AbstractRelation
@@ -22,21 +24,35 @@ using SoleModels: TestOperator
 using ModalDecisionTrees
 using ModalDecisionTrees: InitialCondition
 
-
 const MMI = MLJModelInterface
 const MDT = ModalDecisionTrees
 
 const repo_url = "https://github.com/giopaglia/$(MDT).jl"
 
-export ModalDecisionTree
-export depth
-
 include("MLJ/default-parameters.jl")
 include("MLJ/sanity-checks.jl")
-include("MLJ/downsize.jl")
 include("MLJ/printer.jl")
 include("MLJ/wrapdataset.jl")
 include("MLJ/feature-importance.jl")
+
+include("MLJ/ModalDecisionTree.jl")
+include("MLJ/ModalRandomForest.jl")
+
+const SymbolicModel = Union{
+    ModalDecisionTree,
+    ModalRandomForest,
+}
+
+const TreeModel = Union{
+    ModalDecisionTree,
+}
+
+const ForestModel = Union{
+    ModalRandomForest,
+}
+
+include("MLJ/downsize.jl")
+include("MLJ/clean.jl")
 
 ############################################################################################
 ############################################################################################
@@ -52,119 +68,17 @@ depth(t::MDT.DTree) = height(t)
 ############################################################################################
 ############################################################################################
 
-mutable struct ModalDecisionTree <: MMI.Probabilistic
-
-    ## Pruning conditions
-    max_depth              :: Union{Nothing,Int}
-    min_samples_leaf       :: Union{Nothing,Int}
-    min_purity_increase    :: Union{Nothing,Float64}
-    max_purity_at_leaf     :: Union{Nothing,Float64}
-
-    max_modal_depth        :: Union{Nothing,Int}
-
-    ## Logic parameters
-
-    # Relation set
-    relations              :: Union{
-        Nothing,                                            # defaults to a well-known relation set, depending on the data;
-        Symbol,                                             # one of the relation sets specified in AVAILABLE_RELATIONS;
-        Vector{<:AbstractRelation},                         # explicitly specify the relation set;
-        # Vector{<:Union{Symbol,Vector{<:AbstractRelation}}}, # MULTIMODAL CASE: specify a relation set for each modality;
-        Function                                            # A function worldtype -> relation set.
-    }
-
-    # Condition set
-    conditions             :: Union{
-        Nothing,                                                                     # defaults to scalar conditions (with ≥ and <) on well-known feature functions (e.g., minimum, maximum), applied to all variables;
-        Vector{<:Union{SoleModels.VarFeature,Base.Callable}},                        # scalar conditions with ≥ and <, on an explicitly specified feature set (callables to be applied to each variable, or VarFeature objects);
-        Vector{<:Tuple{Base.Callable,Integer}},                                      # scalar conditions with ≥ and <, on a set of features specified as a set of callables to be applied to a set of variables each;
-        Vector{<:Tuple{TestOperator,<:Union{SoleModels.VarFeature,Base.Callable}}},  # explicitly specify the pairs (test operator, feature);
-        Vector{<:SoleModels.ScalarMetaCondition},                                    # explicitly specify the scalar condition set.
-    }
-    # Type for the extracted feature values
-    featvaltype            :: Type
-
-    # Initial conditions
-    initconditions         :: Union{
-        Nothing,                                                                     # defaults to standard conditions (e.g., start_without_world)
-        Symbol,                                                                      # one of the initial conditions specified in AVAILABLE_INITIALCONDITIONS;
-        InitialCondition,                                                            # explicitly specify an initial condition for the learning algorithm.
-    }
-
-    ## Miscellaneous
-    downsize               :: Union{Bool,NTuple{N,Integer} where N,Function}
-    print_progress         :: Bool
-    rng                    :: Union{Random.AbstractRNG,Integer}
-
-    ## DecisionTree.jl parameters
-    display_depth          :: Union{Nothing,Int}
-    min_samples_split      :: Union{Nothing,Int}
-    n_subfeatures          :: Union{Nothing,Int,Float64,Function}
-    post_prune             :: Bool
-    merge_purity_threshold :: Union{Nothing,Float64}
-    feature_importance     :: Symbol
-end
-
-# keyword constructor
-function ModalDecisionTree(;
-    max_depth = nothing,
-    min_samples_leaf = nothing,
-    min_purity_increase = nothing,
-    max_purity_at_leaf = nothing,
-    max_modal_depth = nothing,
-    #
-    relations = nothing,
-    conditions = nothing,
-    featvaltype = Float64,
-    initconditions = nothing,
-    #
-    downsize = true,
-    print_progress = false,
-    rng = Random.GLOBAL_RNG,
-    #
-    display_depth = nothing,
-    min_samples_split = nothing,
-    n_subfeatures = nothing,
-    post_prune = false,
-    merge_purity_threshold = nothing,
-    feature_importance = :split,
-)
-    model = ModalDecisionTree(
-        max_depth,
-        min_samples_leaf,
-        min_purity_increase,
-        max_purity_at_leaf,
-        max_modal_depth,
-        #
-        relations,
-        conditions,
-        featvaltype,
-        initconditions,
-        #
-        downsize,
-        print_progress,
-        rng,
-        #
-        display_depth,
-        min_samples_split,
-        n_subfeatures,
-        post_prune,
-        merge_purity_threshold,
-        feature_importance,
-    )
-    message = MMI.clean!(model)
-    isempty(message) || @warn message
-    return model
-end
-
-
-############################################################################################
-############################################################################################
-############################################################################################
-
-function MMI.fit(m::ModalDecisionTree, verbosity::Integer, X, y, var_grouping, classes_seen=nothing, w=nothing)
+function MMI.fit(m::SymbolicModel, verbosity::Integer, X, y, var_grouping, classes_seen=nothing, w=nothing)
     # @show get_kwargs(m, X)
-    model = MDT.build_tree(X, y, w; get_kwargs(m, X)...)
+    model = begin
+        if m isa ModalDecisionTree
+            MDT.build_tree(X, y, w; get_kwargs(m, X)...)
+        elseif m isa ModalRandomForest
+            MDT.build_forest(X, y, w; get_kwargs(m, X)...)
+        else
+            error("Unexpected model type: $(typeof(m))")
+        end
+    end
 
     if m.post_prune
         merge_purity_threshold = m.merge_purity_threshold
@@ -212,25 +126,12 @@ function MMI.fit(m::ModalDecisionTree, verbosity::Integer, X, y, var_grouping, c
     return fitresult, cache, report
 end
 
-MMI.fitted_params(::ModalDecisionTree, fitresult) = merge(fitresult, (; tree = fitresult.model))
+MMI.fitted_params(::TreeModel, fitresult) = merge(fitresult, (; tree = fitresult.model))
+MMI.fitted_params(::ForestModel, fitresult) = merge(fitresult, (; forest = fitresult.model))
 
 ############################################################################################
 ############################################################################################
 ############################################################################################
-
-const SymbolicModel = Union{
-    ModalDecisionTree
-}
-
-const TreeModel = Union{
-    ModalDecisionTree
-}
-
-const ForestModel = Union{
-
-}
-
-include("MLJ/parameters.jl")
 
 function MMI.predict(m::SymbolicModel, fitresult, Xnew, var_grouping = nothing)
     if !isnothing(var_grouping) && var_grouping != fitresult.var_grouping
@@ -239,7 +140,7 @@ function MMI.predict(m::SymbolicModel, fitresult, Xnew, var_grouping = nothing)
             "var_grouping = $(var_grouping)" *
             "\n"
     end
-    MDT.apply_proba(fitresult.model, Xnew, get(fitresult, :classes_seen, nothing))
+    MDT.apply_proba(fitresult.model, Xnew, get(fitresult, :classes_seen, nothing); suppress_parity_warning = true)
 end
 
 ############################################################################################
@@ -291,7 +192,7 @@ end
 MMI.metadata_pkg.(
     (
         ModalDecisionTree,
-        # ModalRandomForest,
+        ModalRandomForest,
         # DecisionTreeRegressor,
         # RandomForestRegressor,
         # AdaBoostStumpClassifier,
@@ -304,41 +205,31 @@ MMI.metadata_pkg.(
     package_license = "MIT",
 )
 
-MMI.metadata_model(
-    ModalDecisionTree,
-    input_scitype = Union{
-        Table(
-            Continuous,     AbstractVector{<:Continuous},    AbstractMatrix{<:Continuous},
-            Count,          AbstractVector{<:Count},         AbstractMatrix{<:Count},
-            OrderedFactor,  AbstractVector{<:OrderedFactor}, AbstractMatrix{<:OrderedFactor},
-        ),
-        # AbstractArray{Continuous,2},     AbstractArray{Continuous,3},    AbstractArray{Continuous,4},
-        # AbstractArray{Count,2},          AbstractArray{Count,3},         AbstractArray{Count,4},
-        # AbstractArray{OrderedFactor,2},  AbstractArray{OrderedFactor,3}, AbstractArray{OrderedFactor,4},
-    },
-    target_scitype = Union{
-        AbstractVector{<:Continuous},
-        AbstractVector{<:Count},
-        AbstractVector{<:Finite},
-        AbstractVector{<:Textual}
-    },
-    human_name = "Modal Decision Tree",
-    descr   = "A Modal Decision Tree is a probabilistic, symbolic model " *
-        "for classification and regression tasks with dimensional data " *
-        "(e.g., images and time-series)." *
-        "The model is able to extract logical descriptions of the data " *
-        "in terms of logical formulas (see SoleLogics.jl) on propositions that are, " *
-        "for example, min[V2] ≥ 10, that is, \"the minimum of variable 2 is not less than 10\"." *
-        "As such, the model offers an interesting level of interpretability." *
-        ""
-        ,
-    supports_weights = true,
-    load_path = "$MDT.ModalDecisionTree",
-)
-
-############################################################################################
-############################################################################################
-############################################################################################
+for (model, human_name) in [
+    (ModalDecisionTree, "Modal Decision Tree"),
+    (ModalRandomForest, "Modal Random Forest"),
+]
+    MMI.metadata_model(
+        model,
+        input_scitype = Union{
+            Table(
+                Continuous,     AbstractArray{<:Continuous,0},    AbstractArray{<:Continuous,1},    AbstractArray{<:Continuous,2},
+                Count,          AbstractArray{<:Count,0},         AbstractArray{<:Count,1},         AbstractArray{<:Count,2},
+                OrderedFactor,  AbstractArray{<:OrderedFactor,0}, AbstractArray{<:OrderedFactor,1}, AbstractArray{<:OrderedFactor,2},
+            ),
+        },
+        target_scitype = Union{
+            AbstractVector{<:Continuous},
+            AbstractVector{<:Count},
+            AbstractVector{<:Finite},
+            AbstractVector{<:Textual}
+        },
+        human_name = human_name,
+        supports_weights = true,
+        load_path = "$MDT.$(model)",
+    )
+end
 
 end
+
 using .MLJInterface

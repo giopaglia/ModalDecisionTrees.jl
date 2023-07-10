@@ -48,7 +48,7 @@ function wrapdataset(
                     print_progress = (ninstances(X) > 500)
                 )
             else
-                cube2dataframe(X)
+                SoleData.cube2dataframe(X)
             end
         elseif X isa SupportedLogiset
             X
@@ -73,13 +73,12 @@ function wrapdataset(
     X, var_grouping = begin
         if X isa AbstractDataFrame
 
-            allowedcoltypes = Union{Real,AbstractVector{<:Real},AbstractMatrix{<:Real}}
+            allowedcoltypes = Union{Real,AbstractArray{<:Real,0},AbstractVector{<:Real},AbstractMatrix{<:Real}}
             wrong_columns = filter(((colname,c),)->!(eltype(c) <: allowedcoltypes), collect(zip(names(X), eachcol(X))))
-            wrong_columns =
             @assert length(wrong_columns) == 0 "Invalid columns " *
                 "encountered: `$(join(first.(wrong_columns), "`, `", "` and `"))`. $(MDT).jl only allows " *
-                "variables that are `Real`, `AbstractVector{<:Real}` " *
-                "or `AbstractMatrix{<:Real}`. Got: `$(join(eltype.(last.(wrong_columns)), "`, `", "` and `"))`" * (length(wrong_columns) > 1 ? ", respectively" : "") * "."
+                "variables that are `Real` and `AbstractArray{<:Real,N}` with N ∈ {0,1,2}. " *
+                "Got: `$(join(eltype.(last.(wrong_columns)), "`, `", "` and `"))`" * (length(wrong_columns) > 1 ? ", respectively" : "") * "."
 
             var_grouping = begin
                 if isnothing(force_var_grouping)

@@ -33,7 +33,10 @@ yhat = MLJ.predict_mode(mach, X)
 @test_nowarn printmodel(report(mach).solemodel, header = false)
 @test_nowarn printmodel(report(mach).solemodel, header = :brief)
 @test_nowarn printmodel(report(mach).solemodel, header = true)
-@test_nowarn printmodel(report(mach).solemodel, show_subtree_info = true)
+
+io = IOBuffer()
+@test_nowarn printmodel(io, report(mach).solemodel, show_subtree_info = true)
+# String(take!(io))
 
 @test_nowarn printmodel.((SoleModels.listrules(report(mach).solemodel,)));
 

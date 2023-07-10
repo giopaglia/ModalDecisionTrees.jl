@@ -1,6 +1,6 @@
 
 function load_digits()
-    data_path = joinpath(dirname(pathof(ModalDecisionTrees)), "..", "test/classification/")
+    data_path = joinpath(dirname(pathof(ModalDecisionTrees)), "..", "test/data/")
 
     f = open(joinpath(data_path, "digits.csv"))
     data = readlines(f)[2:end]

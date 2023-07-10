@@ -68,6 +68,10 @@ MLJ.fit!(mach)
 mach = machine(ModalDecisionTree(post_prune = true), X, y) |> MLJ.fit!
 mach = machine(ModalDecisionTree(post_prune = true, max_modal_depth = 2), X, y) |> MLJ.fit!
 mach = machine(ModalDecisionTree(min_samples_split=100, post_prune = true, merge_purity_threshold = 0.4), X, y) |> MLJ.fit!
+mach = machine(ModalDecisionTree(n_subfeatures = 0.2,), X, y) |> MLJ.fit!
+mach = machine(ModalDecisionTree(n_subfeatures = 2,), X, y) |> MLJ.fit!
+mach = machine(ModalDecisionTree(n_subfeatures = x->ceil(Int64, div(x, 2)),), X, y) |> MLJ.fit!
+mach = machine(ModalDecisionTree(downsize = false,), X, y) |> MLJ.fit!
 
 ############################################################################################
 ############################################################################################
@@ -89,7 +93,7 @@ end
 
 X, y = ModalDecisionTrees.@load_japanesevowels
 
-multilogiset, var_grouping = ModalDecisionTrees.MLJInterface.wrapdataset(X, ModalDecisionTree(; min_samples_leaf = 1))
+multilogiset, var_grouping = ModalDecisionTrees.wrapdataset(X, ModalDecisionTree(; min_samples_leaf = 1))
 
 # A Modal Decision Tree
 t = ModalDecisionTree(min_samples_split=100, post_prune = true, merge_purity_threshold = true)

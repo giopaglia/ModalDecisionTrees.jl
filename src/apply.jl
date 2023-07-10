@@ -12,16 +12,21 @@ function apply end
 
 apply_model = apply
 
-@deprecate apply_tree(x) apply_model(x)
-@deprecate apply_forest(x) apply_model(x)
+# apply_tree = apply_model
+@deprecate apply_tree apply_model
+# apply_forest = apply_model
+@deprecate apply_forest apply_model
 
 function apply_proba end
 
 apply_model_proba = apply_proba
 
-@deprecate apply_tree_proba(x) apply_model_proba(x)
-@deprecate apply_trees_proba(x) apply_model_proba(x)
-@deprecate apply_forest_proba(x) apply_model_proba(x)
+# apply_tree_proba = apply_model_proba
+@deprecate apply_tree_proba apply_model_proba
+# apply_trees_proba = apply_model_proba
+@deprecate apply_trees_proba apply_model_proba
+# apply_forest_proba = apply_model_proba
+@deprecate apply_forest_proba apply_model_proba
 
 
 ############################################################################################
@@ -234,12 +239,13 @@ function sprinkle(
 ) where {L<:Label}
     _supp_labels = L[supp_labels(leaf)..., y]
 
-    _prediction =
+    _prediction = begin
         if update_labels
-            bestguess(supp_labels(leaf))
+            bestguess(supp_labels(leaf), suppress_parity_warning = suppress_parity_warning)
         else
             prediction(leaf)
         end
+    end
 
     _prediction, DTLeaf(_prediction, _supp_labels)
 end
@@ -256,12 +262,14 @@ function sprinkle(
     _supp_train_labels      = L[leaf.supp_train_labels...,      y]
     _supp_train_predictions = L[leaf.supp_train_predictions..., apply(leaf, Xs, i_instance, worlds; kwargs...)]
 
-    _predicting_function =
+    _predicting_function = begin
         if update_labels
             error("TODO expand code retrain")
         else
             leaf.predicting_function
         end
+    end
+
     d = slicedataset(Xs, [i_instance])
     _predicting_function(d)[1], NSDTLeaf{L}(_predicting_function, _supp_train_labels, leaf.supp_valid_labels, _supp_train_predictions, leaf.supp_valid_predictions)
 end
@@ -430,8 +438,10 @@ end
 
 ############################################################################################
 
-using Distributions
+# using Distributions
+using Distributions: fit, Normal
 using CategoricalDistributions
+using CategoricalDistributions: UnivariateFinite
 using CategoricalArrays
 
 function apply_proba(leaf::DTLeaf, Xs, i_instance::Integer, worlds::AbstractVector{<:AbstractWorldSet})
@@ -455,7 +465,7 @@ function apply_proba(tree::DTInternal, Xs, i_instance::Integer, worlds::Abstract
 end
 
 # Obtain predictions of a tree on a dataset
-function apply_proba(tree::DTree{L}, Xs, _classes, return_scores = false) where {L<:CLabel}
+function apply_proba(tree::DTree{L}, Xs, _classes; return_scores = false, suppress_parity_warning = false) where {L<:CLabel}
     @logmsg LogDetail "apply_proba..."
     _classes = string.(_classes)
     _ninstances = ninstances(Xs)
@@ -468,7 +478,7 @@ function apply_proba(tree::DTree{L}, Xs, _classes, return_scores = false) where 
         worlds = mm_instance_initialworldset(Xs, tree, i_instance)
 
         this_prediction_scores = apply_proba(root(tree), Xs, i_instance, worlds)
-        # d = Distributions.fit(UnivariateFinite, categorical(this_prediction_scores; levels = _classes))
+        # d = fit(UnivariateFinite, categorical(this_prediction_scores; levels = _classes))
         d = begin
             c = categorical(collect(this_prediction_scores); levels = _classes)
             cc = countmap(c)
@@ -485,7 +495,7 @@ function apply_proba(tree::DTree{L}, Xs, _classes, return_scores = false) where 
 end
 
 # Obtain predictions of a tree on a dataset
-function apply_proba(tree::DTree{L}, Xs, _classes = nothing, return_scores = false) where {L<:RLabel}
+function apply_proba(tree::DTree{L}, Xs, _classes = nothing; return_scores = false, suppress_parity_warning = false) where {L<:RLabel}
     @logmsg LogDetail "apply_proba..."
     _ninstances = ninstances(Xs)
     prediction_scores = Vector{Vector{Float64}}(undef, _ninstances)
@@ -501,7 +511,7 @@ function apply_proba(tree::DTree{L}, Xs, _classes = nothing, return_scores = fal
     if return_scores
         prediction_scores
     else
-        [Distributions.fit(Normal, sc) for sc in prediction_scores]
+        [fit(Normal, sc) for sc in prediction_scores]
     end
 end
 
@@ -511,6 +521,7 @@ function apply_proba(
     Xs,
     classes;
     tree_weights::Union{AbstractMatrix{Z},AbstractVector{Z},Nothing} = nothing,
+    suppress_parity_warning = false
 ) where {L<:CLabel,Z<:Real}
     @logmsg LogDetail "apply_proba..."
     ntrees = length(trees)
@@ -518,7 +529,7 @@ function apply_proba(
 
     if !(tree_weights isa AbstractMatrix)
         if isnothing(tree_weights)
-            tree_weights = Ones{Int}(length(trees), ninstances(Xs)) # TODO optimize?
+            tree_weights = nothing # Ones{Int}(length(trees), ninstances(Xs)) # TODO optimize?
         elseif tree_weights isa AbstractVector
             tree_weights = hcat([tree_weights for i in 1:ninstances(Xs)]...)
         else
@@ -527,19 +538,27 @@ function apply_proba(
         end
     end
 
-    @assert length(trees) == size(tree_weights, 1) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
-    @assert ninstances(Xs) == size(tree_weights, 2) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
+    @assert isnothing(tree_weights) || length(trees) == size(tree_weights, 1) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
+    @assert isnothing(tree_weights) || ninstances(Xs) == size(tree_weights, 2) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
 
     # apply each tree to the whole dataset
     _predictions = Array{Float64,3}(undef, _ninstances, ntrees, length(classes))
     Threads.@threads for i_tree in 1:ntrees
-        _predictions[:,i_tree,:] = apply_proba(trees[i_tree], Xs, classes)
+        _predictions[:,i_tree,:] = apply_proba(trees[i_tree], Xs, classes; return_scores = true)
     end
 
     # Average the prediction scores
     if isnothing(tree_weights)
-        dropdims(mean(_predictions; dims=2), dims=2)
+        bestguesses_idx = mapslices(argmax, _predictions; dims=3)
+        @show bestguesses_idx
+        bestguesses = dropdims(map(idx->classes[idx], bestguesses_idx); dims=3)
+        @show bestguesses
+        ret = map(s->bestguess(s; suppress_parity_warning = suppress_parity_warning), eachslice(bestguesses; dims=1))
+        @show ret
+        # x = map(x->classes[argmax(x)], eachslice(_predictions; dims=[1,2]))
+        # dropdims(mean(_predictions; dims=2), dims=2)
     else
+        # TODO fix this, it errors.
         tree_weights = tree_weights./sum(tree_weights)
         prediction_scores = Matrix{Float64}(undef, _ninstances, length(classes))
         Threads.@threads for i in 1:_ninstances
@@ -554,6 +573,7 @@ function apply_proba(
     trees::AbstractVector{<:DTree{<:L}},
     Xs;
     tree_weights::Union{Nothing,AbstractVector{Z}} = nothing,
+    kwargs...
 ) where {L<:RLabel,Z<:Real}
     @logmsg LogDetail "apply_proba..."
     ntrees = length(trees)
@@ -564,15 +584,15 @@ function apply_proba(
     end
 
     # apply each tree to the whole dataset
-    _predictions = Matrix{Vector{Float64}}(undef, _ninstances, ntrees)
+    prediction_scores = Matrix{Vector{Float64}}(undef, _ninstances, ntrees)
     Threads.@threads for i_tree in 1:ntrees
-        _predictions[:,i_tree] = apply_proba(trees[i_tree], Xs)
+        prediction_scores[:,i_tree] = apply_proba(trees[i_tree], Xs; return_scores = true, kwargs...)
     end
 
     # Average the prediction scores
     if isnothing(tree_weights)
-        Vector{Vector{Float64}}([vcat(_inst_predictions...)
-            for _inst_predictions in eachrow(_predictions)])
+        [fit(Normal, sc) for sc in eachrow(prediction_scores)]
+        # Vector{Vector{Float64}}([vcat(_inst_predictions...) for _inst_predictions in eachrow(_predictions)])
     else
         error("TODO expand code")
     end
@@ -583,12 +603,13 @@ function apply_proba(
     forest::DForest{L},
     Xs,
     args...;
-    weight_trees_by::Union{Bool,Symbol,AbstractVector} = false
+    weight_trees_by::Union{Bool,Symbol,AbstractVector} = false,
+    kwargs...
 ) where {L<:Label}
     if weight_trees_by == false
-        apply_proba(trees(forest), Xs, args...)
+        apply_proba(trees(forest), Xs, args...; kwargs...)
     elseif isa(weight_trees_by, AbstractVector)
-        apply_proba(trees(forest), Xs, args...; tree_weights = weight_trees_by)
+        apply_proba(trees(forest), Xs, args...; tree_weights = weight_trees_by, kwargs...)
     # elseif weight_trees_by == :accuracy
     #   # TODO: choose HOW to weight a tree... overall_accuracy is just an example (maybe can be parameterized)
     #   apply_proba(forest.trees, Xs, args...; tree_weights = map(cm -> overall_accuracy(cm), get(forest.metrics, :oob_metrics...)))
