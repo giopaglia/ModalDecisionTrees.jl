@@ -7,6 +7,7 @@ include("../data/load.jl")
 X, y = load_digits()
 Xcube = cat(map(r->reshape(r, (8,8,1)), eachrow(X))...; dims=4)
 Xnt = NamedTuple(zip(Symbol.(1:length(eachslice(Xcube; dims=3))), eachslice.(eachslice(Xcube; dims=3); dims=3)))
+X = Xnt
 y = string.(y.-1)
 
 N = length(y)
@@ -46,8 +47,10 @@ mach = machine(ModalRandomForest(;
     min_purity_increase = 0.0,
     rng = Random.MersenneTwister(1)
 ), X, y) |> m->fit!(m, rows = train_idxs)
-@test nnodes(fitted_params(mach).model) == 2438
-@test sum(predict_mode(mach, rows = test_idxs) .== y[test_idxs]) / length(y[test_idxs]) > 0.75
+@test nnodes(fitted_params(mach).model) == 1242
+@test predict_mode(mach, rows = test_idxs)
+@test predict(mach, rows = test_idxs)
+@test sum(predict_mode(mach, rows = test_idxs) .== y[test_idxs]) / length(y[test_idxs]) > 0.85
 
 
 ############################################################################################

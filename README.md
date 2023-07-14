@@ -61,7 +61,7 @@ using ModalDecisionTrees
 using Random
 
 # Load an example dataset (a temporal one)
-X, y = @load_japanesevowels
+X, y = load_japanesevowels()
 N = length(y)
 
 # Instantiate an MLJ machine based on a Modal Decision Tree with ≥ 4 samples at leaf

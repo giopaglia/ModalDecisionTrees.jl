@@ -38,7 +38,7 @@ function (c::ModelPrinter)(
     X = nothing,
     y = nothing;
     max_depth = c.m.display_depth,
-    hidemodality = (length(c.var_grouping) == 1),
+    hidemodality = (isnothing(c.var_grouping) || length(c.var_grouping) == 1),
     kwargs...
 )
     more_kwargs = begin

@@ -33,23 +33,16 @@ test_suites = [
         "classification/digits.jl",
         "classification/mnist.jl",
         # "classification/demo-juliacon2022.jl",
-        # 
-        # "classification/random.jl",
-        # "classification/low_precision.jl",
-        # "classification/heterogeneous.jl",
-        # "classification/scikitlearn.jl"
     ]),
     ("Regression", [
         "regression/simple.jl",
         # "regression/ames.jl",
         "regression/digits-regression.jl",
         # "regression/random.jl",
-        # "regression/low_precision.jl",
     ]),
     ("Miscellaneous", [
         "multimodal-datasets.jl"
         "multiformulas-construction.jl"
-        # "miscellaneous/convert.jl"
     ]),
 ]
 

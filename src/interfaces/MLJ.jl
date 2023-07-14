@@ -27,7 +27,7 @@ using ModalDecisionTrees: InitialCondition
 const MMI = MLJModelInterface
 const MDT = ModalDecisionTrees
 
-const repo_url = "https://github.com/giopaglia/$(MDT).jl"
+const _package_url = "https://github.com/giopaglia/$(MDT).jl"
 
 include("MLJ/default-parameters.jl")
 include("MLJ/sanity-checks.jl")
@@ -37,6 +37,8 @@ include("MLJ/feature-importance.jl")
 
 include("MLJ/ModalDecisionTree.jl")
 include("MLJ/ModalRandomForest.jl")
+
+include("MLJ/docstrings.jl")
 
 const SymbolicModel = Union{
     ModalDecisionTree,
@@ -108,7 +110,7 @@ function MMI.fit(m::SymbolicModel, verbosity::Integer, X, y, var_grouping, class
         printmodel                  = ModelPrinter(m, model, solemodel, var_grouping),
         sprinkle                    = (Xnew, ynew)->begin
             (Xnew, ynew, var_grouping, classes_seen, w) = MMI.reformat(m, Xnew, ynew; passive_mode = true)
-            sprinkle(model, Xnew, ynew)
+            ModalDecisionTrees.sprinkle(model, Xnew, ynew)
         end,
         solemodel                   = solemodel,
         var_grouping                = var_grouping,
@@ -199,7 +201,7 @@ MMI.metadata_pkg.(
     ),
     name = "$(MDT)",
     package_uuid = "e54bda2e-c571-11ec-9d64-0242ac120002",
-    package_url = repo_url,
+    package_url = _package_url,
     is_pure_julia = true,
     is_wrapper=false,
     package_license = "MIT",

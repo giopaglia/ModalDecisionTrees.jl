@@ -70,7 +70,7 @@ function ModalRandomForest(;
     initconditions = nothing,
     #
     downsize = true,
-    print_progress = false,
+    print_progress = (ntrees > 50),
     rng = Random.GLOBAL_RNG,
     #
     display_depth = nothing,

@@ -181,7 +181,9 @@ function MMI.clean!(m::SymbolicModel)
         m.n_subfeatures = nothing
     end
 
-    m.n_subfeatures == -1 && (m.n_subfeatures = nothing)
+    # Legacy behaviour
+    m.n_subfeatures == -1 && (m.n_subfeatures = sqrt_f)
+    m.n_subfeatures == 0 && (m.n_subfeatures = identity)
 
     function make_n_subfeatures_function(n_subfeatures)
         if isnothing(n_subfeatures)
@@ -189,7 +191,7 @@ function MMI.clean!(m::SymbolicModel)
         elseif n_subfeatures isa Integer
             warning *= "An absolute n_subfeatures was provided $(n_subfeatures). " *
                 "It is recommended to use relative values (between 0 and 1), interpreted " *
-                " as the share of the random portion of feature space explored at each split."
+                "as the share of the random portion of feature space explored at each split."
             x -> convert(Int64, n_subfeatures)
         elseif n_subfeatures isa AbstractFloat
             @assert 0 ≤ n_subfeatures ≤ 1 "Unexpected value for " *

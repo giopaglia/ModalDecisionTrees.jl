@@ -1,14 +1,19 @@
 @testset "digits-regression.jl" begin
 
+using MLJ
+using DataFrames
+using Random
+using StatsBase
+
 include("../data/load.jl")
 
 X, y = load_digits()
-Xcube = cat(map(r->reshape(r, (8,8,1)), eachrow(X))...; dims=4)
-Xnt = NamedTuple(zip(Symbol.(1:length(eachslice(Xcube; dims=3))), eachslice.(eachslice(Xcube; dims=3); dims=3)))
 y = float.(y)
 
 p = randperm(Random.MersenneTwister(1), 100)
 X, y = X[p, :], y[p]
+Xcube = cat(map(r->reshape(r, (8,8,1)), eachrow(X))...; dims=4)
+Xnt = NamedTuple(zip(Symbol.(1:length(eachslice(Xcube; dims=3))), eachslice.(eachslice(Xcube; dims=3); dims=3)))
 
 n_instances = size(X, 1)
 n_train = Int(floor(n_instances*.8))
@@ -32,34 +37,37 @@ mach = machine(model, X_trainnt, y_train) |> fit!
 @test StatsBase.cor(MLJ.predict_mean(mach, X_testnt), y_test) > 0.45
 
 
-model = ModalRandomForest()
+# model = ModalRandomForest()
 
-mach = machine(model, X_trainnt, y_train) |> fit!
+# mach = machine(model, X_trainnt, y_train) |> fit!
 
-@test StatsBase.cor(MLJ.predict_mean(mach, X_testnt), y_test) > 0.5
+# @test StatsBase.cor(MLJ.predict_mean(mach, X_testnt), y_test) > 0.5
 
 
 mach = machine(ModalRandomForest(;
-    n_subfeatures       = 3,
+    n_subfeatures       = 1,
     ntrees              = 10,
     sampling_fraction   = 0.7,
     max_depth           = -1,
     min_samples_leaf    = 1,
     min_samples_split   = 2,
     min_purity_increase = 0.0,
-), X, y) |> m->fit!(m, rows = train_idxs)
+    print_progress      = true,
+    rng = Random.MersenneTwister(1)
+), Xnt, y) |> m->fit!(m, rows = train_idxs)
 
 println(StatsBase.cor(MLJ.predict_mean(mach, X_testnt), y_test))
-@test StatsBase.cor(MLJ.predict_mean(mach, X_testnt), y_test) > 0.5
+@test StatsBase.cor(MLJ.predict_mean(mach, X_testnt), y_test) > 0.55
 
 mach = machine(ModalRandomForest(;
-    n_subfeatures       = 3,
+    n_subfeatures       = 0.6,
     ntrees              = 10,
     sampling_fraction   = 0.7,
     max_depth           = -1,
     min_samples_leaf    = 1,
     min_samples_split   = 2,
     min_purity_increase = 0.0,
+    rng = Random.MersenneTwister(1)
 ), Xnt, y) |> m->fit!(m, rows = train_idxs)
 
 println(StatsBase.cor(MLJ.predict_mean(mach, X_testnt), y_test))

@@ -519,11 +519,12 @@ end
 function apply_proba(
     trees::AbstractVector{<:DTree{<:L}},
     Xs,
-    classes;
+    _classes;
     tree_weights::Union{AbstractMatrix{Z},AbstractVector{Z},Nothing} = nothing,
     suppress_parity_warning = false
 ) where {L<:CLabel,Z<:Real}
     @logmsg LogDetail "apply_proba..."
+    _classes = string.(_classes)
     ntrees = length(trees)
     _ninstances = ninstances(Xs)
 
@@ -542,25 +543,31 @@ function apply_proba(
     @assert isnothing(tree_weights) || ninstances(Xs) == size(tree_weights, 2) "Each label must have a corresponding weight: labels length is $(length(labels)) and weights length is $(length(weights))."
 
     # apply each tree to the whole dataset
-    _predictions = Array{Float64,3}(undef, _ninstances, ntrees, length(classes))
+    _predictions = Array{Float64,3}(undef, _ninstances, ntrees, length(_classes))
     Threads.@threads for i_tree in 1:ntrees
-        _predictions[:,i_tree,:] = apply_proba(trees[i_tree], Xs, classes; return_scores = true)
+        _predictions[:,i_tree,:] = apply_proba(trees[i_tree], Xs, _classes; return_scores = true)
     end
 
     # Average the prediction scores
     if isnothing(tree_weights)
         bestguesses_idx = mapslices(argmax, _predictions; dims=3)
-        @show bestguesses_idx
-        bestguesses = dropdims(map(idx->classes[idx], bestguesses_idx); dims=3)
-        @show bestguesses
-        ret = map(s->bestguess(s; suppress_parity_warning = suppress_parity_warning), eachslice(bestguesses; dims=1))
-        @show ret
-        # x = map(x->classes[argmax(x)], eachslice(_predictions; dims=[1,2]))
+        # @show bestguesses_idx
+        bestguesses = dropdims(map(idx->_classes[idx], bestguesses_idx); dims=3)
+        ret = map(this_prediction_scores->begin
+            c = categorical(this_prediction_scores; levels = _classes)
+            cc = countmap(c)
+            s = [get(cc, cl, 0) for cl in classes(c)]
+            UnivariateFinite(classes(c), s ./ sum(s))
+        end, eachslice(bestguesses; dims=1))
+        # ret = map(s->bestguess(s; suppress_parity_warning = suppress_parity_warning), eachslice(bestguesses; dims=1))
+        # @show ret
+        ret
+        # x = map(x->_classes[argmax(x)], eachslice(_predictions; dims=[1,2]))
         # dropdims(mean(_predictions; dims=2), dims=2)
     else
         # TODO fix this, it errors.
         tree_weights = tree_weights./sum(tree_weights)
-        prediction_scores = Matrix{Float64}(undef, _ninstances, length(classes))
+        prediction_scores = Matrix{Float64}(undef, _ninstances, length(_classes))
         Threads.@threads for i in 1:_ninstances
             prediction_scores[i,:] .= mean(_predictions[i,:,:] * tree_weights; dims=1)
         end
@@ -571,7 +578,8 @@ end
 # use an array of trees to test features
 function apply_proba(
     trees::AbstractVector{<:DTree{<:L}},
-    Xs;
+    Xs,
+    classes = nothing;
     tree_weights::Union{Nothing,AbstractVector{Z}} = nothing,
     kwargs...
 ) where {L<:RLabel,Z<:Real}
@@ -585,13 +593,18 @@ function apply_proba(
 
     # apply each tree to the whole dataset
     prediction_scores = Matrix{Vector{Float64}}(undef, _ninstances, ntrees)
-    Threads.@threads for i_tree in 1:ntrees
+    # Threads.@threads for i_tree in 1:ntrees
+    for i_tree in 1:ntrees
         prediction_scores[:,i_tree] = apply_proba(trees[i_tree], Xs; return_scores = true, kwargs...)
     end
 
     # Average the prediction scores
     if isnothing(tree_weights)
-        [fit(Normal, sc) for sc in eachrow(prediction_scores)]
+        # @show prediction_scores
+        # @show collect(eachrow(prediction_scores))
+        # @show ([vcat(sc...) for sc in eachrow(prediction_scores)])
+        # @show collect([vcat.(sc...) for sc in eachrow(prediction_scores)])
+        [fit(Normal, vcat(sc...)) for sc in eachrow(prediction_scores)]
         # Vector{Vector{Float64}}([vcat(_inst_predictions...) for _inst_predictions in eachrow(_predictions)])
     else
         error("TODO expand code")
