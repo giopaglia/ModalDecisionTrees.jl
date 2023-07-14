@@ -155,7 +155,7 @@ Archive:
 	✔	use ProgressMeter: \@showprogress @done (22-07-14 18:23)
 	✔	getCanonicalFeature->getFeature @done (22-05-20 22:48)
 	✔	Functio-symbolic: tree partitions according to logical rules, but occasionally on math relations (e.g., on leaves) @done (22-05-20 22:39)
-	✔	SCANNER.JL: different frames with different ontologies: @done (22-02-05 23:59)
+	✔	SCANNER.JL: different modalities with different ontologies: @done (22-02-05 23:59)
 	✔	SCANNER.JL: Train with less stringent parameters, and post-prune @done (22-02-05 23:59)
 		############################################################################################
 	✔	Add the use of an unbalanced test set, and make ConfusionMatrix compute the average recall @done (21-12-03 00:37)
