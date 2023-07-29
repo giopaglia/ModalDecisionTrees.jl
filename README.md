@@ -1,3 +1,6 @@
+> **Warning**
+> This repo has moved to [aclai-lab/ModalDecisionTrees.jl](https://github.com/aclai-lab/ModalDecisionTrees.jl).
+
 # Modal Decision Trees & Forests
 
 ### Interpretable models for native time-series & image classification!
