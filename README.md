@@ -1,5 +1,4 @@
-> **Warning**
-> This project moved to [aclai-lab/ModalDecisionTrees.jl](https://github.com/aclai-lab/ModalDecisionTrees.jl).
+# Warning! This project moved to [aclai-lab/ModalDecisionTrees.jl](https://github.com/aclai-lab/ModalDecisionTrees.jl).
 
 # Modal Decision Trees & Forests
 
